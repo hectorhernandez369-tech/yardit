@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MapPin, Loader2, Navigation, ShoppingBag, Candy, DollarSign, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import PaymentForm from "../components/payment/PaymentForm";
 
 // Check if current date is within Halloween candy season (Oct 29-31)
 function isHalloweenSeason() {
@@ -25,7 +28,7 @@ export default function AddLocationPage() {
   const queryClient = useQueryClient();
   const halloweenActive = isHalloweenSeason();
 
-  const [step, setStep] = useState(1); // 1: Location details, 2: Payment selection
+  const [step, setStep] = useState(1); // 1: Location details, 2: Plan selection, 3: Payment
   const [formData, setFormData] = useState({
     type: "yard_sale",
     title: "",
@@ -38,22 +41,23 @@ export default function AddLocationPage() {
     payment_plan: "5_day",
   });
 
+  const [paymentDetails, setPaymentDetails] = useState(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const createLocationMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async ({ locationData, paymentInfo }) => {
       // Calculate expiration date
       let expiresAt = null;
       let paymentAmount = 0;
       let paymentStatus = "free";
 
-      if (data.type === "yard_sale") {
+      if (locationData.type === "yard_sale") {
         const now = new Date();
-        if (data.payment_plan === "5_day") {
+        if (locationData.payment_plan === "5_day") {
           expiresAt = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
           paymentAmount = 4.99;
           paymentStatus = "completed";
-        } else if (data.payment_plan === "monthly") {
+        } else if (locationData.payment_plan === "monthly") {
           expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
           paymentAmount = 20.00;
           paymentStatus = "completed";
@@ -64,21 +68,22 @@ export default function AddLocationPage() {
 
       // Create location
       const location = await base44.entities.Location.create({
-        ...data,
+        ...locationData,
         expires_at: expiresAt?.toISOString(),
         payment_amount: paymentAmount,
         payment_status: paymentStatus,
       });
 
       // Create payment record for yard sales
-      if (data.type === "yard_sale") {
+      if (locationData.type === "yard_sale" && paymentInfo) {
         await base44.entities.Payment.create({
           location_id: location.id,
           amount: paymentAmount,
-          plan: data.payment_plan,
-          duration_days: data.payment_plan === "5_day" ? 5 : 30,
+          plan: locationData.payment_plan,
+          duration_days: locationData.payment_plan === "5_day" ? 5 : 30,
           status: "completed",
-          payment_method: "demo", // In production, this would be actual payment method
+          payment_method: paymentInfo.payment_method,
+          transaction_id: paymentInfo.transaction_id,
         });
       }
 
@@ -86,6 +91,7 @@ export default function AddLocationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
+      queryClient.invalidateQueries({ queryKey: ["userLocations"] });
       toast.success("Location added successfully!");
       navigate(createPageUrl("Map"));
     },
@@ -176,19 +182,64 @@ export default function AddLocationPage() {
 
     // If Halloween candy, skip payment and submit directly
     if (formData.type === "halloween_candy") {
-      createLocationMutation.mutate(formData);
+      createLocationMutation.mutate({ locationData: formData, paymentInfo: null });
     } else {
       setStep(2);
     }
   };
 
-  const handleSubmitWithPayment = () => {
-    createLocationMutation.mutate(formData);
+  const handleContinueToPaymentForm = () => {
+    setStep(3);
+  };
+
+  const handlePaymentComplete = (paymentInfo) => {
+    setPaymentDetails(paymentInfo);
+    createLocationMutation.mutate({ 
+      locationData: formData, 
+      paymentInfo 
+    });
+  };
+
+  const getPaymentAmount = () => {
+    return formData.payment_plan === "5_day" ? 4.99 : 20.00;
   };
 
   return (
     <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
       <div className="max-w-3xl mx-auto">
+        {/* Progress Indicator */}
+        <div className="mb-8">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            {[1, 2, 3].map((s) => (
+              <React.Fragment key={s}>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
+                    s === step
+                      ? "bg-gradient-to-r from-orange-500 to-purple-600 text-white"
+                      : s < step
+                      ? "bg-green-500 text-white"
+                      : "bg-gray-200 text-gray-500"
+                  }`}
+                >
+                  {s < step ? "✓" : s}
+                </div>
+                {s < 3 && (
+                  <div
+                    className={`w-12 h-1 ${
+                      s < step ? "bg-green-500" : "bg-gray-200"
+                    }`}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+          <div className="flex justify-center gap-8 text-xs text-gray-600">
+            <span className={step === 1 ? "font-semibold" : ""}>Details</span>
+            <span className={step === 2 ? "font-semibold" : ""}>Plan</span>
+            <span className={step === 3 ? "font-semibold" : ""}>Payment</span>
+          </div>
+        </div>
+
         {step === 1 ? (
           <Card className="border-0 shadow-xl">
             <CardHeader className="bg-gradient-to-r from-orange-500 to-purple-600 text-white rounded-t-lg">
@@ -392,7 +443,7 @@ export default function AddLocationPage() {
                       </>
                     ) : (
                       <>
-                        Continue to Payment
+                        Continue
                       </>
                     )}
                   </Button>
@@ -400,7 +451,7 @@ export default function AddLocationPage() {
               </form>
             </CardContent>
           </Card>
-        ) : (
+        ) : step === 2 ? (
           <Card className="border-0 shadow-xl">
             <CardHeader className="bg-gradient-to-r from-orange-500 to-purple-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-2 text-2xl">
@@ -536,25 +587,23 @@ export default function AddLocationPage() {
                     Back
                   </Button>
                   <Button
-                    onClick={handleSubmitWithPayment}
-                    disabled={createLocationMutation.isPending}
+                    onClick={handleContinueToPaymentForm}
                     className="flex-1 bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700"
                   >
-                    {createLocationMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        Complete & Add to Map
-                      </>
-                    )}
+                    Continue to Payment
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
+        ) : (
+          <PaymentForm
+            amount={getPaymentAmount()}
+            plan={formData.payment_plan}
+            onPaymentComplete={handlePaymentComplete}
+            onCancel={() => setStep(2)}
+            isProcessing={createLocationMutation.isPending}
+          />
         )}
       </div>
     </div>
