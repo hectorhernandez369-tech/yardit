@@ -84,7 +84,13 @@ export default function MapPage() {
   }, []);
 
   const filteredLocations = useMemo(() => {
+    const now = new Date();
+    
     return locations.filter((loc) => {
+      // Check if location has expired
+      const isExpired = loc.expires_at && new Date(loc.expires_at) < now;
+      if (isExpired) return false;
+
       const matchesFilter = filter === "all" || loc.type === filter;
       const matchesSearch =
         !searchQuery ||
@@ -99,16 +105,22 @@ export default function MapPage() {
   }, [locations, filter, searchQuery, halloweenActive]);
 
   const stats = useMemo(() => {
-    const activeLocations = halloweenActive 
-      ? locations.filter((l) => l.active)
-      : locations.filter((l) => l.active && l.type !== "halloween_candy");
+    const now = new Date();
+    const activeLocations = locations.filter((l) => {
+      const isExpired = l.expires_at && new Date(l.expires_at) < now;
+      return l.active && !isExpired;
+    });
+
+    const halloweenLocations = halloweenActive 
+      ? activeLocations.filter((l) => l.type === "halloween_candy")
+      : [];
       
     return {
-      total: activeLocations.length,
-      yard_sale: locations.filter((l) => l.type === "yard_sale" && l.active).length,
-      halloween_candy: halloweenActive 
-        ? locations.filter((l) => l.type === "halloween_candy" && l.active).length 
-        : 0,
+      total: halloweenActive 
+        ? activeLocations.length
+        : activeLocations.filter((l) => l.type !== "halloween_candy").length,
+      yard_sale: activeLocations.filter((l) => l.type === "yard_sale").length,
+      halloween_candy: halloweenLocations.length,
     };
   }, [locations, halloweenActive]);
 
@@ -209,9 +221,19 @@ export default function MapPage() {
                     <p className="text-sm mb-2">{location.description}</p>
                   )}
                   {location.date && (
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
                       <Calendar className="w-3 h-3" />
                       {format(new Date(location.date), "MMM d, yyyy")}
+                    </div>
+                  )}
+                  {location.expires_at && (
+                    <div className="text-xs text-orange-600 mb-1">
+                      Expires: {format(new Date(location.expires_at), "MMM d, yyyy")}
+                    </div>
+                  )}
+                  {location.contact_info && (
+                    <div className="text-xs text-gray-600 mb-2">
+                      Contact: {location.contact_info}
                     </div>
                   )}
                   <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">

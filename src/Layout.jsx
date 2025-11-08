@@ -1,8 +1,9 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { MapPin, Plus, Home } from "lucide-react";
+import { MapPin, Plus, Home, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default function Layout({ children }) {
   const location = useLocation();
@@ -54,8 +55,22 @@ export default function Layout({ children }) {
       </main>
 
       <footer className="bg-white/80 backdrop-blur-sm border-t border-gray-200 py-4">
-        <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-600">
-          <p>🎃 Share your yard sales & Halloween candy spots with the community! 🏡</p>
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+            <p className="text-gray-600 text-center sm:text-left">
+              🎃 Share your yard sales & Halloween candy spots with the community! 🏡
+            </p>
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-orange-600" />
+              <span className="text-gray-600">Yard Sales:</span>
+              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300">
+                $4.99/5 days
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
+                $20/month
+              </Badge>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
