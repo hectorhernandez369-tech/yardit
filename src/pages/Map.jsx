@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -29,7 +30,7 @@ const yardSaleIcon = new L.Icon({
 });
 
 const halloweenIcon = new L.Icon({
-  iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%239333ea' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16'%3E🎃%3C/text%3E%3C/svg%3E",
+  iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%239333ea' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16'%3E%F0%9F%8E%83%3C/text%3E%3C/svg%3E",
   iconSize: [32, 32],
   iconAnchor: [16, 32],
   popupAnchor: [0, -32],
@@ -45,11 +46,22 @@ function MapController({ center }) {
   return null;
 }
 
+// Check if current date is within Halloween candy season (Oct 29-31)
+function isHalloweenSeason() {
+  const now = new Date();
+  const month = now.getMonth(); // 0-indexed, so October = 9
+  const day = now.getDate();
+  
+  // October 29, 30, 31
+  return month === 9 && day >= 29 && day <= 31;
+}
+
 export default function MapPage() {
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [mapCenter, setMapCenter] = useState([37.7749, -122.4194]); // Default to SF
   const [showSidebar, setShowSidebar] = useState(true);
+  const halloweenActive = isHalloweenSeason();
 
   const { data: locations, isLoading } = useQuery({
     queryKey: ["locations"],
@@ -78,17 +90,34 @@ export default function MapPage() {
         !searchQuery ||
         loc.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch && loc.active;
+      
+      // Filter out halloween candy locations if not in season
+      const isValidForSeason = loc.type !== "halloween_candy" || halloweenActive;
+      
+      return matchesFilter && matchesSearch && loc.active && isValidForSeason;
     });
-  }, [locations, filter, searchQuery]);
+  }, [locations, filter, searchQuery, halloweenActive]);
 
   const stats = useMemo(() => {
+    const activeLocations = halloweenActive 
+      ? locations.filter((l) => l.active)
+      : locations.filter((l) => l.active && l.type !== "halloween_candy");
+      
     return {
-      total: locations.filter((l) => l.active).length,
+      total: activeLocations.length,
       yard_sale: locations.filter((l) => l.type === "yard_sale" && l.active).length,
-      halloween_candy: locations.filter((l) => l.type === "halloween_candy" && l.active).length,
+      halloween_candy: halloweenActive 
+        ? locations.filter((l) => l.type === "halloween_candy" && l.active).length 
+        : 0,
     };
-  }, [locations]);
+  }, [locations, halloweenActive]);
+
+  // Reset filter if halloween season ends and candy filter is active
+  useEffect(() => {
+    if (!halloweenActive && filter === "halloween_candy") {
+      setFilter("all");
+    }
+  }, [halloweenActive, filter]);
 
   return (
     <div className="h-[calc(100vh-140px)] relative">
@@ -111,7 +140,7 @@ export default function MapPage() {
 
                 {/* Filter Tabs */}
                 <Tabs value={filter} onValueChange={setFilter}>
-                  <TabsList className="grid grid-cols-3">
+                  <TabsList className={halloweenActive ? "grid grid-cols-3" : "grid grid-cols-2"}>
                     <TabsTrigger value="all" className="gap-1">
                       <MapPin className="w-3 h-3" />
                       All ({stats.total})
@@ -120,10 +149,12 @@ export default function MapPage() {
                       <ShoppingBag className="w-3 h-3" />
                       Sales ({stats.yard_sale})
                     </TabsTrigger>
-                    <TabsTrigger value="halloween_candy" className="gap-1">
-                      <Candy className="w-3 h-3" />
-                      Candy ({stats.halloween_candy})
-                    </TabsTrigger>
+                    {halloweenActive && (
+                      <TabsTrigger value="halloween_candy" className="gap-1">
+                        <Candy className="w-3 h-3" />
+                        Candy ({stats.halloween_candy})
+                      </TabsTrigger>
+                    )}
                   </TabsList>
                 </Tabs>
 

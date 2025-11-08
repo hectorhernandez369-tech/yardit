@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,12 +13,23 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MapPin, Loader2, Navigation, ShoppingBag, Candy } from "lucide-react";
 import { toast } from "sonner";
 
+// Check if current date is within Halloween candy season (Oct 29-31)
+function isHalloweenSeason() {
+  const now = new Date();
+  const month = now.getMonth(); // 0-indexed, so October = 9
+  const day = now.getDate();
+  
+  // October 29, 30, 31
+  return month === 9 && day >= 29 && day <= 31;
+}
+
 export default function AddLocationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const halloweenActive = isHalloweenSeason();
 
   const [formData, setFormData] = useState({
-    type: "yard_sale",
+    type: halloweenActive ? "halloween_candy" : "yard_sale", 
     title: "",
     address: "",
     latitude: null,
@@ -135,7 +147,9 @@ export default function AddLocationPage() {
               Add a New Location
             </CardTitle>
             <p className="text-white/90 text-sm mt-1">
-              Share a yard sale or Halloween candy spot with your community!
+              {halloweenActive 
+                ? "Share a yard sale or Halloween candy spot with your community!"
+                : "Share a yard sale with your community!"}
             </p>
           </CardHeader>
 
@@ -149,7 +163,7 @@ export default function AddLocationPage() {
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, type: value }))
                   }
-                  className="grid grid-cols-2 gap-4"
+                  className={halloweenActive ? "grid grid-cols-2 gap-4" : "grid grid-cols-1 gap-4"}
                 >
                   <label
                     htmlFor="yard_sale"
@@ -169,23 +183,25 @@ export default function AddLocationPage() {
                     </div>
                   </label>
 
-                  <label
-                    htmlFor="halloween_candy"
-                    className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.type === "halloween_candy"
-                        ? "border-purple-600 bg-purple-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <RadioGroupItem value="halloween_candy" id="halloween_candy" />
-                    <div className="flex items-center gap-2">
-                      <Candy className="w-5 h-5 text-purple-600" />
-                      <div>
-                        <p className="font-medium">Halloween Candy</p>
-                        <p className="text-xs text-gray-500">Trick-or-treat</p>
+                  {halloweenActive && (
+                    <label
+                      htmlFor="halloween_candy"
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        formData.type === "halloween_candy"
+                          ? "border-purple-600 bg-purple-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <RadioGroupItem value="halloween_candy" id="halloween_candy" />
+                      <div className="flex items-center gap-2">
+                        <Candy className="w-5 h-5 text-purple-600" />
+                        <div>
+                          <p className="font-medium">Halloween Candy</p>
+                          <p className="text-xs text-gray-500">Trick-or-treat</p>
+                        </div>
                       </div>
-                    </div>
-                  </label>
+                    </label>
+                  )}
                 </RadioGroup>
               </div>
 
@@ -324,7 +340,7 @@ export default function AddLocationPage() {
         </Card>
 
         {/* Info Cards */}
-        <div className="grid md:grid-cols-2 gap-4 mt-6">
+        <div className={halloweenActive ? "grid md:grid-cols-2 gap-4 mt-6" : "mt-6"}>
           <Card className="border-orange-200 bg-orange-50">
             <CardContent className="p-4">
               <h3 className="font-semibold text-orange-900 mb-2 flex items-center gap-2">
@@ -339,19 +355,21 @@ export default function AddLocationPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-purple-200 bg-purple-50">
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
-                <Candy className="w-4 h-4" />
-                Halloween Tips
-              </h3>
-              <ul className="text-sm text-purple-800 space-y-1">
-                <li>• Mention candy types (full-size, variety)</li>
-                <li>• Note hours you'll be participating</li>
-                <li>• Special decorations or themes</li>
-              </ul>
-            </CardContent>
-          </Card>
+          {halloweenActive && (
+            <Card className="border-purple-200 bg-purple-50">
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                  <Candy className="w-4 h-4" />
+                  Halloween Tips
+                </h3>
+                <ul className="text-sm text-purple-800 space-y-1">
+                  <li>• Mention candy types (full-size, variety)</li>
+                  <li>• Note hours you'll be participating</li>
+                  <li>• Special decorations or themes</li>
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
