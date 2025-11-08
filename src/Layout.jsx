@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { MapPin, Plus, Home, DollarSign } from "lucide-react";
+import { MapPin, Plus, Home, DollarSign, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -34,6 +34,16 @@ export default function Layout({ children }) {
                 >
                   <Home className="w-4 h-4" />
                   <span className="hidden sm:inline">Map</span>
+                </Button>
+              </Link>
+              <Link to={createPageUrl("Profile")}>
+                <Button
+                  variant={location.pathname === createPageUrl("Profile") ? "default" : "ghost"}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">Profile</span>
                 </Button>
               </Link>
               <Link to={createPageUrl("AddLocation")}>
