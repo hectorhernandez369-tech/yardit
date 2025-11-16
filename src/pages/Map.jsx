@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -9,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown, Plus, Check } from "lucide-react";
+import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown, Plus, Check, Users } from "lucide-react";
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
+import CheckInButton from "../components/map/CheckInButton";
 import { toast } from "sonner";
 
 // Fix Leaflet default marker icons
@@ -120,6 +122,12 @@ export default function MapPage() {
     initialData: [],
   });
 
+  const { data: allCheckIns } = useQuery({
+    queryKey: ["allCheckIns"],
+    queryFn: () => base44.entities.CheckIn.list(),
+    initialData: [],
+  });
+
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -199,6 +207,10 @@ export default function MapPage() {
       setMapCenter([optimized[0].latitude, optimized[0].longitude]);
       toast.success(`Route optimized with ${optimized.length} stops!`);
     }
+  };
+
+  const getCheckInCount = (locationId) => {
+    return allCheckIns.filter(c => c.location_id === locationId).length;
   };
 
   const routeCoordinates = routeActive ? optimizedRoute.map(loc => [loc.latitude, loc.longitude]) : [];
@@ -298,6 +310,7 @@ export default function MapPage() {
           {filteredLocations.map((location, index) => {
             const isSelected = selectedLocations.some(loc => loc.id === location.id);
             const routeIndex = optimizedRoute.findIndex(loc => loc.id === location.id);
+            const checkInCount = getCheckInCount(location.id);
             
             return (
               <Marker
@@ -324,6 +337,14 @@ export default function MapPage() {
                         <Badge className="bg-blue-600">Stop #{routeIndex + 1}</Badge>
                       )}
                     </div>
+                    
+                    {checkInCount > 0 && (
+                      <div className="flex items-center gap-1 text-sm text-green-600 mb-2 bg-green-50 px-2 py-1 rounded">
+                        <Users className="w-4 h-4" />
+                        {checkInCount} {checkInCount === 1 ? "person" : "people"} checked in
+                      </div>
+                    )}
+
                     <h3 className="font-bold text-base mb-1">{location.title}</h3>
                     <p className="text-sm text-gray-600 mb-2">{location.address}</p>
                     {location.description && (
@@ -350,18 +371,21 @@ export default function MapPage() {
                         <User className="w-3 h-3" />
                         Added by {location.created_by?.split("@")[0] || "Anonymous"}
                       </div>
-                      <Button
-                        size="sm"
-                        variant={isSelected ? "default" : "outline"}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLocationSelect(location);
-                        }}
-                        className="gap-1"
-                      >
-                        {isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                        {isSelected ? "Selected" : "Add"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <CheckInButton locationId={location.id} />
+                        <Button
+                          size="sm"
+                          variant={isSelected ? "default" : "outline"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLocationSelect(location);
+                          }}
+                          className="gap-1"
+                        >
+                          {isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                          {isSelected ? "Selected" : "Add"}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </Popup>
