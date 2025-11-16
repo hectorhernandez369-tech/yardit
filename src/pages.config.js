@@ -2,7 +2,6 @@ import Map from './pages/Map';
 import AddLocation from './pages/AddLocation';
 import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
-import NotificationSettings from './pages/NotificationSettings';
 import Layout from './Layout.jsx';
 
 
@@ -11,7 +10,6 @@ export const PAGES = {
     "AddLocation": AddLocation,
     "Profile": Profile,
     "Notifications": Notifications,
-    "NotificationSettings": NotificationSettings,
 }
 
 export const pagesConfig = {

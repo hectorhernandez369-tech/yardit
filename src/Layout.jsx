@@ -1,9 +1,10 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { MapPin, Plus, Home, DollarSign, User } from "lucide-react";
+import { MapPin, Plus, Home, DollarSign, User, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import NotificationBell from "./components/notifications/NotificationBell";
 
 export default function Layout({ children }) {
   const location = useLocation();
@@ -34,6 +35,17 @@ export default function Layout({ children }) {
                 >
                   <Home className="w-4 h-4" />
                   <span className="hidden sm:inline">Map</span>
+                </Button>
+              </Link>
+              <NotificationBell />
+              <Link to={createPageUrl("Notifications")}>
+                <Button
+                  variant={location.pathname === createPageUrl("Notifications") ? "default" : "ghost"}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Bell className="w-4 h-4" />
+                  <span className="hidden sm:inline">Alerts</span>
                 </Button>
               </Link>
               <Link to={createPageUrl("Profile")}>
