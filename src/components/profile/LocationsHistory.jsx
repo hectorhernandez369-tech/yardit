@@ -1,6 +1,6 @@
 import React from "react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,8 @@ import {
   ExternalLink,
   Clock,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Users
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -21,6 +22,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LocationsHistory({ locations, isLoading }) {
   const queryClient = useQueryClient();
+
+  const { data: allCheckIns } = useQuery({
+    queryKey: ["allCheckIns"],
+    queryFn: () => base44.entities.CheckIn.list(),
+    initialData: [],
+  });
 
   const deleteLocationMutation = useMutation({
     mutationFn: (locationId) => base44.entities.Location.delete(locationId),
@@ -44,6 +51,10 @@ export default function LocationsHistory({ locations, isLoading }) {
   const isExpired = (location) => {
     if (!location.expires_at) return false;
     return new Date(location.expires_at) < new Date();
+  };
+
+  const getCheckInCount = (locationId) => {
+    return allCheckIns.filter(c => c.location_id === locationId).length;
   };
 
   const getStatusBadge = (location) => {
@@ -117,104 +128,114 @@ export default function LocationsHistory({ locations, isLoading }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {locations.map((location) => (
-              <Card key={location.id} className="border-2 hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    {/* Icon */}
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      location.type === "yard_sale" ? "bg-orange-100" : "bg-purple-100"
-                    }`}>
-                      {location.type === "yard_sale" ? (
-                        <ShoppingBag className="w-6 h-6 text-orange-600" />
-                      ) : (
-                        <Candy className="w-6 h-6 text-purple-600" />
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-start gap-2 mb-2">
-                        <h3 className="font-bold text-lg">{location.title}</h3>
-                        {getStatusBadge(location)}
-                        <Badge
-                          variant="outline"
-                          className={
-                            location.type === "yard_sale"
-                              ? "bg-orange-50 text-orange-700 border-orange-300"
-                              : "bg-purple-50 text-purple-700 border-purple-300"
-                          }
-                        >
-                          {location.type === "yard_sale" ? "Yard Sale" : "Halloween Candy"}
-                        </Badge>
+            {locations.map((location) => {
+              const checkInCount = getCheckInCount(location.id);
+              
+              return (
+                <Card key={location.id} className="border-2 hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      {/* Icon */}
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        location.type === "yard_sale" ? "bg-orange-100" : "bg-purple-100"
+                      }`}>
+                        {location.type === "yard_sale" ? (
+                          <ShoppingBag className="w-6 h-6 text-orange-600" />
+                        ) : (
+                          <Candy className="w-6 h-6 text-purple-600" />
+                        )}
                       </div>
 
-                      <p className="text-sm text-gray-600 mb-2">{location.address}</p>
-
-                      {location.description && (
-                        <p className="text-sm text-gray-700 mb-2">{location.description}</p>
-                      )}
-
-                      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          Created: {format(new Date(location.created_date), "MMM d, yyyy")}
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-start gap-2 mb-2">
+                          <h3 className="font-bold text-lg">{location.title}</h3>
+                          {getStatusBadge(location)}
+                          <Badge
+                            variant="outline"
+                            className={
+                              location.type === "yard_sale"
+                                ? "bg-orange-50 text-orange-700 border-orange-300"
+                                : "bg-purple-50 text-purple-700 border-purple-300"
+                            }
+                          >
+                            {location.type === "yard_sale" ? "Yard Sale" : "Halloween Candy"}
+                          </Badge>
+                          {checkInCount > 0 && (
+                            <Badge className="bg-green-600 text-white gap-1">
+                              <Users className="w-3 h-3" />
+                              {checkInCount} {checkInCount === 1 ? "check-in" : "check-ins"}
+                            </Badge>
+                          )}
                         </div>
-                        {location.date && (
+
+                        <p className="text-sm text-gray-600 mb-2">{location.address}</p>
+
+                        {location.description && (
+                          <p className="text-sm text-gray-700 mb-2">{location.description}</p>
+                        )}
+
+                        <div className="flex flex-wrap gap-4 text-xs text-gray-500">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            Event: {format(new Date(location.date), "MMM d, yyyy")}
+                            Created: {format(new Date(location.created_date), "MMM d, yyyy")}
                           </div>
-                        )}
-                        {location.expires_at && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            Expires: {format(new Date(location.expires_at), "MMM d, yyyy")}
+                          {location.date && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              Event: {format(new Date(location.date), "MMM d, yyyy")}
+                            </div>
+                          )}
+                          {location.expires_at && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              Expires: {format(new Date(location.expires_at), "MMM d, yyyy")}
+                            </div>
+                          )}
+                        </div>
+
+                        {location.payment_plan && location.payment_plan !== "free" && (
+                          <div className="mt-2">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                              {location.payment_plan === "5_day" ? "5-Day Plan" : "Monthly Plan"} - 
+                              ${location.payment_amount?.toFixed(2)}
+                            </Badge>
                           </div>
                         )}
                       </div>
 
-                      {location.payment_plan && location.payment_plan !== "free" && (
-                        <div className="mt-2">
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
-                            {location.payment_plan === "5_day" ? "5-Day Plan" : "Monthly Plan"} - 
-                            ${location.payment_amount?.toFixed(2)}
-                          </Badge>
-                        </div>
-                      )}
+                      {/* Actions */}
+                      <div className="flex sm:flex-col gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            window.open(
+                              `/?location=${location.latitude},${location.longitude}`,
+                              "_blank"
+                            )
+                          }
+                          className="gap-2"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          <span className="hidden sm:inline">View</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(location.id, location.title)}
+                          disabled={deleteLocationMutation.isPending}
+                          className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span className="hidden sm:inline">Delete</span>
+                        </Button>
+                      </div>
                     </div>
-
-                    {/* Actions */}
-                    <div className="flex sm:flex-col gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          window.open(
-                            `/?location=${location.latitude},${location.longitude}`,
-                            "_blank"
-                          )
-                        }
-                        className="gap-2"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        <span className="hidden sm:inline">View</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(location.id, location.title)}
-                        disabled={deleteLocationMutation.isPending}
-                        className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span className="hidden sm:inline">Delete</span>
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </CardContent>
