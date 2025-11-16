@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Card } from "@/components/ui/card";
@@ -10,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown } from "lucide-react";
+import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown, Plus, Check } from "lucide-react";
 import { format } from "date-fns";
+import RouteBuilder from "../components/map/RouteBuilder";
+import { toast } from "sonner";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -36,6 +37,13 @@ const halloweenIcon = new L.Icon({
   popupAnchor: [0, -32],
 });
 
+const selectedIcon = new L.Icon({
+  iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232563eb' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3E✓%3C/text%3E%3C/svg%3E",
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32],
+});
+
 function MapController({ center }) {
   const map = useMap();
   useEffect(() => {
@@ -49,18 +57,61 @@ function MapController({ center }) {
 // Check if current date is within Halloween candy season (Oct 29-31)
 function isHalloweenSeason() {
   const now = new Date();
-  const month = now.getMonth(); // 0-indexed, so October = 9
+  const month = now.getMonth();
   const day = now.getDate();
-  
-  // October 29, 30, 31
   return month === 9 && day >= 29 && day <= 31;
+}
+
+// Calculate distance between two coordinates
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// Nearest neighbor algorithm for route optimization
+function optimizeRoute(locations, startLat, startLng) {
+  if (locations.length === 0) return [];
+  
+  const unvisited = [...locations];
+  const route = [];
+  let currentLat = startLat;
+  let currentLng = startLng;
+
+  while (unvisited.length > 0) {
+    let nearestIndex = 0;
+    let minDistance = Infinity;
+
+    unvisited.forEach((loc, index) => {
+      const dist = calculateDistance(currentLat, currentLng, loc.latitude, loc.longitude);
+      if (dist < minDistance) {
+        minDistance = dist;
+        nearestIndex = index;
+      }
+    });
+
+    const nearest = unvisited.splice(nearestIndex, 1)[0];
+    route.push(nearest);
+    currentLat = nearest.latitude;
+    currentLng = nearest.longitude;
+  }
+
+  return route;
 }
 
 export default function MapPage() {
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [mapCenter, setMapCenter] = useState([37.7749, -122.4194]); // Default to SF
+  const [mapCenter, setMapCenter] = useState([37.7749, -122.4194]);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [optimizedRoute, setOptimizedRoute] = useState([]);
+  const [routeActive, setRouteActive] = useState(false);
   const halloweenActive = isHalloweenSeason();
 
   const { data: locations, isLoading } = useQuery({
@@ -69,7 +120,6 @@ export default function MapPage() {
     initialData: [],
   });
 
-  // Get user's location
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -87,7 +137,6 @@ export default function MapPage() {
     const now = new Date();
     
     return locations.filter((loc) => {
-      // Check if location has expired
       const isExpired = loc.expires_at && new Date(loc.expires_at) < now;
       if (isExpired) return false;
 
@@ -97,7 +146,6 @@ export default function MapPage() {
         loc.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
       
-      // Filter out halloween candy locations if not in season
       const isValidForSeason = loc.type !== "halloween_candy" || halloweenActive;
       
       return matchesFilter && matchesSearch && loc.active && isValidForSeason;
@@ -124,22 +172,45 @@ export default function MapPage() {
     };
   }, [locations, halloweenActive]);
 
-  // Reset filter if halloween season ends and candy filter is active
   useEffect(() => {
     if (!halloweenActive && filter === "halloween_candy") {
       setFilter("all");
     }
   }, [halloweenActive, filter]);
 
+  const handleLocationSelect = (location) => {
+    const isSelected = selectedLocations.some(loc => loc.id === location.id);
+    
+    if (isSelected) {
+      setSelectedLocations(prev => prev.filter(loc => loc.id !== location.id));
+    } else {
+      setSelectedLocations(prev => [...prev, location]);
+    }
+    setRouteActive(false);
+    setOptimizedRoute([]);
+  };
+
+  const handleBuildRoute = () => {
+    const optimized = optimizeRoute(selectedLocations, mapCenter[0], mapCenter[1]);
+    setOptimizedRoute(optimized);
+    setRouteActive(true);
+    
+    if (optimized.length > 0) {
+      setMapCenter([optimized[0].latitude, optimized[0].longitude]);
+      toast.success(`Route optimized with ${optimized.length} stops!`);
+    }
+  };
+
+  const routeCoordinates = routeActive ? optimizedRoute.map(loc => [loc.latitude, loc.longitude]) : [];
+
   return (
     <div className="h-[calc(100vh-140px)] relative">
-      {/* Stats Bar */}
+      {/* Stats & Search Bar */}
       <div className="absolute top-4 left-4 right-4 z-[1000] pointer-events-none">
-        <div className="max-w-4xl mx-auto pointer-events-auto">
+        <div className="max-w-4xl mx-auto pointer-events-auto space-y-3">
           <Card className="bg-white/95 backdrop-blur-md shadow-xl border-0">
             <div className="p-4">
               <div className="flex flex-col sm:flex-row gap-4">
-                {/* Search */}
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
@@ -150,7 +221,6 @@ export default function MapPage() {
                   />
                 </div>
 
-                {/* Filter Tabs */}
                 <Tabs value={filter} onValueChange={setFilter}>
                   <TabsList className={halloweenActive ? "grid grid-cols-3" : "grid grid-cols-2"}>
                     <TabsTrigger value="all" className="gap-1">
@@ -170,7 +240,6 @@ export default function MapPage() {
                   </TabsList>
                 </Tabs>
 
-                {/* Toggle Sidebar */}
                 <Button
                   variant="outline"
                   size="icon"
@@ -182,6 +251,23 @@ export default function MapPage() {
               </div>
             </div>
           </Card>
+
+          {/* Route Builder */}
+          <RouteBuilder
+            selectedLocations={selectedLocations}
+            onRemoveLocation={(id) => {
+              setSelectedLocations(prev => prev.filter(loc => loc.id !== id));
+              setRouteActive(false);
+              setOptimizedRoute([]);
+            }}
+            onClearAll={() => {
+              setSelectedLocations([]);
+              setRouteActive(false);
+              setOptimizedRoute([]);
+            }}
+            onBuildRoute={handleBuildRoute}
+            routeActive={routeActive}
+          />
         </div>
       </div>
 
@@ -198,52 +284,90 @@ export default function MapPage() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {filteredLocations.map((location) => (
-            <Marker
-              key={location.id}
-              position={[location.latitude, location.longitude]}
-              icon={location.type === "yard_sale" ? yardSaleIcon : halloweenIcon}
-            >
-              <Popup>
-                <div className="p-2">
-                  <Badge
-                    className={
-                      location.type === "yard_sale"
-                        ? "bg-orange-500 mb-2"
-                        : "bg-purple-600 mb-2"
-                    }
-                  >
-                    {location.type === "yard_sale" ? "🏡 Yard Sale" : "🎃 Halloween Candy"}
-                  </Badge>
-                  <h3 className="font-bold text-base mb-1">{location.title}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{location.address}</p>
-                  {location.description && (
-                    <p className="text-sm mb-2">{location.description}</p>
-                  )}
-                  {location.date && (
-                    <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
-                      <Calendar className="w-3 h-3" />
-                      {format(new Date(location.date), "MMM d, yyyy")}
+          
+          {/* Route Line */}
+          {routeActive && routeCoordinates.length > 1 && (
+            <Polyline
+              positions={routeCoordinates}
+              color="#2563eb"
+              weight={4}
+              opacity={0.7}
+            />
+          )}
+
+          {filteredLocations.map((location, index) => {
+            const isSelected = selectedLocations.some(loc => loc.id === location.id);
+            const routeIndex = optimizedRoute.findIndex(loc => loc.id === location.id);
+            
+            return (
+              <Marker
+                key={location.id}
+                position={[location.latitude, location.longitude]}
+                icon={isSelected ? selectedIcon : (location.type === "yard_sale" ? yardSaleIcon : halloweenIcon)}
+                eventHandlers={{
+                  click: () => handleLocationSelect(location)
+                }}
+              >
+                <Popup>
+                  <div className="p-2">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <Badge
+                        className={
+                          location.type === "yard_sale"
+                            ? "bg-orange-500"
+                            : "bg-purple-600"
+                        }
+                      >
+                        {location.type === "yard_sale" ? "🏡 Yard Sale" : "🎃 Halloween Candy"}
+                      </Badge>
+                      {isSelected && routeActive && (
+                        <Badge className="bg-blue-600">Stop #{routeIndex + 1}</Badge>
+                      )}
                     </div>
-                  )}
-                  {location.expires_at && (
-                    <div className="text-xs text-orange-600 mb-1">
-                      Expires: {format(new Date(location.expires_at), "MMM d, yyyy")}
+                    <h3 className="font-bold text-base mb-1">{location.title}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{location.address}</p>
+                    {location.description && (
+                      <p className="text-sm mb-2">{location.description}</p>
+                    )}
+                    {location.date && (
+                      <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                        <Calendar className="w-3 h-3" />
+                        {format(new Date(location.date), "MMM d, yyyy")}
+                      </div>
+                    )}
+                    {location.expires_at && (
+                      <div className="text-xs text-orange-600 mb-1">
+                        Expires: {format(new Date(location.expires_at), "MMM d, yyyy")}
+                      </div>
+                    )}
+                    {location.contact_info && (
+                      <div className="text-xs text-gray-600 mb-2">
+                        Contact: {location.contact_info}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                        <User className="w-3 h-3" />
+                        Added by {location.created_by?.split("@")[0] || "Anonymous"}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={isSelected ? "default" : "outline"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLocationSelect(location);
+                        }}
+                        className="gap-1"
+                      >
+                        {isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                        {isSelected ? "Selected" : "Add"}
+                      </Button>
                     </div>
-                  )}
-                  {location.contact_info && (
-                    <div className="text-xs text-gray-600 mb-2">
-                      Contact: {location.contact_info}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                    <User className="w-3 h-3" />
-                    Added by {location.created_by?.split("@")[0] || "Anonymous"}
                   </div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+                </Popup>
+              </Marker>
+            );
+          })}
         </MapContainer>
       </div>
 
