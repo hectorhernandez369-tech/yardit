@@ -1,13 +1,36 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { MapPin, Plus, Home, DollarSign, User, Bell } from "lucide-react";
+import { MapPin, Plus, Home, User, Bell, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import NotificationBell from "./components/notifications/NotificationBell";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Layout({ children }) {
   const location = useLocation();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const currentUser = await base44.auth.me();
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const { data: notifications } = useQuery({
+    queryKey: ["notifications", user?.email],
+    queryFn: () => base44.entities.Notification.filter({ user_email: user.email }, "-created_date"),
+    enabled: !!user?.email,
+    initialData: [],
+  });
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-orange-50 via-purple-50 to-pink-50">
@@ -37,17 +60,38 @@ export default function Layout({ children }) {
                   <span className="hidden sm:inline">Map</span>
                 </Button>
               </Link>
-              <NotificationBell />
-              <Link to={createPageUrl("Notifications")}>
-                <Button
-                  variant={location.pathname === createPageUrl("Notifications") ? "default" : "ghost"}
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Bell className="w-4 h-4" />
-                  <span className="hidden sm:inline">Alerts</span>
-                </Button>
-              </Link>
+              
+              {user && (
+                <>
+                  <Link to={createPageUrl("Notifications")}>
+                    <Button
+                      variant={location.pathname === createPageUrl("Notifications") ? "default" : "ghost"}
+                      size="sm"
+                      className="gap-2 relative"
+                    >
+                      <Bell className="w-4 h-4" />
+                      <span className="hidden sm:inline">Notifications</span>
+                      {unreadCount > 0 && (
+                        <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-600 text-white text-xs">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </Link>
+                  
+                  <Link to={createPageUrl("NotificationSettings")}>
+                    <Button
+                      variant={location.pathname === createPageUrl("NotificationSettings") ? "default" : "ghost"}
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span className="hidden sm:inline">Settings</span>
+                    </Button>
+                  </Link>
+                </>
+              )}
+              
               <Link to={createPageUrl("Profile")}>
                 <Button
                   variant={location.pathname === createPageUrl("Profile") ? "default" : "ghost"}
@@ -58,6 +102,7 @@ export default function Layout({ children }) {
                   <span className="hidden sm:inline">Profile</span>
                 </Button>
               </Link>
+              
               <Link to={createPageUrl("AddLocation")}>
                 <Button
                   size="sm"
@@ -78,20 +123,10 @@ export default function Layout({ children }) {
 
       <footer className="bg-white/80 backdrop-blur-sm border-t border-gray-200 py-4">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
-            <p className="text-gray-600 text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-sm">
+            <p className="text-gray-600 text-center">
               🎃 Share your yard sales & Halloween candy spots with the community! 🏡
             </p>
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-orange-600" />
-              <span className="text-gray-600">Yard Sales:</span>
-              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300">
-                $4.99/5 days
-              </Badge>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
-                $20/month
-              </Badge>
-            </div>
           </div>
         </div>
       </footer>

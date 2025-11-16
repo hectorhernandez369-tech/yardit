@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -11,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
-import LocationActions from "../components/map/LocationActions";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -236,12 +236,9 @@ export default function MapPage() {
                       Contact: {location.contact_info}
                     </div>
                   )}
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
-                      <User className="w-3 h-3" />
-                      Added by {location.created_by?.split("@")[0] || "Anonymous"}
-                    </div>
-                    <LocationActions location={location} />
+                  <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                    <User className="w-3 h-3" />
+                    Added by {location.created_by?.split("@")[0] || "Anonymous"}
                   </div>
                 </div>
               </Popup>
