@@ -25,27 +25,53 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Custom marker icons
-const yardSaleIcon = new L.Icon({
-  iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23f97316' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3E$%3C/text%3E%3C/svg%3E",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
-});
-
-const halloweenIcon = new L.Icon({
-  iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%239333ea' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16'%3E%F0%9F%8E%83%3C/text%3E%3C/svg%3E",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
-});
-
-const selectedIcon = new L.Icon({
-  iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232563eb' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3E✓%3C/text%3E%3C/svg%3E",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
-});
+// Custom marker icons based on tier
+const createIcon = (type, tier, isSelected) => {
+  if (isSelected) {
+    return new L.Icon({
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232563eb' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3E✓%3C/text%3E%3C/svg%3E",
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32],
+    });
+  }
+  
+  if (type === "halloween_candy") {
+    return new L.Icon({
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%239333ea' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16'%3E%F0%9F%8E%83%3C/text%3E%3C/svg%3E",
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32],
+    });
+  }
+  
+  // Tier-based icons for yard sales
+  if (tier === "featured") {
+    return new L.Icon({
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 38 38'%3E%3Cdefs%3E%3CradialGradient id='glow'%3E%3Cstop offset='0%25' stop-color='%23fbbf24' stop-opacity='0.3'/%3E%3Cstop offset='100%25' stop-color='%23fbbf24' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='19' cy='19' r='18' fill='url(%23glow)'/%3E%3Ccircle cx='19' cy='19' r='14' fill='%23f97316' stroke='%23fbbf24' stroke-width='3'/%3E%3Ctext x='19' y='24' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3E★%3C/text%3E%3C/svg%3E",
+      iconSize: [38, 38],
+      iconAnchor: [19, 38],
+      popupAnchor: [0, -38],
+    });
+  }
+  
+  if (tier === "neighborhood_event") {
+    return new L.Icon({
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 38 38'%3E%3Ccircle cx='19' cy='19' r='16' fill='%23ea580c' stroke='white' stroke-width='3'/%3E%3Ctext x='19' y='24' text-anchor='middle' fill='white' font-size='18' font-weight='bold'%3E🏘%3C/text%3E%3C/svg%3E",
+      iconSize: [38, 38],
+      iconAnchor: [19, 38],
+      popupAnchor: [0, -38],
+    });
+  }
+  
+  // Standard map_pin icon
+  return new L.Icon({
+    iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23f97316' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3E$%3C/text%3E%3C/svg%3E",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  });
+};
 
 function MapController({ center }) {
   const map = useMap();
@@ -344,9 +370,17 @@ export default function MapPage() {
               <Marker
                 key={location.id}
                 position={[location.latitude, location.longitude]}
-                icon={isSelected ? selectedIcon : (location.type === "yard_sale" ? yardSaleIcon : halloweenIcon)}
+                icon={createIcon(location.type, location.tier, isSelected)}
                 eventHandlers={{
-                  click: () => handleLocationSelect(location)
+                  click: () => {
+                    handleLocationSelect(location);
+                    // Track map pin click
+                    if (location.tier !== "free") {
+                      base44.entities.Location.update(location.id, {
+                        map_pin_clicks: (location.map_pin_clicks || 0) + 1
+                      });
+                    }
+                  }
                 }}
               >
                 <Popup>

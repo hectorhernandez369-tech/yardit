@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,28 +8,47 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { MapPin, Loader2, Navigation, ShoppingBag, Candy, DollarSign, Check } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { MapPin, Loader2, Navigation } from "lucide-react";
 import { toast } from "sonner";
+import TierSelector from "../components/listing/TierSelector";
 import PaymentForm from "../components/payment/PaymentForm";
 
-// Check if current date is within Halloween candy season (Oct 29-31)
-function isHalloweenSeason() {
+// Get next Friday at 12:01 AM
+function getNextFriday() {
   const now = new Date();
-  const month = now.getMonth();
-  const day = now.getDate();
-  return month === 9 && day >= 29 && day <= 31;
+  const dayOfWeek = now.getDay();
+  const daysUntilFriday = (5 - dayOfWeek + 7) % 7 || 7;
+  const nextFriday = new Date(now);
+  nextFriday.setDate(now.getDate() + daysUntilFriday);
+  nextFriday.setHours(0, 1, 0, 0);
+  return nextFriday;
 }
+
+// Get next Sunday at 11:59 PM
+function getNextSunday() {
+  const friday = getNextFriday();
+  const sunday = new Date(friday);
+  sunday.setDate(friday.getDate() + 2);
+  sunday.setHours(23, 59, 0, 0);
+  return sunday;
+}
+
+const tierPricing = {
+  free: 0,
+  map_pin: 4.99,
+  featured: 14.99,
+  neighborhood_event: 49.99
+};
 
 export default function AddLocationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const halloweenActive = isHalloweenSeason();
 
-  const [step, setStep] = useState(1); // 1: Location details, 2: Plan selection, 3: Payment
+  const [step, setStep] = useState(1); // 1: Details, 2: Tier selection, 3: Payment
   const [formData, setFormData] = useState({
     type: "yard_sale",
+    tier: "map_pin",
     title: "",
     address: "",
     latitude: null,
@@ -38,49 +56,38 @@ export default function AddLocationPage() {
     description: "",
     date: "",
     contact_info: "",
-    payment_plan: "5_day",
+    photos: [],
   });
 
-  const [paymentDetails, setPaymentDetails] = useState(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const createLocationMutation = useMutation({
     mutationFn: async ({ locationData, paymentInfo }) => {
-      // Calculate expiration date
-      let expiresAt = null;
-      let paymentAmount = 0;
-      let paymentStatus = "free";
+      const friday = getNextFriday();
+      const sunday = getNextSunday();
+      
+      // Neighborhood events get 2 weekends
+      const expiresAt = locationData.tier === "neighborhood_event" 
+        ? new Date(sunday.getTime() + 7 * 24 * 60 * 60 * 1000)
+        : sunday;
 
-      if (locationData.type === "yard_sale") {
-        const now = new Date();
-        if (locationData.payment_plan === "5_day") {
-          expiresAt = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
-          paymentAmount = 4.99;
-          paymentStatus = "completed";
-        } else if (locationData.payment_plan === "monthly") {
-          expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-          paymentAmount = 20.00;
-          paymentStatus = "completed";
-        }
-      } else {
-        paymentStatus = "free";
-      }
-
-      // Create location
       const location = await base44.entities.Location.create({
         ...locationData,
-        expires_at: expiresAt?.toISOString(),
-        payment_amount: paymentAmount,
-        payment_status: paymentStatus,
+        expires_at: expiresAt.toISOString(),
+        payment_amount: tierPricing[locationData.tier],
+        payment_status: locationData.tier === "free" ? "free" : "completed",
+        feed_impressions: 0,
+        listing_views: 0,
+        map_pin_clicks: 0,
       });
 
-      // Create payment record for yard sales
-      if (locationData.type === "yard_sale" && paymentInfo) {
+      // Create payment record for paid tiers
+      if (locationData.tier !== "free" && paymentInfo) {
         await base44.entities.Payment.create({
           location_id: location.id,
-          amount: paymentAmount,
-          plan: locationData.payment_plan,
-          duration_days: locationData.payment_plan === "5_day" ? 5 : 30,
+          amount: tierPricing[locationData.tier],
+          plan: locationData.tier,
+          duration_days: locationData.tier === "neighborhood_event" ? 6 : 3,
           status: "completed",
           payment_method: paymentInfo.payment_method,
           transaction_id: paymentInfo.transaction_id,
@@ -92,11 +99,11 @@ export default function AddLocationPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
       queryClient.invalidateQueries({ queryKey: ["userLocations"] });
-      toast.success("Location added successfully!");
+      toast.success("Listing created successfully!");
       navigate(createPageUrl("Map"));
     },
     onError: (error) => {
-      toast.error("Failed to add location. Please try again.");
+      toast.error("Failed to create listing. Please try again.");
       console.error(error);
     },
   });
@@ -172,7 +179,7 @@ export default function AddLocationPage() {
     }
   };
 
-  const handleContinueToPayment = (e) => {
+  const handleContinueToTiers = (e) => {
     e.preventDefault();
 
     if (!formData.title || !formData.address || !formData.latitude || !formData.longitude) {
@@ -180,33 +187,38 @@ export default function AddLocationPage() {
       return;
     }
 
-    // If Halloween candy, skip payment and submit directly
-    if (formData.type === "halloween_candy") {
+    // Enforce character limit for free tier
+    if (formData.tier === "free" && formData.description.length > 160) {
+      toast.error("Free listings have a 160 character description limit");
+      return;
+    }
+
+    setStep(2);
+  };
+
+  const handleContinueToPayment = () => {
+    if (formData.tier === "free") {
       createLocationMutation.mutate({ locationData: formData, paymentInfo: null });
     } else {
-      setStep(2);
+      setStep(3);
     }
   };
 
-  const handleContinueToPaymentForm = () => {
-    setStep(3);
-  };
-
   const handlePaymentComplete = (paymentInfo) => {
-    setPaymentDetails(paymentInfo);
     createLocationMutation.mutate({ 
       locationData: formData, 
       paymentInfo 
     });
   };
 
-  const getPaymentAmount = () => {
-    return formData.payment_plan === "5_day" ? 4.99 : 20.00;
+  const getPhotoLimit = () => {
+    const limits = { free: 1, map_pin: 3, featured: 10, neighborhood_event: 10 };
+    return limits[formData.tier] || 3;
   };
 
   return (
     <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -235,7 +247,7 @@ export default function AddLocationPage() {
           </div>
           <div className="flex justify-center gap-8 text-xs text-gray-600">
             <span className={step === 1 ? "font-semibold" : ""}>Details</span>
-            <span className={step === 2 ? "font-semibold" : ""}>Plan</span>
+            <span className={step === 2 ? "font-semibold" : ""}>Choose Tier</span>
             <span className={step === 3 ? "font-semibold" : ""}>Payment</span>
           </div>
         </div>
@@ -245,88 +257,22 @@ export default function AddLocationPage() {
             <CardHeader className="bg-gradient-to-r from-orange-500 to-purple-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-2 text-2xl">
                 <MapPin className="w-6 h-6" />
-                Add a New Location
+                Post Your Yard Sale
               </CardTitle>
               <p className="text-white/90 text-sm mt-1">
-                {halloweenActive 
-                  ? "Share a yard sale or Halloween candy spot with your community!"
-                  : "Share a yard sale with your community!"}
+                Share your sale with the community. Active Friday-Sunday this weekend!
               </p>
             </CardHeader>
 
             <CardContent className="p-6">
-              <form onSubmit={handleContinueToPayment} className="space-y-6">
-                {/* Type Selection */}
-                <div className="space-y-3">
-                  <Label className="text-base font-semibold">Location Type</Label>
-                  <RadioGroup
-                    value={formData.type}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, type: value }))
-                    }
-                    className={halloweenActive ? "grid grid-cols-2 gap-4" : ""}
-                  >
-                    <label
-                      htmlFor="yard_sale"
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        formData.type === "yard_sale"
-                          ? "border-orange-500 bg-orange-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <RadioGroupItem value="yard_sale" id="yard_sale" />
-                      <div className="flex items-center gap-2">
-                        <ShoppingBag className="w-5 h-5 text-orange-500" />
-                        <div>
-                          <p className="font-medium">Yard Sale</p>
-                          <p className="text-xs text-gray-500">Paid listing</p>
-                        </div>
-                      </div>
-                    </label>
-
-                    {halloweenActive && (
-                      <label
-                        htmlFor="halloween_candy"
-                        className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                          formData.type === "halloween_candy"
-                            ? "border-purple-600 bg-purple-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <RadioGroupItem value="halloween_candy" id="halloween_candy" />
-                        <div className="flex items-center gap-2">
-                          <Candy className="w-5 h-5 text-purple-600" />
-                          <div>
-                            <p className="font-medium">Halloween Candy</p>
-                            <p className="text-xs text-green-600 font-medium">Free!</p>
-                          </div>
-                        </div>
-                      </label>
-                    )}
-                  </RadioGroup>
-                </div>
-
-                {/* Pricing Notice for Yard Sales */}
-                {formData.type === "yard_sale" && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <DollarSign className="w-5 h-5 text-blue-600 mt-0.5" />
-                      <div className="text-sm">
-                        <p className="font-semibold text-blue-900 mb-1">Yard Sale Listing Pricing</p>
-                        <p className="text-blue-800">$4.99 for 5 days or $20 for 30 days</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Title */}
+              <form onSubmit={handleContinueToTiers} className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="title">
                     Title <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="title"
-                    placeholder="e.g., Multi-family Yard Sale or Full-size Candy Bars!"
+                    placeholder="e.g., Multi-family Yard Sale"
                     value={formData.title}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, title: e.target.value }))
@@ -335,7 +281,6 @@ export default function AddLocationPage() {
                   />
                 </div>
 
-                {/* Address with Location Button */}
                 <div className="space-y-2">
                   <Label htmlFor="address">
                     Address <span className="text-red-500">*</span>
@@ -375,11 +320,8 @@ export default function AddLocationPage() {
                   )}
                 </div>
 
-                {/* Date */}
                 <div className="space-y-2">
-                  <Label htmlFor="date">
-                    {formData.type === "yard_sale" ? "Sale Date" : "Date (Optional)"}
-                  </Label>
+                  <Label htmlFor="date">Sale Date</Label>
                   <Input
                     id="date"
                     type="date"
@@ -388,27 +330,32 @@ export default function AddLocationPage() {
                       setFormData((prev) => ({ ...prev, date: e.target.value }))
                     }
                   />
+                  <p className="text-xs text-gray-500">
+                    Listing will be active Friday-Sunday ({getNextFriday().toLocaleDateString()} - {getNextSunday().toLocaleDateString()})
+                  </p>
                 </div>
 
-                {/* Description */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Label htmlFor="description">
+                    Description {formData.tier === "free" && "(160 char limit)"}
+                  </Label>
                   <Textarea
                     id="description"
-                    placeholder={
-                      formData.type === "yard_sale"
-                        ? "Describe what you're selling..."
-                        : "Tell trick-or-treaters what to expect..."
-                    }
+                    placeholder="Describe what you're selling..."
                     value={formData.description}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, description: e.target.value }))
                     }
                     rows={4}
+                    maxLength={formData.tier === "free" ? 160 : undefined}
                   />
+                  {formData.tier === "free" && (
+                    <p className="text-xs text-gray-500">
+                      {formData.description.length}/160 characters
+                    </p>
+                  )}
                 </div>
 
-                {/* Contact Info */}
                 <div className="space-y-2">
                   <Label htmlFor="contact_info">Contact Info (Optional)</Label>
                   <Input
@@ -421,7 +368,6 @@ export default function AddLocationPage() {
                   />
                 </div>
 
-                {/* Submit Buttons */}
                 <div className="flex gap-3 pt-4">
                   <Button
                     type="button"
@@ -436,16 +382,7 @@ export default function AddLocationPage() {
                     disabled={createLocationMutation.isPending}
                     className="flex-1 bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700"
                   >
-                    {formData.type === "halloween_candy" ? (
-                      <>
-                        <MapPin className="w-4 h-4 mr-2" />
-                        Add to Map
-                      </>
-                    ) : (
-                      <>
-                        Continue
-                      </>
-                    )}
+                    Continue
                   </Button>
                 </div>
               </form>
@@ -454,129 +391,24 @@ export default function AddLocationPage() {
         ) : step === 2 ? (
           <Card className="border-0 shadow-xl">
             <CardHeader className="bg-gradient-to-r from-orange-500 to-purple-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2 text-2xl">
-                <DollarSign className="w-6 h-6" />
-                Choose Your Plan
-              </CardTitle>
+              <CardTitle className="text-2xl">Choose Your Listing Tier</CardTitle>
               <p className="text-white/90 text-sm mt-1">
-                Select the best listing duration for your yard sale
+                Select the visibility level for your yard sale
               </p>
             </CardHeader>
 
             <CardContent className="p-6">
               <div className="space-y-6">
-                {/* Pricing Cards */}
                 <RadioGroup
-                  value={formData.payment_plan}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, payment_plan: value }))
-                  }
-                  className="grid md:grid-cols-2 gap-4"
+                  value={formData.tier}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, tier: value }))}
                 >
-                  {/* 5 Day Plan */}
-                  <label
-                    htmlFor="5_day"
-                    className={`relative cursor-pointer group ${
-                      formData.payment_plan === "5_day" ? "ring-2 ring-orange-500" : ""
-                    }`}
-                  >
-                    <Card className="h-full border-2 transition-all group-hover:border-orange-300">
-                      <CardContent className="p-6">
-                        <RadioGroupItem value="5_day" id="5_day" className="sr-only" />
-                        <div className="flex flex-col items-center text-center space-y-3">
-                          <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                            <ShoppingBag className="w-6 h-6 text-orange-600" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold">5-Day Listing</h3>
-                            <p className="text-3xl font-bold text-orange-600 mt-2">$4.99</p>
-                            <p className="text-sm text-gray-500 mt-1">Perfect for weekend sales</p>
-                          </div>
-                          <ul className="text-sm text-gray-600 space-y-2 mt-4">
-                            <li className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-green-600" />
-                              5 days on the map
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-green-600" />
-                              Full listing details
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-green-600" />
-                              Contact information
-                            </li>
-                          </ul>
-                        </div>
-                        {formData.payment_plan === "5_day" && (
-                          <div className="absolute top-2 right-2 bg-orange-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
-                            <Check className="w-4 h-4" />
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </label>
-
-                  {/* Monthly Plan */}
-                  <label
-                    htmlFor="monthly"
-                    className={`relative cursor-pointer group ${
-                      formData.payment_plan === "monthly" ? "ring-2 ring-purple-600" : ""
-                    }`}
-                  >
-                    <Card className="h-full border-2 transition-all group-hover:border-purple-300">
-                      <CardContent className="p-6">
-                        <RadioGroupItem value="monthly" id="monthly" className="sr-only" />
-                        <div className="flex flex-col items-center text-center space-y-3">
-                          <div className="relative">
-                            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                              <ShoppingBag className="w-6 h-6 text-purple-600" />
-                            </div>
-                            <Badge className="absolute -top-2 -right-2 bg-green-600 text-white text-xs">
-                              Best Value
-                            </Badge>
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold">30-Day Listing</h3>
-                            <p className="text-3xl font-bold text-purple-600 mt-2">$20.00</p>
-                            <p className="text-sm text-gray-500 mt-1">Save 33%!</p>
-                          </div>
-                          <ul className="text-sm text-gray-600 space-y-2 mt-4">
-                            <li className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-green-600" />
-                              30 days on the map
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-green-600" />
-                              Full listing details
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-green-600" />
-                              Contact information
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-green-600" />
-                              Priority placement
-                            </li>
-                          </ul>
-                        </div>
-                        {formData.payment_plan === "monthly" && (
-                          <div className="absolute top-2 right-2 bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center">
-                            <Check className="w-4 h-4" />
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </label>
+                  <TierSelector
+                    selectedTier={formData.tier}
+                    onSelect={(tier) => setFormData((prev) => ({ ...prev, tier }))}
+                  />
                 </RadioGroup>
 
-                {/* Demo Payment Notice */}
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Demo Mode:</strong> This is a demonstration. In production, actual payment processing (Stripe, PayPal, etc.) would be integrated here.
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
                 <div className="flex gap-3 pt-4">
                   <Button
                     type="button"
@@ -587,10 +419,11 @@ export default function AddLocationPage() {
                     Back
                   </Button>
                   <Button
-                    onClick={handleContinueToPaymentForm}
+                    onClick={handleContinueToPayment}
+                    disabled={createLocationMutation.isPending}
                     className="flex-1 bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700"
                   >
-                    Continue to Payment
+                    {formData.tier === "free" ? "Create Listing" : "Continue to Payment"}
                   </Button>
                 </div>
               </div>
@@ -598,8 +431,8 @@ export default function AddLocationPage() {
           </Card>
         ) : (
           <PaymentForm
-            amount={getPaymentAmount()}
-            plan={formData.payment_plan}
+            amount={tierPricing[formData.tier]}
+            plan={formData.tier}
             onPaymentComplete={handlePaymentComplete}
             onCancel={() => setStep(2)}
             isProcessing={createLocationMutation.isPending}
