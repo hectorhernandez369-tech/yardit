@@ -77,12 +77,20 @@ export default function ProfilePage() {
             <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
               <User className="w-8 h-8 text-white" />
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900">{user.full_name || "User"}</h1>
               <p className="text-gray-600">{user.email}</p>
             </div>
-          </div>
-        </div>
+            {userLocations.length > 0 && (
+              <Button
+                onClick={() => window.location.href = "/seller-dashboard"}
+                className="gap-2 bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700"
+              >
+                📊 Seller Dashboard
+              </Button>
+            )}
+            </div>
+            </div>
 
         {/* Tabs */}
         <Tabs defaultValue="info" className="space-y-6">

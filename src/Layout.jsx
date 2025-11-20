@@ -92,14 +92,14 @@ export default function Layout({ children }) {
                 </>
               )}
               
-              <Link to={createPageUrl("Profile")}>
+              <Link to={createPageUrl("SellerDashboard")}>
                 <Button
-                  variant={location.pathname === createPageUrl("Profile") ? "default" : "ghost"}
+                  variant={location.pathname === createPageUrl("SellerDashboard") ? "default" : "ghost"}
                   size="sm"
                   className="gap-2"
                 >
                   <User className="w-4 h-4" />
-                  <span className="hidden sm:inline">Profile</span>
+                  <span className="hidden sm:inline">Dashboard</span>
                 </Button>
               </Link>
               
