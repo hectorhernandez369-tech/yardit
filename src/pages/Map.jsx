@@ -13,6 +13,8 @@ import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown, Plus, 
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
 import CheckInButton from "../components/map/CheckInButton";
+import ReviewForm from "../components/reviews/ReviewForm";
+import ReviewsList from "../components/reviews/ReviewsList";
 import { toast } from "sonner";
 
 // Fix Leaflet default marker icons
@@ -128,6 +130,12 @@ export default function MapPage() {
     initialData: [],
   });
 
+  const { data: allReviews } = useQuery({
+    queryKey: ["allReviews"],
+    queryFn: () => base44.entities.Review.list(),
+    initialData: [],
+  });
+
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -211,6 +219,13 @@ export default function MapPage() {
 
   const getCheckInCount = (locationId) => {
     return allCheckIns.filter(c => c.location_id === locationId).length;
+  };
+
+  const getLocationRating = (locationId) => {
+    const reviews = allReviews.filter(r => r.location_id === locationId);
+    if (reviews.length === 0) return null;
+    const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+    return { average: avgRating.toFixed(1), count: reviews.length };
   };
 
   const routeCoordinates = routeActive ? optimizedRoute.map(loc => [loc.latitude, loc.longitude]) : [];
@@ -323,6 +338,7 @@ export default function MapPage() {
             const isSelected = selectedLocations.some(loc => loc.id === location.id);
             const routeIndex = optimizedRoute.findIndex(loc => loc.id === location.id);
             const checkInCount = getCheckInCount(location.id);
+            const rating = getLocationRating(location.id);
             
             return (
               <Marker
@@ -350,12 +366,20 @@ export default function MapPage() {
                       )}
                     </div>
                     
-                    {checkInCount > 0 && (
-                      <div className="flex items-center gap-1 text-sm text-green-600 mb-2 bg-green-50 px-2 py-1 rounded">
-                        <Users className="w-4 h-4" />
-                        {checkInCount} {checkInCount === 1 ? "person" : "people"} checked in
-                      </div>
-                    )}
+                    <div className="flex gap-2 mb-2">
+                      {checkInCount > 0 && (
+                        <div className="flex items-center gap-1 text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
+                          <Users className="w-4 h-4" />
+                          {checkInCount}
+                        </div>
+                      )}
+                      {rating && (
+                        <div className="flex items-center gap-1 text-sm text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                          <Star className="w-4 h-4 fill-yellow-400" />
+                          {rating.average} ({rating.count})
+                        </div>
+                      )}
+                    </div>
 
                     <h3 className="font-bold text-base mb-1">{location.title}</h3>
                     <p className="text-sm text-gray-600 mb-2">{location.address}</p>
@@ -397,6 +421,14 @@ export default function MapPage() {
                           {isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
                           {isSelected ? "Selected" : "Add"}
                         </Button>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <h4 className="font-semibold text-sm mb-2">Reviews</h4>
+                      <ReviewsList locationId={location.id} />
+                      <div className="mt-3">
+                        <ReviewForm locationId={location.id} />
                       </div>
                     </div>
                   </div>

@@ -3,10 +3,23 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, Calendar, MapPin, Edit, TrendingUp, ShoppingBag, Candy } from "lucide-react";
+import { Users, Calendar, MapPin, Edit, TrendingUp, ShoppingBag, Candy, Star } from "lucide-react";
 import { format, subDays, startOfDay } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 
 export default function LocationCheckInStats({ location, checkIns, onEdit }) {
+  const { data: reviews } = useQuery({
+    queryKey: ["reviews", location.id],
+    queryFn: () => base44.entities.Review.filter({ location_id: location.id }),
+    initialData: [],
+  });
+
+  const avgRating = useMemo(() => {
+    if (reviews.length === 0) return null;
+    return (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1);
+  }, [reviews]);
+
   const chartData = useMemo(() => {
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const date = startOfDay(subDays(new Date(), 6 - i));
@@ -79,7 +92,7 @@ export default function LocationCheckInStats({ location, checkIns, onEdit }) {
 
       <CardContent className="space-y-6">
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
               <Users className="w-4 h-4 text-green-600" />
@@ -114,6 +127,19 @@ export default function LocationCheckInStats({ location, checkIns, onEdit }) {
             <p className="text-2xl font-bold text-orange-900">
               {(totalCheckIns / 7).toFixed(1)}
             </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Star className="w-4 h-4 text-yellow-600" />
+              <p className="text-xs text-yellow-700 font-medium">Rating</p>
+            </div>
+            <p className="text-2xl font-bold text-yellow-900">
+              {avgRating ? `${avgRating} ⭐` : "No reviews"}
+            </p>
+            {avgRating && (
+              <p className="text-xs text-yellow-700 mt-1">{reviews.length} reviews</p>
+            )}
           </div>
         </div>
 
