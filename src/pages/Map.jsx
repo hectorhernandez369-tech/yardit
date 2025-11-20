@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -114,6 +113,7 @@ export default function MapPage() {
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [optimizedRoute, setOptimizedRoute] = useState([]);
   const [routeActive, setRouteActive] = useState(false);
+  const [showControls, setShowControls] = useState(true);
   const halloweenActive = isHalloweenSeason();
 
   const { data: locations, isLoading } = useQuery({
@@ -217,9 +217,20 @@ export default function MapPage() {
 
   return (
     <div className="h-[calc(100vh-140px)] relative">
+      {/* Toggle Button */}
+      <Button
+        onClick={() => setShowControls(!showControls)}
+        size="sm"
+        className="absolute top-4 right-4 z-[1001] shadow-lg"
+        variant={showControls ? "default" : "secondary"}
+      >
+        {showControls ? "Hide Controls" : "Show Controls"}
+      </Button>
+
       {/* Stats & Search Bar */}
-      <div className="absolute top-4 left-4 right-4 z-[1000] pointer-events-none">
-        <div className="max-w-4xl mx-auto pointer-events-auto space-y-3">
+      {showControls && (
+        <div className="absolute top-4 left-4 right-24 z-[1000] pointer-events-none">
+          <div className="max-w-4xl mx-auto pointer-events-auto space-y-3">
           <Card className="bg-white/95 backdrop-blur-md shadow-xl border-0">
             <div className="p-4">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -281,7 +292,8 @@ export default function MapPage() {
             routeActive={routeActive}
           />
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Map */}
       <div className="h-full w-full">

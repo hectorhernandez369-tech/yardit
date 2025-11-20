@@ -3,7 +3,7 @@ import AddLocation from './pages/AddLocation';
 import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
 import NotificationSettings from './pages/NotificationSettings';
-import Layout from './Layout.jsx';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -17,5 +17,5 @@ export const PAGES = {
 export const pagesConfig = {
     mainPage: "Map",
     Pages: PAGES,
-    Layout: Layout,
+    Layout: __Layout,
 };
