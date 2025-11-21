@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import TierSelector from "../components/listing/TierSelector";
 import PaymentForm from "../components/payment/PaymentForm";
+import AddressFields from "../components/shared/AddressFields";
 import { isHolidaySeason, containsSaleTerms } from "../components/holidays/SeasonCheck";
 
 // Get next Friday at 12:01 AM
@@ -53,6 +54,10 @@ export default function AddLocationPage() {
     tier: "map_pin",
     title: "",
     display_title: "",
+    street_address: "",
+    city: "",
+    state: "",
+    zip_code: "",
     address: "",
     latitude: null,
     longitude: null,
@@ -77,8 +82,12 @@ export default function AddLocationPage() {
         ? new Date(sunday.getTime() + 7 * 24 * 60 * 60 * 1000)
         : sunday;
 
+      // Build full address
+      const fullAddress = `${locationData.street_address}, ${locationData.city}, ${locationData.state} ${locationData.zip_code}`;
+
       const location = await base44.entities.Location.create({
         ...locationData,
+        address: fullAddress,
         expires_at: expiresAt.toISOString(),
         payment_amount: tierPricing[locationData.tier],
         payment_status: locationData.tier === "free" ? "free" : "completed",
@@ -133,9 +142,16 @@ export default function AddLocationPage() {
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
             );
             const data = await response.json();
-            if (data.display_name) {
+            if (data.address) {
+              const addr = data.address;
+              const streetNum = addr.house_number || "";
+              const street = addr.road || "";
               setFormData((prev) => ({
                 ...prev,
+                street_address: `${streetNum} ${street}`.trim(),
+                city: addr.city || addr.town || addr.village || "",
+                state: addr.state || "",
+                zip_code: addr.postcode || "",
                 address: data.display_name,
               }));
             }
@@ -159,12 +175,14 @@ export default function AddLocationPage() {
   };
 
   const geocodeAddress = async () => {
-    if (!formData.address) return;
+    if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) return;
+
+    const fullAddress = `${formData.street_address}, ${formData.city}, ${formData.state} ${formData.zip_code}`;
 
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          formData.address
+          fullAddress
         )}`
       );
       const data = await response.json();
@@ -174,6 +192,7 @@ export default function AddLocationPage() {
           ...prev,
           latitude: parseFloat(data[0].lat),
           longitude: parseFloat(data[0].lon),
+          address: fullAddress,
         }));
         toast.success("Address located on map!");
       } else {
@@ -198,22 +217,35 @@ export default function AddLocationPage() {
       if (!formData.rules_acknowledged) {
         toast.error("You must acknowledge the rules to proceed.");
         return;
-      }
-      
-      if (containsSaleTerms(formData.description)) {
+        }
+
+        if (containsSaleTerms(formData.description)) {
         toast.error("Holiday Light Display listings cannot include sale or item-related text. Please create a Yard Sale listing instead.");
         return;
-      }
-      
-      // Holiday lights skip payment
-      createLocationMutation.mutate({ locationData: formData, paymentInfo: null });
-      return;
-    }
+        }
 
-    if (!formData.title || !formData.address || !formData.latitude || !formData.longitude) {
-      toast.error("Please fill in all required fields and set location.");
-      return;
-    }
+        if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) {
+        toast.error("Please fill in all required address fields.");
+        return;
+        }
+
+        if (!formData.latitude || !formData.longitude) {
+        await geocodeAddress();
+        if (!formData.latitude || !formData.longitude) {
+          toast.error("Could not locate address on map. Please check the address.");
+          return;
+        }
+        }
+
+        // Holiday lights skip payment
+        createLocationMutation.mutate({ locationData: formData, paymentInfo: null });
+        return;
+        }
+
+        if (!formData.title || !formData.street_address || !formData.city || !formData.state || !formData.zip_code || !formData.latitude || !formData.longitude) {
+        toast.error("Please fill in all required fields and set location.");
+        return;
+        }
 
     // Enforce character limit for free tier
     if (formData.tier === "free" && formData.description.length > 160) {
@@ -419,44 +451,44 @@ export default function AddLocationPage() {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="address">
-                    Address <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="address"
-                      placeholder="123 Main St, City, State"
-                      value={formData.address}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, address: e.target.value }))
-                      }
-                      onBlur={geocodeAddress}
-                      required
-                      className="flex-1"
-                    />
+                <AddressFields formData={formData} setFormData={setFormData} required={true} />
+
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={getCurrentLocation}
+                    disabled={isGettingLocation}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    {isGettingLocation ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Navigation className="w-4 h-4" />
+                    )}
+                    Use My Location
+                  </Button>
+                </div>
+
+                {formData.latitude && formData.longitude && (
+                  <p className="text-xs text-green-600 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    Location set: {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}
+                  </p>
+                )}
+
+                {formData.street_address && formData.city && formData.state && formData.zip_code && !formData.latitude && (
+                  <div className="flex justify-end">
                     <Button
                       type="button"
-                      onClick={getCurrentLocation}
-                      disabled={isGettingLocation}
+                      onClick={geocodeAddress}
                       variant="outline"
-                      className="gap-2"
+                      size="sm"
                     >
-                      {isGettingLocation ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Navigation className="w-4 h-4" />
-                      )}
-                      <span className="hidden sm:inline">Use My Location</span>
+                      Locate on Map
                     </Button>
                   </div>
-                  {formData.latitude && formData.longitude && (
-                    <p className="text-xs text-green-600 flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      Location set: {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}
-                    </p>
-                  )}
-                </div>
+                )}
 
                 {formData.type !== "holiday_lights" && (
                   <div className="space-y-2">
