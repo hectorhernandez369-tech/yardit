@@ -702,6 +702,24 @@ export default function MapPage() {
           </Card>
         </div>
       )}
+
+      {/* Report Dialog */}
+      <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Report Issue</DialogTitle>
+          </DialogHeader>
+          {reportingLocation && (
+            <ReportForm
+              locationId={reportingLocation.id}
+              onClose={() => {
+                setReportDialogOpen(false);
+                setReportingLocation(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
