@@ -9,19 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown, Plus, Check, Users, Star, Lightbulb, AlertTriangle, Power } from "lucide-react";
+import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown, Plus, Check, Users } from "lucide-react";
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
 import CheckInButton from "../components/map/CheckInButton";
 import ReviewForm from "../components/reviews/ReviewForm";
 import ReviewsList from "../components/reviews/ReviewsList";
-import HolidayLightRating from "../components/holiday-lights/HolidayLightRating";
-import LeaderboardPanel from "../components/holiday-lights/LeaderboardPanel";
-import ReportForm from "../components/holiday-lights/ReportForm";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
+import LightRatingForm from "../components/holidays/LightRatingForm";
+import ReportForm from "../components/holidays/ReportForm";
+import DisplayToggle from "../components/holidays/DisplayToggle";
 import { toast } from "sonner";
-import { isHolidayLightsSeason, isLightsOnNow, isWithinViewingDates } from "../components/holiday-lights/SeasonalCheck";
+import { isHolidaySeason, isWithinViewingHours, isWithinDisplayDates } from "../components/holidays/SeasonCheck";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -31,7 +29,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Custom marker icons based on type, tier, and holiday lights status
+// Custom marker icons based on tier
 const createIcon = (type, tier, isSelected, location) => {
   if (isSelected) {
     return new L.Icon({
@@ -51,23 +49,20 @@ const createIcon = (type, tier, isSelected, location) => {
     });
   }
   
-  // Holiday lights - different states
+  // Holiday lights icons
   if (type === "holiday_lights") {
-    const lightsOn = isLightsOnNow(location);
-    const withinDates = isWithinViewingDates(location);
+    const isGlowing = location && 
+      isWithinViewingHours(location.viewing_start_time, location.viewing_end_time) &&
+      isWithinDisplayDates(location.start_date, location.end_date);
     
-    // Lights ON - glowing pin
-    if (lightsOn) {
+    if (isGlowing) {
       return new L.Icon({
-        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cdefs%3E%3CradialGradient id='glow2'%3E%3Cstop offset='0%25' stop-color='%23fbbf24' stop-opacity='0.6'/%3E%3Cstop offset='100%25' stop-color='%23fbbf24' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='20' cy='20' r='19' fill='url(%23glow2)'/%3E%3Ccircle cx='20' cy='20' r='14' fill='%23fbbf24' stroke='white' stroke-width='2'/%3E%3Ctext x='20' y='25' text-anchor='middle' fill='white' font-size='16'%3E💡%3C/text%3E%3C/svg%3E",
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -40],
+        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 38 38'%3E%3Cdefs%3E%3CradialGradient id='glow2'%3E%3Cstop offset='0%25' stop-color='%23ffd700' stop-opacity='0.4'/%3E%3Cstop offset='100%25' stop-color='%23ffd700' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='19' cy='19' r='18' fill='url(%23glow2)'/%3E%3Ccircle cx='19' cy='19' r='14' fill='%23ffd700' stroke='%23fff' stroke-width='3'/%3E%3Ctext x='19' y='24' text-anchor='middle' fill='white' font-size='18'%3E💡%3C/text%3E%3C/svg%3E",
+        iconSize: [38, 38],
+        iconAnchor: [19, 38],
+        popupAnchor: [0, -38],
       });
-    }
-    
-    // Within dates but outside hours - dimmed
-    if (withinDates) {
+    } else {
       return new L.Icon({
         iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%236b7280' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16'%3E💡%3C/text%3E%3C/svg%3E",
         iconSize: [32, 32],
@@ -75,14 +70,6 @@ const createIcon = (type, tier, isSelected, location) => {
         popupAnchor: [0, -32],
       });
     }
-    
-    // Default holiday lights pin
-    return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23f59e0b' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16'%3E💡%3C/text%3E%3C/svg%3E",
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32],
-    });
   }
   
   // Tier-based icons for yard sales
@@ -182,12 +169,21 @@ export default function MapPage() {
   const [optimizedRoute, setOptimizedRoute] = useState([]);
   const [routeActive, setRouteActive] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const [reportDialogOpen, setReportDialogOpen] = useState(false);
-  const [reportingLocation, setReportingLocation] = useState(null);
   const [user, setUser] = useState(null);
   const halloweenActive = isHalloweenSeason();
-  const holidayLightsActive = isHolidayLightsSeason();
-  const queryClient = useQueryClient();
+  const holidaySeasonActive = isHolidaySeason();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const currentUser = await base44.auth.me();
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const { data: locations, isLoading } = useQuery({
     queryKey: ["locations"],
@@ -208,18 +204,6 @@ export default function MapPage() {
   });
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const currentUser = await base44.auth.me();
-        setUser(currentUser);
-      } catch (error) {
-        console.error("Error fetching user:", error);
-      }
-    };
-    fetchUser();
-  }, []);
-
-  useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -236,15 +220,14 @@ export default function MapPage() {
     const now = new Date();
     
     return locations.filter((loc) => {
-      // Check expiration for non-holiday-lights
-      if (loc.type !== "holiday_lights") {
-        const isExpired = loc.expires_at && new Date(loc.expires_at) < now;
-        if (isExpired) return false;
-      }
+      const isExpired = loc.expires_at && new Date(loc.expires_at) < now;
+      if (isExpired) return false;
 
-      // Holiday lights must be active and in season
+      // Holiday lights visibility
       if (loc.type === "holiday_lights") {
-        if (!loc.display_active || !holidayLightsActive || loc.status === "under_review") return false;
+        if (!holidaySeasonActive || !loc.display_active || loc.status !== "active") {
+          return false;
+        }
       }
 
       const matchesFilter = filter === "all" || loc.type === filter;
@@ -254,21 +237,19 @@ export default function MapPage() {
         loc.display_title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
       
-      const isValidForSeason = 
-        (loc.type !== "halloween_candy" || halloweenActive) &&
-        (loc.type !== "holiday_lights" || holidayLightsActive);
+      const isValidForSeason = loc.type !== "halloween_candy" || halloweenActive;
       
       return matchesFilter && matchesSearch && loc.active && isValidForSeason;
     });
-  }, [locations, filter, searchQuery, halloweenActive, holidayLightsActive]);
+  }, [locations, filter, searchQuery, halloweenActive, holidaySeasonActive]);
 
   const stats = useMemo(() => {
     const now = new Date();
     const activeLocations = locations.filter((l) => {
-      if (l.type === "holiday_lights") {
-        return l.active && l.display_active && holidayLightsActive && l.status !== "under_review";
-      }
       const isExpired = l.expires_at && new Date(l.expires_at) < now;
+      if (l.type === "holiday_lights") {
+        return l.active && !isExpired && holidaySeasonActive && l.display_active && l.status === "active";
+      }
       return l.active && !isExpired;
     });
 
@@ -276,39 +257,23 @@ export default function MapPage() {
       ? activeLocations.filter((l) => l.type === "halloween_candy")
       : [];
     
-    const holidayLightsLocations = holidayLightsActive
-      ? activeLocations.filter((l) => l.type === "holiday_lights")
-      : [];
+    const holidayLightsCount = holidaySeasonActive
+      ? activeLocations.filter((l) => l.type === "holiday_lights").length
+      : 0;
       
     return {
       total: activeLocations.length,
       yard_sale: activeLocations.filter((l) => l.type === "yard_sale").length,
       halloween_candy: halloweenLocations.length,
-      holiday_lights: holidayLightsLocations.length,
+      holiday_lights: holidayLightsCount,
     };
-  }, [locations, halloweenActive, holidayLightsActive]);
+  }, [locations, halloweenActive, holidaySeasonActive]);
 
   useEffect(() => {
     if (!halloweenActive && filter === "halloween_candy") {
       setFilter("all");
     }
-    if (!holidayLightsActive && filter === "holiday_lights") {
-      setFilter("all");
-    }
-  }, [halloweenActive, holidayLightsActive, filter]);
-
-  const toggleDisplayActive = async (location) => {
-    if (!holidayLightsActive) {
-      toast.error("Holiday lights can only be toggled between November 1st and January 2nd");
-      return;
-    }
-
-    await base44.entities.Location.update(location.id, {
-      display_active: !location.display_active,
-    });
-    queryClient.invalidateQueries({ queryKey: ["locations"] });
-    toast.success(location.display_active ? "Display turned OFF" : "Display turned ON");
-  };
+  }, [halloweenActive, filter]);
 
   const handleLocationSelect = (location) => {
     const isSelected = selectedLocations.some(loc => loc.id === location.id);
@@ -376,29 +341,29 @@ export default function MapPage() {
                 </div>
 
                 <Tabs value={filter} onValueChange={setFilter}>
-                    <TabsList className={`grid ${halloweenActive && holidayLightsActive ? "grid-cols-4" : (halloweenActive || holidayLightsActive) ? "grid-cols-3" : "grid-cols-2"}`}>
-                      <TabsTrigger value="all" className="gap-1">
-                        <MapPin className="w-3 h-3" />
-                        All ({stats.total})
+                  <TabsList className={`grid ${halloweenActive && holidaySeasonActive ? "grid-cols-4" : halloweenActive || holidaySeasonActive ? "grid-cols-3" : "grid-cols-2"}`}>
+                    <TabsTrigger value="all" className="gap-1">
+                      <MapPin className="w-3 h-3" />
+                      All ({stats.total})
+                    </TabsTrigger>
+                    <TabsTrigger value="yard_sale" className="gap-1">
+                      <ShoppingBag className="w-3 h-3" />
+                      Sales ({stats.yard_sale})
+                    </TabsTrigger>
+                    {halloweenActive && (
+                      <TabsTrigger value="halloween_candy" className="gap-1">
+                        <Candy className="w-3 h-3" />
+                        Candy ({stats.halloween_candy})
                       </TabsTrigger>
-                      <TabsTrigger value="yard_sale" className="gap-1">
-                        <ShoppingBag className="w-3 h-3" />
-                        Sales ({stats.yard_sale})
+                    )}
+                    {holidaySeasonActive && (
+                      <TabsTrigger value="holiday_lights" className="gap-1">
+                        💡
+                        Lights ({stats.holiday_lights})
                       </TabsTrigger>
-                      {halloweenActive && (
-                        <TabsTrigger value="halloween_candy" className="gap-1">
-                          <Candy className="w-3 h-3" />
-                          Candy ({stats.halloween_candy})
-                        </TabsTrigger>
-                      )}
-                      {holidayLightsActive && (
-                        <TabsTrigger value="holiday_lights" className="gap-1">
-                          <Lightbulb className="w-3 h-3" />
-                          Lights ({stats.holiday_lights})
-                        </TabsTrigger>
-                      )}
-                    </TabsList>
-                  </Tabs>
+                    )}
+                  </TabsList>
+                </Tabs>
 
                 <Button
                   variant="outline"
@@ -469,9 +434,7 @@ export default function MapPage() {
                 icon={createIcon(location.type, location.tier, isSelected, location)}
                 eventHandlers={{
                   click: () => {
-                    if (location.type !== "holiday_lights") {
-                      handleLocationSelect(location);
-                    }
+                    handleLocationSelect(location);
                     // Track map pin click
                     if (location.tier !== "free" && location.type !== "holiday_lights") {
                       base44.entities.Location.update(location.id, {
@@ -483,120 +446,27 @@ export default function MapPage() {
               >
                 <Popup>
                   <div className="p-2">
-                    {location.type === "holiday_lights" ? (
-                      <>
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <Badge className="bg-yellow-500 text-white">
-                            🎄 Holiday Lights
-                          </Badge>
-                          {location.safety_warning && (
-                            <Badge className="bg-red-600 text-white">
-                              <AlertTriangle className="w-3 h-3 mr-1" />
-                              Safety Warning
-                            </Badge>
-                          )}
-                        </div>
-
-                        <h3 className="font-bold text-base mb-1">{location.display_title}</h3>
-                        <p className="text-sm text-gray-600 mb-2">{location.address}</p>
-
-                        {location.average_rating && (
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="flex items-center gap-1 text-sm bg-yellow-50 px-2 py-1 rounded">
-                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                              <span className="font-bold">{location.average_rating.toFixed(1)}</span>
-                              <span className="text-gray-600">({location.ratings_count} ratings)</span>
-                            </div>
-                            <div className="text-sm bg-orange-50 px-2 py-1 rounded font-bold text-orange-700">
-                              Score: {location.holiday_score || 0}
-                            </div>
-                          </div>
-                        )}
-
-                        {location.description && (
-                          <p className="text-sm mb-2">{location.description}</p>
-                        )}
-
-                        <div className="text-xs text-gray-600 space-y-1 mb-2">
-                          <div>📅 {format(new Date(location.start_date), "MMM d")} - {format(new Date(location.end_date), "MMM d")}</div>
-                          <div>⏰ {location.viewing_start_time} - {location.viewing_end_time}</div>
-                          <div className="flex items-center gap-1">
-                            <Power className="w-3 h-3" />
-                            {isLightsOnNow(location) ? (
-                              <span className="text-green-600 font-semibold">Lights ON now! 💡</span>
-                            ) : isWithinViewingDates(location) ? (
-                              <span className="text-gray-600">Outside viewing hours</span>
-                            ) : (
-                              <span className="text-gray-600">Not in display period</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {location.safety_warning && (
-                          <div className="bg-red-50 border border-red-200 rounded p-2 mb-2 text-xs text-red-800">
-                            <AlertTriangle className="w-4 h-4 inline mr-1" />
-                            A visitor reported a potential safety concern at this location. Please use caution when visiting.
-                          </div>
-                        )}
-
-                        {user?.email === location.created_by && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium">Display Status:</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-600">
-                                  {location.display_active ? "ON" : "OFF"}
-                                </span>
-                                <Switch
-                                  checked={location.display_active}
-                                  onCheckedChange={() => toggleDisplayActive(location)}
-                                  disabled={!holidayLightsActive}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="space-y-2 mt-3">
-                          <HolidayLightRating 
-                            locationId={location.id}
-                            displayActive={location.display_active}
-                          />
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setReportingLocation(location);
-                              setReportDialogOpen(true);
-                            }}
-                            className="w-full text-red-600 border-red-300 hover:bg-red-50"
-                          >
-                            <AlertTriangle className="w-4 h-4 mr-2" />
-                            Report Issue
-                          </Button>
-
-                          <div className="mt-3">
-                            <LeaderboardPanel currentLocation={location} />
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <Badge
-                            className={
-                              location.type === "yard_sale"
-                                ? "bg-orange-500"
-                                : "bg-purple-600"
-                            }
-                          >
-                            {location.type === "yard_sale" ? "🏡 Yard Sale" : "🎃 Halloween Candy"}
-                          </Badge>
-                          {isSelected && routeActive && (
-                            <Badge className="bg-blue-600">Stop #{routeIndex + 1}</Badge>
-                          )}
-                        </div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <Badge
+                        className={
+                          location.type === "yard_sale" ? "bg-orange-500" :
+                          location.type === "halloween_candy" ? "bg-purple-600" :
+                          "bg-blue-600"
+                        }
+                      >
+                        {location.type === "yard_sale" ? "🏡 Yard Sale" : 
+                         location.type === "halloween_candy" ? "🎃 Halloween Candy" :
+                         "💡 Holiday Lights"}
+                      </Badge>
+                      {isSelected && routeActive && (
+                        <Badge className="bg-blue-600">Stop #{routeIndex + 1}</Badge>
+                      )}
+                      {location.safety_warning && (
+                        <Badge variant="outline" className="border-orange-500 text-orange-700">
+                          ⚠️ Safety Warning
+                        </Badge>
+                      )}
+                    </div>
                     
                     <div className="flex gap-2 mb-2">
                       {checkInCount > 0 && (
@@ -613,8 +483,16 @@ export default function MapPage() {
                       )}
                     </div>
 
-                    <h3 className="font-bold text-base mb-1">{location.title}</h3>
+                    <h3 className="font-bold text-base mb-1">
+                      {location.type === "holiday_lights" ? location.display_title : location.title}
+                    </h3>
                     <p className="text-sm text-gray-600 mb-2">{location.address}</p>
+
+                    {location.type === "holiday_lights" && (
+                      <p className="text-xs text-gray-600 mb-2">
+                        🕐 Viewing: {location.viewing_start_time} - {location.viewing_end_time}
+                      </p>
+                    )}
                     {location.description && (
                       <p className="text-sm mb-2">{location.description}</p>
                     )}
@@ -656,17 +534,34 @@ export default function MapPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <h4 className="font-semibold text-sm mb-2">Reviews</h4>
-                      <ReviewsList locationId={location.id} />
-                      <div className="mt-3">
-                        <ReviewForm locationId={location.id} />
+                    {location.type === "holiday_lights" ? (
+                      <>
+                        {user && location.created_by === user.email && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <DisplayToggle location={location} isOwner={true} />
+                          </div>
+                        )}
+                        
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <h4 className="font-semibold text-sm mb-2">Rate This Display</h4>
+                          <LightRatingForm locationId={location.id} displayActive={location.display_active} />
+                        </div>
+                        
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <ReportForm locationId={location.id} />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <h4 className="font-semibold text-sm mb-2">Reviews</h4>
+                        <ReviewsList locationId={location.id} />
+                        <div className="mt-3">
+                          <ReviewForm locationId={location.id} />
+                        </div>
                       </div>
-                    </div>
-                    </>
                     )}
-                    </div>
-                    </Popup>
+                  </div>
+                </Popup>
               </Marker>
             );
           })}
@@ -702,24 +597,6 @@ export default function MapPage() {
           </Card>
         </div>
       )}
-
-      {/* Report Dialog */}
-      <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Report Issue</DialogTitle>
-          </DialogHeader>
-          {reportingLocation && (
-            <ReportForm
-              locationId={reportingLocation.id}
-              onClose={() => {
-                setReportDialogOpen(false);
-                setReportingLocation(null);
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
