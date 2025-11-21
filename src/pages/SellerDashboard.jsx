@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, Users, TrendingUp, Loader2, MapPin } from "lucide-react";
 import LocationCheckInStats from "../components/dashboard/LocationCheckInStats";
-import EditLocationModal from "../components/dashboard/EditLocationModal";
+import EditLocationModal from "../components/profile/EditLocationModal";
 
 export default function SellerDashboard() {
   const [user, setUser] = useState(null);
@@ -172,12 +172,11 @@ export default function SellerDashboard() {
       </div>
 
       {/* Edit Modal */}
-      {editingLocation && (
-        <EditLocationModal
-          location={editingLocation}
-          onClose={() => setEditingLocation(null)}
-        />
-      )}
+      <EditLocationModal
+        location={editingLocation}
+        open={!!editingLocation}
+        onClose={() => setEditingLocation(null)}
+      />
     </div>
   );
 }
