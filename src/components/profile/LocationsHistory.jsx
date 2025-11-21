@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -14,14 +14,31 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  Users
+  Users,
+  Edit,
+  RefreshCw
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import EditLocationModal from "./EditLocationModal";
+import RelistModal from "./RelistModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function LocationsHistory({ locations, isLoading }) {
   const queryClient = useQueryClient();
+  const [editingLocation, setEditingLocation] = useState(null);
+  const [relistingLocation, setRelistingLocation] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, location: null });
 
   const { data: allCheckIns } = useQuery({
     queryKey: ["allCheckIns"],
@@ -42,9 +59,14 @@ export default function LocationsHistory({ locations, isLoading }) {
     },
   });
 
-  const handleDelete = (locationId, title) => {
-    if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
-      deleteLocationMutation.mutate(locationId);
+  const handleDelete = (location) => {
+    setDeleteDialog({ open: true, location });
+  };
+
+  const confirmDelete = () => {
+    if (deleteDialog.location) {
+      deleteLocationMutation.mutate(deleteDialog.location.id);
+      setDeleteDialog({ open: false, location: null });
     }
   };
 
@@ -220,16 +242,40 @@ export default function LocationsHistory({ locations, isLoading }) {
                           <ExternalLink className="w-4 h-4" />
                           <span className="hidden sm:inline">View</span>
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(location.id, location.title)}
-                          disabled={deleteLocationMutation.isPending}
-                          className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span className="hidden sm:inline">Delete</span>
-                        </Button>
+                        
+                        {location.active && !isExpired(location) ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingLocation(location)}
+                            className="gap-2"
+                          >
+                            <Edit className="w-4 h-4" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setRelistingLocation(location)}
+                              className="gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                              <span className="hidden sm:inline">Relist</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDelete(location)}
+                              disabled={deleteLocationMutation.isPending}
+                              className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              <span className="hidden sm:inline">Delete</span>
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -239,6 +285,35 @@ export default function LocationsHistory({ locations, isLoading }) {
           </div>
         )}
       </CardContent>
+
+      <EditLocationModal
+        location={editingLocation}
+        open={!!editingLocation}
+        onClose={() => setEditingLocation(null)}
+      />
+
+      <RelistModal
+        location={relistingLocation}
+        open={!!relistingLocation}
+        onClose={() => setRelistingLocation(null)}
+      />
+
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, location: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Location</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteDialog.location?.title || deleteDialog.location?.display_title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
