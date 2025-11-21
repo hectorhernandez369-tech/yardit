@@ -16,7 +16,7 @@ export function getCurrentSeasonYear() {
 }
 
 export function isWithinViewingHours(startTime, endTime) {
-  if (!startTime || !endTime) return true;
+  if (!startTime || !endTime) return false;
   
   const now = new Date();
   const currentTime = now.getHours() * 60 + now.getMinutes();
@@ -28,16 +28,6 @@ export function isWithinViewingHours(startTime, endTime) {
   const endMinutes = endHour * 60 + endMin;
   
   return currentTime >= startMinutes && currentTime <= endMinutes;
-}
-
-export function isWithinDisplayDates(startDate, endDate) {
-  if (!startDate || !endDate) return true;
-  
-  const now = new Date();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  
-  return now >= start && now <= end;
 }
 
 export const BANNED_SALE_TERMS = [

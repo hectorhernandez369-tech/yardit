@@ -49,25 +49,27 @@ const createIcon = (type, tier, isSelected, location) => {
     });
   }
   
-  // Holiday lights icons
+  // Holiday lights icons - festive and unique
   if (type === "holiday_lights") {
     const isGlowing = location && 
-      isWithinViewingHours(location.viewing_start_time, location.viewing_end_time) &&
-      isWithinDisplayDates(location.start_date, location.end_date);
+      location.display_active &&
+      isWithinViewingHours(location.viewing_start_time, location.viewing_end_time);
     
     if (isGlowing) {
+      // Glowing festive pin when lights are ON and within viewing hours
       return new L.Icon({
-        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 38 38'%3E%3Cdefs%3E%3CradialGradient id='glow2'%3E%3Cstop offset='0%25' stop-color='%23ffd700' stop-opacity='0.4'/%3E%3Cstop offset='100%25' stop-color='%23ffd700' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='19' cy='19' r='18' fill='url(%23glow2)'/%3E%3Ccircle cx='19' cy='19' r='14' fill='%23ffd700' stroke='%23fff' stroke-width='3'/%3E%3Ctext x='19' y='24' text-anchor='middle' fill='white' font-size='18'%3E💡%3C/text%3E%3C/svg%3E",
-        iconSize: [38, 38],
-        iconAnchor: [19, 38],
-        popupAnchor: [0, -38],
+        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cdefs%3E%3CradialGradient id='glow2'%3E%3Cstop offset='0%25' stop-color='%23ffd700' stop-opacity='0.6'/%3E%3Cstop offset='100%25' stop-color='%23ffd700' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='20' cy='20' r='19' fill='url(%23glow2)'/%3E%3Ccircle cx='20' cy='20' r='15' fill='%23dc2626' stroke='%23ffd700' stroke-width='3'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='20'%3E🎄%3C/text%3E%3C/svg%3E",
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40],
       });
     } else {
+      // Non-glowing festive pin (visible but not active)
       return new L.Icon({
-        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%236b7280' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16'%3E💡%3C/text%3E%3C/svg%3E",
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32],
+        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'%3E%3Ccircle cx='17' cy='17' r='15' fill='%23dc2626' stroke='white' stroke-width='2'/%3E%3Ctext x='17' y='23' text-anchor='middle' fill='white' font-size='18'%3E🎄%3C/text%3E%3C/svg%3E",
+        iconSize: [34, 34],
+        iconAnchor: [17, 34],
+        popupAnchor: [0, -34],
       });
     }
   }
@@ -223,9 +225,9 @@ export default function MapPage() {
       const isExpired = loc.expires_at && new Date(loc.expires_at) < now;
       if (isExpired) return false;
 
-      // Holiday lights visibility
+      // Holiday lights visibility - always show during season regardless of toggle
       if (loc.type === "holiday_lights") {
-        if (!holidaySeasonActive || !loc.display_active || loc.status !== "active") {
+        if (!holidaySeasonActive || loc.status !== "active") {
           return false;
         }
       }
@@ -248,7 +250,7 @@ export default function MapPage() {
     const activeLocations = locations.filter((l) => {
       const isExpired = l.expires_at && new Date(l.expires_at) < now;
       if (l.type === "holiday_lights") {
-        return l.active && !isExpired && holidaySeasonActive && l.display_active && l.status === "active";
+        return l.active && !isExpired && holidaySeasonActive && l.status === "active";
       }
       return l.active && !isExpired;
     });

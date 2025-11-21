@@ -30,12 +30,12 @@ export default function DisplayToggle({ location, isOwner }) {
           <Lightbulb className={`w-6 h-6 ${location.display_active ? 'text-yellow-500' : 'text-gray-400'}`} />
           <div>
             <p className="font-semibold text-gray-900">
-              Display {location.display_active ? "ON" : "OFF"}
+              Lights {location.display_active ? "ON" : "OFF"}
             </p>
             <p className="text-xs text-gray-600">
               {inSeason 
-                ? "Toggle to show/hide on map" 
-                : "Can only be turned on Nov 1 - Jan 2"}
+                ? "Controls glow effect on map" 
+                : "Can only be toggled Nov 1 - Jan 2"}
             </p>
           </div>
         </div>
@@ -49,9 +49,13 @@ export default function DisplayToggle({ location, isOwner }) {
       
       {!inSeason && (
         <p className="text-xs text-orange-600 mt-2">
-          ⚠️ This display can only be turned on between November 1st and January 2nd.
+          ⚠️ Toggle is only functional between November 1st and January 2nd.
         </p>
       )}
+      
+      <p className="text-xs text-blue-700 mt-2">
+        ℹ️ Your display pin is always visible during the season. Toggle controls the glow effect.
+      </p>
     </div>
   );
 }

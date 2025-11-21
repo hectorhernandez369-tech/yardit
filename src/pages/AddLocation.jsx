@@ -58,8 +58,6 @@ export default function AddLocationPage() {
     longitude: null,
     description: "",
     date: "",
-    start_date: "",
-    end_date: "",
     viewing_start_time: "17:00",
     viewing_end_time: "22:00",
     contact_info: "",
@@ -192,8 +190,7 @@ export default function AddLocationPage() {
 
     // Holiday lights validation
     if (formData.type === "holiday_lights") {
-      if (!formData.display_title || !formData.start_date || !formData.end_date || 
-          !formData.viewing_start_time || !formData.viewing_end_time) {
+      if (!formData.display_title || !formData.viewing_start_time || !formData.viewing_end_time) {
         toast.error("Please fill in all required fields for holiday lights.");
         return;
       }
@@ -356,35 +353,9 @@ export default function AddLocationPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="start_date">
-                          Start Date <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="start_date"
-                          type="date"
-                          value={formData.start_date}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, start_date: e.target.value }))
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="end_date">
-                          End Date <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="end_date"
-                          type="date"
-                          value={formData.end_date}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, end_date: e.target.value }))
-                          }
-                          required
-                        />
-                      </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                      <p className="font-medium mb-1">🎄 Season: November 1 - January 2</p>
+                      <p className="text-xs">Your display will be visible on the map during the holiday season.</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
