@@ -204,7 +204,7 @@ export default function AddLocationPage() {
     }
   };
 
-  const handleContinueToTiers = (e) => {
+  const handleContinueToTiers = async (e) => {
     e.preventDefault();
 
     // Holiday lights validation
@@ -213,39 +213,39 @@ export default function AddLocationPage() {
         toast.error("Please fill in all required fields for holiday lights.");
         return;
       }
-      
+
       if (!formData.rules_acknowledged) {
         toast.error("You must acknowledge the rules to proceed.");
         return;
-        }
+      }
 
-        if (containsSaleTerms(formData.description)) {
+      if (containsSaleTerms(formData.description)) {
         toast.error("Holiday Light Display listings cannot include sale or item-related text. Please create a Yard Sale listing instead.");
         return;
-        }
+      }
 
-        if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) {
+      if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) {
         toast.error("Please fill in all required address fields.");
         return;
-        }
+      }
 
-        if (!formData.latitude || !formData.longitude) {
+      if (!formData.latitude || !formData.longitude) {
         await geocodeAddress();
         if (!formData.latitude || !formData.longitude) {
           toast.error("Could not locate address on map. Please check the address.");
           return;
         }
-        }
+      }
 
-        // Holiday lights skip payment
-        createLocationMutation.mutate({ locationData: formData, paymentInfo: null });
-        return;
-        }
+      // Holiday lights skip payment
+      createLocationMutation.mutate({ locationData: formData, paymentInfo: null });
+      return;
+    }
 
-        if (!formData.title || !formData.street_address || !formData.city || !formData.state || !formData.zip_code || !formData.latitude || !formData.longitude) {
-        toast.error("Please fill in all required fields and set location.");
-        return;
-        }
+    if (!formData.title || !formData.street_address || !formData.city || !formData.state || !formData.zip_code || !formData.latitude || !formData.longitude) {
+      toast.error("Please fill in all required fields and set location.");
+      return;
+    }
 
     // Enforce character limit for free tier
     if (formData.tier === "free" && formData.description.length > 160) {
