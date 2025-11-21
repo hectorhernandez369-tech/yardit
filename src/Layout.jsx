@@ -102,6 +102,17 @@ export default function Layout({ children }) {
                   <span className="hidden sm:inline">Dashboard</span>
                 </Button>
               </Link>
+
+              <Link to={createPageUrl("Leaderboard")}>
+                <Button
+                  variant={location.pathname === createPageUrl("Leaderboard") ? "default" : "ghost"}
+                  size="sm"
+                  className="gap-2"
+                >
+                  🏆
+                  <span className="hidden sm:inline">Leaderboard</span>
+                </Button>
+              </Link>
               
               <Link to={createPageUrl("AddLocation")}>
                 <Button
