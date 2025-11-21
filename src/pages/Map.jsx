@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown, Plus, Check, Users } from "lucide-react";
+import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown, Plus, Check, Users, Star } from "lucide-react";
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
 import CheckInButton from "../components/map/CheckInButton";
@@ -19,7 +19,7 @@ import LightRatingForm from "../components/holidays/LightRatingForm";
 import ReportForm from "../components/holidays/ReportForm";
 import DisplayToggle from "../components/holidays/DisplayToggle";
 import { toast } from "sonner";
-import { isHolidaySeason, isWithinViewingHours, isWithinDisplayDates } from "../components/holidays/SeasonCheck";
+import { isHolidaySeason, isWithinViewingHours } from "../components/holidays/SeasonCheck";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
