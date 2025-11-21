@@ -8,11 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Edit2, Save, X, Shield } from "lucide-react";
 import { toast } from "sonner";
+import AddressFields from "../shared/AddressFields";
 
 export default function UserInfoSection({ user, setUser }) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     full_name: user.full_name || "",
+    street_address: user.street_address || "",
+    city: user.city || "",
+    state: user.state || "",
+    zip_code: user.zip_code || "",
+    phone: user.phone || "",
   });
 
   const updateUserMutation = useMutation({
@@ -33,7 +39,14 @@ export default function UserInfoSection({ user, setUser }) {
   };
 
   const handleCancel = () => {
-    setFormData({ full_name: user.full_name || "" });
+    setFormData({
+      full_name: user.full_name || "",
+      street_address: user.street_address || "",
+      city: user.city || "",
+      state: user.state || "",
+      zip_code: user.zip_code || "",
+      phone: user.phone || "",
+    });
     setIsEditing(false);
   };
 
@@ -121,6 +134,40 @@ export default function UserInfoSection({ user, setUser }) {
                 {user.role === "admin" ? "Administrator" : "User"}
               </Badge>
             </div>
+          </div>
+
+          {/* Phone */}
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number</Label>
+            {isEditing ? (
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, phone: e.target.value }))
+                }
+                placeholder="(555) 123-4567"
+              />
+            ) : (
+              <p className="text-lg font-medium">{user.phone || "Not set"}</p>
+            )}
+          </div>
+
+          {/* Address */}
+          <div className="space-y-2">
+            <Label>Address</Label>
+            {isEditing ? (
+              <div className="space-y-4 pt-2">
+                <AddressFields formData={formData} setFormData={setFormData} required={false} />
+              </div>
+            ) : (
+              <p className="text-lg font-medium">
+                {user.street_address && user.city && user.state && user.zip_code
+                  ? `${user.street_address}, ${user.city}, ${user.state} ${user.zip_code}`
+                  : "Not set"}
+              </p>
+            )}
           </div>
 
           {/* Account Stats */}
