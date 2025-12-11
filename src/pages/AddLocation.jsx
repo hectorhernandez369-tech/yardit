@@ -71,6 +71,7 @@ export default function AddLocationPage() {
   });
 
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
 
   const createLocationMutation = useMutation({
     mutationFn: async ({ locationData, paymentInfo }) => {
@@ -179,6 +180,7 @@ export default function AddLocationPage() {
 
     const fullAddress = `${formData.street_address}, ${formData.city}, ${formData.state} ${formData.zip_code}`;
 
+    setIsGeocodingAddress(true);
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
@@ -196,21 +198,51 @@ export default function AddLocationPage() {
         }));
         toast.success("Address located on map!");
       } else {
-        toast.error("Could not find address. Please try a different one.");
+        toast.error("Could not find address. Please verify and try again.");
       }
     } catch (error) {
       toast.error("Error finding address.");
       console.error(error);
+    } finally {
+      setIsGeocodingAddress(false);
     }
   };
+
+  // Auto-geocode when all address fields are filled
+  useEffect(() => {
+    if (
+      formData.street_address &&
+      formData.city &&
+      formData.state &&
+      formData.zip_code &&
+      !formData.latitude &&
+      !formData.longitude &&
+      !isGeocodingAddress
+    ) {
+      const timer = setTimeout(() => {
+        geocodeAddress();
+      }, 1000); // Debounce for 1 second
+
+      return () => clearTimeout(timer);
+    }
+  }, [formData.street_address, formData.city, formData.state, formData.zip_code]);
 
   const handleContinueToTiers = async (e) => {
     e.preventDefault();
 
     // Holiday lights validation
     if (formData.type === "holiday_lights") {
-      if (!formData.display_title || !formData.viewing_start_time || !formData.viewing_end_time) {
-        toast.error("Please fill in all required fields for holiday lights.");
+      const missingFields = [];
+      if (!formData.display_title) missingFields.push("Display title");
+      if (!formData.viewing_start_time) missingFields.push("Viewing start time");
+      if (!formData.viewing_end_time) missingFields.push("Viewing end time");
+      if (!formData.street_address) missingFields.push("Street address");
+      if (!formData.city) missingFields.push("City");
+      if (!formData.state) missingFields.push("State");
+      if (!formData.zip_code) missingFields.push("ZIP code");
+
+      if (missingFields.length > 0) {
+        toast.error(`Missing required fields: ${missingFields.join(", ")}`);
         return;
       }
 
@@ -224,15 +256,10 @@ export default function AddLocationPage() {
         return;
       }
 
-      if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) {
-        toast.error("Please fill in all required address fields.");
-        return;
-      }
-
       if (!formData.latitude || !formData.longitude) {
         await geocodeAddress();
         if (!formData.latitude || !formData.longitude) {
-          toast.error("Could not locate address on map. Please check the address.");
+          toast.error("Could not locate address on map. Please verify the address is correct.");
           return;
         }
       }
@@ -242,9 +269,27 @@ export default function AddLocationPage() {
       return;
     }
 
-    if (!formData.title || !formData.street_address || !formData.city || !formData.state || !formData.zip_code || !formData.latitude || !formData.longitude) {
-      toast.error("Please fill in all required fields and set location.");
+    // Validate required fields for yard sales and other events
+    const missingFields = [];
+    if (!formData.title) missingFields.push("Title");
+    if (!formData.street_address) missingFields.push("Street address");
+    if (!formData.city) missingFields.push("City");
+    if (!formData.state) missingFields.push("State");
+    if (!formData.zip_code) missingFields.push("ZIP code");
+
+    if (missingFields.length > 0) {
+      toast.error(`Missing required fields: ${missingFields.join(", ")}`);
       return;
+    }
+
+    // Try to geocode if not already done
+    if (!formData.latitude || !formData.longitude) {
+      toast.error("Locating address on map...");
+      await geocodeAddress();
+      if (!formData.latitude || !formData.longitude) {
+        toast.error("Could not locate address. Please verify the address is correct.");
+        return;
+      }
     }
 
     // Enforce character limit for free tier
@@ -477,7 +522,14 @@ export default function AddLocationPage() {
                   </p>
                 )}
 
-                {formData.street_address && formData.city && formData.state && formData.zip_code && !formData.latitude && (
+                {isGeocodingAddress && (
+                  <p className="text-xs text-blue-600 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Locating address...
+                  </p>
+                )}
+
+                {formData.street_address && formData.city && formData.state && formData.zip_code && !formData.latitude && !isGeocodingAddress && (
                   <div className="flex justify-end">
                     <Button
                       type="button"
