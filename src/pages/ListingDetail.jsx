@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Calendar, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import ReportModal from "../components/listing/ReportModal";
+import ReportModal from "../components/ReportModal";
 
 export default function ListingDetailPage() {
   const navigate = useNavigate();
