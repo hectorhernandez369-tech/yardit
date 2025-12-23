@@ -1,33 +1,33 @@
 import AddLocation from './pages/AddLocation';
+import AdminLite from './pages/AdminLite';
+import CreateListing from './pages/CreateListing';
 import Home from './pages/Home';
 import Leaderboard from './pages/Leaderboard';
+import ListingDetail from './pages/ListingDetail';
 import Map from './pages/Map';
+import MyListings from './pages/MyListings';
 import NotificationSettings from './pages/NotificationSettings';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import SellerDashboard from './pages/SellerDashboard';
-import CreateListing from './pages/CreateListing';
-import ListingDetail from './pages/ListingDetail';
-import MyListings from './pages/MyListings';
 import Settings from './pages/Settings';
-import AdminLite from './pages/AdminLite';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AddLocation": AddLocation,
+    "AdminLite": AdminLite,
+    "CreateListing": CreateListing,
     "Home": Home,
     "Leaderboard": Leaderboard,
+    "ListingDetail": ListingDetail,
     "Map": Map,
+    "MyListings": MyListings,
     "NotificationSettings": NotificationSettings,
     "Notifications": Notifications,
     "Profile": Profile,
     "SellerDashboard": SellerDashboard,
-    "CreateListing": CreateListing,
-    "ListingDetail": ListingDetail,
-    "MyListings": MyListings,
     "Settings": Settings,
-    "AdminLite": AdminLite,
 }
 
 export const pagesConfig = {

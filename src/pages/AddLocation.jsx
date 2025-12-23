@@ -176,7 +176,10 @@ export default function AddLocationPage() {
   };
 
   const geocodeAddress = async () => {
-    if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) return null;
+    if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) {
+      toast.error("Please enter Street Address, City, State, and ZIP.");
+      return null;
+    }
 
     const fullAddress = `${formData.street_address}, ${formData.city}, ${formData.state} ${formData.zip_code}`;
 
@@ -190,16 +193,19 @@ export default function AddLocationPage() {
       const data = await response.json();
       
       if (data && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
+        const latitude = parseFloat(data[0].lat);
+        const longitude = parseFloat(data[0].lon);
+        
+        // Update state immediately
         setFormData((prev) => ({
           ...prev,
-          latitude: lat,
-          longitude: lng,
+          latitude,
+          longitude,
           address: fullAddress,
         }));
+        
         toast.success("Address located on map!");
-        return { latitude: lat, longitude: lng };
+        return { latitude, longitude };
       } else {
         toast.error("Could not find address. Please verify and try again.");
         return null;
@@ -261,15 +267,10 @@ export default function AddLocationPage() {
         return;
       }
 
-      let currentLat = formData.latitude;
-      let currentLng = formData.longitude;
-
-      if (!currentLat || !currentLng) {
+      if (!formData.latitude || !formData.longitude) {
+        toast.error("Locating address on map...");
         const geoResult = await geocodeAddress();
-        if (geoResult) {
-          currentLat = geoResult.latitude;
-          currentLng = geoResult.longitude;
-        } else {
+        if (!geoResult) {
           toast.error("Could not locate address on map. Please verify the address is correct.");
           return;
         }
@@ -294,16 +295,10 @@ export default function AddLocationPage() {
     }
 
     // Try to geocode if not already done
-    let currentLat = formData.latitude;
-    let currentLng = formData.longitude;
-
-    if (!currentLat || !currentLng) {
+    if (!formData.latitude || !formData.longitude) {
       toast.error("Locating address on map...");
       const geoResult = await geocodeAddress();
-      if (geoResult) {
-        currentLat = geoResult.latitude;
-        currentLng = geoResult.longitude;
-      } else {
+      if (!geoResult) {
         toast.error("Could not locate address. Please verify the address is correct.");
         return;
       }
