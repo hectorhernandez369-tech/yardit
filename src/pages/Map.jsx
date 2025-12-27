@@ -33,7 +33,7 @@ L.Icon.Default.mergeOptions({
 const createIcon = (type, tier, isSelected, location) => {
   if (isSelected) {
     return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232563eb' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3E✓%3C/text%3E%3C/svg%3E",
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23F4D35E' stroke='%23E84A3F' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='%232C3E50' font-size='16' font-weight='bold'%3E✓%3C/text%3E%3C/svg%3E",
       iconSize: [32, 32],
       iconAnchor: [16, 32],
       popupAnchor: [0, -32],
@@ -77,7 +77,7 @@ const createIcon = (type, tier, isSelected, location) => {
   // Tier-based icons for yard sales
   if (tier === "featured") {
     return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 38 38'%3E%3Cdefs%3E%3CradialGradient id='glow'%3E%3Cstop offset='0%25' stop-color='%23fbbf24' stop-opacity='0.3'/%3E%3Cstop offset='100%25' stop-color='%23fbbf24' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='19' cy='19' r='18' fill='url(%23glow)'/%3E%3Ccircle cx='19' cy='19' r='14' fill='%23f97316' stroke='%23fbbf24' stroke-width='3'/%3E%3Ctext x='19' y='24' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3E★%3C/text%3E%3C/svg%3E",
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 38 38'%3E%3Cdefs%3E%3CradialGradient id='glow'%3E%3Cstop offset='0%25' stop-color='%23F4D35E' stop-opacity='0.3'/%3E%3Cstop offset='100%25' stop-color='%23F4D35E' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='19' cy='19' r='18' fill='url(%23glow)'/%3E%3Ccircle cx='19' cy='19' r='14' fill='%235DCCB5' stroke='%23F4D35E' stroke-width='3'/%3E%3Ctext x='19' y='24' text-anchor='middle' fill='%232C3E50' font-size='16' font-weight='bold'%3E★%3C/text%3E%3C/svg%3E",
       iconSize: [38, 38],
       iconAnchor: [19, 38],
       popupAnchor: [0, -38],
@@ -86,7 +86,7 @@ const createIcon = (type, tier, isSelected, location) => {
   
   if (tier === "neighborhood_event") {
     return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 38 38'%3E%3Ccircle cx='19' cy='19' r='16' fill='%23ea580c' stroke='white' stroke-width='3'/%3E%3Ctext x='19' y='24' text-anchor='middle' fill='white' font-size='18' font-weight='bold'%3E🏘%3C/text%3E%3C/svg%3E",
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 38 38'%3E%3Ccircle cx='19' cy='19' r='16' fill='%235DCCB5' stroke='%23E84A3F' stroke-width='3'/%3E%3Ctext x='19' y='24' text-anchor='middle' fill='%232C3E50' font-size='18' font-weight='bold'%3E🏘%3C/text%3E%3C/svg%3E",
       iconSize: [38, 38],
       iconAnchor: [19, 38],
       popupAnchor: [0, -38],
@@ -95,7 +95,7 @@ const createIcon = (type, tier, isSelected, location) => {
   
   // Standard map_pin icon
   return new L.Icon({
-    iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23f97316' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16' font-weight='bold'%3E$%3C/text%3E%3C/svg%3E",
+    iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%235DCCB5' stroke='%23E84A3F' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='%232C3E50' font-size='16' font-weight='bold'%3E$%3C/text%3E%3C/svg%3E",
     iconSize: [32, 32],
     iconAnchor: [16, 32],
     popupAnchor: [0, -32],

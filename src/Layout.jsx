@@ -22,17 +22,19 @@ export default function Layout({ children }) {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F5F5F0' }}>
+      <header className="bg-white border-b-2 sticky top-0 z-50 shadow-sm" style={{ borderColor: '#E84A3F' }}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link to={createPageUrl("Home")} className="flex items-center gap-2 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-amber-600 to-amber-800 rounded-full flex items-center justify-center shadow-lg">
-                <Compass className="w-5 h-5 text-white" />
-              </div>
+            <Link to={createPageUrl("Home")} className="flex items-center gap-3 group">
+              <img 
+                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/9bc50c75a_ChatGPTImageDec27202509_37_00AM.png" 
+                alt="Yardit Logo" 
+                className="w-12 h-12"
+              />
               <div>
-                <h1 className="text-xl font-bold text-slate-900">Yardit</h1>
-                <p className="text-xs text-slate-500">Find Treasure Nearby</p>
+                <h1 className="text-2xl font-bold" style={{ color: '#2C3E50', fontFamily: 'cursive' }}>Yardit</h1>
+                <p className="text-xs" style={{ color: '#5DCCB5' }}>Find Treasure Nearby</p>
               </div>
             </Link>
 
@@ -88,7 +90,8 @@ export default function Layout({ children }) {
                   <Link to={createPageUrl("CreateListing")}>
                     <Button
                       size="sm"
-                      className="gap-2 bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-700 hover:to-amber-900"
+                      className="gap-2 text-white border-2 hover:opacity-90"
+                      style={{ backgroundColor: '#E84A3F', borderColor: '#2C3E50' }}
                     >
                       <Plus className="w-4 h-4" />
                       <span className="hidden sm:inline">Post Sale</span>
@@ -105,9 +108,9 @@ export default function Layout({ children }) {
         {children}
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-4">
+      <footer className="bg-white border-t-2 py-4" style={{ borderColor: '#E84A3F' }}>
         <div className="max-w-7xl mx-auto px-4">
-          <p className="text-center text-sm text-slate-600">
+          <p className="text-center text-sm" style={{ color: '#2C3E50' }}>
             🏴‍☠️ Yardit - Seekers find the best residential yard sales
           </p>
         </div>

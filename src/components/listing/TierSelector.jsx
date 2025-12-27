@@ -69,7 +69,7 @@ export default function TierSelector({ selectedTier, onSelect }) {
                   <RadioGroupItem value={tier.id} id={tier.id} className="sr-only" />
                   
                   {tier.popular && (
-                    <Badge className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-purple-600 text-white">
+                    <Badge className="absolute top-2 right-2 text-white border-2" style={{ backgroundColor: '#E84A3F', borderColor: '#2C3E50' }}>
                       <Sparkles className="w-3 h-3 mr-1" />
                       Most Popular
                     </Badge>

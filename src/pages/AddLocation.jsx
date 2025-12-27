@@ -371,8 +371,8 @@ export default function AddLocationPage() {
 
         {step === 1 ? (
           <Card className="border-0 shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-orange-500 to-purple-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2 text-2xl">
+            <CardHeader className="text-white rounded-t-lg border-b-4" style={{ backgroundColor: '#5DCCB5', borderColor: '#E84A3F' }}>
+              <CardTitle className="flex items-center gap-2 text-2xl" style={{ color: '#2C3E50' }}>
                 {formData.type === "holiday_lights" ? <Lightbulb className="w-6 h-6" /> : <MapPin className="w-6 h-6" />}
                 {formData.type === "holiday_lights" ? "Post Holiday Light Display" : "Post Your Yard Sale"}
               </CardTitle>
@@ -394,11 +394,12 @@ export default function AddLocationPage() {
                       onClick={() => setFormData(prev => ({ ...prev, type: "yard_sale" }))}
                       className={`p-4 border-2 rounded-lg transition-all ${
                         formData.type === "yard_sale"
-                          ? "border-orange-500 bg-orange-50"
+                          ? "bg-opacity-20"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
+                      style={formData.type === "yard_sale" ? { borderColor: '#E84A3F', backgroundColor: '#5DCCB5' } : {}}
                     >
-                      <MapPin className="w-6 h-6 mx-auto mb-2 text-orange-500" />
+                      <MapPin className="w-6 h-6 mx-auto mb-2" style={{ color: '#E84A3F' }} />
                       <p className="font-medium">Yard Sale</p>
                     </button>
                     <button
@@ -616,7 +617,8 @@ export default function AddLocationPage() {
                   <Button
                     type="submit"
                     disabled={createLocationMutation.isPending}
-                    className="flex-1 bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700"
+                    className="flex-1 text-white border-2 hover:opacity-90"
+                    style={{ backgroundColor: '#E84A3F', borderColor: '#2C3E50' }}
                   >
                     {formData.type === "holiday_lights" ? "Create Display" : "Continue"}
                   </Button>
@@ -626,9 +628,9 @@ export default function AddLocationPage() {
           </Card>
         ) : step === 2 ? (
           <Card className="border-0 shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-orange-500 to-purple-600 text-white rounded-t-lg">
-              <CardTitle className="text-2xl">Choose Your Listing Tier</CardTitle>
-              <p className="text-white/90 text-sm mt-1">
+            <CardHeader className="text-white rounded-t-lg border-b-4" style={{ backgroundColor: '#5DCCB5', borderColor: '#E84A3F' }}>
+              <CardTitle className="text-2xl" style={{ color: '#2C3E50' }}>Choose Your Listing Tier</CardTitle>
+              <p className="text-sm mt-1" style={{ color: '#2C3E50', opacity: 0.8 }}>
                 Select the visibility level for your yard sale
               </p>
             </CardHeader>
@@ -657,7 +659,8 @@ export default function AddLocationPage() {
                   <Button
                     onClick={handleContinueToPayment}
                     disabled={createLocationMutation.isPending}
-                    className="flex-1 bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700"
+                    className="flex-1 text-white border-2 hover:opacity-90"
+                    style={{ backgroundColor: '#E84A3F', borderColor: '#2C3E50' }}
                   >
                     {formData.tier === "free" ? "Create Listing" : "Continue to Payment"}
                   </Button>
