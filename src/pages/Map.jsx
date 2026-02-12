@@ -713,41 +713,7 @@ export default function MapPage() {
           })}
         </MapContainer>
 
-        {/* Zoom + My Location stack */}
-        <div className="absolute top-3 left-3 z-[1000] flex flex-col shadow-md rounded-lg overflow-hidden border border-gray-300">
-          <button
-            onClick={() => { const m = document.querySelector('.leaflet-container'); if (m && m._leaflet_id) { const map = Object.values(window).find(() => false); } }}
-            ref={(el) => { if (el) el._zoomIn = true; }}
-            className="w-9 h-9 bg-white hover:bg-gray-100 active:bg-gray-200 flex items-center justify-center text-gray-700 text-lg font-bold border-b border-gray-200 transition-colors"
-            title="Zoom in"
-            onClick={() => {
-              const container = document.querySelector('.leaflet-container');
-              if (container && container._leaflet_id !== undefined) {
-                // Access map via ref instead
-              }
-            }}
-          >
-            +
-          </button>
-          <button
-            className="w-9 h-9 bg-white hover:bg-gray-100 active:bg-gray-200 flex items-center justify-center text-gray-700 text-lg font-bold border-b border-gray-200 transition-colors"
-            title="Zoom out"
-          >
-            −
-          </button>
-          <button
-            onClick={handleMyLocation}
-            disabled={isLocating || !!locationError}
-            className="w-9 h-9 bg-white hover:bg-gray-100 active:bg-gray-200 flex items-center justify-center text-gray-700 disabled:opacity-50 transition-colors"
-            title={locationError ? "Location unavailable" : "My Location"}
-          >
-            {isLocating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Crosshair className="w-4 h-4" />
-            )}
-          </button>
-        </div>
+
 
         {/* Debug Overlay */}
         <div
