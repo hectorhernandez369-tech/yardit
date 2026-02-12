@@ -63,11 +63,13 @@ export default function AddLocationPage() {
     longitude: null,
     description: "",
     date: "",
+    start_time: "08:00",
     viewing_start_time: "17:00",
     viewing_end_time: "22:00",
     contact_info: "",
     photos: [],
     rules_acknowledged: false,
+    early_activation: false,
   });
 
   const [isGettingLocation, setIsGettingLocation] = useState(false);
@@ -314,6 +316,12 @@ export default function AddLocationPage() {
   };
 
   const handleContinueToPayment = () => {
+    // Validate date/time selection
+    if (!formData.date) {
+      toast.error("Please select a start date");
+      return;
+    }
+
     if (formData.tier === "free") {
       createLocationMutation.mutate({ locationData: formData, paymentInfo: null });
     } else {
@@ -555,22 +563,7 @@ export default function AddLocationPage() {
                   </div>
                 )}
 
-                {formData.type !== "holiday_lights" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Sale Date</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, date: e.target.value }))
-                      }
-                    />
-                    <p className="text-xs text-gray-500">
-                      Listing will be active Friday-Sunday ({getNextFriday().toLocaleDateString()} - {getNextSunday().toLocaleDateString()})
-                    </p>
-                  </div>
-                )}
+
 
                 <div className="space-y-2">
                   <Label htmlFor="description">
@@ -646,6 +639,137 @@ export default function AddLocationPage() {
                     onSelect={(tier) => setFormData((prev) => ({ ...prev, tier }))}
                   />
                 </RadioGroup>
+
+                {/* Date/Time Selection - Tier-Based Rules */}
+                <div className="space-y-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                  <h3 className="font-semibold text-gray-900">Select Active Days</h3>
+                  
+                  {formData.tier === "free" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="start_date">Start Date (Weekend Only)</Label>
+                        <Input
+                          id="start_date"
+                          type="date"
+                          value={formData.date}
+                          min={getNextFriday().toISOString().split('T')[0]}
+                          max={getNextSunday().toISOString().split('T')[0]}
+                          onChange={(e) => {
+                            const selectedDate = new Date(e.target.value);
+                            const dayOfWeek = selectedDate.getDay();
+                            // Only allow Friday (5), Saturday (6), Sunday (0)
+                            if (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0) {
+                              setFormData((prev) => ({ ...prev, date: e.target.value }));
+                            } else {
+                              toast.error("Free listings can only start on Friday, Saturday, or Sunday");
+                            }
+                          }}
+                          required
+                        />
+                        <p className="text-xs text-blue-600">
+                          Free listings run Friday–Sunday only ({getNextFriday().toLocaleDateString()} - {getNextSunday().toLocaleDateString()})
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {formData.tier === "featured" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="start_date">Start Date</Label>
+                        <Input
+                          id="start_date"
+                          type="date"
+                          value={formData.date}
+                          min={new Date().toISOString().split('T')[0]}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+                          required
+                        />
+                        <p className="text-xs text-blue-600">
+                          Featured listings run for 3 consecutive days. Select your start date.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="start_time">Start Time</Label>
+                        <Input
+                          id="start_time"
+                          type="time"
+                          value={formData.start_time || "08:00"}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, start_time: e.target.value }))}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {formData.tier === "premium" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="start_date">Start Date</Label>
+                        <Input
+                          id="start_date"
+                          type="date"
+                          value={formData.date}
+                          min={new Date().toISOString().split('T')[0]}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+                          required
+                        />
+                        <p className="text-xs text-blue-600">
+                          Premium listings run for up to 5 days. You can optionally activate 2-3 days before your start date for early visibility.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="start_time">Start Time</Label>
+                        <Input
+                          id="start_time"
+                          type="time"
+                          value={formData.start_time || "08:00"}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, start_time: e.target.value }))}
+                        />
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                        <Checkbox
+                          id="early_activation"
+                          checked={formData.early_activation || false}
+                          onCheckedChange={(checked) =>
+                            setFormData((prev) => ({ ...prev, early_activation: checked }))
+                          }
+                        />
+                        <Label htmlFor="early_activation" className="text-sm cursor-pointer">
+                          Enable early activation (2-3 days before start date for maximum visibility)
+                        </Label>
+                      </div>
+                    </>
+                  )}
+
+                  {formData.tier === "map_pin" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="start_date">Start Date</Label>
+                        <Input
+                          id="start_date"
+                          type="date"
+                          value={formData.date}
+                          min={getNextFriday().toISOString().split('T')[0]}
+                          max={getNextSunday().toISOString().split('T')[0]}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+                          required
+                        />
+                        <p className="text-xs text-blue-600">
+                          Map Pin listings are active Friday–Sunday ({getNextFriday().toLocaleDateString()} - {getNextSunday().toLocaleDateString()})
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="start_time">Start Time</Label>
+                        <Input
+                          id="start_time"
+                          type="time"
+                          value={formData.start_time || "08:00"}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, start_time: e.target.value }))}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 <div className="flex gap-3 pt-4">
                   <Button
