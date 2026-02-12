@@ -113,9 +113,13 @@ const createIcon = (type, tier, isSelected, location) => {
   return getCachedIcon(key, buildPinSvg("#6b7280", "#4b5563", 2, 36, opacity), 36);
 };
 
-function MapController({ center, zoom, onUserMove, onZoomChange }) {
+function MapController({ center, zoom, onUserMove, onZoomChange, onMapReady }) {
   const map = useMap();
   const lastProgrammaticMove = useRef(null);
+
+  useEffect(() => {
+    if (onMapReady) onMapReady(map);
+  }, [map, onMapReady]);
 
   useEffect(() => {
     const handleMoveEnd = () => {
@@ -219,6 +223,7 @@ export default function MapPage() {
   const hasCenteredOnUser = useRef(false);
   const userHasMovedMap = useRef(false);
   const halloweenActive = isHalloweenSeason();
+  const mapRef = useRef(null);
 
   // Debug overlay auto-hide
   const debugForceOn = useMemo(() => {
@@ -373,6 +378,30 @@ export default function MapPage() {
 
   const handleZoomChange = React.useCallback((z) => {
     setCurrentZoom(z);
+  }, []);
+
+  const focusOnListing = React.useCallback((listing) => {
+    if (!listing || typeof listing.lat !== "number" || typeof listing.lng !== "number") return;
+    if (!mapRef.current) return;
+
+    // Determine minimum zoom based on tier
+    let minZoom = 15; // free
+    if (listing.tier === "premium" || listing.tier === "neighborhood_tier") {
+      minZoom = 11;
+    } else if (listing.tier === "featured" || listing.tier === "map_pin") {
+      minZoom = 13;
+    }
+
+    const currentZoom = mapRef.current.getZoom();
+    const targetZoom = Math.max(currentZoom, minZoom);
+
+    mapRef.current.flyTo([listing.lat, listing.lng], targetZoom, { animate: true, duration: 0.5 });
+
+    // Open popup after flyTo completes
+    setTimeout(() => {
+      const markerRef = markerRefsMap.current[listing.id];
+      if (markerRef) markerRef.openPopup();
+    }, 600);
   }, []);
 
   const eligibleListings = useMemo(() => {
@@ -599,7 +628,7 @@ export default function MapPage() {
           className="h-full w-full"
           zoomControl={false}
         >
-          <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} />
+          <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => { mapRef.current = map; }} />
           <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
           <MapFocusController focusListing={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
           <TileLayer
