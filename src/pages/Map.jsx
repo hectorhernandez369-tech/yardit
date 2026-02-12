@@ -20,7 +20,8 @@ import ReportForm from "../components/holidays/ReportForm";
 import DisplayToggle from "../components/holidays/DisplayToggle";
 import { toast } from "sonner";
 import { isHolidaySeason, isWithinViewingHours } from "../components/holidays/SeasonCheck";
-import { useNavigate } from "react-router-dom";
+import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
+import MapDebugOverlay from "../components/map/MapDebugOverlay";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -30,155 +31,114 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Custom marker icons based on tier - Teardrop shape
-const createIcon = (type, tier, isSelected, location) => {
-  // Teardrop/pin path for SVG
-  const pinPath = "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z";
-  
-  if (isSelected) {
-    return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23C6A75E' stroke='%230F766E' stroke-width='1.5'/%3E%3C/svg%3E",
-      iconSize: [24, 32],
-      iconAnchor: [12, 32],
-      popupAnchor: [0, -32],
-    });
-  }
-  
-  if (type === "halloween_candy") {
-    return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%239333ea' stroke='white' stroke-width='1.5'/%3E%3C/svg%3E",
-      iconSize: [24, 32],
-      iconAnchor: [12, 32],
-      popupAnchor: [0, -32],
-    });
-  }
-  
-  // Holiday lights - teardrop with glow when active
-  if (type === "holiday_lights") {
-    const isGlowing = location && 
-      location.display_active &&
-      isWithinViewingHours(location.viewing_start_time, location.viewing_end_time);
-    
-    if (isGlowing) {
-      return new L.Icon({
-        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cdefs%3E%3Cfilter id='glow'%3E%3CfeGaussianBlur stdDeviation='2' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg transform='translate(2 2)'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23ffd700' stroke='%23dc2626' stroke-width='1.5' filter='url(%23glow)'/%3E%3C/g%3E%3C/svg%3E",
-        iconSize: [28, 36],
-        iconAnchor: [14, 36],
-        popupAnchor: [0, -36],
-      });
-    } else {
-      return new L.Icon({
-        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23dc2626' stroke='white' stroke-width='1.5'/%3E%3C/svg%3E",
-        iconSize: [24, 32],
-        iconAnchor: [12, 32],
-        popupAnchor: [0, -32],
-      });
-    }
-  }
-  
-  // Premium Tier: Gold fill, Teal outline, larger, subtle glow
-  if (tier === "premium") {
-    return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cdefs%3E%3Cfilter id='glow'%3E%3CfeGaussianBlur stdDeviation='1.5' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg transform='translate(2 2)'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23C6A75E' stroke='%230F766E' stroke-width='1.5' filter='url(%23glow)'/%3E%3C/g%3E%3C/svg%3E",
-      iconSize: [28, 36],
-      iconAnchor: [14, 36],
-      popupAnchor: [0, -36],
-    });
-  }
-  
-  // Featured Tier: Teal fill, Gold outline, default size
-  if (tier === "featured") {
-    return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%230F766E' stroke='%23C6A75E' stroke-width='1.5'/%3E%3C/svg%3E",
-      iconSize: [24, 32],
-      iconAnchor: [12, 32],
-      popupAnchor: [0, -32],
-    });
-  }
-  
-  if (tier === "neighborhood_event") {
-    return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='34' viewBox='0 0 26 34'%3E%3Cg transform='translate(1 1)'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23C6A75E' stroke='%230F766E' stroke-width='2'/%3E%3C/g%3E%3C/svg%3E",
-      iconSize: [26, 34],
-      iconAnchor: [13, 34],
-      popupAnchor: [0, -34],
-    });
-  }
-  
-  // Free Tier: Solid Teal, no outline, default size
-  return new L.Icon({
-    iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%230F766E'/%3E%3C/svg%3E",
-    iconSize: [24, 32],
-    iconAnchor: [12, 32],
-    popupAnchor: [0, -32],
-  });
-};
-
-function FocusedListingMarker({ listing }) {
-  const markerRef = React.useRef(null);
-  
-  useEffect(() => {
-    if (markerRef.current) {
-      markerRef.current.openPopup();
-    }
-  }, [listing]);
-
-  const isExpired = listing.status === "expired" || listing.status === "completed";
-
-  return (
-    <Marker
-      ref={markerRef}
-      position={[listing.lat, listing.lng]}
-      icon={new L.Icon({
-        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cdefs%3E%3Cfilter id='glow'%3E%3CfeGaussianBlur stdDeviation='1.5' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg transform='translate(2 2)'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23C6A75E' stroke='%230F766E' stroke-width='1.5' filter='url(%23glow)'/%3E%3C/g%3E%3C/svg%3E",
-        iconSize: [28, 36],
-        iconAnchor: [14, 36],
-        popupAnchor: [0, -36],
-      })}
-    >
-      <Popup>
-        <div className="p-2">
-          <div className="flex items-center gap-2 mb-2">
-            <Badge className="bg-orange-500">🏡 Yard Sale</Badge>
-            {isExpired && (
-              <Badge className="bg-gray-400">EXPIRED</Badge>
-            )}
-          </div>
-          <h3 className="font-bold text-base mb-1">{listing.title}</h3>
-          <p className="text-sm text-gray-600 mb-2">
-            {listing.addressText || `${listing.city}, ${listing.zip}`}
-          </p>
-          {listing.description && (
-            <p className="text-sm mb-2">{listing.description}</p>
-          )}
-          {listing.startDateTime && (
-            <div className="flex items-center gap-1 text-xs text-gray-500">
-              <Calendar className="w-3 h-3" />
-              {format(new Date(listing.startDateTime), "MMM d, yyyy")}
-            </div>
-          )}
-        </div>
-      </Popup>
-    </Marker>
-  );
+// Determine if a listing is pre-activated / upcoming (not yet started)
+function isPreActivated(location) {
+  if (!location.start_date_time) return false;
+  return new Date(location.start_date_time) > new Date();
 }
 
-function MapController({ center, zoom, onUserMove }) {
+// Build SVG data URL for a pin
+function buildPinSvg(fill, stroke, strokeWidth, size, opacity = 1) {
+  const w = size;
+  const h = Math.round(size * 1.33);
+  const path = "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z";
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='0 0 24 32' opacity='${opacity}'><path d='${path}' fill='${fill}' stroke='${stroke}' stroke-width='${strokeWidth}'/></svg>`;
+  return "data:image/svg+xml," + encodeURIComponent(svg);
+}
+
+// Pin icon cache to avoid recreating icons every render
+const iconCache = {};
+function getCachedIcon(key, url, size) {
+  if (!iconCache[key]) {
+    const w = size;
+    const h = Math.round(size * 1.33);
+    iconCache[key] = new L.Icon({
+      iconUrl: url,
+      iconSize: [w, h],
+      iconAnchor: [w / 2, h],
+      popupAnchor: [0, -h],
+    });
+  }
+  return iconCache[key];
+}
+
+// Custom marker icons based on tier
+const createIcon = (type, tier, isSelected, location) => {
+  const preAct = isPreActivated(location);
+  const opacity = preAct ? 0.6 : 1.0;
+
+  // Selected state override
+  if (isSelected) {
+    const key = `selected_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 40, opacity), 40);
+  }
+
+  // Halloween candy - keep purple
+  if (type === "halloween_candy") {
+    const key = `halloween_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#9333ea", "#ffffff", 2, 36, opacity), 36);
+  }
+
+  // Holiday lights
+  if (type === "holiday_lights") {
+    const isGlowing = location &&
+      location.display_active &&
+      isWithinViewingHours(location.viewing_start_time, location.viewing_end_time);
+    if (isGlowing) {
+      const key = `lights_glow_${opacity}`;
+      return getCachedIcon(key, buildPinSvg("#ffd700", "#dc2626", 2, 40, opacity), 40);
+    }
+    const key = `lights_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#dc2626", "#ffffff", 2, 36, opacity), 36);
+  }
+
+  // Tier-based styles
+  // PREMIUM: fill #5DADA5, stroke #F4A849, size 40
+  if (tier === "premium") {
+    const key = `premium_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#5DADA5", "#F4A849", 2, 40, opacity), 40);
+  }
+
+  // NEIGHBORHOOD_EVENT (HQ): fill #F4A849, stroke #2C4F4E, size 40
+  if (tier === "neighborhood_event") {
+    const key = `hq_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 40, opacity), 40);
+  }
+
+  // FEATURED / MAP_PIN (paid): fill #5DADA5, stroke #2C4F4E, size 36
+  if (tier === "featured" || tier === "map_pin") {
+    const key = `featured_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#5DADA5", "#2C4F4E", 2, 36, opacity), 36);
+  }
+
+  // FREE: fill #6b7280, stroke #4b5563, size 36
+  const key = `free_${opacity}`;
+  return getCachedIcon(key, buildPinSvg("#6b7280", "#4b5563", 2, 36, opacity), 36);
+};
+
+function MapController({ center, zoom, onUserMove, onZoomChange }) {
   const map = useMap();
   const lastProgrammaticMove = useRef(null);
 
-  // Listen for user-initiated map moves
   useEffect(() => {
     const handleMoveEnd = () => {
-      // If this move was triggered programmatically, skip
       if (lastProgrammaticMove.current && Date.now() - lastProgrammaticMove.current < 1000) {
         return;
       }
       onUserMove();
     };
+    const handleZoomEnd = () => {
+      onZoomChange(map.getZoom());
+    };
     map.on("moveend", handleMoveEnd);
-    return () => map.off("moveend", handleMoveEnd);
-  }, [map, onUserMove]);
+    map.on("zoomend", handleZoomEnd);
+    // Fire initial zoom
+    onZoomChange(map.getZoom());
+    return () => {
+      map.off("moveend", handleMoveEnd);
+      map.off("zoomend", handleZoomEnd);
+    };
+  }, [map, onUserMove, onZoomChange]);
 
   useEffect(() => {
     if (center) {
@@ -254,7 +214,8 @@ export default function MapPage() {
   const [locationError, setLocationError] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
   const [focusListingId, setFocusListingId] = useState(null);
-  const [markerRefs, setMarkerRefs] = useState({});
+  const [currentZoom, setCurrentZoom] = useState(13);
+  const markerRefsMap = useRef({});
   const hasCenteredOnUser = useRef(false);
   const userHasMovedMap = useRef(false);
   const halloweenActive = isHalloweenSeason();
@@ -398,6 +359,10 @@ export default function MapPage() {
 
   const handleUserMoveMap = React.useCallback(() => {
     userHasMovedMap.current = true;
+  }, []);
+
+  const handleZoomChange = React.useCallback((z) => {
+    setCurrentZoom(z);
   }, []);
 
   const filteredLocations = useMemo(() => {
