@@ -218,7 +218,7 @@ export default function MapPage() {
   const [isLocating, setIsLocating] = useState(false);
   const [focusListingId, setFocusListingId] = useState(null);
   const [activeFocusListing, setActiveFocusListing] = useState(null);
-
+  const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
   const markerRefsMap = useRef({});
   const hasCenteredOnUser = useRef(false);
