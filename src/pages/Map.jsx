@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown, Plus, Check, Users, Star } from "lucide-react";
+import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown, Plus, Check, Users, Star, Crosshair, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
 import CheckInButton from "../components/map/CheckInButton";
@@ -183,6 +183,9 @@ export default function MapPage() {
   const [routeActive, setRouteActive] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [user, setUser] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
   const halloweenActive = isHalloweenSeason();
   const holidaySeasonActive = isHolidaySeason();
 
@@ -216,21 +219,71 @@ export default function MapPage() {
     initialData: [],
   });
 
+  // Live location tracking while on map
   useEffect(() => {
     if (navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
-          setMapCenter([position.coords.latitude, position.coords.longitude]);
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          });
+          setLocationError(null);
+          // Only set initial center if not already set
+          if (mapCenter[0] === 37.7749 && mapCenter[1] === -122.4194) {
+            setMapCenter([position.coords.latitude, position.coords.longitude]);
+          }
         },
-        () => {
-          console.log("Location access denied");
+        (error) => {
+          if (error.code === error.PERMISSION_DENIED) {
+            setLocationError("Location permission is off. Enable it in settings to use My Location.");
+          } else {
+            setLocationError("Unable to get location right now.");
+          }
         },
-        { enableHighAccuracy: true, maximumAge: 10000 }
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
       );
       
       return () => navigator.geolocation.clearWatch(watchId);
     }
   }, []);
+
+  const handleMyLocation = () => {
+    if (!userLocation) {
+      setIsLocating(true);
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const newLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            };
+            setUserLocation(newLocation);
+            setMapCenter([newLocation.lat, newLocation.lng]);
+            setLocationError(null);
+            setIsLocating(false);
+            toast.success("Centered on your location");
+          },
+          (error) => {
+            setIsLocating(false);
+            if (error.code === error.PERMISSION_DENIED) {
+              setLocationError("Location permission is off. Enable it in settings to use My Location.");
+              toast.error("Location permission denied");
+            } else {
+              setLocationError("Unable to get location right now.");
+              toast.error("Unable to get location");
+            }
+          },
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      }
+    } else {
+      setMapCenter([userLocation.lat, userLocation.lng]);
+      toast.success("Centered on your location");
+    }
+  };
 
   const filteredLocations = useMemo(() => {
     const now = new Date();
@@ -427,6 +480,32 @@ export default function MapPage() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           
+          {/* User Location Dot */}
+          {userLocation && (
+            <>
+              <Circle
+                center={[userLocation.lat, userLocation.lng]}
+                radius={userLocation.accuracy || 50}
+                pathOptions={{ 
+                  fillColor: '#3b82f6', 
+                  fillOpacity: 0.1, 
+                  color: '#3b82f6', 
+                  weight: 1 
+                }}
+              />
+              <Circle
+                center={[userLocation.lat, userLocation.lng]}
+                radius={8}
+                pathOptions={{ 
+                  fillColor: '#3b82f6', 
+                  fillOpacity: 1, 
+                  color: 'white', 
+                  weight: 2 
+                }}
+              />
+            </>
+          )}
+          
           {/* Route Line */}
           {routeActive && routeCoordinates.length > 1 && (
             <Polyline
@@ -582,6 +661,34 @@ export default function MapPage() {
             );
           })}
         </MapContainer>
+
+        {/* My Location Button */}
+        <div className="absolute right-4 top-24 z-[1000] flex flex-col gap-2">
+          <Button
+            onClick={handleMyLocation}
+            size="icon"
+            disabled={isLocating}
+            className="bg-white hover:bg-gray-100 text-gray-700 shadow-lg"
+            title="My Location"
+          >
+            {isLocating ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Crosshair className="w-5 h-5" />
+            )}
+          </Button>
+        </div>
+
+        {/* Location Error Message */}
+        {locationError && (
+          <div className="absolute bottom-24 left-4 right-4 z-[1000] sm:left-auto sm:right-4 sm:w-80">
+            <Card className="bg-orange-50 border-orange-200">
+              <CardContent className="p-3">
+                <p className="text-sm text-orange-800">{locationError}</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Sidebar - Mobile */}
