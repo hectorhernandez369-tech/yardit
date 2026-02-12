@@ -22,8 +22,8 @@ export default function Layout({ children }) {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F5F5F0' }}>
-      <header className="bg-white border-b-2 sticky top-0 z-50 shadow-sm" style={{ borderColor: '#E84A3F' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F4EBDD' }}>
+      <header className="bg-white border-b-2 sticky top-0 z-50 shadow-sm" style={{ borderColor: '#0F766E' }}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to={createPageUrl("Home")} className="flex items-center gap-3 group">
@@ -33,8 +33,8 @@ export default function Layout({ children }) {
                 className="w-12 h-12"
               />
               <div>
-                <h1 className="text-2xl font-bold" style={{ color: '#2C3E50', fontFamily: 'cursive' }}>Yardit</h1>
-                <p className="text-xs" style={{ color: '#5DCCB5' }}>Find Treasure Nearby</p>
+                <h1 className="text-2xl font-bold" style={{ color: '#0F766E', fontFamily: 'cursive' }}>Yardit</h1>
+                <p className="text-xs" style={{ color: '#C6A75E' }}>Find Treasure Nearby</p>
               </div>
             </Link>
 
@@ -90,8 +90,8 @@ export default function Layout({ children }) {
                   <Link to={createPageUrl("CreateListing")}>
                     <Button
                       size="sm"
-                      className="gap-2 text-white border-2 hover:opacity-90"
-                      style={{ backgroundColor: '#E84A3F', borderColor: '#2C3E50' }}
+                      className="gap-2 text-white border-0 hover:opacity-90 shadow-md"
+                      style={{ backgroundColor: '#0F766E' }}
                     >
                       <Plus className="w-4 h-4" />
                       <span className="hidden sm:inline">Post Sale</span>
@@ -108,9 +108,9 @@ export default function Layout({ children }) {
         {children}
       </main>
 
-      <footer className="bg-white border-t-2 py-4" style={{ borderColor: '#E84A3F' }}>
+      <footer className="bg-white border-t-2 py-4" style={{ borderColor: '#0F766E' }}>
         <div className="max-w-7xl mx-auto px-4">
-          <p className="text-center text-sm" style={{ color: '#2C3E50' }}>
+          <p className="text-center text-sm" style={{ color: '#1F2937' }}>
             🏴‍☠️ Yardit - Seekers find the best residential yard sales
           </p>
         </div>
