@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle } from "react-leaflet";
@@ -163,10 +163,26 @@ function FocusedListingMarker({ listing }) {
   );
 }
 
-function MapController({ center, zoom }) {
+function MapController({ center, zoom, onUserMove }) {
   const map = useMap();
+  const lastProgrammaticMove = useRef(null);
+
+  // Listen for user-initiated map moves
+  useEffect(() => {
+    const handleMoveEnd = () => {
+      // If this move was triggered programmatically, skip
+      if (lastProgrammaticMove.current && Date.now() - lastProgrammaticMove.current < 1000) {
+        return;
+      }
+      onUserMove();
+    };
+    map.on("moveend", handleMoveEnd);
+    return () => map.off("moveend", handleMoveEnd);
+  }, [map, onUserMove]);
+
   useEffect(() => {
     if (center) {
+      lastProgrammaticMove.current = Date.now();
       map.setView(center, zoom || 13);
     }
   }, [center, zoom, map]);
@@ -239,6 +255,8 @@ export default function MapPage() {
   const [isLocating, setIsLocating] = useState(false);
   const [focusListingId, setFocusListingId] = useState(null);
   const [markerRefs, setMarkerRefs] = useState({});
+  const hasCenteredOnUser = useRef(false);
+  const userHasMovedMap = useRef(false);
   const halloweenActive = isHalloweenSeason();
   const holidaySeasonActive = isHolidaySeason();
 
@@ -299,71 +317,88 @@ export default function MapPage() {
     initialData: [],
   });
 
-  // Live location tracking while on map
+  // Live location tracking — updates the blue dot only, does NOT recenter
   useEffect(() => {
-    if (navigator.geolocation) {
-      const watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          });
-          setLocationError(null);
-          // Only set initial center if not already set
-          if (mapCenter[0] === 37.7749 && mapCenter[1] === -122.4194) {
-            setMapCenter([position.coords.latitude, position.coords.longitude]);
-          }
-        },
-        (error) => {
-          if (error.code === error.PERMISSION_DENIED) {
-            setLocationError("Location permission is off. Enable it in settings to use My Location.");
-          } else {
-            setLocationError("Unable to get location right now.");
-          }
-        },
-        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
-      );
-      
-      return () => navigator.geolocation.clearWatch(watchId);
-    }
+    if (!navigator.geolocation) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const newLoc = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        };
+        setUserLocation(newLoc);
+        setLocationError(null);
+
+        // Auto-center ONCE on first GPS fix, only if user hasn't moved map
+        if (!hasCenteredOnUser.current && !userHasMovedMap.current) {
+          setMapCenter([newLoc.lat, newLoc.lng]);
+          hasCenteredOnUser.current = true;
+        }
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError("Location permission is off. Enable it in settings to use My Location.");
+        } else {
+          setLocationError("Unable to get location right now.");
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
   const handleMyLocation = () => {
-    if (!userLocation) {
-      setIsLocating(true);
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const newLocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-              accuracy: position.coords.accuracy
-            };
-            setUserLocation(newLocation);
-            setMapCenter([newLocation.lat, newLocation.lng]);
-            setLocationError(null);
-            setIsLocating(false);
-            toast.success("Centered on your location");
-          },
-          (error) => {
-            setIsLocating(false);
-            if (error.code === error.PERMISSION_DENIED) {
-              setLocationError("Location permission is off. Enable it in settings to use My Location.");
-              toast.error("Location permission denied");
-            } else {
-              setLocationError("Unable to get location right now.");
-              toast.error("Unable to get location");
-            }
-          },
-          { enableHighAccuracy: true, timeout: 5000 }
-        );
-      }
-    } else {
+    if (locationError) {
+      toast.error("Location unavailable. Check your browser settings.");
+      return;
+    }
+
+    if (userLocation) {
+      // We already have a location — just recenter
       setMapCenter([userLocation.lat, userLocation.lng]);
+      setMapZoom(14);
       toast.success("Centered on your location");
+      return;
+    }
+
+    // No location yet — request one
+    setIsLocating(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          };
+          setUserLocation(newLocation);
+          setMapCenter([newLocation.lat, newLocation.lng]);
+          setMapZoom(14);
+          setLocationError(null);
+          setIsLocating(false);
+          toast.success("Centered on your location");
+        },
+        (error) => {
+          setIsLocating(false);
+          if (error.code === error.PERMISSION_DENIED) {
+            setLocationError("Location permission is off. Enable it in settings to use My Location.");
+            toast.error("Location permission denied");
+          } else {
+            setLocationError("Unable to get location right now.");
+            toast.error("Unable to get location");
+          }
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
     }
   };
+
+  const handleUserMoveMap = React.useCallback(() => {
+    userHasMovedMap.current = true;
+  }, []);
 
   const filteredLocations = useMemo(() => {
     const now = new Date();
@@ -554,7 +589,7 @@ export default function MapPage() {
           className="h-full w-full"
           zoomControl={true}
         >
-          <MapController center={mapCenter} zoom={mapZoom} />
+          <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -752,9 +787,9 @@ export default function MapPage() {
           <Button
             onClick={handleMyLocation}
             size="icon"
-            disabled={isLocating}
-            className="bg-white hover:bg-gray-100 text-gray-700 shadow-lg"
-            title="My Location"
+            disabled={isLocating || !!locationError}
+            className="bg-white hover:bg-gray-100 text-gray-700 shadow-lg disabled:opacity-50"
+            title={locationError ? "Location unavailable" : "My Location"}
           >
             {isLocating ? (
               <Loader2 className="w-5 h-5 animate-spin" />
