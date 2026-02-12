@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Yardit Phase 1 Brand Colors */
+    --primary: #0F766E; /* Teal */
+    --accent: #C6A75E; /* Gold */
+    --background: #F4EBDD; /* Parchment */
+    --text: #1F2937; /* Dark Charcoal */
+    
+    /* Shadcn UI Variables - Mapped to Yardit Colors */
+    --background: 0 0% 100%;
+    --foreground: 220 13% 18%; /* Dark Charcoal */
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 18%;
+
+    --primary: 173 81% 26%; /* Teal */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 41 37% 57%; /* Gold */
+    --secondary-foreground: 173 81% 26%;
+
+    --muted: 35 42% 92%; /* Light parchment */
+    --muted-foreground: 220 13% 46%;
+
+    --accent: 41 37% 57%; /* Gold */
+    --accent-foreground: 173 81% 26%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 173 81% 26%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 173 81% 26%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-[#F4EBDD] text-[#1F2937];
+  }
+}
+
+@layer components {
+  /* Primary buttons - Teal with shadow */
+  .btn-primary {
+    @apply bg-[#0F766E] text-white shadow-md hover:opacity-90;
+  }
+  
+  /* Secondary buttons - Gold outline */
+  .btn-secondary {
+    @apply border-2 border-[#C6A75E] bg-transparent text-[#0F766E] hover:bg-[#C6A75E]/10;
+  }
+  
+  /* Premium/Featured indicators - Gold glow */
+  .premium-badge {
+    @apply bg-[#C6A75E] text-white shadow-[0_0_10px_rgba(198,167,94,0.5)];
+  }
+  
+  /* Listing cards */
+  .listing-card {
+    @apply bg-white rounded-lg shadow-sm;
+  }
+  
+  .listing-card h3 {
+    @apply text-[#0F766E];
+  }
+  
+  .listing-card.premium {
+    @apply border-2 border-[#C6A75E];
+  }
+}
