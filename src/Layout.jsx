@@ -28,7 +28,7 @@ export default function Layout({ children }) {
           <div className="flex items-center justify-between">
             <Link to={createPageUrl("Home")} className="flex items-center gap-3 group">
               <img 
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/9bc50c75a_ChatGPTImageDec27202509_37_00AM.png" 
+                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/5a679ad0d_file_00000000efbc71fd87985abd77ca1f58.png" 
                 alt="Yardit Logo" 
                 className="w-12 h-12"
               />
