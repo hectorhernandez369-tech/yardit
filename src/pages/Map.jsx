@@ -240,21 +240,17 @@ export default function MapPage() {
     }
   }, []);
 
-  const { data: locations, isLoading } = useQuery({
-    queryKey: ["locations"],
-    queryFn: () => base44.entities.Location.list("-created_date"),
+  const { data: listings, isLoading } = useQuery({
+    queryKey: ["listings"],
+    queryFn: () => base44.entities.Listing.list("-created_date"),
     initialData: [],
   });
 
-  // Also fetch from Listing entity for "Show on Map" from MyListings/ListingDetail
-  const { data: focusListing } = useQuery({
-    queryKey: ["focusListing", focusListingId],
-    queryFn: async () => {
-      const results = await base44.entities.Listing.filter({ id: focusListingId });
-      return results[0] || null;
-    },
-    enabled: !!focusListingId,
-  });
+  // Focus on a specific listing from URL param
+  const focusListing = useMemo(() => {
+    if (!focusListingId || listings.length === 0) return null;
+    return listings.find(l => l.id === focusListingId) || null;
+  }, [focusListingId, listings]);
 
   // When focusListing loads, center map on it and open its popup
   useEffect(() => {
@@ -365,74 +361,51 @@ export default function MapPage() {
     setCurrentZoom(z);
   }, []);
 
-  const filteredLocations = useMemo(() => {
+  const eligibleListings = useMemo(() => {
     const now = new Date();
     
-    return locations.filter((loc) => {
+    return listings.filter((listing) => {
       // Must have valid numeric coordinates
-      if (typeof loc.latitude !== "number" || typeof loc.longitude !== "number") return false;
-      if (!isFinite(loc.latitude) || !isFinite(loc.longitude)) return false;
+      if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return false;
+      if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
       
       // Status check
-      const locStatus = loc.status || "active";
-      if (locStatus !== "active") return false;
+      if (listing.status !== "active") return false;
 
-      // Time check using expires_at (the actual field on Location entity)
-      if (loc.expires_at) {
-        const end = new Date(loc.expires_at);
-        if (end < now) return false;
-      }
+      // Time window: startDateTime <= now <= endDateTime
+      const start = new Date(listing.startDateTime);
+      const end = new Date(listing.endDateTime);
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+      if (start > now || end < now) return false;
 
-      // Holiday lights visibility
-      if (loc.type === "holiday_lights") {
-        if (!holidaySeasonActive) return false;
-      }
-
-      const matchesFilter = filter === "all" || loc.type === filter;
+      // Search filter
       const matchesSearch =
         !searchQuery ||
-        loc.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        loc.display_title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
+        listing.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        listing.addressText?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        listing.city?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Type filter
+      const matchesFilter = filter === "all" || listing.listingType === filter;
       
-      const isValidForSeason = loc.type !== "halloween_candy" || halloweenActive;
-      
-      return matchesFilter && matchesSearch && isValidForSeason;
+      return matchesFilter && matchesSearch;
     });
-  }, [locations, filter, searchQuery, halloweenActive, holidaySeasonActive]);
+  }, [listings, filter, searchQuery]);
 
   const stats = useMemo(() => {
-    const now = new Date();
-    const activeLocations = locations.filter((l) => {
-      if (typeof l.latitude !== "number" || typeof l.longitude !== "number") return false;
-      const locStatus = l.status || "active";
-      if (locStatus !== "active") return false;
-      if (l.expires_at && new Date(l.expires_at) < now) return false;
-      if (l.type === "holiday_lights" && !holidaySeasonActive) return false;
-      return true;
-    });
-
-    const halloweenLocations = halloweenActive 
-      ? activeLocations.filter((l) => l.type === "halloween_candy")
-      : [];
-    
-    const holidayLightsCount = holidaySeasonActive
-      ? activeLocations.filter((l) => l.type === "holiday_lights").length
-      : 0;
-      
     return {
-      total: activeLocations.length,
-      yard_sale: activeLocations.filter((l) => l.type === "yard_sale").length,
-      halloween_candy: halloweenLocations.length,
-      holiday_lights: holidayLightsCount,
+      total: eligibleListings.length,
+      yard_sale: eligibleListings.filter((l) => l.listingType === "yard_sale").length,
+      neighborhood_sale: eligibleListings.filter((l) => l.listingType === "neighborhood_sale").length,
     };
-  }, [locations, halloweenActive, holidaySeasonActive]);
+  }, [eligibleListings]);
 
+  // Reset filter if type no longer applies
   useEffect(() => {
-    if (!halloweenActive && filter === "halloween_candy") {
+    if (filter !== "all" && filter !== "yard_sale" && filter !== "neighborhood_sale") {
       setFilter("all");
     }
-  }, [halloweenActive, filter]);
+  }, [filter]);
 
   const handleLocationSelect = (location) => {
     const isSelected = selectedLocations.some(loc => loc.id === location.id);
@@ -468,50 +441,48 @@ export default function MapPage() {
     return { average: avgRating.toFixed(1), count: reviews.length };
   };
 
-  const routeCoordinates = routeActive ? optimizedRoute.map(loc => [loc.latitude, loc.longitude]) : [];
+  const routeCoordinates = routeActive ? optimizedRoute.map(loc => [loc.lat, loc.lng]) : [];
 
-  // Determine which locations show as individual pins vs go into clusters
+  // Determine which listings show as individual pins vs go into clusters
   const { visiblePins, clusterPts, fallbackActive } = useMemo(() => {
     const pins = [];
     const cPoints = [];
-    filteredLocations.forEach(loc => {
-      if (shouldShowAsPin(currentZoom, loc.tier)) {
-        pins.push(loc);
+    eligibleListings.forEach(listing => {
+      if (shouldShowAsPin(currentZoom, listing.tier)) {
+        pins.push(listing);
       } else {
-        cPoints.push({ lat: loc.latitude, lng: loc.longitude, id: loc.id });
+        cPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id });
       }
     });
 
-    // Fallback: if dbCount > 0 but no pins AND zoom >= 11, force premium+ pins to render
+    // Fallback: if eligible > 0 but no pins AND zoom >= 11, force premium+ pins
     let fallback = false;
-    if (pins.length === 0 && filteredLocations.length > 0 && currentZoom >= 11) {
-      console.log("threshold/focus fallback triggered");
+    if (pins.length === 0 && eligibleListings.length > 0 && currentZoom >= 11) {
+      console.log("fallback: forcing premium pins visible");
       fallback = true;
-      filteredLocations.forEach(loc => {
-        if (loc.tier === "premium" || loc.tier === "neighborhood_event") {
-          pins.push(loc);
-          // Remove from cluster points
-          const idx = cPoints.findIndex(p => p.id === loc.id);
-          if (idx !== -1) cPoints.splice(idx, 1);
+      eligibleListings.forEach(listing => {
+        if (listing.tier === "premium" || listing.tier === "neighborhood_tier") {
+          if (!pins.find(p => p.id === listing.id)) {
+            pins.push(listing);
+            const idx = cPoints.findIndex(p => p.id === listing.id);
+            if (idx !== -1) cPoints.splice(idx, 1);
+          }
         }
       });
     }
 
     return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
-  }, [filteredLocations, currentZoom]);
+  }, [eligibleListings, currentZoom]);
 
   // Auto-open popup for focused listing once markers render
   useEffect(() => {
     if (!focusListing) return;
-    const matchLoc = filteredLocations.find(
-      l => Math.abs(l.latitude - focusListing.lat) < 0.0001 && Math.abs(l.longitude - focusListing.lng) < 0.0001
-    );
-    if (matchLoc && markerRefsMap.current[matchLoc.id]) {
+    if (markerRefsMap.current[focusListing.id]) {
       setTimeout(() => {
-        markerRefsMap.current[matchLoc.id]?.openPopup();
+        markerRefsMap.current[focusListing.id]?.openPopup();
       }, 600);
     }
-  }, [focusListing, filteredLocations]);
+  }, [focusListing, visiblePins]);
 
   return (
     <div className="h-[calc(100vh-140px)] relative">
@@ -543,7 +514,7 @@ export default function MapPage() {
                 </div>
 
                 <Tabs value={filter} onValueChange={setFilter}>
-                  <TabsList className={`grid ${halloweenActive && holidaySeasonActive ? "grid-cols-4" : halloweenActive || holidaySeasonActive ? "grid-cols-3" : "grid-cols-2"}`}>
+                  <TabsList className="grid grid-cols-3">
                     <TabsTrigger value="all" className="gap-1">
                       <MapPin className="w-3 h-3" />
                       All ({stats.total})
@@ -552,18 +523,10 @@ export default function MapPage() {
                       <ShoppingBag className="w-3 h-3" />
                       Sales ({stats.yard_sale})
                     </TabsTrigger>
-                    {halloweenActive && (
-                      <TabsTrigger value="halloween_candy" className="gap-1">
-                        <Candy className="w-3 h-3" />
-                        Candy ({stats.halloween_candy})
-                      </TabsTrigger>
-                    )}
-                    {holidaySeasonActive && (
-                      <TabsTrigger value="holiday_lights" className="gap-1">
-                        💡
-                        Lights ({stats.holiday_lights})
-                      </TabsTrigger>
-                    )}
+                    <TabsTrigger value="neighborhood_sale" className="gap-1">
+                      <Users className="w-3 h-3" />
+                      Neighborhood ({stats.neighborhood_sale})
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
 
@@ -652,111 +615,59 @@ export default function MapPage() {
             />
           )}
 
-          {visiblePins.map((location) => {
-            const isSelected = selectedLocations.some(loc => loc.id === location.id);
-            const routeIndex = optimizedRoute.findIndex(loc => loc.id === location.id);
-            const checkInCount = getCheckInCount(location.id);
-            const rating = getLocationRating(location.id);
+          {visiblePins.map((listing) => {
+            const isSelected = selectedLocations.some(loc => loc.id === listing.id);
+            const routeIndex = optimizedRoute.findIndex(loc => loc.id === listing.id);
             
             return (
               <Marker
-                key={location.id}
-                ref={(ref) => { if (ref) markerRefsMap.current[location.id] = ref; }}
-                position={[location.latitude, location.longitude]}
-                icon={createIcon(location.type, location.tier, isSelected, location)}
+                key={listing.id}
+                ref={(ref) => { if (ref) markerRefsMap.current[listing.id] = ref; }}
+                position={[listing.lat, listing.lng]}
+                icon={createIcon(listing.listingType, listing.tier, isSelected, listing)}
                 eventHandlers={{
                   click: () => {
-                    handleLocationSelect(location);
-                    // Track map pin click
-                    if (location.tier !== "free" && location.type !== "holiday_lights") {
-                      base44.entities.Location.update(location.id, {
-                        map_pin_clicks: (location.map_pin_clicks || 0) + 1
-                      });
-                    }
+                    handleLocationSelect(listing);
                   }
                 }}
               >
                 <Popup>
                   <div className="p-2">
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <Badge
-                        className={
-                          location.type === "yard_sale" ? "bg-orange-500" :
-                          location.type === "halloween_candy" ? "bg-purple-600" :
-                          "bg-blue-600"
-                        }
-                      >
-                        {location.type === "yard_sale" ? "🏡 Yard Sale" : 
-                         location.type === "halloween_candy" ? "🎃 Halloween Candy" :
-                         "💡 Holiday Lights"}
+                      <Badge className={listing.listingType === "neighborhood_sale" ? "bg-blue-600" : "bg-orange-500"}>
+                        {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood Sale" : "🏡 Yard Sale"}
                       </Badge>
+                      <Badge variant="outline" className="capitalize">{listing.tier}</Badge>
                       {isSelected && routeActive && (
                         <Badge className="bg-blue-600">Stop #{routeIndex + 1}</Badge>
                       )}
-                      {location.safety_warning && (
-                        <Badge variant="outline" className="border-orange-500 text-orange-700">
-                          ⚠️ Safety Warning
-                        </Badge>
-                      )}
                     </div>
+
+                    <h3 className="font-bold text-base mb-1">{listing.title}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{listing.addressText}</p>
+
+                    {listing.description && (
+                      <p className="text-sm mb-2">{listing.description}</p>
+                    )}
                     
-                    <div className="flex gap-2 mb-2">
-                      {checkInCount > 0 && (
-                        <div className="flex items-center gap-1 text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
-                          <Users className="w-4 h-4" />
-                          {checkInCount}
-                        </div>
-                      )}
-                      {rating && (
-                        <div className="flex items-center gap-1 text-sm text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
-                          <Star className="w-4 h-4 fill-yellow-400" />
-                          {rating.average} ({rating.count})
-                        </div>
-                      )}
+                    <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                      <Calendar className="w-3 h-3" />
+                      {format(new Date(listing.startDateTime), "MMM d, h:mm a")} — {format(new Date(listing.endDateTime), "MMM d, h:mm a")}
                     </div>
 
-                    <h3 className="font-bold text-base mb-1">
-                      {location.type === "holiday_lights" ? location.display_title : location.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-2">{location.address}</p>
-
-                    {location.type === "holiday_lights" && (
-                      <p className="text-xs text-gray-600 mb-2">
-                        🕐 Viewing: {location.viewing_start_time} - {location.viewing_end_time}
-                      </p>
-                    )}
-                    {location.description && (
-                      <p className="text-sm mb-2">{location.description}</p>
-                    )}
-                    {location.date && (
-                      <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
-                        <Calendar className="w-3 h-3" />
-                        {format(new Date(location.date), "MMM d, yyyy")}
-                      </div>
-                    )}
-                    {location.expires_at && (
-                      <div className="text-xs text-orange-600 mb-1">
-                        Expires: {format(new Date(location.expires_at), "MMM d, yyyy")}
-                      </div>
-                    )}
-                    {location.contact_info && (
-                      <div className="text-xs text-gray-600 mb-2">
-                        Contact: {location.contact_info}
-                      </div>
-                    )}
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center gap-1 text-xs text-gray-400">
                         <User className="w-3 h-3" />
-                        Added by {location.created_by?.split("@")[0] || "Anonymous"}
+                        Added by {listing.created_by?.split("@")[0] || "Anonymous"}
                       </div>
                       <div className="flex gap-2">
-                        <CheckInButton locationId={location.id} />
+                        <CheckInButton locationId={listing.id} />
                         <Button
                           size="sm"
                           variant={isSelected ? "default" : "outline"}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleLocationSelect(location);
+                            handleLocationSelect(listing);
                           }}
                           className="gap-1"
                         >
@@ -766,32 +677,13 @@ export default function MapPage() {
                       </div>
                     </div>
 
-                    {location.type === "holiday_lights" ? (
-                      <>
-                        {user && location.created_by === user.email && (
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <DisplayToggle location={location} isOwner={true} />
-                          </div>
-                        )}
-                        
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <h4 className="font-semibold text-sm mb-2">Rate This Display</h4>
-                          <LightRatingForm locationId={location.id} displayActive={location.display_active} />
-                        </div>
-                        
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <ReportForm locationId={location.id} />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <h4 className="font-semibold text-sm mb-2">Reviews</h4>
-                        <ReviewsList locationId={location.id} />
-                        <div className="mt-3">
-                          <ReviewForm locationId={location.id} />
-                        </div>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <h4 className="font-semibold text-sm mb-2">Reviews</h4>
+                      <ReviewsList locationId={listing.id} />
+                      <div className="mt-3">
+                        <ReviewForm locationId={listing.id} />
                       </div>
-                    )}
+                    </div>
                   </div>
                 </Popup>
               </Marker>
@@ -819,20 +711,24 @@ export default function MapPage() {
         {/* Debug Overlay */}
         <MapDebugOverlay
           zoom={currentZoom}
-          dbCount={locations.length}
-          eligibleCount={filteredLocations.length}
+          dbCount={listings.length}
+          eligibleCount={eligibleListings.length}
           pinCount={visiblePins.length}
           clusterCount={clusterPts.length}
           fallback={fallbackActive}
-          firstRow={locations.length > 0 ? (() => {
-            const row = locations[0];
+          firstRow={listings.length > 0 ? (() => {
+            const row = listings[0];
             const now = new Date();
+            const start = new Date(row.startDateTime);
+            const end = new Date(row.endDateTime);
             return {
               nowISO: now.toISOString(),
+              id: row.id,
               status: row.status || "(none)",
-              expiresAt: row.expires_at || "(none)",
-              isExpired: row.expires_at ? new Date(row.expires_at) < now : false,
-              hasCoords: typeof row.latitude === "number" && typeof row.longitude === "number",
+              startAt: row.startDateTime || "(none)",
+              endAt: row.endDateTime || "(none)",
+              tier: row.tier || "(none)",
+              timeOk: start <= now && end >= now,
             };
           })() : null}
         />
@@ -855,21 +751,21 @@ export default function MapPage() {
           <Card className="rounded-t-2xl bg-white shadow-2xl max-h-64 overflow-y-auto">
             <div className="p-4 space-y-2">
               <h3 className="font-bold text-sm text-gray-700 mb-3">
-                {filteredLocations.length} Location{filteredLocations.length !== 1 ? "s" : ""} Found
+                {eligibleListings.length} Listing{eligibleListings.length !== 1 ? "s" : ""} Found
               </h3>
-              {filteredLocations.slice(0, 5).map((location) => (
+              {eligibleListings.slice(0, 5).map((listing) => (
                 <button
-                  key={location.id}
-                  onClick={() => setMapCenter([location.latitude, location.longitude])}
+                  key={listing.id}
+                  onClick={() => setMapCenter([listing.lat, listing.lng])}
                   className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <div className="flex items-start gap-2">
                     <div className="text-lg">
-                      {location.type === "yard_sale" ? "🏡" : "🎃"}
+                      {listing.listingType === "neighborhood_sale" ? "🏘️" : "🏡"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{location.title}</p>
-                      <p className="text-xs text-gray-500 truncate">{location.address}</p>
+                      <p className="font-medium text-sm truncate">{listing.title}</p>
+                      <p className="text-xs text-gray-500 truncate">{listing.addressText}</p>
                     </div>
                   </div>
                 </button>
