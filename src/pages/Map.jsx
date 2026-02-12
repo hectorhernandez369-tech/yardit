@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle } from "react-leaflet";
@@ -20,7 +20,6 @@ import ReportForm from "../components/holidays/ReportForm";
 import DisplayToggle from "../components/holidays/DisplayToggle";
 import { toast } from "sonner";
 import { isHolidaySeason, isWithinViewingHours } from "../components/holidays/SeasonCheck";
-import { useNavigate } from "react-router-dom";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -178,7 +177,6 @@ export default function MapPage() {
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [mapCenter, setMapCenter] = useState([37.7749, -122.4194]);
-  const [mapZoom, setMapZoom] = useState(13);
   const [showSidebar, setShowSidebar] = useState(true);
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [optimizedRoute, setOptimizedRoute] = useState([]);
@@ -188,10 +186,56 @@ export default function MapPage() {
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
-  const [focusListingId, setFocusListingId] = useState(null);
-  const [markerRefs, setMarkerRefs] = useState({});
+  const [mapZoom, setMapZoom] = useState(13);
+  const [highlightedListingId, setHighlightedListingId] = useState(null);
+  const markerRefs = useRef({});
   const halloweenActive = isHalloweenSeason();
   const holidaySeasonActive = isHolidaySeason();
+
+  // Check for listingId query param (from "Show on Map")
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const listingId = params.get("listingId");
+    if (listingId) {
+      setHighlightedListingId(listingId);
+    }
+  }, []);
+
+  // Center map & open popup when highlighted listing data is available
+  useEffect(() => {
+    if (!highlightedListingId || locations.length === 0) return;
+    
+    const loc = locations.find(l => l.id === highlightedListingId);
+    if (loc && loc.latitude && loc.longitude) {
+      setMapCenter([loc.latitude, loc.longitude]);
+      setMapZoom(15);
+      
+      // Open popup after a short delay to let the map render
+      setTimeout(() => {
+        const marker = markerRefs.current[loc.id];
+        if (marker) {
+          marker.openPopup();
+        }
+      }, 500);
+    } else if (locations.length > 0) {
+      // Listing not found in loaded locations - try fetching directly
+      base44.entities.Location.filter({ id: highlightedListingId }).then(results => {
+        if (results.length > 0) {
+          const listing = results[0];
+          if (listing.latitude && listing.longitude) {
+            setMapCenter([listing.latitude, listing.longitude]);
+            setMapZoom(15);
+            toast.info("This listing may not be currently active on the map.");
+          }
+        } else {
+          toast.error("Listing not found.");
+        }
+      });
+    }
+    
+    // Clear the param so it doesn't re-trigger
+    setHighlightedListingId(null);
+  }, [highlightedListingId, locations]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -203,13 +247,6 @@ export default function MapPage() {
       }
     };
     fetchUser();
-
-    // Check for listingId in URL
-    const params = new URLSearchParams(window.location.search);
-    const lid = params.get("listingId");
-    if (lid) {
-      setFocusListingId(lid);
-    }
   }, []);
 
   const { data: locations, isLoading } = useQuery({
@@ -217,26 +254,6 @@ export default function MapPage() {
     queryFn: () => base44.entities.Location.list("-created_date"),
     initialData: [],
   });
-
-  // Also fetch from Listing entity for "Show on Map" from MyListings/ListingDetail
-  const { data: focusListing } = useQuery({
-    queryKey: ["focusListing", focusListingId],
-    queryFn: async () => {
-      const results = await base44.entities.Listing.filter({ id: focusListingId });
-      return results[0] || null;
-    },
-    enabled: !!focusListingId,
-  });
-
-  // When focusListing loads, center map on it
-  useEffect(() => {
-    if (focusListing && focusListing.lat && focusListing.lng) {
-      setMapCenter([focusListing.lat, focusListing.lng]);
-      setMapZoom(15);
-    } else if (focusListingId && focusListing === null) {
-      toast.error("Listing not found.");
-    }
-  }, [focusListing, focusListingId]);
 
   const { data: allCheckIns } = useQuery({
     queryKey: ["allCheckIns"],
@@ -558,6 +575,7 @@ export default function MapPage() {
                 key={location.id}
                 position={[location.latitude, location.longitude]}
                 icon={createIcon(location.type, location.tier, isSelected, location)}
+                ref={(ref) => { if (ref) markerRefs.current[location.id] = ref; }}
                 eventHandlers={{
                   click: () => {
                     handleLocationSelect(location);
