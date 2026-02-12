@@ -266,20 +266,6 @@ export default function MapPage() {
     }
   }, [focusListing, focusListingId]);
 
-  // Auto-open popup for focused listing once markers render
-  useEffect(() => {
-    if (!focusListing) return;
-    // Try to find the Location entity that matches the Listing's coords
-    const matchLoc = filteredLocations.find(
-      l => Math.abs(l.latitude - focusListing.lat) < 0.0001 && Math.abs(l.longitude - focusListing.lng) < 0.0001
-    );
-    if (matchLoc && markerRefsMap.current[matchLoc.id]) {
-      setTimeout(() => {
-        markerRefsMap.current[matchLoc.id]?.openPopup();
-      }, 600);
-    }
-  }, [focusListing, filteredLocations]);
-
   const { data: allCheckIns } = useQuery({
     queryKey: ["allCheckIns"],
     queryFn: () => base44.entities.CheckIn.list(),
@@ -487,6 +473,19 @@ export default function MapPage() {
     });
     return { visiblePins: pins, clusterPoints: cPoints };
   }, [filteredLocations, currentZoom]);
+
+  // Auto-open popup for focused listing once markers render
+  useEffect(() => {
+    if (!focusListing) return;
+    const matchLoc = filteredLocations.find(
+      l => Math.abs(l.latitude - focusListing.lat) < 0.0001 && Math.abs(l.longitude - focusListing.lng) < 0.0001
+    );
+    if (matchLoc && markerRefsMap.current[matchLoc.id]) {
+      setTimeout(() => {
+        markerRefsMap.current[matchLoc.id]?.openPopup();
+      }, 600);
+    }
+  }, [focusListing, filteredLocations]);
 
   return (
     <div className="h-[calc(100vh-140px)] relative">
