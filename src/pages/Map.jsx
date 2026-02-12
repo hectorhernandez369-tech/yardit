@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
 import MapDebugOverlay from "../components/map/MapDebugOverlay";
 import MapZoomControl from "../components/map/MapZoomControl";
+import MapFocusController from "../components/map/MapFocusController";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -212,6 +213,7 @@ export default function MapPage() {
   const [locationError, setLocationError] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
   const [focusListingId, setFocusListingId] = useState(null);
+  const [activeFocusListing, setActiveFocusListing] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(13);
   const markerRefsMap = useRef({});
   const hasCenteredOnUser = useRef(false);
@@ -265,11 +267,10 @@ export default function MapPage() {
     return listings.find(l => l.id === focusListingId) || null;
   }, [focusListingId, listings]);
 
-  // When focusListing loads, center map on it and open its popup
+  // When focusListing loads from URL, set it as active focus
   useEffect(() => {
     if (focusListing && focusListing.lat && focusListing.lng) {
-      setMapCenter([focusListing.lat, focusListing.lng]);
-      setMapZoom(15);
+      setActiveFocusListing(focusListing);
     } else if (focusListingId && focusListing === null) {
       toast.error("Listing not found.");
     }
@@ -447,6 +448,13 @@ export default function MapPage() {
     setOptimizedRoute([]);
   };
 
+  const handlePinClick = (listing) => {
+    // Focus on the listing (center map + open popup)
+    setActiveFocusListing(listing);
+    // Also handle selection for route building
+    handleLocationSelect(listing);
+  };
+
   const handleBuildRoute = () => {
     const optimized = optimizeRoute(selectedLocations, mapCenter[0], mapCenter[1]);
     setOptimizedRoute(optimized);
@@ -502,17 +510,7 @@ export default function MapPage() {
     return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
   }, [eligibleListings, currentZoom]);
 
-  // Open popup ONCE for ?listingId focus, then mark handled
-  const hasHandledInitialFocus = useRef(false);
-  useEffect(() => {
-    if (!focusListing) return;
-    if (hasHandledInitialFocus.current) return;
-    const ref = markerRefsMap.current[focusListing.id];
-    if (ref) {
-      ref.openPopup();
-      hasHandledInitialFocus.current = true;
-    }
-  }, [focusListing, visiblePins]);
+
 
   return (
     <div className="h-[calc(100vh-140px)] relative">
@@ -603,6 +601,7 @@ export default function MapPage() {
         >
           <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} />
           <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
+          <MapFocusController focusListing={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -659,7 +658,7 @@ export default function MapPage() {
                 icon={createIcon(listing.listingType, listing.tier, isSelected, listing)}
                 eventHandlers={{
                   click: () => {
-                    handleLocationSelect(listing);
+                    handlePinClick(listing);
                   }
                 }}
               >
