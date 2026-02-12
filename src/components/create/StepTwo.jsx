@@ -155,16 +155,7 @@ export default function StepTwo({ formData, setFormData }) {
             required
           />
         </div>
-        <div>
-          <Label htmlFor="endDateTime">End Date & Time *</Label>
-          <Input
-            id="endDateTime"
-            type="datetime-local"
-            value={formData.endDateTime}
-            onChange={(e) => setFormData(prev => ({ ...prev, endDateTime: e.target.value }))}
-            required
-          />
-        </div>
+
       </div>
     </div>
   );
