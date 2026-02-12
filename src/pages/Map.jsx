@@ -115,6 +115,55 @@ const createIcon = (type, tier, isSelected, location) => {
   });
 };
 
+function FocusedListingMarker({ listing }) {
+  const markerRef = React.useRef(null);
+  
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.openPopup();
+    }
+  }, [listing]);
+
+  const isExpired = listing.status === "expired" || listing.status === "completed";
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[listing.lat, listing.lng]}
+      icon={new L.Icon({
+        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cdefs%3E%3Cfilter id='glow'%3E%3CfeGaussianBlur stdDeviation='1.5' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg transform='translate(2 2)'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23C6A75E' stroke='%230F766E' stroke-width='1.5' filter='url(%23glow)'/%3E%3C/g%3E%3C/svg%3E",
+        iconSize: [28, 36],
+        iconAnchor: [14, 36],
+        popupAnchor: [0, -36],
+      })}
+    >
+      <Popup>
+        <div className="p-2">
+          <div className="flex items-center gap-2 mb-2">
+            <Badge className="bg-orange-500">🏡 Yard Sale</Badge>
+            {isExpired && (
+              <Badge className="bg-gray-400">EXPIRED</Badge>
+            )}
+          </div>
+          <h3 className="font-bold text-base mb-1">{listing.title}</h3>
+          <p className="text-sm text-gray-600 mb-2">
+            {listing.addressText || `${listing.city}, ${listing.zip}`}
+          </p>
+          {listing.description && (
+            <p className="text-sm mb-2">{listing.description}</p>
+          )}
+          {listing.startDateTime && (
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <Calendar className="w-3 h-3" />
+              {format(new Date(listing.startDateTime), "MMM d, yyyy")}
+            </div>
+          )}
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
 function MapController({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
