@@ -369,12 +369,19 @@ export default function MapPage() {
     const now = new Date();
     
     return locations.filter((loc) => {
+      // Must have valid coordinates
+      if (!loc.latitude || !loc.longitude) return false;
+      
       const isExpired = loc.expires_at && new Date(loc.expires_at) < now;
       if (isExpired) return false;
 
+      // Status check — treat "active" status OR missing status as active
+      const locStatus = loc.status || "active";
+      if (locStatus !== "active") return false;
+
       // Holiday lights visibility - always show during season regardless of toggle
       if (loc.type === "holiday_lights") {
-        if (!holidaySeasonActive || loc.status !== "active") {
+        if (!holidaySeasonActive) {
           return false;
         }
       }
@@ -388,18 +395,20 @@ export default function MapPage() {
       
       const isValidForSeason = loc.type !== "halloween_candy" || halloweenActive;
       
-      return matchesFilter && matchesSearch && loc.active && isValidForSeason;
+      return matchesFilter && matchesSearch && isValidForSeason;
     });
   }, [locations, filter, searchQuery, halloweenActive, holidaySeasonActive]);
 
   const stats = useMemo(() => {
     const now = new Date();
     const activeLocations = locations.filter((l) => {
+      if (!l.latitude || !l.longitude) return false;
       const isExpired = l.expires_at && new Date(l.expires_at) < now;
+      const locStatus = l.status || "active";
       if (l.type === "holiday_lights") {
-        return l.active && !isExpired && holidaySeasonActive && l.status === "active";
+        return locStatus === "active" && !isExpired && holidaySeasonActive;
       }
-      return l.active && !isExpired;
+      return locStatus === "active" && !isExpired;
     });
 
     const halloweenLocations = halloweenActive 
@@ -461,7 +470,7 @@ export default function MapPage() {
   const routeCoordinates = routeActive ? optimizedRoute.map(loc => [loc.latitude, loc.longitude]) : [];
 
   // Determine which locations show as individual pins vs go into clusters
-  const { visiblePins, clusterPoints } = useMemo(() => {
+  const { visiblePins, clusterPts, fallbackActive } = useMemo(() => {
     const pins = [];
     const cPoints = [];
     filteredLocations.forEach(loc => {
@@ -471,7 +480,23 @@ export default function MapPage() {
         cPoints.push({ lat: loc.latitude, lng: loc.longitude, id: loc.id });
       }
     });
-    return { visiblePins: pins, clusterPoints: cPoints };
+
+    // Fallback: if dbCount > 0 but no pins AND zoom >= 11, force premium+ pins to render
+    let fallback = false;
+    if (pins.length === 0 && filteredLocations.length > 0 && currentZoom >= 11) {
+      console.log("threshold/focus fallback triggered");
+      fallback = true;
+      filteredLocations.forEach(loc => {
+        if (loc.tier === "premium" || loc.tier === "neighborhood_event") {
+          pins.push(loc);
+          // Remove from cluster points
+          const idx = cPoints.findIndex(p => p.id === loc.id);
+          if (idx !== -1) cPoints.splice(idx, 1);
+        }
+      });
+    }
+
+    return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
   }, [filteredLocations, currentZoom]);
 
   // Auto-open popup for focused listing once markers render
@@ -614,7 +639,7 @@ export default function MapPage() {
           )}
           
           {/* Cluster layer for non-visible-tier points */}
-          <ClusterGroup points={clusterPoints} clusterRadius={50} minPoints={2} />
+          <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />
 
           {/* Route Line */}
           {routeActive && routeCoordinates.length > 1 && (
@@ -793,9 +818,11 @@ export default function MapPage() {
         {/* Debug Overlay */}
         <MapDebugOverlay
           zoom={currentZoom}
-          totalListings={filteredLocations.length}
-          pinsRendered={visiblePins.length}
-          clusterEnabled={clusterPoints.length > 0}
+          dbCount={locations.length}
+          eligibleCount={filteredLocations.length}
+          pinCount={visiblePins.length}
+          clusterCount={clusterPts.length}
+          fallback={fallbackActive}
         />
 
         {/* Location Error Message */}
