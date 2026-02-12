@@ -502,13 +502,15 @@ export default function MapPage() {
     return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
   }, [eligibleListings, currentZoom]);
 
-  // Auto-open popup for focused listing once markers render
+  // Open popup ONCE for ?listingId focus, then mark handled
+  const hasHandledInitialFocus = useRef(false);
   useEffect(() => {
     if (!focusListing) return;
-    if (markerRefsMap.current[focusListing.id]) {
-      setTimeout(() => {
-        markerRefsMap.current[focusListing.id]?.openPopup();
-      }, 600);
+    if (hasHandledInitialFocus.current) return;
+    const ref = markerRefsMap.current[focusListing.id];
+    if (ref) {
+      ref.openPopup();
+      hasHandledInitialFocus.current = true;
     }
   }, [focusListing, visiblePins]);
 
@@ -790,35 +792,7 @@ export default function MapPage() {
         )}
       </div>
 
-      {/* Sidebar - Mobile */}
-      {showSidebar && (
-        <div className="absolute bottom-0 left-0 right-0 z-[1000] sm:hidden">
-          <Card className="rounded-t-2xl bg-white shadow-2xl max-h-64 overflow-y-auto">
-            <div className="p-4 space-y-2">
-              <h3 className="font-bold text-sm text-gray-700 mb-3">
-                {eligibleListings.length} Listing{eligibleListings.length !== 1 ? "s" : ""} Found
-              </h3>
-              {eligibleListings.slice(0, 5).map((listing) => (
-                <button
-                  key={listing.id}
-                  onClick={() => setMapCenter([listing.lat, listing.lng])}
-                  className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="text-lg">
-                      {listing.listingType === "neighborhood_sale" ? "🏘️" : "🏡"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{listing.title}</p>
-                      <p className="text-xs text-gray-500 truncate">{listing.addressText}</p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </Card>
-        </div>
-      )}
+
     </div>
   );
 }
