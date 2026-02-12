@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle, CircleMarker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Card, CardContent } from "@/components/ui/card";
@@ -615,19 +615,19 @@ export default function MapPage() {
                 center={[userLocation.lat, userLocation.lng]}
                 radius={userLocation.accuracy || 50}
                 pathOptions={{ 
-                  fillColor: '#3b82f6', 
-                  fillOpacity: 0.1, 
-                  color: '#3b82f6', 
+                  fillColor: '#2A93EE', 
+                  fillOpacity: 0.15, 
+                  color: '#2A93EE', 
                   weight: 1 
                 }}
               />
-              <Circle
+              <CircleMarker
                 center={[userLocation.lat, userLocation.lng]}
-                radius={8}
+                radius={6}
                 pathOptions={{ 
-                  fillColor: '#3b82f6', 
+                  fillColor: '#2A93EE', 
                   fillOpacity: 1, 
-                  color: 'white', 
+                  color: '#ffffff', 
                   weight: 2 
                 }}
               />
