@@ -223,7 +223,7 @@ export default function MapPage() {
     const p = new URLSearchParams(window.location.search);
     return p.get("debug") === "true";
   }, []);
-  const [debugVisible, setDebugVisible] = useState(true);
+  const [debugVisible, setDebugVisible] = useState(false);
   const [debugPinned, setDebugPinned] = useState(debugForceOn);
   const debugTimerRef = useRef(null);
 
