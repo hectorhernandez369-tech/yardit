@@ -460,6 +460,20 @@ export default function MapPage() {
 
   const routeCoordinates = routeActive ? optimizedRoute.map(loc => [loc.latitude, loc.longitude]) : [];
 
+  // Determine which locations show as individual pins vs go into clusters
+  const { visiblePins, clusterPoints } = useMemo(() => {
+    const pins = [];
+    const cPoints = [];
+    filteredLocations.forEach(loc => {
+      if (shouldShowAsPin(currentZoom, loc.tier)) {
+        pins.push(loc);
+      } else {
+        cPoints.push({ lat: loc.latitude, lng: loc.longitude, id: loc.id });
+      }
+    });
+    return { visiblePins: pins, clusterPoints: cPoints };
+  }, [filteredLocations, currentZoom]);
+
   return (
     <div className="h-[calc(100vh-140px)] relative">
       {/* Toggle Button */}
@@ -554,7 +568,7 @@ export default function MapPage() {
           className="h-full w-full"
           zoomControl={true}
         >
-          <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} />
+          <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -586,10 +600,8 @@ export default function MapPage() {
             </>
           )}
           
-          {/* Focused Listing Marker (from Listing entity via Show on Map) */}
-          {focusListing && focusListing.lat && focusListing.lng && (
-            <FocusedListingMarker listing={focusListing} />
-          )}
+          {/* Cluster layer for non-visible-tier points */}
+          <ClusterGroup points={clusterPoints} clusterRadius={50} minPoints={2} />
 
           {/* Route Line */}
           {routeActive && routeCoordinates.length > 1 && (
@@ -601,7 +613,7 @@ export default function MapPage() {
             />
           )}
 
-          {filteredLocations.map((location, index) => {
+          {visiblePins.map((location) => {
             const isSelected = selectedLocations.some(loc => loc.id === location.id);
             const routeIndex = optimizedRoute.findIndex(loc => loc.id === location.id);
             const checkInCount = getCheckInCount(location.id);
@@ -610,6 +622,7 @@ export default function MapPage() {
             return (
               <Marker
                 key={location.id}
+                ref={(ref) => { if (ref) markerRefsMap.current[location.id] = ref; }}
                 position={[location.latitude, location.longitude]}
                 icon={createIcon(location.type, location.tier, isSelected, location)}
                 eventHandlers={{
