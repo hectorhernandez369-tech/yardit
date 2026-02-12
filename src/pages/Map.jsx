@@ -13,8 +13,7 @@ import { MapPin, Calendar, User, Search, ShoppingBag, Plus, Check, Users, Star, 
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
 import CheckInButton from "../components/map/CheckInButton";
-import ReviewForm from "../components/reviews/ReviewForm";
-import ReviewsList from "../components/reviews/ReviewsList";
+
 import { toast } from "sonner";
 import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
 import MapDebugOverlay from "../components/map/MapDebugOverlay";
@@ -662,36 +661,36 @@ export default function MapPage() {
                   }
                 }}
               >
-                <Popup>
-                  <div className="p-2">
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <Badge className={listing.listingType === "neighborhood_sale" ? "bg-blue-600" : "bg-orange-500"}>
-                        {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood Sale" : "🏡 Yard Sale"}
+                <Popup maxWidth={280} maxHeight={320}>
+                  <div className="p-1.5" style={{ maxHeight: "60vh", overflowY: "auto" }}>
+                    <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                      <Badge className={`text-[10px] px-1.5 py-0.5 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : "bg-orange-500"}`}>
+                        {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : "🏡 Yard Sale"}
                       </Badge>
-                      <Badge variant="outline" className="capitalize">{listing.tier}</Badge>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 capitalize">{listing.tier}</Badge>
                       {isSelected && routeActive && (
-                        <Badge className="bg-blue-600">Stop #{routeIndex + 1}</Badge>
+                        <Badge className="text-[10px] px-1.5 py-0.5 bg-blue-600">Stop #{routeIndex + 1}</Badge>
                       )}
                     </div>
 
-                    <h3 className="font-bold text-base mb-1">{listing.title}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{listing.addressText}</p>
+                    <h3 className="font-bold text-sm leading-tight mb-0.5">{listing.title}</h3>
+                    <p className="text-xs text-gray-600 mb-1">{listing.addressText}</p>
 
                     {listing.description && (
-                      <p className="text-sm mb-2">{listing.description}</p>
+                      <p className="text-xs text-gray-500 mb-1 line-clamp-2">{listing.description}</p>
                     )}
-                    
-                    <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
-                      <Calendar className="w-3 h-3" />
+
+                    <div className="flex items-center gap-1 text-[11px] text-gray-500 mb-1.5">
+                      <Calendar className="w-3 h-3 shrink-0" />
                       {format(new Date(listing.startDateTime), "MMM d, h:mm a")} — {format(new Date(listing.endDateTime), "MMM d, h:mm a")}
                     </div>
 
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <div className="flex items-center justify-between pt-1.5 border-t border-gray-100">
+                      <div className="flex items-center gap-1 text-[11px] text-gray-400">
                         <User className="w-3 h-3" />
-                        Added by {listing.created_by?.split("@")[0] || "Anonymous"}
+                        {listing.created_by?.split("@")[0] || "Anonymous"}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1.5">
                         <CheckInButton locationId={listing.id} />
                         <Button
                           size="sm"
@@ -700,19 +699,11 @@ export default function MapPage() {
                             e.stopPropagation();
                             handleLocationSelect(listing);
                           }}
-                          className="gap-1"
+                          className="gap-1 h-7 text-xs px-2"
                         >
                           {isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                          {isSelected ? "Selected" : "Add"}
+                          {isSelected ? "Added" : "Add"}
                         </Button>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <h4 className="font-semibold text-sm mb-2">Reviews</h4>
-                      <ReviewsList locationId={listing.id} />
-                      <div className="mt-3">
-                        <ReviewForm locationId={listing.id} />
                       </div>
                     </div>
                   </div>
