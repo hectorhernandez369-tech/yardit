@@ -9,13 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup } from "@/components/ui/radio-group";
-import { MapPin, Loader2, Navigation, Lightbulb } from "lucide-react";
+import { MapPin, Loader2, Navigation } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import TierSelector from "../components/listing/TierSelector";
 import PaymentForm from "../components/payment/PaymentForm";
 import AddressFields from "../components/shared/AddressFields";
-import { isHolidaySeason, containsSaleTerms } from "../components/holidays/SeasonCheck";
+
 
 // Get next Friday at 12:01 AM
 function getNextFriday() {
@@ -53,7 +53,6 @@ export default function AddLocationPage() {
     type: "yard_sale",
     tier: "map_pin",
     title: "",
-    display_title: "",
     street_address: "",
     city: "",
     state: "",
@@ -64,11 +63,8 @@ export default function AddLocationPage() {
     description: "",
     date: "",
     start_time: "08:00",
-    viewing_start_time: "17:00",
-    viewing_end_time: "22:00",
     contact_info: "",
     photos: [],
-    rules_acknowledged: false,
     early_activation: false,
   });
 
@@ -243,47 +239,7 @@ export default function AddLocationPage() {
   const handleContinueToTiers = async (e) => {
     e.preventDefault();
 
-    // Holiday lights validation
-    if (formData.type === "holiday_lights") {
-      const missingFields = [];
-      if (!formData.display_title) missingFields.push("Display title");
-      if (!formData.viewing_start_time) missingFields.push("Viewing start time");
-      if (!formData.viewing_end_time) missingFields.push("Viewing end time");
-      if (!formData.street_address) missingFields.push("Street address");
-      if (!formData.city) missingFields.push("City");
-      if (!formData.state) missingFields.push("State");
-      if (!formData.zip_code) missingFields.push("ZIP code");
-
-      if (missingFields.length > 0) {
-        toast.error(`Missing required fields: ${missingFields.join(", ")}`);
-        return;
-      }
-
-      if (!formData.rules_acknowledged) {
-        toast.error("You must acknowledge the rules to proceed.");
-        return;
-      }
-
-      if (containsSaleTerms(formData.description)) {
-        toast.error("Holiday Light Display listings cannot include sale or item-related text. Please create a Yard Sale listing instead.");
-        return;
-      }
-
-      if (!formData.latitude || !formData.longitude) {
-        toast.error("Locating address on map...");
-        const geoResult = await geocodeAddress();
-        if (!geoResult) {
-          toast.error("Could not locate address on map. Please verify the address is correct.");
-          return;
-        }
-      }
-
-      // Holiday lights skip payment
-      createLocationMutation.mutate({ locationData: formData, paymentInfo: null });
-      return;
-    }
-
-    // Validate required fields for yard sales and other events
+    // Validate required fields
     const missingFields = [];
     if (!formData.title) missingFields.push("Title");
     if (!formData.street_address) missingFields.push("Street address");
@@ -381,141 +337,30 @@ export default function AddLocationPage() {
           <Card className="border-0 shadow-xl">
             <CardHeader className="text-white rounded-t-lg border-b-4" style={{ backgroundColor: '#5DCCB5', borderColor: '#E84A3F' }}>
               <CardTitle className="flex items-center gap-2 text-2xl" style={{ color: '#2C3E50' }}>
-                {formData.type === "holiday_lights" ? <Lightbulb className="w-6 h-6" /> : <MapPin className="w-6 h-6" />}
-                {formData.type === "holiday_lights" ? "Post Holiday Light Display" : "Post Your Yard Sale"}
+                <MapPin className="w-6 h-6" />
+                Post Your Yard Sale
               </CardTitle>
               <p className="text-white/90 text-sm mt-1">
-                {formData.type === "holiday_lights" 
-                  ? "Share your holiday lights display with the community!"
-                  : "Share your sale with the community. Active Friday-Sunday this weekend!"}
+                Share your sale with the community. Active Friday-Sunday this weekend!
               </p>
             </CardHeader>
 
             <CardContent className="p-6">
               <form onSubmit={handleContinueToTiers} className="space-y-6">
-                {/* Type Selector */}
                 <div className="space-y-2">
-                  <Label>Listing Type</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, type: "yard_sale" }))}
-                      className={`p-4 border-2 rounded-lg transition-all ${
-                        formData.type === "yard_sale"
-                          ? "bg-opacity-20"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                      style={formData.type === "yard_sale" ? { borderColor: '#E84A3F', backgroundColor: '#5DCCB5' } : {}}
-                    >
-                      <MapPin className="w-6 h-6 mx-auto mb-2" style={{ color: '#E84A3F' }} />
-                      <p className="font-medium">Yard Sale</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!isHolidaySeason()) {
-                          toast.error("Holiday Light Display listings are available November 1st–January 2nd.");
-                          return;
-                        }
-                        setFormData(prev => ({ ...prev, type: "holiday_lights" }));
-                      }}
-                      className={`p-4 border-2 rounded-lg transition-all ${
-                        formData.type === "holiday_lights"
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      } ${!isHolidaySeason() ? "opacity-50" : ""}`}
-                    >
-                      <Lightbulb className="w-6 h-6 mx-auto mb-2 text-blue-500" />
-                      <p className="font-medium">Holiday Lights</p>
-                      {!isHolidaySeason() && (
-                        <p className="text-xs text-gray-500 mt-1">Nov 1 - Jan 2</p>
-                      )}
-                    </button>
-                  </div>
+                  <Label htmlFor="title">
+                    Title <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="title"
+                    placeholder="e.g., Multi-family Yard Sale"
+                    value={formData.title}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, title: e.target.value }))
+                    }
+                    required
+                  />
                 </div>
-
-                {formData.type === "holiday_lights" ? (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="display_title">
-                        Display Title <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="display_title"
-                        placeholder="e.g., Winter Wonderland Display"
-                        value={formData.display_title}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, display_title: e.target.value }))
-                        }
-                        required
-                      />
-                    </div>
-
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-                      <p className="font-medium mb-1">🎄 Season: November 1 - January 2</p>
-                      <p className="text-xs">Your display will be visible on the map during the holiday season.</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="viewing_start_time">
-                          Viewing Start Time <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="viewing_start_time"
-                          type="time"
-                          value={formData.viewing_start_time}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, viewing_start_time: e.target.value }))
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="viewing_end_time">
-                          Viewing End Time <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="viewing_end_time"
-                          type="time"
-                          value={formData.viewing_end_time}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, viewing_end_time: e.target.value }))
-                          }
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <Checkbox
-                        id="rules"
-                        checked={formData.rules_acknowledged}
-                        onCheckedChange={(checked) =>
-                          setFormData((prev) => ({ ...prev, rules_acknowledged: checked }))
-                        }
-                      />
-                      <Label htmlFor="rules" className="text-sm cursor-pointer">
-                        I live at or manage this property, I have permission to list it, and I agree not to use this listing for sales, vendors, or business activity.
-                      </Label>
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor="title">
-                      Title <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="title"
-                      placeholder="e.g., Multi-family Yard Sale"
-                      value={formData.title}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, title: e.target.value }))
-                      }
-                      required
-                    />
-                  </div>
-                )}
 
                 <AddressFields formData={formData} setFormData={setFormData} required={true} />
 
@@ -613,7 +458,7 @@ export default function AddLocationPage() {
                     className="flex-1 text-white border-2 hover:opacity-90"
                     style={{ backgroundColor: '#E84A3F', borderColor: '#2C3E50' }}
                   >
-                    {formData.type === "holiday_lights" ? "Create Display" : "Continue"}
+                    Continue
                   </Button>
                 </div>
               </form>
