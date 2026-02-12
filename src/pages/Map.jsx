@@ -207,14 +207,17 @@ export default function MapPage() {
 
   useEffect(() => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
+      const watchId = navigator.geolocation.watchPosition(
         (position) => {
           setMapCenter([position.coords.latitude, position.coords.longitude]);
         },
         () => {
           console.log("Location access denied");
-        }
+        },
+        { enableHighAccuracy: true, maximumAge: 10000 }
       );
+      
+      return () => navigator.geolocation.clearWatch(watchId);
     }
   }, []);
 
