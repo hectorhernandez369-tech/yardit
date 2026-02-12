@@ -6,7 +6,7 @@ import { createPageUrl } from "@/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, AlertTriangle } from "lucide-react";
+import { MapPin, Calendar, AlertTriangle, Navigation } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ReportModal from "../components/ReportModal";
@@ -123,13 +123,25 @@ export default function ListingDetailPage() {
               </div>
             )}
 
-            <Button
-              onClick={() => navigate(createPageUrl("Home"))}
-              variant="outline"
-              className="w-full"
-            >
-              Back to Map
-            </Button>
+            <div className="flex gap-3">
+              {listing.lat && listing.lng && (
+                <Button
+                  onClick={() => navigate(createPageUrl("Map") + `?listingId=${listing.id}`)}
+                  className="flex-1 gap-2"
+                  style={{ backgroundColor: '#0F766E' }}
+                >
+                  <Navigation className="w-4 h-4" />
+                  Show on Map
+                </Button>
+              )}
+              <Button
+                onClick={() => navigate(createPageUrl("Home"))}
+                variant="outline"
+                className="flex-1"
+              >
+                Back to Map
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

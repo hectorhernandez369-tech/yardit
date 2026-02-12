@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Eye, EyeOff } from "lucide-react";
+import { Calendar, MapPin, Eye, EyeOff, Navigation } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -94,13 +94,26 @@ export default function MyListingsPage() {
                         </Badge>
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-                    >
-                      View Details
-                    </Button>
+                    <div className="flex gap-2">
+                      {listing.lat && listing.lng && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(createPageUrl("Map") + `?listingId=${listing.id}`)}
+                          className="gap-1"
+                        >
+                          <Navigation className="w-3 h-3" />
+                          Show on Map
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+                      >
+                        View Details
+                      </Button>
+                    </div>
                   </div>
 
                   <p className="text-slate-600 mb-4">{listing.description}</p>

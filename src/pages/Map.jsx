@@ -20,6 +20,7 @@ import ReportForm from "../components/holidays/ReportForm";
 import DisplayToggle from "../components/holidays/DisplayToggle";
 import { toast } from "sonner";
 import { isHolidaySeason, isWithinViewingHours } from "../components/holidays/SeasonCheck";
+import { useNavigate } from "react-router-dom";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -177,6 +178,7 @@ export default function MapPage() {
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [mapCenter, setMapCenter] = useState([37.7749, -122.4194]);
+  const [mapZoom, setMapZoom] = useState(13);
   const [showSidebar, setShowSidebar] = useState(true);
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [optimizedRoute, setOptimizedRoute] = useState([]);
@@ -186,6 +188,8 @@ export default function MapPage() {
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [focusListingId, setFocusListingId] = useState(null);
+  const [markerRefs, setMarkerRefs] = useState({});
   const halloweenActive = isHalloweenSeason();
   const holidaySeasonActive = isHolidaySeason();
 
@@ -199,6 +203,13 @@ export default function MapPage() {
       }
     };
     fetchUser();
+
+    // Check for listingId in URL
+    const params = new URLSearchParams(window.location.search);
+    const lid = params.get("listingId");
+    if (lid) {
+      setFocusListingId(lid);
+    }
   }, []);
 
   const { data: locations, isLoading } = useQuery({
