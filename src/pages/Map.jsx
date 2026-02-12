@@ -369,21 +369,23 @@ export default function MapPage() {
     const now = new Date();
     
     return locations.filter((loc) => {
-      // Must have valid coordinates
-      if (!loc.latitude || !loc.longitude) return false;
+      // Must have valid numeric coordinates
+      if (typeof loc.latitude !== "number" || typeof loc.longitude !== "number") return false;
+      if (!isFinite(loc.latitude) || !isFinite(loc.longitude)) return false;
       
-      const isExpired = loc.expires_at && new Date(loc.expires_at) < now;
-      if (isExpired) return false;
-
-      // Status check — treat "active" status OR missing status as active
+      // Status check
       const locStatus = loc.status || "active";
       if (locStatus !== "active") return false;
 
-      // Holiday lights visibility - always show during season regardless of toggle
+      // Time check using expires_at (the actual field on Location entity)
+      if (loc.expires_at) {
+        const end = new Date(loc.expires_at);
+        if (end < now) return false;
+      }
+
+      // Holiday lights visibility
       if (loc.type === "holiday_lights") {
-        if (!holidaySeasonActive) {
-          return false;
-        }
+        if (!holidaySeasonActive) return false;
       }
 
       const matchesFilter = filter === "all" || loc.type === filter;
@@ -402,13 +404,12 @@ export default function MapPage() {
   const stats = useMemo(() => {
     const now = new Date();
     const activeLocations = locations.filter((l) => {
-      if (!l.latitude || !l.longitude) return false;
-      const isExpired = l.expires_at && new Date(l.expires_at) < now;
+      if (typeof l.latitude !== "number" || typeof l.longitude !== "number") return false;
       const locStatus = l.status || "active";
-      if (l.type === "holiday_lights") {
-        return locStatus === "active" && !isExpired && holidaySeasonActive;
-      }
-      return locStatus === "active" && !isExpired;
+      if (locStatus !== "active") return false;
+      if (l.expires_at && new Date(l.expires_at) < now) return false;
+      if (l.type === "holiday_lights" && !holidaySeasonActive) return false;
+      return true;
     });
 
     const halloweenLocations = halloweenActive 
@@ -823,6 +824,17 @@ export default function MapPage() {
           pinCount={visiblePins.length}
           clusterCount={clusterPts.length}
           fallback={fallbackActive}
+          firstRow={locations.length > 0 ? (() => {
+            const row = locations[0];
+            const now = new Date();
+            return {
+              nowISO: now.toISOString(),
+              status: row.status || "(none)",
+              expiresAt: row.expires_at || "(none)",
+              isExpired: row.expires_at ? new Date(row.expires_at) < now : false,
+              hasCoords: typeof row.latitude === "number" && typeof row.longitude === "number",
+            };
+          })() : null}
         />
 
         {/* Location Error Message */}
