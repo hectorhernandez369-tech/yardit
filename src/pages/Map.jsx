@@ -17,6 +17,7 @@ import CheckInButton from "../components/map/CheckInButton";
 import { toast } from "sonner";
 import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
 import MapDebugOverlay from "../components/map/MapDebugOverlay";
+import MapZoomControl from "../components/map/MapZoomControl";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -601,6 +602,7 @@ export default function MapPage() {
           zoomControl={false}
         >
           <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} />
+          <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
