@@ -218,6 +218,7 @@ export default function MapPage() {
   const [isLocating, setIsLocating] = useState(false);
   const [focusListingId, setFocusListingId] = useState(null);
   const [activeFocusListing, setActiveFocusListing] = useState(null);
+
   const [currentZoom, setCurrentZoom] = useState(13);
   const markerRefsMap = useRef({});
   const hasCenteredOnUser = useRef(false);
@@ -272,14 +273,18 @@ export default function MapPage() {
     return listings.find(l => l.id === focusListingId) || null;
   }, [focusListingId, listings]);
 
-  // When focusListing loads from URL, set it as active focus
+  // When focusListing loads from URL, set it as active focus (with tier zoom)
   useEffect(() => {
-    if (focusListing && focusListing.lat && focusListing.lng) {
-      setActiveFocusListing(focusListing);
-    } else if (focusListingId && focusListing === null) {
-      toast.error("Listing not found.");
+    if (!focusListing) {
+      if (focusListingId && listings.length > 0) {
+        toast.error("Listing not found.");
+      }
+      return;
     }
-  }, [focusListing, focusListingId]);
+    if (hasHandledInitialFocus.current) return;
+    setActiveFocusListing({ listing: focusListing, fromUrl: true });
+    hasHandledInitialFocus.current = true;
+  }, [focusListing, listings.length]);
 
   const { data: allCheckIns } = useQuery({
     queryKey: ["allCheckIns"],
@@ -380,30 +385,6 @@ export default function MapPage() {
     setCurrentZoom(z);
   }, []);
 
-  const focusOnListing = React.useCallback((listing) => {
-    if (!listing || typeof listing.lat !== "number" || typeof listing.lng !== "number") return;
-    if (!mapRef.current) return;
-
-    // Determine minimum zoom based on tier
-    let minZoom = 15; // free
-    if (listing.tier === "premium" || listing.tier === "neighborhood_tier") {
-      minZoom = 11;
-    } else if (listing.tier === "featured" || listing.tier === "map_pin") {
-      minZoom = 13;
-    }
-
-    const currentZoom = mapRef.current.getZoom();
-    const targetZoom = Math.max(currentZoom, minZoom);
-
-    mapRef.current.flyTo([listing.lat, listing.lng], targetZoom, { animate: true, duration: 0.5 });
-
-    // Open popup after flyTo completes
-    setTimeout(() => {
-      const markerRef = markerRefsMap.current[listing.id];
-      if (markerRef) markerRef.openPopup();
-    }, 600);
-  }, []);
-
   const eligibleListings = useMemo(() => {
     const now = new Date();
     
@@ -478,8 +459,8 @@ export default function MapPage() {
   };
 
   const handlePinClick = (listing) => {
-    // Focus on the listing (center map + open popup)
-    setActiveFocusListing(listing);
+    // Focus on the listing (center map + open popup, no zoom override)
+    setActiveFocusListing({ listing, fromUrl: false });
     // Also handle selection for route building
     handleLocationSelect(listing);
   };
@@ -630,7 +611,7 @@ export default function MapPage() {
         >
           <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => { mapRef.current = map; }} />
           <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
-          <MapFocusController focusListing={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
+          <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

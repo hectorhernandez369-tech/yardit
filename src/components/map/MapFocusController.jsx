@@ -8,36 +8,40 @@ function getMinZoomForTier(tier) {
   return 15; // free
 }
 
-export default function MapFocusController({ focusListing, markerRefsMap, onFocusComplete }) {
+export default function MapFocusController({ focusData, markerRefsMap, onFocusComplete }) {
   const map = useMap();
-  const hasHandledInitialFocus = useRef(false);
 
   useEffect(() => {
-    if (!focusListing) return;
-    if (!focusListing.lat || !focusListing.lng) return;
+    if (!focusData) return;
+    const { listing, fromUrl } = focusData;
+    if (!listing || !listing.lat || !listing.lng) return;
 
     const currentZoom = map.getZoom();
-    const minZoom = getMinZoomForTier(focusListing.tier);
-    const targetZoom = Math.max(currentZoom, minZoom);
+    let targetZoom = currentZoom;
+
+    // Only apply tier-based zoom when navigating from URL
+    if (fromUrl) {
+      const minZoom = getMinZoomForTier(listing.tier);
+      targetZoom = Math.max(currentZoom, minZoom);
+    }
 
     // Center map on listing
-    map.flyTo([focusListing.lat, focusListing.lng], targetZoom, { 
+    map.flyTo([listing.lat, listing.lng], targetZoom, { 
       animate: true,
       duration: 0.5 
     });
 
     // Open popup after animation
     setTimeout(() => {
-      const ref = markerRefsMap.current[focusListing.id];
+      const ref = markerRefsMap.current[listing.id];
       if (ref) {
         ref.openPopup();
       }
-      if (onFocusComplete && !hasHandledInitialFocus.current) {
-        hasHandledInitialFocus.current = true;
+      if (onFocusComplete) {
         onFocusComplete();
       }
     }, 600);
-  }, [focusListing, map, markerRefsMap, onFocusComplete]);
+  }, [focusData, map, markerRefsMap, onFocusComplete]);
 
   return null;
 }
