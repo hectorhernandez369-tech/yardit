@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle } from "react-leaflet";
 import L from "leaflet";
-import React from "react";
 import "leaflet/dist/leaflet.css";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +20,6 @@ import ReportForm from "../components/holidays/ReportForm";
 import DisplayToggle from "../components/holidays/DisplayToggle";
 import { toast } from "sonner";
 import { isHolidaySeason, isWithinViewingHours } from "../components/holidays/SeasonCheck";
-import { useNavigate } from "react-router-dom";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -115,55 +113,6 @@ const createIcon = (type, tier, isSelected, location) => {
   });
 };
 
-function FocusedListingMarker({ listing }) {
-  const markerRef = React.useRef(null);
-  
-  useEffect(() => {
-    if (markerRef.current) {
-      markerRef.current.openPopup();
-    }
-  }, [listing]);
-
-  const isExpired = listing.status === "expired" || listing.status === "completed";
-
-  return (
-    <Marker
-      ref={markerRef}
-      position={[listing.lat, listing.lng]}
-      icon={new L.Icon({
-        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cdefs%3E%3Cfilter id='glow'%3E%3CfeGaussianBlur stdDeviation='1.5' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg transform='translate(2 2)'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23C6A75E' stroke='%230F766E' stroke-width='1.5' filter='url(%23glow)'/%3E%3C/g%3E%3C/svg%3E",
-        iconSize: [28, 36],
-        iconAnchor: [14, 36],
-        popupAnchor: [0, -36],
-      })}
-    >
-      <Popup>
-        <div className="p-2">
-          <div className="flex items-center gap-2 mb-2">
-            <Badge className="bg-orange-500">🏡 Yard Sale</Badge>
-            {isExpired && (
-              <Badge className="bg-gray-400">EXPIRED</Badge>
-            )}
-          </div>
-          <h3 className="font-bold text-base mb-1">{listing.title}</h3>
-          <p className="text-sm text-gray-600 mb-2">
-            {listing.addressText || `${listing.city}, ${listing.zip}`}
-          </p>
-          {listing.description && (
-            <p className="text-sm mb-2">{listing.description}</p>
-          )}
-          {listing.startDateTime && (
-            <div className="flex items-center gap-1 text-xs text-gray-500">
-              <Calendar className="w-3 h-3" />
-              {format(new Date(listing.startDateTime), "MMM d, yyyy")}
-            </div>
-          )}
-        </div>
-      </Popup>
-    </Marker>
-  );
-}
-
 function MapController({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
@@ -238,8 +187,8 @@ export default function MapPage() {
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
-  const [focusListingId, setFocusListingId] = useState(null);
-  const [markerRefs, setMarkerRefs] = useState({});
+  const [highlightedListingId, setHighlightedListingId] = useState(null);
+  const markerRefs = useRef({});
   const halloweenActive = isHalloweenSeason();
   const holidaySeasonActive = isHolidaySeason();
 
@@ -254,11 +203,11 @@ export default function MapPage() {
     };
     fetchUser();
 
-    // Check for listingId in URL
+    // Check for listingId in URL for "Show on Map" feature
     const params = new URLSearchParams(window.location.search);
     const lid = params.get("listingId");
     if (lid) {
-      setFocusListingId(lid);
+      setHighlightedListingId(lid);
     }
   }, []);
 
@@ -268,25 +217,26 @@ export default function MapPage() {
     initialData: [],
   });
 
-  // Also fetch from Listing entity for "Show on Map" from MyListings/ListingDetail
-  const { data: focusListing } = useQuery({
-    queryKey: ["focusListing", focusListingId],
-    queryFn: async () => {
-      const results = await base44.entities.Listing.filter({ id: focusListingId });
-      return results[0] || null;
-    },
-    enabled: !!focusListingId,
-  });
-
-  // When focusListing loads, center map on it
+  // Center map & open popup when highlighted listing data is available
   useEffect(() => {
-    if (focusListing && focusListing.lat && focusListing.lng) {
-      setMapCenter([focusListing.lat, focusListing.lng]);
+    if (!highlightedListingId || locations.length === 0) return;
+    
+    const loc = locations.find(l => l.id === highlightedListingId);
+    if (loc && loc.latitude && loc.longitude) {
+      setMapCenter([loc.latitude, loc.longitude]);
       setMapZoom(15);
-    } else if (focusListingId && focusListing === null) {
-      toast.error("Listing not found.");
+      
+      // Open popup after a short delay to let the map render
+      setTimeout(() => {
+        const marker = markerRefs.current[loc.id];
+        if (marker) {
+          marker.openPopup();
+        }
+      }, 500);
     }
-  }, [focusListing, focusListingId]);
+    
+    setHighlightedListingId(null);
+  }, [highlightedListingId, locations]);
 
   const { data: allCheckIns } = useQuery({
     queryKey: ["allCheckIns"],
@@ -587,11 +537,6 @@ export default function MapPage() {
             </>
           )}
           
-          {/* Focused Listing Marker (from Listing entity via Show on Map) */}
-          {focusListing && focusListing.lat && focusListing.lng && (
-            <FocusedListingMarker listing={focusListing} />
-          )}
-
           {/* Route Line */}
           {routeActive && routeCoordinates.length > 1 && (
             <Polyline
@@ -613,6 +558,7 @@ export default function MapPage() {
                 key={location.id}
                 position={[location.latitude, location.longitude]}
                 icon={createIcon(location.type, location.tier, isSelected, location)}
+                ref={(ref) => { if (ref) markerRefs.current[location.id] = ref; }}
                 eventHandlers={{
                   click: () => {
                     handleLocationSelect(location);
