@@ -206,6 +206,7 @@ export default function MapPage() {
   const [routeActive, setRouteActive] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const controlsPanelRef = useRef(null);
+  const controlsBtnRef = useRef(null);
   const [user, setUser] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
@@ -216,22 +217,6 @@ export default function MapPage() {
   const hasCenteredOnUser = useRef(false);
   const userHasMovedMap = useRef(false);
   const halloweenActive = isHalloweenSeason();
-
-  // Close controls when tapping outside
-  useEffect(() => {
-    if (!showControls) return;
-    const handleClick = (e) => {
-      if (controlsPanelRef.current && !controlsPanelRef.current.contains(e.target)) {
-        setShowControls(false);
-      }
-    };
-    // Delay listener so the open-click doesn't immediately close
-    const timer = setTimeout(() => document.addEventListener("mousedown", handleClick), 10);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener("mousedown", handleClick);
-    };
-  }, [showControls]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -419,6 +404,21 @@ export default function MapPage() {
     }
   }, [filter]);
 
+  // Close controls when tapping outside
+  useEffect(() => {
+    if (!showControls) return;
+    const handleClick = (e) => {
+      if (
+        controlsPanelRef.current && !controlsPanelRef.current.contains(e.target) &&
+        controlsBtnRef.current && !controlsBtnRef.current.contains(e.target)
+      ) {
+        setShowControls(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showControls]);
+
   const handleLocationSelect = (location) => {
     const isSelected = selectedLocations.some(loc => loc.id === location.id);
     
@@ -498,21 +498,18 @@ export default function MapPage() {
 
   return (
     <div className="h-[calc(100vh-140px)] relative">
-      {/* Floating Controls Toggle */}
+      {/* Floating Filter FAB */}
       <button
+        ref={controlsBtnRef}
         onClick={() => setShowControls(prev => !prev)}
-        className="absolute top-4 right-4 z-[1002] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all duration-200 border border-gray-200"
+        className="absolute top-20 right-3 z-[1002] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-50 active:scale-95 transition-all duration-200 border border-gray-200"
       >
-        {showControls ? (
-          <X className="w-5 h-5 text-gray-700" />
-        ) : (
-          <SlidersHorizontal className="w-5 h-5 text-[#0F766E]" />
-        )}
+        {showControls ? <X className="w-5 h-5" /> : <SlidersHorizontal className="w-5 h-5" />}
       </button>
 
       {/* Backdrop */}
       {showControls && (
-        <div className="absolute inset-0 z-[999] bg-black/10 backdrop-blur-[2px] pointer-events-auto" onClick={() => setShowControls(false)} />
+        <div className="absolute inset-0 z-[999] bg-black/10 backdrop-blur-[2px] transition-opacity duration-200" />
       )}
 
       {/* Controls Panel */}
@@ -525,7 +522,7 @@ export default function MapPage() {
           pointerEvents: showControls ? "auto" : "none",
         }}
       >
-        <div className="max-w-3xl mx-auto space-y-3">
+        <div className="max-w-4xl mx-auto space-y-3">
           <Card className="bg-white/95 backdrop-blur-md shadow-xl border-0 rounded-2xl overflow-hidden">
             <div className="p-4">
               <div className="flex flex-col sm:flex-row gap-3">
