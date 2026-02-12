@@ -9,17 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, User, Search, Candy, ShoppingBag, ChevronDown, Plus, Check, Users, Star, Crosshair, Loader2 } from "lucide-react";
+import { MapPin, Calendar, User, Search, ShoppingBag, ChevronDown, Plus, Check, Users, Star, Crosshair, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
 import CheckInButton from "../components/map/CheckInButton";
 import ReviewForm from "../components/reviews/ReviewForm";
 import ReviewsList from "../components/reviews/ReviewsList";
-import LightRatingForm from "../components/holidays/LightRatingForm";
-import ReportForm from "../components/holidays/ReportForm";
-import DisplayToggle from "../components/holidays/DisplayToggle";
 import { toast } from "sonner";
-import { isHolidaySeason, isWithinViewingHours } from "../components/holidays/SeasonCheck";
 import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
 import MapDebugOverlay from "../components/map/MapDebugOverlay";
 
@@ -32,9 +28,9 @@ L.Icon.Default.mergeOptions({
 });
 
 // Determine if a listing is pre-activated / upcoming (not yet started)
-function isPreActivated(location) {
-  if (!location.start_date_time) return false;
-  return new Date(location.start_date_time) > new Date();
+function isPreActivated(listing) {
+  if (!listing.startDateTime) return false;
+  return new Date(listing.startDateTime) > new Date();
 }
 
 // Build SVG data URL for a pin
@@ -183,7 +179,7 @@ function optimizeRoute(locations, startLat, startLng) {
     let minDistance = Infinity;
 
     unvisited.forEach((loc, index) => {
-      const dist = calculateDistance(currentLat, currentLng, loc.latitude, loc.longitude);
+      const dist = calculateDistance(currentLat, currentLng, loc.lat, loc.lng);
       if (dist < minDistance) {
         minDistance = dist;
         nearestIndex = index;
@@ -192,8 +188,8 @@ function optimizeRoute(locations, startLat, startLng) {
 
     const nearest = unvisited.splice(nearestIndex, 1)[0];
     route.push(nearest);
-    currentLat = nearest.latitude;
-    currentLng = nearest.longitude;
+    currentLat = nearest.lat;
+    currentLng = nearest.lng;
   }
 
   return route;
@@ -219,7 +215,6 @@ export default function MapPage() {
   const hasCenteredOnUser = useRef(false);
   const userHasMovedMap = useRef(false);
   const halloweenActive = isHalloweenSeason();
-  const holidaySeasonActive = isHolidaySeason();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -425,7 +420,7 @@ export default function MapPage() {
     setRouteActive(true);
     
     if (optimized.length > 0) {
-      setMapCenter([optimized[0].latitude, optimized[0].longitude]);
+      setMapCenter([optimized[0].lat, optimized[0].lng]);
       toast.success(`Route optimized with ${optimized.length} stops!`);
     }
   };
