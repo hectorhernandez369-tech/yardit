@@ -29,75 +29,86 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Custom marker icons based on tier
+// Custom marker icons based on tier - Teardrop shape
 const createIcon = (type, tier, isSelected, location) => {
+  // Teardrop/pin path for SVG
+  const pinPath = "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z";
+  
   if (isSelected) {
     return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23F4D35E' stroke='%23E84A3F' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='%232C3E50' font-size='16' font-weight='bold'%3E✓%3C/text%3E%3C/svg%3E",
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23C6A75E' stroke='%230F766E' stroke-width='1.5'/%3E%3C/svg%3E",
+      iconSize: [24, 32],
+      iconAnchor: [12, 32],
       popupAnchor: [0, -32],
     });
   }
   
   if (type === "halloween_candy") {
     return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%239333ea' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='16'%3E%F0%9F%8E%83%3C/text%3E%3C/svg%3E",
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%239333ea' stroke='white' stroke-width='1.5'/%3E%3C/svg%3E",
+      iconSize: [24, 32],
+      iconAnchor: [12, 32],
       popupAnchor: [0, -32],
     });
   }
   
-  // Holiday lights icons - festive and unique
+  // Holiday lights - teardrop with glow when active
   if (type === "holiday_lights") {
     const isGlowing = location && 
       location.display_active &&
       isWithinViewingHours(location.viewing_start_time, location.viewing_end_time);
     
     if (isGlowing) {
-      // Glowing festive pin when lights are ON and within viewing hours
       return new L.Icon({
-        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cdefs%3E%3CradialGradient id='glow2'%3E%3Cstop offset='0%25' stop-color='%23ffd700' stop-opacity='0.6'/%3E%3Cstop offset='100%25' stop-color='%23ffd700' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='20' cy='20' r='19' fill='url(%23glow2)'/%3E%3Ccircle cx='20' cy='20' r='15' fill='%23dc2626' stroke='%23ffd700' stroke-width='3'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='20'%3E🎄%3C/text%3E%3C/svg%3E",
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -40],
+        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cdefs%3E%3Cfilter id='glow'%3E%3CfeGaussianBlur stdDeviation='2' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg transform='translate(2 2)'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23ffd700' stroke='%23dc2626' stroke-width='1.5' filter='url(%23glow)'/%3E%3C/g%3E%3C/svg%3E",
+        iconSize: [28, 36],
+        iconAnchor: [14, 36],
+        popupAnchor: [0, -36],
       });
     } else {
-      // Non-glowing festive pin (visible but not active)
       return new L.Icon({
-        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'%3E%3Ccircle cx='17' cy='17' r='15' fill='%23dc2626' stroke='white' stroke-width='2'/%3E%3Ctext x='17' y='23' text-anchor='middle' fill='white' font-size='18'%3E🎄%3C/text%3E%3C/svg%3E",
-        iconSize: [34, 34],
-        iconAnchor: [17, 34],
-        popupAnchor: [0, -34],
+        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23dc2626' stroke='white' stroke-width='1.5'/%3E%3C/svg%3E",
+        iconSize: [24, 32],
+        iconAnchor: [12, 32],
+        popupAnchor: [0, -32],
       });
     }
   }
   
-  // Tier-based icons for yard sales
+  // Premium Tier: Gold fill, Teal outline, larger, subtle glow
+  if (tier === "premium") {
+    return new L.Icon({
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cdefs%3E%3Cfilter id='glow'%3E%3CfeGaussianBlur stdDeviation='1.5' result='coloredBlur'/%3E%3CfeMerge%3E%3CfeMergeNode in='coloredBlur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg transform='translate(2 2)'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23C6A75E' stroke='%230F766E' stroke-width='1.5' filter='url(%23glow)'/%3E%3C/g%3E%3C/svg%3E",
+      iconSize: [28, 36],
+      iconAnchor: [14, 36],
+      popupAnchor: [0, -36],
+    });
+  }
+  
+  // Featured Tier: Teal fill, Gold outline, default size
   if (tier === "featured") {
     return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 38 38'%3E%3Cdefs%3E%3CradialGradient id='glow'%3E%3Cstop offset='0%25' stop-color='%23F4D35E' stop-opacity='0.3'/%3E%3Cstop offset='100%25' stop-color='%23F4D35E' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='19' cy='19' r='18' fill='url(%23glow)'/%3E%3Ccircle cx='19' cy='19' r='14' fill='%235DCCB5' stroke='%23F4D35E' stroke-width='3'/%3E%3Ctext x='19' y='24' text-anchor='middle' fill='%232C3E50' font-size='16' font-weight='bold'%3E★%3C/text%3E%3C/svg%3E",
-      iconSize: [38, 38],
-      iconAnchor: [19, 38],
-      popupAnchor: [0, -38],
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%230F766E' stroke='%23C6A75E' stroke-width='1.5'/%3E%3C/svg%3E",
+      iconSize: [24, 32],
+      iconAnchor: [12, 32],
+      popupAnchor: [0, -32],
     });
   }
   
   if (tier === "neighborhood_event") {
     return new L.Icon({
-      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 38 38'%3E%3Ccircle cx='19' cy='19' r='16' fill='%235DCCB5' stroke='%23E84A3F' stroke-width='3'/%3E%3Ctext x='19' y='24' text-anchor='middle' fill='%232C3E50' font-size='18' font-weight='bold'%3E🏘%3C/text%3E%3C/svg%3E",
-      iconSize: [38, 38],
-      iconAnchor: [19, 38],
-      popupAnchor: [0, -38],
+      iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='34' viewBox='0 0 26 34'%3E%3Cg transform='translate(1 1)'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%23C6A75E' stroke='%230F766E' stroke-width='2'/%3E%3C/g%3E%3C/svg%3E",
+      iconSize: [26, 34],
+      iconAnchor: [13, 34],
+      popupAnchor: [0, -34],
     });
   }
   
-  // Standard map_pin icon
+  // Free Tier: Solid Teal, no outline, default size
   return new L.Icon({
-    iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%235DCCB5' stroke='%23E84A3F' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='%232C3E50' font-size='16' font-weight='bold'%3E$%3C/text%3E%3C/svg%3E",
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
+    iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' fill='%230F766E'/%3E%3C/svg%3E",
+    iconSize: [24, 32],
+    iconAnchor: [12, 32],
     popupAnchor: [0, -32],
   });
 };
