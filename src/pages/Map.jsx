@@ -218,6 +218,22 @@ export default function MapPage() {
   const userHasMovedMap = useRef(false);
   const halloweenActive = isHalloweenSeason();
 
+  // Debug overlay auto-hide
+  const debugForceOn = useMemo(() => {
+    const p = new URLSearchParams(window.location.search);
+    return p.get("debug") === "true";
+  }, []);
+  const [debugVisible, setDebugVisible] = useState(true);
+  const [debugPinned, setDebugPinned] = useState(debugForceOn);
+  const debugTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (debugPinned || debugForceOn) return;
+    if (!debugVisible) return;
+    debugTimerRef.current = setTimeout(() => setDebugVisible(false), 8000);
+    return () => clearTimeout(debugTimerRef.current);
+  }, [debugVisible, debugPinned, debugForceOn]);
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -722,29 +738,45 @@ export default function MapPage() {
         </div>
 
         {/* Debug Overlay */}
-        <MapDebugOverlay
-          zoom={currentZoom}
-          dbCount={listings.length}
-          eligibleCount={eligibleListings.length}
-          pinCount={visiblePins.length}
-          clusterCount={clusterPts.length}
-          fallback={fallbackActive}
-          firstRow={listings.length > 0 ? (() => {
-            const row = listings[0];
-            const now = new Date();
-            const start = new Date(row.startDateTime);
-            const end = new Date(row.endDateTime);
-            return {
-              nowISO: now.toISOString(),
-              id: row.id,
-              status: row.status || "(none)",
-              startAt: row.startDateTime || "(none)",
-              endAt: row.endDateTime || "(none)",
-              tier: row.tier || "(none)",
-              timeOk: start <= now && end >= now,
-            };
-          })() : null}
-        />
+        <div
+          onClick={() => { setDebugPinned(true); clearTimeout(debugTimerRef.current); }}
+          className="transition-opacity duration-300"
+          style={{ opacity: debugVisible ? 1 : 0, pointerEvents: debugVisible ? "auto" : "none" }}
+        >
+          <MapDebugOverlay
+            zoom={currentZoom}
+            dbCount={listings.length}
+            eligibleCount={eligibleListings.length}
+            pinCount={visiblePins.length}
+            clusterCount={clusterPts.length}
+            fallback={fallbackActive}
+            firstRow={listings.length > 0 ? (() => {
+              const row = listings[0];
+              const now = new Date();
+              const start = new Date(row.startDateTime);
+              const end = new Date(row.endDateTime);
+              return {
+                nowISO: now.toISOString(),
+                id: row.id,
+                status: row.status || "(none)",
+                startAt: row.startDateTime || "(none)",
+                endAt: row.endDateTime || "(none)",
+                tier: row.tier || "(none)",
+                timeOk: start <= now && end >= now,
+              };
+            })() : null}
+          />
+        </div>
+
+        {/* Debug reopen button */}
+        {!debugVisible && (
+          <button
+            onClick={() => { setDebugVisible(true); setDebugPinned(true); }}
+            className="absolute bottom-4 left-4 z-[1001] px-2 py-1 rounded bg-black/50 text-green-400 text-[10px] font-mono hover:bg-black/70 transition-colors"
+          >
+            Debug
+          </button>
+        )}
 
         {/* Location Error Message */}
         {locationError && (
