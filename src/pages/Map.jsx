@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, User, Search, ShoppingBag, ChevronDown, Plus, Check, Users, Star, Crosshair, Loader2 } from "lucide-react";
+import { MapPin, Calendar, User, Search, ShoppingBag, Plus, Check, Users, Star, Crosshair, Loader2, SlidersHorizontal, X } from "lucide-react";
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
 import CheckInButton from "../components/map/CheckInButton";
@@ -204,7 +204,8 @@ export default function MapPage() {
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [optimizedRoute, setOptimizedRoute] = useState([]);
   const [routeActive, setRouteActive] = useState(false);
-  const [showControls, setShowControls] = useState(true);
+  const [showControls, setShowControls] = useState(false);
+  const controlsPanelRef = useRef(null);
   const [user, setUser] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
@@ -215,6 +216,22 @@ export default function MapPage() {
   const hasCenteredOnUser = useRef(false);
   const userHasMovedMap = useRef(false);
   const halloweenActive = isHalloweenSeason();
+
+  // Close controls when tapping outside
+  useEffect(() => {
+    if (!showControls) return;
+    const handleClick = (e) => {
+      if (controlsPanelRef.current && !controlsPanelRef.current.contains(e.target)) {
+        setShowControls(false);
+      }
+    };
+    // Delay listener so the open-click doesn't immediately close
+    const timer = setTimeout(() => document.addEventListener("mousedown", handleClick), 10);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("mousedown", handleClick);
+    };
+  }, [showControls]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -481,23 +498,37 @@ export default function MapPage() {
 
   return (
     <div className="h-[calc(100vh-140px)] relative">
-      {/* Toggle Button */}
-      <Button
-        onClick={() => setShowControls(!showControls)}
-        size="sm"
-        className="absolute top-4 right-4 z-[1001] shadow-lg"
-        variant={showControls ? "default" : "secondary"}
+      {/* Floating Controls Toggle */}
+      <button
+        onClick={() => setShowControls(prev => !prev)}
+        className="absolute top-4 right-4 z-[1002] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all duration-200 border border-gray-200"
       >
-        {showControls ? "Hide Controls" : "Show Controls"}
-      </Button>
+        {showControls ? (
+          <X className="w-5 h-5 text-gray-700" />
+        ) : (
+          <SlidersHorizontal className="w-5 h-5 text-[#0F766E]" />
+        )}
+      </button>
 
-      {/* Stats & Search Bar */}
+      {/* Backdrop */}
       {showControls && (
-        <div className="absolute top-4 left-4 right-24 z-[1000] pointer-events-none">
-          <div className="max-w-4xl mx-auto pointer-events-auto space-y-3">
-          <Card className="bg-white/95 backdrop-blur-md shadow-xl border-0">
+        <div className="absolute inset-0 z-[999] bg-black/10 backdrop-blur-[2px] pointer-events-auto" onClick={() => setShowControls(false)} />
+      )}
+
+      {/* Controls Panel */}
+      <div
+        ref={controlsPanelRef}
+        className="absolute top-4 left-4 right-16 z-[1001] transition-all duration-[220ms] ease-out origin-top"
+        style={{
+          opacity: showControls ? 1 : 0,
+          transform: showControls ? "translateY(0) scaleY(1)" : "translateY(-12px) scaleY(0.95)",
+          pointerEvents: showControls ? "auto" : "none",
+        }}
+      >
+        <div className="max-w-3xl mx-auto space-y-3">
+          <Card className="bg-white/95 backdrop-blur-md shadow-xl border-0 rounded-2xl overflow-hidden">
             <div className="p-4">
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
@@ -520,19 +551,10 @@ export default function MapPage() {
                     </TabsTrigger>
                     <TabsTrigger value="neighborhood_sale" className="gap-1">
                       <Users className="w-3 h-3" />
-                      Neighborhood ({stats.neighborhood_sale})
+                      Hood ({stats.neighborhood_sale})
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowSidebar(!showSidebar)}
-                  className="sm:hidden"
-                >
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showSidebar ? "" : "rotate-180"}`} />
-                </Button>
               </div>
             </div>
           </Card>
@@ -554,8 +576,7 @@ export default function MapPage() {
             routeActive={routeActive}
           />
         </div>
-        </div>
-      )}
+      </div>
 
       {/* Map */}
       <div className="h-full w-full">
