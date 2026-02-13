@@ -217,24 +217,7 @@ export default function AddLocationPage() {
     }
   };
 
-  // Auto-geocode when all address fields are filled
-  useEffect(() => {
-    if (
-      formData.street_address &&
-      formData.city &&
-      formData.state &&
-      formData.zip_code &&
-      !formData.latitude &&
-      !formData.longitude &&
-      !isGeocodingAddress
-    ) {
-      const timer = setTimeout(() => {
-        geocodeAddress();
-      }, 1000); // Debounce for 1 second
 
-      return () => clearTimeout(timer);
-    }
-  }, [formData.street_address, formData.city, formData.state, formData.zip_code]);
 
   const handleContinueToTiers = async (e) => {
     e.preventDefault();
