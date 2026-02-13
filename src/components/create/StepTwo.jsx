@@ -10,13 +10,6 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
 
-  // Expose geocodeAddress to parent via ref
-  useEffect(() => {
-    if (onGeocodeRef) {
-      onGeocodeRef(geocodeAddress);
-    }
-  }, [formData.addressText, formData.city, formData.state, formData.zip]);
-
   const getCurrentLocation = () => {
     setIsGettingLocation(true);
 
@@ -64,7 +57,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
     );
   };
 
-  const geocodeAddress = async () => {
+  const geocodeAddress = React.useCallback(async () => {
     if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
       toast.error("Please fill in address, city, state, and ZIP first");
       return false;
@@ -120,7 +113,14 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
     } finally {
       setIsGeocoding(false);
     }
-  };
+  }, [formData.addressText, formData.city, formData.state, formData.zip]);
+
+  // Expose geocodeAddress to parent
+  React.useEffect(() => {
+    if (onGeocodeRef) {
+      onGeocodeRef(geocodeAddress);
+    }
+  }, [geocodeAddress, onGeocodeRef]);
 
   return (
     <div className="space-y-6">

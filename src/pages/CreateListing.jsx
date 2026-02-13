@@ -160,7 +160,7 @@ export default function CreateListingPage() {
                   {s < step ? "✓" : s}
                 </div>
                 {s < 3 && (
-                  <div className={`w-12 h-1 ${s < step ? "bg-green-600" : "bg-slate-200"}`} />
+                  <div key={`line-${s}`} className={`w-12 h-1 ${s < step ? "bg-green-600" : "bg-slate-200"}`} />
                 )}
               </React.Fragment>
             ))}
