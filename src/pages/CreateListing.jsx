@@ -16,7 +16,6 @@ export default function CreateListingPage() {
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
   const [geocodeRef, setGeocodeRef] = useState(null);
-  const [validateRef, setValidateRef] = useState(null);
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
     tier: "free",
@@ -105,11 +104,7 @@ export default function CreateListingPage() {
       }
       setStep(2);
     } else if (step === 2) {
-      // Validate address fields via StepTwo's exposed validator
-      if (validateRef) {
-        const isValid = validateRef();
-        if (!isValid) return;
-      } else if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
+      if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
         toast.error("Please complete all address fields");
         return;
       }
@@ -186,7 +181,7 @@ export default function CreateListingPage() {
               <StepOne formData={formData} setFormData={setFormData} />
             )}
             {step === 2 && (
-              <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} onValidateRef={setValidateRef} />
+              <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} />
             )}
             {step === 3 && (
               <StepThree formData={formData} setFormData={setFormData} />
