@@ -168,7 +168,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, onValidat
       setIsGeocoding(false);
       console.log("[StepTwo] Geocode finished; isGeocoding reset to false");
     }
-  }, [formData.addressText, formData.city, formData.state, formData.zip]);
+  }, [formData.addressText, formData.city, formData.state, formData.zip, validateRequiredAddress]);
 
   // Expose geocodeAddress to parent
   React.useEffect(() => {
