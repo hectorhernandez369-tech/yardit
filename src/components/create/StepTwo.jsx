@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
+export default function StepTwo({ formData, setFormData, onGeocodeRef, onValidateRef }) {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
@@ -59,35 +59,44 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
     );
   };
 
-  const geocodeAddress = React.useCallback(async () => {
-    console.log("[StepTwo] geocodeAddress() ENTERED", {
-      addressText: formData.addressText,
-      city: formData.city,
-      state: formData.state,
-      zip: formData.zip,
-    });
-    toast("geocodeAddress() started");
-
-    // 1) Validation — never silent
+  // Shared validation — returns { valid, missing[], errors{} }
+  const validateRequiredAddress = React.useCallback(() => {
     const missing = [];
-    if (!formData.addressText?.trim()) missing.push("Street Address");
-    if (!formData.city?.trim()) missing.push("City");
-    if (!formData.state?.trim()) missing.push("State");
-    if (!formData.zip?.trim()) missing.push("ZIP Code");
+    const errors = {};
+    if (!formData.addressText?.trim()) { missing.push("Street Address"); errors.addressText = true; }
+    if (!formData.city?.trim()) { missing.push("City"); errors.city = true; }
+    if (!formData.state?.trim()) { missing.push("State"); errors.state = true; }
+    if (!formData.zip?.trim()) { missing.push("ZIP Code"); errors.zip = true; }
+    return { valid: missing.length === 0, missing, errors };
+  }, [formData.addressText, formData.city, formData.state, formData.zip]);
 
-    if (missing.length > 0) {
-      console.log("[StepTwo] validation failed, missing:", missing);
-      const errors = {};
-      if (!formData.addressText?.trim()) errors.addressText = true;
-      if (!formData.city?.trim()) errors.city = true;
-      if (!formData.state?.trim()) errors.state = true;
-      if (!formData.zip?.trim()) errors.zip = true;
+  // Expose validateRequiredAddress + setFieldErrors to parent
+  React.useEffect(() => {
+    if (onValidateRef) {
+      onValidateRef(() => {
+        const result = validateRequiredAddress();
+        if (!result.valid) {
+          setFieldErrors(result.errors);
+          toast.error(`Missing: ${result.missing.join(", ")}`);
+        } else {
+          setFieldErrors({});
+        }
+        return result.valid;
+      });
+    }
+  }, [validateRequiredAddress, onValidateRef]);
+
+  const geocodeAddress = React.useCallback(async () => {
+    // Validate before geocoding — show toast only on this explicit action
+    const { valid, missing, errors } = validateRequiredAddress();
+    if (!valid) {
       setFieldErrors(errors);
       toast.error(`Missing: ${missing.join(", ")}`);
       return false;
     }
+    setFieldErrors({});
 
-    // 2) Immediate feedback
+    // Immediate feedback
     toast.info("Locating address...");
     setIsGeocoding(true);
     setAddressSuggestions([]);
@@ -265,11 +274,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
 
         <Button
           type="button"
-          onClick={() => {
-            console.log("[StepTwo] Locate Address clicked, isGeocoding:", isGeocoding);
-            toast("Locate Address clicked");
-            geocodeAddress();
-          }}
+          onClick={() => geocodeAddress()}
           disabled={isGeocoding}
           variant="outline"
           className="gap-2 border-2 border-[#F4A849] bg-[#F3E6CF] text-[#2C4F4E] hover:bg-[#E7D7B8]"
