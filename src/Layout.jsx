@@ -13,6 +13,7 @@ export default function Layout({ children }) {
   const [showDemoPanel, setShowDemoPanel] = useState(false);
   const [demoActive, setDemoActive] = useState(isDemoMode());
   const longPressTimer = useRef(null);
+  const didLongPress = useRef(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -39,17 +40,26 @@ export default function Layout({ children }) {
     }
   }, []);
 
-  const onLogoPointerDown = useCallback((e) => {
-    e.preventDefault();
+  const onLogoPointerDown = useCallback(() => {
+    didLongPress.current = false;
     longPressTimer.current = setTimeout(() => {
       longPressTimer.current = null;
+      didLongPress.current = true;
+      console.log("DEMO LONG PRESS TRIGGERED");
       setShowDemoPanel(prev => !prev);
     }, 1000);
   }, []);
 
-  const onLogoPointerMove = useCallback(() => {
+  const onLogoPointerEnd = useCallback(() => {
     cancelLongPress();
   }, [cancelLongPress]);
+
+  const onLogoClick = useCallback((e) => {
+    if (didLongPress.current) {
+      e.preventDefault();
+      didLongPress.current = false;
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F3E6CF]">
@@ -60,13 +70,13 @@ export default function Layout({ children }) {
             <div className="flex items-center gap-3">
               <Link
                 to={createPageUrl("Home")}
-                className="flex items-center gap-3 group select-none"
+                className="flex items-center gap-3 group select-none touch-none"
                 onPointerDown={onLogoPointerDown}
-                onPointerUp={cancelLongPress}
-                onPointerLeave={cancelLongPress}
-                onPointerMove={onLogoPointerMove}
+                onPointerUp={onLogoPointerEnd}
+                onPointerCancel={onLogoPointerEnd}
+                onPointerLeave={onLogoPointerEnd}
                 onContextMenu={(e) => e.preventDefault()}
-                onClick={(e) => { if (showDemoPanel) e.preventDefault(); }}
+                onClick={onLogoClick}
               >
                 <img 
                   src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/5a679ad0d_file_00000000efbc71fd87985abd77ca1f58.png" 
@@ -86,6 +96,13 @@ export default function Layout({ children }) {
             </div>
 
             <nav className="flex items-center gap-2">
+              {/* TEMPORARY: visible Demo toggle button — remove later */}
+              <button
+                onClick={() => setShowDemoPanel(prev => !prev)}
+                className="text-[10px] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded px-2 py-1"
+              >
+                Demo
+              </button>
               <Link to={createPageUrl("Home")}>
                 <Button
                   variant={location.pathname === createPageUrl("Home") ? "secondary" : "ghost"}
