@@ -164,7 +164,13 @@ export default function CreateListingPage() {
         }
       }
     }
-    // Free tier: dates are auto-set, no user input needed (unless demo mode)
+    // Free tier: in demo mode user picks dates; in normal mode they're auto-set
+    if (formData.tier === "free" && isDemoMode()) {
+      if (!formData.startDateTime || !formData.endDateTime) {
+        toast.error("Please select start and end times");
+        return;
+      }
+    }
 
     createListingMutation.mutate(formData);
   };

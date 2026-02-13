@@ -98,13 +98,14 @@ export default function TierSchedule({ formData, setFormData }) {
     setFormData((prev) => ({ ...prev, endDateTime: newEnd }));
   };
 
-  // Computed max end datetime string for the input
+  // Computed max end datetime string for the input (no max in demo mode)
   const maxEndDateTime = useMemo(() => {
-    if (!formData.startDateTime || tier === "free") return "";
+    if (!formData.startDateTime || (tier === "free" && !demoActive)) return "";
+    if (demoActive) return ""; // no cap in demo mode
     const start = new Date(formData.startDateTime);
     const maxEnd = new Date(start.getTime() + maxDays * 24 * 60 * 60 * 1000);
     return toLocalISOString(maxEnd);
-  }, [formData.startDateTime, maxDays, tier]);
+  }, [formData.startDateTime, maxDays, tier, demoActive]);
 
   // FREE TIER — show auto-calculated window (or date pickers in demo mode)
   if (tier === "free" && !demoActive) {
@@ -137,19 +138,26 @@ export default function TierSchedule({ formData, setFormData }) {
     );
   }
 
-  // FEATURED / PREMIUM — show date/time pickers
+  // FEATURED / PREMIUM / FREE(demo) — show date/time pickers
   return (
     <div className="space-y-3 mt-4">
       <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
         <div className="flex items-center gap-2 mb-2">
           <CalendarDays className="w-5 h-5 text-[#5DADA5]" />
           <h4 className="font-semibold text-[#2C4F4E]">Schedule</h4>
-          <Badge className="bg-[#5DADA5] text-white text-xs ml-auto">
-            Up to {maxDays} days
-          </Badge>
+          {!demoActive && maxDays > 0 && (
+            <Badge className="bg-[#5DADA5] text-white text-xs ml-auto">
+              Up to {maxDays} days
+            </Badge>
+          )}
+          {demoActive && (
+            <Badge className="bg-purple-500 text-white text-xs ml-auto">Demo — no limits</Badge>
+          )}
         </div>
         <p className="text-sm text-[#1F2937] opacity-80 mb-4">
-          {tierLabel} listings can run for up to {maxDays} days.
+          {demoActive
+            ? "Demo mode: choose any dates you want."
+            : `${tierLabel} listings can run for up to ${maxDays} days.`}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
