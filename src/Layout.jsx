@@ -32,19 +32,24 @@ export default function Layout({ children }) {
     return () => window.removeEventListener("demo-mode-change", handler);
   }, []);
 
-  const onLogoPointerDown = useCallback((e) => {
-    e.preventDefault();
-    longPressTimer.current = setTimeout(() => {
-      setShowDemoPanel(prev => !prev);
-    }, 2000);
-  }, []);
-
-  const onLogoPointerUp = useCallback(() => {
+  const cancelLongPress = useCallback(() => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
   }, []);
+
+  const onLogoPointerDown = useCallback((e) => {
+    e.preventDefault();
+    longPressTimer.current = setTimeout(() => {
+      longPressTimer.current = null;
+      setShowDemoPanel(prev => !prev);
+    }, 1000);
+  }, []);
+
+  const onLogoPointerMove = useCallback(() => {
+    cancelLongPress();
+  }, [cancelLongPress]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F3E6CF]">
@@ -57,8 +62,10 @@ export default function Layout({ children }) {
                 to={createPageUrl("Home")}
                 className="flex items-center gap-3 group select-none"
                 onPointerDown={onLogoPointerDown}
-                onPointerUp={onLogoPointerUp}
-                onPointerLeave={onLogoPointerUp}
+                onPointerUp={cancelLongPress}
+                onPointerLeave={cancelLongPress}
+                onPointerMove={onLogoPointerMove}
+                onContextMenu={(e) => e.preventDefault()}
                 onClick={(e) => { if (showDemoPanel) e.preventDefault(); }}
               >
                 <img 
