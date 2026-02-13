@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import StepOne from "../components/create/StepOne";
 import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
+import FormScrollHelper from "../components/create/FormScrollHelper";
 
 export default function CreateListingPage() {
   const navigate = useNavigate();
