@@ -34,6 +34,7 @@ export default function CreateListingPage() {
     spanFeet: 0,
     validatedDistance: false,
     validatedText: false,
+    preActivateDays: 0,
   });
 
   useEffect(() => {
