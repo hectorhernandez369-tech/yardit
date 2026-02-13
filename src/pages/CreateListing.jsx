@@ -202,7 +202,8 @@ export default function CreateListingPage() {
           <CardHeader className="bg-gradient-to-r from-amber-600 to-amber-800 text-white">
             <CardTitle>Post Your Yard Sale</CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-6" ref={formContainerRef}>
+            <FormScrollHelper containerRef={formContainerRef} />
             {step === 1 && (
               <StepOne formData={formData} setFormData={setFormData} />
             )}
