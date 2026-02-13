@@ -14,6 +14,7 @@ import FormScrollHelper from "../components/create/FormScrollHelper";
 export default function CreateListingPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const formContainerRef = useRef(null);
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
   const [geocodeRef, setGeocodeRef] = useState(null);
