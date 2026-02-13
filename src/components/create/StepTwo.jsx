@@ -57,12 +57,12 @@ export default function StepTwo({ formData, setFormData }) {
   };
 
   const geocodeAddress = async () => {
-    if (!formData.addressText || !formData.city || !formData.zip) {
-      toast.error("Please fill in address fields first");
+    if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
+      toast.error("Please fill in address, city, state, and ZIP first");
       return;
     }
 
-    const fullAddress = `${formData.addressText}, ${formData.city}, ${formData.zip}`;
+    const fullAddress = `${formData.addressText}, ${formData.city}, ${formData.state}, ${formData.zip}`;
     setIsGeocoding(true);
 
     try {
@@ -79,10 +79,10 @@ export default function StepTwo({ formData, setFormData }) {
         }));
         toast.success("Address located!");
       } else {
-        toast.error("Could not find address");
+        toast.error("Address could not be located");
       }
     } catch (error) {
-      toast.error("Error finding address");
+      toast.error("Error locating address");
     } finally {
       setIsGeocoding(false);
     }
