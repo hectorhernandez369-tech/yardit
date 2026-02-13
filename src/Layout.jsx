@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Compass, Plus, Home, User, Settings, Shield } from "lucide-react";
+import { Compass, Plus, Home, User, Settings, Shield, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Toaster } from "sonner";
+import DemoModeToggle from "./components/shared/DemoMode";
 
 export default function Layout({ children }) {
   const location = useLocation();
