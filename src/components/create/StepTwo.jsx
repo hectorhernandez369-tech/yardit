@@ -37,6 +37,7 @@ export default function StepTwo({ formData, setFormData }) {
               ...prev,
               addressText: `${addr.house_number || ""} ${addr.road || ""}`.trim(),
               city: addr.city || addr.town || addr.village || "",
+              state: addr.state || "",
               zip: addr.postcode || "",
             }));
           }
@@ -113,7 +114,7 @@ export default function StepTwo({ formData, setFormData }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div>
           <Label className="text-[#2C4F4E]" htmlFor="city">
             City *
@@ -124,6 +125,21 @@ export default function StepTwo({ formData, setFormData }) {
             onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
             required
             className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
+          />
+        </div>
+
+        <div>
+          <Label className="text-[#2C4F4E]" htmlFor="state">
+            State *
+          </Label>
+          <Input
+            id="state"
+            value={formData.state || ""}
+            onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value.toUpperCase() }))}
+            required
+            maxLength={2}
+            placeholder="CA"
+            className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF] uppercase"
           />
         </div>
 
