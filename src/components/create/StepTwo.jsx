@@ -60,6 +60,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
   };
 
   const geocodeAddress = React.useCallback(async () => {
+    console.trace("GEOCODE CALLED");
     // 1) Validation
     const missing = [];
     if (!formData.addressText?.trim()) missing.push("Street Address");
@@ -74,6 +75,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
       if (!formData.state?.trim()) errors.state = true;
       if (!formData.zip?.trim()) errors.zip = true;
       setFieldErrors(errors);
+      console.trace("TOAST CALLED");
       toast.error(`Missing: ${missing.join(", ")}`);
       return false;
     }
