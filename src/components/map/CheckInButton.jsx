@@ -48,7 +48,7 @@ export default function CheckInButton({ locationId }) {
       variant={userCheckIn ? "default" : "outline"}
       onClick={() => !userCheckIn && checkInMutation.mutate()}
       disabled={!!userCheckIn || checkInMutation.isPending}
-      className="gap-2"
+      className={`gap-2 border-2 ${userCheckIn ? "bg-[#5DADA5] text-white border-[#2C4F4E] hover:bg-[#4A9B93]" : "bg-[#E7D7B8] text-[#2C4F4E] border-[#2C4F4E] hover:bg-[#DCC9A5]"}`}
     >
       {userCheckIn ? (
         <>
