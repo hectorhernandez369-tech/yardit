@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { isDemoMode } from "../shared/DemoMode";
 
 function getNextFridayMidnight() {
   // Calculate next Friday 12:00 AM Pacific
@@ -48,9 +49,11 @@ function formatDisplayDate(date) {
 export default function TierSchedule({ formData, setFormData }) {
   const tier = formData.tier;
 
-  // Auto-set free tier dates
+  const demoActive = isDemoMode();
+
+  // Auto-set free tier dates (skip in demo mode)
   useEffect(() => {
-    if (tier === "free") {
+    if (tier === "free" && !demoActive) {
       const friday = getNextFridayMidnight();
       const sunday = getNextSundayEnd(friday);
       setFormData((prev) => ({
@@ -60,7 +63,7 @@ export default function TierSchedule({ formData, setFormData }) {
         preActivateDays: 0,
       }));
     }
-  }, [tier]);
+  }, [tier, demoActive]);
 
   // Clear preActivateDays when switching away from premium
   useEffect(() => {
@@ -83,7 +86,7 @@ export default function TierSchedule({ formData, setFormData }) {
       const end = new Date(newEnd);
       const diffMs = end - start;
       const diffDays = diffMs / (1000 * 60 * 60 * 24);
-      if (diffDays > maxDays) {
+      if (!demoActive && diffDays > maxDays) {
         toast.error(`${tierLabel} listings can be up to ${maxDays} days`);
         return;
       }
@@ -103,8 +106,8 @@ export default function TierSchedule({ formData, setFormData }) {
     return toLocalISOString(maxEnd);
   }, [formData.startDateTime, maxDays, tier]);
 
-  // FREE TIER — show auto-calculated window
-  if (tier === "free") {
+  // FREE TIER — show auto-calculated window (or date pickers in demo mode)
+  if (tier === "free" && !demoActive) {
     const friday = getNextFridayMidnight();
     const sunday = getNextSundayEnd(friday);
     return (

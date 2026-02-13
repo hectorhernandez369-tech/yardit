@@ -10,6 +10,7 @@ import StepOne from "../components/create/StepOne";
 import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import FormScrollHelper from "../components/create/FormScrollHelper";
+import { isDemoMode } from "../components/shared/DemoMode";
 
 export default function CreateListingPage() {
   const navigate = useNavigate();
@@ -60,6 +61,8 @@ export default function CreateListingPage() {
   });
 
   const checkPostingLimit = () => {
+    if (isDemoMode()) return true;
+
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const recentListings = userListings.filter(
@@ -82,8 +85,10 @@ export default function CreateListingPage() {
         throw new Error("Posting limit reached");
       }
 
+      const demoPrefix = isDemoMode() ? "Demo listing: " : "";
       const listing = await base44.entities.Listing.create({
         ...data,
+        title: demoPrefix + data.title,
         ownerUserId: user.id,
         status: "active",
       });
@@ -150,14 +155,16 @@ export default function CreateListingPage() {
         toast.error("End time must be after start time");
         return;
       }
-      const maxDays = formData.tier === "featured" ? 3 : 5;
-      const diffDays = (end - start) / (1000 * 60 * 60 * 24);
-      if (diffDays > maxDays) {
-        toast.error(`${formData.tier === "featured" ? "Featured" : "Premium"} listings can be up to ${maxDays} days`);
-        return;
+      if (!isDemoMode()) {
+        const maxDays = formData.tier === "featured" ? 3 : 5;
+        const diffDays = (end - start) / (1000 * 60 * 60 * 24);
+        if (diffDays > maxDays) {
+          toast.error(`${formData.tier === "featured" ? "Featured" : "Premium"} listings can be up to ${maxDays} days`);
+          return;
+        }
       }
     }
-    // Free tier: dates are auto-set, no user input needed
+    // Free tier: dates are auto-set, no user input needed (unless demo mode)
 
     createListingMutation.mutate(formData);
   };
