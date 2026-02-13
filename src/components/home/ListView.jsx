@@ -101,14 +101,19 @@ export default function ListView({ listings, userLocation }) {
       ) : (
         <div className="space-y-4">
           {filteredListings.map((listing) => (
-            <Card key={listing.id} className="hover:shadow-lg transition-shadow">
+            <Card key={listing.id} className={`hover:shadow-lg transition-shadow ${listing._expired ? "opacity-60" : ""}`}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="text-xl font-semibold mb-2">{listing.title}</h3>
-                    <Badge className={tierColors[listing.tier]}>
-                      {listing.tier === "neighborhood_tier" ? "Neighborhood" : listing.tier.toUpperCase()}
-                    </Badge>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className={tierColors[listing.tier]}>
+                        {listing.tier === "neighborhood_tier" ? "Neighborhood" : listing.tier.toUpperCase()}
+                      </Badge>
+                      {listing._expired && (
+                        <Badge className="bg-red-500 text-white">Expired</Badge>
+                      )}
+                    </div>
                   </div>
                   {listing.distance && (
                     <div className="text-right text-sm text-slate-600">

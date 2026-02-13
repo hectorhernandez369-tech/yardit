@@ -124,10 +124,15 @@ export default function MapView({ listings, userLocation }) {
             icon={createIcon(listing.tier)}
           >
             <Popup>
-              <div className="p-2">
-                <Badge className={`${tierColors[listing.tier]} mb-2`}>
-                  {listing.tier === "neighborhood_tier" ? "Neighborhood" : listing.tier.toUpperCase()}
-                </Badge>
+              <div className={`p-2 ${listing._expired ? "opacity-60" : ""}`}>
+                <div className="flex items-center gap-1 mb-2 flex-wrap">
+                  <Badge className={tierColors[listing.tier]}>
+                    {listing.tier === "neighborhood_tier" ? "Neighborhood" : listing.tier.toUpperCase()}
+                  </Badge>
+                  {listing._expired && (
+                    <Badge className="bg-red-500 text-white">Expired</Badge>
+                  )}
+                </div>
                 <h3 className="font-bold text-base mb-1">{listing.title}</h3>
                 <p className="text-sm text-slate-600 mb-2">{listing.addressText}</p>
                 <p className="text-sm mb-2">{listing.description.slice(0, 100)}...</p>
