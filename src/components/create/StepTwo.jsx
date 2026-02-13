@@ -64,19 +64,20 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
   };
 
   const geocodeAddress = React.useCallback(async () => {
+    const fd = formDataRef.current;
     // 1) Validation
     const missing = [];
-    if (!formData.addressText?.trim()) missing.push("Street Address");
-    if (!formData.city?.trim()) missing.push("City");
-    if (!formData.state?.trim()) missing.push("State");
-    if (!formData.zip?.trim()) missing.push("ZIP Code");
+    if (!fd.addressText?.trim()) missing.push("Street Address");
+    if (!fd.city?.trim()) missing.push("City");
+    if (!fd.state?.trim()) missing.push("State");
+    if (!fd.zip?.trim()) missing.push("ZIP Code");
 
     if (missing.length > 0) {
       const errors = {};
-      if (!formData.addressText?.trim()) errors.addressText = true;
-      if (!formData.city?.trim()) errors.city = true;
-      if (!formData.state?.trim()) errors.state = true;
-      if (!formData.zip?.trim()) errors.zip = true;
+      if (!fd.addressText?.trim()) errors.addressText = true;
+      if (!fd.city?.trim()) errors.city = true;
+      if (!fd.state?.trim()) errors.state = true;
+      if (!fd.zip?.trim()) errors.zip = true;
       setFieldErrors(errors);
       toast.error(`Missing: ${missing.join(", ")}`);
       return false;
@@ -90,10 +91,10 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
 
     try {
       const queries = [
-        `${formData.addressText}, ${formData.city}, ${formData.state}, ${formData.zip}`,
-        `${formData.addressText}, ${formData.city}, ${formData.state}`,
-        `${formData.addressText}, ${formData.city}`,
-        `${formData.city}, ${formData.state} ${formData.zip}`
+        `${fd.addressText}, ${fd.city}, ${fd.state}, ${fd.zip}`,
+        `${fd.addressText}, ${fd.city}, ${fd.state}`,
+        `${fd.addressText}, ${fd.city}`,
+        `${fd.city}, ${fd.state} ${fd.zip}`
       ];
 
       let data = [];
@@ -148,7 +149,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
     } finally {
       setIsGeocoding(false);
     }
-  }, [formData.addressText, formData.city, formData.state, formData.zip]);
+  }, []);
 
   // Expose geocodeAddress to parent
   React.useEffect(() => {
