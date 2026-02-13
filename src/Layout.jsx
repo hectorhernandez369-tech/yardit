@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Compass, Plus, Home, User, Settings, Shield, FlaskConical } from "lucide-react";
+import { Plus, Home, User, Settings, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Toaster } from "sonner";
-import DemoModeToggle from "./components/shared/DemoMode";
+import DemoModeToggle, { isDemoMode } from "./components/shared/DemoMode";
 
 export default function Layout({ children }) {
   const location = useLocation();
   const [user, setUser] = useState(null);
+  const [showDemoPanel, setShowDemoPanel] = useState(false);
+  const [demoActive, setDemoActive] = useState(isDemoMode());
+  const longPressTimer = useRef(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -23,23 +26,57 @@ export default function Layout({ children }) {
     fetchUser();
   }, []);
 
+  useEffect(() => {
+    const handler = () => setDemoActive(isDemoMode());
+    window.addEventListener("demo-mode-change", handler);
+    return () => window.removeEventListener("demo-mode-change", handler);
+  }, []);
+
+  const onLogoPointerDown = useCallback((e) => {
+    e.preventDefault();
+    longPressTimer.current = setTimeout(() => {
+      setShowDemoPanel(prev => !prev);
+    }, 2000);
+  }, []);
+
+  const onLogoPointerUp = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F3E6CF]">
       <Toaster richColors position="top-center" />
       <header className="bg-[#5DADA5] border-b-2 border-[#2C4F4E] sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link to={createPageUrl("Home")} className="flex items-center gap-3 group">
-              <img 
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/5a679ad0d_file_00000000efbc71fd87985abd77ca1f58.png" 
-                alt="Yardit Logo" 
-                className="w-12 h-12"
-              />
-              <div>
-                <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'cursive' }}>Yardit</h1>
-                <p className="text-xs text-white/90">Find Treasure Nearby</p>
-              </div>
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                to={createPageUrl("Home")}
+                className="flex items-center gap-3 group select-none"
+                onPointerDown={onLogoPointerDown}
+                onPointerUp={onLogoPointerUp}
+                onPointerLeave={onLogoPointerUp}
+                onClick={(e) => { if (showDemoPanel) e.preventDefault(); }}
+              >
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/5a679ad0d_file_00000000efbc71fd87985abd77ca1f58.png" 
+                  alt="Yardit Logo" 
+                  className="w-12 h-12"
+                />
+                <div>
+                  <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'cursive' }}>Yardit</h1>
+                  <p className="text-xs text-white/90">Find Treasure Nearby</p>
+                </div>
+              </Link>
+              {demoActive && (
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                  Demo
+                </span>
+              )}
+            </div>
 
             <nav className="flex items-center gap-2">
               <Link to={createPageUrl("Home")}>
@@ -78,19 +115,16 @@ export default function Layout({ children }) {
                   </Link>
 
                   {user.isAdmin && (
-                    <>
-                      <DemoModeToggle />
-                      <Link to={createPageUrl("AdminLite")}>
-                        <Button
-                          variant={location.pathname === createPageUrl("AdminLite") ? "secondary" : "ghost"}
-                          size="sm"
-                          className={`gap-2 ${location.pathname === createPageUrl("AdminLite") ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
-                        >
-                          <Shield className="w-4 h-4" />
-                          <span className="hidden sm:inline">Admin</span>
-                        </Button>
-                      </Link>
-                    </>
+                    <Link to={createPageUrl("AdminLite")}>
+                      <Button
+                        variant={location.pathname === createPageUrl("AdminLite") ? "secondary" : "ghost"}
+                        size="sm"
+                        className={`gap-2 ${location.pathname === createPageUrl("AdminLite") ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span className="hidden sm:inline">Admin</span>
+                      </Button>
+                    </Link>
                   )}
                   
                   <Link to={createPageUrl("CreateListing")}>
@@ -108,6 +142,18 @@ export default function Layout({ children }) {
           </div>
         </div>
       </header>
+
+      {showDemoPanel && (
+        <div className="bg-purple-50 border-b border-purple-200 px-4 py-2 flex items-center justify-center gap-3">
+          <DemoModeToggle />
+          <button
+            onClick={() => setShowDemoPanel(false)}
+            className="text-xs text-purple-500 hover:text-purple-700 underline"
+          >
+            close
+          </button>
+        </div>
+      )}
 
       <main className="flex-1">
         {children}
