@@ -12,6 +12,10 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
   const [debugInfo, setDebugInfo] = useState({ lastQueryString: "", lastResponseCount: null, lastErrorMessage: "" });
   const [fieldErrors, setFieldErrors] = useState({});
 
+  // Use a ref to read current formData inside geocodeAddress without re-creating the callback
+  const formDataRef = React.useRef(formData);
+  formDataRef.current = formData;
+
   const getCurrentLocation = () => {
     setIsGettingLocation(true);
 
