@@ -127,6 +127,9 @@ export default function StepThree({ formData, setFormData }) {
           </p>
         </div>
       )}
+
+      {/* Tier-based scheduling */}
+      <TierSchedule formData={formData} setFormData={setFormData} />
     </div>
   );
 }
