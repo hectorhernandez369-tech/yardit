@@ -124,15 +124,21 @@ export default function CreateListingPage() {
         }
       }
       
-      if (!formData.startDateTime || !formData.endDateTime) {
-        toast.error("Please select start and end times");
-        return;
-      }
       setStep(3);
     }
   };
 
   const handleSubmit = () => {
+    // Validate tier selection first
+    if (!formData.tier) {
+      toast.error("Please select a tier");
+      return;
+    }
+    // Then validate date/time
+    if (!formData.startDateTime || !formData.endDateTime) {
+      toast.error("Please select start and end times");
+      return;
+    }
     createListingMutation.mutate(formData);
   };
 
