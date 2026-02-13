@@ -129,16 +129,33 @@ export default function CreateListingPage() {
   };
 
   const handleSubmit = () => {
-    // Validate tier selection first
+    // 1. Must select tier first
     if (!formData.tier) {
       toast.error("Please select a tier");
       return;
     }
-    // Then validate date/time
-    if (!formData.startDateTime || !formData.endDateTime) {
-      toast.error("Please select start and end times");
-      return;
+
+    // 2. For featured/premium, validate start + end times and max duration
+    if (formData.tier === "featured" || formData.tier === "premium") {
+      if (!formData.startDateTime || !formData.endDateTime) {
+        toast.error("Please select start and end times");
+        return;
+      }
+      const start = new Date(formData.startDateTime);
+      const end = new Date(formData.endDateTime);
+      if (end <= start) {
+        toast.error("End time must be after start time");
+        return;
+      }
+      const maxDays = formData.tier === "featured" ? 3 : 5;
+      const diffDays = (end - start) / (1000 * 60 * 60 * 24);
+      if (diffDays > maxDays) {
+        toast.error(`${formData.tier === "featured" ? "Featured" : "Premium"} listings can be up to ${maxDays} days`);
+        return;
+      }
     }
+    // Free tier: dates are auto-set, no user input needed
+
     createListingMutation.mutate(formData);
   };
 
