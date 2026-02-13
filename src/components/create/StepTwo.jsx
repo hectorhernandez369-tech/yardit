@@ -1,14 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function StepTwo({ formData, setFormData }) {
+export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
+
+  // Expose geocodeAddress to parent via ref
+  useEffect(() => {
+    if (onGeocodeRef) {
+      onGeocodeRef(geocodeAddress);
+    }
+  }, [formData.addressText, formData.city, formData.state, formData.zip]);
 
   const getCurrentLocation = () => {
     setIsGettingLocation(true);

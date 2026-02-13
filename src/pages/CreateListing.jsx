@@ -15,6 +15,7 @@ export default function CreateListingPage() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
+  const [geocodeRef, setGeocodeRef] = useState(null);
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
     tier: "free",
@@ -22,6 +23,7 @@ export default function CreateListingPage() {
     description: "",
     addressText: "",
     city: "",
+    state: "",
     zip: "",
     lat: null,
     lng: null,
@@ -94,7 +96,7 @@ export default function CreateListingPage() {
     },
   });
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1) {
       if (!formData.title || !formData.description) {
         toast.error("Please fill in all required fields");
@@ -102,10 +104,26 @@ export default function CreateListingPage() {
       }
       setStep(2);
     } else if (step === 2) {
-      if (!formData.addressText || !formData.city || !formData.zip || !formData.lat || !formData.lng) {
-        toast.error("Please complete the address and location");
+      if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
+        toast.error("Please complete all address fields");
         return;
       }
+      
+      // Auto-trigger geocoding if lat/lng not set
+      if (!formData.lat || !formData.lng) {
+        if (geocodeRef) {
+          toast.info("Verifying address...");
+          const success = await geocodeRef();
+          if (!success) {
+            toast.error("We couldn't confirm this address. Please select a suggestion or check spelling.");
+            return;
+          }
+        } else {
+          toast.error("Please use 'Locate Address' to confirm your location");
+          return;
+        }
+      }
+      
       if (!formData.startDateTime || !formData.endDateTime) {
         toast.error("Please select start and end times");
         return;
@@ -163,7 +181,7 @@ export default function CreateListingPage() {
               <StepOne formData={formData} setFormData={setFormData} />
             )}
             {step === 2 && (
-              <StepTwo formData={formData} setFormData={setFormData} />
+              <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} />
             )}
             {step === 3 && (
               <StepThree formData={formData} setFormData={setFormData} />
