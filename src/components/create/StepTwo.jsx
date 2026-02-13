@@ -11,41 +11,48 @@ export default function StepTwo({ formData, setFormData }) {
 
   const getCurrentLocation = () => {
     setIsGettingLocation(true);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          
-          setFormData((prev) => ({ ...prev, lat, lng }));
 
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-            );
-            const data = await response.json();
-            if (data.address) {
-              const addr = data.address;
-              setFormData((prev) => ({
-                ...prev,
-                addressText: `${addr.house_number || ""} ${addr.road || ""}`.trim(),
-                city: addr.city || addr.town || addr.village || "",
-                zip: addr.postcode || "",
-              }));
-            }
-          } catch (error) {
-            console.error("Error getting address:", error);
-          }
-
-          setIsGettingLocation(false);
-          toast.success("Location detected!");
-        },
-        () => {
-          setIsGettingLocation(false);
-          toast.error("Could not get your location");
-        }
-      );
+    if (!navigator.geolocation) {
+      setIsGettingLocation(false);
+      toast.error("Geolocation is not supported on this device");
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        setFormData((prev) => ({ ...prev, lat, lng }));
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+          );
+          const data = await response.json();
+
+          if (data?.address) {
+            const addr = data.address;
+            setFormData((prev) => ({
+              ...prev,
+              addressText: `${addr.house_number || ""} ${addr.road || ""}`.trim(),
+              city: addr.city || addr.town || addr.village || "",
+              zip: addr.postcode || "",
+            }));
+          }
+        } catch (error) {
+          console.error("Error getting address:", error);
+        } finally {
+          setIsGettingLocation(false);
+        }
+
+        toast.success("Location detected!");
+      },
+      () => {
+        setIsGettingLocation(false);
+        toast.error("Could not get your location");
+      }
+    );
   };
 
   const geocodeAddress = async () => {
@@ -62,8 +69,8 @@ export default function StepTwo({ formData, setFormData }) {
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`
       );
       const data = await response.json();
-      
-      if (data && data.length > 0) {
+
+      if (Array.isArray(data) && data.length > 0) {
         setFormData((prev) => ({
           ...prev,
           lat: parseFloat(data[0].lat),
@@ -82,81 +89,103 @@ export default function StepTwo({ formData, setFormData }) {
 
   return (
     <div className="space-y-6">
+      {/* Header (teal + parchment vibe) */}
+      <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
+        <h3 className="text-[#2C4F4E] font-semibold">Location</h3>
+        <p className="text-sm text-[#1F2937] opacity-80">
+          Add your address or use your GPS. (This sets the pin location.)
+        </p>
+      </div>
+
       <div>
-        <Label htmlFor="addressText">Street Address *</Label>
+        <Label className="text-[#2C4F4E]" htmlFor="addressText">
+          Street Address *
+        </Label>
         <Input
           id="addressText"
           placeholder="123 Main St"
           value={formData.addressText}
-          onChange={(e) => setFormData(prev => ({ ...prev, addressText: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, addressText: e.target.value }))
+          }
           required
+          className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="city">City *</Label>
+          <Label className="text-[#2C4F4E]" htmlFor="city">
+            City *
+          </Label>
           <Input
             id="city"
             value={formData.city}
-            onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
             required
+            className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
           />
         </div>
+
         <div>
-          <Label htmlFor="zip">ZIP Code *</Label>
+          <Label className="text-[#2C4F4E]" htmlFor="zip">
+            ZIP Code *
+          </Label>
           <Input
             id="zip"
             value={formData.zip}
-            onChange={(e) => setFormData(prev => ({ ...prev, zip: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, zip: e.target.value }))}
             required
+            className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
           />
         </div>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button
           type="button"
           onClick={getCurrentLocation}
           disabled={isGettingLocation}
           variant="outline"
-          className="gap-2"
+          className="gap-2 border-2 border-[#2C4F4E] bg-[#F3E6CF] text-[#2C4F4E] hover:bg-[#E7D7B8]"
         >
-          {isGettingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-          Use My Location
+          {isGettingLocation ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Navigation className="w-4 h-4" />
+          )}
+          Use My Location (GPS)
         </Button>
+
         <Button
           type="button"
           onClick={geocodeAddress}
           disabled={isGeocoding}
           variant="outline"
-          className="gap-2"
+          className="gap-2 border-2 border-[#F4A849] bg-[#F3E6CF] text-[#2C4F4E] hover:bg-[#E7D7B8]"
         >
-          {isGeocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-          Locate Address
+          {isGeocoding ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <MapPin className="w-4 h-4" />
+          )}
+          Locate Address (Search)
         </Button>
       </div>
 
       {formData.lat && formData.lng && (
-        <p className="text-xs text-green-600 flex items-center gap-1">
-          <MapPin className="w-3 h-3" />
-          Location set: {formData.lat.toFixed(4)}, {formData.lng.toFixed(4)}
-        </p>
+        <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-3 py-2">
+          <p className="text-xs text-[#2C4F4E] flex items-center gap-1">
+            <MapPin className="w-3 h-3" />
+            Location set: {Number(formData.lat).toFixed(4)}, {Number(formData.lng).toFixed(4)}
+          </p>
+          <p className="text-[11px] text-[#1F2937] opacity-70">
+            (This is the pin location that will show on the map.)
+          </p>
+        </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="startDateTime">Start Date & Time *</Label>
-          <Input
-            id="startDateTime"
-            type="datetime-local"
-            value={formData.startDateTime}
-            onChange={(e) => setFormData(prev => ({ ...prev, startDateTime: e.target.value }))}
-            required
-          />
-        </div>
-
-      </div>
+      {/* REMOVED: Start Date & Time section (per request) */}
     </div>
   );
 }
