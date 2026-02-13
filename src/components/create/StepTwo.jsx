@@ -10,6 +10,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [debugInfo, setDebugInfo] = useState({ lastQueryString: "", lastResponseCount: null, lastErrorMessage: "" });
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const getCurrentLocation = () => {
     setIsGettingLocation(true);
@@ -76,6 +77,12 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
 
     if (missing.length > 0) {
       console.log("[StepTwo] validation failed, missing:", missing);
+      const errors = {};
+      if (!formData.addressText?.trim()) errors.addressText = true;
+      if (!formData.city?.trim()) errors.city = true;
+      if (!formData.state?.trim()) errors.state = true;
+      if (!formData.zip?.trim()) errors.zip = true;
+      setFieldErrors(errors);
       toast.error(`Missing: ${missing.join(", ")}`);
       return false;
     }
@@ -179,11 +186,12 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
           id="addressText"
           placeholder="123 Main St"
           value={formData.addressText}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, addressText: e.target.value }))
-          }
+          onChange={(e) => {
+            setFormData((prev) => ({ ...prev, addressText: e.target.value }));
+            if (e.target.value.trim()) setFieldErrors((prev) => ({ ...prev, addressText: false }));
+          }}
           required
-          className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
+          className={`focus-visible:ring-[#5DADA5] bg-[#F3E6CF] ${fieldErrors.addressText ? "border-red-500 border-2" : "border-[#2C4F4E]"}`}
         />
       </div>
 
@@ -195,9 +203,12 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
           <Input
             id="city"
             value={formData.city}
-            onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
+            onChange={(e) => {
+              setFormData((prev) => ({ ...prev, city: e.target.value }));
+              if (e.target.value.trim()) setFieldErrors((prev) => ({ ...prev, city: false }));
+            }}
             required
-            className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
+            className={`focus-visible:ring-[#5DADA5] bg-[#F3E6CF] ${fieldErrors.city ? "border-red-500 border-2" : "border-[#2C4F4E]"}`}
           />
         </div>
 
@@ -208,11 +219,14 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
           <Input
             id="state"
             value={formData.state || ""}
-            onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value.toUpperCase() }))}
+            onChange={(e) => {
+              setFormData((prev) => ({ ...prev, state: e.target.value.toUpperCase() }));
+              if (e.target.value.trim()) setFieldErrors((prev) => ({ ...prev, state: false }));
+            }}
             required
             maxLength={2}
             placeholder="CA"
-            className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF] uppercase"
+            className={`focus-visible:ring-[#5DADA5] bg-[#F3E6CF] uppercase ${fieldErrors.state ? "border-red-500 border-2" : "border-[#2C4F4E]"}`}
           />
         </div>
 
@@ -223,9 +237,12 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
           <Input
             id="zip"
             value={formData.zip}
-            onChange={(e) => setFormData((prev) => ({ ...prev, zip: e.target.value }))}
+            onChange={(e) => {
+              setFormData((prev) => ({ ...prev, zip: e.target.value }));
+              if (e.target.value.trim()) setFieldErrors((prev) => ({ ...prev, zip: false }));
+            }}
             required
-            className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
+            className={`focus-visible:ring-[#5DADA5] bg-[#F3E6CF] ${fieldErrors.zip ? "border-red-500 border-2" : "border-[#2C4F4E]"}`}
           />
         </div>
       </div>
