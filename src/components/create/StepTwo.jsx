@@ -8,6 +8,7 @@ import { toast } from "sonner";
 export default function StepTwo({ formData, setFormData }) {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
 
   const getCurrentLocation = () => {
     setIsGettingLocation(true);
@@ -59,30 +60,56 @@ export default function StepTwo({ formData, setFormData }) {
   const geocodeAddress = async () => {
     if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
       toast.error("Please fill in address, city, state, and ZIP first");
-      return;
+      return false;
     }
 
-    const fullAddress = `${formData.addressText}, ${formData.city}, ${formData.state}, ${formData.zip}`;
     setIsGeocoding(true);
+    setAddressSuggestions([]);
 
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`
-      );
-      const data = await response.json();
+      // Try full address first
+      let queries = [
+        `${formData.addressText}, ${formData.city}, ${formData.state}, ${formData.zip}`,
+        `${formData.addressText}, ${formData.city}, ${formData.state}`,
+        `${formData.addressText}, ${formData.city}`,
+        `${formData.city}, ${formData.state} ${formData.zip}`
+      ];
+
+      let data = [];
+      for (const query of queries) {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
+        );
+        data = await response.json();
+        
+        if (Array.isArray(data) && data.length > 0) {
+          break; // Found results, stop retrying
+        }
+      }
 
       if (Array.isArray(data) && data.length > 0) {
-        setFormData((prev) => ({
-          ...prev,
-          lat: parseFloat(data[0].lat),
-          lng: parseFloat(data[0].lon),
-        }));
-        toast.success("Address located!");
+        if (data.length === 1) {
+          // Single match - auto-select
+          setFormData((prev) => ({
+            ...prev,
+            lat: parseFloat(data[0].lat),
+            lng: parseFloat(data[0].lon),
+          }));
+          toast.success("Address located!");
+          return true;
+        } else {
+          // Multiple matches - show suggestions
+          setAddressSuggestions(data.slice(0, 5));
+          toast.info(`Found ${data.length} possible matches. Select one below.`);
+          return false;
+        }
       } else {
-        toast.error("Address could not be located");
+        toast.error("Address could not be located. Please check spelling.");
+        return false;
       }
     } catch (error) {
       toast.error("Error locating address");
+      return false;
     } finally {
       setIsGeocoding(false);
     }
@@ -198,6 +225,38 @@ export default function StepTwo({ formData, setFormData }) {
           <p className="text-[11px] text-[#1F2937] opacity-70">
             (This is the pin location that will show on the map.)
           </p>
+        </div>
+      )}
+
+      {/* Address Suggestions */}
+      {addressSuggestions.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-[#2C4F4E]">Suggested Matches (tap to select):</Label>
+          <div className="space-y-2">
+            {addressSuggestions.map((suggestion, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  const addr = suggestion.address || {};
+                  setFormData((prev) => ({
+                    ...prev,
+                    addressText: `${addr.house_number || ""} ${addr.road || ""}`.trim() || suggestion.display_name.split(',')[0],
+                    city: addr.city || addr.town || addr.village || formData.city,
+                    state: addr.state || formData.state,
+                    zip: addr.postcode || formData.zip,
+                    lat: parseFloat(suggestion.lat),
+                    lng: parseFloat(suggestion.lon),
+                  }));
+                  setAddressSuggestions([]);
+                  toast.success("Address selected");
+                }}
+                className="w-full text-left p-3 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF] hover:bg-[#E7D7B8] transition-colors"
+              >
+                <p className="text-sm text-[#2C4F4E] font-medium">{suggestion.display_name}</p>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
