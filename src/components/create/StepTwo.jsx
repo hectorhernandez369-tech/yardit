@@ -59,6 +59,14 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
   };
 
   const geocodeAddress = React.useCallback(async () => {
+    console.log("[StepTwo] geocodeAddress() ENTERED", {
+      addressText: formData.addressText,
+      city: formData.city,
+      state: formData.state,
+      zip: formData.zip,
+    });
+    toast("geocodeAddress() started");
+
     // 1) Validation — never silent
     const missing = [];
     if (!formData.addressText?.trim()) missing.push("Street Address");
@@ -67,6 +75,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
     if (!formData.zip?.trim()) missing.push("ZIP Code");
 
     if (missing.length > 0) {
+      console.log("[StepTwo] validation failed, missing:", missing);
       toast.error(`Missing: ${missing.join(", ")}`);
       return false;
     }
@@ -92,9 +101,11 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
         usedQuery = query;
         console.log("[StepTwo] geocode query:", query);
 
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`
-        );
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`;
+        console.log("[StepTwo] Geocode request URL:", url);
+
+        const response = await fetch(url);
+        console.log("[StepTwo] Geocode response status:", response.status);
 
         if (!response.ok) {
           const errMsg = `HTTP ${response.status}`;
@@ -104,7 +115,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
         }
 
         data = await response.json();
-        console.log("[StepTwo] geocode results:", data?.length, "for", query);
+        console.log("[StepTwo] Geocode results count:", Array.isArray(data) ? data.length : null, "for query:", query);
 
         if (Array.isArray(data) && data.length > 0) {
           break;
@@ -133,12 +144,13 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
         return false;
       }
     } catch (error) {
-      console.error("[StepTwo] geocode error:", error);
+      console.error("[StepTwo] Geocode error:", error);
       setDebugInfo((prev) => ({ ...prev, lastErrorMessage: error.message }));
       toast.error("Address search failed. Please try again.");
       return false;
     } finally {
       setIsGeocoding(false);
+      console.log("[StepTwo] Geocode finished; isGeocoding reset to false");
     }
   }, [formData.addressText, formData.city, formData.state, formData.zip]);
 
@@ -236,7 +248,11 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
 
         <Button
           type="button"
-          onClick={geocodeAddress}
+          onClick={() => {
+            console.log("[StepTwo] Locate Address clicked, isGeocoding:", isGeocoding);
+            toast("Locate Address clicked");
+            geocodeAddress();
+          }}
           disabled={isGeocoding}
           variant="outline"
           className="gap-2 border-2 border-[#F4A849] bg-[#F3E6CF] text-[#2C4F4E] hover:bg-[#E7D7B8]"

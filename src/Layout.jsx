@@ -4,6 +4,7 @@ import { createPageUrl } from "@/utils";
 import { Compass, Plus, Home, User, Settings, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
+import { Toaster } from "sonner";
 
 export default function Layout({ children }) {
   const location = useLocation();
@@ -23,6 +24,7 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F3E6CF]">
+      <Toaster richColors position="top-center" />
       <header className="bg-[#5DADA5] border-b-2 border-[#2C4F4E] sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
