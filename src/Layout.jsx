@@ -22,8 +22,8 @@ export default function Layout({ children }) {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F4EBDD' }}>
-      <header className="bg-white border-b-2 sticky top-0 z-50 shadow-sm" style={{ borderColor: '#0F766E' }}>
+    <div className="min-h-screen flex flex-col bg-[#F3E6CF]">
+      <header className="bg-[#5DADA5] border-b-2 border-[#2C4F4E] sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to={createPageUrl("Home")} className="flex items-center gap-3 group">
@@ -33,17 +33,17 @@ export default function Layout({ children }) {
                 className="w-12 h-12"
               />
               <div>
-                <h1 className="text-2xl font-bold" style={{ color: '#0F766E', fontFamily: 'cursive' }}>Yardit</h1>
-                <p className="text-xs" style={{ color: '#C6A75E' }}>Find Treasure Nearby</p>
+                <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'cursive' }}>Yardit</h1>
+                <p className="text-xs text-white/90">Find Treasure Nearby</p>
               </div>
             </Link>
 
             <nav className="flex items-center gap-2">
               <Link to={createPageUrl("Home")}>
                 <Button
-                  variant={location.pathname === createPageUrl("Home") ? "default" : "ghost"}
+                  variant={location.pathname === createPageUrl("Home") ? "secondary" : "ghost"}
                   size="sm"
-                  className="gap-2"
+                  className={`gap-2 ${location.pathname === createPageUrl("Home") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
                 >
                   <Home className="w-4 h-4" />
                   <span className="hidden sm:inline">Map</span>
@@ -54,9 +54,9 @@ export default function Layout({ children }) {
                 <>
                   <Link to={createPageUrl("MyListings")}>
                     <Button
-                      variant={location.pathname === createPageUrl("MyListings") ? "default" : "ghost"}
+                      variant={location.pathname === createPageUrl("MyListings") ? "secondary" : "ghost"}
                       size="sm"
-                      className="gap-2"
+                      className={`gap-2 ${location.pathname === createPageUrl("MyListings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
                     >
                       <User className="w-4 h-4" />
                       <span className="hidden sm:inline">My Listings</span>
@@ -65,9 +65,9 @@ export default function Layout({ children }) {
                   
                   <Link to={createPageUrl("Settings")}>
                     <Button
-                      variant={location.pathname === createPageUrl("Settings") ? "default" : "ghost"}
+                      variant={location.pathname === createPageUrl("Settings") ? "secondary" : "ghost"}
                       size="sm"
-                      className="gap-2"
+                      className={`gap-2 ${location.pathname === createPageUrl("Settings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
                     >
                       <Settings className="w-4 h-4" />
                       <span className="hidden sm:inline">Settings</span>
@@ -77,9 +77,9 @@ export default function Layout({ children }) {
                   {user.isAdmin && (
                     <Link to={createPageUrl("AdminLite")}>
                       <Button
-                        variant={location.pathname === createPageUrl("AdminLite") ? "default" : "ghost"}
+                        variant={location.pathname === createPageUrl("AdminLite") ? "secondary" : "ghost"}
                         size="sm"
-                        className="gap-2 border-amber-600 text-amber-700"
+                        className={`gap-2 ${location.pathname === createPageUrl("AdminLite") ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
                       >
                         <Shield className="w-4 h-4" />
                         <span className="hidden sm:inline">Admin</span>
@@ -90,8 +90,7 @@ export default function Layout({ children }) {
                   <Link to={createPageUrl("CreateListing")}>
                     <Button
                       size="sm"
-                      className="gap-2 text-white border-0 hover:opacity-90 shadow-md"
-                      style={{ backgroundColor: '#0F766E' }}
+                      className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
                     >
                       <Plus className="w-4 h-4" />
                       <span className="hidden sm:inline">Post Sale</span>
@@ -108,9 +107,9 @@ export default function Layout({ children }) {
         {children}
       </main>
 
-      <footer className="bg-white border-t-2 py-4" style={{ borderColor: '#0F766E' }}>
+      <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-4">
         <div className="max-w-7xl mx-auto px-4">
-          <p className="text-center text-sm" style={{ color: '#1F2937' }}>
+          <p className="text-center text-sm text-white">
             🏴‍☠️ Yardit - Seekers find the best residential yard sales
           </p>
         </div>

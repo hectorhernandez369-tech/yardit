@@ -4,40 +4,42 @@
 
 @layer base {
   :root {
-    /* Yardit Phase 1 Brand Colors */
-    --primary: #0F766E; /* Teal */
-    --accent: #C6A75E; /* Gold */
-    --background: #F4EBDD; /* Parchment */
-    --text: #1F2937; /* Dark Charcoal */
+    /* Yardit Brand Colors */
+    --yardit-teal: #5DADA5;
+    --yardit-dark-teal: #2C4F4E;
+    --yardit-gold: #F4A849;
+    --yardit-parchment: #F3E6CF;
+    --yardit-parchment-dark: #E7D7B8;
+    --yardit-text-dark: #1F2937;
     
     /* Shadcn UI Variables - Mapped to Yardit Colors */
-    --background: 0 0% 100%;
-    --foreground: 220 13% 18%; /* Dark Charcoal */
+    --background: 41 42% 88%; /* Parchment */
+    --foreground: 220 13% 18%; /* Dark text */
 
-    --card: 0 0% 100%;
+    --card: 41 42% 91%; /* Parchment dark */
     --card-foreground: 220 13% 18%;
 
-    --popover: 0 0% 100%;
+    --popover: 41 42% 91%;
     --popover-foreground: 220 13% 18%;
 
-    --primary: 173 81% 26%; /* Teal */
+    --primary: 173 38% 52%; /* Teal */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 41 37% 57%; /* Gold */
-    --secondary-foreground: 173 81% 26%;
+    --secondary: 41 42% 91%; /* Parchment dark */
+    --secondary-foreground: 174 43% 23%; /* Dark teal */
 
-    --muted: 35 42% 92%; /* Light parchment */
-    --muted-foreground: 220 13% 46%;
+    --muted: 41 42% 91%;
+    --muted-foreground: 174 43% 23%;
 
-    --accent: 41 37% 57%; /* Gold */
-    --accent-foreground: 173 81% 26%;
+    --accent: 33 91% 63%; /* Gold */
+    --accent-foreground: 174 43% 23%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 173 81% 26%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 173 81% 26%;
+    --border: 174 43% 23%;
+    --input: 41 42% 91%;
+    --ring: 173 38% 52%;
 
     --radius: 0.5rem;
   }
@@ -48,36 +50,38 @@
     @apply border-border;
   }
   body {
-    @apply bg-[#F4EBDD] text-[#1F2937];
+    @apply bg-[#F3E6CF] text-[#1F2937];
   }
 }
 
 @layer components {
-  /* Primary buttons - Teal with shadow */
+  /* Primary buttons - Teal */
   .btn-primary {
-    @apply bg-[#0F766E] text-white shadow-md hover:opacity-90;
+    @apply bg-[#5DADA5] text-white border-2 border-[#2C4F4E] rounded-lg shadow-md hover:bg-[#4A9B93];
   }
   
-  /* Secondary buttons - Gold outline */
+  /* Secondary buttons - Parchment dark */
   .btn-secondary {
-    @apply border-2 border-[#C6A75E] bg-transparent text-[#0F766E] hover:bg-[#C6A75E]/10;
+    @apply bg-[#E7D7B8] text-[#2C4F4E] border-2 border-[#2C4F4E] rounded-lg hover:bg-[#DCC9A5];
   }
   
-  /* Premium/Featured indicators - Gold glow */
+  /* Accent buttons - Gold */
+  .btn-accent {
+    @apply bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] rounded-lg shadow-md hover:bg-[#E39635];
+  }
+  
+  /* Headers */
+  .yardit-header {
+    @apply bg-[#5DADA5] text-white border-b-2 border-[#2C4F4E];
+  }
+  
+  /* Cards/Panels */
+  .yardit-card {
+    @apply bg-[#E7D7B8] rounded-lg shadow-md border border-[#2C4F4E];
+  }
+  
+  /* Premium/Featured indicators */
   .premium-badge {
-    @apply bg-[#C6A75E] text-white shadow-[0_0_10px_rgba(198,167,94,0.5)];
-  }
-  
-  /* Listing cards */
-  .listing-card {
-    @apply bg-white rounded-lg shadow-sm;
-  }
-  
-  .listing-card h3 {
-    @apply text-[#0F766E];
-  }
-  
-  .listing-card.premium {
-    @apply border-2 border-[#C6A75E];
+    @apply bg-[#F4A849] text-[#2C4F4E] border border-[#2C4F4E] shadow-sm;
   }
 }

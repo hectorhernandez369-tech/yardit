@@ -528,7 +528,7 @@ export default function MapPage() {
       <button
         ref={controlsBtnRef}
         onClick={() => setShowControls(prev => !prev)}
-        className="absolute top-20 right-3 z-[1002] w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-50 active:scale-95 transition-all duration-200 border border-gray-200"
+        className="absolute top-20 right-3 z-[1002] w-11 h-11 rounded-full bg-[#5DADA5] shadow-lg flex items-center justify-center text-white hover:bg-[#4A9B93] active:scale-95 transition-all duration-200 border-2 border-[#2C4F4E]"
       >
         {showControls ? <X className="w-5 h-5" /> : <SlidersHorizontal className="w-5 h-5" />}
       </button>
@@ -549,7 +549,7 @@ export default function MapPage() {
         }}
       >
         <div className="max-w-4xl mx-auto space-y-3">
-          <Card className="bg-white/95 backdrop-blur-md shadow-xl border-0 rounded-2xl overflow-hidden">
+          <Card className="bg-[#E7D7B8] backdrop-blur-md shadow-xl border-2 border-[#2C4F4E] rounded-2xl overflow-hidden">
             <div className="p-4">
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1 relative">
