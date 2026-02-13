@@ -9,6 +9,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [debugInfo, setDebugInfo] = useState({ lastQueryString: "", lastResponseCount: null, lastErrorMessage: "" });
 
   const getCurrentLocation = () => {
     setIsGettingLocation(true);
@@ -58,17 +59,26 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
   };
 
   const geocodeAddress = React.useCallback(async () => {
-    if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
-      toast.error("Please fill in address, city, state, and ZIP first");
+    // 1) Validation — never silent
+    const missing = [];
+    if (!formData.addressText?.trim()) missing.push("Street Address");
+    if (!formData.city?.trim()) missing.push("City");
+    if (!formData.state?.trim()) missing.push("State");
+    if (!formData.zip?.trim()) missing.push("ZIP Code");
+
+    if (missing.length > 0) {
+      toast.error(`Missing: ${missing.join(", ")}`);
       return false;
     }
 
+    // 2) Immediate feedback
+    toast.info("Locating address...");
     setIsGeocoding(true);
     setAddressSuggestions([]);
+    setDebugInfo({ lastQueryString: "", lastResponseCount: null, lastErrorMessage: "" });
 
     try {
-      // Try full address first
-      let queries = [
+      const queries = [
         `${formData.addressText}, ${formData.city}, ${formData.state}, ${formData.zip}`,
         `${formData.addressText}, ${formData.city}, ${formData.state}`,
         `${formData.addressText}, ${formData.city}`,
@@ -76,20 +86,35 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
       ];
 
       let data = [];
+      let usedQuery = "";
+
       for (const query of queries) {
+        usedQuery = query;
+        console.log("[StepTwo] geocode query:", query);
+
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`
         );
+
+        if (!response.ok) {
+          const errMsg = `HTTP ${response.status}`;
+          setDebugInfo((prev) => ({ ...prev, lastQueryString: query, lastErrorMessage: errMsg }));
+          toast.error("Address search failed. Please try again.");
+          return false;
+        }
+
         data = await response.json();
-        
+        console.log("[StepTwo] geocode results:", data?.length, "for", query);
+
         if (Array.isArray(data) && data.length > 0) {
-          break; // Found results, stop retrying
+          break;
         }
       }
 
+      setDebugInfo({ lastQueryString: usedQuery, lastResponseCount: data?.length ?? 0, lastErrorMessage: "" });
+
       if (Array.isArray(data) && data.length > 0) {
         if (data.length === 1) {
-          // Single match - auto-select
           setFormData((prev) => ({
             ...prev,
             lat: parseFloat(data[0].lat),
@@ -98,17 +123,19 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
           toast.success("Address located!");
           return true;
         } else {
-          // Multiple matches - show suggestions
           setAddressSuggestions(data.slice(0, 5));
           toast.info(`Found ${data.length} possible matches. Select one below.`);
           return false;
         }
       } else {
-        toast.error("Address could not be located. Please check spelling.");
+        setDebugInfo((prev) => ({ ...prev, lastErrorMessage: "Zero results" }));
+        toast.error("No match found. Try a suggestion or adjust spelling.");
         return false;
       }
     } catch (error) {
-      toast.error("Error locating address");
+      console.error("[StepTwo] geocode error:", error);
+      setDebugInfo((prev) => ({ ...prev, lastErrorMessage: error.message }));
+      toast.error("Address search failed. Please try again.");
       return false;
     } finally {
       setIsGeocoding(false);
@@ -267,7 +294,15 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
         </div>
       )}
 
-      {/* REMOVED: Start Date & Time section (per request) */}
+      {/* Debug overlay (temporary) */}
+      {(debugInfo.lastQueryString || debugInfo.lastErrorMessage) && (
+        <div className="mt-4 rounded border border-dashed border-gray-400 bg-gray-100 p-2 text-[11px] font-mono text-gray-600">
+          <p><strong>DEBUG</strong></p>
+          <p>Query: {debugInfo.lastQueryString || "—"}</p>
+          <p>Results: {debugInfo.lastResponseCount ?? "—"}</p>
+          <p>Error: {debugInfo.lastErrorMessage || "none"}</p>
+        </div>
+      )}
     </div>
   );
 }
