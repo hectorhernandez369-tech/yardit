@@ -183,12 +183,10 @@ export default function Layout({ children }) {
         {children}
       </main>
 
-      <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-4">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col items-center gap-2">
-            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/6ea3c5d99_ChatGPTImageFeb1202608_08_48PM.png" alt="Yardit - Join the Hunt" className="h-24 w-auto" />
-            <p className="text-center text-sm text-white">Seekers find the best residential yard sales</p>
-          </div>
+      <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-2">
+          <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/6ea3c5d99_ChatGPTImageFeb1202608_08_48PM.png" alt="Yardit" className="h-8 w-auto" />
+          <p className="text-sm text-white">Yardit - Seekers find the best residential yard sales</p>
         </div>
       </footer>
     </div>);
