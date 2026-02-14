@@ -8,6 +8,10 @@ import { Calendar, MapPin, Eye, EyeOff, Map } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input"; // optional if you ever edit title too
+import { toast } from "sonner";
 
 export default function MyListingsPage() {
   const navigate = useNavigate();
