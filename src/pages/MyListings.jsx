@@ -10,12 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Map } from "lucide-react";
 import { format } from "date-fns";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
@@ -23,10 +18,10 @@ export default function MyListingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState(null);
 
   // (Edit Description modal state)
-  const [editingListing, setEditingListing] = useState<any>(null);
+  const [editingListing, setEditingListing] = useState(null);
   const [editDescription, setEditDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -45,8 +40,7 @@ export default function MyListingsPage() {
 
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ["myListings", user?.id],
-    queryFn: () =>
-      base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date"),
+    queryFn: () => base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date"),
     enabled: !!user,
     initialData: [],
   });
@@ -77,7 +71,7 @@ export default function MyListingsPage() {
     return <div className="p-8 text-center">Loading...</div>;
   }
 
-  const openEditDescription = (listing: any) => {
+  const openEditDescription = (listing) => {
     setEditingListing(listing);
     setEditDescription(listing?.description || "");
   };
@@ -108,19 +102,18 @@ export default function MyListingsPage() {
     }
   };
 
-  const relist = (listing: any) => {
-    // (Create a new draft by pre-filling Step 1 + Step 2, then jump to Step 3)
+  const relist = (listing) => {
+    // (Prefill Step 1 + Step 2, then jump to Step 3 tier selection)
     navigate(createPageUrl("CreateListing"), {
       state: {
         startAtStep: 3, // (jump straight to tier selection)
         relistFromId: listing.id,
         relistPrefill: {
-          // Step 1 (basic info)
-          title: listing.title,
-          description: listing.description,
+          // Step 1
+          title: listing.title || "",
+          description: listing.description || "",
 
-          // Step 2 (location)
-          // NOTE: Use the exact field names your CreateListing formData expects.
+          // Step 2 (use whichever fields exist in your Listing entity)
           street: listing.street || listing.street_address || listing.addressText || "",
           city: listing.city || "",
           state: listing.state || "",
@@ -155,9 +148,7 @@ export default function MyListingsPage() {
         ) : listings.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
-              <p className="text-slate-500 mb-4">
-                You haven't created any listings yet
-              </p>
+              <p className="text-slate-500 mb-4">You haven't created any listings yet</p>
               <Button
                 onClick={() => navigate(createPageUrl("CreateListing"))}
                 className="bg-amber-600 hover:bg-amber-700"
@@ -168,14 +159,12 @@ export default function MyListingsPage() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {listings.map((listing: any) => (
+            {listings.map((listing) => (
               <Card key={listing.id}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h3 className="text-xl font-semibold mb-2">
-                        {listing.title}
-                      </h3>
+                      <h3 className="text-xl font-semibold mb-2">{listing.title}</h3>
 
                       <div className="flex gap-2 flex-wrap">
                         <Badge className={tierColors[listing.tier] || "bg-slate-500"}>
@@ -184,11 +173,7 @@ export default function MyListingsPage() {
                             : String(listing.tier || "free").toUpperCase()}
                         </Badge>
 
-                        <Badge
-                          className={
-                            statusColors[listing.status] || "bg-gray-500"
-                          }
-                        >
+                        <Badge className={statusColors[listing.status] || "bg-gray-500"}>
                           {listing.status === "under_review"
                             ? "Under Review"
                             : String(listing.status || "active").toUpperCase()}
@@ -200,10 +185,8 @@ export default function MyListingsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={!listing.lat && !listing.latitude && !listing.lng && !listing.longitude}
-                        onClick={() =>
-                          navigate(createPageUrl("Map") + `?listingId=${listing.id}`)
-                        }
+                        disabled={!((listing.lat ?? listing.latitude) && (listing.lng ?? listing.longitude))}
+                        onClick={() => navigate(createPageUrl("Map") + `?listingId=${listing.id}`)}
                         className="gap-1"
                       >
                         <Map className="w-3 h-3" />
@@ -213,26 +196,16 @@ export default function MyListingsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() =>
-                          navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)
-                        }
+                        onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
                       >
                         View Details
                       </Button>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditDescription(listing)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => openEditDescription(listing)}>
                         Edit Description
                       </Button>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => relist(listing)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => relist(listing)}>
                         Relist
                       </Button>
                     </div>
@@ -251,9 +224,7 @@ export default function MyListingsPage() {
                     <div className="flex items-center gap-2 text-slate-600">
                       <Calendar className="w-4 h-4" />
                       <span>
-                        {listing.startDateTime
-                          ? format(new Date(listing.startDateTime), "PPp")
-                          : "No start time set"}
+                        {listing.startDateTime ? format(new Date(listing.startDateTime), "PPp") : "No start time set"}
                       </span>
                     </div>
                   </div>
