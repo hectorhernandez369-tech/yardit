@@ -386,8 +386,19 @@ export default function MapPage() {
     setCurrentZoom(z);
   }, []);
 
+  const demoOn = isDemoMode();
+
+  // Re-check demo mode on custom event
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    const handler = () => forceUpdate(n => n + 1);
+    window.addEventListener("demo-mode-change", handler);
+    return () => window.removeEventListener("demo-mode-change", handler);
+  }, []);
+
   const eligibleListings = useMemo(() => {
     const now = new Date();
+    const demo = isDemoMode();
     
     return listings.filter((listing) => {
       // Must have valid numeric coordinates
@@ -397,11 +408,13 @@ export default function MapPage() {
       // Status check
       if (listing.status !== "active") return false;
 
-      // Time window: startDateTime <= now <= endDateTime
-      const start = new Date(listing.startDateTime);
-      const end = new Date(listing.endDateTime);
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-      if (start > now || end < now) return false;
+      // Time window: startDateTime <= now <= endDateTime (skip in demo mode)
+      if (!demo) {
+        const start = new Date(listing.startDateTime);
+        const end = new Date(listing.endDateTime);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+        if (start > now || end < now) return false;
+      }
 
       // Search filter
       const matchesSearch =
@@ -415,7 +428,7 @@ export default function MapPage() {
       
       return matchesFilter && matchesSearch;
     });
-  }, [listings, filter, searchQuery]);
+  }, [listings, filter, searchQuery, demoOn]);
 
   const stats = useMemo(() => {
     return {
