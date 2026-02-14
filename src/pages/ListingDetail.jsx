@@ -110,10 +110,9 @@ export default function ListingDetailPage() {
 
             <div className="flex items-start gap-2 text-slate-600">
               <MapPin className="w-5 h-5 mt-0.5" />
-              <div>
-                <p>{listing.addressText}</p>
-                <p>{listing.city}, {listing.zip}</p>
-              </div>
+              <span>
+                {listing.addressText || "Address unavailable"}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}{listing.zip ? ` ${listing.zip}` : ""}
+              </span>
             </div>
 
             <div className="flex items-start gap-2 text-slate-600">
@@ -153,6 +152,7 @@ export default function ListingDetailPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
 
       {showReport && (
