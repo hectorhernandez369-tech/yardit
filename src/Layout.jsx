@@ -186,7 +186,7 @@ export default function Layout({ children }) {
       <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-4">
         <div className="max-w-7xl mx-auto px-4">
           <p className="text-center text-sm text-white">
-            🏴‍☠️ Yardit - Seekers find the best residential yard sales
+            🗺️ Yardit - Seekers find the best residential yard sales
           </p>
         </div>
       </footer>
