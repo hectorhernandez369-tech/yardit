@@ -46,7 +46,7 @@ export default function Layout({ children }) {
       longPressTimer.current = null;
       didLongPress.current = true;
       console.log("DEMO LONG PRESS TRIGGERED");
-      setShowDemoPanel((prev) => !prev);
+      setShowDemoPanel(prev => !prev);
     }, 1000);
   }, []);
 
@@ -76,52 +76,52 @@ export default function Layout({ children }) {
                 onPointerCancel={onLogoPointerEnd}
                 onPointerLeave={onLogoPointerEnd}
                 onContextMenu={(e) => e.preventDefault()}
-                onClick={onLogoClick}>
-
-                <img
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/5a679ad0d_file_00000000efbc71fd87985abd77ca1f58.png"
-                  alt="Yardit Logo"
-                  className="w-12 h-12" />
-
+                onClick={onLogoClick}
+              >
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/5a679ad0d_file_00000000efbc71fd87985abd77ca1f58.png" 
+                  alt="Yardit Logo" 
+                  className="w-12 h-12"
+                />
                 <div>
-                  
+                  <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'cursive' }}>Yardit</h1>
                   <p className="text-xs text-white/90">Find Treasure Nearby</p>
                 </div>
               </Link>
-              {demoActive &&
-              <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider animate-pulse">
+              {demoActive && (
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider animate-pulse">
                   Demo
                 </span>
-              }
+              )}
             </div>
 
             <nav className="flex items-center gap-2">
               {/* TEMPORARY: visible Demo toggle button — remove later */}
               <button
-                onClick={() => setShowDemoPanel((prev) => !prev)}
-                className="text-[10px] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded px-2 py-1">
-
+                onClick={() => setShowDemoPanel(prev => !prev)}
+                className="text-[10px] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded px-2 py-1"
+              >
                 Demo
               </button>
               <Link to={createPageUrl("Home")}>
                 <Button
                   variant={location.pathname === createPageUrl("Home") ? "secondary" : "ghost"}
                   size="sm"
-                  className={`gap-2 ${location.pathname === createPageUrl("Home") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}>
-
+                  className={`gap-2 ${location.pathname === createPageUrl("Home") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                >
                   <Home className="w-4 h-4" />
                   <span className="hidden sm:inline">Map</span>
                 </Button>
               </Link>
               
-              {user &&
-              <>
+              {user && (
+                <>
                   <Link to={createPageUrl("MyListings")}>
                     <Button
-                    variant={location.pathname === createPageUrl("MyListings") ? "secondary" : "ghost"}
-                    size="sm"
-                    className={`gap-2 ${location.pathname === createPageUrl("MyListings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}>
-
+                      variant={location.pathname === createPageUrl("MyListings") ? "secondary" : "ghost"}
+                      size="sm"
+                      className={`gap-2 ${location.pathname === createPageUrl("MyListings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                    >
                       <User className="w-4 h-4" />
                       <span className="hidden sm:inline">My Listings</span>
                     </Button>
@@ -129,66 +129,67 @@ export default function Layout({ children }) {
                   
                   <Link to={createPageUrl("Settings")}>
                     <Button
-                    variant={location.pathname === createPageUrl("Settings") ? "secondary" : "ghost"}
-                    size="sm"
-                    className={`gap-2 ${location.pathname === createPageUrl("Settings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}>
-
+                      variant={location.pathname === createPageUrl("Settings") ? "secondary" : "ghost"}
+                      size="sm"
+                      className={`gap-2 ${location.pathname === createPageUrl("Settings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                    >
                       <Settings className="w-4 h-4" />
                       <span className="hidden sm:inline">Settings</span>
                     </Button>
                   </Link>
 
-                  {user.isAdmin &&
-                <Link to={createPageUrl("AdminLite")}>
+                  {user.isAdmin && (
+                    <Link to={createPageUrl("AdminLite")}>
                       <Button
-                    variant={location.pathname === createPageUrl("AdminLite") ? "secondary" : "ghost"}
-                    size="sm"
-                    className={`gap-2 ${location.pathname === createPageUrl("AdminLite") ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}>
-
+                        variant={location.pathname === createPageUrl("AdminLite") ? "secondary" : "ghost"}
+                        size="sm"
+                        className={`gap-2 ${location.pathname === createPageUrl("AdminLite") ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
+                      >
                         <Shield className="w-4 h-4" />
                         <span className="hidden sm:inline">Admin</span>
                       </Button>
                     </Link>
-                }
+                  )}
                   
                   <Link to={createPageUrl("CreateListing")}>
                     <Button
-                    size="sm"
-                    className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold">
-
+                      size="sm"
+                      className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
+                    >
                       <Plus className="w-4 h-4" />
                       <span className="hidden sm:inline">Post Sale</span>
                     </Button>
                   </Link>
                 </>
-              }
+              )}
             </nav>
           </div>
         </div>
       </header>
 
-      {showDemoPanel &&
-      <div className="bg-purple-50 border-b border-purple-200 px-4 py-2 flex items-center justify-center gap-3">
+      {showDemoPanel && (
+        <div className="bg-purple-50 border-b border-purple-200 px-4 py-2 flex items-center justify-center gap-3">
           <DemoModeToggle />
           <button
-          onClick={() => setShowDemoPanel(false)}
-          className="text-xs text-purple-500 hover:text-purple-700 underline">
-
+            onClick={() => setShowDemoPanel(false)}
+            className="text-xs text-purple-500 hover:text-purple-700 underline"
+          >
             close
           </button>
         </div>
-      }
+      )}
 
       <main className="flex-1">
         {children}
       </main>
 
-      <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-2">
-          <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/6ea3c5d99_ChatGPTImageFeb1202608_08_48PM.png" alt="Yardit" className="h-8 w-auto" />
-          <p className="text-sm text-white">Yardit - Seekers find the best residential yard sales</p>
+      <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-4">
+        <div className="max-w-7xl mx-auto px-4">
+          <p className="text-center text-sm text-white">
+            🏴‍☠️ Yardit - Seekers find the best residential yard sales
+          </p>
         </div>
       </footer>
-    </div>);
-
+    </div>
+  );
 }
