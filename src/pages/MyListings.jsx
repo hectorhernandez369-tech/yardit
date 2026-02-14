@@ -249,6 +249,9 @@ export default function MyListingsPage() {
                         {listing.startDateTime
                           ? format(new Date(listing.startDateTime), "PPp")
                           : "No start time set"}
+                        {listing.endDateTime
+                          ? ` — ${format(new Date(listing.endDateTime), "PPp")}`
+                          : ""}
                       </span>
                     </div>
                   </div>
