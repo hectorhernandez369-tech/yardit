@@ -94,8 +94,6 @@ export default function MyListingsPage() {
 
       toast.success("Description updated");
       closeEditDescription();
-
-      // (Refresh so new description appears right away)
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
     } catch (e) {
       toast.error("Could not update description");
@@ -105,21 +103,22 @@ export default function MyListingsPage() {
   };
 
   const relist = (listing) => {
-    // (Build prefill payload for Step 1 + Step 2)
+    // ✅ Build prefill payload using CreateListing's real keys
     const payload = {
       relistFromId: listing.id,
-      startAtStep: 3, // (human step 3)
+      startAtStep: 3,
       relistPrefill: {
         // Step 1
         title: listing.title || "",
         description: listing.description || "",
 
-        // Step 2 location
-        // NOTE: We include multiple possible field names to maximize compatibility.
-        street: listing.street || listing.street_address || listing.addressText || "",
+        // Step 2 (must match CreateListing formData keys)
+        addressText: listing.addressText || listing.street_address || listing.street || "",
         city: listing.city || "",
         state: listing.state || "",
         zip: listing.zip || listing.zip_code || "",
+
+        // Location
         lat: listing.lat ?? listing.latitude ?? null,
         lng: listing.lng ?? listing.longitude ?? null,
       },
@@ -128,11 +127,17 @@ export default function MyListingsPage() {
     try {
       localStorage.setItem(RELIST_STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
-      // If storage fails, still navigate
+      // ignore
     }
 
-    // (Navigate to CreateListing — CreateListing must read this payload)
+    // ✅ navigate to CreateListing which now reads relist + jumps to step 3
     navigate(createPageUrl("CreateListing") + "?relist=1&step=3");
+  };
+
+  const hasCoords = (listing) => {
+    const lat = listing.lat ?? listing.latitude;
+    const lng = listing.lng ?? listing.longitude;
+    return !!lat && !!lng;
   };
 
   return (
@@ -194,7 +199,7 @@ export default function MyListingsPage() {
                     <div className="flex gap-2 flex-wrap justify-end">
                       <Button
                         size="sm"
-                        disabled={!((listing.lat ?? listing.latitude) && (listing.lng ?? listing.longitude))}
+                        disabled={!hasCoords(listing)}
                         onClick={() => navigate(createPageUrl("Map") + `?listingId=${listing.id}`)}
                         className="gap-1 bg-teal-600 hover:bg-teal-700 text-white"
                       >
