@@ -7,7 +7,7 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Map } from "lucide-react";
+import { Calendar, MapPin, Map, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,14 +16,19 @@ import { toast } from "sonner";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
+type TabKey = "active" | "past" | "billing";
+
 export default function MyListingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
+
+  // (Tabs)
+  const [tab, setTab] = useState<TabKey>("active");
 
   // (Edit Description modal state)
-  const [editingListing, setEditingListing] = useState(null);
+  const [editingListing, setEditingListing] = useState<any>(null);
   const [editDescription, setEditDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -69,11 +74,42 @@ export default function MyListingsPage() {
     []
   );
 
-  if (!user) {
-    return <div className="p-8 text-center">Loading...</div>;
-  }
+  // ---- Helpers ----
+  const getLatLng = (listing: any) => {
+    const lat = listing.lat ?? listing.latitude ?? null;
+    const lng = listing.lng ?? listing.longitude ?? null;
+    return { lat, lng };
+  };
 
-  const openEditDescription = (listing) => {
+  const hasCoords = (listing: any) => {
+    const { lat, lng } = getLatLng(listing);
+    return !!lat && !!lng;
+  };
+
+  const listingNumberText = (listing: any) => {
+    // (Best-effort fallback so it always shows something)
+    return listing.listingNumber || listing.number || listing.listing_no || listing.id;
+  };
+
+  const isPastListing = (listing: any) => {
+    // (Past if endDateTime exists and has already passed)
+    if (!listing?.endDateTime) return false;
+    const endMs = new Date(listing.endDateTime).getTime();
+    if (Number.isNaN(endMs)) return false;
+    return endMs < Date.now();
+  };
+
+  const activeListings = useMemo(
+    () => listings.filter((l: any) => !isPastListing(l)),
+    [listings]
+  );
+
+  const pastListings = useMemo(
+    () => listings.filter((l: any) => isPastListing(l)),
+    [listings]
+  );
+
+  const openEditDescription = (listing: any) => {
     setEditingListing(listing);
     setEditDescription(listing?.description || "");
   };
@@ -102,7 +138,7 @@ export default function MyListingsPage() {
     }
   };
 
-  const relist = (listing) => {
+  const relist = (listing: any) => {
     // ✅ Build prefill payload using CreateListing's real keys
     const payload = {
       relistFromId: listing.id,
@@ -134,16 +170,31 @@ export default function MyListingsPage() {
     navigate(createPageUrl("CreateListing") + "?relist=1&step=3");
   };
 
-  const hasCoords = (listing) => {
-    const lat = listing.lat ?? listing.latitude;
-    const lng = listing.lng ?? listing.longitude;
-    return !!lat && !!lng;
+  const deleteListing = async (listing: any) => {
+    const ok = window.confirm("Delete this listing? This cannot be undone.");
+    if (!ok) return;
+
+    try {
+      await base44.entities.Listing.delete(listing.id);
+      toast.success("Listing deleted");
+      await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+    } catch (e) {
+      toast.error("Could not delete listing");
+    }
   };
+
+  // ---- Render Guards ----
+  if (!user) {
+    return <div className="p-8 text-center">Loading...</div>;
+  }
+
+  // ---- Pick which list to show based on tab ----
+  const shownListings = tab === "past" ? pastListings : activeListings;
 
   return (
     <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold">My Listings</h1>
 
           <Button
@@ -154,32 +205,78 @@ export default function MyListingsPage() {
           </Button>
         </div>
 
-        {isLoading ? (
+        {/* Tabs */}
+        <div className="flex gap-2 flex-wrap mb-6">
+          <Button
+            variant={tab === "active" ? "default" : "outline"}
+            onClick={() => setTab("active")}
+          >
+            Active ({activeListings.length})
+          </Button>
+
+          <Button
+            variant={tab === "past" ? "default" : "outline"}
+            onClick={() => setTab("past")}
+          >
+            Past Listings ({pastListings.length})
+          </Button>
+
+          <Button
+            variant={tab === "billing" ? "default" : "outline"}
+            onClick={() => setTab("billing")}
+          >
+            Billing / Payments
+          </Button>
+        </div>
+
+        {/* Billing Tab */}
+        {tab === "billing" ? (
+          <Card>
+            <CardContent className="p-8">
+              <h2 className="text-xl font-semibold mb-2">Billing / Payments</h2>
+              <p className="text-slate-600">
+                Coming soon. (This will show receipts and payment history per listing.)
+              </p>
+            </CardContent>
+          </Card>
+        ) : isLoading ? (
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-slate-500">Loading listings...</p>
             </CardContent>
           </Card>
-        ) : listings.length === 0 ? (
+        ) : shownListings.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
-              <p className="text-slate-500 mb-4">You haven't created any listings yet</p>
-              <Button
-                onClick={() => navigate(createPageUrl("CreateListing"))}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                Create Your First Listing
-              </Button>
+              <p className="text-slate-500 mb-4">
+                {tab === "past"
+                  ? "No past listings yet"
+                  : "You don't have any active listings right now"}
+              </p>
+
+              {tab === "active" && (
+                <Button
+                  onClick={() => navigate(createPageUrl("CreateListing"))}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  Create a Listing
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4">
-            {listings.map((listing) => (
+            {shownListings.map((listing: any) => (
               <Card key={listing.id}>
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold mb-2">{listing.title}</h3>
+                  <div className="flex items-start justify-between mb-4 gap-4">
+                    <div className="min-w-0">
+                      <h3 className="text-xl font-semibold mb-1 truncate">{listing.title}</h3>
+
+                      {/* Listing # small print */}
+                      <p className="text-xs text-slate-500 mb-2">
+                        Listing #{String(listingNumberText(listing))}
+                      </p>
 
                       <div className="flex gap-2 flex-wrap">
                         <Badge className={tierColors[listing.tier] || "bg-slate-500"}>
@@ -204,7 +301,7 @@ export default function MyListingsPage() {
                         className="gap-1 bg-teal-600 hover:bg-teal-700 text-white"
                       >
                         <Map className="w-3 h-3" />
-                        Show on Map
+                        View on Map
                       </Button>
 
                       <Button
@@ -230,16 +327,34 @@ export default function MyListingsPage() {
                       >
                         Relist
                       </Button>
+
+                      {/* Delete Listing */}
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => deleteListing(listing)}
+                        className="gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Delete
+                      </Button>
                     </div>
                   </div>
 
-                  <p className="text-slate-600 mb-4">{listing.description}</p>
+                  {/* Description */}
+                  <p className="text-slate-600 mb-4 whitespace-pre-wrap">
+                    {listing.description || "(No description)"}
+                  </p>
 
+                  {/* Address + Dates */}
                   <div className="grid md:grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center gap-2 text-slate-600">
                       <MapPin className="w-4 h-4" />
-                      <span>
-                        {listing.addressText || "Address unavailable"}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}{listing.zip ? ` ${listing.zip}` : ""}
+                      <span className="break-words">
+                        {listing.addressText || "Address unavailable"}
+                        {listing.city ? `, ${listing.city}` : ""}
+                        {listing.state ? `, ${listing.state}` : ""}
+                        {listing.zip ? ` ${listing.zip}` : ""}
                       </span>
                     </div>
 
