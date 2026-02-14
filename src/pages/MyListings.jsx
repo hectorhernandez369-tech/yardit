@@ -239,7 +239,7 @@ export default function MyListingsPage() {
                     <div className="flex items-center gap-2 text-slate-600">
                       <MapPin className="w-4 h-4" />
                       <span>
-                        {listing.city}, {listing.zip}
+                        {listing.addressText || "Address unavailable"}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}{listing.zip ? ` ${listing.zip}` : ""}
                       </span>
                     </div>
 
