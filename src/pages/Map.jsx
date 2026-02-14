@@ -17,6 +17,7 @@ import CheckInButton from "../components/map/CheckInButton";
 import { toast } from "sonner";
 import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
 import MapDebugOverlay from "../components/map/MapDebugOverlay";
+import { isDemoMode } from "../components/shared/DemoMode";
 import MapZoomControl from "../components/map/MapZoomControl";
 import MapFocusController from "../components/map/MapFocusController";
 
