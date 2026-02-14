@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,13 +12,18 @@ import StepThree from "../components/create/StepThree";
 import FormScrollHelper from "../components/create/FormScrollHelper";
 import { isDemoMode } from "../components/shared/DemoMode";
 
+const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
+
 export default function CreateListingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const formContainerRef = useRef(null);
+
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
   const [geocodeRef, setGeocodeRef] = useState(null);
+
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
     tier: "free",
@@ -39,6 +44,41 @@ export default function CreateListingPage() {
     validatedText: false,
     preActivateDays: 0,
   });
+
+  // ✅ Relist loader: reads localStorage + jumps to Step 3
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const isRelist = params.get("relist") === "1";
+    if (!isRelist) return;
+
+    const raw = localStorage.getItem(RELIST_STORAGE_KEY);
+    if (!raw) return;
+
+    try {
+      const payload = JSON.parse(raw);
+
+      setFormData((prev) => ({
+        ...prev,
+        ...payload.relistPrefill,
+
+        // Reset step 3 fields so user re-selects
+        tier: "",
+        startDateTime: "",
+        endDateTime: "",
+        preActivateDays: 0,
+      }));
+
+      setStep(3);
+
+      // Clear payload to prevent reusing
+      localStorage.removeItem(RELIST_STORAGE_KEY);
+
+      toast.success("Relist loaded — pick a tier and schedule");
+    } catch (e) {
+      // ignore parse errors
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -71,9 +111,11 @@ export default function CreateListingPage() {
 
     const limits = { free: 1, featured: 2, premium: 3, neighborhood_tier: 3 };
     const limit = limits[formData.tier];
-    
+
     if (recentListings.length >= limit) {
-      toast.error(`You've reached your ${formData.tier} posting limit (${limit} per week)`);
+      toast.error(
+        `You've reached your ${formData.tier} posting limit (${limit} per week)`
+      );
       return false;
     }
     return true;
@@ -112,18 +154,25 @@ export default function CreateListingPage() {
       }
       setStep(2);
     } else if (step === 2) {
-      if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
+      if (
+        !formData.addressText ||
+        !formData.city ||
+        !formData.state ||
+        !formData.zip
+      ) {
         toast.error("Please complete all address fields");
         return;
       }
-      
+
       // Auto-trigger geocoding if lat/lng not set
       if (!formData.lat || !formData.lng) {
         if (geocodeRef) {
           toast.info("Verifying address...");
           const success = await geocodeRef();
           if (!success) {
-            toast.error("We couldn't confirm this address. Please select a suggestion or check spelling.");
+            toast.error(
+              "We couldn't confirm this address. Please select a suggestion or check spelling."
+            );
             return;
           }
         } else {
@@ -131,7 +180,7 @@ export default function CreateListingPage() {
           return;
         }
       }
-      
+
       setStep(3);
     }
   };
@@ -159,11 +208,16 @@ export default function CreateListingPage() {
         const maxDays = formData.tier === "featured" ? 3 : 5;
         const diffDays = (end - start) / (1000 * 60 * 60 * 24);
         if (diffDays > maxDays) {
-          toast.error(`${formData.tier === "featured" ? "Featured" : "Premium"} listings can be up to ${maxDays} days`);
+          toast.error(
+            `${
+              formData.tier === "featured" ? "Featured" : "Premium"
+            } listings can be up to ${maxDays} days`
+          );
           return;
         }
       }
     }
+
     // Free tier: in demo mode user picks dates; in normal mode they're auto-set
     if (formData.tier === "free" && isDemoMode()) {
       if (!formData.startDateTime || !formData.endDateTime) {
@@ -199,15 +253,24 @@ export default function CreateListingPage() {
                   {s < step ? "✓" : s}
                 </div>
                 {s < 3 && (
-                  <div key={`line-${s}`} className={`w-12 h-1 ${s < step ? "bg-green-600" : "bg-slate-200"}`} />
+                  <div
+                    key={`line-${s}`}
+                    className={`w-12 h-1 ${
+                      s < step ? "bg-green-600" : "bg-slate-200"
+                    }`}
+                  />
                 )}
               </React.Fragment>
             ))}
           </div>
           <div className="flex justify-center gap-8 text-xs text-slate-600">
             <span className={step === 1 ? "font-semibold" : ""}>Details</span>
-            <span className={step === 2 ? "font-semibold" : ""}>Location & Time</span>
-            <span className={step === 3 ? "font-semibold" : ""}>Tier & Review</span>
+            <span className={step === 2 ? "font-semibold" : ""}>
+              Location & Time
+            </span>
+            <span className={step === 3 ? "font-semibold" : ""}>
+              Tier & Review
+            </span>
           </div>
         </div>
 
@@ -217,11 +280,16 @@ export default function CreateListingPage() {
           </CardHeader>
           <CardContent className="p-6" ref={formContainerRef}>
             <FormScrollHelper containerRef={formContainerRef} />
+
             {step === 1 && (
               <StepOne formData={formData} setFormData={setFormData} />
             )}
             {step === 2 && (
-              <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} />
+              <StepTwo
+                formData={formData}
+                setFormData={setFormData}
+                onGeocodeRef={setGeocodeRef}
+              />
             )}
             {step === 3 && (
               <StepThree formData={formData} setFormData={setFormData} />
@@ -250,7 +318,9 @@ export default function CreateListingPage() {
                   disabled={createListingMutation.isPending}
                   className="flex-1 bg-amber-600 hover:bg-amber-700"
                 >
-                  {createListingMutation.isPending ? "Creating..." : "Create Listing"}
+                  {createListingMutation.isPending
+                    ? "Creating..."
+                    : "Create Listing"}
                 </Button>
               )}
             </div>
