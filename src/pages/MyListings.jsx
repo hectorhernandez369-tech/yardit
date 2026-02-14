@@ -94,6 +94,8 @@ export default function MyListingsPage() {
 
       toast.success("Description updated");
       closeEditDescription();
+
+      // (Refresh so new description appears right away)
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
     } catch (e) {
       toast.error("Could not update description");
@@ -106,13 +108,14 @@ export default function MyListingsPage() {
     // (Build prefill payload for Step 1 + Step 2)
     const payload = {
       relistFromId: listing.id,
-      startAtStep: 3, // (Tier & Review)
+      startAtStep: 3, // (human step 3)
       relistPrefill: {
         // Step 1
         title: listing.title || "",
         description: listing.description || "",
 
-        // Step 2 (location) — keep whichever fields exist in your Listing entity
+        // Step 2 location
+        // NOTE: We include multiple possible field names to maximize compatibility.
         street: listing.street || listing.street_address || listing.addressText || "",
         city: listing.city || "",
         state: listing.state || "",
@@ -122,15 +125,14 @@ export default function MyListingsPage() {
       },
     };
 
-    // (Store it so CreateListing can reliably read it)
     try {
       localStorage.setItem(RELIST_STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
       // If storage fails, still navigate
     }
 
-    // (Navigate directly to Step 3 via query param)
-    navigate(createPageUrl("CreateListing") + "?step=3&relist=1");
+    // (Navigate to CreateListing — CreateListing must read this payload)
+    navigate(createPageUrl("CreateListing") + "?relist=1&step=3");
   };
 
   return (
@@ -141,7 +143,7 @@ export default function MyListingsPage() {
 
           <Button
             onClick={() => navigate(createPageUrl("CreateListing"))}
-            className="bg-amber-600 hover:bg-amber-700"
+            className="bg-amber-600 hover:bg-amber-700 text-white"
           >
             Create New Listing
           </Button>
@@ -159,7 +161,7 @@ export default function MyListingsPage() {
               <p className="text-slate-500 mb-4">You haven't created any listings yet</p>
               <Button
                 onClick={() => navigate(createPageUrl("CreateListing"))}
-                className="bg-amber-600 hover:bg-amber-700"
+                className="bg-amber-600 hover:bg-amber-700 text-white"
               >
                 Create Your First Listing
               </Button>
@@ -239,7 +241,9 @@ export default function MyListingsPage() {
                     <div className="flex items-center gap-2 text-slate-600">
                       <Calendar className="w-4 h-4" />
                       <span>
-                        {listing.startDateTime ? format(new Date(listing.startDateTime), "PPp") : "No start time set"}
+                        {listing.startDateTime
+                          ? format(new Date(listing.startDateTime), "PPp")
+                          : "No start time set"}
                       </span>
                     </div>
                   </div>
@@ -276,7 +280,11 @@ export default function MyListingsPage() {
             <Button variant="outline" onClick={closeEditDescription}>
               Cancel
             </Button>
-            <Button onClick={saveDescription} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button
+              onClick={saveDescription}
+              disabled={isSaving}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
               {isSaving ? "Saving..." : "Save"}
             </Button>
           </div>
