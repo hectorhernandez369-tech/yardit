@@ -140,11 +140,21 @@ export default function CreateListingPage() {
       }
 
       const demoPrefix = isDemoMode() ? "Demo listing: " : "";
+
+      // Generate listing number: STATE + last4zip + dash + 5 random chars
+      const stateCode = (data.state || "XX").toUpperCase().slice(0, 2);
+      const zipLast4 = (data.zip || "0000").slice(-4).padStart(4, "0");
+      const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+      let rand5 = "";
+      for (let i = 0; i < 5; i++) rand5 += chars[Math.floor(Math.random() * chars.length)];
+      const listingNumber = `${stateCode}${zipLast4}-${rand5}`;
+
       const listing = await base44.entities.Listing.create({
         ...data,
         title: demoPrefix + data.title,
         ownerUserId: user.id,
         status: "active",
+        listingNumber,
       });
       return listing;
     },

@@ -85,8 +85,12 @@ export default function MyListingsPage() {
   };
 
   const listingNumberText = (listing) => {
-    // (Best-effort fallback so it always shows something)
-    return listing?.listingNumber || listing?.number || listing?.listing_no || listing?.id;
+    if (listing?.listingNumber) return listing.listingNumber;
+    // Fallback: generate from state + zip + id for older listings
+    const st = (listing?.state || "XX").toUpperCase().slice(0, 2);
+    const zp = (listing?.zip || "0000").slice(-4).padStart(4, "0");
+    const idSuffix = (listing?.id || "00000").slice(-5).toLowerCase();
+    return `${st}${zp}-${idSuffix}`;
   };
 
   const isPastListing = (listing) => {
