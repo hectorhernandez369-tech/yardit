@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
+const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
+
 export default function MyListingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -92,8 +94,6 @@ export default function MyListingsPage() {
 
       toast.success("Description updated");
       closeEditDescription();
-
-      // (Refresh the list so the edited description shows immediately)
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
     } catch (e) {
       toast.error("Could not update description");
@@ -103,26 +103,34 @@ export default function MyListingsPage() {
   };
 
   const relist = (listing) => {
-    // (Prefill Step 1 + Step 2, then jump to Step 3 tier selection)
-    navigate(createPageUrl("CreateListing"), {
-      state: {
-        startAtStep: 3, // (jump straight to tier selection)
-        relistFromId: listing.id,
-        relistPrefill: {
-          // Step 1
-          title: listing.title || "",
-          description: listing.description || "",
+    // (Build prefill payload for Step 1 + Step 2)
+    const payload = {
+      relistFromId: listing.id,
+      startAtStep: 3, // (Tier & Review)
+      relistPrefill: {
+        // Step 1
+        title: listing.title || "",
+        description: listing.description || "",
 
-          // Step 2 (use whichever fields exist in your Listing entity)
-          street: listing.street || listing.street_address || listing.addressText || "",
-          city: listing.city || "",
-          state: listing.state || "",
-          zip: listing.zip || listing.zip_code || "",
-          lat: listing.lat ?? listing.latitude ?? null,
-          lng: listing.lng ?? listing.longitude ?? null,
-        },
+        // Step 2 (location) — keep whichever fields exist in your Listing entity
+        street: listing.street || listing.street_address || listing.addressText || "",
+        city: listing.city || "",
+        state: listing.state || "",
+        zip: listing.zip || listing.zip_code || "",
+        lat: listing.lat ?? listing.latitude ?? null,
+        lng: listing.lng ?? listing.longitude ?? null,
       },
-    });
+    };
+
+    // (Store it so CreateListing can reliably read it)
+    try {
+      localStorage.setItem(RELIST_STORAGE_KEY, JSON.stringify(payload));
+    } catch (e) {
+      // If storage fails, still navigate
+    }
+
+    // (Navigate directly to Step 3 via query param)
+    navigate(createPageUrl("CreateListing") + "?step=3&relist=1");
   };
 
   return (
@@ -183,29 +191,36 @@ export default function MyListingsPage() {
 
                     <div className="flex gap-2 flex-wrap justify-end">
                       <Button
-                        variant="outline"
                         size="sm"
                         disabled={!((listing.lat ?? listing.latitude) && (listing.lng ?? listing.longitude))}
                         onClick={() => navigate(createPageUrl("Map") + `?listingId=${listing.id}`)}
-                        className="gap-1"
+                        className="gap-1 bg-teal-600 hover:bg-teal-700 text-white"
                       >
                         <Map className="w-3 h-3" />
                         Show on Map
                       </Button>
 
                       <Button
-                        variant="outline"
                         size="sm"
                         onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+                        className="bg-slate-700 hover:bg-slate-800 text-white"
                       >
                         View Details
                       </Button>
 
-                      <Button variant="outline" size="sm" onClick={() => openEditDescription(listing)}>
+                      <Button
+                        size="sm"
+                        onClick={() => openEditDescription(listing)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
                         Edit Description
                       </Button>
 
-                      <Button variant="outline" size="sm" onClick={() => relist(listing)}>
+                      <Button
+                        size="sm"
+                        onClick={() => relist(listing)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
                         Relist
                       </Button>
                     </div>
@@ -261,7 +276,7 @@ export default function MyListingsPage() {
             <Button variant="outline" onClick={closeEditDescription}>
               Cancel
             </Button>
-            <Button onClick={saveDescription} disabled={isSaving}>
+            <Button onClick={saveDescription} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
               {isSaving ? "Saving..." : "Save"}
             </Button>
           </div>
