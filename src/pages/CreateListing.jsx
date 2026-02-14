@@ -45,7 +45,7 @@ export default function CreateListingPage() {
     preActivateDays: 0,
   });
 
-  // ✅ Relist loader: reads localStorage + jumps to Step 3
+  // ✅ Relist loader: reads localStorage + maps keys + jumps to Step 3
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const isRelist = params.get("relist") === "1";
@@ -56,21 +56,33 @@ export default function CreateListingPage() {
 
     try {
       const payload = JSON.parse(raw);
+      const pre = payload?.relistPrefill || {};
 
       setFormData((prev) => ({
         ...prev,
-        ...payload.relistPrefill,
 
-        // Reset step 3 fields so user re-selects
+        // ✅ bring over what we can
+        ...pre,
+
+        // ✅ map to CreateListing's actual keys (so Step 2 is filled)
+        addressText: pre.addressText || pre.street || "",
+        city: pre.city || "",
+        state: pre.state || "",
+        zip: pre.zip || pre.zip_code || "",
+        lat: pre.lat ?? null,
+        lng: pre.lng ?? null,
+
+        // ✅ reset Step 3 fields so user must re-pick
         tier: "",
         startDateTime: "",
         endDateTime: "",
         preActivateDays: 0,
       }));
 
+      // ✅ jump to Tier & Review
       setStep(3);
 
-      // Clear payload to prevent reusing
+      // ✅ clear so it doesn't keep reusing
       localStorage.removeItem(RELIST_STORAGE_KEY);
 
       toast.success("Relist loaded — pick a tier and schedule");
@@ -154,12 +166,7 @@ export default function CreateListingPage() {
       }
       setStep(2);
     } else if (step === 2) {
-      if (
-        !formData.addressText ||
-        !formData.city ||
-        !formData.state ||
-        !formData.zip
-      ) {
+      if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
         toast.error("Please complete all address fields");
         return;
       }
@@ -209,9 +216,7 @@ export default function CreateListingPage() {
         const diffDays = (end - start) / (1000 * 60 * 60 * 24);
         if (diffDays > maxDays) {
           toast.error(
-            `${
-              formData.tier === "featured" ? "Featured" : "Premium"
-            } listings can be up to ${maxDays} days`
+            `${formData.tier === "featured" ? "Featured" : "Premium"} listings can be up to ${maxDays} days`
           );
           return;
         }
