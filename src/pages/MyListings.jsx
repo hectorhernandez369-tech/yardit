@@ -16,19 +16,17 @@ import { toast } from "sonner";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
-type TabKey = "active" | "past" | "billing";
-
 export default function MyListingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState(null);
 
-  // (Tabs)
-  const [tab, setTab] = useState<TabKey>("active");
+  // (Tabs) "active" | "past" | "billing"
+  const [tab, setTab] = useState("active");
 
   // (Edit Description modal state)
-  const [editingListing, setEditingListing] = useState<any>(null);
+  const [editingListing, setEditingListing] = useState(null);
   const [editDescription, setEditDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -75,23 +73,23 @@ export default function MyListingsPage() {
   );
 
   // ---- Helpers ----
-  const getLatLng = (listing: any) => {
-    const lat = listing.lat ?? listing.latitude ?? null;
-    const lng = listing.lng ?? listing.longitude ?? null;
+  const getLatLng = (listing) => {
+    const lat = listing?.lat ?? listing?.latitude ?? null;
+    const lng = listing?.lng ?? listing?.longitude ?? null;
     return { lat, lng };
   };
 
-  const hasCoords = (listing: any) => {
+  const hasCoords = (listing) => {
     const { lat, lng } = getLatLng(listing);
     return !!lat && !!lng;
   };
 
-  const listingNumberText = (listing: any) => {
+  const listingNumberText = (listing) => {
     // (Best-effort fallback so it always shows something)
-    return listing.listingNumber || listing.number || listing.listing_no || listing.id;
+    return listing?.listingNumber || listing?.number || listing?.listing_no || listing?.id;
   };
 
-  const isPastListing = (listing: any) => {
+  const isPastListing = (listing) => {
     // (Past if endDateTime exists and has already passed)
     if (!listing?.endDateTime) return false;
     const endMs = new Date(listing.endDateTime).getTime();
@@ -99,17 +97,12 @@ export default function MyListingsPage() {
     return endMs < Date.now();
   };
 
-  const activeListings = useMemo(
-    () => listings.filter((l: any) => !isPastListing(l)),
-    [listings]
-  );
+  const activeListings = useMemo(() => listings.filter((l) => !isPastListing(l)), [listings]);
+  const pastListings = useMemo(() => listings.filter((l) => isPastListing(l)), [listings]);
 
-  const pastListings = useMemo(
-    () => listings.filter((l: any) => isPastListing(l)),
-    [listings]
-  );
+  const shownListings = tab === "past" ? pastListings : activeListings;
 
-  const openEditDescription = (listing: any) => {
+  const openEditDescription = (listing) => {
     setEditingListing(listing);
     setEditDescription(listing?.description || "");
   };
@@ -138,7 +131,7 @@ export default function MyListingsPage() {
     }
   };
 
-  const relist = (listing: any) => {
+  const relist = (listing) => {
     // ✅ Build prefill payload using CreateListing's real keys
     const payload = {
       relistFromId: listing.id,
@@ -170,12 +163,15 @@ export default function MyListingsPage() {
     navigate(createPageUrl("CreateListing") + "?relist=1&step=3");
   };
 
-  const deleteListing = async (listing: any) => {
+  const deleteListing = async (listing) => {
     const ok = window.confirm("Delete this listing? This cannot be undone.");
     if (!ok) return;
 
     try {
+      // NOTE: if Base44 uses a different delete method name, swap it:
+      // delete -> remove / destroy (same behavior)
       await base44.entities.Listing.delete(listing.id);
+
       toast.success("Listing deleted");
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
     } catch (e) {
@@ -187,9 +183,6 @@ export default function MyListingsPage() {
   if (!user) {
     return <div className="p-8 text-center">Loading...</div>;
   }
-
-  // ---- Pick which list to show based on tab ----
-  const shownListings = tab === "past" ? pastListings : activeListings;
 
   return (
     <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
@@ -266,7 +259,7 @@ export default function MyListingsPage() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {shownListings.map((listing: any) => (
+            {shownListings.map((listing) => (
               <Card key={listing.id}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4 gap-4">
@@ -364,9 +357,7 @@ export default function MyListingsPage() {
                         {listing.startDateTime
                           ? format(new Date(listing.startDateTime), "PPp")
                           : "No start time set"}
-                        {listing.endDateTime
-                          ? ` — ${format(new Date(listing.endDateTime), "PPp")}`
-                          : ""}
+                        {listing.endDateTime ? ` — ${format(new Date(listing.endDateTime), "PPp")}` : ""}
                       </span>
                     </div>
                   </div>
