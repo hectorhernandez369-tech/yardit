@@ -1,54 +1,34 @@
 /**
- * Yardit Tier System v1 — Shared Business Logic
+ * Yardit Tier System v1 — Shared Business Logic (Timezone-safe)
+ *
+ * Key rule:
+ * - "Date strings" like YYYY-MM-DD are treated as CALENDAR DAYS in the listing's local timezone.
+ * - Never generate YYYY-MM-DD with toISOString().slice(0,10) (it can shift a day).
  */
 
 /**
  * computeFreeWindow(now, timeZoneId)
- * Returns the start/end for Free weekend logic:
+ * Returns start/end for Free weekend logic:
  * - Friday 12:00am to Sunday 11:59:59pm in the listing's local timezone
  * - If posted during the weekend, activate immediately but still expire Sunday 11:59pm
  */
 export function computeFreeWindow(now, timeZoneId) {
-  // Get local date parts in the listing timezone
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: timeZoneId,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    weekday: "short",
-  });
+  const local = getZonedParts(now, timeZoneId); // listing-local parts
+  const localYMD = `${local.year}-${pad2(local.month)}-${pad2(local.day)}`;
 
-  const parts = Object.fromEntries(
-    formatter.formatToParts(now).map((p) => [p.type, p.value])
-  );
-
-  const localYear = parseInt(parts.year);
-  const localMonth = parseInt(parts.month);
-  const localDay = parseInt(parts.day);
-  const localWeekday = parts.weekday; // "Mon","Tue",..."Sun"
-
+  // Weekday mapping from Intl "short" weekday
   const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  const dow = weekdayMap[localWeekday];
+  const dow = weekdayMap[local.weekday];
 
-  // Calculate days until Friday (5) and days since Friday
-  let daysSinceFriday;
-  if (dow >= 5) {
-    daysSinceFriday = dow - 5; // Fri=0, Sat=1
-  } else {
-    daysSinceFriday = dow + 2; // Sun=2, Mon=3, ...
-  }
+  // Days since Friday (Fri=0, Sat=1, Sun=2, Mon=3, Tue=4, Wed=5, Thu=6)
+  const daysSinceFriday = dow >= 5 ? dow - 5 : dow + 2;
 
-  // Friday of this week (current or most recent)
-  const fridayDate = new Date(localYear, localMonth - 1, localDay - daysSinceFriday);
-  const sundayDate = new Date(localYear, localMonth - 1, localDay - daysSinceFriday + 2);
+  const fridayYMD = addDaysYMD(localYMD, -daysSinceFriday);
+  const sundayYMD = addDaysYMD(fridayYMD, 2);
 
-  // Build timezone-aware ISO strings for the window boundaries
-  const fridayStart = buildLocalDateTime(fridayDate, "00:00:00", timeZoneId);
-  const sundayEnd = buildLocalDateTime(sundayDate, "23:59:59", timeZoneId);
+  // Convert listing-local wall-clock boundaries -> real Date objects
+  const fridayStart = zonedDateTimeToUtcDate(fridayYMD, "00:00:00", timeZoneId);
+  const sundayEnd = zonedDateTimeToUtcDate(sundayYMD, "23:59:59", timeZoneId);
 
   const isCurrentlyWeekend = now >= fridayStart && now <= sundayEnd;
 
@@ -56,9 +36,8 @@ export function computeFreeWindow(now, timeZoneId) {
     startDateTime: fridayStart,
     endDateTime: sundayEnd,
     isCurrentlyWeekend,
-    // If posted during weekend, activate immediately but still expire Sunday
     effectiveStart: isCurrentlyWeekend ? now : fridayStart,
-    effectiveEnd: sundayEnd,
+    effectiveEnd: sundayEnd
   };
 }
 
@@ -74,21 +53,21 @@ export function computeFeaturedDates(startDate, endDate) {
     return {
       valid: false,
       error: `Featured tier requires exactly 3 consecutive days. Got ${dates.length}.`,
-      activeDates: [],
+      activeDates: []
     };
   }
 
   return {
     valid: true,
     error: null,
-    activeDates: dates, // all 3 days are active
+    activeDates: dates
   };
 }
 
 /**
  * computePremiumDates(startDate, endDate, earlyVisibilityDays)
  * Validates exactly 5 consecutive days.
- * Splits the earliest X days as earlyVisibilityDates, remaining as activeDates.
+ * Splits earliest X days as earlyVisibilityDates, remaining as activeDates.
  * earlyVisibilityDays must be 0–3.
  */
 export function computePremiumDates(startDate, endDate, earlyVisibilityDays = 0) {
@@ -99,11 +78,11 @@ export function computePremiumDates(startDate, endDate, earlyVisibilityDays = 0)
       valid: false,
       error: `Premium tier requires exactly 5 consecutive days. Got ${dates.length}.`,
       activeDates: [],
-      earlyVisibilityDates: [],
+      earlyVisibilityDates: []
     };
   }
 
-  const clampedEarly = Math.max(0, Math.min(3, earlyVisibilityDays));
+  const clampedEarly = Math.max(0, Math.min(3, Number(earlyVisibilityDays) || 0));
 
   const earlyVisibilityDates = dates.slice(0, clampedEarly);
   const activeDates = dates.slice(clampedEarly);
@@ -112,7 +91,7 @@ export function computePremiumDates(startDate, endDate, earlyVisibilityDays = 0)
     valid: true,
     error: null,
     earlyVisibilityDates,
-    activeDates,
+    activeDates
   };
 }
 
@@ -122,20 +101,16 @@ export function computePremiumDates(startDate, endDate, earlyVisibilityDays = 0)
  * Free: max 1, Featured: max 5, Premium: max 8.
  */
 export function enforcePhotoLimit(tier, photoUrls = []) {
-  const limits = {
-    free: 1,
-    featured: 5,
-    premium: 8,
-  };
-
+  const limits = { free: 1, featured: 5, premium: 8 };
   const max = limits[tier] ?? 1;
+
   const truncated = photoUrls.length > max;
 
   return {
     allowed: photoUrls.slice(0, max),
     max,
     truncated,
-    removed: truncated ? photoUrls.length - max : 0,
+    removed: truncated ? photoUrls.length - max : 0
   };
 }
 
@@ -152,58 +127,149 @@ export function getTierZoomInfo(tier) {
       label: "Premium",
       minZoom: 9,
       zoomLabel: "City View",
-      description: "Visible from zoom level 9+ (City View)",
+      description: "Visible from zoom level 9+ (City View)"
     },
     featured: {
       label: "Featured",
       minZoom: 11,
       zoomLabel: "Neighborhood View",
-      description: "Visible from zoom level 11+ (Neighborhood View)",
+      description: "Visible from zoom level 11+ (Neighborhood View)"
     },
     free: {
       label: "Free",
       minZoom: 13,
       zoomLabel: "Street/Neighborhood View",
-      description: "Visible from zoom level 13+ (Street/Neighborhood View)",
-    },
+      description: "Visible from zoom level 13+ (Street/Neighborhood View)"
+    }
   };
 
   return tiers[tier] ?? tiers.free;
 }
 
-// ── Internal Helpers ────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Internal Helpers (timezone-safe)
+// ─────────────────────────────────────────────────────────────
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
 
 /**
- * Returns an array of "YYYY-MM-DD" strings for each day from startDate to endDate inclusive.
+ * Returns zoned parts for a Date in a given timezone using Intl.formatToParts()
+ */
+function getZonedParts(date, timeZoneId) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: timeZoneId,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
+
+  const parts = Object.fromEntries(dtf.formatToParts(date).map((p) => [p.type, p.value]));
+
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    weekday: parts.weekday,
+    hour: Number(parts.hour),
+    minute: Number(parts.minute),
+    second: Number(parts.second)
+  };
+}
+
+/**
+ * Adds days to a YYYY-MM-DD string using UTC-safe math (no local timezone drift).
+ */
+function addDaysYMD(ymd, deltaDays) {
+  const { y, m, d } = parseYMD(ymd);
+  const ms = Date.UTC(y, m - 1, d + deltaDays);
+  const dt = new Date(ms);
+  const yy = dt.getUTCFullYear();
+  const mm = pad2(dt.getUTCMonth() + 1);
+  const dd = pad2(dt.getUTCDate());
+  return `${yy}-${mm}-${dd}`;
+}
+
+function parseYMD(ymd) {
+  const [ys, ms, ds] = String(ymd).split("-");
+  const y = Number(ys);
+  const m = Number(ms);
+  const d = Number(ds);
+  if (!y || !m || !d) throw new Error(`Invalid YYYY-MM-DD date: ${ymd}`);
+  return { y, m, d };
+}
+
+/**
+ * Returns an array of YYYY-MM-DD for each day from startDate to endDate inclusive.
+ * This is UTC-safe and never uses toISOString().
  */
 function getConsecutiveDates(startDate, endDate) {
-  const start = new Date(startDate + "T00:00:00");
-  const end = new Date(endDate + "T00:00:00");
+  const start = parseYMD(startDate);
+  const end = parseYMD(endDate);
+
+  const startMs = Date.UTC(start.y, start.m - 1, start.d);
+  const endMs = Date.UTC(end.y, end.m - 1, end.d);
+
+  if (endMs < startMs) return [];
+
   const dates = [];
-
-  const current = new Date(start);
-  while (current <= end) {
-    dates.push(current.toISOString().slice(0, 10));
-    current.setDate(current.getDate() + 1);
+  for (let ms = startMs; ms <= endMs; ms += 24 * 60 * 60 * 1000) {
+    const dt = new Date(ms);
+    const y = dt.getUTCFullYear();
+    const m = pad2(dt.getUTCMonth() + 1);
+    const d = pad2(dt.getUTCDate());
+    dates.push(`${y}-${m}-${d}`);
+    if (dates.length > 40) break; // safety
   }
-
   return dates;
 }
 
 /**
- * Builds a Date object representing a local time in a given timezone.
+ * Convert a listing-local wall-clock time (YYYY-MM-DD + HH:mm:ss) into a real Date object.
+ *
+ * This avoids parsing toLocaleString() back into Date (unreliable).
+ * It uses Intl.formatToParts() to measure the timezone offset and applies it.
  */
-function buildLocalDateTime(dateObj, timeStr, timeZoneId) {
-  const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-  const day = String(dateObj.getDate()).padStart(2, "0");
-  const isoString = `${year}-${month}-${day}T${timeStr}`;
+function zonedDateTimeToUtcDate(ymd, timeStr, timeZoneId) {
+  const { y, m, d } = parseYMD(ymd);
+  const [hh, mm, ss] = String(timeStr).split(":").map((n) => Number(n));
 
-  // Create a date in UTC, then adjust for the timezone offset
-  const tempDate = new Date(isoString + "Z");
-  const utcStr = tempDate.toLocaleString("en-US", { timeZone: "UTC" });
-  const tzStr = tempDate.toLocaleString("en-US", { timeZone: timeZoneId });
-  const offsetMs = new Date(utcStr).getTime() - new Date(tzStr).getTime();
+  // First guess: treat the wall time as UTC.
+  let guess = new Date(Date.UTC(y, m - 1, d, hh || 0, mm || 0, ss || 0));
 
-  return new Date(tempDate.getTime() + offsetMs);
+  // Get offset for that guess in the target timezone, then adjust.
+  // Do two passes to handle DST edges better.
+  for (let i = 0; i < 2; i++) {
+    const offsetMinutes = getTimeZoneOffsetMinutes(guess, timeZoneId);
+    guess = new Date(guess.getTime() - offsetMinutes * 60 * 1000);
+  }
+
+  return guess;
+}
+
+/**
+ * Returns the offset in minutes between UTC and the given timeZone at the provided Date instant.
+ * Positive means the timezone is "behind" UTC (e.g., PST is +480 minutes).
+ */
+function getTimeZoneOffsetMinutes(date, timeZoneId) {
+  const parts = getZonedParts(date, timeZoneId);
+
+  // Interpret the formatted timezone parts as if they were UTC to compute the "asUTC" timestamp.
+  const asUtcMs = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second
+  );
+
+  // Offset = (asUTC - actualUTC) in minutes
+  return Math.round((asUtcMs - date.getTime()) / 60000);
 }
