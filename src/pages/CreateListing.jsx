@@ -6,13 +6,33 @@ import { createPageUrl } from "@/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+
 import StepOne from "../components/create/StepOne";
 import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import FormScrollHelper from "../components/create/FormScrollHelper";
 import { isDemoMode } from "../components/shared/DemoMode";
 
+// Tier Engine (shared business logic)
+import {
+  computeFreeWindow,
+  computeFeaturedDates,
+  computePremiumDates,
+  enforcePhotoLimit
+} from "../components/shared/listingTierEngine";
+
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
+
+// (plain english) fallback timezone until we auto-detect timezone from lat/lng later
+const FALLBACK_TZ = "America/Los_Angeles";
+
+// (plain english) DEV BYPASS: your account can ignore the “1 active listing” rule while building
+// Replace with your real Base44 user.id
+const DEV_BYPASS_USER_IDS = ["PUT_YOUR_USER_ID_HERE"];
+
+function isDevBypassUser(user) {
+  return !!user?.id && DEV_BYPASS_USER_IDS.includes(user.id);
+}
 
 export default function CreateListingPage() {
   const navigate = useNavigate();
@@ -27,22 +47,44 @@ export default function CreateListingPage() {
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
     tier: "free",
+
     title: "",
     description: "",
+
     addressText: "",
     city: "",
     state: "",
     zip: "",
     lat: null,
     lng: null,
+
+    // (plain english) listing-local timezone; we’ll derive later from lat/lng
+    timeZoneId: FALLBACK_TZ,
+
+    // Stored as ISO strings
     startDateTime: "",
     endDateTime: "",
+
+    // Date-range selection (YYYY-MM-DD strings)
+    selectedRangeStartDate: "",
+    selectedRangeEndDate: "",
+
+    // Premium Early Visibility
+    earlyVisibilityDays: 0,
+    earlyVisibilityDates: [],
+    activeDates: [],
+
+    // Categories (saved now, used later for “category weekends”)
+    mainCategories: [],
+    subCategories: [],
+
     photoUrls: [],
+
+    // Neighborhood fields
     homeCount: 1,
     spanFeet: 0,
     validatedDistance: false,
-    validatedText: false,
-    preActivateDays: 0,
+    validatedText: false
   });
 
   // ✅ Relist loader: reads localStorage + maps keys + jumps to Step 3
@@ -76,15 +118,15 @@ export default function CreateListingPage() {
         tier: "",
         startDateTime: "",
         endDateTime: "",
-        preActivateDays: 0,
+        selectedRangeStartDate: "",
+        selectedRangeEndDate: "",
+        earlyVisibilityDays: 0,
+        earlyVisibilityDates: [],
+        activeDates: []
       }));
 
-      // ✅ jump to Tier & Review
       setStep(3);
-
-      // ✅ clear so it doesn't keep reusing
       localStorage.removeItem(RELIST_STORAGE_KEY);
-
       toast.success("Relist loaded — pick a tier and schedule");
     } catch (e) {
       // ignore parse errors
@@ -102,41 +144,28 @@ export default function CreateListingPage() {
       }
     };
     fetchUser();
-  }, []);
+  }, [navigate]);
 
-  // Check posting limits
+  // Pull all user listings (used for “1 active listing” rule)
   const { data: userListings } = useQuery({
     queryKey: ["userListings", user?.id],
     queryFn: () => base44.entities.Listing.filter({ ownerUserId: user.id }),
     enabled: !!user,
-    initialData: [],
+    initialData: []
   });
 
-  const checkPostingLimit = () => {
-    if (isDemoMode()) return true;
+  const hasActiveResidentialListing = () => {
+    if (isDemoMode()) return false;
+    if (isDevBypassUser(user)) return false; // (plain english) your account is exempt
 
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const recentListings = userListings.filter(
-      (l) => new Date(l.created_date) >= sevenDaysAgo
-    );
-
-    const limits = { free: 1, featured: 2, premium: 3, neighborhood_tier: 3 };
-    const limit = limits[formData.tier];
-
-    if (recentListings.length >= limit) {
-      toast.error(
-        `You've reached your ${formData.tier} posting limit (${limit} per week)`
-      );
-      return false;
-    }
-    return true;
+    return (userListings || []).some((l) => l.status === "active");
   };
 
   const createListingMutation = useMutation({
     mutationFn: async (data) => {
-      if (!checkPostingLimit()) {
-        throw new Error("Posting limit reached");
+      // ✅ Enforce 1 active listing per account (residential Phase 1)
+      if (data.listingType !== "neighborhood_sale" && hasActiveResidentialListing()) {
+        throw new Error("You already have an active listing. End it before creating another.");
       }
 
       const demoPrefix = isDemoMode() ? "Demo listing: " : "";
@@ -154,18 +183,20 @@ export default function CreateListingPage() {
         title: demoPrefix + data.title,
         ownerUserId: user.id,
         status: "active",
-        listingNumber,
+        listingNumber
       });
+
       return listing;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["listings"] });
+      queryClient.invalidateQueries({ queryKey: ["userListings", user?.id] });
       toast.success("Listing created successfully!");
       navigate(createPageUrl("MyListings"));
     },
     onError: (error) => {
       toast.error(error.message || "Failed to create listing");
-    },
+    }
   });
 
   const handleNext = async () => {
@@ -175,7 +206,10 @@ export default function CreateListingPage() {
         return;
       }
       setStep(2);
-    } else if (step === 2) {
+      return;
+    }
+
+    if (step === 2) {
       if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
         toast.error("Please complete all address fields");
         return;
@@ -198,42 +232,61 @@ export default function CreateListingPage() {
         }
       }
 
+      // (plain english) later: derive timezoneId from lat/lng; for now we keep fallback
       setStep(3);
+      return;
     }
   };
 
   const handleSubmit = () => {
-    // 1. Must select tier first
+    // ✅ Enforce 1 active listing per account (block early in UI too)
+    if (formData.listingType !== "neighborhood_sale" && hasActiveResidentialListing()) {
+      toast.error("You already have an active listing. End it before creating another.");
+      return;
+    }
+
+    // Must select tier
     if (!formData.tier) {
       toast.error("Please select a tier");
       return;
     }
 
-    // 2. For featured/premium, validate start + end times and max duration
-    if (formData.tier === "featured" || formData.tier === "premium") {
-      if (!formData.startDateTime || !formData.endDateTime) {
-        toast.error("Please select start and end times");
-        return;
-      }
-      const start = new Date(formData.startDateTime);
-      const end = new Date(formData.endDateTime);
-      if (end <= start) {
-        toast.error("End time must be after start time");
-        return;
-      }
-      if (!isDemoMode()) {
-        const maxDays = formData.tier === "featured" ? 3 : 5;
-        const diffDays = (end - start) / (1000 * 60 * 60 * 24);
-        if (diffDays > maxDays) {
-          toast.error(
-            `${formData.tier === "featured" ? "Featured" : "Premium"} listings can be up to ${maxDays} days`
-          );
-          return;
-        }
-      }
+    const timeZoneId = formData.timeZoneId || FALLBACK_TZ;
+
+    // ✅ Photo limit enforcement (cannot bypass)
+    const photoCheck = enforcePhotoLimit(formData.tier, formData.photoUrls || []);
+    if (photoCheck.truncated) {
+      toast.error(`Too many photos for ${formData.tier}. Max allowed: ${photoCheck.max}.`);
+      return;
     }
 
-    // Free tier: in demo mode user picks dates; in normal mode they're auto-set
+    let payload = { ...formData, timeZoneId };
+
+    // FREE (normal): compute weekend window + confirm if posted during weekend
+    if (formData.tier === "free" && !isDemoMode()) {
+      const window = computeFreeWindow(new Date(), timeZoneId);
+
+      if (window.isCurrentlyWeekend) {
+        const ok = safeConfirm(
+          "Free listings always expire Sunday at 11:59pm local time regardless of when you post. Continue?"
+        );
+        if (!ok) return;
+      }
+
+      payload = {
+        ...payload,
+        startDateTime: window.startDateTime.toISOString(),
+        endDateTime: window.endDateTime.toISOString(),
+
+        selectedRangeStartDate: "",
+        selectedRangeEndDate: "",
+        earlyVisibilityDays: 0,
+        earlyVisibilityDates: [],
+        activeDates: []
+      };
+    }
+
+    // FREE (demo): must have ISO dates
     if (formData.tier === "free" && isDemoMode()) {
       if (!formData.startDateTime || !formData.endDateTime) {
         toast.error("Please select start and end times");
@@ -241,7 +294,60 @@ export default function CreateListingPage() {
       }
     }
 
-    createListingMutation.mutate(formData);
+    // FEATURED: exactly 3 consecutive days
+    if (formData.tier === "featured") {
+      if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
+        toast.error("Please select start and end dates");
+        return;
+      }
+
+      const res = computeFeaturedDates(
+        formData.selectedRangeStartDate,
+        formData.selectedRangeEndDate
+      );
+
+      if (!res.valid) {
+        toast.error(res.error || "Featured requires exactly 3 consecutive days");
+        return;
+      }
+
+      payload = {
+        ...payload,
+        activeDates: res.activeDates,
+        earlyVisibilityDays: 0,
+        earlyVisibilityDates: []
+        // startDateTime/endDateTime should already be set by TierSchedule
+      };
+    }
+
+    // PREMIUM: exactly 5 consecutive days + Early Visibility 0–3
+    if (formData.tier === "premium") {
+      if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
+        toast.error("Please select start and end dates");
+        return;
+      }
+
+      const res = computePremiumDates(
+        formData.selectedRangeStartDate,
+        formData.selectedRangeEndDate,
+        Number(formData.earlyVisibilityDays || 0)
+      );
+
+      if (!res.valid) {
+        toast.error(res.error || "Premium requires exactly 5 consecutive days");
+        return;
+      }
+
+      payload = {
+        ...payload,
+        earlyVisibilityDays: Math.max(0, Math.min(3, Number(formData.earlyVisibilityDays || 0))),
+        earlyVisibilityDates: res.earlyVisibilityDates,
+        activeDates: res.activeDates
+        // startDateTime/endDateTime should already be set by TierSchedule
+      };
+    }
+
+    createListingMutation.mutate(payload);
   };
 
   if (!user) {
@@ -270,9 +376,7 @@ export default function CreateListingPage() {
                 {s < 3 && (
                   <div
                     key={`line-${s}`}
-                    className={`w-12 h-1 ${
-                      s < step ? "bg-green-600" : "bg-slate-200"
-                    }`}
+                    className={`w-12 h-1 ${s < step ? "bg-green-600" : "bg-slate-200"}`}
                   />
                 )}
               </React.Fragment>
@@ -280,12 +384,8 @@ export default function CreateListingPage() {
           </div>
           <div className="flex justify-center gap-8 text-xs text-slate-600">
             <span className={step === 1 ? "font-semibold" : ""}>Details</span>
-            <span className={step === 2 ? "font-semibold" : ""}>
-              Location & Time
-            </span>
-            <span className={step === 3 ? "font-semibold" : ""}>
-              Tier & Review
-            </span>
+            <span className={step === 2 ? "font-semibold" : ""}>Location & Time</span>
+            <span className={step === 3 ? "font-semibold" : ""}>Tier & Review</span>
           </div>
         </div>
 
@@ -296,9 +396,7 @@ export default function CreateListingPage() {
           <CardContent className="p-6" ref={formContainerRef}>
             <FormScrollHelper containerRef={formContainerRef} />
 
-            {step === 1 && (
-              <StepOne formData={formData} setFormData={setFormData} />
-            )}
+            {step === 1 && <StepOne formData={formData} setFormData={setFormData} />}
             {step === 2 && (
               <StepTwo
                 formData={formData}
@@ -306,25 +404,16 @@ export default function CreateListingPage() {
                 onGeocodeRef={setGeocodeRef}
               />
             )}
-            {step === 3 && (
-              <StepThree formData={formData} setFormData={setFormData} />
-            )}
+            {step === 3 && <StepThree formData={formData} setFormData={setFormData} />}
 
             <div className="flex gap-3 mt-6">
               {step > 1 && (
-                <Button
-                  variant="outline"
-                  onClick={() => setStep(step - 1)}
-                  className="flex-1"
-                >
+                <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
                   Back
                 </Button>
               )}
               {step < 3 ? (
-                <Button
-                  onClick={handleNext}
-                  className="flex-1 bg-amber-600 hover:bg-amber-700"
-                >
+                <Button onClick={handleNext} className="flex-1 bg-amber-600 hover:bg-amber-700">
                   Continue
                 </Button>
               ) : (
@@ -333,9 +422,7 @@ export default function CreateListingPage() {
                   disabled={createListingMutation.isPending}
                   className="flex-1 bg-amber-600 hover:bg-amber-700"
                 >
-                  {createListingMutation.isPending
-                    ? "Creating..."
-                    : "Create Listing"}
+                  {createListingMutation.isPending ? "Creating..." : "Create Listing"}
                 </Button>
               )}
             </div>
@@ -344,4 +431,13 @@ export default function CreateListingPage() {
       </div>
     </div>
   );
+}
+
+// (plain english) confirmation dialog helper
+function safeConfirm(message) {
+  try {
+    return window.confirm(message);
+  } catch (e) {
+    return true;
+  }
 }
