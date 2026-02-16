@@ -370,7 +370,7 @@ export default function TierSchedule({ formData, setFormData }) {
               <span className="font-medium text-[#2C4F4E]">Early Visibility Dates: </span>
               <span className="text-[#1F2937]">
                 {(computed.earlyVisibilityDates || []).length
-                  ? computed.earlyVisibilityDates.join(", ")
+                  ? computed.earlyVisibilityDates.map(d => new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })).join(", ")
                   : "None"}
               </span>
             </div>
