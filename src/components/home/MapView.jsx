@@ -161,7 +161,7 @@ export default function MapView({ listings, userLocation }) {
           <Marker
             key={listing.id}
             position={[listing.lat, listing.lng]}
-            icon={createIcon(listing.tier)}
+            icon={createIcon(listing.tier, { premiumPhase: getPremiumPhase(listing) })}
           >
             <Popup>
               <div className={`p-2 ${listing._expired ? "opacity-60" : ""}`}>
