@@ -286,12 +286,32 @@ export default function CreateListingPage() {
       };
     }
 
-    // FREE (demo): must have ISO dates
+    // FREE (demo): accept date-range OR ISO timestamps
     if (formData.tier === "free" && isDemoMode()) {
-      if (!formData.startDateTime || !formData.endDateTime) {
-        toast.error("Please select start and end times");
+      const hasRange = formData.selectedRangeStartDate && formData.selectedRangeEndDate;
+      const hasISO = formData.startDateTime && formData.endDateTime;
+
+      if (!hasRange && !hasISO) {
+        toast.error("Please select start and end dates");
         return;
       }
+
+      // If TierSchedule set date-range fields, build ISO from them
+      if (hasRange && !hasISO) {
+        payload = {
+          ...payload,
+          startDateTime: new Date(formData.selectedRangeStartDate + "T00:00:00Z").toISOString(),
+          endDateTime: new Date(formData.selectedRangeEndDate + "T23:59:59Z").toISOString(),
+        };
+      }
+
+      // Clear tier-specific fields not used by Free
+      payload = {
+        ...payload,
+        earlyVisibilityDays: 0,
+        earlyVisibilityDates: [],
+        activeDates: [],
+      };
     }
 
     // FEATURED: exactly 3 consecutive days
