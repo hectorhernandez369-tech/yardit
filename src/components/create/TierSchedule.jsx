@@ -1,231 +1,387 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock, Eye } from "lucide-react";
-import { toast } from "sonner";
+import { CalendarDays, Eye } from "lucide-react";
 import { isDemoMode } from "../shared/DemoMode";
 
-function getNextFridayMidnight() {
-  // Calculate next Friday 12:00 AM Pacific
-  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
-  const day = now.getDay(); // 0=Sun, 5=Fri
-  let daysUntilFriday = (5 - day + 7) % 7;
-  if (daysUntilFriday === 0) {
-    // If today is Friday, check if we're past midnight — use next Friday
-    daysUntilFriday = 7;
-  }
-  const friday = new Date(now);
-  friday.setDate(friday.getDate() + daysUntilFriday);
-  friday.setHours(0, 0, 0, 0);
-  return friday;
-}
+import {
+  computeFreeWindow,
+  computeFeaturedDates,
+  computePremiumDates
+} from "@/components/shared/listingTierEngine";
 
-function getNextSundayEnd(friday) {
-  const sunday = new Date(friday);
-  sunday.setDate(sunday.getDate() + 2);
-  sunday.setHours(23, 59, 0, 0);
-  return sunday;
-}
+// (plain english) If timezone isn't available yet, we fall back to PT for now.
+const FALLBACK_TZ = "America/Los_Angeles";
 
-function toLocalISOString(date) {
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function formatDisplayDate(date) {
-  return date.toLocaleDateString("en-US", {
+function formatInTimeZone(date, timeZoneId) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: timeZoneId,
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
-    minute: "2-digit",
-  });
+    minute: "2-digit"
+  }).format(date);
+}
+
+// UTC-stable boundaries (plain english: keeps dates from “slipping” across devices)
+function utcStartOfDayIso(ymd) {
+  if (!ymd) return "";
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0)).toISOString();
+}
+
+function utcEndOfDayIso(ymd) {
+  if (!ymd) return "";
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 23, 59, 59)).toISOString();
 }
 
 export default function TierSchedule({ formData, setFormData }) {
-  const tier = formData.tier;
-
+  const tier = formData.tier || "free";
   const demoActive = isDemoMode();
 
-  // Auto-set free tier dates (skip in demo mode)
+  const timeZoneId = formData.timeZoneId || FALLBACK_TZ;
+
+  const [inlineError, setInlineError] = useState("");
+
+  // ---------------------------
+  // FREE (non-demo): auto schedule
+  // ---------------------------
   useEffect(() => {
-    if (tier === "free" && !demoActive) {
-      const friday = getNextFridayMidnight();
-      const sunday = getNextSundayEnd(friday);
+    if (tier !== "free") return;
+
+    // Clear tier-specific fields when switching into Free
+    setInlineError("");
+
+    if (!demoActive) {
+      const window = computeFreeWindow(new Date(), timeZoneId);
+
       setFormData((prev) => ({
         ...prev,
-        startDateTime: friday.toISOString(),
-        endDateTime: sunday.toISOString(),
-        preActivateDays: 0,
+        // store ISO for backend/storage
+        startDateTime: window.startDateTime.toISOString(),
+        endDateTime: window.endDateTime.toISOString(),
+
+        // Clear range-based fields (not used for Free)
+        selectedRangeStartDate: "",
+        selectedRangeEndDate: "",
+        earlyVisibilityDays: 0,
+        earlyVisibilityDates: [],
+        activeDates: []
       }));
     }
-  }, [tier, demoActive]);
+  }, [tier, demoActive, timeZoneId, setFormData]);
 
-  // Clear preActivateDays when switching away from premium
+  // ---------------------------
+  // FEATURED / PREMIUM: validate date range
+  // ---------------------------
+  const startDate = formData.selectedRangeStartDate || "";
+  const endDate = formData.selectedRangeEndDate || "";
+
+  const premiumEarlyEnabled = (formData.earlyVisibilityDays || 0) > 0;
+  const earlyVisibilityDays = Number(formData.earlyVisibilityDays || 0);
+
+  const computed = useMemo(() => {
+    setInlineError("");
+
+    // Free (demo): allow nothing special here
+    if (tier === "free") {
+      return {
+        valid: true,
+        error: null,
+        earlyVisibilityDates: [],
+        activeDates: []
+      };
+    }
+
+    if (!startDate || !endDate) {
+      return {
+        valid: false,
+        error: "",
+        earlyVisibilityDates: [],
+        activeDates: []
+      };
+    }
+
+    if (tier === "featured") {
+      return computeFeaturedDates(startDate, endDate);
+    }
+
+    if (tier === "premium") {
+      return computePremiumDates(startDate, endDate, earlyVisibilityDays);
+    }
+
+    return {
+      valid: false,
+      error: "",
+      earlyVisibilityDates: [],
+      activeDates: []
+    };
+  }, [tier, startDate, endDate, earlyVisibilityDays]);
+
+  // Push computed results into formData when valid
+  useEffect(() => {
+    if (tier === "free") return;
+
+    if (!startDate || !endDate) {
+      // Clear derived fields if user hasn’t selected both yet
+      setFormData((prev) => ({
+        ...prev,
+        activeDates: [],
+        earlyVisibilityDates: [],
+        startDateTime: "",
+        endDateTime: ""
+      }));
+      return;
+    }
+
+    if (computed?.valid) {
+      const activeDates = computed.activeDates || [];
+      const earlyDates = computed.earlyVisibilityDates || [];
+
+      setFormData((prev) => ({
+        ...prev,
+        activeDates,
+        earlyVisibilityDates: earlyDates,
+
+        // Save ISO boundaries (UTC-stable; submit can re-compute in exact listing timezone later)
+        startDateTime: utcStartOfDayIso(startDate),
+        endDateTime: utcEndOfDayIso(endDate)
+      }));
+
+      setInlineError("");
+    } else if (computed?.error) {
+      setInlineError(computed.error);
+      setFormData((prev) => ({
+        ...prev,
+        activeDates: [],
+        earlyVisibilityDates: [],
+        startDateTime: "",
+        endDateTime: ""
+      }));
+    } else {
+      setInlineError("");
+    }
+  }, [tier, startDate, endDate, computed, setFormData]);
+
+  // If switching away from Premium, clear early visibility
   useEffect(() => {
     if (tier !== "premium") {
-      setFormData((prev) => ({ ...prev, preActivateDays: 0 }));
+      setFormData((prev) => ({
+        ...prev,
+        earlyVisibilityDays: 0,
+        earlyVisibilityDates: []
+      }));
     }
-  }, [tier]);
+  }, [tier, setFormData]);
 
-  const maxDays = tier === "featured" ? 3 : tier === "premium" ? 5 : 0;
-  const tierLabel = tier === "featured" ? "Featured" : tier === "premium" ? "Premium" : "Free";
+  // ---------------------------
+  // UI
+  // ---------------------------
 
-  const handleStartChange = (e) => {
-    setFormData((prev) => ({ ...prev, startDateTime: e.target.value }));
-  };
-
-  const handleEndChange = (e) => {
-    const newEnd = e.target.value;
-    if (formData.startDateTime && newEnd) {
-      const start = new Date(formData.startDateTime);
-      const end = new Date(newEnd);
-      const diffMs = end - start;
-      const diffDays = diffMs / (1000 * 60 * 60 * 24);
-      if (!demoActive && diffDays > maxDays) {
-        toast.error(`${tierLabel} listings can be up to ${maxDays} days`);
-        return;
-      }
-      if (diffDays < 0) {
-        toast.error("End time must be after start time");
-        return;
-      }
-    }
-    setFormData((prev) => ({ ...prev, endDateTime: newEnd }));
-  };
-
-  // Computed max end datetime string for the input (no max in demo mode)
-  const maxEndDateTime = useMemo(() => {
-    if (!formData.startDateTime || (tier === "free" && !demoActive)) return "";
-    if (demoActive) return ""; // no cap in demo mode
-    const start = new Date(formData.startDateTime);
-    const maxEnd = new Date(start.getTime() + maxDays * 24 * 60 * 60 * 1000);
-    return toLocalISOString(maxEnd);
-  }, [formData.startDateTime, maxDays, tier, demoActive]);
-
-  // FREE TIER — show auto-calculated window (or date pickers in demo mode)
+  // FREE (non-demo): show auto window
   if (tier === "free" && !demoActive) {
-    const friday = getNextFridayMidnight();
-    const sunday = getNextSundayEnd(friday);
+    const window = computeFreeWindow(new Date(), timeZoneId);
+
     return (
       <div className="space-y-3 mt-4">
         <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
           <div className="flex items-center gap-2 mb-2">
             <CalendarDays className="w-5 h-5 text-[#5DADA5]" />
             <h4 className="font-semibold text-[#2C4F4E]">Schedule</h4>
+            <Badge className="bg-[#5DADA5] text-white text-xs ml-auto">
+              Weekend Only
+            </Badge>
           </div>
+
           <p className="text-sm text-[#1F2937] opacity-80 mb-3">
             Free listings are automatically set to the next weekend.
           </p>
-          <div className="bg-white/60 rounded-lg p-3 space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="w-4 h-4 text-[#5DADA5]" />
-              <span className="font-medium text-[#2C4F4E]">Start:</span>
-              <span className="text-[#1F2937]">{formatDisplayDate(friday)}</span>
+
+          <div className="bg-white/60 rounded-lg p-3 space-y-2 text-sm">
+            <div>
+              <span className="font-medium text-[#2C4F4E]">Start: </span>
+              <span className="text-[#1F2937]">
+                {formatInTimeZone(window.startDateTime, timeZoneId)}
+              </span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="w-4 h-4 text-[#F4A849]" />
-              <span className="font-medium text-[#2C4F4E]">End:</span>
-              <span className="text-[#1F2937]">{formatDisplayDate(sunday)}</span>
+            <div>
+              <span className="font-medium text-[#2C4F4E]">End: </span>
+              <span className="text-[#1F2937]">
+                {formatInTimeZone(window.endDateTime, timeZoneId)}
+              </span>
             </div>
+          </div>
+
+          {/* (plain english) reminder text only; popup happens at submit */}
+          <div className="mt-3 text-xs text-[#1F2937] opacity-90">
+            If you post during the weekend, it will activate immediately but still expires Sunday night.
           </div>
         </div>
       </div>
     );
   }
 
-  // FEATURED / PREMIUM / FREE(demo) — show date/time pickers
+  // FEATURED / PREMIUM / FREE (demo): date-only range selection
+  const tierLabel = tier === "featured" ? "Featured" : tier === "premium" ? "Premium" : "Free";
+  const expectedDays = tier === "featured" ? 3 : tier === "premium" ? 5 : 0;
+
   return (
     <div className="space-y-3 mt-4">
       <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
         <div className="flex items-center gap-2 mb-2">
           <CalendarDays className="w-5 h-5 text-[#5DADA5]" />
           <h4 className="font-semibold text-[#2C4F4E]">Schedule</h4>
-          {!demoActive && maxDays > 0 && (
+
+          {tier !== "free" && (
             <Badge className="bg-[#5DADA5] text-white text-xs ml-auto">
-              Up to {maxDays} days
+              {expectedDays} consecutive days
             </Badge>
           )}
+
           {demoActive && (
-            <Badge className="bg-purple-500 text-white text-xs ml-auto">Demo — no limits</Badge>
+            <Badge className="bg-purple-500 text-white text-xs ml-2">
+              Demo
+            </Badge>
           )}
         </div>
+
         <p className="text-sm text-[#1F2937] opacity-80 mb-4">
-          {demoActive
-            ? "Demo mode: choose any dates you want."
-            : `${tierLabel} listings can run for up to ${maxDays} days.`}
+          {tier === "free"
+            ? "Demo mode: you can select dates, but Free normally auto-schedules for the weekend."
+            : `${tierLabel} requires exactly ${expectedDays} consecutive days.`}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-[#2C4F4E] font-medium">Start Date & Time</Label>
+            <Label className="text-[#2C4F4E] font-medium">Start Date</Label>
             <Input
-              type="datetime-local"
-              value={formData.startDateTime ? toLocalISOString(new Date(formData.startDateTime)) : ""}
-              onChange={handleStartChange}
+              type="date"
+              value={startDate}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, selectedRangeStartDate: e.target.value }))
+              }
               className="bg-white border-[#2C4F4E]"
             />
           </div>
+
           <div className="space-y-1.5">
-            <Label className="text-[#2C4F4E] font-medium">End Date & Time</Label>
+            <Label className="text-[#2C4F4E] font-medium">End Date</Label>
             <Input
-              type="datetime-local"
-              value={formData.endDateTime ? toLocalISOString(new Date(formData.endDateTime)) : ""}
-              onChange={handleEndChange}
-              min={formData.startDateTime ? toLocalISOString(new Date(formData.startDateTime)) : ""}
-              max={maxEndDateTime}
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, selectedRangeEndDate: e.target.value }))
+              }
               className="bg-white border-[#2C4F4E]"
             />
           </div>
         </div>
+
+        {inlineError && (
+          <div className="mt-3 text-sm text-red-700 bg-red-100 border border-red-200 rounded-md p-2">
+            {inlineError}
+          </div>
+        )}
       </div>
 
-      {/* Premium pre-activate pin option */}
-      {tier === "premium" && (
+      {/* Premium Early Visibility */}
+      {tier === "premium" && computed?.valid && (
         <div className="rounded-xl border-2 border-[#F4A849] bg-[#F4A849]/10 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Eye className="w-5 h-5 text-[#F4A849]" />
-            <h4 className="font-semibold text-[#2C4F4E]">Pre-activate Map Pin</h4>
+            <h4 className="font-semibold text-[#2C4F4E]">Early Visibility</h4>
+            <Badge className="bg-[#F4A849] text-[#2C4F4E] text-xs ml-auto">
+              Optional
+            </Badge>
           </div>
+
           <p className="text-sm text-[#1F2937] opacity-80 mb-3">
-            Show your pin on the map before the event starts. This does not change your event duration.
+            Early Visibility shows your pin before your sale is OPEN.
+            <br />
+            <span className="font-medium text-[#2C4F4E]">
+              Early Visibility days count toward your 5 total days.
+            </span>
           </p>
+
           <div className="flex items-center gap-3">
             <Switch
-              checked={(formData.preActivateDays || 0) > 0}
+              checked={premiumEarlyEnabled}
               onCheckedChange={(checked) =>
-                setFormData((prev) => ({ ...prev, preActivateDays: checked ? 2 : 0 }))
+                setFormData((prev) => ({
+                  ...prev,
+                  earlyVisibilityDays: checked ? 1 : 0
+                }))
               }
             />
             <span className="text-sm text-[#2C4F4E] font-medium">
-              {(formData.preActivateDays || 0) > 0 ? "Enabled" : "Disabled"}
+              {premiumEarlyEnabled ? "Enabled" : "Disabled"}
             </span>
           </div>
-          {(formData.preActivateDays || 0) > 0 && (
-            <div className="mt-3">
-              <Label className="text-[#2C4F4E] text-sm font-medium mb-1 block">
-                Days before event
-              </Label>
-              <Select
-                value={String(formData.preActivateDays || 2)}
-                onValueChange={(val) =>
-                  setFormData((prev) => ({ ...prev, preActivateDays: Number(val) }))
+
+          {premiumEarlyEnabled && (
+            <div className="mt-3 flex items-center gap-3">
+              <span className="text-sm text-[#2C4F4E] font-medium">Days:</span>
+
+              <button
+                type="button"
+                className="px-3 py-1 rounded-md border-2 border-[#2C4F4E] bg-white text-[#2C4F4E]"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    earlyVisibilityDays: Math.max(0, (prev.earlyVisibilityDays || 0) - 1)
+                  }))
                 }
+                disabled={earlyVisibilityDays <= 0}
               >
-                <SelectTrigger className="w-40 bg-white border-[#2C4F4E]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2">2 days early</SelectItem>
-                  <SelectItem value="3">3 days early</SelectItem>
-                </SelectContent>
-              </Select>
+                -
+              </button>
+
+              <div className="min-w-[2rem] text-center text-sm font-semibold text-[#2C4F4E]">
+                {earlyVisibilityDays}
+              </div>
+
+              <button
+                type="button"
+                className="px-3 py-1 rounded-md border-2 border-[#2C4F4E] bg-white text-[#2C4F4E]"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    earlyVisibilityDays: Math.min(3, (prev.earlyVisibilityDays || 0) + 1)
+                  }))
+                }
+                disabled={earlyVisibilityDays >= 3}
+              >
+                +
+              </button>
+
+              <span className="text-xs text-[#1F2937] opacity-80">(0–3)</span>
             </div>
           )}
+
+          {/* Preview (plain english: shows what’s yellow vs green without coloring calendar yet) */}
+          <div className="mt-4 space-y-2 text-sm">
+            <div>
+              <span className="font-medium text-[#2C4F4E]">Early Visibility Dates: </span>
+              <span className="text-[#1F2937]">
+                {(computed.earlyVisibilityDates || []).length
+                  ? computed.earlyVisibilityDates.join(", ")
+                  : "None"}
+              </span>
+            </div>
+
+            <div>
+              <span className="font-medium text-[#2C4F4E]">Active Dates: </span>
+              <span className="text-[#1F2937]">
+                {(computed.activeDates || []).length ? computed.activeDates.join(", ") : "None"}
+              </span>
+            </div>
+          </div>
         </div>
       )}
     </div>
