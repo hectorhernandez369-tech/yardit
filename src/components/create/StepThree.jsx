@@ -1,5 +1,4 @@
 import React from "react";
-import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,34 +10,32 @@ const tiers = [
     name: "Free",
     price: 0,
     features: [
-      "1000 ft visibility radius",
       "Bottom section in list view",
-      "Up to 3 photos",
-      "1 listing per week"
+      "1 photo",
+      "Weekend only (auto-scheduled)",
+      "Lowest map visibility"
     ]
   },
   {
     id: "featured",
     name: "Featured",
-    price: 14.99,
+    price: 4.99,
     features: [
-      "1 mile visibility radius",
       "Top 7 in list view",
       "Up to 5 photos",
-      "Active for any 3 days",
-      "2 listings per week"
+      "Active for 3 consecutive days",
+      "Higher map visibility than Free"
     ]
   },
   {
     id: "premium",
     name: "Premium",
-    price: 29.99,
+    price: 6.99,
     features: [
-      "5 mile visibility radius",
       "Highest priority in list",
       "Up to 8 photos",
-      "Active for 5 days",
-      "3 listings per week"
+      "5 consecutive total days",
+      "Optional Early Visibility (counts toward 5 days)"
     ],
     popular: true
   }
@@ -60,14 +57,15 @@ export default function StepThree({ formData, setFormData }) {
         <Card className="border-2 border-[#2C4F4E] bg-[#E7D7B8]">
           <CardContent className="p-6">
             <div className="text-center">
-              <Badge className="bg-[#5DADA5] text-white border-2 border-[#2C4F4E] mb-4">Neighborhood Sale</Badge>
+              <Badge className="bg-[#5DADA5] text-white border-2 border-[#2C4F4E] mb-4">
+                Neighborhood Sale
+              </Badge>
               <h3 className="text-2xl font-bold text-[#2C4F4E] mb-2">$49.99</h3>
               <p className="text-[#1F2937] mb-4">2-day neighborhood event</p>
               <ul className="text-left space-y-2 text-sm text-[#2C4F4E]">
-                <li>✓ 5 mile visibility radius</li>
+                <li>✓ Highest map priority</li>
                 <li>✓ Up to 10 homes</li>
                 <li>✓ Maximum 500 ft span</li>
-                <li>✓ Highest map priority</li>
               </ul>
             </div>
           </CardContent>
@@ -88,13 +86,21 @@ export default function StepThree({ formData, setFormData }) {
 
       <RadioGroup
         value={formData.tier}
-        onValueChange={(value) => setFormData(prev => ({ ...prev, tier: value }))}
+        onValueChange={(value) => setFormData((prev) => ({ ...prev, tier: value }))}
       >
         {tiers.map((tier) => (
           <label key={tier.id} htmlFor={tier.id} className="cursor-pointer">
-            <Card className={`${formData.tier === tier.id ? "border-[#F4A849] border-2" : "border-[#2C4F4E] border-2"} bg-[#E7D7B8] relative`}>
+            <Card
+              className={`${
+                formData.tier === tier.id
+                  ? "border-[#F4A849] border-2"
+                  : "border-[#2C4F4E] border-2"
+              } bg-[#E7D7B8] relative`}
+            >
               {tier.popular && (
-                <Badge className="absolute top-2 right-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E]">Most Popular</Badge>
+                <Badge className="absolute top-2 right-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E]">
+                  Most Popular
+                </Badge>
               )}
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
@@ -106,11 +112,18 @@ export default function StepThree({ formData, setFormData }) {
                         {tier.price === 0 ? "Free" : `$${tier.price}`}
                       </p>
                     </div>
+
                     <ul className="space-y-1 text-sm text-[#1F2937]">
                       {tier.features.map((feature, idx) => (
                         <li key={idx}>✓ {feature}</li>
                       ))}
                     </ul>
+
+                    {tier.id === "free" && (
+                      <div className="mt-3 text-xs text-[#1F2937] opacity-90">
+                        Free listings auto-schedule for the next weekend and expire Sunday night.
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -123,7 +136,8 @@ export default function StepThree({ formData, setFormData }) {
         <div className="bg-[#F4A849]/20 border-2 border-[#F4A849] rounded-lg p-4 text-sm">
           <p className="font-semibold text-[#2C4F4E] mb-1">Payment Demo Mode</p>
           <p className="text-[#1F2937]">
-            For this MVP, payment is simulated. Your listing will be created with {formData.tier} tier status.
+            For this MVP, payment is simulated. Your listing will be created with{" "}
+            {formData.tier} tier status.
           </p>
         </div>
       )}
