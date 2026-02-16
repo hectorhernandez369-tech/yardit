@@ -17,8 +17,29 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+// Get today's date string (YYYY-MM-DD) in a given IANA timezone
+function getTodayInTimezone(timeZoneId) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timeZoneId,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+  return parts; // "YYYY-MM-DD"
+}
+
+// Determine if a premium listing is in early-visibility vs active right now
+function getPremiumPhase(listing) {
+  if (listing.tier !== "premium") return "normal";
+  const tz = listing.timeZoneId || "America/Los_Angeles";
+  const today = getTodayInTimezone(tz);
+  if ((listing.earlyVisibilityDates || []).includes(today)) return "early";
+  if ((listing.activeDates || []).includes(today)) return "active";
+  return "normal";
+}
+
 // Tier-based icons
-const createIcon = (tier) => {
+const createIcon = (tier, { premiumPhase } = {}) => {
   const colors = {
     free: "#64748b",
     featured: "#9333ea",
@@ -33,8 +54,25 @@ const createIcon = (tier) => {
     neighborhood_tier: "N"
   };
 
+  let fillColor = colors[tier] || "#64748b";
+  let strokeColor = "white";
+  let glowFilter = "";
+
+  if (tier === "premium" && premiumPhase === "active") {
+    // Normal premium: gold fill, teal outline, glow
+    strokeColor = "%232C4F4E";
+    glowFilter = `%3Cdefs%3E%3Cfilter id='glow'%3E%3CfeGaussianBlur stdDeviation='2' result='blur'/%3E%3CfeMerge%3E%3CfeMergeNode in='blur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E`;
+  } else if (tier === "premium" && premiumPhase === "early") {
+    // Early visibility: darker gold, no glow
+    fillColor = "#a16207"; // ~25% darker amber
+    strokeColor = "%232C4F4E";
+    glowFilter = "";
+  }
+
+  const filterAttr = glowFilter ? " filter='url(%23glow)'" : "";
+
   return new L.Icon({
-    iconUrl: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='${encodeURIComponent(colors[tier])}' stroke='white' stroke-width='2'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='14' font-weight='bold'%3E${labels[tier]}%3C/text%3E%3C/svg%3E`,
+    iconUrl: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E${glowFilter}%3Ccircle cx='16' cy='16' r='14' fill='${encodeURIComponent(fillColor)}' stroke='${strokeColor}' stroke-width='2'${filterAttr}/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='white' font-size='14' font-weight='bold'%3E${labels[tier]}%3C/text%3E%3C/svg%3E`,
     iconSize: [32, 32],
     iconAnchor: [16, 32],
     popupAnchor: [0, -32],
