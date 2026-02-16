@@ -378,7 +378,7 @@ export default function TierSchedule({ formData, setFormData }) {
             <div>
               <span className="font-medium text-[#2C4F4E]">Active Dates: </span>
               <span className="text-[#1F2937]">
-                {(computed.activeDates || []).length ? computed.activeDates.join(", ") : "None"}
+                {(computed.activeDates || []).length ? computed.activeDates.map(d => new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })).join(", ") : "None"}
               </span>
             </div>
           </div>
