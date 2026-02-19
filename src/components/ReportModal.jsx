@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import ReportPhotoUploader from "./report/ReportPhotoUploader";
 
 const REPORT_REASONS = [
   { group: "Safety / Illegal", items: [
@@ -48,6 +50,8 @@ export default function ReportModal({ listingId, onClose }) {
   const [selectedCode, setSelectedCode] = useState("");
   const [otherDetails, setOtherDetails] = useState("");
   const [details, setDetails] = useState("");
+  const [photos, setPhotos] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -65,10 +69,29 @@ export default function ReportModal({ listingId, onClose }) {
   const selectedReason = ALL_REASONS.find(r => r.code === selectedCode);
   const isOther = selectedCode === "OTHER";
 
+  const uploadPhotos = async () => {
+    if (photos.length === 0) return [];
+    const urls = [];
+    for (const photo of photos) {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: photo.file });
+      urls.push(file_url);
+    }
+    return urls;
+  };
+
   const reportMutation = useMutation({
     mutationFn: async (data) => {
+      // Upload photos first
+      setIsUploading(true);
+      let photo_urls = [];
+      if (photos.length > 0) {
+        photo_urls = await uploadPhotos();
+      }
+      setIsUploading(false);
+
       const report = await base44.entities.Report.create({
         ...data,
+        photo_urls: photo_urls.length > 0 ? photo_urls : undefined,
         listingId,
         reporterUserId: user.id,
       });
@@ -84,14 +107,18 @@ export default function ReportModal({ listingId, onClose }) {
       return report;
     },
     onSuccess: () => {
+      photos.forEach((p) => URL.revokeObjectURL(p.preview));
       toast.success("Report submitted successfully");
       queryClient.invalidateQueries({ queryKey: ["reports"] });
       onClose();
     },
     onError: () => {
+      setIsUploading(false);
       toast.error("Failed to submit report");
     },
   });
+
+  const isSubmitting = reportMutation.isPending || isUploading;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -174,21 +201,29 @@ export default function ReportModal({ listingId, onClose }) {
             />
           </div>
 
+          <ReportPhotoUploader photos={photos} onPhotosChange={setPhotos} />
+
           <div className="flex gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               className="flex-1"
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={reportMutation.isPending}
+              disabled={isSubmitting}
               className="flex-1 bg-red-600 hover:bg-red-700"
             >
-              {reportMutation.isPending ? "Submitting..." : "Submit Report"}
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {isUploading ? "Uploading photos…" : "Submitting report…"}
+                </span>
+              ) : "Submit Report"}
             </Button>
           </div>
         </form>
