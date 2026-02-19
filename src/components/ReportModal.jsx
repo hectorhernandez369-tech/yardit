@@ -69,7 +69,7 @@ export default function ReportModal({ listingId, onClose }) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="z-[9999]">
         <DialogHeader>
           <DialogTitle>Report Listing</DialogTitle>
         </DialogHeader>
