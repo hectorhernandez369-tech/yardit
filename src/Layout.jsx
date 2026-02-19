@@ -105,9 +105,9 @@ export default function Layout({ children }) {
               </button>
               <Link to={createPageUrl("Home")}>
                 <Button
-                  variant={location.pathname === createPageUrl("Home") ? "secondary" : "ghost"}
+                  variant={location.pathname === createPageUrl("Home") || location.pathname === "/" ? "secondary" : "ghost"}
                   size="sm"
-                  className={`gap-2 ${location.pathname === createPageUrl("Home") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                  className={`gap-2 ${location.pathname === createPageUrl("Home") || location.pathname === "/" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
                 >
                   <Home className="w-4 h-4" />
                   <span className="hidden sm:inline">Map</span>

@@ -294,7 +294,7 @@ export default function MyListingsPage() {
                       <Button
                         size="sm"
                         disabled={!hasCoords(listing)}
-                        onClick={() => navigate(createPageUrl("Map") + `?listingId=${listing.id}`)}
+                        onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
                         className="gap-1 bg-teal-600 hover:bg-teal-700 text-white"
                       >
                         <Map className="w-3 h-3" />

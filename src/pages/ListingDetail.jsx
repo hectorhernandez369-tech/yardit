@@ -134,7 +134,7 @@ export default function ListingDetailPage() {
 
             <div className="flex gap-3">
               <Button
-                onClick={() => navigate(createPageUrl("Map") + `?listingId=${listing.id}`)}
+                onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
                 disabled={!listing.lat || !listing.lng}
                 className="flex-1 gap-2"
                 style={{ backgroundColor: '#0F766E' }}

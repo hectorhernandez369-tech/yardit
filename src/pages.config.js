@@ -52,7 +52,6 @@ import CreateListing from './pages/CreateListing';
 import Home from './pages/Home';
 import Leaderboard from './pages/Leaderboard';
 import ListingDetail from './pages/ListingDetail';
-import Map from './pages/Map';
 import MyListings from './pages/MyListings';
 import NotificationSettings from './pages/NotificationSettings';
 import Notifications from './pages/Notifications';
@@ -68,7 +67,6 @@ export const PAGES = {
     "Home": Home,
     "Leaderboard": Leaderboard,
     "ListingDetail": ListingDetail,
-    "Map": Map,
     "MyListings": MyListings,
     "NotificationSettings": NotificationSettings,
     "Notifications": Notifications,
@@ -78,7 +76,7 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "Map",
+    mainPage: "AdminLite",
     Pages: PAGES,
     Layout: __Layout,
 };
