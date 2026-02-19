@@ -26,6 +26,9 @@ export default function CaseManagement() {
   useEffect(() => {
     const init = async () => {
       const currentUser = await base44.auth.me();
+      if (!('isAdmin' in currentUser)) {
+        currentUser.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(currentUser.role);
+      }
       if (!currentUser.isAdmin) {
         navigate(createPageUrl("Home"));
         return;
