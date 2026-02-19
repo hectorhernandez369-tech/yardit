@@ -18,6 +18,9 @@ import RouteBuilder from "../components/map/RouteBuilder";
 import CheckInButton from "../components/map/CheckInButton";
 import { toast } from "sonner";
 import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
+import ReportModal from "../components/ReportModal";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import MapDebugOverlay from "../components/map/MapDebugOverlay";
 import MapZoomControl from "../components/map/MapZoomControl";
 import MapFocusController from "../components/map/MapFocusController";
@@ -187,7 +190,9 @@ function optimizeRoute(locations, startLat, startLng) {
 }
 
 export default function HomePage() {
+  const navigate = useNavigate();
   const [view, setView] = useState("map");
+  const [reportListingId, setReportListingId] = useState(null);
 
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
@@ -661,36 +666,62 @@ export default function HomePage() {
                       click: () => { handlePinClick(listing); }
                     }}
                   >
-                    <Popup maxWidth={280} maxHeight={320}>
-                      <div className="p-1.5" style={{ maxHeight: "60vh", overflowY: "auto" }}>
-                        <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-                          <Badge className={`text-[10px] px-1.5 py-0.5 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : "bg-orange-500"}`}>
-                            {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : "🏡 Yard Sale"}
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 capitalize">{listing.tier}</Badge>
-                          {isSelected && routeActive && (
-                            <Badge className="text-[10px] px-1.5 py-0.5 bg-blue-600">Stop #{routeIndex + 1}</Badge>
+                    <Popup maxWidth={420} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]}>
+                      <div className="flex flex-col" style={{ maxWidth: "min(92vw, 420px)", maxHeight: "60vh" }}>
+                        {/* Scrollable content */}
+                        <div className="p-2 overflow-y-auto flex-1 min-h-0">
+                          <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                            <Badge className={`text-[10px] px-1.5 py-0.5 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : "bg-orange-500"}`}>
+                              {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : "🏡 Yard Sale"}
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 capitalize">{listing.tier}</Badge>
+                            {isSelected && routeActive && (
+                              <Badge className="text-[10px] px-1.5 py-0.5 bg-blue-600">Stop #{routeIndex + 1}</Badge>
+                            )}
+                          </div>
+
+                          <h3 className="font-bold text-sm leading-tight mb-0.5">{listing.title}</h3>
+                          <p className="text-xs text-gray-600 mb-1">{listing.addressText}</p>
+
+                          {listing.description && (
+                            <p className="text-xs text-gray-500 mb-1 line-clamp-3">{listing.description}</p>
                           )}
-                        </div>
 
-                        <h3 className="font-bold text-sm leading-tight mb-0.5">{listing.title}</h3>
-                        <p className="text-xs text-gray-600 mb-1">{listing.addressText}</p>
+                          <div className="flex items-center gap-1 text-[11px] text-gray-500 mb-1">
+                            <Calendar className="w-3 h-3 shrink-0" />
+                            {format(new Date(listing.startDateTime), "MMM d, h:mm a")} — {format(new Date(listing.endDateTime), "MMM d, h:mm a")}
+                          </div>
 
-                        {listing.description && (
-                          <p className="text-xs text-gray-500 mb-1 line-clamp-2">{listing.description}</p>
-                        )}
-
-                        <div className="flex items-center gap-1 text-[11px] text-gray-500 mb-1.5">
-                          <Calendar className="w-3 h-3 shrink-0" />
-                          {format(new Date(listing.startDateTime), "MMM d, h:mm a")} — {format(new Date(listing.endDateTime), "MMM d, h:mm a")}
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1.5 border-t border-gray-100">
                           <div className="flex items-center gap-1 text-[11px] text-gray-400">
                             <User className="w-3 h-3" />
                             {listing.created_by?.split("@")[0] || "Anonymous"}
                           </div>
-                          <div className="flex gap-1.5">
+                        </div>
+
+                        {/* Sticky bottom action row */}
+                        <div className="flex items-center gap-1.5 p-2 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
+                            }}
+                            className="h-7 text-xs px-2 bg-amber-600 hover:bg-amber-700"
+                          >
+                            View Details
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReportListingId(listing.id);
+                            }}
+                            className="h-7 text-xs px-2 text-red-600 border-red-300 hover:bg-red-50"
+                          >
+                            Report
+                          </Button>
+                          <div className="ml-auto flex gap-1.5">
                             <CheckInButton locationId={listing.id} />
                             <Button
                               size="sm"
@@ -764,6 +795,14 @@ export default function HomePage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Report Modal */}
+      {reportListingId && (
+        <ReportModal
+          listingId={reportListingId}
+          onClose={() => setReportListingId(null)}
+        />
       )}
     </div>
   );
