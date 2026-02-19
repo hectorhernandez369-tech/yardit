@@ -32,7 +32,7 @@ export default function CaseManagement() {
       }
       setUser(currentUser);
       const users = await base44.entities.User.list();
-      setAllAdminUsers(users.filter(u => ["admin_lite", "supervisor", "master"].includes(u.role)));
+      setAllAdminUsers(users.filter(u => ["admin", "admin_lite", "supervisor", "master"].includes(u.role)));
 
       // Deep-link: open a specific case from notification click
       const params = new URLSearchParams(window.location.search);

@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AdminLite from './pages/AdminLite';
+import CaseManagement from './pages/CaseManagement';
 import CreateListing from './pages/CreateListing';
 import Home from './pages/Home';
 import Leaderboard from './pages/Leaderboard';
@@ -58,12 +59,12 @@ import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import SellerDashboard from './pages/SellerDashboard';
 import Settings from './pages/Settings';
-import CaseManagement from './pages/CaseManagement';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AdminLite": AdminLite,
+    "CaseManagement": CaseManagement,
     "CreateListing": CreateListing,
     "Home": Home,
     "Leaderboard": Leaderboard,
@@ -74,7 +75,6 @@ export const PAGES = {
     "Profile": Profile,
     "SellerDashboard": SellerDashboard,
     "Settings": Settings,
-    "CaseManagement": CaseManagement,
 }
 
 export const pagesConfig = {
