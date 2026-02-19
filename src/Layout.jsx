@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Plus, Home, User, Settings, Shield } from "lucide-react";
+import { Plus, Home, User, Settings, Shield, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Toaster } from "sonner";
@@ -139,16 +139,28 @@ export default function Layout({ children }) {
                   </Link>
 
                   {user.isAdmin && (
-                    <Link to={createPageUrl("AdminLite")}>
-                      <Button
-                        variant={location.pathname === createPageUrl("AdminLite") ? "secondary" : "ghost"}
-                        size="sm"
-                        className={`gap-2 ${location.pathname === createPageUrl("AdminLite") ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
-                      >
-                        <Shield className="w-4 h-4" />
-                        <span className="hidden sm:inline">Admin</span>
-                      </Button>
-                    </Link>
+                    <>
+                      <Link to={createPageUrl("CaseManagement")}>
+                        <Button
+                          variant={location.pathname === createPageUrl("CaseManagement") ? "secondary" : "ghost"}
+                          size="sm"
+                          className={`gap-2 ${location.pathname === createPageUrl("CaseManagement") ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
+                        >
+                          <FolderOpen className="w-4 h-4" />
+                          <span className="hidden sm:inline">Cases</span>
+                        </Button>
+                      </Link>
+                      <Link to={createPageUrl("AdminLite")}>
+                        <Button
+                          variant={location.pathname === createPageUrl("AdminLite") ? "secondary" : "ghost"}
+                          size="sm"
+                          className={`gap-2 ${location.pathname === createPageUrl("AdminLite") ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
+                        >
+                          <Shield className="w-4 h-4" />
+                          <span className="hidden sm:inline">Admin</span>
+                        </Button>
+                      </Link>
+                    </>
                   )}
                   
                   <Link to={createPageUrl("CreateListing")}>
