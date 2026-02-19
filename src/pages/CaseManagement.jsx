@@ -14,6 +14,7 @@ import CaseDetailView from "../components/caseManagement/ui/CaseDetailView";
 
 export default function CaseManagement() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("in_queue");
   const [searchQuery, setSearchQuery] = useState("");
