@@ -107,10 +107,10 @@ export default function CaseAuditTimeline({ actions, allAdminUsers }) {
   const adminMap = {};
   (allAdminUsers || []).forEach(a => { adminMap[a.id] = a; });
 
-  // Show most recent first for the collapsed view, but display in chronological order
+  // Show most recent entries first for the collapsed view, but keep chronological order
   const sortedActions = [...actions].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
   const visibleActions = expanded ? sortedActions : sortedActions.slice(0, DEFAULT_VISIBLE);
-  const hasMore = sortedActions.length > DEFAULT_VISIBLE;
+  const hasMore = actions.length > DEFAULT_VISIBLE;
 
   return (
     <Card>
@@ -154,13 +154,9 @@ export default function CaseAuditTimeline({ actions, allAdminUsers }) {
             {hasMore && (
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="mt-3 flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium min-h-[36px] px-1"
+                className="mt-3 w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium py-2 min-h-[40px] rounded hover:bg-blue-50 transition-colors"
               >
-                {expanded ? (
-                  <><ChevronDown className="w-4 h-4" /> Show Less</>
-                ) : (
-                  <><ChevronRight className="w-4 h-4" /> Show More ({sortedActions.length - DEFAULT_VISIBLE} older)</>
-                )}
+                {expanded ? `Show Less` : `Show More (${actions.length - DEFAULT_VISIBLE} older)`}
               </button>
             )}
           </>
