@@ -8,13 +8,46 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
+const REPORT_REASONS = [
+  { group: "Safety / Illegal", items: [
+    { code: "SAFETY_WEAPONS", label: "Weapons / dangerous items" },
+    { code: "SAFETY_DRUGS", label: "Drugs / controlled substances" },
+    { code: "SAFETY_STOLEN_GOODS", label: "Stolen goods" },
+    { code: "SAFETY_THREAT", label: "Unsafe location / threat" },
+    { code: "SAFETY_HARASSMENT_HATE", label: "Harassment / hate" },
+  ]},
+  { group: "Fraud / Misleading", items: [
+    { code: "FRAUD_SCAM", label: "Scam / bait-and-switch" },
+    { code: "FRAUD_FAKE_LISTING", label: "Fake listing / not real sale" },
+    { code: "FRAUD_MISLEADING", label: "Misleading photos or description" },
+    { code: "FRAUD_WRONG_LOCATION", label: "Wrong location / address inaccurate" },
+    { code: "FRAUD_PRICING_DECEPTION", label: "Pricing deception" },
+  ]},
+  { group: "Content / Quality", items: [
+    { code: "CONTENT_ADULT", label: "Explicit / adult content" },
+    { code: "CONTENT_OFFENSIVE", label: "Offensive content" },
+    { code: "QUALITY_DUPLICATE", label: "Duplicate listing" },
+    { code: "QUALITY_WRONG_CATEGORY", label: "Wrong category" },
+    { code: "QUALITY_NOT_YARD_SALE", label: "Not a yard sale (vendor/business ad)" },
+  ]},
+  { group: "Platform Abuse", items: [
+    { code: "ABUSE_SPAM", label: "Spam" },
+    { code: "ABUSE_REPEAT_OFFENDER", label: "Repeat offender / abuse" },
+    { code: "ABUSE_TIER_CIRCUMVENT", label: "Circumventing tiers / policy" },
+  ]},
+  { group: "Other", items: [
+    { code: "OTHER", label: "Other (requires details)" },
+  ]},
+];
+
+const ALL_REASONS = REPORT_REASONS.flatMap(g => g.items);
+
 export default function ReportModal({ listingId, onClose }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
-  const [formData, setFormData] = useState({
-    reason: "",
-    details: ""
-  });
+  const [selectedCode, setSelectedCode] = useState("");
+  const [otherDetails, setOtherDetails] = useState("");
+  const [details, setDetails] = useState("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -29,6 +62,9 @@ export default function ReportModal({ listingId, onClose }) {
     fetchUser();
   }, []);
 
+  const selectedReason = ALL_REASONS.find(r => r.code === selectedCode);
+  const isOther = selectedCode === "OTHER";
+
   const reportMutation = useMutation({
     mutationFn: async (data) => {
       const report = await base44.entities.Report.create({
@@ -37,7 +73,6 @@ export default function ReportModal({ listingId, onClose }) {
         reporterUserId: user.id,
       });
 
-      // Update listing report count
       const listings = await base44.entities.Listing.filter({ id: listingId });
       if (listings[0]) {
         await base44.entities.Listing.update(listingId, {
@@ -60,11 +95,22 @@ export default function ReportModal({ listingId, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.reason) {
+    if (!selectedCode) {
       toast.error("Please select a reason");
       return;
     }
-    reportMutation.mutate(formData);
+    if (isOther && !otherDetails.trim()) {
+      toast.error("Please provide details for your report");
+      return;
+    }
+
+    reportMutation.mutate({
+      reason: selectedReason?.label || selectedCode,
+      reason_code: selectedCode,
+      reason_label: selectedReason?.label || selectedCode,
+      details: details || undefined,
+      other_details: isOther ? otherDetails : undefined,
+    });
   };
 
   return (
@@ -78,29 +124,49 @@ export default function ReportModal({ listingId, onClose }) {
           <div>
             <Label>Reason *</Label>
             <Select
-              value={formData.reason}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, reason: value }))}
+              value={selectedCode}
+              onValueChange={setSelectedCode}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a reason" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="safety_hazard">Safety Hazard</SelectItem>
-                <SelectItem value="abuse">Abuse</SelectItem>
-                <SelectItem value="scam">Scam</SelectItem>
-                <SelectItem value="spam">Spam</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                {REPORT_REASONS.map((group) => (
+                  <React.Fragment key={group.group}>
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {group.group}
+                    </div>
+                    {group.items.map((item) => (
+                      <SelectItem key={item.code} value={item.code}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </React.Fragment>
+                ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">Choose the closest match.</p>
           </div>
 
+          {isOther && (
+            <div>
+              <Label>Please describe the issue *</Label>
+              <Textarea
+                placeholder="What's the problem with this listing?"
+                value={otherDetails}
+                onChange={(e) => setOtherDetails(e.target.value)}
+                rows={3}
+              />
+            </div>
+          )}
+
           <div>
-            <Label>Details (optional)</Label>
+            <Label>Additional details (optional)</Label>
             <Textarea
-              placeholder="Provide additional information..."
-              value={formData.details}
-              onChange={(e) => setFormData(prev => ({ ...prev, details: e.target.value }))}
-              rows={4}
+              placeholder="Provide any extra information..."
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              rows={3}
             />
           </div>
 
