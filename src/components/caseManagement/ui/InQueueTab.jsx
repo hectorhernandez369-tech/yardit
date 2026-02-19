@@ -156,7 +156,7 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
             );
           })}
         </div>
-      )
+      )}
       {showAssignDialog && (
         <AssignDialog
           caseItem={showAssignDialog}
