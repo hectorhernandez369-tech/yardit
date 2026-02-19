@@ -131,13 +131,17 @@ export default function ReportModal({ listingId, onClose }) {
                 <SelectValue placeholder="Select a reason" />
               </SelectTrigger>
               <SelectContent>
-                {REPORT_REASONS.map((group) => (
+                {REPORT_REASONS.map((group, groupIdx) => (
                   <React.Fragment key={group.group}>
-                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <div
+                      className={`px-2 py-1.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider cursor-default pointer-events-none select-none mb-1 ${
+                        groupIdx > 0 ? "mt-3 border-t border-gray-200 pt-3" : ""
+                      }`}
+                    >
                       {group.group}
                     </div>
                     {group.items.map((item) => (
-                      <SelectItem key={item.code} value={item.code}>
+                      <SelectItem key={item.code} value={item.code} className="cursor-pointer hover:bg-gray-100">
                         {item.label}
                       </SelectItem>
                     ))}
