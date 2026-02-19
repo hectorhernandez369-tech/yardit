@@ -37,17 +37,19 @@ export default function CaseManagement() {
       setUser(currentUser);
       const users = await base44.entities.User.list();
       setAllAdminUsers(users.filter(u => ["admin", "admin_lite", "supervisor", "master"].includes(u.role)));
-
-      // Deep-link: open a specific case from notification click
-      const params = new URLSearchParams(window.location.search);
-      const openCaseId = params.get("openCaseId");
-      if (openCaseId) {
-        setSelectedCaseId(openCaseId);
-        logAdminEvent({ adminId: currentUser.id, caseId: openCaseId, eventType: "opened_case", page: "CaseManagement" });
-      }
     };
     init();
   }, []);
+
+  // Deep-link: react to openCaseId in URL — works on mount AND when already on the page
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const openCaseId = params.get("openCaseId");
+    if (openCaseId && user) {
+      setSelectedCaseId(openCaseId);
+      logAdminEvent({ adminId: user.id, caseId: openCaseId, eventType: "opened_case", page: "CaseManagement" });
+    }
+  }, [location.search, user]);
 
   const handleTabChange = useCallback((tab) => {
     setActiveTab(tab);
