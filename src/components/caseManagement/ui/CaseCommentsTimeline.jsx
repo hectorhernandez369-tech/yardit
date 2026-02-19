@@ -44,10 +44,10 @@ export default function CaseCommentsTimeline({ comments, user, caseData, allAdmi
           const admin = adminMap[c.admin_id];
           return (
             <div key={c.id} className="border rounded-lg p-3 space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{admin?.full_name || admin?.email || c.admin_id}</span>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="text-sm font-medium break-all">{admin?.full_name || admin?.email || c.admin_id}</span>
                 <Badge className={typeColors[c.comment_type] || "bg-gray-100"}>{c.comment_type}</Badge>
-                <span className="text-xs text-gray-400 ml-auto">{new Date(c.created_date).toLocaleString()}</span>
+                <span className="text-xs text-gray-400 sm:ml-auto">{new Date(c.created_date).toLocaleString()}</span>
               </div>
               <p className="text-sm">{c.comment_text}</p>
             </div>

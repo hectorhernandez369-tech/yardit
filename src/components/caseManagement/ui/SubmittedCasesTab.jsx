@@ -39,23 +39,52 @@ export default function SubmittedCasesTab({ user, searchResults, onOpenCase, ref
       {displayed.length === 0 ? (
         <p className="text-gray-500 text-center py-8">No submitted cases.</p>
       ) : (
-        <div className="space-y-3">
-          {displayed.map(c => {
-            const admin = admins[c.assigned_admin_id];
-            const listing = listings[c.listing_id];
-            return (
-              <div key={c.id} className="bg-white border border-[#2C4F4E]/20 rounded-lg p-3 sm:p-4 cursor-pointer hover:bg-[#F3E6CF]/50 space-y-2" onClick={() => onOpenCase(c.id)}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded break-all">{c.account_number}</span>
-                  <Badge className="bg-purple-100 text-purple-800">{c.disposition || "—"}</Badge>
-                  <Badge className={c.case_priority === "high" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}>{c.case_priority}</Badge>
+        <>
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-[#E7D7B8] border-b-2 border-[#2C4F4E]">
+                  <th className="text-left p-3">Acct #</th>
+                  <th className="text-left p-3">Title</th>
+                  <th className="text-left p-3">Admin</th>
+                  <th className="text-left p-3">Disposition</th>
+                  <th className="text-left p-3">Priority</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayed.map(c => {
+                  const admin = admins[c.assigned_admin_id];
+                  const listing = listings[c.listing_id];
+                  return (
+                    <tr key={c.id} className="border-b hover:bg-[#F3E6CF]/50 cursor-pointer" onClick={() => onOpenCase(c.id)}>
+                      <td className="p-3 font-mono text-xs">{c.account_number}</td>
+                      <td className="p-3 max-w-[200px] truncate">{listing?.title || "—"}</td>
+                      <td className="p-3">{admin?.full_name || admin?.email || "—"}</td>
+                      <td className="p-3"><Badge className="bg-purple-100 text-purple-800">{c.disposition || "—"}</Badge></td>
+                      <td className="p-3"><Badge className={c.case_priority === "high" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}>{c.case_priority}</Badge></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="md:hidden space-y-3">
+            {displayed.map(c => {
+              const admin = admins[c.assigned_admin_id];
+              const listing = listings[c.listing_id];
+              return (
+                <div key={c.id} className="bg-white rounded-lg border p-3 space-y-1.5 cursor-pointer active:bg-gray-50" onClick={() => onOpenCase(c.id)}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs break-all">{c.account_number}</span>
+                    <div className="flex gap-1"><Badge className="bg-purple-100 text-purple-800">{c.disposition || "—"}</Badge><Badge className={c.case_priority === "high" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}>{c.case_priority}</Badge></div>
+                  </div>
+                  <p className="text-sm font-medium truncate">{listing?.title || "—"}</p>
+                  <p className="text-xs text-gray-500">{admin?.full_name || admin?.email || "—"}</p>
                 </div>
-                <div className="text-sm font-medium break-words">{listing?.title || "—"}</div>
-                <div className="text-xs text-gray-500">Assigned: {admin?.full_name || admin?.email || "—"}</div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

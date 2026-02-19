@@ -70,9 +70,9 @@ export default function Layout({ children }) {
     <div className="min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
       <Toaster richColors position="top-center" />
       <header className="bg-[#5DADA5] border-b-2 border-[#2C4F4E] sticky top-0 z-50 shadow-md">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <Link
                 to={createPageUrl("Home")}
                 className="flex items-center gap-3 group select-none touch-none"
@@ -100,7 +100,7 @@ export default function Layout({ children }) {
               )}
             </div>
 
-            <nav className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
+            <nav className="flex items-center gap-1 sm:gap-2 flex-wrap">
               {/* TEMPORARY: visible Demo toggle button — remove later */}
               <button
                 onClick={() => setShowDemoPanel(prev => !prev)}

@@ -191,7 +191,7 @@ export default function MyListingsPage() {
   return (
     <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <h1 className="text-2xl sm:text-3xl font-bold">My Listings</h1>
 
           <Button
@@ -266,10 +266,11 @@ export default function MyListingsPage() {
             {shownListings.map((listing) => (
               <Card key={listing.id}>
                 <CardContent className="p-6">
-                  <div className="mb-4">
-                    <div className="min-w-0 mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3">
+                    <div className="min-w-0">
                       <h3 className="text-lg sm:text-xl font-semibold mb-1 break-words">{listing.title}</h3>
 
+                      {/* Listing # small print */}
                       <p className="text-xs text-slate-500 mb-2 break-all">
                         Listing #{String(listingNumberText(listing))}
                       </p>
@@ -289,46 +290,47 @@ export default function MyListingsPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                    <div className="grid grid-cols-2 sm:flex gap-2 sm:flex-wrap sm:justify-end">
                       <Button
                         size="sm"
                         disabled={!hasCoords(listing)}
                         onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
-                        className="gap-1 bg-teal-600 hover:bg-teal-700 text-white text-xs"
+                        className="gap-1 bg-teal-600 hover:bg-teal-700 text-white"
                       >
                         <Map className="w-3 h-3" />
-                        Map
+                        View on Map
                       </Button>
 
                       <Button
                         size="sm"
                         onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-                        className="bg-slate-700 hover:bg-slate-800 text-white text-xs"
+                        className="bg-slate-700 hover:bg-slate-800 text-white"
                       >
-                        Details
+                        View Details
                       </Button>
 
                       <Button
                         size="sm"
                         onClick={() => openEditDescription(listing)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
                       >
-                        Edit
+                        Edit Description
                       </Button>
 
                       <Button
                         size="sm"
                         onClick={() => relist(listing)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
                       >
                         Relist
                       </Button>
 
+                      {/* Delete Listing */}
                       <Button
                         size="sm"
                         variant="destructive"
                         onClick={() => deleteListing(listing)}
-                        className="gap-1 col-span-2 sm:col-span-1 text-xs"
+                        className="gap-1"
                       >
                         <Trash2 className="w-3 h-3" />
                         Delete

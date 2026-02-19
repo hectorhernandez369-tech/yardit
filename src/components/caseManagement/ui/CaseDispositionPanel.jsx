@@ -50,9 +50,9 @@ export default function CaseDispositionPanel({ caseData, user, allAdminUsers, is
   return (
     <Card className={isAssigned ? "border-2 border-blue-300" : ""}>
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
+        <CardTitle className="text-base sm:text-lg flex flex-wrap items-center gap-2">
           Disposition & Submit
-          {!isAssigned && <Badge variant="outline" className="text-xs">Read-only (not assigned)</Badge>}
+          {!isAssigned && <Badge variant="outline" className="text-xs">Read-only</Badge>}
           {isLocked && <Badge className="bg-gray-200 text-gray-600">Locked</Badge>}
         </CardTitle>
       </CardHeader>

@@ -107,9 +107,9 @@ export default function CaseManagement() {
   const isSup = isSupervisor(user);
 
   return (
-    <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">🗂️ Case Management</h1>
+    <div className="min-h-[calc(100vh-140px)] p-3 sm:p-4 md:p-8 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto w-full">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 flex items-center gap-2">🗂️ Case Management</h1>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-6 max-w-xl">
           <div className="relative flex-1">
@@ -138,7 +138,7 @@ export default function CaseManagement() {
         )}
 
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="flex w-full max-w-2xl overflow-x-auto">
+          <TabsList className="grid w-full max-w-2xl grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="in_queue">In Queue</TabsTrigger>
             <TabsTrigger value="open">Open Cases</TabsTrigger>
             <TabsTrigger value="submitted">Submitted</TabsTrigger>

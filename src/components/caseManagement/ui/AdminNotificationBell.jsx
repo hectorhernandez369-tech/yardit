@@ -105,7 +105,7 @@ export default function AdminNotificationBell({ user }) {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-[200] overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-white rounded-xl shadow-2xl border border-gray-200 z-[200] overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
             <span className="text-sm font-semibold text-gray-700">Notifications</span>

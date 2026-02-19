@@ -56,10 +56,10 @@ export default function UserManagement() {
       <div className="space-y-4">
         {filteredUsers.slice(0, 20).map((user) => (
           <Card key={user.id}>
-            <CardContent className="p-4 sm:p-6">
+            <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold mb-2 break-words">{user.full_name || "No name"}</h3>
+                  <h3 className="font-semibold mb-2">{user.full_name || "No name"}</h3>
                   <p className="text-sm text-slate-600 mb-2 break-all">{user.email}</p>
                   <div className="flex gap-2 flex-wrap">
                     <Badge className={statusColors[user.accountStatus || "active"]}>

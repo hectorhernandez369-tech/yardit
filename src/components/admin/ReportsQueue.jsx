@@ -54,7 +54,7 @@ export default function ReportsQueue() {
       ) : (
         reports.map((report) => (
           <Card key={report.id}>
-            <CardContent className="p-4 sm:p-6">
+            <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                 <div className="min-w-0">
                   <Badge className="mb-2">{report.reason.replace("_", " ").toUpperCase()}</Badge>
@@ -69,7 +69,7 @@ export default function ReportsQueue() {
                   onClick={() => handleResolve(report.id)}
                   disabled={resolveMutation.isPending}
                   size="sm"
-                  className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                  className="bg-green-600 hover:bg-green-700"
                 >
                   Resolve
                 </Button>
