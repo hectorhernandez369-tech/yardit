@@ -100,9 +100,17 @@ function TechnicalDetails({ oldVal, newVal }) {
   );
 }
 
+const DEFAULT_VISIBLE = 2;
+
 export default function CaseAuditTimeline({ actions, allAdminUsers }) {
+  const [expanded, setExpanded] = useState(false);
   const adminMap = {};
   (allAdminUsers || []).forEach(a => { adminMap[a.id] = a; });
+
+  // Show most recent first for the collapsed view, but display in chronological order
+  const sortedActions = [...actions].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+  const visibleActions = expanded ? sortedActions : sortedActions.slice(0, DEFAULT_VISIBLE);
+  const hasMore = sortedActions.length > DEFAULT_VISIBLE;
 
   return (
     <Card>
@@ -111,37 +119,51 @@ export default function CaseAuditTimeline({ actions, allAdminUsers }) {
         {actions.length === 0 ? (
           <p className="text-sm text-gray-500">No actions recorded.</p>
         ) : (
-          <div className="relative ml-3 border-l-2 border-gray-200 space-y-0">
-            {actions.map(a => {
-              const admin = adminMap[a.admin_id];
-              const oldVal = safeParse(a.old_value);
-              const newVal = safeParse(a.new_value);
-              const label = FRIENDLY_LABELS[a.action_type] || a.action_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-              const color = ACTION_COLORS[a.action_type] || "bg-gray-100 text-gray-800";
+          <>
+            <div className="relative ml-3 border-l-2 border-gray-200 space-y-0">
+              {visibleActions.map(a => {
+                const admin = adminMap[a.admin_id];
+                const oldVal = safeParse(a.old_value);
+                const newVal = safeParse(a.new_value);
+                const label = FRIENDLY_LABELS[a.action_type] || a.action_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+                const color = ACTION_COLORS[a.action_type] || "bg-gray-100 text-gray-800";
 
-              return (
-                <div key={a.id} className="relative pl-6 pb-5">
-                  <div className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-white border-2 border-gray-300" />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge className={`${color} text-xs`}>{label}</Badge>
+                return (
+                  <div key={a.id} className="relative pl-6 pb-5">
+                    <div className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-white border-2 border-gray-300" />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge className={`${color} text-xs`}>{label}</Badge>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        {admin?.full_name || admin?.email || a.admin_id}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(a.created_date).toLocaleString()}
+                      </span>
+                    </div>
+                    <DiffBullets oldVal={oldVal} newVal={newVal} adminMap={adminMap} />
+                    {a.comment && <p className="mt-1.5 text-sm italic text-gray-600">"{a.comment}"</p>}
+                    <TechnicalDetails oldVal={oldVal} newVal={newVal} />
                   </div>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <User className="w-3 h-3" />
-                      {admin?.full_name || admin?.email || a.admin_id}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {new Date(a.created_date).toLocaleString()}
-                    </span>
-                  </div>
-                  <DiffBullets oldVal={oldVal} newVal={newVal} adminMap={adminMap} />
-                  {a.comment && <p className="mt-1.5 text-sm italic text-gray-600">"{a.comment}"</p>}
-                  <TechnicalDetails oldVal={oldVal} newVal={newVal} />
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            {hasMore && (
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="mt-3 flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium min-h-[36px] px-1"
+              >
+                {expanded ? (
+                  <><ChevronDown className="w-4 h-4" /> Show Less</>
+                ) : (
+                  <><ChevronRight className="w-4 h-4" /> Show More ({sortedActions.length - DEFAULT_VISIBLE} older)</>
+                )}
+              </button>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
