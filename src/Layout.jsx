@@ -20,6 +20,10 @@ export default function Layout({ children }) {
     const fetchUser = async () => {
       try {
         const currentUser = await base44.auth.me();
+        // Derive isAdmin from role if not already set
+        if (!('isAdmin' in currentUser)) {
+          currentUser.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(currentUser.role);
+        }
         setUser(currentUser);
       } catch (error) {
         console.error("Error fetching user:", error);
