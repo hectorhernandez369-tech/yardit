@@ -24,9 +24,8 @@ export async function changeCasePriority(caseId, supervisorAdminId, priority, su
 
   // Safety enforcement via helper
   const safetyErr = validateSafetyPriority(c.safety_flag, priority);
-  if (safetyErr) return safetyErr;
 
-  // Log FIRST
+  // Log the attempt BEFORE rejecting — audit trail must capture blocked attempts
   await logAdminAction({
     caseId,
     listingId: c.listing_id,
@@ -34,7 +33,10 @@ export async function changeCasePriority(caseId, supervisorAdminId, priority, su
     actionType: "change_priority",
     oldValue: { case_priority: c.case_priority },
     newValue: { case_priority: priority },
+    comment: safetyErr ? `BLOCKED: ${safetyErr.error}` : undefined,
   });
+
+  if (safetyErr) return safetyErr;
 
   // Mutate
   await base44.entities.Case.update(caseId, { case_priority: priority });
