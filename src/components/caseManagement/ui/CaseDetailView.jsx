@@ -2,15 +2,15 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, AlertTriangle, Flag, UserCircle } from "lucide-react";
+import { Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
 import { isSupervisor, logAdminEvent } from "../index";
 import CaseListingInfo from "./CaseListingInfo";
 import CaseReportInfo from "./CaseReportInfo";
-import CasePersonInfo from "./CasePersonInfo";
 import CaseCommentsTimeline from "./CaseCommentsTimeline";
 import CaseAuditTimeline from "./CaseAuditTimeline";
 import CaseDispositionPanel from "./CaseDispositionPanel";
 import CaseSupervisorActions from "./CaseSupervisorActions";
+import CasePartyInfo from "./CasePartyInfo";
 
 export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, onRefresh, activeTab }) {
   const [caseData, setCaseData] = useState(null);
@@ -18,6 +18,8 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
   const [reports, setReports] = useState([]);
   const [comments, setComments] = useState([]);
   const [actions, setActions] = useState([]);
+  const [reporterUser, setReporterUser] = useState(null);
+  const [ownerUser, setOwnerUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadAll(); }, [caseId]);
@@ -30,10 +32,28 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
 
     if (c?.listing_id) {
       const listings = await base44.entities.Listing.filter({ id: c.listing_id });
-      setListing(listings[0] || null);
+      const foundListing = listings[0] || null;
+      setListing(foundListing);
 
       const allReports = await base44.entities.Report.filter({ listingId: c.listing_id });
       setReports(allReports);
+
+      // Fetch reporter user from first report
+      const firstReporter = allReports[0]?.reporterUserId;
+      if (firstReporter) {
+        try {
+          const reporters = await base44.entities.User.filter({ id: firstReporter });
+          setReporterUser(reporters[0] || null);
+        } catch { setReporterUser(null); }
+      }
+
+      // Fetch listing owner user
+      if (foundListing?.ownerUserId) {
+        try {
+          const owners = await base44.entities.User.filter({ id: foundListing.ownerUserId });
+          setOwnerUser(owners[0] || null);
+        } catch { setOwnerUser(null); }
+      }
     }
 
     const allComments = await base44.entities.CaseComment.filter({ case_id: caseId });
@@ -70,6 +90,20 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             <CaseListingInfo listing={listing} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CasePartyInfo
+                title="Reported By"
+                userData={reporterUser}
+                accountNumber={reports[0]?.reporterUserId}
+                fallbackLabel="Unknown reporter"
+              />
+              <CasePartyInfo
+                title="Listing Owner"
+                userData={ownerUser}
+                accountNumber={listing?.ownerUserId}
+                fallbackLabel="Owner info unavailable"
+              />
+            </div>
             <CaseReportInfo reports={reports} user={user} caseId={caseId} />
           </div>
 
