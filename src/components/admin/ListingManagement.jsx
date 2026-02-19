@@ -60,44 +60,42 @@ export default function ListingManagement() {
       <div className="space-y-4">
         {filteredListings.slice(0, 20).map((listing) => (
           <Card key={listing.id}>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-2">{listing.title}</h3>
-                  <div className="flex gap-2 mb-2">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold mb-2 break-words">{listing.title}</h3>
+                  <div className="flex gap-2 mb-2 flex-wrap">
                     <Badge className={statusColors[listing.status]}>
                       {listing.status.replace("_", " ").toUpperCase()}
                     </Badge>
                     <Badge variant="outline">{listing.tier}</Badge>
                   </div>
                   <p className="text-sm text-slate-600">{listing.city}, {listing.zip}</p>
-                  <p className="text-xs text-slate-500">ID: {listing.id}</p>
+                  <p className="text-xs text-slate-500 break-all">ID: {listing.id}</p>
                 </div>
                 
-                <div className="flex gap-2">
-                  <Select
-                    value={listing.status}
-                    onValueChange={(value) => 
-                      updateStatusMutation.mutate({ 
-                        id: listing.id, 
-                        status: value,
-                        reason: `Admin changed status to ${value}`
-                      })
-                    }
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="hidden">Hidden</SelectItem>
-                      <SelectItem value="under_review">Under Review</SelectItem>
-                      <SelectItem value="suspended">Suspended</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="expired">Expired</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select
+                  value={listing.status}
+                  onValueChange={(value) => 
+                    updateStatusMutation.mutate({ 
+                      id: listing.id, 
+                      status: value,
+                      reason: `Admin changed status to ${value}`
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full sm:w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="hidden">Hidden</SelectItem>
+                    <SelectItem value="under_review">Under Review</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>

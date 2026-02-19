@@ -49,8 +49,10 @@
   * {
     @apply border-border;
   }
-  body {
+  html, body, #root {
     @apply bg-[#F3E6CF] text-[#1F2937];
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 }
 

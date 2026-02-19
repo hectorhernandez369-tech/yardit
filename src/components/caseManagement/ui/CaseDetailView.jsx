@@ -75,16 +75,18 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
   return (
     <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="outline" onClick={onClose}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
-          <h2 className="text-2xl font-bold">Case: {caseData.account_number}</h2>
-          <Badge className={caseData.status === "open" ? "bg-blue-100 text-blue-800" : caseData.status === "submitted" ? "bg-purple-100 text-purple-800" : caseData.status === "closed" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
-            {caseData.status}
-          </Badge>
-          {caseData.safety_flag && <Badge className="bg-red-600 text-white"><AlertTriangle className="w-3 h-3 mr-1" />Safety</Badge>}
-          <Badge className={caseData.case_priority === "high" ? "bg-red-100 text-red-800" : caseData.case_priority === "medium" ? "bg-yellow-100 text-yellow-800" : "bg-blue-100 text-blue-800"}>
-            {caseData.case_priority} priority
-          </Badge>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-6">
+          <Button variant="outline" size="sm" onClick={onClose}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
+          <h2 className="text-lg sm:text-2xl font-bold truncate min-w-0">Case: {caseData.account_number}</h2>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge className={caseData.status === "open" ? "bg-blue-100 text-blue-800" : caseData.status === "submitted" ? "bg-purple-100 text-purple-800" : caseData.status === "closed" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+              {caseData.status}
+            </Badge>
+            {caseData.safety_flag && <Badge className="bg-red-600 text-white"><AlertTriangle className="w-3 h-3 mr-1" />Safety</Badge>}
+            <Badge className={caseData.case_priority === "high" ? "bg-red-100 text-red-800" : caseData.case_priority === "medium" ? "bg-yellow-100 text-yellow-800" : "bg-blue-100 text-blue-800"}>
+              {caseData.case_priority} priority
+            </Badge>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
