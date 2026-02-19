@@ -5,7 +5,7 @@ import { logAdminAction, notifyAdmin } from "../lib/auditLogger";
 /**
  * assignCaseToSelf(caseId, adminId, adminUser)
  * - Only if Case.status == 'in_queue' AND assigned_admin_id is null
- * - Sets assigned_admin_id = adminId, status = 'open'
+ * - Sets assigned_admin_id = adminId, originating_admin_id = adminId (first assignment), status = 'open'
  * - AdminAction: 'assign_self'
  * - Notifies adminId
  */
@@ -24,6 +24,15 @@ export async function assignCaseToSelf(caseId, adminId, adminUser) {
     return { success: false, error: "Case is already assigned to another admin" };
   }
 
+  const updateData = {
+    assigned_admin_id: adminId,
+    status: "open",
+  };
+  // Set originating_admin_id only if not already set (first assignment from in_queue)
+  if (!c.originating_admin_id) {
+    updateData.originating_admin_id = adminId;
+  }
+
   // Log FIRST
   await logAdminAction({
     caseId,
@@ -31,14 +40,11 @@ export async function assignCaseToSelf(caseId, adminId, adminUser) {
     adminId,
     actionType: "assign_self",
     oldValue: { status: c.status, assigned_admin_id: null },
-    newValue: { status: "open", assigned_admin_id: adminId },
+    newValue: { status: "open", assigned_admin_id: adminId, originating_admin_id: updateData.originating_admin_id || c.originating_admin_id },
   });
 
   // Mutate
-  await base44.entities.Case.update(caseId, {
-    assigned_admin_id: adminId,
-    status: "open",
-  });
+  await base44.entities.Case.update(caseId, updateData);
 
   // Notify
   await notifyAdmin({ caseId, adminId, message: "Case assigned to you" });

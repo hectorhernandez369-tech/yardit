@@ -6,7 +6,7 @@ import { logAdminAction, notifyAdmin } from "../lib/auditLogger";
  * addCaseComment(caseId, adminId, commentText, commentType, adminUser)
  * - Any admin can comment
  * - Writes CaseComment row
- * - AdminAction: 'admin_comment' or 'supervisor_comment'
+ * - AdminAction logged with action reference only (no duplicated comment_text in newValue to avoid double-logging)
  * - If supervisor comments AND case has assigned admin, notify assigned admin
  */
 export async function addCaseComment(caseId, adminId, commentText, commentType, adminUser) {
@@ -24,16 +24,16 @@ export async function addCaseComment(caseId, adminId, commentText, commentType, 
   const isSup = isSupervisor(adminUser);
   const actionType = isSup ? "supervisor_comment" : "admin_comment";
 
-  // Log FIRST
+  // Log FIRST — store only metadata, not the full comment text (that lives in CaseComment)
   await logAdminAction({
     caseId,
     listingId: c.listing_id,
     adminId,
     actionType,
-    newValue: { comment_text: commentText, comment_type: commentType },
+    newValue: { comment_type: commentType },
   });
 
-  // Create comment
+  // Create comment (the single source of truth for comment text)
   await base44.entities.CaseComment.create({
     case_id: caseId,
     admin_id: adminId,

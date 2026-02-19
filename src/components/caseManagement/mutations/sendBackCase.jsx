@@ -9,9 +9,9 @@ import { logAdminAction, notifyAdmin } from "../lib/auditLogger";
  * - Requires supervisorNotes non-empty
  * - Creates CaseComment (supervisor_note)
  * - Sets status='open', disposition_locked=false
- * - Assigned admin stays as-is
+ * - Reassigns to originating_admin_id (the first admin who picked it up)
  * - AdminAction: 'send_back'
- * - Notifies assigned admin
+ * - Notifies originating admin
  */
 export async function sendBackCase(caseId, supervisorAdminId, supervisorNotes, supervisorUser) {
   const permErr = requireSupervisor(supervisorUser, "sendBackCase");
@@ -29,14 +29,20 @@ export async function sendBackCase(caseId, supervisorAdminId, supervisorNotes, s
     return { success: false, error: `Cannot send back: case status is '${c.status}', must be 'submitted'` };
   }
 
+  // Determine who to reassign to: originating admin, fallback to current assigned
+  const returnToAdminId = c.originating_admin_id || c.assigned_admin_id;
+  if (!returnToAdminId) {
+    return { success: false, error: "Cannot send back: no originating or assigned admin found" };
+  }
+
   // Log FIRST
   await logAdminAction({
     caseId,
     listingId: c.listing_id,
     adminId: supervisorAdminId,
     actionType: "send_back",
-    oldValue: { status: c.status, disposition_locked: c.disposition_locked },
-    newValue: { status: "open", disposition_locked: false },
+    oldValue: { status: c.status, disposition_locked: c.disposition_locked, assigned_admin_id: c.assigned_admin_id },
+    newValue: { status: "open", disposition_locked: false, assigned_admin_id: returnToAdminId },
     comment: supervisorNotes,
   });
 
@@ -48,20 +54,19 @@ export async function sendBackCase(caseId, supervisorAdminId, supervisorNotes, s
     comment_type: "supervisor_note",
   });
 
-  // Mutate
+  // Mutate — reassign to originating admin
   await base44.entities.Case.update(caseId, {
     status: "open",
     disposition_locked: false,
+    assigned_admin_id: returnToAdminId,
   });
 
-  // Notify assigned admin
-  if (c.assigned_admin_id) {
-    await notifyAdmin({
-      caseId,
-      adminId: c.assigned_admin_id,
-      message: "Case sent back for further investigation",
-    });
-  }
+  // Notify the originating admin
+  await notifyAdmin({
+    caseId,
+    adminId: returnToAdminId,
+    message: "Case sent back for further investigation",
+  });
 
   return { success: true };
 }

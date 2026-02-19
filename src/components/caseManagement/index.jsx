@@ -1,3 +1,4 @@
+
 /**
  * Yardit Case Management System v1.3 — Mutation Layer
  * 
@@ -32,3 +33,4 @@ export { searchCases } from "./mutations/searchCases";
 export { logAdminEvent } from "./lib/eventLogger";
 export { logAdminAction, notifyAdmin, notifySupervisors } from "./lib/auditLogger";
 export { isSupervisor, isAdminLite, isAnyAdmin } from "./lib/roles";
+export { validateSafetyPriority, enforceSafetyPriority } from "./lib/safetyRules";

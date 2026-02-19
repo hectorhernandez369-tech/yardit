@@ -1,11 +1,12 @@
 import { base44 } from "@/api/base44Client";
 import { requireSupervisor } from "../lib/roles";
 import { logAdminAction, notifyAdmin } from "../lib/auditLogger";
+import { validateSafetyPriority } from "../lib/safetyRules";
 
 /**
  * changeCasePriority(caseId, supervisorAdminId, priority, supervisorUser)
  * - Only Supervisor/Master
- * - If safety_flag == true, priority must stay 'high' (cannot downgrade)
+ * - Uses safety rules helper to block downgrade on safety-flagged cases
  * - AdminAction: 'change_priority'
  * - Optional notification to assigned admin
  */
@@ -21,9 +22,9 @@ export async function changeCasePriority(caseId, supervisorAdminId, priority, su
   const c = cases[0];
   if (!c) return { success: false, error: "Case not found" };
 
-  if (c.safety_flag && priority !== "high") {
-    return { success: false, error: "Safety-flagged cases must remain 'high' priority" };
-  }
+  // Safety enforcement via helper
+  const safetyErr = validateSafetyPriority(c.safety_flag, priority);
+  if (safetyErr) return safetyErr;
 
   // Log FIRST
   await logAdminAction({
