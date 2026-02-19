@@ -2,15 +2,15 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowLeft, AlertTriangle, Flag, UserCircle } from "lucide-react";
 import { isSupervisor, logAdminEvent } from "../index";
 import CaseListingInfo from "./CaseListingInfo";
 import CaseReportInfo from "./CaseReportInfo";
+import CasePersonInfo from "./CasePersonInfo";
 import CaseCommentsTimeline from "./CaseCommentsTimeline";
 import CaseAuditTimeline from "./CaseAuditTimeline";
 import CaseDispositionPanel from "./CaseDispositionPanel";
 import CaseSupervisorActions from "./CaseSupervisorActions";
-import CasePartyInfo from "./CasePartyInfo";
 
 export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, onRefresh, activeTab }) {
   const [caseData, setCaseData] = useState(null);
@@ -42,8 +42,8 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
       const firstReporter = allReports[0]?.reporterUserId;
       if (firstReporter) {
         try {
-          const reporters = await base44.entities.User.filter({ id: firstReporter });
-          setReporterUser(reporters[0] || null);
+          const users = await base44.entities.User.filter({ id: firstReporter });
+          setReporterUser(users[0] || null);
         } catch { setReporterUser(null); }
       }
 
@@ -91,16 +91,17 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
           <div className="space-y-6">
             <CaseListingInfo listing={listing} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <CasePartyInfo
+              <CasePersonInfo
                 title="Reported By"
-                userData={reporterUser}
-                accountNumber={reports[0]?.reporterUserId}
+                icon={Flag}
+                person={reporterUser}
+                accountNumber={caseData.account_number}
                 fallbackLabel="Unknown reporter"
               />
-              <CasePartyInfo
+              <CasePersonInfo
                 title="Listing Owner"
-                userData={ownerUser}
-                accountNumber={listing?.ownerUserId}
+                icon={UserCircle}
+                person={ownerUser}
                 fallbackLabel="Owner info unavailable"
               />
             </div>
