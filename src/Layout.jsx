@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Plus, Home, User, Settings, Shield, FolderOpen } from "lucide-react";
+import AdminNotificationBell from "./components/caseManagement/ui/AdminNotificationBell";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Toaster } from "sonner";
@@ -140,6 +141,7 @@ export default function Layout({ children }) {
 
                   {user.isAdmin && (
                     <>
+                      <AdminNotificationBell user={user} />
                       <Link to={createPageUrl("CaseManagement")}>
                         <Button
                           variant={location.pathname === createPageUrl("CaseManagement") ? "secondary" : "ghost"}

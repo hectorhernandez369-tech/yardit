@@ -33,6 +33,14 @@ export default function CaseManagement() {
       setUser(currentUser);
       const users = await base44.entities.User.list();
       setAllAdminUsers(users.filter(u => ["admin_lite", "supervisor", "master"].includes(u.role)));
+
+      // Deep-link: open a specific case from notification click
+      const params = new URLSearchParams(window.location.search);
+      const openCaseId = params.get("openCaseId");
+      if (openCaseId) {
+        setSelectedCaseId(openCaseId);
+        logAdminEvent({ adminId: currentUser.id, caseId: openCaseId, eventType: "opened_case", page: "CaseManagement" });
+      }
     };
     init();
   }, []);
