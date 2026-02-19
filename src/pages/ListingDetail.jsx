@@ -57,18 +57,18 @@ export default function ListingDetailPage() {
     <div className="min-h-[calc(100vh-140px)] bg-slate-50">
       <div className="max-w-4xl mx-auto">
         {/* Sticky title + address header */}
-        <div className="sticky top-[73px] z-40 bg-white border-b border-slate-200 shadow-sm px-4 md:px-6 py-3">
-          <div className="flex items-start justify-between gap-3">
+        <div className="sticky top-[73px] z-40 bg-white border-b border-slate-200 shadow-sm px-3 sm:px-6 py-3">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
             <div className="min-w-0">
-              <h1 className="text-xl md:text-2xl font-bold text-slate-900 truncate">{listing.title}</h1>
+              <h1 className="text-lg sm:text-2xl font-bold text-slate-900 break-words">{listing.title}</h1>
               <div className="flex items-center gap-1.5 text-slate-600 text-sm mt-0.5">
                 <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="truncate">
+                <span className="break-words">
                   {listing.addressText || "Address unavailable"}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}{listing.zip ? ` ${listing.zip}` : ""}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge className={tierColors[listing.tier]}>
                 {listing.tier === "neighborhood_tier" ? "Neighborhood Sale" : listing.tier.toUpperCase()}
               </Badge>
@@ -132,7 +132,7 @@ export default function ListingDetailPage() {
               </div>
             )}
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
                 disabled={!listing.lat || !listing.lng}

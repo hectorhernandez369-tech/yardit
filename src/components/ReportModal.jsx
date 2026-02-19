@@ -142,7 +142,7 @@ export default function ReportModal({ listingId, onClose }) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="z-[9999]">
+      <DialogContent className="z-[9999] max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Report Listing</DialogTitle>
         </DialogHeader>

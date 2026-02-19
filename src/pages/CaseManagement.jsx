@@ -111,23 +111,25 @@ export default function CaseManagement() {
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">🗂️ Case Management</h1>
 
-        <div className="flex items-center gap-2 mb-6 max-w-xl">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-6 max-w-xl">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
-              placeholder="Search by Account Number or Listing ID..."
+              placeholder="Search by Account # or Listing ID..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleSearch()}
               className="pl-10"
             />
           </div>
-          <button onClick={handleSearch} disabled={searching} className="btn-primary px-4 py-2 text-sm rounded-lg">
-            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
-          </button>
-          {searchResults && (
-            <button onClick={handleClearSearch} className="text-sm text-gray-500 underline">Clear</button>
-          )}
+          <div className="flex gap-2">
+            <button onClick={handleSearch} disabled={searching} className="btn-primary px-4 py-2 text-sm rounded-lg flex-1 sm:flex-none">
+              {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+            </button>
+            {searchResults && (
+              <button onClick={handleClearSearch} className="text-sm text-gray-500 underline">Clear</button>
+            )}
+          </div>
         </div>
         {searchResults && (
           <p className="text-sm text-gray-600 mb-2">
@@ -136,7 +138,7 @@ export default function CaseManagement() {
         )}
 
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className={`grid w-full max-w-2xl ${isSup ? "grid-cols-4" : "grid-cols-4"}`}>
+          <TabsList className="flex w-full max-w-2xl overflow-x-auto">
             <TabsTrigger value="in_queue">In Queue</TabsTrigger>
             <TabsTrigger value="open">Open Cases</TabsTrigger>
             <TabsTrigger value="submitted">Submitted</TabsTrigger>

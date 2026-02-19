@@ -82,53 +82,37 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
       {displayed.length === 0 ? (
         <p className="text-gray-500 text-center py-8">No cases in queue.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-[#E7D7B8] border-b-2 border-[#2C4F4E]">
-                <th className="text-left p-3">Acct #</th>
-                <th className="text-left p-3">Listing ID</th>
-                <th className="text-left p-3">Title</th>
-                <th className="text-left p-3">Address</th>
-                <th className="text-left p-3">Report Type</th>
-                <th className="text-left p-3">Description</th>
-                <th className="text-left p-3">Report Date</th>
-                <th className="text-left p-3">Priority</th>
-                <th className="text-left p-3">Safety</th>
-                <th className="text-left p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayed.map(c => {
-                const listing = listings[c.listing_id];
-                const caseReports = reports[c.listing_id] || [];
-                const latestReport = caseReports[0];
-                return (
-                  <tr key={c.id} className="border-b hover:bg-[#F3E6CF]/50">
-                    <td className="p-3 font-mono text-xs">{c.account_number}</td>
-                    <td className="p-3 font-mono text-xs">{c.listing_id?.slice(0, 8)}...</td>
-                    <td className="p-3">{listing?.title || "—"}</td>
-                    <td className="p-3 text-xs">{listing ? `${listing.addressText || ""}, ${listing.city || ""}` : "—"}</td>
-                    <td className="p-3">{latestReport?.reason_code || "—"}</td>
-                    <td className="p-3 text-xs max-w-[200px] truncate">{latestReport?.reason_label || latestReport?.reason || "—"}</td>
-                    <td className="p-3 text-xs">{latestReport?.created_date ? new Date(latestReport.created_date).toLocaleDateString() : "—"}</td>
-                    <td className="p-3"><Badge className={priorityColors[c.case_priority] || ""}>{c.case_priority}</Badge></td>
-                    <td className="p-3">{c.safety_flag ? <Badge className="bg-red-600 text-white"><AlertTriangle className="w-3 h-3 mr-1" />Safety</Badge> : "—"}</td>
-                    <td className="p-3">
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="outline" onClick={() => handleAssignSelf(c)} disabled={assigning === c.id}>
-                          {assigning === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Assign Self"}
-                        </Button>
-                        {isSupervisor(user) && (
-                          <Button size="sm" variant="outline" onClick={() => setShowAssignDialog(c)}>Assign</Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {displayed.map(c => {
+            const listing = listings[c.listing_id];
+            const caseReports = reports[c.listing_id] || [];
+            const latestReport = caseReports[0];
+            return (
+              <div key={c.id} className="bg-white border border-[#2C4F4E]/20 rounded-lg p-3 sm:p-4 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded break-all">{c.account_number}</span>
+                  <Badge className={priorityColors[c.case_priority] || ""}>{c.case_priority}</Badge>
+                  {c.safety_flag && <Badge className="bg-red-600 text-white"><AlertTriangle className="w-3 h-3 mr-1" />Safety</Badge>}
+                </div>
+                <div className="text-sm font-medium break-words">{listing?.title || "—"}</div>
+                <div className="text-xs text-gray-500 break-words">{listing ? `${listing.addressText || ""}, ${listing.city || ""}` : "—"}</div>
+                {latestReport && (
+                  <div className="text-xs text-gray-600">
+                    <span className="font-medium">{latestReport.reason_code}</span> · {latestReport.reason_label || latestReport.reason || "—"} · {latestReport.created_date ? new Date(latestReport.created_date).toLocaleDateString() : "—"}
+                  </div>
+                )}
+                <div className="text-xs text-gray-400 break-all">ID: {c.listing_id?.slice(0, 12)}...</div>
+                <div className="flex gap-2 flex-wrap pt-1">
+                  <Button size="sm" variant="outline" onClick={() => handleAssignSelf(c)} disabled={assigning === c.id} className="text-xs">
+                    {assigning === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Assign Self"}
+                  </Button>
+                  {isSupervisor(user) && (
+                    <Button size="sm" variant="outline" onClick={() => setShowAssignDialog(c)} className="text-xs">Assign</Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
       {showAssignDialog && (
