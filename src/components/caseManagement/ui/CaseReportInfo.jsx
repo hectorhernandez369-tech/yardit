@@ -33,7 +33,14 @@ export default function CaseReportInfo({ reports, user, caseId }) {
             <p className="text-sm font-medium">{r.reason_label || r.reason}</p>
             {r.details && <p className="text-xs text-gray-600">{r.details}</p>}
             {r.other_details && <p className="text-xs text-gray-600 italic">{r.other_details}</p>}
-            <div className="text-xs text-gray-500">Reporter: {r.reporterUserId}</div>
+            <div className="text-xs text-gray-500">
+              Reporter: <button
+                onClick={() => {
+                  logAdminEvent({ adminId: user.id, caseId, eventType: "viewed_contact_info", payload: { reporterUserId: r.reporterUserId }, page: "CaseManagement" });
+                }}
+                className="text-blue-600 underline"
+              >{r.reporterUserId}</button>
+            </div>
             {r.photo_urls?.length > 0 && (
               <div>
                 <button onClick={() => handleViewPhoto(r.id)} className="text-xs text-blue-600 underline">

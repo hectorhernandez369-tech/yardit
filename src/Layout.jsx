@@ -147,7 +147,7 @@ export default function Layout({ children }) {
                           className={`gap-2 ${location.pathname === createPageUrl("CaseManagement") ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
                         >
                           <FolderOpen className="w-4 h-4" />
-                          <span className="hidden sm:inline">Cases</span>
+                          <span className="hidden sm:inline">Case Management</span>
                         </Button>
                       </Link>
                       <Link to={createPageUrl("AdminLite")}>
