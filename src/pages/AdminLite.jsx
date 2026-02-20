@@ -139,6 +139,20 @@ export default function AdminLitePage() {
     <div className="min-h-[calc(100vh-140px)] pt-0 px-3 sm:px-4 md:px-8 pb-3 sm:pb-4 md:pb-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto w-full">
 
+        {/* Temporary promote button — remove after use */}
+        {user.role !== "master" && (
+          <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 rounded-lg flex items-center gap-3">
+            <span className="text-sm font-medium text-yellow-800">Your role is "{user.role}". Click to promote to Master:</span>
+            <button
+              onClick={handlePromoteToMaster}
+              disabled={promoting}
+              className="px-4 py-1.5 bg-yellow-500 text-white text-sm font-semibold rounded hover:bg-yellow-600 disabled:opacity-50"
+            >
+              {promoting ? "Promoting..." : "Promote to Master"}
+            </button>
+          </div>
+        )}
+
         {/* Top-level admin tabs */}
         <Tabs value={topTab} onValueChange={setTopTab}>
           <TabsList className="flex w-full max-w-2xl overflow-x-auto mb-4">
