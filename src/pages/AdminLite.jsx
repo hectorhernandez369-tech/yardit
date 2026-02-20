@@ -115,23 +115,23 @@ export default function AdminLitePage() {
   const canManageAdmins = hasCapability(user, "admins.manage");
   const canViewLogs = hasCapability(user, "logs.view");
 
+  const roleLabel = (() => {
+    const r = user.role;
+    if (r === "master") return "Master";
+    if (r === "supervisor") return "Supervisor";
+    return "Basic";
+  })();
+
   return (
-    <div className="min-h-[calc(100vh-140px)] p-3 sm:p-4 md:p-8 overflow-x-hidden">
+    <div className="min-h-[calc(100vh-140px)] pt-0 px-3 sm:px-4 md:px-8 pb-3 sm:pb-4 md:pb-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto w-full">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4 flex items-center gap-2">
-          🛡️ Admin – {
-            (() => {
-              const r = user.role;
-              if (r === "master") return "Master";
-              if (r === "supervisor") return "Supervisor";
-              return "Basic";
-            })()
-          }
-        </h1>
 
         {/* Top-level admin tabs */}
         <Tabs value={topTab} onValueChange={setTopTab}>
           <TabsList className="flex w-full max-w-2xl overflow-x-auto mb-4">
+            <span className="flex items-center gap-1.5 px-3 text-sm font-semibold text-[#2C4F4E] whitespace-nowrap pointer-events-none select-none">
+              🛡️ Admin – {roleLabel}
+            </span>
             <TabsTrigger value="cases">Case Management</TabsTrigger>
             <TabsTrigger value="lite">Admin Lite</TabsTrigger>
             {canManageAdmins && <TabsTrigger value="create-admin">Create Admin</TabsTrigger>}
