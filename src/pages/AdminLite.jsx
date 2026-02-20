@@ -96,19 +96,6 @@ export default function AdminLitePage() {
   const handleCloseCase = useCallback(() => { setSelectedCaseId(null); setRefreshKey(k => k + 1); }, []);
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), []);
 
-  const [promoting, setPromoting] = useState(false);
-
-  const handlePromoteToMaster = async () => {
-    setPromoting(true);
-    await base44.auth.updateMe({ role: "master" });
-    const updated = await base44.auth.me();
-    if (!('isAdmin' in updated)) {
-      updated.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(updated.role);
-    }
-    setUser(updated);
-    setPromoting(false);
-  };
-
   if (!user) return <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>;
 
   // If viewing a specific case, show the detail view
