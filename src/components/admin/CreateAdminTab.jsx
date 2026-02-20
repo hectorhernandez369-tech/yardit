@@ -8,24 +8,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2, UserPlus, Shield } from "lucide-react";
 
-/**
- * Create Admin (LOCKED SPEC v1.3 + updates)
- * - Uses User entity (Base44)
- * - Employee ID format enforced by role:
- *   basic: Padawan + 5 alnum
- *   supervisor: Jedi|Sith + 5 alnum
- *   master: Master|Darth + 5 alnum
- * - Master creation allowed BUT requires current Master to re-enter password
- * - Capabilities auto-check based on role defaults; Master can override checkboxes
- * - New admin must reset password on first login
- *
- * IMPORTANT:
- * Base44 project APIs differ. You may need to adjust:
- *  - current user fetch
- *  - password verification call
- *  - create user call
- */
-
 const CAPABILITIES = [
   { key: "cases.view", label: "View Cases" },
   { key: "cases.assign_self", label: "Assign to Self" },
@@ -58,42 +40,29 @@ const DEFAULT_CAPS_BY_ROLE = {
   master: new Set(CAPABILITIES.map((c) => c.key)),
 };
 
-const ROLE_LABEL = {
-  basic: "Admin Basic",
-  supervisor: "Admin Supervisor",
-  master: "Admin Master",
+const EMPLOYEE_ID_RULES = {
+  basic: { regex: /^Padawan[a-zA-Z0-9]{5}$/, example: "PadawanA1B2C" },
+  supervisor: { regex: /^(Jedi|Sith)[a-zA-Z0-9]{5}$/, example: "Jedi123AB or Sith9X8Y7" },
+  master: { regex: /^(Master|Darth)[a-zA-Z0-9]{5}$/, example: "MasterABCDE or Darth12345" },
 };
 
-// Employee ID regex by role (LOCKED)
-const EMPLOYEE_ID_RULES = {
-  basic: {
-    regex: /^Padawan[a-zA-Z0-9]{5}$/,
-    example: "PadawanA1B2C",
-  },
-  supervisor: {
-    regex: /^(Jedi|Sith)[a-zA-Z0-9]{5}$/,
-    example: "Jedi123AB or Sith9X8Y7",
-  },
-  master: {
-    regex: /^(Master|Darth)[a-zA-Z0-9]{5}$/,
-    example: "MasterABCDE or Darth12345",
-  },
+const ROLE_TO_INVITE_ROLE = {
+  basic: "admin",
+  supervisor: "supervisor",
+  master: "master",
 };
 
 export default function CreateAdminTab() {
   const [employeeId, setEmployeeId] = useState("");
-  const [tempPassword, setTempPassword] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
 
   const [fullName, setFullName] = useState("");
   const [dob, setDob] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
 
   const [role, setRole] = useState("basic");
-
-  // Only required when creating a Master
-  const [confirmMasterPassword, setConfirmMasterPassword] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const [caps, setCaps] = useState(() => {
     const defaults = DEFAULT_CAPS_BY_ROLE.basic;
@@ -101,8 +70,6 @@ export default function CreateAdminTab() {
     CAPABILITIES.forEach((c) => (obj[c.key] = defaults.has(c.key)));
     return obj;
   });
-
-  const [saving, setSaving] = useState(false);
 
   const selectedCapsCount = useMemo(
     () => Object.values(caps).filter(Boolean).length,
@@ -119,7 +86,6 @@ export default function CreateAdminTab() {
   const handleRoleChange = (nextRole) => {
     setRole(nextRole);
     applyRoleDefaults(nextRole);
-    setConfirmMasterPassword(""); // reset confirm field when role changes
   };
 
   const toggleCap = (capKey) => {
@@ -128,64 +94,19 @@ export default function CreateAdminTab() {
 
   const validate = () => {
     if (!employeeId.trim()) return "Employee/User ID is required";
-    if (!tempPassword.trim()) return "Temporary password is required";
+    if (!inviteEmail.trim()) return "Email is required (Base44 sends the invite here)";
     if (!fullName.trim()) return "Full name is required";
     if (!dob.trim()) return "Date of birth is required";
     if (!phone.trim()) return "Phone is required";
-    if (!email.trim()) return "Email is required";
 
     const rule = EMPLOYEE_ID_RULES[role];
     if (rule && !rule.regex.test(employeeId.trim())) {
-      return `Employee ID format invalid for ${ROLE_LABEL[role]}. Example: ${rule.example}`;
+      return `Employee ID format invalid for selected role. Example: ${rule.example}`;
     }
-
-    if (role === "master" && !confirmMasterPassword.trim()) {
-      return "Confirm Your Password is required to create an Admin Master";
-    }
-
     return null;
   };
 
-  /**
-   * VERIFY CURRENT MASTER PASSWORD
-   * (plain English: when creating a Master, re-check the current logged-in Master password)
-   *
-   * Replace this function with the correct Base44 auth verification method.
-   */
-  const verifyCurrentMasterPassword = async (password) => {
-    // OPTION A (common): base44.auth.verifyPassword(password)
-    // OPTION B: base44.users.verifyCurrentPassword(password)
-    // OPTION C: call an edge function to verify
-    //
-    // For now, attempt a few likely methods; adjust to the one your app has.
-    if (base44?.auth?.verifyPassword) {
-      return await base44.auth.verifyPassword(password);
-    }
-    if (base44?.users?.verifyCurrentPassword) {
-      return await base44.users.verifyCurrentPassword(password);
-    }
-
-    // If none exist, throw so you see it immediately in console.
-    throw new Error(
-      "No password verification method found. Add base44.users.verifyCurrentPassword() or base44.auth.verifyPassword()."
-    );
-  };
-
-  /**
-   * CREATE USER
-   * (plain English: create a new admin user record)
-   *
-   * Replace base44.users.createUser(...) with your actual create method if needed.
-   */
-  const createAdminUser = async (payload) => {
-    if (base44?.users?.createUser) return await base44.users.createUser(payload);
-    if (base44?.users?.create) return await base44.users.create(payload);
-    if (base44?.User?.create) return await base44.User.create(payload);
-
-    throw new Error("No user create method found on base44 client.");
-  };
-
-  const handleCreateAdmin = async () => {
+  const handleInvite = async () => {
     const err = validate();
     if (err) {
       toast.error(err);
@@ -195,61 +116,48 @@ export default function CreateAdminTab() {
     try {
       setSaving(true);
 
-      // If creating Admin Master, verify current Master password first
-      if (role === "master") {
-        const ok = await verifyCurrentMasterPassword(confirmMasterPassword.trim());
-        if (!ok) {
-          toast.error("Password incorrect. Cannot create Admin Master.");
-          setSaving(false);
-          return;
-        }
-      }
-
       const enabledCapabilities = Object.entries(caps)
         .filter(([, enabled]) => enabled)
         .map(([key]) => key);
 
-      await createAdminUser({
-        employee_id: employeeId.trim(), // (plain English: login ID)
-        password: tempPassword.trim(),  // (plain English: temp password - store hashed if your backend does that)
-        mustResetPassword: true,
-        is_active: true,
+      // 1) Invite user via Base44 (email sets password)
+      await base44.users.inviteUser(inviteEmail.trim(), ROLE_TO_INVITE_ROLE[role]);
 
-        role, // basic | supervisor | master
-
+      // 2) Save metadata (so we can attach it on first login)
+      // NOTE: Ensure AdminInviteProfile entity exists in Base44.
+      await base44.entities.AdminInviteProfile.create({
+        email: inviteEmail.trim().toLowerCase(),
+        employee_id: employeeId.trim(),
+        role_label: role,
         full_name: fullName.trim(),
         dob: dob.trim(),
         phone: phone.trim(),
-        email: email.trim(),
         address: address.trim() || null,
-
-        admin_capabilities: enabledCapabilities, // string array
-        is_admin: true,
+        capabilities: enabledCapabilities,
+        is_active: true,
       });
 
-      toast.success(`Created ${ROLE_LABEL[role]}: ${employeeId.trim()}`);
+      toast.success(`Invite sent to ${inviteEmail.trim()}`);
 
-      // reset form
+      // reset
       setEmployeeId("");
-      setTempPassword("");
+      setInviteEmail("");
       setFullName("");
       setDob("");
       setPhone("");
-      setEmail("");
       setAddress("");
-      setConfirmMasterPassword("");
       setRole("basic");
       applyRoleDefaults("basic");
     } catch (e) {
       console.error(e);
-      toast.error("Failed to create admin. Check console for details.");
+      toast.error("Failed to send invite. Check console for details.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="mt-6 max-w-3xl">
+    <div className="mt-6 max-w-5xl">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -259,8 +167,8 @@ export default function CreateAdminTab() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Identity */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Top row: Employee/User ID + Email Invite (replaces temp password) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="text-sm font-medium mb-1 block">Employee/User ID</label>
               <Input
@@ -269,102 +177,65 @@ export default function CreateAdminTab() {
                 onChange={(e) => setEmployeeId(e.target.value)}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Format for {ROLE_LABEL[role]}: {EMPLOYEE_ID_RULES[role]?.example}
+                Format for {role === "basic" ? "Admin Basic" : role === "supervisor" ? "Admin Supervisor" : "Admin Master"}:{" "}
+                {EMPLOYEE_ID_RULES[role]?.example}
               </p>
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-1 block">Temporary Password</label>
-              <Input
-                placeholder="Padawan1234"
-                value={tempPassword}
-                onChange={(e) => setTempPassword(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-1 block">Full Name</label>
-              <Input
-                placeholder="First Last"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-1 block">Date of Birth</label>
-              <Input
-                placeholder="MM/DD/YYYY"
-                value={dob}
-                onChange={(e) => setDob(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Contact */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Phone</label>
-              <Input
-                placeholder="(555) 555-5555"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-1 block">Email</label>
+              <label className="text-sm font-medium mb-1 block">Email Invite</label>
               <Input
                 type="email"
                 placeholder="admin@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
               />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium mb-1 block">Address (optional)</label>
-              <Input
-                placeholder="123 Main St, City, State"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Base44 will email an invite link here so the admin can set their password.
+              </p>
             </div>
           </div>
 
-          {/* Role + Master confirm */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Name/DOB */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="text-sm font-medium mb-1 block">Admin Role</label>
-              <Select value={role} onValueChange={handleRoleChange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="basic">Admin Basic</SelectItem>
-                  <SelectItem value="supervisor">Admin Supervisor</SelectItem>
-                  <SelectItem value="master">Admin Master</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Selecting a role auto-checks default permissions. You can still override any checkbox.
-              </p>
+              <label className="text-sm font-medium mb-1 block">Full Name</label>
+              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="First Last" />
             </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Date of Birth</label>
+              <Input value={dob} onChange={(e) => setDob(e.target.value)} placeholder="MM/DD/YYYY" />
+            </div>
+          </div>
 
-            {role === "master" && (
-              <div>
-                <label className="text-sm font-medium mb-1 block">Confirm Your Password</label>
-                <Input
-                  type="password"
-                  placeholder="(re-enter your current Master password)"
-                  value={confirmMasterPassword}
-                  onChange={(e) => setConfirmMasterPassword(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Required to create another Admin Master.
-                </p>
-              </div>
-            )}
+          {/* Phone/Address */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Phone</label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 555-5555" />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Address (optional)</label>
+              <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St, City, State" />
+            </div>
+          </div>
+
+          {/* Role */}
+          <div>
+            <label className="text-sm font-medium mb-1 block">Admin Role</label>
+            <Select value={role} onValueChange={handleRoleChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="basic">Admin Basic</SelectItem>
+                <SelectItem value="supervisor">Admin Supervisor</SelectItem>
+                <SelectItem value="master">Admin Master</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Selecting a role auto-checks default permissions. You can still override any checkbox.
+            </p>
           </div>
 
           {/* Capabilities */}
@@ -384,23 +255,19 @@ export default function CreateAdminTab() {
             </div>
           </div>
 
-          <Button onClick={handleCreateAdmin} disabled={saving} className="w-full">
+          <Button onClick={handleInvite} disabled={saving} className="w-full">
             {saving ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Creating...
+                Sending Invite...
               </>
             ) : (
               <>
                 <UserPlus className="w-4 h-4 mr-2" />
-                Create Admin
+                Send Email Invite
               </>
             )}
           </Button>
-
-          <p className="text-xs text-muted-foreground">
-            New admins are created with a temporary password and must reset it on first login.
-          </p>
         </CardContent>
       </Card>
     </div>
