@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Plus, Home, User, Settings, Shield, FolderOpen } from "lucide-react";
+import { Plus, Home, User, Settings, Shield } from "lucide-react";
 import AdminNotificationBell from "./components/caseManagement/ui/AdminNotificationBell";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
@@ -135,32 +135,21 @@ export default function Layout({ children }) {
                   <Link to={createPageUrl("Settings")}>
                     <Button
                       variant={location.pathname === createPageUrl("Settings") ? "secondary" : "ghost"}
-                      size="sm"
-                      className={`gap-2 ${location.pathname === createPageUrl("Settings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                      size="icon"
+                      className={`${location.pathname === createPageUrl("Settings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
                     >
                       <Settings className="w-4 h-4" />
-                      <span className="hidden sm:inline">Settings</span>
                     </Button>
                   </Link>
 
                   {user.isAdmin && (
                     <>
                       <AdminNotificationBell user={user} />
-                      <Link to={createPageUrl("CaseManagement")}>
-                        <Button
-                          variant={location.pathname === createPageUrl("CaseManagement") ? "secondary" : "ghost"}
-                          size="sm"
-                          className={`gap-2 ${location.pathname === createPageUrl("CaseManagement") ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
-                        >
-                          <FolderOpen className="w-4 h-4" />
-                          <span className="hidden sm:inline">Case Management</span>
-                        </Button>
-                      </Link>
                       <Link to={createPageUrl("AdminLite")}>
                         <Button
-                          variant={location.pathname === createPageUrl("AdminLite") ? "secondary" : "ghost"}
+                          variant={location.pathname.includes(createPageUrl("AdminLite")) || location.pathname.includes(createPageUrl("CaseManagement")) ? "secondary" : "ghost"}
                           size="sm"
-                          className={`gap-2 ${location.pathname === createPageUrl("AdminLite") ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
+                          className={`gap-2 ${location.pathname.includes(createPageUrl("AdminLite")) || location.pathname.includes(createPageUrl("CaseManagement")) ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
                         >
                           <Shield className="w-4 h-4" />
                           <span className="hidden sm:inline">Admin</span>
