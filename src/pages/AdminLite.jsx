@@ -118,7 +118,16 @@ export default function AdminLitePage() {
   return (
     <div className="min-h-[calc(100vh-140px)] p-3 sm:p-4 md:p-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto w-full">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4 flex items-center gap-2">🛡️ Admin</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 flex items-center gap-2">
+          🛡️ Admin – {
+            (() => {
+              const r = user.role;
+              if (r === "master") return "Master";
+              if (r === "supervisor") return "Supervisor";
+              return "Basic";
+            })()
+          }
+        </h1>
 
         {/* Top-level admin tabs */}
         <Tabs value={topTab} onValueChange={setTopTab}>
