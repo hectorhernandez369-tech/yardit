@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Plus, Home, User, Settings, Shield } from "lucide-react";
 import AdminNotificationBell from "./components/caseManagement/ui/AdminNotificationBell";
+import AdminLoginModal, { getAdminSession, clearAdminSession } from "./components/admin/AdminLoginModal";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Toaster } from "sonner";
