@@ -1,5 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Pencil, Save, X, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const statusColors = {
   active: "bg-green-600",
@@ -8,15 +14,112 @@ const statusColors = {
   banned: "bg-black",
 };
 
-export default function UserAccountInfo({ user }) {
-  const status = user.accountStatus || "active";
+export default function UserAccountInfo({ user, onUserUpdated }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const nameParts = (user.full_name || "").split(" ");
+
+  const [form, setForm] = useState({
+    full_name: user.full_name || "",
+    phone: user.phone || "",
+    address: user.address || "",
+    accountStatus: user.accountStatus || "active",
+  });
+
+  const startEdit = () => {
+    setForm({
+      full_name: user.full_name || "",
+      phone: user.phone || "",
+      address: user.address || "",
+      accountStatus: user.accountStatus || "active",
+    });
+    setEditing(true);
+  };
+
+  const cancelEdit = () => setEditing(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await base44.entities.User.update(user.id, form);
+    toast.success("User info updated.");
+    setSaving(false);
+    setEditing(false);
+    if (onUserUpdated) onUserUpdated({ ...user, ...form });
+  };
+
   const firstName = nameParts[0] || "—";
   const lastName = nameParts.slice(1).join(" ") || "—";
+  const status = user.accountStatus || "active";
+
+  if (editing) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Edit Account Info</h3>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={cancelEdit} className="gap-1 text-xs h-7">
+              <X className="w-3 h-3" /> Cancel
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1 text-xs h-7">
+              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Full Name</label>
+            <Input
+              value={form.full_name}
+              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+              placeholder="Full name"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Phone</label>
+            <Input
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder="Phone number"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="text-xs text-gray-500 mb-1 block">Address</label>
+            <Input
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              placeholder="Address"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Account Status</label>
+            <Select value={form.accountStatus} onValueChange={(v) => setForm({ ...form, accountStatus: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="warned">Warned</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="banned">Banned</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="text-xs text-gray-400">
+          Email and Role cannot be edited here. User ID: <span className="font-mono">{user.id}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
-      <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Account Holder Info</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Account Holder Info</h3>
+        <Button size="sm" variant="outline" onClick={startEdit} className="gap-1 text-xs h-7">
+          <Pencil className="w-3 h-3" /> Edit
+        </Button>
+      </div>
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <div>
           <span className="text-gray-500">First Name</span>
