@@ -28,6 +28,17 @@ export default function Layout({ children }) {
           currentUser.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(currentUser.role);
         }
         setUser(currentUser);
+
+        // Check if user has AdminProfile or accepted AdminInviteProfile
+        try {
+          const [profiles, invites] = await Promise.all([
+            base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }),
+            base44.entities.AdminInviteProfile.filter({ email: currentUser.email.toLowerCase(), status: "accepted" }),
+          ]);
+          setHasAdminProfile(profiles.length > 0 || invites.length > 0);
+        } catch {
+          setHasAdminProfile(false);
+        }
       } catch (error) {
         console.error("Error fetching user:", error);
       }
