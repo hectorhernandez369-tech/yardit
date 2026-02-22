@@ -7,7 +7,9 @@ import AdminLoginModal, { getAdminSession, clearAdminSession } from "./component
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Toaster } from "sonner";
+import { toast } from "sonner";
 import DemoModeToggle, { isDemoMode } from "./components/shared/DemoMode";
+import { syncAdminInvite } from "./components/admin/adminInviteSync";
 
 export default function Layout({ children }) {
   const location = useLocation();
@@ -17,6 +19,7 @@ export default function Layout({ children }) {
   const [demoActive, setDemoActive] = useState(isDemoMode());
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [hasAdminProfile, setHasAdminProfile] = useState(false);
+  const [adminActivatedBanner, setAdminActivatedBanner] = useState(false);
   const longPressTimer = useRef(null);
   const didLongPress = useRef(false);
 
@@ -25,36 +28,34 @@ export default function Layout({ children }) {
       try {
         const currentUser = await base44.auth.me();
         // Derive isAdmin from role if not already set
-        setUser(currentUser);
-
-        // Check if user has AdminProfile or pending/accepted AdminInviteProfile
+        // Run invite sync BEFORE setting user state — auto-accepts pending invites
         try {
-          const [profilesByEmail, profilesByUserId, invites] = await Promise.all([
-            base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }),
-            base44.entities.AdminProfile.filter({ user_id: currentUser.id }),
-            base44.entities.AdminInviteProfile.filter({ email: currentUser.email.toLowerCase() }),
-          ]);
-          const hasProfile = profilesByEmail.length > 0 || profilesByUserId.length > 0;
-          const hasAcceptedOrPendingInvite = invites.some(i => i.status === "accepted" || i.status === "pending");
-          const showAdmin = hasProfile || hasAcceptedOrPendingInvite;
-          setHasAdminProfile(showAdmin);
-
-          // Enrich user.isAdmin based on profile existence
-          if (showAdmin) {
-            const profile = profilesByEmail[0] || profilesByUserId[0];
-            if (profile) {
-              currentUser.isAdmin = true;
-              currentUser.role = profile.role_label;
-            } else {
-              currentUser.isAdmin = true; // has pending invite
+          const { accepted, adminProfile } = await syncAdminInvite(currentUser);
+          if (adminProfile) {
+            currentUser.isAdmin = true;
+            currentUser.role = adminProfile.role_label;
+            setHasAdminProfile(true);
+            if (accepted) {
+              setAdminActivatedBanner(true);
             }
           } else {
-            currentUser.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(currentUser.role);
+            // No admin profile — check for pending invites as fallback
+            const invites = await base44.entities.AdminInviteProfile.filter({ email: currentUser.email.toLowerCase() });
+            const hasPending = invites.some(i => i.status === "pending");
+            if (hasPending) {
+              currentUser.isAdmin = true;
+              setHasAdminProfile(true);
+            } else {
+              currentUser.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(currentUser.role);
+              setHasAdminProfile(false);
+            }
           }
         } catch {
           currentUser.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(currentUser.role);
           setHasAdminProfile(false);
         }
+
+        setUser(currentUser);
       } catch (error) {
         console.error("Error fetching user:", error);
       }
@@ -218,6 +219,20 @@ export default function Layout({ children }) {
             className="text-xs text-purple-500 hover:text-purple-700 underline"
           >
             close
+          </button>
+        </div>
+      )}
+
+      {adminActivatedBanner && (
+        <div className="bg-green-50 border-b border-green-300 px-4 py-3 flex items-center justify-center gap-3">
+          <p className="text-sm text-green-800 font-medium">
+            ✅ Admin activated. Click <strong>Admin</strong> and enter your Employee ID + PIN to access the portal.
+          </p>
+          <button
+            onClick={() => setAdminActivatedBanner(false)}
+            className="text-green-600 hover:text-green-800 text-lg font-bold ml-2"
+          >
+            ×
           </button>
         </div>
       )}
