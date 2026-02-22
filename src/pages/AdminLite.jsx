@@ -48,6 +48,37 @@ export default function AdminLitePage() {
           return;
         }
         setUser(currentUser);
+
+        // First-login sync: convert AdminInviteProfile → AdminProfile
+        const existingProfiles = await base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() });
+        if (existingProfiles.length === 0) {
+          const invites = await base44.entities.AdminInviteProfile.filter({ email: currentUser.email.toLowerCase(), status: "pending" });
+          if (invites.length > 0) {
+            const invite = invites[0];
+            await base44.entities.AdminProfile.create({
+              user_id: currentUser.id,
+              email: invite.email,
+              employee_id: invite.employee_id,
+              role_label: invite.role_label,
+              full_name: invite.full_name,
+              dob: invite.dob,
+              phone: invite.phone,
+              address: invite.address || "",
+              capabilities: invite.capabilities,
+              is_active: true,
+              last_login_at: new Date().toISOString(),
+              ...(invite.supervisor_user_id ? {
+                supervisor_user_id: invite.supervisor_user_id,
+                supervisor_employee_id: invite.supervisor_employee_id,
+              } : {}),
+            });
+            await base44.entities.AdminInviteProfile.update(invite.id, { status: "accepted" });
+          }
+        } else {
+          // Update last_login_at on subsequent logins
+          await base44.entities.AdminProfile.update(existingProfiles[0].id, { last_login_at: new Date().toISOString() });
+        }
+
         const users = await base44.entities.User.list();
         setAllAdminUsers(users.filter(u => ["admin", "admin_lite", "supervisor", "master"].includes(u.role)));
       } catch {
