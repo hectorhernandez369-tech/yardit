@@ -16,6 +16,7 @@ import CaseDetailView from "../components/caseManagement/ui/CaseDetailView";
 import AdminLiteDashboard from "../components/admin/AdminLiteDashboard";
 import CreateAdminTab from "../components/admin/CreateAdminTab";
 import AdminLogsTab from "../components/admin/AdminLogsTab";
+import EmployeeUsersTab from "../components/admin/EmployeeUsersTab";
 
 export default function AdminLitePage() {
   const navigate = useNavigate();
@@ -168,6 +169,7 @@ export default function AdminLitePage() {
             <TabsTrigger value="cases">Case Management</TabsTrigger>
             <TabsTrigger value="lite">Admin Lite</TabsTrigger>
             {canManageAdmins && <TabsTrigger value="create-admin">Create Admin</TabsTrigger>}
+            {canManageAdmins && <TabsTrigger value="employee-users">Employee Users</TabsTrigger>}
             {canViewLogs && <TabsTrigger value="logs">Logs</TabsTrigger>}
           </TabsList>
 
@@ -231,6 +233,13 @@ export default function AdminLitePage() {
           {canManageAdmins && (
             <TabsContent value="create-admin">
               <CreateAdminTab />
+            </TabsContent>
+          )}
+
+          {/* ─── Employee Users ─── */}
+          {canManageAdmins && (
+            <TabsContent value="employee-users">
+              <EmployeeUsersTab />
             </TabsContent>
           )}
 
