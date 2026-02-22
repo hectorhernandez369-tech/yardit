@@ -65,7 +65,8 @@ export default function CreateAdminTab() {
   const [employeeId, setEmployeeId] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
 
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [dob, setDob] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -116,7 +117,8 @@ export default function CreateAdminTab() {
   const validate = () => {
     if (!employeeId.trim()) return "Employee/User ID is required";
     if (!inviteEmail.trim()) return "Email is required (Base44 sends the invite here)";
-    if (!fullName.trim()) return "Full name is required";
+    if (!firstName.trim()) return "First name is required";
+    if (!lastName.trim()) return "Last name is required";
     if (!dob.trim()) return "Date of birth is required";
     if (!phone.trim()) return "Phone is required";
 
@@ -153,7 +155,8 @@ export default function CreateAdminTab() {
         email: inviteEmail.trim().toLowerCase(),
         employee_id: employeeId.trim(),
         role_label: role,
-        full_name: fullName.trim(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         dob: dob.trim(),
         phone: phone.trim(),
         address: address.trim() || null,
@@ -172,7 +175,8 @@ export default function CreateAdminTab() {
       // reset
       setEmployeeId("");
       setInviteEmail("");
-      setFullName("");
+      setFirstName("");
+      setLastName("");
       setDob("");
       setPhone("");
       setAddress("");
@@ -230,8 +234,12 @@ export default function CreateAdminTab() {
           {/* Name/DOB */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="text-sm font-medium mb-1 block">Full Name</label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="First Last" />
+              <label className="text-sm font-medium mb-1 block">First Name</label>
+              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First" />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Last Name</label>
+              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last" />
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">Date of Birth</label>
