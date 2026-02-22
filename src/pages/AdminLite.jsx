@@ -168,14 +168,7 @@ export default function AdminLitePage() {
 
   return (
     <div className="min-h-[calc(100vh-140px)] pt-0 px-3 sm:px-4 md:px-8 pb-3 sm:pb-4 md:pb-8 overflow-x-hidden w-full max-w-full">
-      {activationBanner && (
-        <div className="bg-green-50 border border-green-300 rounded-lg px-4 py-3 mb-4 flex items-center justify-between max-w-7xl mx-auto">
-          <p className="text-sm text-green-800 font-medium">
-            ✅ Admin activated. Click <strong>Admin</strong> and enter your Employee ID + PIN to access the portal.
-          </p>
-          <button onClick={() => setActivationBanner(false)} className="text-green-600 hover:text-green-800 ml-4 text-lg font-bold">×</button>
-        </div>
-      )}
+
       <div className="max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
 
         {/* Top-level admin tabs */}
