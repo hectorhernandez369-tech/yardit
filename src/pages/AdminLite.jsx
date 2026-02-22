@@ -157,33 +157,33 @@ export default function AdminLitePage() {
   })();
 
   return (
-    <div className="min-h-[calc(100vh-140px)] pt-0 px-3 sm:px-4 md:px-8 pb-3 sm:pb-4 md:pb-8 overflow-x-hidden">
-      <div className="max-w-7xl mx-auto w-full">
+    <div className="min-h-[calc(100vh-140px)] pt-0 px-3 sm:px-4 md:px-8 pb-3 sm:pb-4 md:pb-8 overflow-x-hidden w-full max-w-full">
+      <div className="max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
 
         {/* Top-level admin tabs */}
         <Tabs value={topTab} onValueChange={setTopTab}>
-          <TabsList className="flex w-full max-w-2xl overflow-x-auto mb-4">
-            <span className="flex items-center gap-1.5 px-3 text-sm font-semibold text-[#2C4F4E] whitespace-nowrap pointer-events-none select-none">
+          <TabsList className="flex flex-wrap gap-1 h-auto w-full mb-4 p-1">
+            <span className="flex items-center gap-1.5 px-3 py-1 text-sm font-semibold text-[#2C4F4E] whitespace-nowrap pointer-events-none select-none">
               🛡️ Admin – {roleLabel}
             </span>
-            <TabsTrigger value="cases">Case Management</TabsTrigger>
-            <TabsTrigger value="lite">Admin Lite</TabsTrigger>
-            {canManageAdmins && <TabsTrigger value="create-admin">Create Admin</TabsTrigger>}
-            {canManageAdmins && <TabsTrigger value="employee-users">Employee Users</TabsTrigger>}
-            {canViewLogs && <TabsTrigger value="logs">Logs</TabsTrigger>}
+            <TabsTrigger value="cases" className="whitespace-nowrap">Case Management</TabsTrigger>
+            <TabsTrigger value="lite" className="whitespace-nowrap">Admin Lite</TabsTrigger>
+            {canManageAdmins && <TabsTrigger value="create-admin" className="whitespace-nowrap">Create Admin</TabsTrigger>}
+            {canManageAdmins && <TabsTrigger value="employee-users" className="whitespace-nowrap">Employee Users</TabsTrigger>}
+            {canViewLogs && <TabsTrigger value="logs" className="whitespace-nowrap">Logs</TabsTrigger>}
           </TabsList>
 
           {/* ─── Case Management ─── */}
           <TabsContent value="cases">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-6 max-w-xl">
-              <div className="relative flex-1">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-6 w-full max-w-xl">
+              <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   placeholder="Search by Account # or Listing ID..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleSearch()}
-                  className="pl-10"
+                  className="pl-10 w-full"
                 />
               </div>
               <div className="flex gap-2">
@@ -202,11 +202,11 @@ export default function AdminLitePage() {
             )}
 
             <Tabs value={caseTab} onValueChange={handleCaseTabChange}>
-              <TabsList className="grid w-full max-w-2xl grid-cols-2 sm:grid-cols-4">
-                <TabsTrigger value="in_queue">In Queue</TabsTrigger>
-                <TabsTrigger value="open">Open Cases</TabsTrigger>
-                <TabsTrigger value="submitted">Submitted</TabsTrigger>
-                <TabsTrigger value="closed">Closed</TabsTrigger>
+              <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-2xl p-1">
+                <TabsTrigger value="in_queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">In Queue</TabsTrigger>
+                <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Open Cases</TabsTrigger>
+                <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Submitted</TabsTrigger>
+                <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Closed</TabsTrigger>
               </TabsList>
 
               <TabsContent value="in_queue">
