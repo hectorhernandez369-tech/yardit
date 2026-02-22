@@ -51,7 +51,7 @@ export default function SettingsPage() {
   };
 
   const handleLogout = () => {
-    base44.auth.logout();
+    base44.auth.logout(createPageUrl("Home"));
   };
 
   if (!user) {
