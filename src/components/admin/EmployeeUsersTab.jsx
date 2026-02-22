@@ -234,6 +234,12 @@ export default function EmployeeUsersTab() {
           <ActiveAdminsTable admins={admins} onToggleActive={handleToggleActive} acting={acting} onViewActivity={setActivityAdmin} />
         </CardContent>
       </Card>
+
+      <EmployeeActivityDrawer
+        open={!!activityAdmin}
+        onClose={() => setActivityAdmin(null)}
+        admin={activityAdmin}
+      />
     </div>
   );
 }
