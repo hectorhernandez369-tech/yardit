@@ -5,8 +5,9 @@ import UserAccountInfo from "./UserAccountInfo";
 import UserListingHistory from "./UserListingHistory";
 import UserReportHistory from "./UserReportHistory";
 import UserAccountNotes from "./UserAccountNotes";
+import UserSendMessage from "./UserSendMessage";
 
-export default function UserDetailDrawer({ user, adminUser, open, onClose }) {
+export default function UserDetailDrawer({ user, adminUser, open, onClose, onUserUpdated }) {
   const [tab, setTab] = useState("info");
 
   if (!user) return null;
@@ -24,10 +25,11 @@ export default function UserDetailDrawer({ user, adminUser, open, onClose }) {
             <TabsTrigger value="listings" className="flex-1 text-xs">Listings</TabsTrigger>
             <TabsTrigger value="reports" className="flex-1 text-xs">Reports</TabsTrigger>
             <TabsTrigger value="notes" className="flex-1 text-xs">Notes</TabsTrigger>
+            <TabsTrigger value="message" className="flex-1 text-xs">Message</TabsTrigger>
           </TabsList>
 
           <TabsContent value="info" className="mt-4">
-            <UserAccountInfo user={user} />
+            <UserAccountInfo user={user} onUserUpdated={onUserUpdated} />
           </TabsContent>
           <TabsContent value="listings" className="mt-4">
             <UserListingHistory user={user} />
@@ -37,6 +39,9 @@ export default function UserDetailDrawer({ user, adminUser, open, onClose }) {
           </TabsContent>
           <TabsContent value="notes" className="mt-4">
             <UserAccountNotes user={user} adminUser={adminUser} />
+          </TabsContent>
+          <TabsContent value="message" className="mt-4">
+            <UserSendMessage user={user} />
           </TabsContent>
         </Tabs>
       </SheetContent>
