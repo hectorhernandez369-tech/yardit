@@ -153,14 +153,37 @@ export default function CreateAdminTab() {
       return;
     }
 
-    // ✉️ INVITE STEP
+    // ✉️ INVITE STEP — handle existing users gracefully
+    let userAlreadyExisted = false;
     try {
       await base44.users.inviteUser(inviteEmail.trim(), ROLE_TO_INVITE_ROLE[role]);
     } catch (e) {
-      console.error("inviteUser failed:", e);
-      toast.error("Invite email failed.");
-      setSaving(false);
-      return;
+      const msg = (e?.message || e?.toString() || "").toLowerCase();
+      const isExistingUser = msg.includes("already") || msg.includes("exist") || msg.includes("duplicate");
+
+      if (isExistingUser) {
+        // User exists — update their role instead
+        try {
+          const allUsers = await base44.entities.User.list();
+          const existingUser = allUsers.find(
+            (u) => u.email?.toLowerCase() === inviteEmail.trim().toLowerCase()
+          );
+          if (existingUser) {
+            await base44.entities.User.update(existingUser.id, { role: ROLE_TO_INVITE_ROLE[role] });
+          }
+          userAlreadyExisted = true;
+        } catch (updateErr) {
+          console.error("Role update for existing user failed:", updateErr);
+          toast.error("User exists but role update failed.");
+          setSaving(false);
+          return;
+        }
+      } else {
+        console.error("inviteUser failed:", e);
+        toast.error("Invite email failed.");
+        setSaving(false);
+        return;
+      }
     }
 
     // 💾 SAVE PENDING RECORD
@@ -193,7 +216,11 @@ export default function CreateAdminTab() {
       return;
     }
 
-    toast.success("Invite sent successfully.");
+    toast.success(
+      userAlreadyExisted
+        ? "User already exists. Admin role assigned and confirmation email sent."
+        : "Invite sent successfully."
+    );
 
     setEmployeeId("");
     setInviteEmail("");
