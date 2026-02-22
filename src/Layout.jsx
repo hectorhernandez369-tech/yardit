@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Plus, Home, User, Settings, Shield } from "lucide-react";
 import AdminNotificationBell from "./components/caseManagement/ui/AdminNotificationBell";
