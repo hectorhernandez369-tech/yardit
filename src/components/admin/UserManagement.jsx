@@ -114,6 +114,10 @@ export default function UserManagement() {
         adminUser={adminUser}
         open={!!selectedUser}
         onClose={() => setSelectedUser(null)}
+        onUserUpdated={(updatedUser) => {
+          setSelectedUser(updatedUser);
+          queryClient.invalidateQueries({ queryKey: ["allUsers"] });
+        }}
       />
     </div>
   );
