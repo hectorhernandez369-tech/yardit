@@ -261,6 +261,8 @@ export default function CreateAdminTab() {
     setDob("");
     setPhone("");
     setAddress("");
+    setAdminPin("");
+    setConfirmPin("");
     setRole("basic");
     setSupervisorId("");
     applyRoleDefaults("basic");
