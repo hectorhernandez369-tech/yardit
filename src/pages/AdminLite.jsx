@@ -4,7 +4,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { logAdminEvent, searchCases, isSupervisor } from "../components/caseManagement";
 import { hasCapability } from "../components/admin/adminCapabilities";
 
