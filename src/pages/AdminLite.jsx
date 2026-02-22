@@ -42,97 +42,30 @@ export default function AdminLitePage() {
   const [selectedCaseId, setSelectedCaseId] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const [activationBanner, setActivationBanner] = useState(false);
-
   useEffect(() => {
     const init = async () => {
       try {
         const currentUser = await base44.auth.me();
 
-        // ── Step 1: Run invite acceptance BEFORE checking admin role ──
-        // Bootstrap: fix MasterOB1k placeholder profile
-        const allProfiles = await base44.entities.AdminProfile.list();
-        const bootstrapProfile = allProfiles.find(p => p.employee_id === "MasterOB1k" && (!p.user_id || p.user_id === "__PLACEHOLDER__"));
-        if (bootstrapProfile) {
-          await base44.entities.AdminProfile.update(bootstrapProfile.id, {
-            user_id: currentUser.id,
-            email: currentUser.email.toLowerCase(),
-            first_name: currentUser.full_name?.split(" ")[0] || bootstrapProfile.first_name,
-            last_name: currentUser.full_name?.split(" ").slice(1).join(" ") || bootstrapProfile.last_name,
-            last_login_at: new Date().toISOString(),
-          });
-          const accessKeys = await base44.entities.AdminAccessKey.filter({ employee_id: "MasterOB1k" });
-          for (const ak of accessKeys) {
-            if (!ak.user_id || ak.user_id === "__PLACEHOLDER__") {
-              await base44.entities.AdminAccessKey.update(ak.id, { user_id: currentUser.id });
-            }
-          }
-        }
+        // Layout already ran syncAdminInvite, so just look up the profile
+        const [profilesByEmail, profilesByUserId] = await Promise.all([
+          base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }),
+          base44.entities.AdminProfile.filter({ user_id: currentUser.id }),
+        ]);
 
-        // Check for existing AdminProfile by email or user_id
-        let existingProfiles = allProfiles.filter(
-          p => p.email === currentUser.email.toLowerCase() || p.user_id === currentUser.id
-        );
-
-        let justActivated = false;
-
-        if (existingProfiles.length === 0) {
-          // Look for pending invite and accept it
-          const invites = await base44.entities.AdminInviteProfile.filter({ email: currentUser.email.toLowerCase() });
-          const pendingInvite = invites.find(i => i.status === "pending");
-          if (pendingInvite) {
-            await base44.entities.AdminProfile.create({
-              user_id: currentUser.id,
-              email: pendingInvite.email,
-              employee_id: pendingInvite.employee_id,
-              role_label: pendingInvite.role_label,
-              first_name: pendingInvite.first_name,
-              last_name: pendingInvite.last_name,
-              dob: pendingInvite.dob,
-              phone: pendingInvite.phone,
-              address: pendingInvite.address || "",
-              capabilities: pendingInvite.capabilities,
-              is_active: true,
-              last_login_at: new Date().toISOString(),
-              ...(pendingInvite.supervisor_user_id ? {
-                supervisor_user_id: pendingInvite.supervisor_user_id,
-                supervisor_employee_id: pendingInvite.supervisor_employee_id,
-              } : {}),
-            });
-            await base44.entities.AdminInviteProfile.update(pendingInvite.id, { status: "accepted" });
-
-            // Link AdminAccessKey to this user_id
-            const accessKeys = await base44.entities.AdminAccessKey.filter({ employee_id: pendingInvite.employee_id });
-            for (const ak of accessKeys) {
-              if (!ak.user_id || ak.user_id === "__PLACEHOLDER__") {
-                await base44.entities.AdminAccessKey.update(ak.id, { user_id: currentUser.id });
-              }
-            }
-
-            justActivated = true;
-            // Re-fetch profiles after creation
-            existingProfiles = await base44.entities.AdminProfile.filter({ user_id: currentUser.id });
-          }
-        } else {
-          // Update last_login_at on subsequent logins
-          await base44.entities.AdminProfile.update(existingProfiles[0].id, { last_login_at: new Date().toISOString() });
-        }
-
-        // ── Step 2: Determine admin access from AdminProfile ──
-        const adminProfile = existingProfiles[0];
+        const adminProfile = profilesByEmail[0] || profilesByUserId[0];
         if (!adminProfile || !adminProfile.is_active) {
           navigate(createPageUrl("Home"));
           return;
         }
 
-        // Enrich currentUser with role info from AdminProfile
+        // Update last_login_at
+        await base44.entities.AdminProfile.update(adminProfile.id, { last_login_at: new Date().toISOString() });
+
+        // Enrich currentUser with role from AdminProfile
         currentUser.role = adminProfile.role_label;
         currentUser.isAdmin = true;
         setUser(currentUser);
-
-        if (justActivated) {
-          setActivationBanner(true);
-        }
 
         const users = await base44.entities.User.list();
         setAllAdminUsers(users.filter(u => ["admin", "admin_lite", "supervisor", "master"].includes(u.role)));
