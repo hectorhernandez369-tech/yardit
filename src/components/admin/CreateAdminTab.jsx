@@ -291,7 +291,7 @@ export default function CreateAdminTab() {
                   ) : (
                     supervisors.map((s) => (
                       <SelectItem key={s.user_id} value={s.user_id}>
-                        {s.full_name} ({s.employee_id})
+                        {s.first_name} {s.last_name} ({s.employee_id})
                       </SelectItem>
                     ))
                   )}
