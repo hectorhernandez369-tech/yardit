@@ -123,6 +123,11 @@ export default function CreateAdminTab() {
     if (role === "basic" && !supervisorId)
       return "Basic admins must have a supervisor assigned";
 
+    if (!adminPin || adminPin.length < 4)
+      return "Admin PIN must be at least 4 characters";
+    if (adminPin !== confirmPin)
+      return "PIN and Confirm PIN do not match";
+
     return null;
   };
 
