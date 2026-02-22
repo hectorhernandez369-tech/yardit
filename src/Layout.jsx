@@ -14,6 +14,8 @@ export default function Layout({ children }) {
   const [user, setUser] = useState(null);
   const [showDemoPanel, setShowDemoPanel] = useState(false);
   const [demoActive, setDemoActive] = useState(isDemoMode());
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [hasAdminProfile, setHasAdminProfile] = useState(false);
   const longPressTimer = useRef(null);
   const didLongPress = useRef(false);
 
