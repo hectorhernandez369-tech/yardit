@@ -80,6 +80,16 @@ export default function AdminLitePage() {
               } : {}),
             });
             await base44.entities.AdminInviteProfile.update(invite.id, { status: "accepted" });
+
+            // Link AdminAccessKey to this user_id on first login
+            try {
+              const accessKeys = await base44.entities.AdminAccessKey.filter({ employee_id: invite.employee_id });
+              if (accessKeys.length > 0 && !accessKeys[0].user_id) {
+                await base44.entities.AdminAccessKey.update(accessKeys[0].id, { user_id: currentUser.id });
+              }
+            } catch (e) {
+              console.error("AdminAccessKey sync failed:", e);
+            }
           }
         } else {
           // Update last_login_at on subsequent logins
