@@ -56,6 +56,26 @@ export default function AdminLitePage() {
         setUser(currentUser);
 
         // First-login sync: convert AdminInviteProfile → AdminProfile
+        // Bootstrap: fix any AdminProfile with matching employee_id but placeholder user_id/email
+        const allProfiles = await base44.entities.AdminProfile.list();
+        const bootstrapProfile = allProfiles.find(p => p.employee_id === "MasterOB1k" && (!p.user_id || p.user_id === "__PLACEHOLDER__"));
+        if (bootstrapProfile) {
+          await base44.entities.AdminProfile.update(bootstrapProfile.id, {
+            user_id: currentUser.id,
+            email: currentUser.email.toLowerCase(),
+            first_name: currentUser.full_name?.split(" ")[0] || bootstrapProfile.first_name,
+            last_name: currentUser.full_name?.split(" ").slice(1).join(" ") || bootstrapProfile.last_name,
+            last_login_at: new Date().toISOString(),
+          });
+          // Also fix the matching AdminAccessKey
+          const accessKeys = await base44.entities.AdminAccessKey.filter({ employee_id: "MasterOB1k" });
+          for (const ak of accessKeys) {
+            if (!ak.user_id || ak.user_id === "__PLACEHOLDER__") {
+              await base44.entities.AdminAccessKey.update(ak.id, { user_id: currentUser.id });
+            }
+          }
+        }
+
         const existingProfiles = await base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() });
         if (existingProfiles.length === 0) {
           const invites = await base44.entities.AdminInviteProfile.filter({ email: currentUser.email.toLowerCase(), status: "pending" });
