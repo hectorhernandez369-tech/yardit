@@ -48,8 +48,8 @@ const EMPLOYEE_ID_RULES = {
 
 const ROLE_TO_INVITE_ROLE = {
   basic: "admin",
-  supervisor: "supervisor",
-  master: "master",
+  supervisor: "admin",
+  master: "admin",
 };
 
 export default function CreateAdminTab() {
