@@ -300,6 +300,18 @@ export default function CreateAdminTab() {
             <Input placeholder="Address (optional)" value={address} onChange={(e) => setAddress(e.target.value)} />
           </div>
 
+          {/* Admin PIN */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Admin PIN / Passcode</label>
+              <Input type="password" placeholder="Min 4 characters" value={adminPin} onChange={(e) => setAdminPin(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Confirm PIN</label>
+              <Input type="password" placeholder="Re-enter PIN" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} />
+            </div>
+          </div>
+
           {/* Role */}
           <Select value={role} onValueChange={handleRoleChange}>
             <SelectTrigger><SelectValue /></SelectTrigger>
