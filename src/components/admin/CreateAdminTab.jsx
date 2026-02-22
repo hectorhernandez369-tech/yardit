@@ -232,7 +232,7 @@ export default function CreateAdminTab() {
           </div>
 
           {/* Name/DOB */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="text-sm font-medium mb-1 block">First Name</label>
               <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First" />
