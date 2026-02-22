@@ -211,6 +211,15 @@ export default function Layout({ children }) {
         {children}
       </main>
 
+      <AdminLoginModal
+        open={showAdminLogin}
+        onClose={() => setShowAdminLogin(false)}
+        onSuccess={() => {
+          setShowAdminLogin(false);
+          navigate(createPageUrl("AdminLite"));
+        }}
+      />
+
       <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-4">
         <div className="max-w-7xl mx-auto px-4">
           <p className="text-center text-sm text-white">
