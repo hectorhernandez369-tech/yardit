@@ -11,6 +11,7 @@ import DemoModeToggle, { isDemoMode } from "./components/shared/DemoMode";
 
 export default function Layout({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [showDemoPanel, setShowDemoPanel] = useState(false);
   const [demoActive, setDemoActive] = useState(isDemoMode());
