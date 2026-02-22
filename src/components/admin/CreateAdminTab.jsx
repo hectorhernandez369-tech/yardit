@@ -41,9 +41,18 @@ const DEFAULT_CAPS_BY_ROLE = {
 };
 
 const EMPLOYEE_ID_RULES = {
-  basic: { regex: /^Padawan[a-zA-Z0-9]{5}$/, example: "PadawanA1B2C" },
-  supervisor: { regex: /^(Jedi|Sith)[a-zA-Z0-9]{5}$/, example: "Jedi123AB or Sith9X8Y7" },
-  master: { regex: /^(Master|Darth)[a-zA-Z0-9]{5}$/, example: "MasterABCDE or Darth12345" },
+  basic: {
+    regex: /^Padawan[a-zA-Z0-9]{4}$/,
+    example: "Padawan1A2B"
+  },
+  supervisor: {
+    regex: /^(Jedi|Sith)[a-zA-Z0-9]{4}$/,
+    example: "Jedi1A2B or Sith9X8Y"
+  },
+  master: {
+    regex: /^(Master|Darth)[a-zA-Z0-9]{4}$/,
+    example: "MasterAB12 or Darth9X8Y"
+  }
 };
 
 const ROLE_TO_INVITE_ROLE = {
