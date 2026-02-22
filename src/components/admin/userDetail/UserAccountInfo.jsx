@@ -14,21 +14,32 @@ const statusColors = {
   banned: "bg-black",
 };
 
+function deriveNames(user) {
+  if (user.first_name || user.last_name) {
+    return { first: user.first_name || "", last: user.last_name || "" };
+  }
+  const parts = (user.full_name || "").split(" ");
+  return { first: parts[0] || "", last: parts.slice(1).join(" ") || "" };
+}
+
 export default function UserAccountInfo({ user, onUserUpdated }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const nameParts = (user.full_name || "").split(" ");
+  const { first, last } = deriveNames(user);
 
   const [form, setForm] = useState({
-    full_name: user.full_name || "",
+    first_name: first,
+    last_name: last,
     phone: user.phone || "",
     address: user.address || "",
     accountStatus: user.accountStatus || "active",
   });
 
   const startEdit = () => {
+    const names = deriveNames(user);
     setForm({
-      full_name: user.full_name || "",
+      first_name: names.first,
+      last_name: names.last,
       phone: user.phone || "",
       address: user.address || "",
       accountStatus: user.accountStatus || "active",
@@ -40,15 +51,23 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
 
   const handleSave = async () => {
     setSaving(true);
-    await base44.entities.User.update(user.id, form);
+    const payload = {
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      phone: form.phone.trim(),
+      address: form.address.trim(),
+      accountStatus: form.accountStatus,
+    };
+    await base44.entities.User.update(user.id, payload);
+    // Re-fetch fresh user data
+    const allUsers = await base44.entities.User.list();
+    const freshUser = allUsers.find(u => u.id === user.id);
     toast.success("User info updated.");
     setSaving(false);
     setEditing(false);
-    if (onUserUpdated) onUserUpdated({ ...user, ...form });
+    if (onUserUpdated && freshUser) onUserUpdated(freshUser);
   };
 
-  const firstName = nameParts[0] || "—";
-  const lastName = nameParts.slice(1).join(" ") || "—";
   const status = user.accountStatus || "active";
 
   if (editing) {
@@ -68,11 +87,19 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Full Name</label>
+            <label className="text-xs text-gray-500 mb-1 block">First Name</label>
             <Input
-              value={form.full_name}
-              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-              placeholder="Full name"
+              value={form.first_name}
+              onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+              placeholder="First name"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Last Name</label>
+            <Input
+              value={form.last_name}
+              onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+              placeholder="Last name"
             />
           </div>
           <div>
@@ -81,14 +108,6 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               placeholder="Phone number"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-xs text-gray-500 mb-1 block">Address</label>
-            <Input
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-              placeholder="Address"
             />
           </div>
           <div>
@@ -102,6 +121,14 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
                 <SelectItem value="banned">Banned</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="text-xs text-gray-500 mb-1 block">Address</label>
+            <Input
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              placeholder="Address"
+            />
           </div>
         </div>
 
@@ -123,11 +150,11 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <div>
           <span className="text-gray-500">First Name</span>
-          <p className="font-medium">{firstName}</p>
+          <p className="font-medium">{first || "—"}</p>
         </div>
         <div>
           <span className="text-gray-500">Last Name</span>
-          <p className="font-medium">{lastName}</p>
+          <p className="font-medium">{last || "—"}</p>
         </div>
         <div>
           <span className="text-gray-500">Email</span>
