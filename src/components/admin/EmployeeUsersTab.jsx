@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, XCircle, Send, ToggleLeft, ToggleRight, Users } from "lucide-react";
+import { Loader2, RefreshCw, XCircle, Send, ToggleLeft, ToggleRight, Users, Activity } from "lucide-react";
+import EmployeeActivityDrawer from "./EmployeeActivityDrawer";
 import { format } from "date-fns";
 
 function PendingInvitesTable({ invites, onResend, onCancel, acting }) {
@@ -73,7 +74,7 @@ function PendingInvitesTable({ invites, onResend, onCancel, acting }) {
   );
 }
 
-function ActiveAdminsTable({ admins, onToggleActive, acting }) {
+function ActiveAdminsTable({ admins, onToggleActive, acting, onViewActivity }) {
   if (admins.length === 0) {
     return <p className="text-sm text-gray-500 py-4 text-center">No admin profiles found.</p>;
   }
@@ -130,6 +131,15 @@ function ActiveAdminsTable({ admins, onToggleActive, acting }) {
                   )}
                   {adm.is_active ? "Deactivate" : "Reactivate"}
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => onViewActivity(adm)}
+                >
+                  <Activity className="w-3 h-3" />
+                  Activity
+                </Button>
               </td>
             </tr>
           ))}
@@ -144,6 +154,7 @@ export default function EmployeeUsersTab() {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
+  const [activityAdmin, setActivityAdmin] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -220,7 +231,7 @@ export default function EmployeeUsersTab() {
           <CardTitle className="text-base">Active Admins ({admins.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <ActiveAdminsTable admins={admins} onToggleActive={handleToggleActive} acting={acting} />
+          <ActiveAdminsTable admins={admins} onToggleActive={handleToggleActive} acting={acting} onViewActivity={setActivityAdmin} />
         </CardContent>
       </Card>
     </div>
