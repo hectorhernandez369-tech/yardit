@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,8 @@ export default function CreateAdminTab() {
   const [address, setAddress] = useState("");
 
   const [role, setRole] = useState("basic");
+  const [supervisorId, setSupervisorId] = useState("");
+  const [supervisors, setSupervisors] = useState([]);
   const [saving, setSaving] = useState(false);
 
   const [caps, setCaps] = useState(() => {
@@ -76,6 +78,15 @@ export default function CreateAdminTab() {
     [caps]
   );
 
+  // Load active supervisors for the dropdown
+  useEffect(() => {
+    const loadSupervisors = async () => {
+      const profiles = await base44.entities.AdminProfile.filter({ role_label: "supervisor", is_active: true });
+      setSupervisors(profiles);
+    };
+    loadSupervisors();
+  }, []);
+
   const applyRoleDefaults = (nextRole) => {
     const defaults = DEFAULT_CAPS_BY_ROLE[nextRole] ?? new Set();
     const obj = {};
@@ -86,6 +97,7 @@ export default function CreateAdminTab() {
   const handleRoleChange = (nextRole) => {
     setRole(nextRole);
     applyRoleDefaults(nextRole);
+    if (nextRole !== "basic") setSupervisorId("");
   };
 
   const toggleCap = (capKey) => {
@@ -102,6 +114,9 @@ export default function CreateAdminTab() {
     const rule = EMPLOYEE_ID_RULES[role];
     if (rule && !rule.regex.test(employeeId.trim())) {
       return `Employee ID format invalid for selected role. Example: ${rule.example}`;
+    }
+    if (role === "basic" && !supervisorId) {
+      return "Basic admins must be assigned a supervisor";
     }
     return null;
   };
@@ -124,7 +139,7 @@ export default function CreateAdminTab() {
       await base44.users.inviteUser(inviteEmail.trim(), ROLE_TO_INVITE_ROLE[role]);
 
       // 2) Save metadata (so we can attach it on first login)
-      // NOTE: Ensure AdminInviteProfile entity exists in Base44.
+      const selectedSupervisor = role === "basic" ? supervisors.find(s => s.user_id === supervisorId) : null;
       await base44.entities.AdminInviteProfile.create({
         email: inviteEmail.trim().toLowerCase(),
         employee_id: employeeId.trim(),
@@ -135,6 +150,12 @@ export default function CreateAdminTab() {
         address: address.trim() || null,
         capabilities: enabledCapabilities,
         is_active: true,
+        status: "pending",
+        invited_at: new Date().toISOString(),
+        ...(selectedSupervisor ? {
+          supervisor_user_id: selectedSupervisor.user_id,
+          supervisor_employee_id: selectedSupervisor.employee_id,
+        } : {}),
       });
 
       toast.success(`Invite sent to ${inviteEmail.trim()}`);
@@ -147,6 +168,7 @@ export default function CreateAdminTab() {
       setPhone("");
       setAddress("");
       setRole("basic");
+      setSupervisorId("");
       applyRoleDefaults("basic");
     } catch (e) {
       console.error(e);
@@ -237,6 +259,32 @@ export default function CreateAdminTab() {
               Selecting a role auto-checks default permissions. You can still override any checkbox.
             </p>
           </div>
+
+          {/* Supervisor Assignment (basic only) */}
+          {role === "basic" && (
+            <div>
+              <label className="text-sm font-medium mb-1 block">Assign Supervisor <span className="text-red-500">*</span></label>
+              <Select value={supervisorId} onValueChange={setSupervisorId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a supervisor..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {supervisors.length === 0 ? (
+                    <SelectItem value="__none" disabled>No active supervisors found</SelectItem>
+                  ) : (
+                    supervisors.map((s) => (
+                      <SelectItem key={s.user_id} value={s.user_id}>
+                        {s.full_name} ({s.employee_id})
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Basic admins must be assigned to a supervisor.
+              </p>
+            </div>
+          )}
 
           {/* Capabilities */}
           <div className="rounded-lg border p-4">
