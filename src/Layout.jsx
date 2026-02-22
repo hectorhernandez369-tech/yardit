@@ -156,19 +156,25 @@ export default function Layout({ children }) {
                     </Button>
                   </Link>
 
-                  {user.isAdmin && (
+                  {(user.isAdmin || hasAdminProfile) && (
                     <>
                       <AdminNotificationBell user={user} />
-                      <Link to={createPageUrl("AdminLite")}>
-                        <Button
-                          variant={location.pathname.includes(createPageUrl("AdminLite")) || location.pathname.includes(createPageUrl("CaseManagement")) ? "secondary" : "ghost"}
-                          size="sm"
-                          className={`gap-2 ${location.pathname.includes(createPageUrl("AdminLite")) || location.pathname.includes(createPageUrl("CaseManagement")) ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
-                        >
-                          <Shield className="w-4 h-4" />
-                          <span className="hidden sm:inline">Admin</span>
-                        </Button>
-                      </Link>
+                      <Button
+                        variant={location.pathname.includes(createPageUrl("AdminLite")) || location.pathname.includes(createPageUrl("CaseManagement")) ? "secondary" : "ghost"}
+                        size="sm"
+                        className={`gap-2 ${location.pathname.includes(createPageUrl("AdminLite")) || location.pathname.includes(createPageUrl("CaseManagement")) ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
+                        onClick={() => {
+                          const session = getAdminSession();
+                          if (session) {
+                            navigate(createPageUrl("AdminLite"));
+                          } else {
+                            setShowAdminLogin(true);
+                          }
+                        }}
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span className="hidden sm:inline">Admin</span>
+                      </Button>
                     </>
                   )}
                   
