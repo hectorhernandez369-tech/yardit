@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, XCircle, Send, ToggleLeft, ToggleRight, Users, Activity } from "lucide-react";
+import { Loader2, RefreshCw, XCircle, Send, ToggleLeft, ToggleRight, Users, Activity, Pencil } from "lucide-react";
 import EmployeeActivityDrawer from "./EmployeeActivityDrawer";
+import EditEmployeeDrawer from "./EditEmployeeDrawer";
 import { format } from "date-fns";
 
 function PendingInvitesTable({ invites, onResend, onCancel, acting }) {
@@ -74,7 +75,7 @@ function PendingInvitesTable({ invites, onResend, onCancel, acting }) {
   );
 }
 
-function ActiveAdminsTable({ admins, onToggleActive, acting, onViewActivity }) {
+function ActiveAdminsTable({ admins, onToggleActive, acting, onViewActivity, onEditUser, isMaster }) {
   if (admins.length === 0) {
     return <p className="text-sm text-gray-500 py-4 text-center">No admin profiles found.</p>;
   }
@@ -140,6 +141,17 @@ function ActiveAdminsTable({ admins, onToggleActive, acting, onViewActivity }) {
                   <Activity className="w-3 h-3" />
                   Activity
                 </Button>
+                {isMaster && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => onEditUser(adm)}
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Edit
+                  </Button>
+                )}
               </td>
             </tr>
           ))}
@@ -149,12 +161,16 @@ function ActiveAdminsTable({ admins, onToggleActive, acting, onViewActivity }) {
   );
 }
 
-export default function EmployeeUsersTab() {
+export default function EmployeeUsersTab({ currentUser }) {
   const [invites, setInvites] = useState([]);
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
   const [activityAdmin, setActivityAdmin] = useState(null);
+  const [editAdmin, setEditAdmin] = useState(null);
+  const [currentProfile, setCurrentProfile] = useState(null);
+
+  const isMaster = currentUser?.role === "master";
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -164,8 +180,12 @@ export default function EmployeeUsersTab() {
     ]);
     setInvites(inv);
     setAdmins(prof);
+    if (currentUser) {
+      const mine = prof.find(p => p.email === currentUser.email?.toLowerCase() || p.user_id === currentUser.id);
+      if (mine) setCurrentProfile(mine);
+    }
     setLoading(false);
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -231,7 +251,7 @@ export default function EmployeeUsersTab() {
           <CardTitle className="text-base">Active Admins ({admins.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <ActiveAdminsTable admins={admins} onToggleActive={handleToggleActive} acting={acting} onViewActivity={setActivityAdmin} />
+          <ActiveAdminsTable admins={admins} onToggleActive={handleToggleActive} acting={acting} onViewActivity={setActivityAdmin} onEditUser={setEditAdmin} isMaster={isMaster} />
         </CardContent>
       </Card>
 
@@ -239,6 +259,14 @@ export default function EmployeeUsersTab() {
         open={!!activityAdmin}
         onClose={() => setActivityAdmin(null)}
         admin={activityAdmin}
+      />
+
+      <EditEmployeeDrawer
+        open={!!editAdmin}
+        onClose={() => setEditAdmin(null)}
+        admin={editAdmin}
+        currentUserProfile={currentProfile}
+        onSaved={loadData}
       />
     </div>
   );
