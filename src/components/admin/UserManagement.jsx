@@ -1,16 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, Eye } from "lucide-react";
 import { toast } from "sonner";
+import UserDetailDrawer from "./userDetail/UserDetailDrawer";
 
 export default function UserManagement() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [adminUser, setAdminUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setAdminUser).catch(() => {});
+  }, []);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["allUsers"],
@@ -69,27 +77,44 @@ export default function UserManagement() {
                   </div>
                 </div>
                 
-                <Select
-                  value={user.accountStatus || "active"}
-                  onValueChange={(value) => 
-                    updateStatusMutation.mutate({ id: user.id, accountStatus: value })
-                  }
-                >
-                  <SelectTrigger className="w-full sm:w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="warned">Warned</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
-                    <SelectItem value="banned">Banned</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-col gap-2 items-end">
+                  <Select
+                    value={user.accountStatus || "active"}
+                    onValueChange={(value) => 
+                      updateStatusMutation.mutate({ id: user.id, accountStatus: value })
+                    }
+                  >
+                    <SelectTrigger className="w-full sm:w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="warned">Warned</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
+                      <SelectItem value="banned">Banned</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-xs"
+                    onClick={() => setSelectedUser(user)}
+                  >
+                    <Eye className="w-3 h-3" /> View More Details
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      <UserDetailDrawer
+        user={selectedUser}
+        adminUser={adminUser}
+        open={!!selectedUser}
+        onClose={() => setSelectedUser(null)}
+      />
     </div>
   );
 }
