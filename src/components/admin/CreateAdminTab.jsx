@@ -223,6 +223,31 @@ export default function CreateAdminTab() {
       return;
     }
 
+    // 🔐 CREATE AdminAccessKey with hashed PIN
+    try {
+      const hashResp = await base44.functions.invoke("adminHashPin", { pin: adminPin });
+      const pinHash = hashResp.data.pin_hash;
+
+      // Try to find the user_id if the user already exists
+      let targetUserId = null;
+      if (userAlreadyExisted) {
+        const allUsers = await base44.entities.User.list();
+        const found = allUsers.find(u => u.email?.toLowerCase() === inviteEmail.trim().toLowerCase());
+        if (found) targetUserId = found.id;
+      }
+
+      await base44.entities.AdminAccessKey.create({
+        employee_id: employeeId.trim(),
+        user_id: targetUserId || "",
+        pin_hash: pinHash,
+        is_active: true,
+        failed_attempts: 0,
+      });
+    } catch (e) {
+      console.error("AdminAccessKey creation failed:", e);
+      toast.error("Admin created but PIN setup failed. Set PIN manually later.");
+    }
+
     toast.success(
       userAlreadyExisted
         ? "User already exists. Admin role assigned and confirmation email sent."
