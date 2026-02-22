@@ -60,6 +60,8 @@ export default function CreateAdminTab() {
   const [dob, setDob] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [adminPin, setAdminPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
 
   const [role, setRole] = useState("basic");
   const [supervisorId, setSupervisorId] = useState("");
