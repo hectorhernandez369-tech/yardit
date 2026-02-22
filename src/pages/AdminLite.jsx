@@ -298,7 +298,7 @@ export default function AdminLitePage() {
           {/* ─── Employee Users ─── */}
           {canManageAdmins && (
             <TabsContent value="employee-users">
-              <EmployeeUsersTab />
+              <EmployeeUsersTab currentUser={user} />
             </TabsContent>
           )}
 
