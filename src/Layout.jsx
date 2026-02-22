@@ -25,12 +25,9 @@ export default function Layout({ children }) {
       try {
         const currentUser = await base44.auth.me();
         // Derive isAdmin from role if not already set
-        if (!('isAdmin' in currentUser)) {
-          currentUser.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(currentUser.role);
-        }
         setUser(currentUser);
 
-        // Check if user has AdminProfile or accepted AdminInviteProfile
+        // Check if user has AdminProfile or pending/accepted AdminInviteProfile
         try {
           const [profilesByEmail, profilesByUserId, invites] = await Promise.all([
             base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }),
@@ -39,8 +36,23 @@ export default function Layout({ children }) {
           ]);
           const hasProfile = profilesByEmail.length > 0 || profilesByUserId.length > 0;
           const hasAcceptedOrPendingInvite = invites.some(i => i.status === "accepted" || i.status === "pending");
-          setHasAdminProfile(hasProfile || hasAcceptedOrPendingInvite);
+          const showAdmin = hasProfile || hasAcceptedOrPendingInvite;
+          setHasAdminProfile(showAdmin);
+
+          // Enrich user.isAdmin based on profile existence
+          if (showAdmin) {
+            const profile = profilesByEmail[0] || profilesByUserId[0];
+            if (profile) {
+              currentUser.isAdmin = true;
+              currentUser.role = profile.role_label;
+            } else {
+              currentUser.isAdmin = true; // has pending invite
+            }
+          } else {
+            currentUser.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(currentUser.role);
+          }
         } catch {
+          currentUser.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(currentUser.role);
           setHasAdminProfile(false);
         }
       } catch (error) {
