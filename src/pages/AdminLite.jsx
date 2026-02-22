@@ -28,6 +28,8 @@ export default function AdminLitePage() {
   const [adminSession, setAdminSession] = useState(() => getAdminSession());
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [allAdminUsers, setAllAdminUsers] = useState([]);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [noAdminAccess, setNoAdminAccess] = useState(false);
 
   // Top-level tab
   const urlParams = new URLSearchParams(location.search);
@@ -44,6 +46,7 @@ export default function AdminLitePage() {
 
   useEffect(() => {
     const init = async () => {
+      setLoadingProfile(true);
       try {
         const currentUser = await base44.auth.me();
 
@@ -55,7 +58,8 @@ export default function AdminLitePage() {
 
         const adminProfile = profilesByEmail[0] || profilesByUserId[0];
         if (!adminProfile || !adminProfile.is_active) {
-          navigate(createPageUrl("Home"));
+          setNoAdminAccess(true);
+          setLoadingProfile(false);
           return;
         }
 
@@ -70,7 +74,9 @@ export default function AdminLitePage() {
         const users = await base44.entities.User.list();
         setAllAdminUsers(users.filter(u => ["admin", "admin_lite", "supervisor", "master"].includes(u.role)));
       } catch {
-        navigate(createPageUrl("Home"));
+        setNoAdminAccess(true);
+      } finally {
+        setLoadingProfile(false);
       }
     };
     init();
@@ -116,9 +122,22 @@ export default function AdminLitePage() {
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), []);
 
 
+  if (loadingProfile) return <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>;
+
+  if (noAdminAccess) {
+    return (
+      <div className="p-8 text-center max-w-md mx-auto mt-12">
+        <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h2 className="text-xl font-bold text-[#2C4F4E] mb-2">No Admin Access</h2>
+        <p className="text-gray-600 mb-6 text-sm">You don't have an active admin profile. Contact a master administrator for access.</p>
+        <Button onClick={() => navigate(createPageUrl("Home"))} variant="outline">Back to Map</Button>
+      </div>
+    );
+  }
+
   if (!user) return <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>;
 
-  // Admin Mode gate: require valid admin session
+  // Admin Mode gate: require valid admin session (stays on page, no redirect)
   if (!adminSession) {
     return (
       <>
