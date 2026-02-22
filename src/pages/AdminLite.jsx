@@ -17,11 +17,15 @@ import AdminLiteDashboard from "../components/admin/AdminLiteDashboard";
 import CreateAdminTab from "../components/admin/CreateAdminTab";
 import AdminLogsTab from "../components/admin/AdminLogsTab";
 import EmployeeUsersTab from "../components/admin/EmployeeUsersTab";
+import { getAdminSession, clearAdminSession } from "../components/admin/AdminLoginModal";
+import AdminLoginModal from "../components/admin/AdminLoginModal";
 
 export default function AdminLitePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(null);
+  const [adminSession, setAdminSession] = useState(() => getAdminSession());
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [allAdminUsers, setAllAdminUsers] = useState([]);
 
   // Top-level tab
