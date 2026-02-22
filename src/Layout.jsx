@@ -28,10 +28,10 @@ export default function Layout({ children }) {
       try {
         const currentUser = await base44.auth.me();
         // Derive isAdmin from role if not already set
-        // Run invite sync BEFORE setting user state — auto-accepts pending invites
+        // Run invite sync — auto-accepts pending invites and creates AdminProfile
         try {
           const { accepted, adminProfile } = await syncAdminInvite(currentUser);
-          if (adminProfile) {
+          if (adminProfile && adminProfile.is_active && adminProfile.user_id === currentUser.id) {
             currentUser.isAdmin = true;
             currentUser.role = adminProfile.role_label;
             setHasAdminProfile(true);
@@ -39,19 +39,12 @@ export default function Layout({ children }) {
               setAdminActivatedBanner(true);
             }
           } else {
-            // No admin profile — check for pending invites as fallback
-            const invites = await base44.entities.AdminInviteProfile.filter({ email: currentUser.email.toLowerCase() });
-            const hasPending = invites.some(i => i.status === "pending");
-            if (hasPending) {
-              currentUser.isAdmin = true;
-              setHasAdminProfile(true);
-            } else {
-              currentUser.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(currentUser.role);
-              setHasAdminProfile(false);
-            }
+            // No active AdminProfile with matching user_id — no admin access
+            currentUser.isAdmin = false;
+            setHasAdminProfile(false);
           }
         } catch {
-          currentUser.isAdmin = ['admin', 'admin_lite', 'supervisor', 'master'].includes(currentUser.role);
+          currentUser.isAdmin = false;
           setHasAdminProfile(false);
         }
 
@@ -173,7 +166,7 @@ export default function Layout({ children }) {
                     </Button>
                   </Link>
 
-                  {(user.isAdmin || hasAdminProfile) && (
+                  {hasAdminProfile && (
                     <>
                       <AdminNotificationBell user={user} />
                       <Button
