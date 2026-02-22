@@ -15,7 +15,7 @@ const CAPABILITIES = [
   { key: "cases.select_disposition", label: "Select Disposition" },
   { key: "cases.submit_disposition", label: "Submit Disposition" },
   { key: "cases.approve_to_master_pending", label: "Approve Disposition (Supervisor → Master Pending)" },
-  { key: "cases.final_close", label: "Final Approve / Close Cases (Master)" },
+  { key: "cases.final_close", label: "Final Close (Master)" },
   { key: "refunds.recommend", label: "Enter Refund Recommendation (Supervisor+)" },
   { key: "refunds.finalize", label: "Finalize Refund (Master)" },
   { key: "promos.recommend", label: "Enter Promo Recommendation (Supervisor+)" },
@@ -41,18 +41,9 @@ const DEFAULT_CAPS_BY_ROLE = {
 };
 
 const EMPLOYEE_ID_RULES = {
-  basic: {
-    regex: /^Padawan[a-zA-Z0-9]{4}$/,
-    example: "Padawan1A2B"
-  },
-  supervisor: {
-    regex: /^(Jedi|Sith)[a-zA-Z0-9]{4}$/,
-    example: "Jedi1A2B or Sith9X8Y"
-  },
-  master: {
-    regex: /^(Master|Darth)[a-zA-Z0-9]{4}$/,
-    example: "MasterAB12 or Darth9X8Y"
-  }
+  basic: { regex: /^Padawan[a-zA-Z0-9]{4}$/, example: "Padawan1A2B" },
+  supervisor: { regex: /^(Jedi|Sith)[a-zA-Z0-9]{4}$/, example: "Jedi1A2B or Sith9X8Y" },
+  master: { regex: /^(Master|Darth)[a-zA-Z0-9]{4}$/, example: "MasterAB12 or Darth9X8Y" },
 };
 
 const ROLE_TO_INVITE_ROLE = {
@@ -64,7 +55,6 @@ const ROLE_TO_INVITE_ROLE = {
 export default function CreateAdminTab() {
   const [employeeId, setEmployeeId] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dob, setDob] = useState("");
@@ -83,18 +73,24 @@ export default function CreateAdminTab() {
     return obj;
   });
 
-  const selectedCapsCount = useMemo(
-    () => Object.values(caps).filter(Boolean).length,
+  const selectedCaps = useMemo(
+    () => Object.entries(caps).filter(([, v]) => v).map(([k]) => k),
     [caps]
   );
 
-  // Load active supervisors for the dropdown
+  // Load active supervisors properly
   useEffect(() => {
-    const loadSupervisors = async () => {
-      const profiles = await base44.entities.AdminProfile.filter({ role_label: "supervisor", is_active: true });
-      setSupervisors(profiles);
+    const load = async () => {
+      try {
+        const profiles = await base44.entities.AdminProfile.list();
+        setSupervisors(
+          profiles.filter((p) => p.role_label === "supervisor" && p.is_active === true)
+        );
+      } catch (e) {
+        console.error("Supervisor load failed:", e);
+      }
     };
-    loadSupervisors();
+    load();
   }, []);
 
   const applyRoleDefaults = (nextRole) => {
@@ -110,47 +106,70 @@ export default function CreateAdminTab() {
     if (nextRole !== "basic") setSupervisorId("");
   };
 
-  const toggleCap = (capKey) => {
-    setCaps((prev) => ({ ...prev, [capKey]: !prev[capKey] }));
-  };
-
   const validate = () => {
-    if (!employeeId.trim()) return "Employee/User ID is required";
-    if (!inviteEmail.trim()) return "Email is required (Base44 sends the invite here)";
-    if (!firstName.trim()) return "First name is required";
-    if (!lastName.trim()) return "Last name is required";
-    if (!dob.trim()) return "Date of birth is required";
-    if (!phone.trim()) return "Phone is required";
+    if (!employeeId.trim()) return "Employee ID required";
+    if (!inviteEmail.trim()) return "Email required";
+    if (!firstName.trim()) return "First name required";
+    if (!lastName.trim()) return "Last name required";
+    if (!dob.trim()) return "DOB required";
+    if (!phone.trim()) return "Phone required";
 
     const rule = EMPLOYEE_ID_RULES[role];
-    if (rule && !rule.regex.test(employeeId.trim())) {
-      return `Employee ID format invalid for selected role. Example: ${rule.example}`;
-    }
-    if (role === "basic" && !supervisorId) {
-      return "Basic admins must be assigned a supervisor";
-    }
+    if (!rule.regex.test(employeeId.trim()))
+      return `Invalid Employee ID format. Example: ${rule.example}`;
+
+    if (role === "basic" && !supervisorId)
+      return "Basic admins must have a supervisor assigned";
+
     return null;
   };
 
   const handleInvite = async () => {
     const err = validate();
-    if (err) {
-      toast.error(err);
+    if (err) return toast.error(err);
+
+    setSaving(true);
+
+    // 🔎 GLOBAL EMPLOYEE ID CHECK
+    try {
+      const [invites, profiles] = await Promise.all([
+        base44.entities.AdminInviteProfile.list(),
+        base44.entities.AdminProfile.list(),
+      ]);
+
+      const exists =
+        invites.some((r) => r.employee_id?.toLowerCase() === employeeId.trim().toLowerCase()) ||
+        profiles.some((r) => r.employee_id?.toLowerCase() === employeeId.trim().toLowerCase());
+
+      if (exists) {
+        toast.error("Employee ID already exists. Delete old record before reuse.");
+        setSaving(false);
+        return;
+      }
+    } catch (e) {
+      console.error("Employee ID check failed:", e);
+      toast.error("Could not verify Employee ID uniqueness.");
+      setSaving(false);
       return;
     }
 
+    // ✉️ INVITE STEP
     try {
-      setSaving(true);
-
-      const enabledCapabilities = Object.entries(caps)
-        .filter(([, enabled]) => enabled)
-        .map(([key]) => key);
-
-      // 1) Invite user via Base44 (email sets password)
       await base44.users.inviteUser(inviteEmail.trim(), ROLE_TO_INVITE_ROLE[role]);
+    } catch (e) {
+      console.error("inviteUser failed:", e);
+      toast.error("Invite email failed.");
+      setSaving(false);
+      return;
+    }
 
-      // 2) Save metadata (so we can attach it on first login)
-      const selectedSupervisor = role === "basic" ? supervisors.find(s => s.user_id === supervisorId) : null;
+    // 💾 SAVE PENDING RECORD
+    try {
+      const selectedSupervisor =
+        role === "basic"
+          ? supervisors.find((s) => s.user_id === supervisorId)
+          : null;
+
       await base44.entities.AdminInviteProfile.create({
         email: inviteEmail.trim().toLowerCase(),
         employee_id: employeeId.trim(),
@@ -160,35 +179,34 @@ export default function CreateAdminTab() {
         dob: dob.trim(),
         phone: phone.trim(),
         address: address.trim() || null,
-        capabilities: enabledCapabilities,
+        capabilities: selectedCaps,
         is_active: true,
         status: "pending",
         invited_at: new Date().toISOString(),
-        ...(selectedSupervisor ? {
-          supervisor_user_id: selectedSupervisor.user_id,
-          supervisor_employee_id: selectedSupervisor.employee_id,
-        } : {}),
+        supervisor_user_id: selectedSupervisor?.user_id || null,
+        supervisor_employee_id: selectedSupervisor?.employee_id || null,
       });
-
-      toast.success(`Invite sent to ${inviteEmail.trim()}`);
-
-      // reset
-      setEmployeeId("");
-      setInviteEmail("");
-      setFirstName("");
-      setLastName("");
-      setDob("");
-      setPhone("");
-      setAddress("");
-      setRole("basic");
-      setSupervisorId("");
-      applyRoleDefaults("basic");
     } catch (e) {
-      console.error(e);
-      toast.error("Failed to send invite. Check console for details.");
-    } finally {
+      console.error("AdminInviteProfile.create failed:", e);
+      toast.error("Invite sent but pending record failed.");
       setSaving(false);
+      return;
     }
+
+    toast.success("Invite sent successfully.");
+
+    setEmployeeId("");
+    setInviteEmail("");
+    setFirstName("");
+    setLastName("");
+    setDob("");
+    setPhone("");
+    setAddress("");
+    setRole("basic");
+    setSupervisorId("");
+    applyRoleDefaults("basic");
+
+    setSaving(false);
   };
 
   return (
@@ -202,136 +220,52 @@ export default function CreateAdminTab() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Top row: Employee/User ID + Email Invite (replaces temp password) */}
+          {/* Employee ID + Email */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Employee/User ID</label>
-              <Input
-                placeholder={EMPLOYEE_ID_RULES[role]?.example || "PadawanA1B2C"}
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Format for {role === "basic" ? "Admin Basic" : role === "supervisor" ? "Admin Supervisor" : "Admin Master"}:{" "}
-                {EMPLOYEE_ID_RULES[role]?.example}
-              </p>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-1 block">Email Invite</label>
-              <Input
-                type="email"
-                placeholder="admin@example.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Base44 will email an invite link here so the admin can set their password.
-              </p>
-            </div>
+            <Input placeholder={EMPLOYEE_ID_RULES[role].example} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} />
+            <Input type="email" placeholder="admin@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
           </div>
 
-          {/* Name/DOB */}
+          {/* First / Last / DOB */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="text-sm font-medium mb-1 block">First Name</label>
-              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First" />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Last Name</label>
-              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last" />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Date of Birth</label>
-              <Input value={dob} onChange={(e) => setDob(e.target.value)} placeholder="MM/DD/YYYY" />
-            </div>
+            <Input placeholder="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            <Input placeholder="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+            <Input placeholder="MM/DD/YYYY" value={dob} onChange={(e) => setDob(e.target.value)} />
           </div>
 
-          {/* Phone/Address */}
+          {/* Phone / Address */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Phone</label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 555-5555" />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Address (optional)</label>
-              <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St, City, State" />
-            </div>
+            <Input placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input placeholder="Address (optional)" value={address} onChange={(e) => setAddress(e.target.value)} />
           </div>
 
           {/* Role */}
-          <div>
-            <label className="text-sm font-medium mb-1 block">Admin Role</label>
-            <Select value={role} onValueChange={handleRoleChange}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+          <Select value={role} onValueChange={handleRoleChange}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="basic">Admin Basic</SelectItem>
+              <SelectItem value="supervisor">Admin Supervisor</SelectItem>
+              <SelectItem value="master">Admin Master</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Supervisor */}
+          {role === "basic" && (
+            <Select value={supervisorId} onValueChange={setSupervisorId}>
+              <SelectTrigger><SelectValue placeholder="Assign Supervisor" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="basic">Admin Basic</SelectItem>
-                <SelectItem value="supervisor">Admin Supervisor</SelectItem>
-                <SelectItem value="master">Admin Master</SelectItem>
+                {supervisors.map((s) => (
+                  <SelectItem key={s.user_id} value={s.user_id}>
+                    {s.first_name} {s.last_name} ({s.employee_id})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Selecting a role auto-checks default permissions. You can still override any checkbox.
-            </p>
-          </div>
-
-          {/* Supervisor Assignment (basic only) */}
-          {role === "basic" && (
-            <div>
-              <label className="text-sm font-medium mb-1 block">Assign Supervisor <span className="text-red-500">*</span></label>
-              <Select value={supervisorId} onValueChange={setSupervisorId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a supervisor..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {supervisors.length === 0 ? (
-                    <SelectItem value="__none" disabled>No active supervisors found</SelectItem>
-                  ) : (
-                    supervisors.map((s) => (
-                      <SelectItem key={s.user_id} value={s.user_id}>
-                        {s.first_name} {s.last_name} ({s.employee_id})
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Basic admins must be assigned to a supervisor.
-              </p>
-            </div>
           )}
 
-          {/* Capabilities */}
-          <div className="rounded-lg border p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="font-medium">Capabilities</div>
-              <div className="text-xs text-muted-foreground">Selected: {selectedCapsCount}</div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {CAPABILITIES.map((c) => (
-                <label key={c.key} className="flex items-start gap-2 cursor-pointer">
-                  <Checkbox checked={!!caps[c.key]} onCheckedChange={() => toggleCap(c.key)} />
-                  <span className="text-sm leading-5">{c.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
           <Button onClick={handleInvite} disabled={saving} className="w-full">
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Sending Invite...
-              </>
-            ) : (
-              <>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Send Email Invite
-              </>
-            )}
+            {saving ? <Loader2 className="animate-spin mr-2 w-4 h-4" /> : <UserPlus className="mr-2 w-4 h-4" />}
+            Send Email Invite
           </Button>
         </CardContent>
       </Card>
