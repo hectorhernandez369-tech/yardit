@@ -36,7 +36,9 @@ export default function Layout({ children }) {
             base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }),
             base44.entities.AdminInviteProfile.filter({ email: currentUser.email.toLowerCase() }),
           ]);
-          setHasAdminProfile(profiles.length > 0 || invites.length > 0);
+          const hasProfile = profiles.length > 0;
+          const hasAcceptedOrPendingInvite = invites.some(i => i.status === "accepted" || i.status === "pending");
+          setHasAdminProfile(hasProfile || hasAcceptedOrPendingInvite);
         } catch {
           setHasAdminProfile(false);
         }
