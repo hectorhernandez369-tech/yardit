@@ -34,7 +34,7 @@ export default function Layout({ children }) {
         try {
           const [profiles, invites] = await Promise.all([
             base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }),
-            base44.entities.AdminInviteProfile.filter({ email: currentUser.email.toLowerCase(), status: "accepted" }),
+            base44.entities.AdminInviteProfile.filter({ email: currentUser.email.toLowerCase() }),
           ]);
           setHasAdminProfile(profiles.length > 0 || invites.length > 0);
         } catch {
