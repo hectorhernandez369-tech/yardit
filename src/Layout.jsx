@@ -32,11 +32,12 @@ export default function Layout({ children }) {
 
         // Check if user has AdminProfile or accepted AdminInviteProfile
         try {
-          const [profiles, invites] = await Promise.all([
+          const [profilesByEmail, profilesByUserId, invites] = await Promise.all([
             base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }),
+            base44.entities.AdminProfile.filter({ user_id: currentUser.id }),
             base44.entities.AdminInviteProfile.filter({ email: currentUser.email.toLowerCase() }),
           ]);
-          const hasProfile = profiles.length > 0;
+          const hasProfile = profilesByEmail.length > 0 || profilesByUserId.length > 0;
           const hasAcceptedOrPendingInvite = invites.some(i => i.status === "accepted" || i.status === "pending");
           setHasAdminProfile(hasProfile || hasAcceptedOrPendingInvite);
         } catch {
