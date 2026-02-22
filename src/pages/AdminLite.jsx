@@ -136,6 +136,30 @@ export default function AdminLitePage() {
 
   if (!user) return <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>;
 
+  // Admin Mode gate: require valid admin session
+  if (!adminSession) {
+    return (
+      <>
+        <div className="p-8 text-center max-w-md mx-auto mt-12">
+          <Shield className="w-12 h-12 text-[#5DADA5] mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-[#2C4F4E] mb-2">Admin Mode Required</h2>
+          <p className="text-gray-600 mb-6 text-sm">You must verify your Employee ID and PIN to access the Admin portal.</p>
+          <Button onClick={() => setShowAdminLogin(true)} className="bg-[#5DADA5] hover:bg-[#4A9B93] gap-2">
+            <Shield className="w-4 h-4" /> Enter Admin Mode
+          </Button>
+        </div>
+        <AdminLoginModal
+          open={showAdminLogin}
+          onClose={() => setShowAdminLogin(false)}
+          onSuccess={(session) => {
+            setAdminSession(session);
+            setShowAdminLogin(false);
+          }}
+        />
+      </>
+    );
+  }
+
   // If viewing a specific case, show the detail view
   if (selectedCaseId) {
     return (
