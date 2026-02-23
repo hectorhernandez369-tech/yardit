@@ -727,21 +727,6 @@ export default function HomePage() {
                           </Button>
                           <div className="ml-auto flex gap-1.5">
                             <CheckInButton locationId={listing.id} />
-                            {HUNT_ENABLED && (
-                              <Button
-                                size="sm"
-                                variant={huntStops.some(s => s.id === listing.id) ? "default" : "outline"}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  addStop(listing);
-                                }}
-                                disabled={huntStops.some(s => s.id === listing.id)}
-                                className="gap-1 h-7 text-xs px-2"
-                              >
-                                {huntStops.some(s => s.id === listing.id) ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                                {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add Stop to Hunt"}
-                              </Button>
-                            )}
                             <Button
                               size="sm"
                               variant={isSelected ? "default" : "outline"}
