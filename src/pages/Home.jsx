@@ -25,6 +25,8 @@ import MapDebugOverlay from "../components/map/MapDebugOverlay";
 import MapZoomControl from "../components/map/MapZoomControl";
 import MapFocusController from "../components/map/MapFocusController";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
+import HuntMapLayers from "@/components/hunt/HuntMapLayers";
+import { calculateTotalDistance } from "@/components/hunt/huntUtils";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -627,6 +629,7 @@ export default function HomePage() {
               <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => { mapRef.current = map; }} />
               <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
               <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
+              <HuntMapLayers />
               <TileLayer
                 attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA"
@@ -810,6 +813,25 @@ export default function HomePage() {
                     <p className="text-sm text-orange-800">{locationError}</p>
                   </CardContent>
                 </Card>
+              </div>
+            )}
+
+            {/* Hunt Mode Summary Overlay */}
+            {HUNT_ENABLED && isHuntActive && huntStops && huntStops.length > 0 && (
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] w-auto">
+                 <Card className="bg-emerald-600 text-white border-2 border-emerald-800 shadow-xl">
+                   <CardContent className="p-3 flex items-center gap-4">
+                     <div className="text-center">
+                       <p className="text-xs font-semibold text-emerald-100 uppercase tracking-wider">Stops</p>
+                       <p className="text-xl font-bold leading-none">{huntStops.length}</p>
+                     </div>
+                     <div className="h-8 w-px bg-emerald-500/50" />
+                     <div className="text-center">
+                       <p className="text-xs font-semibold text-emerald-100 uppercase tracking-wider">Est. Dist</p>
+                       <p className="text-xl font-bold leading-none">{calculateTotalDistance(huntStops).toFixed(1)} <span className="text-sm font-normal">mi</span></p>
+                     </div>
+                   </CardContent>
+                 </Card>
               </div>
             )}
           </div>
