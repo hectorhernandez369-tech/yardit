@@ -58,38 +58,47 @@ export default function AdminNotificationBell({ user }) {
   };
 
   const handleClickNotification = async (notif) => {
-    logAdminEvent({
-      adminId: user.id,
-      caseId: notif.case_id,
-      eventType: "clicked_notification",
-      payload: { notificationId: notif.id },
-      page: "Layout",
-    });
+    try {
+      logAdminEvent({
+        adminId: user.id,
+        caseId: notif.case_id,
+        eventType: "clicked_notification",
+        payload: { notificationId: notif.id },
+        page: "Layout",
+      });
 
-    // Mark as read
-    if (!notif.is_read) {
-      await base44.entities.CaseNotification.update(notif.id, { is_read: true });
+      // Mark as read
+      if (!notif.is_read) {
+        await base44.entities.CaseNotification.update(notif.id, { is_read: true });
+      }
+
+      setOpen(false);
+
+      // Navigate to CaseManagement with openCaseId param
+      navigate(createPageUrl("CaseManagement") + `?openCaseId=${notif.case_id}`);
+
+      // Refresh counts
+      fetchNotifications();
+    } catch (error) {
+      console.error("Failed to handle notification click:", error);
     }
-
-    setOpen(false);
-
-    // Navigate to CaseManagement with openCaseId param
-    navigate(createPageUrl("CaseManagement") + `?openCaseId=${notif.case_id}`);
-
-    // Refresh counts
-    fetchNotifications();
   };
 
   const handleMarkAllRead = async () => {
-    setMarkingAll(true);
-    logAdminEvent({ adminId: user.id, eventType: "marked_all_notifications_read", page: "Layout" });
+    try {
+      setMarkingAll(true);
+      logAdminEvent({ adminId: user.id, eventType: "marked_all_notifications_read", page: "Layout" });
 
-    const unread = notifications.filter(n => !n.is_read);
-    for (const n of unread) {
-      await base44.entities.CaseNotification.update(n.id, { is_read: true });
+      const unread = notifications.filter(n => !n.is_read);
+      for (const n of unread) {
+        await base44.entities.CaseNotification.update(n.id, { is_read: true });
+      }
+      await fetchNotifications();
+    } catch (error) {
+      console.error("Failed to mark all as read:", error);
+    } finally {
+      setMarkingAll(false);
     }
-    await fetchNotifications();
-    setMarkingAll(false);
   };
 
   return (
