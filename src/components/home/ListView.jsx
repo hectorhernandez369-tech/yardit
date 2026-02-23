@@ -1,13 +1,13 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, Calendar, Search, Plus, Check, Crosshair } from "lucide-react";
+import { MapPin, Calendar, Search } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useHunt, HUNT_ENABLED } from "../components/hunt/HuntContext";
+import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 
 // Calculate distance in feet
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -23,10 +23,8 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 
 export default function ListView({ listings, userLocation }) {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-  const { addToHunt, huntStops } = useHunt();
-
-  const isInHunt = (id) => huntStops.some(s => s.id === id);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const { huntStops, addStop } = useHunt() || { huntStops: [], addStop: () => {} };
 
   const sortedListings = useMemo(() => {
     if (!userLocation) return listings;
@@ -42,59 +40,36 @@ export default function ListView({ listings, userLocation }) {
       )
     }));
 
-    // Filter by 1 mile radius (approx logic as per previous code, actually logic below just sorts)
-    // Previous code had logic to filter/sort. I will preserve the logic from previous read_file.
-    
-    // Previous logic:
-    // Filter by 1 mile radius (seems restrictive but was in original code? Let's check original code.)
-    // Original code: "const within1Mile = withDistance.filter(l => l.distance <= 1);"
-    // If I keep it, it might hide listings. 
-    // Wait, the original code had complex sorting/filtering logic. I should try to preserve it EXACTLY.
-    // However, I don't want to break if the user is far away.
-    // The previous code had:
-    /*
+    // Filter by 1 mile radius
     const within1Mile = withDistance.filter(l => l.distance <= 1);
-    const paid = within1Mile.filter(l => l.tier !== "free");
-    ...
-    */
-    // This logic seems very specific to "Nearby" view. 
-    // I will replicate it to be safe as per "DO NOT CHANGE ANY FUNCTIONALITY".
 
-    const within1Mile = withDistance.filter(l => l.distance <= 1);
+    // Separate paid and free
     const paid = within1Mile.filter(l => l.tier !== "free");
     const free = within1Mile.filter(l => l.tier === "free");
 
+    // Sort paid: Premium > Featured > Neighborhood, then by distance
     paid.sort((a, b) => {
       const tierOrder = { premium: 1, featured: 2, neighborhood_tier: 3 };
       if (tierOrder[a.tier] !== tierOrder[b.tier]) {
-        return (tierOrder[a.tier] || 99) - (tierOrder[b.tier] || 99);
+        return tierOrder[a.tier] - tierOrder[b.tier];
       }
       return a.distance - b.distance;
     });
 
+    // Sort free by distance
     free.sort((a, b) => a.distance - b.distance);
 
+    // Take up to 7 paid
     const topPaid = paid.slice(0, 7);
+    
+    // Fill remaining slots with free (up to 3, or more if gap-fill)
     const remainingSlots = 10 - topPaid.length;
     const topFree = free.slice(0, Math.max(3, remainingSlots));
 
-    // If result is empty (user far away), maybe fallback to just showing all?
-    // The original code returned: return [...topPaid, ...topFree];
-    // If that returns empty, it shows "No listings found nearby".
-    // I will stick to it.
-    
     return [...topPaid, ...topFree];
   }, [listings, userLocation]);
 
-  // Fallback if no location or no nearby listings found by the strict filter?
-  // If `userLocation` is null, `sortedListings` is `listings`.
-  // If `userLocation` exists, it filters strictly. 
-  // I will use `sortedListings` if `userLocation` is present, else `listings`.
-  // Wait, original code: if (!userLocation) return listings;
-  
-  const displayListings = userLocation ? sortedListings : listings;
-
-  const filteredListings = displayListings.filter(listing =>
+  const filteredListings = sortedListings.filter(listing =>
     listing.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -134,15 +109,15 @@ export default function ListView({ listings, userLocation }) {
                   <div className="flex-1">
                     <h3 className="text-xl font-semibold mb-2">{listing.title}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge className={tierColors[listing.tier] || "bg-slate-500"}>
-                        {listing.tier === "neighborhood_tier" ? "Neighborhood" : (listing.tier || "Free").toUpperCase()}
+                      <Badge className={tierColors[listing.tier]}>
+                        {listing.tier === "neighborhood_tier" ? "Neighborhood" : listing.tier.toUpperCase()}
                       </Badge>
                       {listing._expired && (
                         <Badge className="bg-red-500 text-white">Expired</Badge>
                       )}
                     </div>
                   </div>
-                  {listing.distance !== undefined && (
+                  {listing.distance && (
                     <div className="text-right text-sm text-slate-600">
                       <p>{listing.distance.toFixed(1)} mi</p>
                       <p className="text-xs">away</p>
@@ -159,11 +134,11 @@ export default function ListView({ listings, userLocation }) {
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    <span>{listing.startDateTime ? format(new Date(listing.startDateTime), "PPp") : "No date"}</span>
+                    <span>{format(new Date(listing.startDateTime), "PPp")}</span>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-4">
                   <Button
                     onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
                     className="flex-1 bg-amber-600 hover:bg-amber-700"
@@ -173,13 +148,12 @@ export default function ListView({ listings, userLocation }) {
                   
                   {HUNT_ENABLED && (
                     <Button
-                        variant={isInHunt(listing.id) ? "secondary" : "outline"}
-                        className={isInHunt(listing.id) ? "bg-green-100 text-green-800 border-green-200" : "border-amber-600 text-amber-600 hover:bg-amber-50"}
-                        onClick={() => addToHunt(listing)}
-                        disabled={isInHunt(listing.id)}
+                      variant="outline"
+                      className="flex-1 border-amber-600 text-amber-700 hover:bg-amber-50"
+                      onClick={() => addStop(listing)}
+                      disabled={huntStops.some(s => s.id === listing.id)}
                     >
-                        {isInHunt(listing.id) ? <Check className="w-4 h-4 mr-1" /> : <Crosshair className="w-4 h-4 mr-1" />}
-                        {isInHunt(listing.id) ? "Added" : "Hunt"}
+                      {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add to Hunt"}
                     </Button>
                   )}
                 </div>
