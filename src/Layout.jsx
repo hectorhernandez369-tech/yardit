@@ -112,6 +112,8 @@ function LayoutContent({ children, user, setUser }) {
                 Demo
               </button>
               
+              {/* My Hunt link moved to My Listings */}
+
               <Link to={createPageUrl("Home")}>
                 <Button
                   variant={location.pathname === createPageUrl("Home") || location.pathname === "/" ? "secondary" : "ghost"}

@@ -588,10 +588,7 @@ export default function HomePage() {
                 onClearAll={() => {
                   huntContext.clearHunt();
                 }}
-                onBuildRoute={() => {
-                  huntContext.optimizeRoute();
-                  huntContext.setHuntMode(true);
-                }}
+                onBuildRoute={() => huntContext.optimizeRoute()}
                 routeActive={isHuntActive}
               />
             </div>
@@ -706,19 +703,30 @@ export default function HomePage() {
                           <div className="ml-auto flex gap-1.5">
                             <CheckInButton locationId={listing.id} />
                             {HUNT_ENABLED && (
-                              <Button
-                                size="sm"
-                                variant={huntStops.some(s => s.id === listing.id) ? "default" : "outline"}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  addToHunt(listing);
-                                }}
-                                disabled={huntStops.some(s => s.id === listing.id)}
-                                className="gap-1 h-7 text-xs px-2"
-                              >
-                                {huntStops.some(s => s.id === listing.id) ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                                {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add Stop to Hunt"}
-                              </Button>
+                              <>
+                                {!huntStops.some(s => s.id === listing.id) ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      addToHunt(listing);
+                                    }}
+                                    className="gap-1 h-7 text-xs px-2"
+                                  >
+                                    <Plus className="w-3 h-3" /> Add Stop
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    disabled
+                                    className="gap-1 h-7 text-xs px-2"
+                                  >
+                                    <Check className="w-3 h-3" /> Added ✅
+                                  </Button>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
@@ -779,7 +787,7 @@ export default function HomePage() {
               </div>
             )}
 
-
+            {/* Hunt Mode Summary Overlay moved to Treasure Map panel header */}
           </div>
         </div>
       )}
