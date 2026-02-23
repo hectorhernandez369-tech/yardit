@@ -329,7 +329,7 @@ export default function HomePage() {
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
     );
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [isHuntActive]);
+  }, []);
 
   const handleMyLocation = () => {
     if (locationError) {
