@@ -5,50 +5,21 @@ import { Plus, Home, User, Settings, Shield } from "lucide-react";
 import AdminNotificationBell from "./components/caseManagement/ui/AdminNotificationBell";
 import AdminLoginModal, { getAdminSession, clearAdminSession } from "./components/admin/AdminLoginModal";
 import { Button } from "@/components/ui/button";
+import { HuntProvider, useHunt, HUNT_ENABLED } from "./components/hunt/HuntContext";
+import { Map as MapIcon, Crosshair } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
 import DemoModeToggle, { isDemoMode } from "./components/shared/DemoMode";
 import { syncAdminInvite } from "./components/admin/adminInviteSync";
-import { HuntProvider, useHunt, HUNT_ENABLED } from "./components/hunt/HuntContext";
-import { Map, Crosshair } from "lucide-react";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
-function HuntNavButton({ pathname }) {
-  const { huntStops, setHuntMode } = useHunt();
-  
-  if (!HUNT_ENABLED || huntStops.length === 0) return null;
-  
-  const isActive = pathname === createPageUrl("MyHunt");
-  
-  return (
-    <Link to={createPageUrl("MyHunt")} onClick={() => setHuntMode(true)}>
-      <Button
-        variant={isActive ? "secondary" : "ghost"}
-        size="sm"
-        className={`gap-2 ${isActive ? "bg-amber-500 text-white hover:bg-amber-600" : "text-amber-200 hover:bg-white/10"}`}
-      >
-        <Map className="w-4 h-4" />
-        <span className="hidden sm:inline">My Hunt ({huntStops.length})</span>
-        <span className="sm:hidden">({huntStops.length})</span>
-      </Button>
-    </Link>
-  );
-}
-
-export default function Layout({ children }) {
-  return (
-    <HuntProvider>
-      <LayoutContent>{children}</LayoutContent>
-    </HuntProvider>
-  );
-}
-
-function LayoutContent({ children }) {
+function LayoutContent({ children, user, setUser }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { huntStops, isHuntActive } = useHunt();
+  
   const [showDemoPanel, setShowDemoPanel] = useState(false);
   const [demoActive, setDemoActive] = useState(isDemoMode());
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -58,59 +29,18 @@ function LayoutContent({ children }) {
   const didLongPress = useRef(false);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const currentUser = await base44.auth.me();
-        // Derive isAdmin from role if not already set
-        // Run invite sync — auto-accepts pending invites and creates AdminProfile
-        let adminIsActive = false;
-        try {
-          const { accepted, adminProfile } = await syncAdminInvite(currentUser);
-          const profileUserId = relId(adminProfile?.user_id);
-
-          // TEMPORARY DEBUG LOG
-          console.log("ADMIN CHECK", {
-            meId: currentUser.id,
-            meEmail: currentUser.email,
-            adminProfileUserIdRaw: adminProfile?.user_id,
-            adminProfileUserId: profileUserId,
-            adminProfileIsActive: adminProfile?.is_active,
-            adminProfileRole: adminProfile?.role_label,
-          });
-
-          adminIsActive = !!adminProfile && adminProfile.is_active === true && profileUserId === currentUser.id;
-
-          if (adminIsActive) {
-            currentUser.isAdmin = true;
-            currentUser.role = adminProfile.role_label;
-            setHasAdminProfile(true);
-            if (accepted) {
-              setAdminActivatedBanner(true);
-            }
-          } else {
-            currentUser.isAdmin = false;
-            setHasAdminProfile(false);
-            setAdminActivatedBanner(false);
-          }
-        } catch {
-          currentUser.isAdmin = false;
-          setHasAdminProfile(false);
-          setAdminActivatedBanner(false);
-        }
-
-        setUser(currentUser);
-      } catch (error) {
-        console.error("Error fetching user:", error);
-      }
-    };
-    fetchUser();
-  }, []);
-
-  useEffect(() => {
     const handler = () => setDemoActive(isDemoMode());
     window.addEventListener("demo-mode-change", handler);
     return () => window.removeEventListener("demo-mode-change", handler);
   }, []);
+
+  useEffect(() => {
+      if (user?.isAdmin) {
+          setHasAdminProfile(true);
+      } else {
+          setHasAdminProfile(false);
+      }
+  }, [user]);
 
   const cancelLongPress = useCallback(() => {
     if (longPressTimer.current) {
@@ -175,13 +105,26 @@ function LayoutContent({ children }) {
             </div>
 
             <nav className="flex items-center gap-1 sm:gap-2 flex-wrap">
-              {/* TEMPORARY: visible Demo toggle button — remove later */}
               <button
                 onClick={() => setShowDemoPanel(prev => !prev)}
                 className="text-[10px] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded px-2 py-1"
               >
                 Demo
               </button>
+              
+              {HUNT_ENABLED && huntStops.length > 0 && (
+                 <Link to={createPageUrl("MyHunt")}>
+                    <Button
+                      variant={location.pathname === createPageUrl("MyHunt") ? "secondary" : "ghost"}
+                      size="sm"
+                      className={`gap-2 ${location.pathname === createPageUrl("MyHunt") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"} ${isHuntActive ? "animate-pulse border-2 border-red-400" : ""}`}
+                    >
+                      <Crosshair className="w-4 h-4" />
+                      <span className="hidden sm:inline">My Hunt ({huntStops.length})</span>
+                    </Button>
+                 </Link>
+              )}
+
               <Link to={createPageUrl("Home")}>
                 <Button
                   variant={location.pathname === createPageUrl("Home") || location.pathname === "/" ? "secondary" : "ghost"}
@@ -192,8 +135,6 @@ function LayoutContent({ children }) {
                   <span className="hidden sm:inline">Map</span>
                 </Button>
               </Link>
-
-              <HuntNavButton pathname={location.pathname} />
               
               {user && (
                 <>
@@ -303,5 +244,46 @@ function LayoutContent({ children }) {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function Layout({ children }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const currentUser = await base44.auth.me();
+        let adminIsActive = false;
+        try {
+          const { accepted, adminProfile } = await syncAdminInvite(currentUser);
+          const profileUserId = relId(adminProfile?.user_id);
+
+          adminIsActive = !!adminProfile && adminProfile.is_active === true && profileUserId === currentUser.id;
+
+          if (adminIsActive) {
+            currentUser.isAdmin = true;
+            currentUser.role = adminProfile.role_label;
+          } else {
+            currentUser.isAdmin = false;
+          }
+        } catch {
+          currentUser.isAdmin = false;
+        }
+
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  return (
+    <HuntProvider>
+       <LayoutContent user={user} setUser={setUser}>
+         {children}
+       </LayoutContent>
+    </HuntProvider>
   );
 }
