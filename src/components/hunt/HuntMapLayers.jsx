@@ -48,6 +48,22 @@ export default function HuntMapLayers() {
         pathOptions={{ color: '#d97706', weight: 4, dashArray: '10, 10', opacity: 0.8 }} 
       />
 
+      {/* Hunt GPS Location Dot */}
+      {gpsLocation && (
+        <>
+          <Circle
+            center={[gpsLocation.lat, gpsLocation.lng]}
+            radius={gpsLocation.accuracy || 50}
+            pathOptions={{ fillColor: '#2A93EE', fillOpacity: 0.15, color: '#2A93EE', weight: 1 }}
+          />
+          <CircleMarker
+            center={[gpsLocation.lat, gpsLocation.lng]}
+            radius={6}
+            pathOptions={{ fillColor: '#2A93EE', fillOpacity: 1, color: '#ffffff', weight: 2 }}
+          />
+        </>
+      )}
+
       {/* The Stops */}
       {huntStops.map((stop, index) => (
         <Marker
