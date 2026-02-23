@@ -36,13 +36,17 @@ export default function AdminNotificationBell({ user }) {
 
   const fetchNotifications = async () => {
     if (!user?.id) return;
-    const all = await base44.entities.CaseNotification.filter(
-      { admin_id: user.id },
-      "-created_date",
-      20
-    );
-    setNotifications(all.slice(0, 5));
-    setUnreadCount(all.filter(n => !n.is_read).length);
+    try {
+      const all = await base44.entities.CaseNotification.filter(
+        { admin_id: user.id },
+        "-created_date",
+        20
+      );
+      setNotifications(all.slice(0, 5));
+      setUnreadCount(all.filter(n => !n.is_read).length);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
   };
 
   const handleToggle = () => {
