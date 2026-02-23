@@ -589,7 +589,6 @@ export default function HomePage() {
                   huntContext.clearHunt();
                 }}
                 onBuildRoute={() => huntContext.optimizeRoute()}
-                routeActive={isHuntActive}
               />
             </div>
           </div>

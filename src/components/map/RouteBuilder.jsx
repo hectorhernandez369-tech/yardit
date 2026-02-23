@@ -7,23 +7,25 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { calculateTotalDistance, openExternalMaps } from "../hunt/huntUtils";
 import { useHunt } from "../hunt/HuntContext";
 import { isDemoMode } from "../shared/DemoMode";
-import { toast } from "sonner";
 
-const getDistanceMeters = (lat1, lon1, lat2, lon2) => {
+function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
   const R = 6371e3; // metres
-  const p1 = lat1 * Math.PI/180;
-  const p2 = lat2 * Math.PI/180;
-  const dp = (lat2-lat1) * Math.PI/180;
-  const dl = (lon2-lon1) * Math.PI/180;
-  const a = Math.sin(dp/2) * Math.sin(dp/2) +
-            Math.cos(p1) * Math.cos(p2) *
-            Math.sin(dl/2) * Math.sin(dl/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-};
+  const φ1 = lat1 * Math.PI/180;
+  const φ2 = lat2 * Math.PI/180;
+  const Δφ = (lat2-lat1) * Math.PI/180;
+  const Δλ = (lon2-lon1) * Math.PI/180;
 
-export default function RouteBuilder({ selectedLocations, onRemoveLocation, onClearAll, onBuildRoute, routeActive }) {
-  const { updateStopStatus, gpsLocation, yardsailActive, setYardsailActive, endYardsail, setHuntMode } = useHunt() || {};
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c;
+}
+
+export default function RouteBuilder({ selectedLocations, onRemoveLocation, onClearAll, onBuildRoute }) {
+  const { updateStopStatus, yardsailActive, setYardsailActive, gpsLocation, setHuntMode } = useHunt() || {};
 
   if (selectedLocations.length === 0) {
     return (
@@ -45,17 +47,13 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
     }
   };
 
-  const handleSkip = (loc) => {
-    updateStopStatus?.(loc.id, "skipped");
-  };
-
-  const getStatusButton = (loc, demoActive, withinRange) => {
+  const getStatusButton = (loc) => {
     const status = loc.huntStatus || "not_started";
     if (status === "completed") {
       return <Badge className="bg-gray-400 text-white text-[10px] h-5">Completed</Badge>;
     }
     if (status === "skipped") {
-      return <Badge className="bg-orange-400 text-white text-[10px] h-5">Skipped</Badge>;
+      return <Badge className="bg-gray-400 text-white text-[10px] h-5">Skipped</Badge>;
     }
     if (status === "arrived") {
       return (
@@ -65,24 +63,32 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
       );
     }
     
-    if (!demoActive && !withinRange) {
+    // status === "not_started"
+    const isDemo = isDemoMode();
+    const distanceMeters = gpsLocation ? calculateDistanceMeters(gpsLocation.lat, gpsLocation.lng, loc.lat, loc.lng) : Infinity;
+    const isWithinDistance = isDemo || distanceMeters <= 15;
+
+    if (isWithinDistance) {
       return (
-        <div className="flex items-center gap-1">
-          <Button size="sm" disabled title="Move within 50 feet to check in" variant="outline" className="h-5 px-1.5 text-[10px] border-gray-400 text-gray-500 bg-gray-100 opacity-50">
-            Check In
-          </Button>
-          <Button size="sm" onClick={() => handleSkip(loc)} variant="outline" className="h-5 px-1.5 text-[10px] border-orange-600 text-orange-700 hover:bg-orange-50 bg-white/50">
-            Skip
-          </Button>
+        <Button size="sm" onClick={() => handleStatusClick(loc)} variant="outline" className="h-5 px-1.5 text-[10px] border-green-600 text-green-700 hover:bg-green-50 bg-white/50 flex-shrink-0">
+          Check In
+        </Button>
+      );
+    } else {
+      return (
+        <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+          <div className="flex gap-1">
+            <Button size="sm" onClick={() => updateStopStatus?.(loc.id, "skipped")} variant="outline" className="h-5 px-1.5 text-[10px] border-orange-400 text-orange-600 hover:bg-orange-50 bg-white/50">
+              Skip
+            </Button>
+            <Button size="sm" disabled variant="outline" className="h-5 px-1.5 text-[10px] border-gray-400 text-gray-500 bg-gray-100 opacity-60">
+              Check In
+            </Button>
+          </div>
+          <span className="text-[8px] text-gray-500 text-center leading-tight">Move within 50ft<br/>to check in</span>
         </div>
       );
     }
-
-    return (
-      <Button size="sm" onClick={() => handleStatusClick(loc)} variant="outline" className="h-5 px-1.5 text-[10px] border-green-600 text-green-700 hover:bg-green-50 bg-white/50">
-        Check In
-      </Button>
-    );
   };
 
   const remainingStops = selectedLocations.filter(s => s.huntStatus !== "completed" && s.huntStatus !== "skipped");
@@ -113,30 +119,16 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
         <ScrollArea className="h-32">
           <div className="space-y-1.5 pr-2">
             {selectedLocations.map((location, index) => {
-              const isCompleted = location.huntStatus === "completed" || location.huntStatus === "skipped";
-              
-              const isDemo = typeof isDemoMode === 'function' ? isDemoMode() : false;
-              const isDemoListing = location.title?.toLowerCase().startsWith("demo");
-              const demoActive = isDemo || isDemoListing;
-              
-              let withinRange = false;
-              if (gpsLocation) {
-                 const dist = getDistanceMeters(gpsLocation.lat, gpsLocation.lng, location.lat, location.lng);
-                 if (dist <= 15) withinRange = true;
-              }
-
+              const isCompleted = location.huntStatus === "completed";
               return (
                 <div key={location.id} className={`flex items-center gap-1.5 p-1.5 rounded border border-[#2C4F4E] transition-opacity ${isCompleted ? 'opacity-50 bg-gray-200' : 'bg-[#F3E6CF]'}`}>
                   <div className="w-5 h-5 bg-[#5DADA5] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                     {index + 1}
                   </div>
-                  <div className="flex-1 min-w-0 flex flex-col">
+                  <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate text-[#2C4F4E]">{location.title}</p>
-                    {!demoActive && !withinRange && (!location.huntStatus || location.huntStatus === 'not_started') && (
-                      <span className="text-[9px] text-red-500 leading-tight">Move within 50 ft to check in</span>
-                    )}
                   </div>
-                  {getStatusButton(location, demoActive, withinRange)}
+                  {getStatusButton(location)}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -154,8 +146,8 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
         {!yardsailActive ? (
           <Button
             onClick={() => {
-              onBuildRoute();
-              setHuntMode?.(true); // Keep GPS watcher running
+              if (onBuildRoute) onBuildRoute();
+              setHuntMode?.(true);
               setYardsailActive?.(true);
             }}
             disabled={selectedLocations.length < 2}
@@ -165,7 +157,7 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
             Map My Yardsail
           </Button>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full">
             <Button
               onClick={() => openExternalMaps(remainingStops.slice(0, 10))}
               disabled={remainingStops.length === 0}
@@ -175,10 +167,14 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
               Get Directions
             </Button>
             <Button
-              onClick={() => endYardsail?.()}
+              onClick={() => {
+                setYardsailActive?.(false);
+                setHuntMode?.(false);
+              }}
               variant="outline"
-              className="flex-none gap-1.5 border-2 border-red-600 text-red-600 hover:bg-red-50 h-8 text-xs font-semibold px-2"
+              className="gap-1.5 border-2 border-red-600 text-red-600 hover:bg-red-50 h-8 text-xs font-semibold"
             >
+              <X className="w-3 h-3" />
               End Yardsail
             </Button>
           </div>

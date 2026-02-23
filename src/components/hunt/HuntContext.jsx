@@ -31,11 +31,6 @@ export function HuntProvider({ children }) {
   // Session state
   const [huntMode, setHuntMode] = useState(false);
   const [yardsailActive, setYardsailActive] = useState(false);
-
-  const endYardsail = useCallback(() => {
-    setYardsailActive(false);
-    toast.success("Yardsail ended.");
-  }, []);
   const [gpsLocation, setGpsLocation] = useState(null);
   const watchIdRef = useRef(null);
 
@@ -191,7 +186,6 @@ export function HuntProvider({ children }) {
       setHuntMode,
       yardsailActive,
       setYardsailActive,
-      endYardsail,
       gpsLocation,
       integrityAccepted,
       acceptIntegrityNotice,
