@@ -57,7 +57,18 @@ export default function AdminLitePage() {
         ]);
 
         const adminProfile = profilesByEmail[0] || profilesByUserId[0];
-        if (!adminProfile || !adminProfile.is_active) {
+
+        // TEMPORARY DEBUG LOG
+        console.log("ADMIN CHECK (AdminLite)", {
+          meId: currentUser.id,
+          meEmail: currentUser.email,
+          adminProfileUserId: adminProfile?.user_id,
+          adminProfileIsActive: adminProfile?.is_active,
+          adminProfileRole: adminProfile?.role_label,
+        });
+
+        const adminIsActive = !!adminProfile && adminProfile.is_active === true && adminProfile.user_id === currentUser.id;
+        if (!adminIsActive) {
           setNoAdminAccess(true);
           setLoadingProfile(false);
           return;

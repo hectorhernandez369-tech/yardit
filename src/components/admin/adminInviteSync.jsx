@@ -56,7 +56,7 @@ export async function syncAdminInvite(currentUser) {
   }
 
   // Accept the invite: create AdminProfile
-  const newProfile = await base44.entities.AdminProfile.create({
+  await base44.entities.AdminProfile.create({
     user_id: currentUser.id,
     email: pendingInvite.email.toLowerCase(),
     employee_id: pendingInvite.employee_id,
@@ -103,5 +103,18 @@ export async function syncAdminInvite(currentUser) {
     }),
   });
 
-  return { accepted: true, adminProfile: newProfile };
+  // Re-fetch the profile from DB to get the canonical record with id
+  const verifiedProfiles = await base44.entities.AdminProfile.filter({ user_id: currentUser.id });
+  const verifiedProfile = verifiedProfiles[0] || null;
+
+  // TEMPORARY DEBUG LOG
+  console.log("ADMIN INVITE SYNC - accepted invite, verified profile:", {
+    meId: currentUser.id,
+    meEmail: email,
+    verifiedProfileUserId: verifiedProfile?.user_id,
+    verifiedProfileIsActive: verifiedProfile?.is_active,
+    verifiedProfileRole: verifiedProfile?.role_label,
+  });
+
+  return { accepted: true, adminProfile: verifiedProfile };
 }

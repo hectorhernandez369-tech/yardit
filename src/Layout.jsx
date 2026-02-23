@@ -29,9 +29,22 @@ export default function Layout({ children }) {
         const currentUser = await base44.auth.me();
         // Derive isAdmin from role if not already set
         // Run invite sync — auto-accepts pending invites and creates AdminProfile
+        let adminIsActive = false;
         try {
           const { accepted, adminProfile } = await syncAdminInvite(currentUser);
-          if (adminProfile && adminProfile.is_active && adminProfile.user_id === currentUser.id) {
+
+          // TEMPORARY DEBUG LOG
+          console.log("ADMIN CHECK", {
+            meId: currentUser.id,
+            meEmail: currentUser.email,
+            adminProfileUserId: adminProfile?.user_id,
+            adminProfileIsActive: adminProfile?.is_active,
+            adminProfileRole: adminProfile?.role_label,
+          });
+
+          adminIsActive = !!adminProfile && adminProfile.is_active === true && adminProfile.user_id === currentUser.id;
+
+          if (adminIsActive) {
             currentUser.isAdmin = true;
             currentUser.role = adminProfile.role_label;
             setHasAdminProfile(true);
@@ -39,13 +52,14 @@ export default function Layout({ children }) {
               setAdminActivatedBanner(true);
             }
           } else {
-            // No active AdminProfile with matching user_id — no admin access
             currentUser.isAdmin = false;
             setHasAdminProfile(false);
+            setAdminActivatedBanner(false);
           }
         } catch {
           currentUser.isAdmin = false;
           setHasAdminProfile(false);
+          setAdminActivatedBanner(false);
         }
 
         setUser(currentUser);
