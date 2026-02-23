@@ -1,12 +1,10 @@
 import React from "react";
-import { Marker, Polyline, Tooltip, Circle, CircleMarker } from "react-leaflet";
+import { Marker, Polyline, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
-import { Card, CardContent } from "@/components/ui/card";
-import { calculateTotalDistance } from "@/components/hunt/huntUtils";
 
 export default function HuntMapLayers() {
-  const { huntStops, huntMode: isHuntActive, gpsLocation } = useHunt() || {};
+  const { huntStops, isHuntActive } = useHunt() || {};
 
   if (!HUNT_ENABLED || !isHuntActive || !huntStops || huntStops.length === 0) {
     return null;
@@ -48,22 +46,6 @@ export default function HuntMapLayers() {
         pathOptions={{ color: '#d97706', weight: 4, dashArray: '10, 10', opacity: 0.8 }} 
       />
 
-      {/* Hunt GPS Location Dot */}
-      {gpsLocation && (
-        <>
-          <Circle
-            center={[gpsLocation.lat, gpsLocation.lng]}
-            radius={gpsLocation.accuracy || 50}
-            pathOptions={{ fillColor: '#2A93EE', fillOpacity: 0.15, color: '#2A93EE', weight: 1 }}
-          />
-          <CircleMarker
-            center={[gpsLocation.lat, gpsLocation.lng]}
-            radius={6}
-            pathOptions={{ fillColor: '#2A93EE', fillOpacity: 1, color: '#ffffff', weight: 2 }}
-          />
-        </>
-      )}
-
       {/* The Stops */}
       {huntStops.map((stop, index) => (
         <Marker
@@ -77,23 +59,6 @@ export default function HuntMapLayers() {
           </Tooltip>
         </Marker>
       ))}
-
-      {/* Hunt Mode Summary Overlay */}
-      <div className="leaflet-top leaflet-center pointer-events-none" style={{ left: '50%', transform: 'translateX(-50%)', position: 'absolute', top: '10px', zIndex: 1000 }}>
-         <Card className="bg-emerald-600 text-white border-2 border-emerald-800 shadow-xl pointer-events-auto">
-           <CardContent className="p-3 flex items-center gap-4">
-             <div className="text-center">
-               <p className="text-xs font-semibold text-emerald-100 uppercase tracking-wider">Stops</p>
-               <p className="text-xl font-bold leading-none">{huntStops.length}</p>
-             </div>
-             <div className="h-8 w-px bg-emerald-500/50" />
-             <div className="text-center">
-               <p className="text-xs font-semibold text-emerald-100 uppercase tracking-wider">Est. Dist</p>
-               <p className="text-xl font-bold leading-none">{calculateTotalDistance(huntStops).toFixed(1)} <span className="text-sm font-normal">mi</span></p>
-             </div>
-           </CardContent>
-         </Card>
-      </div>
     </>
   );
 }
