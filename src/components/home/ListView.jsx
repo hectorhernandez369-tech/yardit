@@ -153,7 +153,7 @@ export default function ListView({ listings, userLocation }) {
                       onClick={() => addStop(listing)}
                       disabled={huntStops.some(s => s.id === listing.id)}
                     >
-                      {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add to Hunt"}
+                      {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add Stop to Hunt"}
                     </Button>
                   )}
                 </div>
