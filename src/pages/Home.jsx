@@ -197,8 +197,8 @@ export default function HomePage() {
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
   
-  const huntContext = useHunt() || { huntStops: [], addStop: () => {}, isHuntActive: false };
-  const { huntStops, addStop, isHuntActive } = huntContext;
+  const huntContext = useHunt() || { huntStops: [], addStop: () => {}, huntMode: false };
+  const { huntStops, addStop, huntMode: isHuntActive } = huntContext;
 
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
