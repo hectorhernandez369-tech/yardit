@@ -24,9 +24,8 @@ import { createPageUrl } from "@/utils";
 import MapDebugOverlay from "../components/map/MapDebugOverlay";
 import MapZoomControl from "../components/map/MapZoomControl";
 import MapFocusController from "../components/map/MapFocusController";
-import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
+import { HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import HuntMapLayers from "@/components/hunt/HuntMapLayers";
-import { calculateTotalDistance } from "@/components/hunt/huntUtils";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
