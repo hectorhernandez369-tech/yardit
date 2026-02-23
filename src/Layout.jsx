@@ -10,10 +10,42 @@ import { Toaster } from "sonner";
 import { toast } from "sonner";
 import DemoModeToggle, { isDemoMode } from "./components/shared/DemoMode";
 import { syncAdminInvite } from "./components/admin/adminInviteSync";
+import { HuntProvider, useHunt, HUNT_ENABLED } from "./components/hunt/HuntContext";
+import { Map, Crosshair } from "lucide-react";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
+function HuntNavButton({ pathname }) {
+  const { huntStops, setHuntMode } = useHunt();
+  
+  if (!HUNT_ENABLED || huntStops.length === 0) return null;
+  
+  const isActive = pathname === createPageUrl("MyHunt");
+  
+  return (
+    <Link to={createPageUrl("MyHunt")} onClick={() => setHuntMode(true)}>
+      <Button
+        variant={isActive ? "secondary" : "ghost"}
+        size="sm"
+        className={`gap-2 ${isActive ? "bg-amber-500 text-white hover:bg-amber-600" : "text-amber-200 hover:bg-white/10"}`}
+      >
+        <Map className="w-4 h-4" />
+        <span className="hidden sm:inline">My Hunt ({huntStops.length})</span>
+        <span className="sm:hidden">({huntStops.length})</span>
+      </Button>
+    </Link>
+  );
+}
+
 export default function Layout({ children }) {
+  return (
+    <HuntProvider>
+      <LayoutContent>{children}</LayoutContent>
+    </HuntProvider>
+  );
+}
+
+function LayoutContent({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -160,6 +192,8 @@ export default function Layout({ children }) {
                   <span className="hidden sm:inline">Map</span>
                 </Button>
               </Link>
+
+              <HuntNavButton pathname={location.pathname} />
               
               {user && (
                 <>
