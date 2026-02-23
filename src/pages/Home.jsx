@@ -26,7 +26,6 @@ import MapZoomControl from "../components/map/MapZoomControl";
 import MapFocusController from "../components/map/MapFocusController";
 import { HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import HuntMapLayers from "@/components/hunt/HuntMapLayers";
-import HuntUIOverlay from "@/components/hunt/HuntUIOverlay.jsx";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -196,6 +195,8 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
+  
+
 
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
@@ -299,7 +300,34 @@ export default function HomePage() {
     initialData: [],
   });
 
-
+  // Live location tracking
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const newLoc = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        };
+        setUserLocation(newLoc);
+        setLocationError(null);
+        if (!hasCenteredOnUser.current && !userHasMovedMap.current) {
+          setMapCenter([newLoc.lat, newLoc.lng]);
+          hasCenteredOnUser.current = true;
+        }
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError("Location permission is off. Enable it in settings to use My Location.");
+        } else {
+          setLocationError("Unable to get location right now.");
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
 
   const handleMyLocation = () => {
     if (locationError) {
@@ -700,6 +728,7 @@ export default function HomePage() {
                           </Button>
                           <div className="ml-auto flex gap-1.5">
                             <CheckInButton locationId={listing.id} />
+
                             <Button
                               size="sm"
                               variant={isSelected ? "default" : "outline"}
@@ -771,8 +800,7 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Hunt UI Overlay */}
-            {HUNT_ENABLED && <HuntUIOverlay />}
+
           </div>
         </div>
       )}
