@@ -4,8 +4,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, Shield } from "lucide-react";
+import { Search, Loader2, Shield, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { logAdminEvent, searchCases, isSupervisor } from "../components/caseManagement";
 import { hasCapability } from "../components/admin/adminCapabilities";
 
@@ -95,12 +96,14 @@ export default function AdminLitePage() {
         currentUser.isAdmin = true;
         setUser(currentUser);
 
-        try {
-          const users = await base44.entities.User.list();
-          setAllAdminUsers(users.filter(u => ["admin", "admin_lite", "supervisor", "master"].includes(u.role)));
-        } catch (userListErr) {
-          console.warn("Could not fetch User list:", userListErr);
-          setAllAdminUsers([]);
+        if (adminSession) {
+          try {
+            const users = await base44.entities.User.list();
+            setAllAdminUsers(users.filter(u => ["admin", "admin_lite", "supervisor", "master"].includes(u.role)));
+          } catch (userListErr) {
+            console.warn("Could not fetch User list:", userListErr);
+            setAllAdminUsers([]);
+          }
         }
       } catch (err) {
         console.error("ADMIN_DEBUG - init error", err);
@@ -110,7 +113,7 @@ export default function AdminLitePage() {
       }
     };
     init();
-  }, []);
+  }, [adminSession]);
 
   // Deep-link: openCaseId in URL
   useEffect(() => {
@@ -236,6 +239,21 @@ export default function AdminLitePage() {
             {canManageAdmins && <TabsTrigger value="create-admin" className="whitespace-nowrap">Create Admin</TabsTrigger>}
             {canManageAdmins && <TabsTrigger value="employee-users" className="whitespace-nowrap">Employee Users</TabsTrigger>}
             {canViewLogs && <TabsTrigger value="logs" className="whitespace-nowrap">Logs</TabsTrigger>}
+            
+            <div className="flex-1" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                clearAdminSession();
+                toast.success("Admin Mode exited");
+                navigate(createPageUrl("Home"));
+              }}
+              className="ml-auto text-red-600 border-red-200 hover:bg-red-50 h-8 gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Logout Admin</span>
+            </Button>
           </TabsList>
 
           {/* ─── Case Management ─── */}

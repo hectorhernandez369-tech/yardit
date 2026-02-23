@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { clearAdminSession } from "../components/admin/AdminLoginModal";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ export default function SettingsPage() {
   };
 
   const handleLogout = () => {
+    clearAdminSession();
     base44.auth.logout(createPageUrl("Home"));
   };
 
