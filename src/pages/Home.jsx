@@ -197,8 +197,8 @@ export default function HomePage() {
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
   
-  const huntContext = useHunt() || { huntStops: [], addStop: () => {}, huntMode: false };
-  const { huntStops, addStop, huntMode: isHuntActive } = huntContext;
+  const huntContext = useHunt() || { huntStops: [], addToHunt: () => {}, huntMode: false };
+  const { huntStops, addToHunt, huntMode: isHuntActive } = huntContext;
 
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
@@ -736,7 +736,7 @@ export default function HomePage() {
                                 variant={huntStops.some(s => s.id === listing.id) ? "default" : "outline"}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  addStop(listing);
+                                  addToHunt(listing);
                                 }}
                                 disabled={huntStops.some(s => s.id === listing.id)}
                                 className="gap-1 h-7 text-xs px-2"

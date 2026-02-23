@@ -24,7 +24,7 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 export default function ListView({ listings, userLocation }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = React.useState("");
-  const { huntStops, addStop } = useHunt() || { huntStops: [], addStop: () => {} };
+  const { huntStops, addToHunt } = useHunt() || { huntStops: [], addToHunt: () => {} };
 
   const sortedListings = useMemo(() => {
     if (!userLocation) return listings;
@@ -150,7 +150,7 @@ export default function ListView({ listings, userLocation }) {
                     <Button
                       variant="outline"
                       className="flex-1 border-amber-600 text-amber-700 hover:bg-amber-50"
-                      onClick={() => addStop(listing)}
+                      onClick={() => addToHunt(listing)}
                       disabled={huntStops.some(s => s.id === listing.id)}
                     >
                       {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add Stop to Hunt"}
