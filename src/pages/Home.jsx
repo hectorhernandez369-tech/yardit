@@ -26,7 +26,6 @@ import MapZoomControl from "../components/map/MapZoomControl";
 import MapFocusController from "../components/map/MapFocusController";
 import { HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import HuntMapLayers from "@/components/hunt/HuntMapLayers";
-import HuntUIOverlay from "@/components/hunt/HuntUIOverlay";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -197,8 +196,7 @@ export default function HomePage() {
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
   
-  const huntContext = useHunt() || { huntStops: [], addStop: () => {}, huntMode: false };
-  const { huntStops, addStop, huntMode: isHuntActive } = huntContext;
+
 
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
@@ -730,21 +728,7 @@ export default function HomePage() {
                           </Button>
                           <div className="ml-auto flex gap-1.5">
                             <CheckInButton locationId={listing.id} />
-                            {HUNT_ENABLED && (
-                              <Button
-                                size="sm"
-                                variant={huntStops.some(s => s.id === listing.id) ? "default" : "outline"}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  addStop(listing);
-                                }}
-                                disabled={huntStops.some(s => s.id === listing.id)}
-                                className="gap-1 h-7 text-xs px-2"
-                              >
-                                {huntStops.some(s => s.id === listing.id) ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                                {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add Stop to Hunt"}
-                              </Button>
-                            )}
+
                             <Button
                               size="sm"
                               variant={isSelected ? "default" : "outline"}
@@ -816,24 +800,7 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Hunt Mode Summary Overlay */}
-            {HUNT_ENABLED && isHuntActive && huntStops && huntStops.length > 0 && (
-              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] w-auto">
-                 <Card className="bg-emerald-600 text-white border-2 border-emerald-800 shadow-xl">
-                   <CardContent className="p-3 flex items-center gap-4">
-                     <div className="text-center">
-                       <p className="text-xs font-semibold text-emerald-100 uppercase tracking-wider">Stops</p>
-                       <p className="text-xl font-bold leading-none">{huntStops.length}</p>
-                     </div>
-                     <div className="h-8 w-px bg-emerald-500/50" />
-                     <div className="text-center">
-                       <p className="text-xs font-semibold text-emerald-100 uppercase tracking-wider">Est. Dist</p>
-                       <p className="text-xl font-bold leading-none">{calculateTotalDistance(huntStops).toFixed(1)} <span className="text-sm font-normal">mi</span></p>
-                     </div>
-                   </CardContent>
-                 </Card>
-              </div>
-            )}
+
           </div>
         </div>
       )}
