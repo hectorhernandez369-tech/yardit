@@ -167,6 +167,35 @@ export default function MyHuntPage() {
         )}
       </div>
 
+      <Dialog open={showBatchModal} onOpenChange={setShowBatchModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Navigate in Batches</DialogTitle>
+            <DialogDescription>
+              Maps only supports navigating up to 10 stops at a time. You have {incompleteStops.length} stops left. 
+              Which batch would you like to navigate to?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            {Array.from({ length: Math.ceil(incompleteStops.length / 10) }).map((_, i) => {
+               const start = i * 10;
+               const end = Math.min((i + 1) * 10, incompleteStops.length);
+               return (
+                 <Button key={i} variant="outline" onClick={() => {
+                     handleNavigate(incompleteStops.slice(start, end));
+                     setShowBatchModal(false);
+                 }}>
+                    Navigate stops {start + 1} to {end}
+                 </Button>
+               );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowBatchModal(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showIntegrity} onOpenChange={(open) => {
         if (!open && !integrityAccepted) {
             // Cannot close without accepting? Or just let them close but show again?
