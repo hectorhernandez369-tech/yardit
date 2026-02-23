@@ -21,16 +21,24 @@ export function calculateTotalDistance(stops) {
 
 export function openExternalMaps(stops) {
   if (!stops || stops.length === 0) return;
+
+  // Max 10 stops at a time (Google maps limit via URL is typically 9 waypoints + origin + destination = 11, but let's stick to 10 total to be safe)
+  const maxStops = 10;
+  const stopsToNavigate = stops.slice(0, maxStops);
+  
+  if (stops.length > maxStops) {
+    alert(`To ensure navigation works correctly, we are opening directions for the first ${maxStops} stops. You can navigate the rest after reaching these.`);
+  }
   
   // Google Maps Universal URL
   // https://www.google.com/maps/dir/?api=1&origin=...&destination=...&waypoints=...
   
-  const origin = `${stops[0].lat},${stops[0].lng}`;
-  const destination = `${stops[stops.length - 1].lat},${stops[stops.length - 1].lng}`;
+  const origin = `${stopsToNavigate[0].lat},${stopsToNavigate[0].lng}`;
+  const destination = `${stopsToNavigate[stopsToNavigate.length - 1].lat},${stopsToNavigate[stopsToNavigate.length - 1].lng}`;
   
   let waypoints = "";
-  if (stops.length > 2) {
-    waypoints = stops.slice(1, stops.length - 1)
+  if (stopsToNavigate.length > 2) {
+    waypoints = stopsToNavigate.slice(1, stopsToNavigate.length - 1)
       .map(s => `${s.lat},${s.lng}`)
       .join('|');
   }
