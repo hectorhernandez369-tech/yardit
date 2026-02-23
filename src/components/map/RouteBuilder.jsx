@@ -6,9 +6,24 @@ import { Route, X, Navigation, Trash2, Map as MapIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { calculateTotalDistance, openExternalMaps } from "../hunt/huntUtils";
 import { useHunt } from "../hunt/HuntContext";
+import { isDemoMode } from "../shared/DemoMode";
+import { toast } from "sonner";
+
+const getDistanceMeters = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3; // metres
+  const p1 = lat1 * Math.PI/180;
+  const p2 = lat2 * Math.PI/180;
+  const dp = (lat2-lat1) * Math.PI/180;
+  const dl = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(dp/2) * Math.sin(dp/2) +
+            Math.cos(p1) * Math.cos(p2) *
+            Math.sin(dl/2) * Math.sin(dl/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
 
 export default function RouteBuilder({ selectedLocations, onRemoveLocation, onClearAll, onBuildRoute, routeActive }) {
-  const { updateStopStatus } = useHunt() || {};
+  const { updateStopStatus, gpsLocation, yardsailActive, setYardsailActive, endYardsail, setHuntMode } = useHunt() || {};
 
   if (selectedLocations.length === 0) {
     return (
@@ -30,10 +45,17 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
     }
   };
 
-  const getStatusButton = (loc) => {
+  const handleSkip = (loc) => {
+    updateStopStatus?.(loc.id, "skipped");
+  };
+
+  const getStatusButton = (loc, demoActive, withinRange) => {
     const status = loc.huntStatus || "not_started";
     if (status === "completed") {
       return <Badge className="bg-gray-400 text-white text-[10px] h-5">Completed</Badge>;
+    }
+    if (status === "skipped") {
+      return <Badge className="bg-orange-400 text-white text-[10px] h-5">Skipped</Badge>;
     }
     if (status === "arrived") {
       return (
@@ -42,14 +64,28 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
         </Button>
       );
     }
+    
+    if (!demoActive && !withinRange) {
+      return (
+        <div className="flex items-center gap-1">
+          <Button size="sm" disabled title="Move within 50 feet to check in" variant="outline" className="h-5 px-1.5 text-[10px] border-gray-400 text-gray-500 bg-gray-100 opacity-50">
+            Check In
+          </Button>
+          <Button size="sm" onClick={() => handleSkip(loc)} variant="outline" className="h-5 px-1.5 text-[10px] border-orange-600 text-orange-700 hover:bg-orange-50 bg-white/50">
+            Skip
+          </Button>
+        </div>
+      );
+    }
+
     return (
       <Button size="sm" onClick={() => handleStatusClick(loc)} variant="outline" className="h-5 px-1.5 text-[10px] border-green-600 text-green-700 hover:bg-green-50 bg-white/50">
-        Checked In
+        Check In
       </Button>
     );
   };
 
-  const remainingStops = selectedLocations.filter(s => s.huntStatus !== "completed");
+  const remainingStops = selectedLocations.filter(s => s.huntStatus !== "completed" && s.huntStatus !== "skipped");
 
   return (
     <Card className="border-2 border-[#2C4F4E] bg-[#E7D7B8] shadow-lg">
@@ -77,16 +113,30 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
         <ScrollArea className="h-32">
           <div className="space-y-1.5 pr-2">
             {selectedLocations.map((location, index) => {
-              const isCompleted = location.huntStatus === "completed";
+              const isCompleted = location.huntStatus === "completed" || location.huntStatus === "skipped";
+              
+              const isDemo = typeof isDemoMode === 'function' ? isDemoMode() : false;
+              const isDemoListing = location.title?.toLowerCase().startsWith("demo");
+              const demoActive = isDemo || isDemoListing;
+              
+              let withinRange = false;
+              if (gpsLocation) {
+                 const dist = getDistanceMeters(gpsLocation.lat, gpsLocation.lng, location.lat, location.lng);
+                 if (dist <= 15) withinRange = true;
+              }
+
               return (
                 <div key={location.id} className={`flex items-center gap-1.5 p-1.5 rounded border border-[#2C4F4E] transition-opacity ${isCompleted ? 'opacity-50 bg-gray-200' : 'bg-[#F3E6CF]'}`}>
                   <div className="w-5 h-5 bg-[#5DADA5] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                     {index + 1}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 flex flex-col">
                     <p className="text-xs font-medium truncate text-[#2C4F4E]">{location.title}</p>
+                    {!demoActive && !withinRange && (!location.huntStatus || location.huntStatus === 'not_started') && (
+                      <span className="text-[9px] text-red-500 leading-tight">Move within 50 ft to check in</span>
+                    )}
                   </div>
-                  {getStatusButton(location)}
+                  {getStatusButton(location, demoActive, withinRange)}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -101,9 +151,13 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
           </div>
         </ScrollArea>
 
-        {!routeActive ? (
+        {!yardsailActive ? (
           <Button
-            onClick={onBuildRoute}
+            onClick={() => {
+              onBuildRoute();
+              setHuntMode?.(true); // Keep GPS watcher running
+              setYardsailActive?.(true);
+            }}
             disabled={selectedLocations.length < 2}
             className="w-full gap-1.5 bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] h-8 text-xs font-semibold"
           >
@@ -111,17 +165,26 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
             Map My Yardsail
           </Button>
         ) : (
-          <Button
-            onClick={() => openExternalMaps(remainingStops.slice(0, 10))}
-            disabled={remainingStops.length === 0}
-            className="w-full gap-1.5 bg-[#5DADA5] hover:bg-[#4A9B93] text-white border-2 border-[#2C4F4E] h-8 text-xs font-semibold"
-          >
-            <Navigation className="w-3 h-3" />
-            Get Directions
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => openExternalMaps(remainingStops.slice(0, 10))}
+              disabled={remainingStops.length === 0}
+              className="flex-1 gap-1.5 bg-[#5DADA5] hover:bg-[#4A9B93] text-white border-2 border-[#2C4F4E] h-8 text-xs font-semibold"
+            >
+              <Navigation className="w-3 h-3" />
+              Get Directions
+            </Button>
+            <Button
+              onClick={() => endYardsail?.()}
+              variant="outline"
+              className="flex-none gap-1.5 border-2 border-red-600 text-red-600 hover:bg-red-50 h-8 text-xs font-semibold px-2"
+            >
+              End Yardsail
+            </Button>
+          </div>
         )}
 
-        {selectedLocations.length === 1 && !routeActive && (
+        {selectedLocations.length === 1 && !yardsailActive && (
           <p className="text-[10px] text-center text-[#2C4F4E]/70">Add one more location</p>
         )}
       </CardContent>

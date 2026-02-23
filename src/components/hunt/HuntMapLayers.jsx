@@ -4,9 +4,9 @@ import L from "leaflet";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 
 export default function HuntMapLayers() {
-  const { huntStops, isHuntActive } = useHunt() || {};
+  const { huntStops, yardsailActive } = useHunt() || {};
 
-  if (!HUNT_ENABLED || !isHuntActive || !huntStops || huntStops.length === 0) {
+  if (!HUNT_ENABLED || !yardsailActive || !huntStops || huntStops.length === 0) {
     return null;
   }
 
