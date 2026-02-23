@@ -95,8 +95,13 @@ export default function AdminLitePage() {
         currentUser.isAdmin = true;
         setUser(currentUser);
 
-        const users = await base44.entities.User.list();
-        setAllAdminUsers(users.filter(u => ["admin", "admin_lite", "supervisor", "master"].includes(u.role)));
+        try {
+          const users = await base44.entities.User.list();
+          setAllAdminUsers(users.filter(u => ["admin", "admin_lite", "supervisor", "master"].includes(u.role)));
+        } catch (userListErr) {
+          console.warn("Could not fetch User list:", userListErr);
+          setAllAdminUsers([]);
+        }
       } catch (err) {
         console.error("ADMIN_DEBUG - init error", err);
         setNoAdminAccess(true);
