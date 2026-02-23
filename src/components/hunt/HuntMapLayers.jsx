@@ -2,13 +2,13 @@ import React from "react";
 import { Marker, Polyline, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
-
-import { Circle, CircleMarker } from "react-leaflet";
+import { Card, CardContent } from "@/components/ui/card";
+import { calculateTotalDistance } from "@/components/hunt/huntUtils";
 
 export default function HuntMapLayers() {
-  const { huntStops, isHuntActive, gpsLocation } = useHunt() || {};
+  const { huntStops, huntMode: isHuntActive } = useHunt() || {};
 
-  if (!HUNT_ENABLED || !isHuntActive) {
+  if (!HUNT_ENABLED || !isHuntActive || !huntStops || huntStops.length === 0) {
     return null;
   }
 
