@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,15 @@ export default function AdminLoginModal({ open, onClose, onSuccess }) {
   const [employeeId, setEmployeeId] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -79,8 +89,12 @@ export default function AdminLoginModal({ open, onClose, onSuccess }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={onClose}>
+  const onBackdropMouseDown = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" onMouseDown={onBackdropMouseDown}>
       <div
         className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6"
         onClick={(e) => e.stopPropagation()}
@@ -124,6 +138,7 @@ export default function AdminLoginModal({ open, onClose, onSuccess }) {
           5 failed attempts will lock access for 10 minutes.
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
