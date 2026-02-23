@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from "sonner";
-import { calculateDistance } from "@/utils"; // Assuming a utility or I'll implement a simple one
 
 export const HUNT_ENABLED = true;
 
