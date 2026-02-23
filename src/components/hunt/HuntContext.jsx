@@ -104,9 +104,33 @@ export function HuntProvider({ children }) {
   }, []);
 
   const updateStopStatus = useCallback((listingId, status) => {
-    setHuntStops(prev => prev.map(s => 
-      s.id === listingId ? { ...s, huntStatus: status } : s
-    ));
+    setHuntStops(prev => {
+      const updated = prev.map(s => 
+        s.id === listingId ? { ...s, huntStatus: status } : s
+      );
+      if (status === 'completed' && updated.length >= 3) {
+        // Recalculate order when marked completed
+        const unvisited = [...updated];
+        const start = unvisited.shift();
+        const optimized = [start];
+        while (unvisited.length > 0) {
+          const current = optimized[optimized.length - 1];
+          let nearestIdx = -1;
+          let minDist = Infinity;
+          for (let i = 0; i < unvisited.length; i++) {
+            const d = calcDist(current.lat, current.lng, unvisited[i].lat, unvisited[i].lng);
+            if (d < minDist) {
+              minDist = d;
+              nearestIdx = i;
+            }
+          }
+          optimized.push(unvisited[nearestIdx]);
+          unvisited.splice(nearestIdx, 1)[0];
+        }
+        return optimized;
+      }
+      return updated;
+    });
   }, []);
 
   const acceptIntegrityNotice = useCallback(() => {
