@@ -305,7 +305,6 @@ export default function HomePage() {
   // Live location tracking
   useEffect(() => {
     if (!navigator.geolocation) return;
-    if (HUNT_ENABLED && !isHuntActive) return; // GPS permission ONLY while Hunt Mode is active
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const newLoc = {
