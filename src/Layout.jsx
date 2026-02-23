@@ -112,19 +112,6 @@ function LayoutContent({ children, user, setUser }) {
                 Demo
               </button>
               
-              {HUNT_ENABLED && huntStops.length > 0 && (
-                 <Link to={createPageUrl("MyHunt")}>
-                    <Button
-                      variant={location.pathname === createPageUrl("MyHunt") ? "secondary" : "ghost"}
-                      size="sm"
-                      className={`gap-2 ${location.pathname === createPageUrl("MyHunt") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"} ${isHuntActive ? "animate-pulse border-2 border-red-400" : ""}`}
-                    >
-                      <Crosshair className="w-4 h-4" />
-                      <span className="hidden sm:inline">My Hunt ({huntStops.length})</span>
-                    </Button>
-                 </Link>
-              )}
-
               <Link to={createPageUrl("Home")}>
                 <Button
                   variant={location.pathname === createPageUrl("Home") || location.pathname === "/" ? "secondary" : "ghost"}

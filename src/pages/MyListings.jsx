@@ -194,12 +194,21 @@ export default function MyListingsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <h1 className="text-2xl sm:text-3xl font-bold">My Listings</h1>
 
-          <Button
-            onClick={() => navigate(createPageUrl("CreateListing"))}
-            className="bg-amber-600 hover:bg-amber-700 text-white w-full sm:w-auto"
-          >
-            Create New Listing
-          </Button>
+          <div className="flex w-full sm:w-auto gap-2">
+            <Button
+              onClick={() => navigate(createPageUrl("MyHunt"))}
+              variant="outline"
+              className="flex-1 sm:flex-none border-2 border-amber-600 text-amber-700 hover:bg-amber-50"
+            >
+              My Hunt
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl("CreateListing"))}
+              className="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Create New Listing
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}
