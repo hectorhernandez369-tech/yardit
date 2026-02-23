@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import DemoModeToggle, { isDemoMode } from "./components/shared/DemoMode";
 import { syncAdminInvite } from "./components/admin/adminInviteSync";
 
+const relId = (v) => (v && typeof v === "object" ? v.id : v);
+
 export default function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -32,17 +34,19 @@ export default function Layout({ children }) {
         let adminIsActive = false;
         try {
           const { accepted, adminProfile } = await syncAdminInvite(currentUser);
+          const profileUserId = relId(adminProfile?.user_id);
 
           // TEMPORARY DEBUG LOG
           console.log("ADMIN CHECK", {
             meId: currentUser.id,
             meEmail: currentUser.email,
-            adminProfileUserId: adminProfile?.user_id,
+            adminProfileUserIdRaw: adminProfile?.user_id,
+            adminProfileUserId: profileUserId,
             adminProfileIsActive: adminProfile?.is_active,
             adminProfileRole: adminProfile?.role_label,
           });
 
-          adminIsActive = !!adminProfile && adminProfile.is_active === true && adminProfile.user_id === currentUser.id;
+          adminIsActive = !!adminProfile && adminProfile.is_active === true && profileUserId === currentUser.id;
 
           if (adminIsActive) {
             currentUser.isAdmin = true;

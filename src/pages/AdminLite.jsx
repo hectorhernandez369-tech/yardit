@@ -21,6 +21,8 @@ import EmployeeUsersTab from "../components/admin/EmployeeUsersTab";
 import { getAdminSession, clearAdminSession } from "../components/admin/AdminLoginModal";
 import AdminLoginModal from "../components/admin/AdminLoginModal";
 
+const relId = (v) => (v && typeof v === "object" ? v.id : v);
+
 export default function AdminLitePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -57,6 +59,7 @@ export default function AdminLitePage() {
         ]);
 
         let adminProfile = profilesByUserId[0] || profilesByEmail[0];
+        const profileUserId = relId(adminProfile?.user_id);
 
         // TEMPORARY DEBUG LOG
         console.log("ADMIN_DEBUG", {
@@ -64,14 +67,15 @@ export default function AdminLitePage() {
           meEmail: currentUser.email,
           profilesByUserIdCount: profilesByUserId?.length,
           profilesByEmailCount: profilesByEmail?.length,
-          profileUserId: adminProfile?.user_id,
+          profileUserIdRaw: adminProfile?.user_id,
+          profileUserId: profileUserId,
           profileActive: adminProfile?.is_active,
           profileRole: adminProfile?.role_label,
         });
 
         // Heal: if found by email but user_id doesn't match, fix it
-        if (adminProfile && adminProfile.user_id !== currentUser.id) {
-          console.log("ADMIN_DEBUG - healing user_id", { old: adminProfile.user_id, new: currentUser.id });
+        if (adminProfile && profileUserId !== currentUser.id) {
+          console.log("ADMIN_DEBUG - healing user_id", { oldRaw: adminProfile.user_id, old: profileUserId, new: currentUser.id });
           await base44.entities.AdminProfile.update(adminProfile.id, { user_id: currentUser.id });
           adminProfile = { ...adminProfile, user_id: currentUser.id };
         }

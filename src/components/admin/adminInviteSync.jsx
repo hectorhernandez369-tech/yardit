@@ -1,5 +1,7 @@
 import { base44 } from "@/api/base44Client";
 
+const relId = (v) => (v && typeof v === "object" ? v.id : v);
+
 /**
  * Runs on every app load for logged-in users.
  * Accepts any pending AdminInviteProfile, creates AdminProfile,
@@ -20,10 +22,12 @@ export async function syncAdminInvite(currentUser) {
   let existingProfile = profilesByUserId[0] || profilesByEmail[0];
 
   // If found by email but user_id is wrong/missing, fix it
-  if (existingProfile && existingProfile.user_id !== currentUser.id) {
+  const profileUserId = relId(existingProfile?.user_id);
+  if (existingProfile && profileUserId !== currentUser.id) {
     console.log("ADMIN INVITE SYNC - healing user_id mismatch", {
       profileId: existingProfile.id,
-      oldUserId: existingProfile.user_id,
+      oldUserIdRaw: existingProfile.user_id,
+      oldUserId: profileUserId,
       correctUserId: currentUser.id,
     });
     await base44.entities.AdminProfile.update(existingProfile.id, { user_id: currentUser.id });
@@ -34,7 +38,7 @@ export async function syncAdminInvite(currentUser) {
   if (!existingProfile) {
     const allProfiles = await base44.entities.AdminProfile.list();
     const bootstrapProfile = allProfiles.find(
-      p => p.employee_id === "MasterOB1k" && (!p.user_id || p.user_id === "__PLACEHOLDER__")
+      p => p.employee_id === "MasterOB1k" && (!p.user_id || relId(p.user_id) === "__PLACEHOLDER__")
     );
     if (bootstrapProfile) {
       await base44.entities.AdminProfile.update(bootstrapProfile.id, {
@@ -46,7 +50,7 @@ export async function syncAdminInvite(currentUser) {
       });
       const accessKeys = await base44.entities.AdminAccessKey.filter({ employee_id: "MasterOB1k" });
       for (const ak of accessKeys) {
-        if (!ak.user_id || ak.user_id === "__PLACEHOLDER__") {
+        if (!ak.user_id || relId(ak.user_id) === "__PLACEHOLDER__") {
           await base44.entities.AdminAccessKey.update(ak.id, { user_id: currentUser.id });
         }
       }
@@ -94,7 +98,7 @@ export async function syncAdminInvite(currentUser) {
   // Link AdminAccessKey
   const accessKeys = await base44.entities.AdminAccessKey.filter({ employee_id: pendingInvite.employee_id });
   for (const ak of accessKeys) {
-    if (!ak.user_id || ak.user_id === "__PLACEHOLDER__") {
+    if (!ak.user_id || relId(ak.user_id) === "__PLACEHOLDER__") {
       await base44.entities.AdminAccessKey.update(ak.id, { user_id: currentUser.id });
     }
   }
@@ -122,7 +126,8 @@ export async function syncAdminInvite(currentUser) {
   console.log("ADMIN INVITE SYNC - accepted invite, verified profile:", {
     meId: currentUser.id,
     meEmail: email,
-    verifiedProfileUserId: verifiedProfile?.user_id,
+    verifiedProfileUserIdRaw: verifiedProfile?.user_id,
+    verifiedProfileUserId: relId(verifiedProfile?.user_id),
     verifiedProfileIsActive: verifiedProfile?.is_active,
     verifiedProfileRole: verifiedProfile?.role_label,
   });
