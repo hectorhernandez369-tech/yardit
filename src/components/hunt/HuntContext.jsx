@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
-import { calculateDistance } from "@/utils"; // Assuming a utility or I'll implement a simple one
 
 export const HUNT_ENABLED = true;
 
@@ -11,166 +10,119 @@ export function useHunt() {
 }
 
 export function HuntProvider({ children }) {
-  if (!HUNT_ENABLED) {
-    return <>{children}</>;
-  }
+  const [huntStops, setHuntStops] = useState([]);
+  const [isHuntActive, setIsHuntActive] = useState(false);
+  const [huntIntegrityNoticeSeen, setHuntIntegrityNoticeSeen] = useState(false);
 
-  // Persisted state
-  const [huntStops, setHuntStops] = useState(() => {
+  // Load from local storage on mount
+  useEffect(() => {
+    if (!HUNT_ENABLED) return;
     try {
-      const saved = localStorage.getItem('yardit_hunt_stops');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
+      const savedStops = localStorage.getItem("yardit_hunt_stops");
+      if (savedStops) {
+        setHuntStops(JSON.parse(savedStops));
+      }
+      const savedNotice = localStorage.getItem("yardit_hunt_notice_seen");
+      if (savedNotice) {
+        setHuntIntegrityNoticeSeen(JSON.parse(savedNotice));
+      }
+    } catch (e) {
+      console.error("Failed to load hunt data", e);
     }
-  });
+  }, []);
 
-  const [integrityAccepted, setIntegrityAccepted] = useState(() => {
-    return localStorage.getItem('yardit_hunt_integrity') === 'true';
-  });
-
-  // Session state
-  const [huntMode, setHuntMode] = useState(false);
-  const [gpsLocation, setGpsLocation] = useState(null);
-  const watchIdRef = useRef(null);
-
-  // Persistence effects
+  // Save to local storage on change
   useEffect(() => {
-    localStorage.setItem('yardit_hunt_stops', JSON.stringify(huntStops));
+    if (!HUNT_ENABLED) return;
+    localStorage.setItem("yardit_hunt_stops", JSON.stringify(huntStops));
   }, [huntStops]);
 
   useEffect(() => {
-    localStorage.setItem('yardit_hunt_integrity', integrityAccepted);
-  }, [integrityAccepted]);
+    if (!HUNT_ENABLED) return;
+    localStorage.setItem("yardit_hunt_notice_seen", JSON.stringify(huntIntegrityNoticeSeen));
+  }, [huntIntegrityNoticeSeen]);
 
-  // GPS Watcher
-  useEffect(() => {
-    if (huntMode && navigator.geolocation) {
-      console.log("Starting Hunt GPS Watcher");
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        (position) => {
-          setGpsLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            heading: position.coords.heading
-          });
-        },
-        (error) => {
-          console.warn("Hunt GPS Error:", error);
-        },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 10000,
-          timeout: 5000
-        }
-      );
-    } else {
-      if (watchIdRef.current !== null) {
-        console.log("Stopping Hunt GPS Watcher");
-        navigator.geolocation.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
-      }
-      setGpsLocation(null);
+  const addStop = (listing) => {
+    if (!HUNT_ENABLED) return;
+    if (huntStops.some((s) => s.id === listing.id)) {
+      toast.info("Listing already in your hunt!");
+      return;
     }
-
-    return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
+    const newStop = {
+      ...listing,
+      huntStatus: "not_started", // not_started, arrived, completed
     };
-  }, [huntMode]);
-
-  // Actions
-  const addToHunt = useCallback((listing) => {
-    setHuntStops(prev => {
-      if (prev.some(s => s.id === listing.id)) {
-        toast.info("Already in your hunt!");
-        return prev;
-      }
-      // Store minimal data + status
-      const newStop = {
-        ...listing, // Keep full listing data for display
-        huntStatus: 'not_started', // not_started, arrived, completed
-        addedAt: new Date().toISOString()
-      };
-      toast.success("Added to Hunt!");
-      return [...prev, newStop];
-    });
-  }, []);
-
-  const removeFromHunt = useCallback((listingId) => {
-    setHuntStops(prev => prev.filter(s => s.id !== listingId));
-    toast.success("Removed from Hunt");
-  }, []);
-
-  const updateStopStatus = useCallback((listingId, status) => {
-    setHuntStops(prev => prev.map(s => 
-      s.id === listingId ? { ...s, huntStatus: status } : s
-    ));
-  }, []);
-
-  const acceptIntegrityNotice = useCallback(() => {
-    setIntegrityAccepted(true);
-  }, []);
-
-  const clearHunt = useCallback(() => {
-    if (confirm("Clear all stops from your hunt?")) {
-      setHuntStops([]);
-      setHuntMode(false);
-      toast.success("Hunt cleared");
-    }
-  }, []);
-
-  // Route calculation (Simple "as the crow flies" total distance)
-  // In a real app we might optimize order, but per requirements we only recalc on demand
-  const getTotalDistance = useCallback(() => {
-    if (huntStops.length < 2) return 0;
-    let total = 0;
-    for (let i = 0; i < huntStops.length - 1; i++) {
-      // Using a simple haversine or similar helper
-      const dist = calcDist(
-        huntStops[i].lat, huntStops[i].lng,
-        huntStops[i+1].lat, huntStops[i+1].lng
-      );
-      total += dist;
-    }
-    return total; // in miles/km depending on calcDist
-  }, [huntStops]);
-
-  // Simple distance calc (Haversine approx)
-  const calcDist = (lat1, lon1, lat2, lon2) => {
-    const R = 3959; // Radius of Earth in miles
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    setHuntStops((prev) => [...prev, newStop]);
+    toast.success("Added to your hunt!");
   };
 
-  const reorderStops = useCallback((newOrder) => {
-      setHuntStops(newOrder);
-  }, []);
+  const removeStop = (listingId) => {
+    if (!HUNT_ENABLED) return;
+    setHuntStops((prev) => prev.filter((s) => s.id !== listingId));
+    toast.success("Removed from hunt");
+  };
 
-  return (
-    <HuntContext.Provider value={{
-      huntStops,
-      huntMode,
-      setHuntMode,
-      gpsLocation,
-      integrityAccepted,
-      acceptIntegrityNotice,
-      addToHunt,
-      removeFromHunt,
-      updateStopStatus,
-      clearHunt,
-      getTotalDistance,
-      reorderStops
-    }}>
-      {children}
-    </HuntContext.Provider>
-  );
+  const updateStopStatus = (listingId, status) => {
+    if (!HUNT_ENABLED) return;
+    setHuntStops((prev) =>
+      prev.map((s) => (s.id === listingId ? { ...s, huntStatus: status } : s))
+    );
+  };
+
+  const clearHunt = () => {
+    if (!HUNT_ENABLED) return;
+    if (window.confirm("Are you sure you want to clear your entire hunt?")) {
+      setHuntStops([]);
+      setIsHuntActive(false);
+      toast.success("Hunt cleared");
+    }
+  };
+
+  const toggleHuntMode = () => {
+    if (!HUNT_ENABLED) return;
+    if (huntStops.length === 0 && !isHuntActive) {
+      toast.error("Add stops to your hunt first!");
+      return;
+    }
+    setIsHuntActive((prev) => !prev);
+  };
+
+  const markNoticeSeen = () => {
+    setHuntIntegrityNoticeSeen(true);
+  };
+  
+  // Simple "Recalculate" - for now just reorders by distance from a point if we implemented that,
+  // but prompt says "Recalculate route order ONLY when... user taps Recalculate".
+  // For Phase 3, we'll implement a simple sorter or just keep it manual/as-added.
+  // We'll expose a function for it.
+  const recalculateRoute = (currentLat, currentLng) => {
+    if (!HUNT_ENABLED || !currentLat || !currentLng) return;
+    
+    // Simple nearest neighbor or just sort by distance from current location for the first one?
+    // Let's just sort by distance from current location for now as a basic "optimization"
+    // optimization logic can be improved later.
+    const sorted = [...huntStops].sort((a, b) => {
+      const distA = Math.hypot(a.lat - currentLat, a.lng - currentLng);
+      const distB = Math.hypot(b.lat - currentLat, b.lng - currentLng);
+      return distA - distB;
+    });
+    setHuntStops(sorted);
+    toast.success("Route recalculated based on your location");
+  };
+
+  const value = {
+    huntStops,
+    isHuntActive,
+    addStop,
+    removeStop,
+    updateStopStatus,
+    clearHunt,
+    toggleHuntMode,
+    huntIntegrityNoticeSeen,
+    markNoticeSeen,
+    recalculateRoute,
+    HUNT_ENABLED
+  };
+
+  return <HuntContext.Provider value={value}>{children}</HuntContext.Provider>;
 }

@@ -5,50 +5,293 @@ import { Plus, Home, User, Settings, Shield } from "lucide-react";
 import AdminNotificationBell from "./components/caseManagement/ui/AdminNotificationBell";
 import AdminLoginModal, { getAdminSession, clearAdminSession } from "./components/admin/AdminLoginModal";
 import { Button } from "@/components/ui/button";
+import { HuntProvider, useHunt, HUNT_ENABLED } from "./components/hunt/HuntContext";
+import { Map as MapIcon, Crosshair } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
 import DemoModeToggle, { isDemoMode } from "./components/shared/DemoMode";
 import { syncAdminInvite } from "./components/admin/adminInviteSync";
-import { HuntProvider, useHunt, HUNT_ENABLED } from "./components/hunt/HuntContext";
-import { Map, Crosshair } from "lucide-react";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
-function HuntNavButton({ pathname }) {
-  const { huntStops, setHuntMode } = useHunt();
+function LayoutContent({ children, user, setUser }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { huntStops, isHuntActive } = useHunt();
   
-  if (!HUNT_ENABLED || huntStops.length === 0) return null;
-  
-  const isActive = pathname === createPageUrl("MyHunt");
-  
+  // Pass user/setUser via props or context if needed, but for now we use the ones from parent
+  const [showDemoPanel, setShowDemoPanel] = useState(false);
+  const [demoActive, setDemoActive] = useState(isDemoMode());
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [hasAdminProfile, setHasAdminProfile] = useState(false);
+  const [adminActivatedBanner, setAdminActivatedBanner] = useState(false);
+  const longPressTimer = useRef(null);
+  const didLongPress = useRef(false);
+
+  useEffect(() => {
+    const handler = () => setDemoActive(isDemoMode());
+    window.addEventListener("demo-mode-change", handler);
+    return () => window.removeEventListener("demo-mode-change", handler);
+  }, []);
+
+  useEffect(() => {
+      // Sync admin state from user prop
+      if (user?.isAdmin) {
+          setHasAdminProfile(true);
+      } else {
+          setHasAdminProfile(false);
+      }
+  }, [user]);
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const onLogoPointerDown = useCallback(() => {
+    didLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressTimer.current = null;
+      didLongPress.current = true;
+      console.log("DEMO LONG PRESS TRIGGERED");
+      setShowDemoPanel(prev => !prev);
+    }, 1000);
+  }, []);
+
+  const onLogoPointerEnd = useCallback(() => {
+    cancelLongPress();
+  }, [cancelLongPress]);
+
+  const onLogoClick = useCallback((e) => {
+    if (didLongPress.current) {
+      e.preventDefault();
+      didLongPress.current = false;
+    }
+  }, []);
+
   return (
-    <Link to={createPageUrl("MyHunt")} onClick={() => setHuntMode(true)}>
-      <Button
-        variant={isActive ? "secondary" : "ghost"}
-        size="sm"
-        className={`gap-2 ${isActive ? "bg-amber-500 text-white hover:bg-amber-600" : "text-amber-200 hover:bg-white/10"}`}
-      >
-        <Map className="w-4 h-4" />
-        <span className="hidden sm:inline">My Hunt ({huntStops.length})</span>
-        <span className="sm:hidden">({huntStops.length})</span>
-      </Button>
-    </Link>
+    <div className="min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
+      <Toaster richColors position="top-center" />
+      <header className="bg-[#5DADA5] border-b-2 border-[#2C4F4E] sticky top-0 z-50 shadow-md">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link
+                to={createPageUrl("Home")}
+                className="flex items-center gap-3 group select-none touch-none"
+                onPointerDown={onLogoPointerDown}
+                onPointerUp={onLogoPointerEnd}
+                onPointerCancel={onLogoPointerEnd}
+                onPointerLeave={onLogoPointerEnd}
+                onContextMenu={(e) => e.preventDefault()}
+                onClick={onLogoClick}
+              >
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/5a679ad0d_file_00000000efbc71fd87985abd77ca1f58.png" 
+                  alt="Yardit Logo" 
+                  className="w-12 h-12"
+                />
+                <div>
+                  <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'cursive' }}>Yardit</h1>
+                  <p className="text-xs text-white/90">Find Treasure Nearby</p>
+                </div>
+              </Link>
+              {demoActive && (
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                  Demo
+                </span>
+              )}
+            </div>
+
+            <nav className="flex items-center gap-1 sm:gap-2 flex-wrap">
+              {/* TEMPORARY: visible Demo toggle button — remove later */}
+              <button
+                onClick={() => setShowDemoPanel(prev => !prev)}
+                className="text-[10px] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded px-2 py-1"
+              >
+                Demo
+              </button>
+              
+              {HUNT_ENABLED && huntStops.length > 0 && (
+                 <Link to={createPageUrl("MyHunt")}>
+                    <Button
+                      variant={location.pathname === createPageUrl("MyHunt") ? "secondary" : "ghost"}
+                      size="sm"
+                      className={`gap-2 ${location.pathname === createPageUrl("MyHunt") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"} ${isHuntActive ? "animate-pulse border-2 border-red-400" : ""}`}
+                    >
+                      <Crosshair className="w-4 h-4" />
+                      <span className="hidden sm:inline">My Hunt ({huntStops.length})</span>
+                    </Button>
+                 </Link>
+              )}
+
+              <Link to={createPageUrl("Home")}>
+                <Button
+                  variant={location.pathname === createPageUrl("Home") || location.pathname === "/" ? "secondary" : "ghost"}
+                  size="sm"
+                  className={`gap-2 ${location.pathname === createPageUrl("Home") || location.pathname === "/" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                >
+                  <Home className="w-4 h-4" />
+                  <span className="hidden sm:inline">Map</span>
+                </Button>
+              </Link>
+              
+              {user && (
+                <>
+                  <Link to={createPageUrl("MyListings")}>
+                    <Button
+                      variant={location.pathname === createPageUrl("MyListings") ? "secondary" : "ghost"}
+                      size="sm"
+                      className={`gap-2 ${location.pathname === createPageUrl("MyListings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                    >
+                      <User className="w-4 h-4" />
+                      <span className="hidden sm:inline">My Listings</span>
+                    </Button>
+                  </Link>
+                  
+                  <Link to={createPageUrl("Settings")}>
+                    <Button
+                      variant={location.pathname === createPageUrl("Settings") ? "secondary" : "ghost"}
+                      size="icon"
+                      className={`${location.pathname === createPageUrl("Settings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </Link>
+
+                  {hasAdminProfile && (
+                    <>
+                      <AdminNotificationBell user={user} />
+                      <Button
+                        variant={location.pathname.includes(createPageUrl("AdminLite")) || location.pathname.includes(createPageUrl("CaseManagement")) ? "secondary" : "ghost"}
+                        size="sm"
+                        className={`gap-2 ${location.pathname.includes(createPageUrl("AdminLite")) || location.pathname.includes(createPageUrl("CaseManagement")) ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
+                        onClick={() => {
+                          const session = getAdminSession();
+                          if (session) {
+                            navigate(createPageUrl("AdminLite"));
+                          } else {
+                            setShowAdminLogin(true);
+                          }
+                        }}
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span className="hidden sm:inline">Admin</span>
+                      </Button>
+                    </>
+                  )}
+                  
+                  <Link to={createPageUrl("CreateListing")}>
+                    <Button
+                      size="sm"
+                      className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="hidden sm:inline">Post Sale</span>
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {showDemoPanel && (
+        <div className="bg-purple-50 border-b border-purple-200 px-4 py-2 flex items-center justify-center gap-3">
+          <DemoModeToggle />
+          <button
+            onClick={() => setShowDemoPanel(false)}
+            className="text-xs text-purple-500 hover:text-purple-700 underline"
+          >
+            close
+          </button>
+        </div>
+      )}
+
+      {adminActivatedBanner && (
+        <div className="bg-green-50 border-b border-green-300 px-4 py-3 flex items-center justify-center gap-3">
+          <p className="text-sm text-green-800 font-medium">
+            ✅ Admin activated. Click <strong>Admin</strong> and enter your Employee ID + PIN to access the portal.
+          </p>
+          <button
+            onClick={() => setAdminActivatedBanner(false)}
+            className="text-green-600 hover:text-green-800 text-lg font-bold ml-2"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <main className="flex-1">
+        {children}
+      </main>
+
+      <AdminLoginModal
+        open={showAdminLogin}
+        onClose={() => setShowAdminLogin(false)}
+        onSuccess={() => {
+          setShowAdminLogin(false);
+          navigate(createPageUrl("AdminLite"));
+        }}
+      />
+
+      <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-4">
+        <div className="max-w-7xl mx-auto px-4">
+          <p className="text-center text-sm text-white">
+            🏴‍☠️ Yardit - Seekers find the best residential yard sales
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }
 
 export default function Layout({ children }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const currentUser = await base44.auth.me();
+        // Derive isAdmin from role if not already set
+        // Run invite sync — auto-accepts pending invites and creates AdminProfile
+        let adminIsActive = false;
+        try {
+          const { accepted, adminProfile } = await syncAdminInvite(currentUser);
+          const profileUserId = relId(adminProfile?.user_id);
+
+          adminIsActive = !!adminProfile && adminProfile.is_active === true && profileUserId === currentUser.id;
+
+          if (adminIsActive) {
+            currentUser.isAdmin = true;
+            currentUser.role = adminProfile.role_label;
+          } else {
+            currentUser.isAdmin = false;
+          }
+        } catch {
+          currentUser.isAdmin = false;
+        }
+
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
   return (
     <HuntProvider>
-      <LayoutContent>{children}</LayoutContent>
+       <LayoutContent user={user} setUser={setUser}>
+         {children}
+       </LayoutContent>
     </HuntProvider>
   );
 }
-
-function LayoutContent({ children }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null);
   const [showDemoPanel, setShowDemoPanel] = useState(false);
   const [demoActive, setDemoActive] = useState(isDemoMode());
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -192,8 +435,6 @@ function LayoutContent({ children }) {
                   <span className="hidden sm:inline">Map</span>
                 </Button>
               </Link>
-
-              <HuntNavButton pathname={location.pathname} />
               
               {user && (
                 <>
