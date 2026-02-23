@@ -197,7 +197,14 @@ export default function HomePage() {
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
   
-  const huntContext = useHunt() || { huntStops: [], addToHunt: () => {}, huntMode: false };
+  const huntContext = useHunt() || { 
+    huntStops: [], 
+    addToHunt: () => {}, 
+    removeFromHunt: () => {}, 
+    clearHunt: () => {}, 
+    optimizeRoute: () => {}, 
+    huntMode: false 
+  };
   const { huntStops, addToHunt, huntMode: isHuntActive } = huntContext;
 
   // --- Full map state (merged from pages/Map) ---
@@ -205,9 +212,6 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mapCenter, setMapCenter] = useState([37.7749, -122.4194]);
   const [mapZoom, setMapZoom] = useState(13);
-  const [selectedLocations, setSelectedLocations] = useState([]);
-  const [optimizedRoute, setOptimizedRoute] = useState([]);
-  const [routeActive, setRouteActive] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const controlsPanelRef = useRef(null);
   const controlsBtnRef = useRef(null);
@@ -456,30 +460,8 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showControls]);
 
-  const handleLocationSelect = (location) => {
-    const isSelected = selectedLocations.some(loc => loc.id === location.id);
-    if (isSelected) {
-      setSelectedLocations(prev => prev.filter(loc => loc.id !== location.id));
-    } else {
-      setSelectedLocations(prev => [...prev, location]);
-    }
-    setRouteActive(false);
-    setOptimizedRoute([]);
-  };
-
   const handlePinClick = (listing) => {
     setActiveFocusListing({ listing, fromUrl: false });
-    handleLocationSelect(listing);
-  };
-
-  const handleBuildRoute = () => {
-    const optimized = optimizeRoute(selectedLocations, mapCenter[0], mapCenter[1]);
-    setOptimizedRoute(optimized);
-    setRouteActive(true);
-    if (optimized.length > 0) {
-      setMapCenter([optimized[0].lat, optimized[0].lng]);
-      toast.success(`Route optimized with ${optimized.length} stops!`);
-    }
   };
 
   const getCheckInCount = (locationId) => {
@@ -492,8 +474,6 @@ export default function HomePage() {
     const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
     return { average: avgRating.toFixed(1), count: reviews.length };
   };
-
-  const routeCoordinates = routeActive ? optimizedRoute.map(loc => [loc.lat, loc.lng]) : [];
 
   const { visiblePins, clusterPts, fallbackActive } = useMemo(() => {
     const pins = [];
@@ -601,19 +581,15 @@ export default function HomePage() {
               </Card>
 
               <RouteBuilder
-                selectedLocations={selectedLocations}
+                selectedLocations={huntStops}
                 onRemoveLocation={(id) => {
-                  setSelectedLocations(prev => prev.filter(loc => loc.id !== id));
-                  setRouteActive(false);
-                  setOptimizedRoute([]);
+                  huntContext.removeFromHunt(id);
                 }}
                 onClearAll={() => {
-                  setSelectedLocations([]);
-                  setRouteActive(false);
-                  setOptimizedRoute([]);
+                  huntContext.clearHunt();
                 }}
-                onBuildRoute={handleBuildRoute}
-                routeActive={routeActive}
+                onBuildRoute={() => huntContext.optimizeRoute()}
+                routeActive={false}
               />
             </div>
           </div>
@@ -655,13 +631,9 @@ export default function HomePage() {
               
               <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />
 
-              {routeActive && routeCoordinates.length > 1 && (
-                <Polyline positions={routeCoordinates} color="#2563eb" weight={4} opacity={0.7} />
-              )}
-
               {visiblePins.map((listing) => {
-                const isSelected = selectedLocations.some(loc => loc.id === listing.id);
-                const routeIndex = optimizedRoute.findIndex(loc => loc.id === listing.id);
+                const isSelected = huntStops.some(loc => loc.id === listing.id);
+                const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
                 
                 return (
                   <Marker
@@ -682,7 +654,7 @@ export default function HomePage() {
                               {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : "🏡 Yard Sale"}
                             </Badge>
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 capitalize">{listing.tier}</Badge>
-                            {isSelected && routeActive && (
+                            {isSelected && (
                               <Badge className="text-[10px] px-1.5 py-0.5 bg-blue-600">Stop #{routeIndex + 1}</Badge>
                             )}
                           </div>
@@ -745,18 +717,6 @@ export default function HomePage() {
                                 {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add Stop to Hunt"}
                               </Button>
                             )}
-                            <Button
-                              size="sm"
-                              variant={isSelected ? "default" : "outline"}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleLocationSelect(listing);
-                              }}
-                              className="gap-1 h-7 text-xs px-2"
-                            >
-                              {isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                              {isSelected ? "Added" : "Add"}
-                            </Button>
                           </div>
                         </div>
                       </div>
