@@ -28,6 +28,8 @@ export default function MyHuntPage() {
   } = useHunt();
 
   const [showIntegrity, setShowIntegrity] = useState(!integrityAccepted && huntStops.length > 0);
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [incompleteStops, setIncompleteStops] = useState([]);
 
   const handleMapMyHunt = () => {
     setHuntMode(true);
@@ -35,60 +37,23 @@ export default function MyHuntPage() {
   };
 
   const handleNavigate = (stops) => {
-    // Construct maps URL
-    // Apple Maps: http://maps.apple.com/?daddr=lat,long&dirflg=d
-    // Google Maps: https://www.google.com/maps/dir/Current+Location/lat1,long1/lat2,long2...
-    
     if (stops.length === 0) return;
-
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    
-    // For this implementation we'll use Google Maps web universal link which works on both usually, 
-    // or prefer specific schemes if needed. The requirement says:
-    // Android: Google Maps, iOS: Apple Maps.
-    
-    if (isIOS) {
-        // Apple maps supports daddr for destination. For multiple stops it's trickier, 
-        // usually only one destination is supported reliably via scheme. 
-        // We'll stick to the first stop or use Google Maps if installed/preferred by user context (but here we force logic).
-        // Actually, requirement says "Navigate first 10". 
-        // Google Maps URL is safer for multi-stop.
-        // Let's try Google Maps for multi-stop as Apple Maps URL scheme for multi-stop is not standard.
-        // Wait, requirement: "iOS: open Apple Maps (Google Maps optional)".
-        // Since Apple Maps doesn't easily support multi-stop via URL scheme, let's just do single destination or 
-        // fallback to Google Maps for the route.
-        // Let's implement Google Maps for the route as it's reliable for waypoints.
-        
-        const origin = "Current+Location";
-        const destination = `${stops[stops.length-1].lat},${stops[stops.length-1].lng}`;
-        const waypoints = stops.slice(0, stops.length-1).map(s => `${s.lat},${s.lng}`).join('|');
-        const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=driving`;
-        window.open(url, '_blank');
-    } else {
-        // Android / Web -> Google Maps
-        const origin = "Current+Location";
-        const destination = `${stops[stops.length-1].lat},${stops[stops.length-1].lng}`;
-        const waypoints = stops.slice(0, stops.length-1).map(s => `${s.lat},${s.lng}`).join('|');
-        const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=driving`;
-        window.open(url, '_blank');
-    }
+    const origin = "Current+Location";
+    const destination = `${stops[stops.length-1].lat},${stops[stops.length-1].lng}`;
+    const waypoints = stops.slice(0, stops.length-1).map(s => `${s.lat},${s.lng}`).join('|');
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=driving`;
+    window.open(url, '_blank');
   };
 
   const handleGlobalDirections = () => {
-     // Batching logic
-     const incompleteStops = huntStops.filter(s => s.huntStatus !== 'completed');
-     if (incompleteStops.length === 0) return;
+     const incomplete = huntStops.filter(s => s.huntStatus !== 'completed');
+     if (incomplete.length === 0) return;
 
-     if (incompleteStops.length <= 10) {
-         handleNavigate(incompleteStops);
+     if (incomplete.length <= 10) {
+         handleNavigate(incomplete);
      } else {
-         // Show modal or just navigate first 10 for now as per "modal" requirement, simplified:
-         // For speed, I'll just navigate first 10.
-         // Or strictly follow: "If stops > 10, show modal".
-         // I'll assume standard window.confirm for simplicity or just take first 10.
-         if (confirm(`You have ${incompleteStops.length} stops. Navigate to the first 10?`)) {
-             handleNavigate(incompleteStops.slice(0, 10));
-         }
+         setIncompleteStops(incomplete);
+         setShowBatchModal(true);
      }
   };
 
