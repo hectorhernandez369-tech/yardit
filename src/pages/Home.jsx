@@ -299,34 +299,7 @@ export default function HomePage() {
     initialData: [],
   });
 
-  // Live location tracking
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const newLoc = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        };
-        setUserLocation(newLoc);
-        setLocationError(null);
-        if (!hasCenteredOnUser.current && !userHasMovedMap.current) {
-          setMapCenter([newLoc.lat, newLoc.lng]);
-          hasCenteredOnUser.current = true;
-        }
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          setLocationError("Location permission is off. Enable it in settings to use My Location.");
-        } else {
-          setLocationError("Unable to get location right now.");
-        }
-      },
-      { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
-    );
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+
 
   const handleMyLocation = () => {
     if (locationError) {
