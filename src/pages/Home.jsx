@@ -743,7 +743,7 @@ export default function HomePage() {
                                 className="gap-1 h-7 text-xs px-2"
                               >
                                 {huntStops.some(s => s.id === listing.id) ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                                {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add to Hunt"}
+                                {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add Stop to Hunt"}
                               </Button>
                             )}
                             <Button
