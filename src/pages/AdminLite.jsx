@@ -50,25 +50,34 @@ export default function AdminLitePage() {
       try {
         const currentUser = await base44.auth.me();
 
-        // Layout already ran syncAdminInvite, so just look up the profile
-        const [profilesByEmail, profilesByUserId] = await Promise.all([
-          base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }),
+        // Look up AdminProfile — prefer by user_id, fallback to email
+        const [profilesByUserId, profilesByEmail] = await Promise.all([
           base44.entities.AdminProfile.filter({ user_id: currentUser.id }),
+          base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }),
         ]);
 
-        const adminProfile = profilesByEmail[0] || profilesByUserId[0];
+        let adminProfile = profilesByUserId[0] || profilesByEmail[0];
 
         // TEMPORARY DEBUG LOG
-        console.log("ADMIN CHECK (AdminLite)", {
+        console.log("ADMIN_DEBUG", {
           meId: currentUser.id,
           meEmail: currentUser.email,
-          adminProfileUserId: adminProfile?.user_id,
-          adminProfileIsActive: adminProfile?.is_active,
-          adminProfileRole: adminProfile?.role_label,
+          profilesByUserIdCount: profilesByUserId?.length,
+          profilesByEmailCount: profilesByEmail?.length,
+          profileUserId: adminProfile?.user_id,
+          profileActive: adminProfile?.is_active,
+          profileRole: adminProfile?.role_label,
         });
 
-        const adminIsActive = !!adminProfile && adminProfile.is_active === true && adminProfile.user_id === currentUser.id;
-        if (!adminIsActive) {
+        // Heal: if found by email but user_id doesn't match, fix it
+        if (adminProfile && adminProfile.user_id !== currentUser.id) {
+          console.log("ADMIN_DEBUG - healing user_id", { old: adminProfile.user_id, new: currentUser.id });
+          await base44.entities.AdminProfile.update(adminProfile.id, { user_id: currentUser.id });
+          adminProfile = { ...adminProfile, user_id: currentUser.id };
+        }
+
+        // Gate: must have an active profile
+        if (!adminProfile || adminProfile.is_active !== true) {
           setNoAdminAccess(true);
           setLoadingProfile(false);
           return;
@@ -84,7 +93,8 @@ export default function AdminLitePage() {
 
         const users = await base44.entities.User.list();
         setAllAdminUsers(users.filter(u => ["admin", "admin_lite", "supervisor", "master"].includes(u.role)));
-      } catch {
+      } catch (err) {
+        console.error("ADMIN_DEBUG - init error", err);
         setNoAdminAccess(true);
       } finally {
         setLoadingProfile(false);
@@ -133,7 +143,12 @@ export default function AdminLitePage() {
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), []);
 
 
-  if (loadingProfile) return <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>;
+  if (loadingProfile) return (
+    <div className="p-8 text-center">
+      <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+      <p className="text-sm text-gray-500">Checking admin access…</p>
+    </div>
+  );
 
   if (noAdminAccess) {
     return (

@@ -17,7 +17,18 @@ export async function syncAdminInvite(currentUser) {
     base44.entities.AdminProfile.filter({ user_id: currentUser.id }),
   ]);
 
-  let existingProfile = profilesByEmail[0] || profilesByUserId[0];
+  let existingProfile = profilesByUserId[0] || profilesByEmail[0];
+
+  // If found by email but user_id is wrong/missing, fix it
+  if (existingProfile && existingProfile.user_id !== currentUser.id) {
+    console.log("ADMIN INVITE SYNC - healing user_id mismatch", {
+      profileId: existingProfile.id,
+      oldUserId: existingProfile.user_id,
+      correctUserId: currentUser.id,
+    });
+    await base44.entities.AdminProfile.update(existingProfile.id, { user_id: currentUser.id });
+    existingProfile = { ...existingProfile, user_id: currentUser.id };
+  }
 
   // Bootstrap: fix MasterOB1k placeholder
   if (!existingProfile) {
