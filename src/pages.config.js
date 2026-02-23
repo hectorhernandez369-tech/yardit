@@ -53,13 +53,13 @@ import CreateListing from './pages/CreateListing';
 import Home from './pages/Home';
 import Leaderboard from './pages/Leaderboard';
 import ListingDetail from './pages/ListingDetail';
+import MyHunt from './pages/MyHunt';
 import MyListings from './pages/MyListings';
 import NotificationSettings from './pages/NotificationSettings';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import SellerDashboard from './pages/SellerDashboard';
 import Settings from './pages/Settings';
-import MyHunt from './pages/MyHunt';
 import __Layout from './Layout.jsx';
 
 
@@ -70,13 +70,13 @@ export const PAGES = {
     "Home": Home,
     "Leaderboard": Leaderboard,
     "ListingDetail": ListingDetail,
+    "MyHunt": MyHunt,
     "MyListings": MyListings,
     "NotificationSettings": NotificationSettings,
     "Notifications": Notifications,
     "Profile": Profile,
     "SellerDashboard": SellerDashboard,
     "Settings": Settings,
-    "MyHunt": MyHunt,
 }
 
 export const pagesConfig = {
