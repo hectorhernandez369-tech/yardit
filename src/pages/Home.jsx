@@ -26,7 +26,6 @@ import MapZoomControl from "../components/map/MapZoomControl";
 import MapFocusController from "../components/map/MapFocusController";
 import { HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import HuntMapLayers from "@/components/hunt/HuntMapLayers";
-import HuntUIOverlay from "@/components/hunt/HuntUIOverlay";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -196,6 +195,8 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
+  
+
 
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
@@ -700,6 +701,7 @@ export default function HomePage() {
                           </Button>
                           <div className="ml-auto flex gap-1.5">
                             <CheckInButton locationId={listing.id} />
+
                             <Button
                               size="sm"
                               variant={isSelected ? "default" : "outline"}
@@ -771,8 +773,7 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Hunt UI Overlay */}
-            {HUNT_ENABLED && <HuntUIOverlay />}
+
           </div>
         </div>
       )}
