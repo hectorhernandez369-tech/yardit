@@ -3,10 +3,12 @@ import { Marker, Polyline, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 
-export default function HuntMapLayers() {
-  const { huntStops, isHuntActive } = useHunt() || {};
+import { Circle, CircleMarker } from "react-leaflet";
 
-  if (!HUNT_ENABLED || !isHuntActive || !huntStops || huntStops.length === 0) {
+export default function HuntMapLayers() {
+  const { huntStops, isHuntActive, gpsLocation } = useHunt() || {};
+
+  if (!HUNT_ENABLED || !isHuntActive) {
     return null;
   }
 
