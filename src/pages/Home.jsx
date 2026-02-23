@@ -24,6 +24,8 @@ import { createPageUrl } from "@/utils";
 import MapDebugOverlay from "../components/map/MapDebugOverlay";
 import MapZoomControl from "../components/map/MapZoomControl";
 import MapFocusController from "../components/map/MapFocusController";
+import HuntMapOverlay from "../components/hunt/HuntMapOverlay";
+import { useHunt, HUNT_ENABLED } from "../components/hunt/HuntContext";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -218,6 +220,8 @@ export default function HomePage() {
   const userHasMovedMap = useRef(false);
   const halloweenActive = isHalloweenSeason();
   const mapRef = useRef(null);
+  const { addToHunt, huntStops } = useHunt();
+  const isInHunt = (id) => huntStops.some(s => s.id === id);
 
   // Debug overlay
   const debugForceOn = useMemo(() => {
@@ -621,6 +625,7 @@ export default function HomePage() {
               zoomControl={false}
             >
               <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => { mapRef.current = map; }} />
+              <HuntMapOverlay />
               <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
               <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
               <TileLayer
@@ -722,6 +727,21 @@ export default function HomePage() {
                             Report
                           </Button>
                           <div className="ml-auto flex gap-1.5">
+                            {HUNT_ENABLED && (
+                              <Button
+                                size="sm"
+                                variant={isInHunt(listing.id) ? "secondary" : "outline"}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addToHunt(listing);
+                                }}
+                                className={`h-7 text-xs px-2 gap-1 ${isInHunt(listing.id) ? "bg-green-100 text-green-700" : "text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100"}`}
+                                disabled={isInHunt(listing.id)}
+                              >
+                                {isInHunt(listing.id) ? <Check className="w-3 h-3" /> : <Crosshair className="w-3 h-3" />}
+                                {isInHunt(listing.id) ? "Added" : "Hunt"}
+                              </Button>
+                            )}
                             <CheckInButton locationId={listing.id} />
                             <Button
                               size="sm"
