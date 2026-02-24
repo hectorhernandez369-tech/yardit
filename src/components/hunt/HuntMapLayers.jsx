@@ -1,10 +1,10 @@
 import React from "react";
-import { Marker, Polyline, Tooltip } from "react-leaflet";
+import { Marker, Polyline, Tooltip, GeoJSON } from "react-leaflet";
 import L from "leaflet";
-import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
+import { useHunt, HUNT_ENABLED, MAPBOX_ROUTE_ENABLED } from "@/components/hunt/HuntContext";
 
 export default function HuntMapLayers() {
-  const { huntStops, yardsailActive } = useHunt() || {};
+  const { huntStops, yardsailActive, routeGeoJson } = useHunt() || {};
 
   if (!HUNT_ENABLED || !yardsailActive || !huntStops || huntStops.length === 0) {
     return null;
@@ -37,14 +37,19 @@ export default function HuntMapLayers() {
 
   // Draw polyline connecting the stops in order
   const positions = huntStops.map(stop => [stop.lat, stop.lng]);
+  const showMapboxRoute = yardsailActive && MAPBOX_ROUTE_ENABLED && routeGeoJson;
 
   return (
     <>
       {/* The Line */}
-      <Polyline 
-        positions={positions}
-        pathOptions={{ color: '#d97706', weight: 4, dashArray: '10, 10', opacity: 0.8 }} 
-      />
+      {showMapboxRoute ? (
+        <GeoJSON key={JSON.stringify(routeGeoJson)} data={routeGeoJson} style={{ color: '#3b82f6', weight: 5, opacity: 0.8 }} />
+      ) : (
+        <Polyline 
+          positions={positions}
+          pathOptions={{ color: '#d97706', weight: 4, dashArray: '10, 10', opacity: 0.8 }} 
+        />
+      )}
 
       {/* The Stops */}
       {huntStops.map((stop, index) => (
