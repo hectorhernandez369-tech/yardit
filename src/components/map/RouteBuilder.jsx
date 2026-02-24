@@ -117,7 +117,7 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
             <span className="text-[10px] text-orange-600 w-full sm:w-auto">⚠️ Route preview limited to 10 stops.</span>
           )}
           {yardsailActive && routeDirty && (
-            <span className="text-[10px] text-red-600 w-full font-bold">Route out of date — tap Recalculate.</span>
+            <span className="text-[10px] text-red-600 font-bold w-full sm:w-auto">Route out of date — tap Recalculate.</span>
           )}
         </div>
       </CardHeader>

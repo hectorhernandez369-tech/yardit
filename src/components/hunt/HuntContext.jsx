@@ -34,8 +34,8 @@ export function HuntProvider({ children }) {
   const [yardsailActive, setYardsailActive] = useState(false);
   const [gpsLocation, setGpsLocation] = useState(null);
   const [routeCoords, setRouteCoords] = useState(null);
-  const [routeDirty, setRouteDirty] = useState(false);
   const [routeMeta, setRouteMeta] = useState(null);
+  const [routeDirty, setRouteDirty] = useState(false);
   const watchIdRef = useRef(null);
 
   // Persistence effects
@@ -151,6 +151,7 @@ export function HuntProvider({ children }) {
       setHuntMode(false);
       setYardsailActive(false);
       setRouteCoords(null);
+      setRouteMeta(null);
       setRouteDirty(false);
       toast.success("Hunt cleared");
     }
@@ -276,10 +277,11 @@ export function HuntProvider({ children }) {
       getTotalDistance,
       reorderStops,
       routeCoords,
-      routeDirty,
       routeMeta,
+      routeDirty,
       fetchRoute,
       optimizeRoute: () => {
+        setRouteDirty(true);
         if (huntStops.length < 3) return;
         const unvisited = [...huntStops];
         const start = unvisited.shift();
@@ -300,7 +302,6 @@ export function HuntProvider({ children }) {
           optimized.push(unvisited[nearestIdx]);
           unvisited.splice(nearestIdx, 1)[0];
         }
-        setRouteDirty(true);
         setHuntStops(optimized);
         toast.success("Route optimized!");
       }
