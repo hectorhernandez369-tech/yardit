@@ -527,7 +527,7 @@ export default function HomePage() {
           </Tabs>
         </div>
       ) : (
-        <div className="absolute top-2 left-0 right-0 px-3 z-[1002] flex justify-center pointer-events-none">
+        <div className="absolute top-2 left-0 right-0 px-3 z-[9999] flex justify-center pointer-events-none">
           <div className="relative overflow-hidden bg-[#E7D7B8] border border-[#2C4F4E]/20 shadow-md rounded-2xl pointer-events-auto flex items-center p-1 gap-2 mx-auto">
             <div 
               className="absolute inset-0 z-0 opacity-10 bg-center bg-no-repeat"
