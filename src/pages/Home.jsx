@@ -156,14 +156,19 @@ function isHalloweenSeason() {
   return month === 9 && day >= 29 && day <= 31;
 }
 
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
+function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const R = 6371e3; // metres
+  const φ1 = lat1 * Math.PI/180;
+  const φ2 = lat2 * Math.PI/180;
+  const Δφ = (lat2-lat1) * Math.PI/180;
+  const Δλ = (lon2-lon1) * Math.PI/180;
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
   return R * c;
 }
 
@@ -202,10 +207,12 @@ export default function HomePage() {
     addToHunt: () => {}, 
     removeFromHunt: () => {}, 
     clearHunt: () => {}, 
+    updateStopStatus: () => {},
+    gpsLocation: null,
     optimizeRoute: () => {}, 
     huntMode: false 
   };
-  const { huntStops, addToHunt, huntMode: isHuntActive } = huntContext;
+  const { huntStops, addToHunt, updateStopStatus, gpsLocation, huntMode: isHuntActive } = huntContext;
 
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
@@ -701,9 +708,11 @@ export default function HomePage() {
                           </Button>
                           <div className="ml-auto flex gap-1.5">
                             <CheckInButton locationId={listing.id} />
-                            {HUNT_ENABLED && (
-                              <>
-                                {!huntStops.some(s => s.id === listing.id) ? (
+                            {HUNT_ENABLED && (() => {
+                              const huntStop = huntStops.find(s => s.id === listing.id);
+                              
+                              if (!huntStop) {
+                                return (
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -715,18 +724,92 @@ export default function HomePage() {
                                   >
                                     <Plus className="w-3 h-3" /> Add Stop
                                   </Button>
-                                ) : (
+                                );
+                              }
+
+                              const status = huntStop.huntStatus || "not_started";
+                              
+                              if (status === "completed") {
+                                return (
+                                  <Badge className="bg-gray-400 text-white h-7 flex items-center px-2 text-xs">
+                                    Completed ✅
+                                  </Badge>
+                                );
+                              }
+                              
+                              if (status === "skipped") {
+                                return (
+                                  <div className="flex gap-1">
+                                    <Badge className="bg-gray-400 text-white h-7 flex items-center px-2 text-xs">
+                                      Skipped
+                                    </Badge>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        updateStopStatus(listing.id, "not_started");
+                                      }}
+                                      className="h-7 text-xs px-2 text-blue-600 border-blue-300 hover:bg-blue-50"
+                                    >
+                                      Reset
+                                    </Button>
+                                  </div>
+                                );
+                              }
+                              
+                              if (status === "arrived") {
+                                return (
                                   <Button
                                     size="sm"
-                                    variant="default"
-                                    disabled
-                                    className="gap-1 h-7 text-xs px-2"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateStopStatus(listing.id, "completed");
+                                    }}
+                                    className="h-7 text-xs px-2 bg-green-600 hover:bg-green-700 text-white"
                                   >
-                                    <Check className="w-3 h-3" /> Added ✅
+                                    Complete
                                   </Button>
-                                )}
-                              </>
-                            )}
+                                );
+                              }
+
+                              // status === "not_started"
+                              const isDemo = isDemoMode();
+                              const distanceMeters = gpsLocation ? calculateDistanceMeters(gpsLocation.lat, gpsLocation.lng, listing.lat, listing.lng) : Infinity;
+                              const isWithinDistance = isDemo || distanceMeters <= 15; // 50ft approx
+
+                              if (isWithinDistance) {
+                                return (
+                                  <Button
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateStopStatus(listing.id, "arrived");
+                                    }}
+                                    variant="outline"
+                                    className="h-7 text-xs px-2 border-green-600 text-green-700 hover:bg-green-50 bg-white/50"
+                                  >
+                                    Check In
+                                  </Button>
+                                );
+                              }
+
+                              return (
+                                <div className="flex flex-col items-end">
+                                  <Button
+                                    size="sm"
+                                    disabled
+                                    variant="outline"
+                                    className="h-7 text-xs px-2 border-gray-400 text-gray-500 bg-gray-100 opacity-60"
+                                  >
+                                    Check In
+                                  </Button>
+                                  <span className="text-[9px] text-gray-500 mt-0.5 leading-tight text-right">
+                                    Move within 50ft
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
