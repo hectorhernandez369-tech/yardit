@@ -3,7 +3,6 @@ import { toast } from "sonner";
 
 export const HUNT_ENABLED = true;
 export const MAPBOX_ROUTE_ENABLED = true;
-const MAPBOX_ACCESS_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 
 const HuntContext = createContext();
 
@@ -183,79 +182,53 @@ export function HuntProvider({ children }) {
       setHuntStops(newOrder);
   }, []);
 
-  const fetchRoute = useCallback(async () => {
+  const fetchRoute = useCallback(async (origin, stops) => {
     if (!MAPBOX_ROUTE_ENABLED) return;
     
-    const candidates = huntStops.filter(s => s.huntStatus !== 'completed' && s.huntStatus !== 'skipped');
-    if (candidates.length === 0) {
-      setRouteGeoJson(null);
-      return;
-    }
-
-    let coordinates = [];
-    let originDesc = '';
-
-    if (gpsLocation) {
-      coordinates.push(`${gpsLocation.lng},${gpsLocation.lat}`);
-      originDesc = 'gps';
-    } else {
-      const first = candidates[0];
-      coordinates.push(`${first.lng},${first.lat}`);
-      originDesc = first.id;
-    }
-
-    // Determine waypoints (destinations)
-    const destinations = (originDesc === 'gps') ? candidates : candidates.slice(1);
+    // Waypoint Limit Guard: Route only first 10 stops
+    const MAX_WAYPOINTS = 10;
+    const targetStops = stops.slice(0, MAX_WAYPOINTS);
     
-    if (destinations.length === 0 && originDesc !== 'gps') {
-       // Only one point and it's the start, no route needed
-       setRouteGeoJson(null);
-       return;
+    if (targetStops.length === 0 && !origin) return;
+
+    // Construct coordinates: origin first, then stops
+    const coords = [];
+    if (origin) coords.push([origin.lng, origin.lat]);
+    targetStops.forEach(s => coords.push([s.lng, s.lat]));
+    
+    if (coords.length < 2) return;
+
+    // Cache Key Check (simple prevention of spamming same route)
+    const stopIds = targetStops.map(s => s.id).join(',');
+    const originKey = origin ? `${origin.lat.toFixed(5)},${origin.lng.toFixed(5)}` : 'no-origin';
+    const cacheKey = `${originKey}|${stopIds}`;
+    
+    if (routeMeta && routeMeta.cacheKey === cacheKey && (Date.now() - routeMeta.lastBuiltAt < 30000)) {
+        console.log("Using cached route");
+        return; 
     }
 
-    // Waypoint limit guard: max 10 stops
-    const limitedDestinations = destinations.slice(0, 10);
-    limitedDestinations.forEach(stop => {
-      coordinates.push(`${stop.lng},${stop.lat}`);
-    });
-
-    if (coordinates.length < 2) {
-      setRouteGeoJson(null);
-      return;
-    }
-
-    const stopIds = limitedDestinations.map(s => s.id).join(',');
-    const metaKey = `${originDesc}-${stopIds}`;
-
-    // Cache check
-    if (routeMeta && routeMeta.key === metaKey && routeGeoJson) {
-      toast.info("Route is up to date");
-      return;
-    }
-
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates.join(';')}?geometries=geojson&overview=full&steps=false&access_token=${MAPBOX_ACCESS_TOKEN}`;
+    const coordsString = coords.map(c => c.join(',')).join(';');
+    const token = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsString}?geometries=geojson&overview=full&steps=false&access_token=${token}`;
 
     try {
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.routes && data.routes.length > 0) {
-        setRouteGeoJson(data.routes[0].geometry);
-        setRouteMeta({
-          key: metaKey,
-          lastBuiltAt: Date.now()
-        });
-        toast.success("Route updated");
-      } else {
-        console.error("Mapbox no route found", data);
-        setRouteGeoJson(null);
-        toast.error("Could not calculate road route, using direct line.");
-      }
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.routes && data.routes.length > 0) {
+            setRouteGeoJson(data.routes[0].geometry);
+            setRouteMeta({
+                lastBuiltAt: Date.now(),
+                cacheKey,
+                stopIdsUsed: targetStops.map(s => s.id),
+                originUsed: origin
+            });
+        }
     } catch (e) {
-      console.error("Mapbox error", e);
-      setRouteGeoJson(null);
-      toast.error("Network error, using direct line.");
+        console.error("Mapbox Route Error", e);
+        // Graceful failure: routeGeoJson remains null/stale, fallback UI will show dashed line
     }
-  }, [huntStops, gpsLocation, routeMeta, routeGeoJson]);
+  }, [routeMeta]);
 
   return (
     <HuntContext.Provider value={{
@@ -274,6 +247,7 @@ export function HuntProvider({ children }) {
       getTotalDistance,
       reorderStops,
       routeGeoJson,
+      routeMeta,
       fetchRoute,
       optimizeRoute: () => {
         if (huntStops.length < 3) return;
