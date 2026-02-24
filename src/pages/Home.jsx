@@ -568,7 +568,7 @@ export default function HomePage() {
           <button
             ref={controlsBtnRef}
             onClick={() => setShowControls(prev => !prev)}
-            className="absolute top-20 right-3 z-[1002] w-11 h-11 rounded-full bg-[#5DADA5] shadow-lg flex items-center justify-center text-white hover:bg-[#4A9B93] active:scale-95 transition-all duration-200 border-2 border-[#2C4F4E]"
+            className="absolute top-4 right-3 z-[1002] w-11 h-11 rounded-full bg-[#5DADA5] shadow-lg flex items-center justify-center text-white hover:bg-[#4A9B93] active:scale-95 transition-all duration-200 border-2 border-[#2C4F4E]"
           >
             {showControls ? <X className="w-5 h-5" /> : <MapPin className="w-5 h-5" />}
           </button>
@@ -581,7 +581,7 @@ export default function HomePage() {
           {/* Controls Panel */}
           <div
             ref={controlsPanelRef}
-            className="absolute top-4 left-4 right-16 z-[1001] transition-all duration-[220ms] ease-out origin-top"
+            className="absolute top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1001] transition-all duration-[220ms] ease-out origin-top"
             style={{
               opacity: showControls ? 1 : 0,
               transform: showControls ? "translateY(0) scaleY(1)" : "translateY(-12px) scaleY(0.95)",
