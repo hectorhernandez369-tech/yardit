@@ -71,11 +71,18 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
 
   if (selectedLocations.length === 0) {
     return (
-      <Card className="border-2 border-dashed border-[#2C4F4E] bg-[#E7D7B8]">
-        <CardContent className="p-3 text-center">
-          <Route className="w-5 h-5 text-[#2C4F4E] mx-auto mb-1" />
-          <p className="text-xs text-[#2C4F4E]">Click locations to add to route</p>
-        </CardContent>
+      <Card className="border-[3px] border-dashed border-[#8b6b4a]/70 shadow-[inset_0_0_20px_rgba(139,107,74,0.3)] bg-gradient-to-br from-[#fdf5e6] via-[#f3e6cf] to-[#e7d7b8] relative overflow-hidden">
+        {/* Ship Watermark */}
+        <div 
+          className="absolute inset-0 pointer-events-none bg-center bg-no-repeat bg-contain z-0" 
+          style={{ opacity: 0.08, backgroundImage: 'url("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/35a6d7a95_file_0000000064207230a0f42d2fdbc76271.png")' }}
+        />
+        <div className="relative z-10">
+          <CardContent className="p-4 text-center">
+            <Route className="w-6 h-6 text-[#2C4F4E] mx-auto mb-2 opacity-70" />
+            <p className="text-sm font-medium text-[#2C4F4E]/90">Click locations to add to route</p>
+          </CardContent>
+        </div>
       </Card>
     );
   }
@@ -159,8 +166,16 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
   const firstRemainingIndex = selectedLocations.findIndex(s => s.huntStatus !== "completed" && s.huntStatus !== "skipped");
 
   return (
-    <Card className="border-2 border-[#2C4F4E] bg-[#E7D7B8] shadow-lg">
-      <CardHeader className="pb-2 pt-3 px-3">
+    <Card className="border-[3px] border-[#8b6b4a] shadow-[inset_0_0_20px_rgba(139,107,74,0.3),0_10px_25px_rgba(0,0,0,0.4)] bg-gradient-to-br from-[#fdf5e6] via-[#f3e6cf] to-[#e7d7b8] relative overflow-hidden flex flex-col max-h-[60vh]">
+      {/* Ship Watermark */}
+      <div 
+        className="absolute inset-0 pointer-events-none bg-center bg-no-repeat bg-contain z-0" 
+        style={{ opacity: 0.08, backgroundImage: 'url("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/35a6d7a95_file_0000000064207230a0f42d2fdbc76271.png")' }}
+      />
+      
+      {/* Content wrapper with z-index to stay above watermark */}
+      <div className="relative z-10 flex flex-col flex-1 min-h-0">
+        <CardHeader className="pb-2 pt-3 px-3 pr-14 shrink-0">
         <div className="flex items-center justify-between mb-1">
           <CardTitle className="text-sm flex items-center gap-1.5 text-[#2C4F4E]">
             <MapIcon className="w-4 h-4 text-[#5DADA5]" />
@@ -198,9 +213,9 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-2 px-3 pb-3">
-        <ScrollArea className="h-32">
-          <div className="space-y-1.5 pr-2">
+      <CardContent className="space-y-2 px-3 pb-3 flex-1 flex flex-col min-h-0">
+        <ScrollArea className="flex-1 h-full min-h-[150px]">
+          <div className="space-y-1.5 pr-3 pb-1">
             {selectedLocations.map((location, index) => {
               const isCompleted = location.huntStatus === "completed";
               const isSkipped = location.huntStatus === "skipped";
@@ -208,7 +223,7 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
               const isDimmed = isCompleted || isSkipped;
               
               return (
-                <div key={location.id} className={`flex items-center gap-1.5 p-1.5 rounded border transition-opacity ${isDimmed ? 'opacity-50 bg-gray-200 border-gray-400' : isNext ? 'bg-white border-[#F4A849] shadow-sm' : 'bg-[#F3E6CF] border-[#2C4F4E]'}`}>
+                <div key={location.id} className={`flex items-center gap-1.5 p-1.5 rounded border transition-opacity ${isDimmed ? 'opacity-50 bg-[#e5d5b5]/70 border-[#8b6b4a]/50' : isNext ? 'bg-white/90 border-[#F4A849] shadow-sm' : 'bg-[#F3E6CF]/90 border-[#2C4F4E]'} backdrop-blur-sm`}>
                   <div className={`w-5 h-5 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isNext ? 'bg-[#F4A849]' : isDimmed ? 'bg-gray-400' : 'bg-[#5DADA5]'}`}>
                     {index + 1}
                   </div>
@@ -277,9 +292,10 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
         )}
 
         {selectedLocations.length === 1 && !yardsailActive && (
-          <p className="text-[10px] text-center text-[#2C4F4E]/70">Add one more location</p>
+          <p className="text-[10px] text-center text-[#2C4F4E]/70 shrink-0">Add one more location</p>
         )}
       </CardContent>
+      </div>
     </Card>
   );
 }
