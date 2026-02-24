@@ -202,6 +202,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   
   const huntContext = useHunt() || { 
     huntStops: [], 
@@ -514,45 +515,38 @@ export default function HomePage() {
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col">
       {/* Sticky Top Bar (Search, Filters, Toggle) */}
-      <div className="bg-white border-b border-slate-200 px-4 py-2 z-[100] flex-shrink-0 flex flex-col md:flex-row items-center gap-3">
-        <div className="flex-1 w-full flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Search by address or title..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-9"
-            />
-          </div>
-          <Tabs value={filter} onValueChange={setFilter} className="w-full sm:w-auto">
-            <TabsList className="grid grid-cols-3 h-9 w-full">
-              <TabsTrigger value="all" className="gap-1 px-2 sm:px-3 text-xs sm:text-sm">
-                <MapPin className="w-3 h-3 hidden sm:inline" />
-                <span>All ({stats.total})</span>
+      <div className="bg-white border-b border-slate-200 px-3 py-2 z-[100] flex-shrink-0 flex flex-col sm:flex-row items-center gap-2">
+        <div className="flex-1 relative w-full">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Search by address or title..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9 text-sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-between sm:justify-end">
+          <Tabs value={view} onValueChange={setView} className="w-auto flex shrink-0">
+            <TabsList className="grid grid-cols-2 h-9 w-32 bg-slate-100 p-1 rounded-md">
+              <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
+                <MapIcon className="w-4 h-4" />
               </TabsTrigger>
-              <TabsTrigger value="yard_sale" className="gap-1 px-2 sm:px-3 text-xs sm:text-sm">
-                <ShoppingBag className="w-3 h-3 hidden sm:inline" />
-                <span>Sales ({stats.yard_sale})</span>
-              </TabsTrigger>
-              <TabsTrigger value="neighborhood_sale" className="gap-1 px-2 sm:px-3 text-xs sm:text-sm">
-                <Users className="w-3 h-3 hidden sm:inline" />
-                <span>Hood ({stats.neighborhood_sale})</span>
+              <TabsTrigger value="list" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
+                <List className="w-4 h-4" />
               </TabsTrigger>
             </TabsList>
           </Tabs>
-        </div>
 
-        <Tabs value={view} onValueChange={setView} className="w-full md:w-auto flex justify-center md:justify-end shrink-0">
-          <TabsList className="grid grid-cols-2 h-9 w-full md:w-32 bg-slate-100 p-1 rounded-md">
-            <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
-              <MapIcon className="w-4 h-4" />
-            </TabsTrigger>
-            <TabsTrigger value="list" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
-              <List className="w-4 h-4" />
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => setShowFilterModal(true)}
+            className="h-9 w-9 shrink-0 border-slate-200 text-slate-500 bg-white hover:bg-slate-50"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Content area */}
@@ -880,6 +874,37 @@ export default function HomePage() {
           onClose={() => setReportListingId(null)}
         />
       )}
+
+      {/* Filter Modal */}
+      <Dialog open={showFilterModal} onOpenChange={setShowFilterModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Filters</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Listing Type</label>
+              <Tabs value={filter} onValueChange={setFilter}>
+                <TabsList className="grid grid-cols-3">
+                  <TabsTrigger value="all" className="gap-1 text-xs px-2">
+                    <MapPin className="w-3 h-3 hidden sm:inline" />
+                    All ({stats.total})
+                  </TabsTrigger>
+                  <TabsTrigger value="yard_sale" className="gap-1 text-xs px-2">
+                    <ShoppingBag className="w-3 h-3 hidden sm:inline" />
+                    Sales ({stats.yard_sale})
+                  </TabsTrigger>
+                  <TabsTrigger value="neighborhood_sale" className="gap-1 text-xs px-2">
+                    <Users className="w-3 h-3 hidden sm:inline" />
+                    Hood ({stats.neighborhood_sale})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            <p className="text-sm text-gray-500">More filters coming soon...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
