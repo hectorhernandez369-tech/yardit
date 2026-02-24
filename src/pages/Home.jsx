@@ -584,7 +584,7 @@ export default function HomePage() {
             className="absolute top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1001] transition-all duration-[220ms] ease-out origin-top"
             style={{
               opacity: showControls ? 1 : 0,
-              transform: showControls ? "translateY(0) scaleY(1)" : "translateY(-12px) scaleY(0.95)",
+              transform: showControls ? "translateX(-50%) translateY(0) scaleY(1)" : "translateX(-50%) translateY(-12px) scaleY(0.95)",
               pointerEvents: showControls ? "auto" : "none",
             }}
           >
