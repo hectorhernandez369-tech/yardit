@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { toast } from "sonner";
 
 export const HUNT_ENABLED = true;
+export const MAPBOX_ROUTE_ENABLED = true;
+const MAPBOX_ACCESS_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 
 const HuntContext = createContext();
 
@@ -32,6 +34,8 @@ export function HuntProvider({ children }) {
   const [huntMode, setHuntMode] = useState(false);
   const [yardsailActive, setYardsailActive] = useState(false);
   const [gpsLocation, setGpsLocation] = useState(null);
+  const [routeGeoJson, setRouteGeoJson] = useState(null);
+  const [routeMeta, setRouteMeta] = useState(null);
   const watchIdRef = useRef(null);
 
   // Persistence effects
@@ -179,6 +183,80 @@ export function HuntProvider({ children }) {
       setHuntStops(newOrder);
   }, []);
 
+  const fetchRoute = useCallback(async () => {
+    if (!MAPBOX_ROUTE_ENABLED) return;
+    
+    const candidates = huntStops.filter(s => s.huntStatus !== 'completed' && s.huntStatus !== 'skipped');
+    if (candidates.length === 0) {
+      setRouteGeoJson(null);
+      return;
+    }
+
+    let coordinates = [];
+    let originDesc = '';
+
+    if (gpsLocation) {
+      coordinates.push(`${gpsLocation.lng},${gpsLocation.lat}`);
+      originDesc = 'gps';
+    } else {
+      const first = candidates[0];
+      coordinates.push(`${first.lng},${first.lat}`);
+      originDesc = first.id;
+    }
+
+    // Determine waypoints (destinations)
+    const destinations = (originDesc === 'gps') ? candidates : candidates.slice(1);
+    
+    if (destinations.length === 0 && originDesc !== 'gps') {
+       // Only one point and it's the start, no route needed
+       setRouteGeoJson(null);
+       return;
+    }
+
+    // Waypoint limit guard: max 10 stops
+    const limitedDestinations = destinations.slice(0, 10);
+    limitedDestinations.forEach(stop => {
+      coordinates.push(`${stop.lng},${stop.lat}`);
+    });
+
+    if (coordinates.length < 2) {
+      setRouteGeoJson(null);
+      return;
+    }
+
+    const stopIds = limitedDestinations.map(s => s.id).join(',');
+    const metaKey = `${originDesc}-${stopIds}`;
+
+    // Cache check
+    if (routeMeta && routeMeta.key === metaKey && routeGeoJson) {
+      toast.info("Route is up to date");
+      return;
+    }
+
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates.join(';')}?geometries=geojson&overview=full&steps=false&access_token=${MAPBOX_ACCESS_TOKEN}`;
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.routes && data.routes.length > 0) {
+        setRouteGeoJson(data.routes[0].geometry);
+        setRouteMeta({
+          key: metaKey,
+          lastBuiltAt: Date.now()
+        });
+        toast.success("Route updated");
+      } else {
+        console.error("Mapbox no route found", data);
+        setRouteGeoJson(null);
+        toast.error("Could not calculate road route, using direct line.");
+      }
+    } catch (e) {
+      console.error("Mapbox error", e);
+      setRouteGeoJson(null);
+      toast.error("Network error, using direct line.");
+    }
+  }, [huntStops, gpsLocation, routeMeta, routeGeoJson]);
+
   return (
     <HuntContext.Provider value={{
       huntStops,
@@ -195,6 +273,8 @@ export function HuntProvider({ children }) {
       clearHunt,
       getTotalDistance,
       reorderStops,
+      routeGeoJson,
+      fetchRoute,
       optimizeRoute: () => {
         if (huntStops.length < 3) return;
         const unvisited = [...huntStops];
