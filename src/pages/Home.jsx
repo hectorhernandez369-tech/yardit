@@ -568,9 +568,20 @@ export default function HomePage() {
           <button
             ref={controlsBtnRef}
             onClick={() => setShowControls(prev => !prev)}
-            className="absolute top-4 right-3 z-[1002] w-11 h-11 rounded-full bg-[#F3E6CF] shadow-lg flex items-center justify-center text-red-600 hover:bg-[#E7D7B8] active:scale-95 transition-all duration-200 border-2 border-[#2C4F4E] p-1.5"
+            className="absolute top-4 right-3 z-[1002] w-12 h-12 flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-none p-1"
           >
-            {showControls ? <X className="w-5 h-5" /> : <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/cb76cc21e_file_00000000cd1c720ca3ac2dd5471be0aa.png" alt="Open Map" className="w-full h-full object-contain drop-shadow-sm" />}
+            {showControls ? (
+              <div className="w-10 h-10 rounded-full bg-[#F3E6CF] flex items-center justify-center text-red-600 border-2 border-[#2C4F4E] shadow-md hover:bg-[#E7D7B8]">
+                <X className="w-5 h-5" />
+              </div>
+            ) : (
+              <img 
+                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/cb76cc21e_file_00000000cd1c720ca3ac2dd5471be0aa.png" 
+                alt="Open Map" 
+                className="w-10 h-10 object-contain"
+                style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }}
+              />
+            )}
           </button>
 
           {/* Backdrop */}
