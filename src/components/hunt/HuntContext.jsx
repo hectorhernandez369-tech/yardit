@@ -34,6 +34,7 @@ export function HuntProvider({ children }) {
   const [yardsailActive, setYardsailActive] = useState(false);
   const [gpsLocation, setGpsLocation] = useState(null);
   const [routeCoords, setRouteCoords] = useState(null);
+  const [routeDirty, setRouteDirty] = useState(false);
   const [routeMeta, setRouteMeta] = useState(null);
   const watchIdRef = useRef(null);
 
@@ -86,6 +87,7 @@ export function HuntProvider({ children }) {
 
   // Actions
   const addToHunt = useCallback((listing) => {
+    setRouteDirty(true);
     setHuntStops(prev => {
       if (prev.some(s => s.id === listing.id)) {
         toast.info("Already in your hunt!");
@@ -103,11 +105,13 @@ export function HuntProvider({ children }) {
   }, []);
 
   const removeFromHunt = useCallback((listingId) => {
+    setRouteDirty(true);
     setHuntStops(prev => prev.filter(s => s.id !== listingId));
     toast.success("Removed from Hunt");
   }, []);
 
   const updateStopStatus = useCallback((listingId, status) => {
+    setRouteDirty(true);
     setHuntStops(prev => {
       const updated = prev.map(s => 
         s.id === listingId ? { ...s, huntStatus: status } : s
@@ -145,6 +149,9 @@ export function HuntProvider({ children }) {
     if (confirm("Clear all stops from your hunt?")) {
       setHuntStops([]);
       setHuntMode(false);
+      setYardsailActive(false);
+      setRouteCoords(null);
+      setRouteDirty(false);
       toast.success("Hunt cleared");
     }
   }, []);
@@ -179,6 +186,7 @@ export function HuntProvider({ children }) {
   };
 
   const reorderStops = useCallback((newOrder) => {
+      setRouteDirty(true);
       setHuntStops(newOrder);
   }, []);
 
@@ -235,6 +243,7 @@ export function HuntProvider({ children }) {
             if (geo && geo.coordinates) {
                 const routeCoordsNormalized = geo.coordinates.map(c => [c[1], c[0]]); // [lat, lng]
                 setRouteCoords(routeCoordsNormalized);
+                setRouteDirty(false);
                 console.log("Mapbox route success. Coordinates count:", routeCoordsNormalized.length);
             }
             setRouteMeta({
@@ -267,6 +276,7 @@ export function HuntProvider({ children }) {
       getTotalDistance,
       reorderStops,
       routeCoords,
+      routeDirty,
       routeMeta,
       fetchRoute,
       optimizeRoute: () => {
@@ -290,6 +300,7 @@ export function HuntProvider({ children }) {
           optimized.push(unvisited[nearestIdx]);
           unvisited.splice(nearestIdx, 1)[0];
         }
+        setRouteDirty(true);
         setHuntStops(optimized);
         toast.success("Route optimized!");
       }

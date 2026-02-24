@@ -25,7 +25,7 @@ function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
 }
 
 export default function RouteBuilder({ selectedLocations, onRemoveLocation, onClearAll, onBuildRoute }) {
-  const { updateStopStatus, yardsailActive, setYardsailActive, gpsLocation, setHuntMode, fetchRoute } = useHunt() || {};
+  const { updateStopStatus, yardsailActive, setYardsailActive, gpsLocation, setHuntMode, fetchRoute, routeDirty } = useHunt() || {};
 
   if (selectedLocations.length === 0) {
     return (
@@ -115,6 +115,9 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
           <span>Est. Dist: {calculateTotalDistance(selectedLocations).toFixed(1)} mi</span>
           {selectedLocations.length > 10 && (
             <span className="text-[10px] text-orange-600 w-full sm:w-auto">⚠️ Route preview limited to 10 stops.</span>
+          )}
+          {yardsailActive && routeDirty && (
+            <span className="text-[10px] text-red-600 w-full font-bold">Route out of date — tap Recalculate.</span>
           )}
         </div>
       </CardHeader>
