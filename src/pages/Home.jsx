@@ -556,13 +556,13 @@ export default function HomePage() {
         </div>
       ) : (
         <div className="flex-1 relative">
-          {/* Floating Filter FAB */}
+          {/* Route Builder FAB */}
           <button
             ref={controlsBtnRef}
             onClick={() => setShowControls(prev => !prev)}
             className="absolute top-20 right-3 z-[1002] w-11 h-11 rounded-full bg-[#5DADA5] shadow-lg flex items-center justify-center text-white hover:bg-[#4A9B93] active:scale-95 transition-all duration-200 border-2 border-[#2C4F4E]"
           >
-            {showControls ? <X className="w-5 h-5" /> : <SlidersHorizontal className="w-5 h-5" />}
+            {showControls ? <X className="w-5 h-5" /> : <MapPin className="w-5 h-5" />}
           </button>
 
           {/* Backdrop */}
