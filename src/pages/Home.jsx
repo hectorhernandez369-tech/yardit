@@ -563,14 +563,14 @@ export default function HomePage() {
           <ListView listings={listViewListings} userLocation={userLocation} />
         </div>
       ) : (
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-w-0 w-full">
           {/* Route Builder FAB */}
           <button
             ref={controlsBtnRef}
             onClick={() => setShowControls(prev => !prev)}
-            className="absolute top-4 right-3 z-[1002] w-11 h-11 rounded-full bg-[#5DADA5] shadow-lg flex items-center justify-center text-white hover:bg-[#4A9B93] active:scale-95 transition-all duration-200 border-2 border-[#2C4F4E]"
+            className="absolute top-4 right-3 z-[1002] w-11 h-11 rounded-full bg-[#F3E6CF] shadow-lg flex items-center justify-center text-red-600 hover:bg-[#E7D7B8] active:scale-95 transition-all duration-200 border-2 border-[#2C4F4E]"
           >
-            {showControls ? <X className="w-5 h-5" /> : <MapPin className="w-5 h-5" />}
+            {showControls ? <X className="w-5 h-5" /> : <X className="w-6 h-6 stroke-[3px]" />}
           </button>
 
           {/* Backdrop */}
