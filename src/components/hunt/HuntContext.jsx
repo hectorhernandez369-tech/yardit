@@ -33,7 +33,7 @@ export function HuntProvider({ children }) {
   const [huntMode, setHuntMode] = useState(false);
   const [yardsailActive, setYardsailActive] = useState(false);
   const [gpsLocation, setGpsLocation] = useState(null);
-  const [routeGeoJson, setRouteGeoJson] = useState(null);
+  const [routeCoords, setRouteCoords] = useState(null);
   const [routeMeta, setRouteMeta] = useState(null);
   const watchIdRef = useRef(null);
 
@@ -184,6 +184,13 @@ export function HuntProvider({ children }) {
 
   const fetchRoute = useCallback(async (origin, stops) => {
     if (!MAPBOX_ROUTE_ENABLED) return;
+
+    const token = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
+    console.log("Mapbox token exists:", !!token);
+    if (!token) {
+      toast.error("Mapbox token missing — using fallback line");
+      return;
+    }
     
     // Waypoint Limit Guard: Route only first 10 stops
     const MAX_WAYPOINTS = 10;
@@ -209,14 +216,27 @@ export function HuntProvider({ children }) {
     }
 
     const coordsString = coords.map(c => c.join(',')).join(';');
-    const token = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
     const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsString}?geometries=geojson&overview=full&steps=false&access_token=${token}`;
 
     try {
+        console.log("Mapbox route request started");
         const res = await fetch(url);
+        console.log("Mapbox response status:", res.status);
+        
+        if (!res.ok) {
+            const bodyText = await res.text();
+            console.error("Mapbox error response:", bodyText);
+            return;
+        }
+
         const data = await res.json();
         if (data.routes && data.routes.length > 0) {
-            setRouteGeoJson(data.routes[0].geometry);
+            const geo = data.routes[0].geometry;
+            if (geo && geo.coordinates) {
+                const routeCoordsNormalized = geo.coordinates.map(c => [c[1], c[0]]); // [lat, lng]
+                setRouteCoords(routeCoordsNormalized);
+                console.log("Mapbox route success. Coordinates count:", routeCoordsNormalized.length);
+            }
             setRouteMeta({
                 lastBuiltAt: Date.now(),
                 cacheKey,
@@ -226,7 +246,7 @@ export function HuntProvider({ children }) {
         }
     } catch (e) {
         console.error("Mapbox Route Error", e);
-        // Graceful failure: routeGeoJson remains null/stale, fallback UI will show dashed line
+        // Graceful failure: routeCoords remains null/stale, fallback UI will show dashed line
     }
   }, [routeMeta]);
 
@@ -246,7 +266,7 @@ export function HuntProvider({ children }) {
       clearHunt,
       getTotalDistance,
       reorderStops,
-      routeGeoJson,
+      routeCoords,
       routeMeta,
       fetchRoute,
       optimizeRoute: () => {

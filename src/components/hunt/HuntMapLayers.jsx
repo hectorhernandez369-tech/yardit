@@ -4,7 +4,7 @@ import L from "leaflet";
 import { useHunt, HUNT_ENABLED, MAPBOX_ROUTE_ENABLED } from "@/components/hunt/HuntContext";
 
 export default function HuntMapLayers() {
-  const { huntStops, yardsailActive, routeGeoJson } = useHunt() || {};
+  const { huntStops, yardsailActive, routeCoords } = useHunt() || {};
 
   if (!HUNT_ENABLED || !yardsailActive || !huntStops || huntStops.length === 0) {
     return null;
@@ -37,17 +37,14 @@ export default function HuntMapLayers() {
 
   // Draw polyline connecting the stops in order
   const positions = huntStops.map(stop => [stop.lat, stop.lng]);
-  const hasMapboxRoute = MAPBOX_ROUTE_ENABLED && routeGeoJson && routeGeoJson.coordinates;
-  const mapboxPositions = hasMapboxRoute 
-    ? routeGeoJson.coordinates.map(coord => [coord[1], coord[0]]) // GeoJSON is [lng, lat]
-    : [];
+  const hasMapboxRoute = MAPBOX_ROUTE_ENABLED && routeCoords && routeCoords.length >= 2;
 
   return (
     <>
       {/* The Line */}
       {hasMapboxRoute ? (
         <Polyline 
-          positions={mapboxPositions}
+          positions={routeCoords}
           pathOptions={{ color: '#2563eb', weight: 5, opacity: 0.9 }} 
         />
       ) : (
