@@ -586,39 +586,6 @@ export default function HomePage() {
             }}
           >
             <div className="max-w-4xl mx-auto space-y-3">
-              <Card className="bg-[#E7D7B8] backdrop-blur-md shadow-xl border-2 border-[#2C4F4E] rounded-2xl overflow-hidden">
-                <div className="p-4">
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex-1 relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        placeholder="Search by address or title..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-
-                    <Tabs value={filter} onValueChange={setFilter}>
-                      <TabsList className="grid grid-cols-3">
-                        <TabsTrigger value="all" className="gap-1">
-                          <MapPin className="w-3 h-3" />
-                          All ({stats.total})
-                        </TabsTrigger>
-                        <TabsTrigger value="yard_sale" className="gap-1">
-                          <ShoppingBag className="w-3 h-3" />
-                          Sales ({stats.yard_sale})
-                        </TabsTrigger>
-                        <TabsTrigger value="neighborhood_sale" className="gap-1">
-                          <Users className="w-3 h-3" />
-                          Hood ({stats.neighborhood_sale})
-                        </TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  </div>
-                </div>
-              </Card>
-
               <RouteBuilder
                 selectedLocations={huntStops}
                 onRemoveLocation={(id) => {
