@@ -152,7 +152,7 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
               if (onBuildRoute) onBuildRoute();
               setHuntMode?.(true);
               setYardsailActive?.(true);
-              fetchRoute?.();
+              fetchRoute?.(gpsLocation, selectedLocations);
             }}
             disabled={selectedLocations.length < 2}
             className="w-full gap-1.5 bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] h-8 text-xs font-semibold"
@@ -163,7 +163,7 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
         ) : (
           <div className="flex gap-2 w-full">
              <Button
-               onClick={() => fetchRoute?.()}
+               onClick={() => fetchRoute?.(gpsLocation, selectedLocations)}
                variant="outline"
                className="h-8 w-8 p-0 border-blue-600 text-blue-600 hover:bg-blue-50 flex-shrink-0"
                title="Recalculate Route"
