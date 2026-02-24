@@ -194,6 +194,41 @@ export function HuntProvider({ children }) {
   const fetchRoute = useCallback(async (origin, stops) => {
     if (!MAPBOX_ROUTE_ENABLED) return;
 
+    // Separate active and inactive stops
+    const activeStops = stops.filter(s => s.huntStatus !== "completed" && s.huntStatus !== "skipped");
+    const inactiveStops = stops.filter(s => s.huntStatus === "completed" || s.huntStatus === "skipped");
+
+    // Nearest Neighbor Ordering
+    const unvisited = [...activeStops];
+    let currentPos = origin || (activeStops.length > 0 ? { lat: activeStops[0].lat, lng: activeStops[0].lng } : null);
+    const orderedActive = [];
+
+    if (currentPos) {
+      while (unvisited.length > 0) {
+        let nearestIdx = -1;
+        let minDist = Infinity;
+
+        for (let i = 0; i < unvisited.length; i++) {
+          const d = calcDist(currentPos.lat, currentPos.lng, unvisited[i].lat, unvisited[i].lng);
+          if (d < minDist) {
+            minDist = d;
+            nearestIdx = i;
+          }
+        }
+        const nearest = unvisited.splice(nearestIdx, 1)[0];
+        orderedActive.push(nearest);
+        currentPos = nearest;
+      }
+    }
+
+    // Apply new order
+    const newlyOrderedStops = [...orderedActive, ...inactiveStops];
+    setHuntStops(newlyOrderedStops);
+
+    if (orderedActive.length < 2) {
+      return;
+    }
+
     const token = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
     console.log("Mapbox token exists:", !!token);
     if (!token) {
@@ -201,9 +236,9 @@ export function HuntProvider({ children }) {
       return;
     }
     
-    // Waypoint Limit Guard: Route only first 10 stops
+    // Waypoint Limit Guard: Route only first 10 active stops
     const MAX_WAYPOINTS = 10;
-    const targetStops = stops.slice(0, MAX_WAYPOINTS);
+    const targetStops = orderedActive.slice(0, MAX_WAYPOINTS);
     
     if (targetStops.length === 0 && !origin) return;
 

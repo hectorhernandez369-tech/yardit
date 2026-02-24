@@ -35,8 +35,9 @@ export default function HuntMapLayers() {
     });
   };
 
-  // Draw polyline connecting the stops in order
-  const positions = huntStops.map(stop => [stop.lat, stop.lng]);
+  // Draw polyline connecting the active stops in order
+  const routedStops = huntStops.filter(stop => stop.huntStatus !== "completed" && stop.huntStatus !== "skipped");
+  const positions = routedStops.map(stop => [stop.lat, stop.lng]);
   const hasMapboxRoute = MAPBOX_ROUTE_ENABLED && routeCoords && routeCoords.length >= 2 && !routeDirty;
 
   return (
