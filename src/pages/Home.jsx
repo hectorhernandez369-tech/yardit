@@ -183,7 +183,7 @@ function optimizeRoute(locations, startLat, startLng) {
     let nearestIndex = 0;
     let minDistance = Infinity;
     unvisited.forEach((loc, index) => {
-      const dist = calculateDistance(currentLat, currentLng, loc.lat, loc.lng);
+      const dist = calculateDistanceMeters(currentLat, currentLng, loc.lat, loc.lng);
       if (dist < minDistance) {
         minDistance = dist;
         nearestIndex = index;

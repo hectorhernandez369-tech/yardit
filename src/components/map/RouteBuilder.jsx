@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Route, X, Navigation, Trash2, Map as MapIcon, RefreshCw } from "lucide-react";
+import { Route, X, Navigation, Trash2, Map as MapIcon, RefreshCw, Share2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { calculateTotalDistance, openExternalMaps } from "../hunt/huntUtils";
+import { calculateTotalDistance, openExternalMaps, getGoogleMapsUrl } from "../hunt/huntUtils";
+import { toast } from "sonner";
 import { useHunt } from "../hunt/HuntContext";
 import { isDemoMode } from "../shared/DemoMode";
 
@@ -134,6 +135,29 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
 
   const remainingStops = selectedLocations.filter(s => s.huntStatus !== "completed" && s.huntStatus !== "skipped");
 
+  const handleShare = () => {
+    const url = getGoogleMapsUrl(remainingStops);
+    if (!url) {
+      toast.error("No active stops to share");
+      return;
+    }
+    if (navigator.share) {
+      navigator.share({
+        title: 'My Yardit Treasure Map',
+        text: `Check out my route for today's Yardit treasure hunt!`,
+        url: url,
+      }).catch(err => {
+        console.log("Error sharing:", err);
+      });
+    } else {
+      navigator.clipboard.writeText(url);
+      toast.success("Route link copied to clipboard!");
+    }
+  };
+
+  // Find the index of the first remaining stop to highlight it as "Next"
+  const firstRemainingIndex = selectedLocations.findIndex(s => s.huntStatus !== "completed" && s.huntStatus !== "skipped");
+
   return (
     <Card className="border-2 border-[#2C4F4E] bg-[#E7D7B8] shadow-lg">
       <CardHeader className="pb-2 pt-3 px-3">
@@ -142,14 +166,26 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
             <MapIcon className="w-4 h-4 text-[#5DADA5]" />
             Treasure Map
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClearAll}
-            className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
-          >
-            <Trash2 className="w-3 h-3" />
-          </Button>
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleShare}
+              className="text-[#2C4F4E] hover:text-[#5DADA5] h-6 px-2"
+              title="Share Route"
+            >
+              <Share2 className="w-3 h-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClearAll}
+              className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
+              title="Clear Route"
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
         </div>
         <div className="flex items-center gap-3 text-xs text-[#2C4F4E] font-medium flex-wrap">
           <span>Stops: {selectedLocations.length}</span>
@@ -167,9 +203,13 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
           <div className="space-y-1.5 pr-2">
             {selectedLocations.map((location, index) => {
               const isCompleted = location.huntStatus === "completed";
+              const isSkipped = location.huntStatus === "skipped";
+              const isNext = index === firstRemainingIndex;
+              const isDimmed = isCompleted || isSkipped;
+              
               return (
-                <div key={location.id} className={`flex items-center gap-1.5 p-1.5 rounded border border-[#2C4F4E] transition-opacity ${isCompleted ? 'opacity-50 bg-gray-200' : 'bg-[#F3E6CF]'}`}>
-                  <div className="w-5 h-5 bg-[#5DADA5] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                <div key={location.id} className={`flex items-center gap-1.5 p-1.5 rounded border transition-opacity ${isDimmed ? 'opacity-50 bg-gray-200 border-gray-400' : isNext ? 'bg-white border-[#F4A849] shadow-sm' : 'bg-[#F3E6CF] border-[#2C4F4E]'}`}>
+                  <div className={`w-5 h-5 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isNext ? 'bg-[#F4A849]' : isDimmed ? 'bg-gray-400' : 'bg-[#5DADA5]'}`}>
                     {index + 1}
                   </div>
                   <div className="flex-1 min-w-0">
