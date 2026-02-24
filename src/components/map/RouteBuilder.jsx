@@ -26,6 +26,47 @@ function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
 
 export default function RouteBuilder({ selectedLocations, onRemoveLocation, onClearAll, onBuildRoute }) {
   const { updateStopStatus, yardsailActive, setYardsailActive, gpsLocation, setHuntMode, fetchRoute, routeDirty } = useHunt() || {};
+  const [isBuildingRoute, setIsBuildingRoute] = useState(false);
+
+  const runBuildRoute = () => {
+    setHuntMode?.(true);
+    setYardsailActive?.(true);
+    if (onBuildRoute) onBuildRoute();
+
+    if (gpsLocation) {
+      fetchRoute?.(gpsLocation, selectedLocations);
+      return;
+    }
+
+    setIsBuildingRoute(true);
+    let done = false;
+
+    const finalize = (origin) => {
+      if (done) return;
+      done = true;
+      setIsBuildingRoute(false);
+      fetchRoute?.(origin, selectedLocations);
+    };
+
+    const timer = setTimeout(() => finalize(null), 1000);
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          clearTimeout(timer);
+          finalize({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => {
+          clearTimeout(timer);
+          finalize(null);
+        },
+        { maximumAge: 60000, timeout: 1000 }
+      );
+    } else {
+      clearTimeout(timer);
+      finalize(null);
+    }
+  };
 
   if (selectedLocations.length === 0) {
     return (
@@ -151,27 +192,27 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
 
         {!yardsailActive ? (
           <Button
-            onClick={() => {
-              if (onBuildRoute) onBuildRoute();
-              setHuntMode?.(true);
-              setYardsailActive?.(true);
-              fetchRoute?.(gpsLocation, selectedLocations);
-            }}
-            disabled={selectedLocations.length < 2}
+            onClick={runBuildRoute}
+            disabled={selectedLocations.length < 2 || isBuildingRoute}
             className="w-full gap-1.5 bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] h-8 text-xs font-semibold"
           >
-            <Navigation className="w-3 h-3" />
-            Map My Yardsail
+            {isBuildingRoute ? (
+              <RefreshCw className="w-3 h-3 animate-spin" />
+            ) : (
+              <Navigation className="w-3 h-3" />
+            )}
+            {isBuildingRoute ? "Getting your location..." : "Map My Yardsail"}
           </Button>
         ) : (
           <div className="flex gap-2 w-full">
              <Button
-               onClick={() => fetchRoute?.(gpsLocation, selectedLocations)}
+               onClick={runBuildRoute}
+               disabled={isBuildingRoute}
                variant="outline"
                className="h-8 w-8 p-0 border-blue-600 text-blue-600 hover:bg-blue-50 flex-shrink-0"
                title="Recalculate Route"
              >
-               <RefreshCw className="w-4 h-4" />
+               <RefreshCw className={`w-4 h-4 ${isBuildingRoute ? 'animate-spin' : ''}`} />
              </Button>
             <Button
               onClick={() => openExternalMaps(remainingStops.slice(0, 10))}
