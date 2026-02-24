@@ -513,18 +513,57 @@ export default function HomePage() {
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col">
       {/* Sticky Map/List toggle bar */}
-      <div className="bg-white border-b border-slate-200 px-4 py-1.5 z-[100] flex-shrink-0 flex justify-center">
-        <Tabs value={view} onValueChange={setView} className="w-auto">
-          <TabsList className="grid grid-cols-2 h-9 w-32 bg-slate-100 p-1 rounded-md">
-            <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
-              <MapIcon className="w-4 h-4" />
-            </TabsTrigger>
-            <TabsTrigger value="list" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
-              <List className="w-4 h-4" />
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+      {view === "list" ? (
+        <div className="bg-white border-b border-slate-200 px-4 py-1.5 z-[100] flex-shrink-0 flex justify-center">
+          <Tabs value={view} onValueChange={setView} className="w-auto">
+            <TabsList className="grid grid-cols-2 h-9 w-32 bg-slate-100 p-1 rounded-md">
+              <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
+                <MapIcon className="w-4 h-4" />
+              </TabsTrigger>
+              <TabsTrigger value="list" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
+                <List className="w-4 h-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      ) : (
+        <div className="absolute top-2 left-0 right-0 px-3 z-[1002] flex justify-center pointer-events-none">
+          <div className="relative overflow-hidden bg-[#E7D7B8] border border-[#2C4F4E]/20 shadow-md rounded-2xl pointer-events-auto flex items-center p-1 gap-2 mx-auto">
+            <div 
+              className="absolute inset-0 z-0 opacity-10 bg-center bg-no-repeat"
+              style={{ backgroundImage: `url('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/ceb13fc6b_file_0000000064207230a0f42d2fdbc76271.png')`, backgroundSize: '150%' }}
+            />
+            <div className="z-10 relative">
+              <Tabs value={view} onValueChange={setView} className="w-auto">
+                <TabsList className="grid grid-cols-2 h-9 w-28 bg-[#F3E6CF]/80 p-1 rounded-xl shadow-inner">
+                  <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-lg flex items-center justify-center">
+                    <MapIcon className="w-4 h-4" />
+                  </TabsTrigger>
+                  <TabsTrigger value="list" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-lg flex items-center justify-center">
+                    <List className="w-4 h-4" />
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            
+            <div className="z-10 relative pr-1">
+              <Tabs value={filter} onValueChange={setFilter}>
+                <TabsList className="flex h-9 bg-transparent p-0 gap-1 border-l border-[#2C4F4E]/10 pl-2">
+                  <TabsTrigger value="all" className="data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white bg-white/50 text-[#2C4F4E] hover:bg-white/80 border border-[#2C4F4E]/10 rounded-xl px-2.5 py-1 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all">
+                    <MapPin className="w-3 h-3" /> All <span className="opacity-70 font-normal">({stats.total})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="yard_sale" className="data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white bg-white/50 text-[#2C4F4E] hover:bg-white/80 border border-[#2C4F4E]/10 rounded-xl px-2.5 py-1 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all">
+                    <ShoppingBag className="w-3 h-3" /> Sales <span className="opacity-70 font-normal">({stats.yard_sale})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="neighborhood_sale" className="data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white bg-white/50 text-[#2C4F4E] hover:bg-white/80 border border-[#2C4F4E]/10 rounded-xl px-2.5 py-1 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all">
+                    <Users className="w-3 h-3" /> Hood <span className="opacity-70 font-normal">({stats.neighborhood_sale})</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content area */}
       {view === "list" ? (
@@ -562,31 +601,8 @@ export default function HomePage() {
                 <div className="p-4">
                   <div className="flex flex-col sm:flex-row gap-3">
                     <div className="flex-1 relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        placeholder="Search by address or title..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
+                      {/* Search removed from Map View overlay, it's now handled only in ListView */}
                     </div>
-
-                    <Tabs value={filter} onValueChange={setFilter}>
-                      <TabsList className="grid grid-cols-3">
-                        <TabsTrigger value="all" className="gap-1">
-                          <MapPin className="w-3 h-3" />
-                          All ({stats.total})
-                        </TabsTrigger>
-                        <TabsTrigger value="yard_sale" className="gap-1">
-                          <ShoppingBag className="w-3 h-3" />
-                          Sales ({stats.yard_sale})
-                        </TabsTrigger>
-                        <TabsTrigger value="neighborhood_sale" className="gap-1">
-                          <Users className="w-3 h-3" />
-                          Hood ({stats.neighborhood_sale})
-                        </TabsTrigger>
-                      </TabsList>
-                    </Tabs>
                   </div>
                 </div>
               </Card>
