@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Plus, Home, User, Settings, Shield } from "lucide-react";
+import { Plus, Home, User, Settings, Shield, MoreVertical, LogOut } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import AdminNotificationBell from "./components/caseManagement/ui/AdminNotificationBell";
 import AdminLoginModal, { getAdminSession, clearAdminSession } from "./components/admin/AdminLoginModal";
 import { Button } from "@/components/ui/button";
@@ -74,12 +80,12 @@ function LayoutContent({ children, user, setUser }) {
     <div className="min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
       <Toaster richColors position="top-center" />
       <header className="bg-[#5DADA5] border-b-2 border-[#2C4F4E] sticky top-0 z-50 shadow-md">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link
                 to={createPageUrl("Home")}
-                className="flex items-center gap-3 group select-none touch-none"
+                className="flex items-center group select-none touch-none"
                 onPointerDown={onLogoPointerDown}
                 onPointerUp={onLogoPointerEnd}
                 onPointerCancel={onLogoPointerEnd}
@@ -90,12 +96,8 @@ function LayoutContent({ children, user, setUser }) {
                 <img 
                   src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/5a679ad0d_file_00000000efbc71fd87985abd77ca1f58.png" 
                   alt="Yardit Logo" 
-                  className="w-12 h-12"
+                  className="w-10 h-10"
                 />
-                <div>
-                  <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'cursive' }}>Yardit</h1>
-                  <p className="text-xs text-white/90">Find Treasure Nearby</p>
-                </div>
               </Link>
               {demoActive && (
                 <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider animate-pulse">
@@ -127,48 +129,7 @@ function LayoutContent({ children, user, setUser }) {
               
               {user && (
                 <>
-                  <Link to={createPageUrl("MyListings")}>
-                    <Button
-                      variant={location.pathname === createPageUrl("MyListings") ? "secondary" : "ghost"}
-                      size="sm"
-                      className={`gap-2 ${location.pathname === createPageUrl("MyListings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
-                    >
-                      <User className="w-4 h-4" />
-                      <span className="hidden sm:inline">My Listings</span>
-                    </Button>
-                  </Link>
-                  
-                  <Link to={createPageUrl("Settings")}>
-                    <Button
-                      variant={location.pathname === createPageUrl("Settings") ? "secondary" : "ghost"}
-                      size="icon"
-                      className={`${location.pathname === createPageUrl("Settings") ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
-                    >
-                      <Settings className="w-4 h-4" />
-                    </Button>
-                  </Link>
-
-                  {hasAdminProfile && (
-                    <>
-                      <AdminNotificationBell user={user} />
-                      <Button
-                        variant={location.pathname.includes(createPageUrl("AdminLite")) || location.pathname.includes(createPageUrl("CaseManagement")) ? "secondary" : "ghost"}
-                        size="sm"
-                        className={`gap-2 ${location.pathname.includes(createPageUrl("AdminLite")) || location.pathname.includes(createPageUrl("CaseManagement")) ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "text-white hover:bg-white/10"} border-2 border-white/30`}
-                        onClick={() => {
-                          const session = getAdminSession();
-                          if (session) {
-                            navigate(createPageUrl("AdminLite"));
-                          } else {
-                            setShowAdminLogin(true);
-                          }
-                        }}
-                      >
-                        <Shield className="w-4 h-4" />
-                        <span className="hidden sm:inline">Admin</span>
-                      </Button>
-                    </>
-                  )}
+                  {hasAdminProfile && <AdminNotificationBell user={user} />}
                   
                   <Link to={createPageUrl("CreateListing")}>
                     <Button
@@ -179,6 +140,44 @@ function LayoutContent({ children, user, setUser }) {
                       <span className="hidden sm:inline">Post Sale</span>
                     </Button>
                   </Link>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-8 w-8">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 bg-[#E7D7B8] border-2 border-[#2C4F4E]">
+                      <DropdownMenuItem onClick={() => navigate(createPageUrl("MyListings"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
+                        <User className="w-4 h-4 mr-2" />
+                        My Listings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(createPageUrl("Settings"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Settings
+                      </DropdownMenuItem>
+                      {hasAdminProfile && (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            const session = getAdminSession();
+                            if (session) {
+                              navigate(createPageUrl("AdminLite"));
+                            } else {
+                              setShowAdminLogin(true);
+                            }
+                          }}
+                          className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium"
+                        >
+                          <Shield className="w-4 h-4 mr-2" />
+                          Admin
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => base44.auth.logout()} className="cursor-pointer text-red-600 focus:bg-red-100 font-medium">
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Logout
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </>
               )}
             </nav>

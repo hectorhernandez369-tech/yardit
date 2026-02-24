@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, Calendar, User, Search, ShoppingBag, Plus, Check, Users, Star, Crosshair, Loader2, SlidersHorizontal, X } from "lucide-react";
+import { MapPin, Calendar, User, Search, ShoppingBag, Plus, Check, Users, Star, Crosshair, Loader2, SlidersHorizontal, X, Map as MapIcon, List } from "lucide-react";
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
 import CheckInButton from "../components/map/CheckInButton";
@@ -513,11 +513,15 @@ export default function HomePage() {
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col">
       {/* Sticky Map/List toggle bar */}
-      <div className="bg-white border-b border-slate-200 px-4 py-2 z-[100] flex-shrink-0">
-        <Tabs value={view} onValueChange={setView}>
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-            <TabsTrigger value="map">🗺️ Map View</TabsTrigger>
-            <TabsTrigger value="list">📋 List View</TabsTrigger>
+      <div className="bg-white border-b border-slate-200 px-4 py-1.5 z-[100] flex-shrink-0 flex justify-center">
+        <Tabs value={view} onValueChange={setView} className="w-auto">
+          <TabsList className="grid grid-cols-2 h-9 w-32 bg-slate-100 p-1 rounded-md">
+            <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
+              <MapIcon className="w-4 h-4" />
+            </TabsTrigger>
+            <TabsTrigger value="list" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
+              <List className="w-4 h-4" />
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
