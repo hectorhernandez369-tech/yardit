@@ -603,11 +603,12 @@ export default function HomePage() {
           </div>
 
           {/* Map */}
-          <div className="absolute inset-0 w-full h-full">
+          <div className="absolute inset-0 w-full h-full m-0 p-0" style={{ transform: "none", left: 0 }}>
             <MapContainer
               center={mapCenter}
               zoom={13}
               className="w-full h-full"
+              style={{ width: "100%", height: "100%" }}
               zoomControl={false}
             >
               <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => { mapRef.current = map; }} />
