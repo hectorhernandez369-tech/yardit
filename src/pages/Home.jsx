@@ -568,9 +568,9 @@ export default function HomePage() {
           <button
             ref={controlsBtnRef}
             onClick={() => setShowControls(prev => !prev)}
-            className="absolute top-4 right-3 z-[1002] w-11 h-11 rounded-full bg-[#F3E6CF] shadow-lg flex items-center justify-center text-red-600 hover:bg-[#E7D7B8] active:scale-95 transition-all duration-200 border-2 border-[#2C4F4E]"
+            className="absolute top-4 right-3 z-[1002] w-11 h-11 rounded-full bg-[#F3E6CF] shadow-lg flex items-center justify-center text-red-600 hover:bg-[#E7D7B8] active:scale-95 transition-all duration-200 border-2 border-[#2C4F4E] p-1.5"
           >
-            {showControls ? <X className="w-5 h-5" /> : <X className="w-6 h-6 stroke-[3px]" />}
+            {showControls ? <X className="w-5 h-5" /> : <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/cb76cc21e_file_00000000cd1c720ca3ac2dd5471be0aa.png" alt="Open Map" className="w-full h-full object-contain drop-shadow-sm" />}
           </button>
 
           {/* Backdrop */}
