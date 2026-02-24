@@ -147,7 +147,7 @@ function LayoutContent({ children, user, setUser }) {
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 bg-[#E7D7B8] border-2 border-[#2C4F4E] z-[9999] relative">
+                    <DropdownMenuContent align="end" className="w-48 bg-[#E7D7B8] border-2 border-[#2C4F4E] z-[99999] relative">
                       <DropdownMenuItem onClick={() => navigate(createPageUrl("MyListings"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
                         <User className="w-4 h-4 mr-2" />
                         My Listings
