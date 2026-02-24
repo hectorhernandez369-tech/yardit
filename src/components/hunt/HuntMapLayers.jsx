@@ -1,5 +1,5 @@
 import React from "react";
-import { Marker, Polyline, Tooltip, GeoJSON } from "react-leaflet";
+import { Marker, Polyline, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { useHunt, HUNT_ENABLED, MAPBOX_ROUTE_ENABLED } from "@/components/hunt/HuntContext";
 
@@ -37,13 +37,19 @@ export default function HuntMapLayers() {
 
   // Draw polyline connecting the stops in order
   const positions = huntStops.map(stop => [stop.lat, stop.lng]);
-  const showMapboxRoute = yardsailActive && MAPBOX_ROUTE_ENABLED && routeGeoJson;
+  const hasMapboxRoute = MAPBOX_ROUTE_ENABLED && routeGeoJson && routeGeoJson.coordinates;
+  const mapboxPositions = hasMapboxRoute 
+    ? routeGeoJson.coordinates.map(coord => [coord[1], coord[0]]) // GeoJSON is [lng, lat]
+    : [];
 
   return (
     <>
       {/* The Line */}
-      {showMapboxRoute ? (
-        <GeoJSON key={JSON.stringify(routeGeoJson)} data={routeGeoJson} style={{ color: '#3b82f6', weight: 5, opacity: 0.8 }} />
+      {hasMapboxRoute ? (
+        <Polyline 
+          positions={mapboxPositions}
+          pathOptions={{ color: '#2563eb', weight: 5, opacity: 0.9 }} 
+        />
       ) : (
         <Polyline 
           positions={positions}
