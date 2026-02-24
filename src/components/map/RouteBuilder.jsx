@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Route, X, Navigation, Trash2, Map as MapIcon } from "lucide-react";
+import { Route, X, Navigation, Trash2, Map as MapIcon, RefreshCw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { calculateTotalDistance, openExternalMaps } from "../hunt/huntUtils";
-import { useHunt, MAPBOX_ROUTE_ENABLED } from "../hunt/HuntContext";
+import { useHunt } from "../hunt/HuntContext";
 import { isDemoMode } from "../shared/DemoMode";
 
 function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -110,15 +110,13 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
             <Trash2 className="w-3 h-3" />
           </Button>
         </div>
-        <div className="flex items-center gap-3 text-xs text-[#2C4F4E] font-medium">
+        <div className="flex items-center gap-3 text-xs text-[#2C4F4E] font-medium flex-wrap">
           <span>Stops: {selectedLocations.length}</span>
           <span>Est. Dist: {calculateTotalDistance(selectedLocations).toFixed(1)} mi</span>
+          {selectedLocations.length > 10 && (
+            <span className="text-[10px] text-orange-600 w-full sm:w-auto">⚠️ Route preview limited to 10 stops.</span>
+          )}
         </div>
-        {selectedLocations.length > 10 && MAPBOX_ROUTE_ENABLED && yardsailActive && (
-          <div className="text-[10px] text-amber-600 mt-1 italic">
-            Route preview shows first 10 stops.
-          </div>
-        )}
       </CardHeader>
       <CardContent className="space-y-2 px-3 pb-3">
         <ScrollArea className="h-32">
@@ -154,12 +152,7 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
               if (onBuildRoute) onBuildRoute();
               setHuntMode?.(true);
               setYardsailActive?.(true);
-              if (MAPBOX_ROUTE_ENABLED && fetchRoute) {
-                const origin = gpsLocation || selectedLocations[0];
-                let waypoints = selectedLocations;
-                if (!gpsLocation && selectedLocations.length > 0) waypoints = selectedLocations.slice(1);
-                fetchRoute(origin, waypoints);
-              }
+              fetchRoute?.();
             }}
             disabled={selectedLocations.length < 2}
             className="w-full gap-1.5 bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] h-8 text-xs font-semibold"
@@ -168,44 +161,34 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
             Map My Yardsail
           </Button>
         ) : (
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex gap-2 w-full">
-              <Button
-                onClick={() => openExternalMaps(remainingStops.slice(0, 10))}
-                disabled={remainingStops.length === 0}
-                className="flex-1 gap-1.5 bg-[#5DADA5] hover:bg-[#4A9B93] text-white border-2 border-[#2C4F4E] h-8 text-xs font-semibold"
-              >
-                <Navigation className="w-3 h-3" />
-                Get Directions
-              </Button>
-              <Button
-                onClick={() => {
-                  setYardsailActive?.(false);
-                  setHuntMode?.(false);
-                }}
-                variant="outline"
-                className="gap-1.5 border-2 border-red-600 text-red-600 hover:bg-red-50 h-8 text-xs font-semibold px-2"
-              >
-                <X className="w-3 h-3" />
-                End
-              </Button>
-            </div>
-            {MAPBOX_ROUTE_ENABLED && (
-              <Button
-                onClick={() => {
-                  if (fetchRoute) {
-                    const origin = gpsLocation || remainingStops[0];
-                    let waypoints = remainingStops;
-                    if (!gpsLocation && remainingStops.length > 0) waypoints = remainingStops.slice(1);
-                    fetchRoute(origin, waypoints);
-                  }
-                }}
-                variant="outline"
-                className="w-full gap-1.5 border-2 border-[#2C4F4E] h-8 text-xs font-semibold bg-[#E7D7B8] hover:bg-[#DCC9A5] text-[#2C4F4E]"
-              >
-                Recalculate Route
-              </Button>
-            )}
+          <div className="flex gap-2 w-full">
+             <Button
+               onClick={() => fetchRoute?.()}
+               variant="outline"
+               className="h-8 w-8 p-0 border-blue-600 text-blue-600 hover:bg-blue-50 flex-shrink-0"
+               title="Recalculate Route"
+             >
+               <RefreshCw className="w-4 h-4" />
+             </Button>
+            <Button
+              onClick={() => openExternalMaps(remainingStops.slice(0, 10))}
+              disabled={remainingStops.length === 0}
+              className="flex-1 gap-1.5 bg-[#5DADA5] hover:bg-[#4A9B93] text-white border-2 border-[#2C4F4E] h-8 text-xs font-semibold"
+            >
+              <Navigation className="w-3 h-3" />
+              Get Directions
+            </Button>
+            <Button
+              onClick={() => {
+                setYardsailActive?.(false);
+                setHuntMode?.(false);
+              }}
+              variant="outline"
+              className="gap-1.5 border-2 border-red-600 text-red-600 hover:bg-red-50 h-8 text-xs font-semibold"
+            >
+              <X className="w-3 h-3" />
+              End
+            </Button>
           </div>
         )}
 
