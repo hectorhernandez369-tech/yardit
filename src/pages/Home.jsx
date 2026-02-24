@@ -707,7 +707,6 @@ export default function HomePage() {
                             Report
                           </Button>
                           <div className="ml-auto flex gap-1.5">
-                            <CheckInButton locationId={listing.id} />
                             {HUNT_ENABLED && (() => {
                               const huntStop = huntStops.find(s => s.id === listing.id);
                               
