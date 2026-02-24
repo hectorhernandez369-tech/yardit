@@ -513,9 +513,9 @@ export default function HomePage() {
   }, [eligibleListings, currentZoom]);
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col">
+    <div className="h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
       {/* Sticky Top Bar */}
-      <div className="bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex flex-col">
+      <div className="bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex flex-col w-full">
         {view === "map" && (
           <div className="px-3 pt-2 pb-1">
             <div className="relative w-full max-w-md mx-auto">
