@@ -225,13 +225,13 @@ function LayoutContent({ children, user, setUser }) {
       />
 
       <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-4">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-2">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-3">
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/927dbad19_file_00000000be5c7230acfd9ba5f9c035ef1.png" 
             alt="Pirate Flag" 
-            className="h-6 w-auto object-contain rounded-sm"
+            className="h-10 w-auto object-contain"
           />
-          <p className="text-center text-sm text-white">
+          <p className="text-center text-sm text-white font-medium">
             Yardit - Seekers find the best residential yard sales
           </p>
         </div>
