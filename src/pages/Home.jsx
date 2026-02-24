@@ -568,15 +568,15 @@ export default function HomePage() {
           <button
             ref={controlsBtnRef}
             onClick={() => setShowControls(prev => !prev)}
-            className="absolute top-4 right-3 z-[1002] w-12 h-12 flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-none outline-none shadow-none"
+            className="absolute top-4 right-3 z-[1002] w-[60px] h-[60px] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-none outline-none shadow-none"
           >
             {showControls ? (
-              <X className="w-8 h-8 text-[#2C4F4E]" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+              <X className="w-10 h-10 text-[#2C4F4E]" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
             ) : (
               <img 
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/cb76cc21e_file_00000000cd1c720ca3ac2dd5471be0aa.png" 
                 alt="Open Map" 
-                className="w-10 h-10 object-contain"
+                className="w-[60px] h-[60px] object-contain"
                 style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }}
               />
             )}
