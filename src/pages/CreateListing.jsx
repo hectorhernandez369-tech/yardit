@@ -216,8 +216,23 @@ export default function CreateListingPage() {
     if (step === 2) {
       if (formData.listingType === "neighborhood_sale") {
         if (!formData.event_center_lat || !formData.event_center_lng) {
-          toast.error("Please pick an event center on the map");
+          toast.error("Please provide a location for the event center");
           return;
+        }
+        if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
+          toast.error("Please select start and end dates");
+          return;
+        }
+        const start = new Date(formData.selectedRangeStartDate);
+        const end = new Date(formData.selectedRangeEndDate);
+        const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+        if (diffDays > 3) {
+           toast.error("Event can be a maximum of 3 days");
+           return;
+        }
+        if (end < start) {
+           toast.error("End date cannot be before start date");
+           return;
         }
         setStep(3);
         return;
