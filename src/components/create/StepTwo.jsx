@@ -18,11 +18,31 @@ L.Icon.Default.mergeOptions({
   shadowUrl: shadowUrl,
 });
 
+function MapEventsHandler({ onClick }) {
+  useMapEvents({
+    click(e) {
+      onClick([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+  return null;
+}
+
+function RecenterHandler({ center, zoom, trigger }) {
+  const map = useMap();
+  useEffect(() => {
+    if (trigger > 0) {
+      map.setView(center, zoom);
+    }
+  }, [trigger, center, zoom, map]);
+  return null;
+}
+
 function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) {
   const [selectedCenter, setSelectedCenter] = useState(initialLat && initialLng ? [initialLat, initialLng] : null);
   const [mapCenter, setMapCenter] = useState([39.8283, -98.5795]);
   const [mapZoom, setMapZoom] = useState(4);
   const [isLocating, setIsLocating] = useState(false);
+  const [recenterTrigger, setRecenterTrigger] = useState(0);
 
   useEffect(() => {
     if (isOpen) {
@@ -30,6 +50,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
         setSelectedCenter([initialLat, initialLng]);
         setMapCenter([initialLat, initialLng]);
         setMapZoom(15);
+        setRecenterTrigger(prev => prev + 1);
       } else {
         if (navigator.geolocation) {
           setIsLocating(true);
@@ -38,6 +59,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
               const coords = [pos.coords.latitude, pos.coords.longitude];
               setMapCenter(coords);
               setMapZoom(15);
+              setRecenterTrigger(prev => prev + 1);
               setIsLocating(false);
             },
             () => setIsLocating(false)
@@ -48,23 +70,6 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
   }, [isOpen, initialLat, initialLng]);
 
   if (!isOpen) return null;
-
-  const MapEvents = () => {
-    useMapEvents({
-      click(e) {
-        setSelectedCenter([e.latlng.lat, e.latlng.lng]);
-      },
-    });
-    return null;
-  };
-
-  const Recenter = () => {
-    const map = useMap();
-    useEffect(() => {
-      map.setView(mapCenter, mapZoom);
-    }, [mapCenter, mapZoom, map]);
-    return null;
-  };
 
   return (
     <div className="fixed inset-0 z-[99999] bg-[#F3E6CF] flex flex-col">
@@ -80,8 +85,8 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
             tileSize={512}
             zoomOffset={-1}
           />
-          <MapEvents />
-          <Recenter />
+          <MapEventsHandler onClick={setSelectedCenter} />
+          <RecenterHandler center={mapCenter} zoom={mapZoom} trigger={recenterTrigger} />
           {selectedCenter && (
             <>
               <Marker position={selectedCenter} />
@@ -101,6 +106,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
                      const coords = [pos.coords.latitude, pos.coords.longitude];
                      setMapCenter(coords);
                      setMapZoom(16);
+                     setRecenterTrigger(prev => prev + 1);
                      setSelectedCenter(coords);
                      setIsLocating(false);
                    },
