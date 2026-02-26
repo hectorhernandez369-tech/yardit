@@ -172,6 +172,62 @@ export default function SellerDashboard() {
           </div>
         </div>
 
+        {/* Neighborhood Events */}
+        {eoEvents && eoEvents.length > 0 && (
+            <div className="mb-8 space-y-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">My Neighborhood Events</h2>
+                {eoEvents.map((ev) => {
+                    const reqs = joinRequests.filter(r => r.event_id === ev.id && r.status === "pending");
+                    return (
+                        <Card key={ev.id} className="border-0 shadow-lg mb-4">
+                            <CardContent className="p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="text-xl font-bold">{ev.title}</h3>
+                                        <p className="text-sm text-gray-500">Status: {ev.status}</p>
+                                        <p className="text-sm text-gray-500">Confirmed Participants: {ev.confirmed_count}</p>
+                                    </div>
+                                    <div>
+                                        {ev.status === "activated" && !ev.advertising_started_at && (
+                                            <Button onClick={() => handleStartAdvertising(ev.id)} className="bg-green-600 hover:bg-green-700 text-white">
+                                                Start Advertising
+                                            </Button>
+                                        )}
+                                        {ev.advertising_started_at && (
+                                            <Badge className="bg-blue-100 text-blue-800">Advertising Started</Badge>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {reqs.length > 0 && (
+                                    <div className="mt-4 border-t pt-4">
+                                        <h4 className="font-semibold mb-2">Pending Join Requests</h4>
+                                        <div className="space-y-2">
+                                            {reqs.map(r => {
+                                                const listing = eventListings?.find(l => l.id === r.listing_id);
+                                                return (
+                                                    <div key={r.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                                        <div>
+                                                            <p className="font-medium text-sm">{listing?.title || "Unknown Listing"}</p>
+                                                            <p className="text-xs text-gray-500">{listing?.addressText}</p>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <Button size="sm" onClick={() => handleManageRequest(r.id, 'approve')} className="bg-green-600 hover:bg-green-700">Approve</Button>
+                                                            <Button size="sm" variant="outline" onClick={() => handleManageRequest(r.id, 'deny')} className="text-red-600 border-red-300">Deny</Button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+            </div>
+        )}
+
         {/* Locations with Stats */}
         {isLoadingLocations || isLoadingCheckIns ? (
           <Card className="border-0 shadow-xl">
