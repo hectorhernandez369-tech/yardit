@@ -1,11 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, CheckCheck, Trash2, ExternalLink, Users, Check, X } from "lucide-react";
+import { MapPin, Clock, CheckCheck, Trash2, Users, Check, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 export default function NotificationList({ notifications, onMarkAllRead }) {
   const queryClient = useQueryClient();
@@ -25,32 +26,35 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
     },
   });
 
-  const handleJoinRequestAction = async (e, notification, action) => {
-    e.stopPropagation();
-    try {
-      const eventTitle = notification.metadata?.event_title || 'Neighborhood Event';
+  const respondToRequestMutation = useMutation({
+    mutationFn: async ({ notificationId, action, requesterEmail, eventTitle }) => {
+      // Create notification for homeowner
       const message = action === 'accept' 
-        ? `Approved — you joined ${eventTitle}.` 
+        ? `Approved — you joined ${eventTitle}.`
         : `Denied — not added to ${eventTitle}.`;
-
+        
       await base44.entities.Notification.create({
-        user_email: notification.metadata?.requester_email,
-        title: action === 'accept' ? 'Join Request Approved' : 'Join Request Denied',
+        user_email: requesterEmail,
+        title: "Neighborhood Sale Request",
         message: message,
-        type: 'join_request_result',
+        type: `join_response_${action}`,
         read: false
       });
 
-      await base44.entities.Notification.update(notification.id, {
-        status: action === 'accept' ? 'accepted' : 'denied',
-        message: `You ${action === 'accept' ? 'accepted' : 'denied'} the join request.`
+      // Update EO notification to hide buttons and mark read
+      await base44.entities.Notification.update(notificationId, { 
+        read: true,
+        type: `join_request_resolved`,
+        message: `You ${action === 'accept' ? 'approved' : 'denied'} the join request for ${eventTitle}.`
       });
 
+      // Normally we would also update the actual request entity here
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    } catch (error) {
-      console.error("Error processing join request:", error);
-    }
-  };
+      toast.success("Response sent");
+    },
+  });
 
   const getIcon = (type) => {
     switch (type) {
@@ -60,14 +64,6 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
         return <Clock className="w-4 h-4 text-orange-600" />;
       case "own_expiring":
         return <Clock className="w-4 h-4 text-red-600" />;
-      case "join_request":
-        return <Users className="w-4 h-4 text-purple-600" />;
-      case "join_request_result":
-        return <CheckCheck className="w-4 h-4 text-green-600" />;
-      case "join_request_sent":
-        return <Clock className="w-4 h-4 text-blue-500" />;
-      case "join_request_expired":
-        return <X className="w-4 h-4 text-red-500" />;
       default:
         return <MapPin className="w-4 h-4" />;
     }
@@ -127,27 +123,6 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                       )}
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
-                    
-                    {notification.type === 'join_request' && (!notification.status || notification.status === 'pending') && (
-                      <div className="flex gap-2 mb-3 mt-2">
-                        <Button 
-                          size="sm" 
-                          className="bg-green-600 hover:bg-green-700 text-white h-8 text-xs px-3"
-                          onClick={(e) => handleJoinRequestAction(e, notification, 'accept')}
-                        >
-                          <Check className="w-3 h-3 mr-1" /> Accept
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="text-red-600 border-red-200 hover:bg-red-50 h-8 text-xs px-3"
-                          onClick={(e) => handleJoinRequestAction(e, notification, 'deny')}
-                        >
-                          <X className="w-3 h-3 mr-1" /> Deny
-                        </Button>
-                      </div>
-                    )}
-                    
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-400">
                         {formatDistanceToNow(new Date(notification.created_date), { addSuffix: true })}
