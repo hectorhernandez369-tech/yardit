@@ -12,6 +12,7 @@ import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import FormScrollHelper from "../components/create/FormScrollHelper";
 import { isDemoMode } from "../components/shared/DemoMode";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 // Tier Engine (shared business logic)
 import {
