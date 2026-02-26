@@ -316,6 +316,13 @@ export default function HomePage() {
     initialData: [],
   });
 
+  const { data: userListings } = useQuery({
+    queryKey: ["userListings", user?.id],
+    queryFn: () => base44.entities.Listing.filter({ ownerUserId: user?.id, status: "active" }),
+    enabled: !!user?.id,
+    initialData: [],
+  });
+
   // Focus on a specific listing from URL param
   const focusListing = useMemo(() => {
     if (!focusListingId || listings.length === 0) return null;
