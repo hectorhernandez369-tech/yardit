@@ -127,6 +127,27 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                       )}
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
+                    
+                    {notification.type === 'join_request' && (!notification.status || notification.status === 'pending') && (
+                      <div className="flex gap-2 mb-3 mt-2">
+                        <Button 
+                          size="sm" 
+                          className="bg-green-600 hover:bg-green-700 text-white h-8 text-xs px-3"
+                          onClick={(e) => handleJoinRequestAction(e, notification, 'accept')}
+                        >
+                          <Check className="w-3 h-3 mr-1" /> Accept
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="text-red-600 border-red-200 hover:bg-red-50 h-8 text-xs px-3"
+                          onClick={(e) => handleJoinRequestAction(e, notification, 'deny')}
+                        >
+                          <X className="w-3 h-3 mr-1" /> Deny
+                        </Button>
+                      </div>
+                    )}
+                    
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-400">
                         {formatDistanceToNow(new Date(notification.created_date), { addSuffix: true })}
