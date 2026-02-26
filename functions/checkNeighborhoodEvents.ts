@@ -60,6 +60,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Clean up join requests where the listing was deleted
+    const allPendingRequests = await base44.asServiceRole.entities.JoinRequest.filter({ status: "pending" });
+    for (const req of allPendingRequests) {
+      const listing = await base44.asServiceRole.entities.Listing.get(req.listing_id);
+      if (!listing) {
+        await base44.asServiceRole.entities.JoinRequest.update(req.id, { status: "expired" });
+      }
+    }
+
     return Response.json({ success: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
