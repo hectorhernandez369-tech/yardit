@@ -12,9 +12,19 @@ Deno.serve(async (req) => {
         
         if (event.eo_user_id !== user.id) throw new Error("Not the EO of this event");
         if (event.status !== "activated") throw new Error("Event must be activated to start advertising");
+        
+        if (event.advertising_started_at) {
+            throw new Error("Advertising already started");
+        }
 
         const startAt = new Date(event.start_at);
-        const diffMs = startAt - new Date();
+        const now = new Date();
+        
+        if (now >= startAt) {
+            throw new Error("Event already started");
+        }
+        
+        const diffMs = startAt - now;
         const diffDays = diffMs / (1000 * 60 * 60 * 24);
 
         if (diffDays > 10) throw new Error("Can only start advertising within 10 days of the start date");
