@@ -57,6 +57,9 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
   });
 
   const getIcon = (type) => {
+    if (type?.startsWith('join_')) {
+      return <Users className="w-4 h-4 text-purple-600" />;
+    }
     switch (type) {
       case "new_listing":
         return <MapPin className="w-4 h-4 text-blue-600" />;
