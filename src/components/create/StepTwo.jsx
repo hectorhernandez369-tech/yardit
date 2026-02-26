@@ -77,7 +77,12 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <MapEvents />
           <Recenter />
-          {position && <Marker position={position} />}
+          {position && (
+            <>
+              <Marker position={position} />
+              <Circle center={position} radius={152.4} pathOptions={{ color: '#5DADA5', fillColor: '#5DADA5', fillOpacity: 0.2 }} />
+            </>
+          )}
         </MapContainer>
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex gap-3 w-[90%] max-w-sm">
           <Button 
