@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart3, Users, TrendingUp, Loader2, MapPin } from "lucide-react";
 import LocationCheckInStats from "../components/dashboard/LocationCheckInStats";
 import EditLocationModal from "../components/profile/EditLocationModal";
-import NeighborhoodEventSection from "../components/dashboard/NeighborhoodEventSection";
 
 export default function SellerDashboard() {
   const [user, setUser] = useState(null);
@@ -32,6 +31,25 @@ export default function SellerDashboard() {
     queryKey: ["userLocations", user?.email],
     queryFn: () => base44.entities.Location.filter({ created_by: user.email }, "-created_date"),
     enabled: !!user?.email,
+    initialData: [],
+  });
+
+  const { data: eoEvents, isLoading: isLoadingEvents } = useQuery({
+    queryKey: ["eoEvents", user?.id],
+    queryFn: () => base44.entities.NeighborhoodEvent.filter({ eo_user_id: user?.id }),
+    enabled: !!user?.id,
+    initialData: [],
+  });
+
+  const { data: joinRequests, isLoading: isLoadingRequests } = useQuery({
+    queryKey: ["joinRequests"],
+    queryFn: () => base44.entities.JoinRequest.filter({ status: "pending" }),
+    initialData: [],
+  });
+
+  const { data: eventListings } = useQuery({
+    queryKey: ["eventListings"],
+    queryFn: () => base44.entities.Listing.list(),
     initialData: [],
   });
 
@@ -134,12 +152,6 @@ export default function SellerDashboard() {
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        <NeighborhoodEventSection user={user} />
-
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Location Check-ins</h2>
         </div>
 
         {/* Locations with Stats */}
