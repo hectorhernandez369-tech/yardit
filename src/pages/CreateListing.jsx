@@ -245,6 +245,13 @@ export default function CreateListingPage() {
       return;
     }
 
+    if (formData.listingType === "neighborhood_sale") {
+      if (formData.homeCount < 1 || formData.homeCount > 25) {
+        toast.error("Neighborhood Sales must have between 1 and 25 homes.");
+        return;
+      }
+    }
+
     // Must select tier
     if (!formData.tier) {
       toast.error("Please select a tier");

@@ -49,34 +49,34 @@
  */
 import AdminLite from './pages/AdminLite';
 import CaseManagement from './pages/CaseManagement';
-import CreateListing from './pages/CreateListing';
-import Home from './pages/Home';
 import Leaderboard from './pages/Leaderboard';
-import ListingDetail from './pages/ListingDetail';
 import MyHunt from './pages/MyHunt';
 import MyListings from './pages/MyListings';
 import NotificationSettings from './pages/NotificationSettings';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
-import SellerDashboard from './pages/SellerDashboard';
 import Settings from './pages/Settings';
+import CreateListing from './pages/CreateListing';
+import SellerDashboard from './pages/SellerDashboard';
+import ListingDetail from './pages/ListingDetail';
+import Home from './pages/Home';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AdminLite": AdminLite,
     "CaseManagement": CaseManagement,
-    "CreateListing": CreateListing,
-    "Home": Home,
     "Leaderboard": Leaderboard,
-    "ListingDetail": ListingDetail,
     "MyHunt": MyHunt,
     "MyListings": MyListings,
     "NotificationSettings": NotificationSettings,
     "Notifications": Notifications,
     "Profile": Profile,
-    "SellerDashboard": SellerDashboard,
     "Settings": Settings,
+    "CreateListing": CreateListing,
+    "SellerDashboard": SellerDashboard,
+    "ListingDetail": ListingDetail,
+    "Home": Home,
 }
 
 export const pagesConfig = {
