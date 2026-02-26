@@ -30,13 +30,27 @@ Deno.serve(async (req) => {
         
         if (!event || !listing) throw new Error("Event or Listing not found");
 
+        if (event.status === "downgraded" || event.status === "expired") {
+            throw new Error("This event is no longer active.");
+        }
+
+        if (new Date() >= new Date(event.start_at)) {
+            throw new Error("Cannot join an event that has already started.");
+        }
+
+        if (event.confirmed_count >= 25) {
+            throw new Error("This event is full (maximum 25 participants).");
+        }
+
         const distMeters = calculateDistanceMeters(event.center_lat, event.center_lng, listing.lat, listing.lng);
         if (distMeters > 152.4) {
             throw new Error("Listing is not within 500ft of the event.");
         }
 
         const existingReqs = await base44.asServiceRole.entities.JoinRequest.filter({ event_id, listing_id });
-        if (existingReqs.length > 0) throw new Error("Already requested to join.");
+        if (existingReqs.some(req => req.status === "pending" || req.status === "approved")) {
+            throw new Error("Already requested or approved to join this event.");
+        }
 
         const reqEntity = await base44.asServiceRole.entities.JoinRequest.create({
             event_id,
@@ -47,7 +61,13 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.Notification.create({
             userId: event.eo_user_id,
             title: "New Join Request",
-            message: `${listing.title} wants to join your neighborhood sale ${event.title}.`
+            message: `${listing.title} wants to join your neighborhood sale ${event.title}. Accept or Deny.`
+        });
+
+        await base44.asServiceRole.entities.Notification.create({
+            userId: listing.ownerUserId,
+            title: "Request Sent",
+            message: `Request sent to join ${event.title} — pending approval.`
         });
 
         return Response.json({ success: true, request: reqEntity });
