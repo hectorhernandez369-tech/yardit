@@ -49,7 +49,6 @@
  */
 import AdminLite from './pages/AdminLite';
 import CaseManagement from './pages/CaseManagement';
-import CreateListing from './pages/CreateListing';
 import Home from './pages/Home';
 import Leaderboard from './pages/Leaderboard';
 import ListingDetail from './pages/ListingDetail';
@@ -60,13 +59,13 @@ import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import SellerDashboard from './pages/SellerDashboard';
 import Settings from './pages/Settings';
+import CreateListing from './pages/CreateListing';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AdminLite": AdminLite,
     "CaseManagement": CaseManagement,
-    "CreateListing": CreateListing,
     "Home": Home,
     "Leaderboard": Leaderboard,
     "ListingDetail": ListingDetail,
@@ -77,6 +76,7 @@ export const PAGES = {
     "Profile": Profile,
     "SellerDashboard": SellerDashboard,
     "Settings": Settings,
+    "CreateListing": CreateListing,
 }
 
 export const pagesConfig = {
