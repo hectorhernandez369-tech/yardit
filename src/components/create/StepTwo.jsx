@@ -151,7 +151,12 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
 
-        setFormData((prev) => ({ ...prev, lat, lng }));
+        setFormData((prev) => ({ 
+           ...prev, 
+           lat, 
+           lng,
+           ...(prev.listingType === "neighborhood_sale" ? { event_center_lat: lat, event_center_lng: lng } : {})
+        }));
 
         try {
           const response = await fetch(
