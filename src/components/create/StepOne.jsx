@@ -66,26 +66,25 @@ export default function StepOne({ formData, setFormData }) {
       {formData.listingType === "neighborhood_sale" && (
         <>
           <div>
-            <Label className="text-[#2C4F4E]" htmlFor="homeCount">Number of Homes (max 10)</Label>
+            <Label className="text-[#2C4F4E]" htmlFor="homeCount">Number of Homes (Up to 25)</Label>
             <Input
               id="homeCount"
               type="number"
-              min="2"
-              max="10"
+              min="1"
+              max="25"
               value={formData.homeCount}
               onChange={(e) => setFormData(prev => ({ ...prev, homeCount: parseInt(e.target.value) }))}
               className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
             />
           </div>
           <div>
-            <Label className="text-[#2C4F4E]" htmlFor="spanFeet">Span in Feet (max 500)</Label>
+            <Label className="text-[#2C4F4E]" htmlFor="spanFeet">Radius in Feet</Label>
             <Input
               id="spanFeet"
               type="number"
-              max="500"
-              value={formData.spanFeet}
-              onChange={(e) => setFormData(prev => ({ ...prev, spanFeet: parseInt(e.target.value) }))}
-              className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
+              value={500}
+              disabled
+              className="border-[#2C4F4E] bg-[#E7D7B8] opacity-70 cursor-not-allowed"
             />
           </div>
         </>
