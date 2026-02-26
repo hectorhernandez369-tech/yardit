@@ -234,11 +234,14 @@ export default function CreateListingPage() {
 
         const isMapMethod = !formData.locationMethod || formData.locationMethod === "map" || formData.locMethod === "map";
         if (isMapMethod) {
-          if (!user?.lat || !user?.lng) {
+          const uLat = user?.address_lat ?? user?.lat;
+          const uLng = user?.address_lng ?? user?.lng;
+          
+          if (!uLat || !uLng) {
             toast.error("Please add/confirm your profile address before creating a Neighborhood Sale.");
             return;
           }
-          const dist = getDistanceFeet(user.lat, user.lng, formData.event_center_lat, formData.event_center_lng);
+          const dist = getDistanceFeet(uLat, uLng, formData.event_center_lat, formData.event_center_lng);
           if (dist > 500) {
             toast.error("Your profile address must be within 500 ft of the Neighborhood center.");
             return;
