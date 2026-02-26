@@ -531,6 +531,74 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
         </div>
       )}
 
+      {isNeighborhood && (
+        <div className="pt-6 mt-6 border-t-2 border-[#2C4F4E]/20">
+          <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 mb-4">
+            <h3 className="text-[#2C4F4E] font-semibold">Event Dates</h3>
+            <p className="text-sm text-[#1F2937] opacity-80">
+              Select the start and end dates for your Neighborhood Sale (up to 3 days).
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-[#2C4F4E]">Start Date *</Label>
+              <Input
+                type="date"
+                min={new Date().toISOString().split('T')[0]}
+                value={formData.selectedRangeStartDate || ""}
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  setFormData(prev => ({ ...prev, selectedRangeStartDate: newStart }));
+                  
+                  if (formData.selectedRangeEndDate) {
+                     const start = new Date(newStart);
+                     const end = new Date(formData.selectedRangeEndDate);
+                     const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+                     if (diffDays > 3 || end < start) {
+                        toast.error("Event can be a maximum of 3 days and end date must be after start date.");
+                        setFormData(prev => ({ ...prev, selectedRangeEndDate: "" }));
+                     }
+                  }
+                }}
+                className={`bg-[#F3E6CF] border-[#2C4F4E]`}
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-[#2C4F4E]">End Date *</Label>
+              <Input
+                type="date"
+                min={formData.selectedRangeStartDate || new Date().toISOString().split('T')[0]}
+                value={formData.selectedRangeEndDate || ""}
+                onChange={(e) => {
+                  const newEnd = e.target.value;
+                  if (!formData.selectedRangeStartDate) {
+                    toast.error("Please select a start date first.");
+                    return;
+                  }
+                  const start = new Date(formData.selectedRangeStartDate);
+                  const end = new Date(newEnd);
+                  const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+                  
+                  if (diffDays > 3) {
+                    toast.error("Event can be a maximum of 3 days.");
+                    return;
+                  }
+                  if (end < start) {
+                    toast.error("End date cannot be before start date.");
+                    return;
+                  }
+                  
+                  setFormData(prev => ({ ...prev, selectedRangeEndDate: newEnd }));
+                }}
+                className={`bg-[#F3E6CF] border-[#2C4F4E]`}
+                required
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Debug overlay (temporary) */}
       {(debugInfo.lastQueryString || debugInfo.lastErrorMessage) && (
         <div className="mt-4 rounded border border-dashed border-gray-400 bg-gray-100 p-2 text-[11px] font-mono text-gray-600">
