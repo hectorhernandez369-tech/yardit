@@ -34,7 +34,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
         : `Denied — not added to ${eventTitle}.`;
         
       await base44.entities.Notification.create({
-        user_email: requesterEmail,
+        userId: requesterEmail, // Using userId instead of user_email to match entity schema
         title: "Neighborhood Sale Request",
         message: message,
         type: `join_response_${action}`,
