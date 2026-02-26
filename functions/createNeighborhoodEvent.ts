@@ -67,6 +67,16 @@ Deno.serve(async (req) => {
             joined_at: new Date().toISOString()
         });
 
+        await base44.asServiceRole.entities.Payment.create({
+            location_id: eo_listing_id,
+            amount: 49,
+            plan: "5_day",
+            duration_days: 2,
+            status: "pending",
+            payment_method: "neighborhood_event",
+            transaction_id: "auth_" + newEvent.id
+        });
+
         return Response.json({ success: true, event: newEvent });
     } catch (error) {
         return Response.json({ error: error.message }, { status: 400 });
