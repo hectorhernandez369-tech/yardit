@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, CheckCheck, Trash2, ExternalLink } from "lucide-react";
+import { MapPin, Clock, CheckCheck, Trash2, ExternalLink, Users, Check, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function NotificationList({ notifications, onMarkAllRead }) {
