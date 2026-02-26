@@ -471,6 +471,15 @@ export default function HomePage() {
     return listings
       .filter(l => {
         if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
+        
+        if (l.listingType === "neighborhood_sale") {
+          const confirmedCount = l.confirmed_count || 0;
+          if (confirmedCount < 5 || l.status !== "activated") return false;
+          const start = new Date(l.startDateTime);
+          if (now < start && !l.advertising_started_at) return false;
+          return true;
+        }
+
         if (l.status !== "active") return false;
         return true;
       })
