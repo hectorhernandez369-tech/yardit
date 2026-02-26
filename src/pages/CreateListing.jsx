@@ -269,6 +269,10 @@ export default function CreateListingPage() {
 
     let payload = { ...formData, timeZoneId };
 
+    if (payload.listingType === "neighborhood_sale") {
+      payload.spanFeet = 500;
+    }
+
     // FREE (normal): compute weekend window + confirm if posted during weekend
     if (formData.tier === "free" && !isDemoMode()) {
       const window = computeFreeWindow(new Date(), timeZoneId);
