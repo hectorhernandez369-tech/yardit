@@ -28,6 +28,16 @@ Deno.serve(async (req) => {
                 joined_at: new Date().toISOString()
             });
 
+            // Notify homeowner
+            const listing = await base44.asServiceRole.entities.Listing.get(joinReq.listing_id);
+            if (listing) {
+                await base44.asServiceRole.entities.Notification.create({
+                    userId: listing.ownerUserId,
+                    title: "Joined Neighborhood Sale",
+                    message: `Approved — you joined ${event.title}.`
+                });
+            }
+
             const newCount = event.confirmed_count + 1;
             let status = event.status;
             let activated_at = event.activated_at;
@@ -35,7 +45,12 @@ Deno.serve(async (req) => {
             if (newCount === 5 && status === "pending_activation") {
                 status = "activated";
                 activated_at = new Date().toISOString();
-                // capture $49 here
+                
+                // Capture $49 payment
+                const payments = await base44.asServiceRole.entities.Payment.filter({ transaction_id: "auth_" + event.id });
+                if (payments.length > 0) {
+                    await base44.asServiceRole.entities.Payment.update(payments[0].id, { status: "completed" });
+                }
             }
 
             await base44.asServiceRole.entities.NeighborhoodEvent.update(event.id, {
@@ -48,11 +63,29 @@ Deno.serve(async (req) => {
                 const pendings = await base44.asServiceRole.entities.JoinRequest.filter({ event_id: event.id, status: "pending" });
                 for (const p of pendings) {
                     await base44.asServiceRole.entities.JoinRequest.update(p.id, { status: "expired" });
+                    
+                    const pListing = await base44.asServiceRole.entities.Listing.get(p.listing_id);
+                    if (pListing) {
+                        await base44.asServiceRole.entities.Notification.create({
+                            userId: pListing.ownerUserId,
+                            title: "Event Full",
+                            message: `Event is full — request expired for ${event.title}.`
+                        });
+                    }
                 }
             }
 
         } else if (action === 'deny') {
             await base44.asServiceRole.entities.JoinRequest.update(request_id, { status: "denied", resolved_at: new Date().toISOString() });
+            
+            const listing = await base44.asServiceRole.entities.Listing.get(joinReq.listing_id);
+            if (listing) {
+                await base44.asServiceRole.entities.Notification.create({
+                    userId: listing.ownerUserId,
+                    title: "Request Denied",
+                    message: `Denied — not added to ${event.title}.`
+                });
+            }
         }
 
         return Response.json({ success: true });
