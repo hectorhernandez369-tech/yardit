@@ -9,18 +9,6 @@ import { Users, Megaphone, Check, X } from "lucide-react";
 
 export default function NeighborhoodEventSection({ user }) {
   const queryClient = useQueryClient();
-  const [showCreate, setShowCreate] = useState(false);
-  const [newEventTitle, setNewEventTitle] = useState("");
-  const [selectedListingId, setSelectedListingId] = useState("");
-
-  const { data: listings } = useQuery({
-    queryKey: ["userListings", user?.id],
-    queryFn: () => base44.entities.Listing.filter({ ownerUserId: user.id }),
-    enabled: !!user?.id,
-    initialData: [],
-  });
-
-  const activeListings = listings.filter(l => l.status === "active");
 
   const { data: events } = useQuery({
     queryKey: ["neighborhoodEvents", user?.id],
@@ -35,35 +23,9 @@ export default function NeighborhoodEventSection({ user }) {
     initialData: [],
   });
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const listing = listings.find(l => l.id === selectedListingId);
-      if (!listing) throw new Error("Select a listing");
-      
-      const res = await base44.functions.invoke("neighborhoodEvents", {
-        action: "create",
-        title: newEventTitle,
-        center_lat: listing.lat,
-        center_lng: listing.lng,
-        start_at: listing.startDateTime,
-        end_at: listing.endDateTime,
-        eo_listing_id: listing.id
-      });
-      if (res.data.error) throw new Error(res.data.error);
-      return res.data;
-    },
-    onSuccess: () => {
-      toast.success("Event created!");
-      queryClient.invalidateQueries({ queryKey: ["neighborhoodEvents"] });
-      setShowCreate(false);
-    },
-    onError: (e) => toast.error(e.message)
-  });
-
   const advertiseMutation = useMutation({
     mutationFn: async (eventId) => {
-      const res = await base44.functions.invoke("neighborhoodEvents", {
-        action: "startAdvertising",
+      const res = await base44.functions.invoke("startAdvertisingNeighborhoodEvent", {
         event_id: eventId
       });
       if (res.data.error) throw new Error(res.data.error);
@@ -78,10 +40,9 @@ export default function NeighborhoodEventSection({ user }) {
 
   const resolveMutation = useMutation({
     mutationFn: async ({ requestId, approved }) => {
-      const res = await base44.functions.invoke("neighborhoodEvents", {
-        action: "resolveJoin",
+      const res = await base44.functions.invoke("manageJoinRequest", {
         request_id: requestId,
-        approved
+        action: approved ? "approve" : "deny"
       });
       if (res.data.error) throw new Error(res.data.error);
       return res.data;
@@ -100,49 +61,7 @@ export default function NeighborhoodEventSection({ user }) {
     <div className="mt-8 space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Neighborhood Events</h2>
-        {!showCreate && activeListings.length > 0 && (
-          <Button onClick={() => setShowCreate(true)} className="bg-emerald-600 hover:bg-emerald-700">
-            Host Event
-          </Button>
-        )}
       </div>
-
-      {showCreate && (
-        <Card className="border-emerald-200 bg-emerald-50">
-          <CardContent className="p-6 space-y-4">
-            <h3 className="font-semibold text-emerald-900">Create Neighborhood Event</h3>
-            <div>
-              <label className="block text-sm font-medium text-emerald-800 mb-1">Event Title</label>
-              <input
-                className="w-full p-2 border border-emerald-300 rounded"
-                value={newEventTitle}
-                onChange={e => setNewEventTitle(e.target.value)}
-                placeholder="E.g., Elm Street Big Sale"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-emerald-800 mb-1">Base Listing (Your address)</label>
-              <select
-                className="w-full p-2 border border-emerald-300 rounded"
-                value={selectedListingId}
-                onChange={e => setSelectedListingId(e.target.value)}
-              >
-                <option value="">Select your listing...</option>
-                {activeListings.map(l => (
-                  <option key={l.id} value={l.id}>{l.title}</option>
-                ))}
-              </select>
-              <p className="text-xs text-emerald-700 mt-1">This will anchor the 500ft zone.</p>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending || !newEventTitle || !selectedListingId} className="bg-emerald-600 hover:bg-emerald-700">
-                {createMutation.isPending ? "Creating..." : "Create"}
-              </Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {pendingForMyEvents.length > 0 && (
         <Card className="border-orange-200 bg-orange-50">
