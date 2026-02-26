@@ -427,6 +427,12 @@ export default function CreateListingPage() {
           <CardContent className="p-6" ref={formContainerRef}>
             <FormScrollHelper containerRef={formContainerRef} />
 
+            {formData.listingType === "neighborhood_sale" && (
+              <div className="mb-4 p-3 bg-[#e7d7b8]/50 border border-[#2C4F4E]/20 rounded-md text-[#2C4F4E] text-sm font-medium">
+                Neighborhood Sale: Up to 25 homes within 500 feet.
+              </div>
+            )}
+
             {step === 1 && <StepOne formData={formData} setFormData={setFormData} />}
             {step === 2 && (
               <StepTwo
