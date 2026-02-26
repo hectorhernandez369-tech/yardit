@@ -231,6 +231,20 @@ export default function CreateListingPage() {
           toast.error("Please provide a location for the event center");
           return;
         }
+
+        const isMapMethod = !formData.locationMethod || formData.locationMethod === "map" || formData.locMethod === "map";
+        if (isMapMethod) {
+          if (!user?.lat || !user?.lng) {
+            toast.error("Please add/confirm your profile address before creating a Neighborhood Sale.");
+            return;
+          }
+          const dist = getDistanceFeet(user.lat, user.lng, formData.event_center_lat, formData.event_center_lng);
+          if (dist > 500) {
+            toast.error("Your profile address must be within 500 ft of the Neighborhood center.");
+            return;
+          }
+        }
+
         if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
           toast.error("Please select start and end dates");
           return;
