@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Save, X, Shield, Loader2 } from "lucide-react";
+import { Edit2, Save, X, Shield, MapPin, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import AddressFields from "../shared/AddressFields";
 
 export default function UserInfoSection({ user, setUser }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingAddress, setIsConfirmingAddress] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     full_name: user.full_name || "",
     street_address: user.street_address || "",
@@ -24,6 +24,43 @@ export default function UserInfoSection({ user, setUser }) {
     address_lat: user.address_lat || null,
     address_lng: user.address_lng || null,
   });
+
+  const confirmAddress = async () => {
+    const { street_address, city, state, zip_code } = formData;
+    if (!street_address || !city || !state || !zip_code) {
+      toast.error("Please fill out street, city, state, and zip before confirming.");
+      return null;
+    }
+
+    setIsConfirmingAddress(true);
+    const query = `${street_address}, ${city}, ${state}, ${zip_code}`;
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        
+        setFormData(prev => ({ ...prev, address_lat: lat, address_lng: lng }));
+        await base44.auth.updateMe({ address_lat: lat, address_lng: lng });
+        setUser(prev => ({ ...prev, address_lat: lat, address_lng: lng }));
+        
+        toast.success("Address confirmed and saved!");
+        return { lat, lng };
+      } else {
+        toast.error("Could not confirm address. Please double-check it.");
+        return null;
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to confirm address due to a network error.");
+      return null;
+    } finally {
+      setIsConfirmingAddress(false);
+    }
+  };
 
   const updateUserMutation = useMutation({
     mutationFn: (data) => base44.auth.updateMe(data),
@@ -38,61 +75,30 @@ export default function UserInfoSection({ user, setUser }) {
     },
   });
 
-  const confirmAddress = async (showSuccessToast = true) => {
-    if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) {
-      toast.error("Please fill out your full address before confirming.");
-      return null;
-    }
-
-    setIsConfirmingAddress(true);
-    try {
-      const q = `${formData.street_address}, ${formData.city}, ${formData.state} ${formData.zip_code}`;
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      
-      if (data && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
-        setFormData(prev => ({ ...prev, address_lat: lat, address_lng: lng }));
-        
-        if (showSuccessToast) {
-          const updatedUser = await base44.auth.updateMe({ ...formData, address_lat: lat, address_lng: lng });
-          setUser(updatedUser);
-          toast.success("Address confirmed and saved.");
-        }
-        
-        return { lat, lng };
-      } else {
-        toast.error("Could not confirm address. Please double-check it.");
-        return null;
-      }
-    } catch (e) {
-      toast.error("Could not confirm address. Please double-check it.");
-      return null;
-    } finally {
-      setIsConfirmingAddress(false);
-    }
-  };
-
   const handleSave = async () => {
-    if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) {
-      toast.error("Address is required. Please fill out street, city, state, and zip code.");
+    const { street_address, city, state, zip_code } = formData;
+    
+    if (!street_address || !city || !state || !zip_code) {
+      toast.error("A complete address (street, city, state, zip) is required.");
       return;
     }
 
-    let payload = { ...formData };
-    if (!formData.address_lat || !formData.address_lng) {
-      const coords = await confirmAddress(false);
-      if (!coords) {
-         toast.error("Please confirm your address to save.");
-         return;
-      }
-      payload.address_lat = coords.lat;
-      payload.address_lng = coords.lng;
+    const addressChanged = 
+      street_address !== user.street_address ||
+      city !== user.city ||
+      state !== user.state ||
+      zip_code !== user.zip_code;
+
+    let currentData = { ...formData };
+
+    if (addressChanged || !formData.address_lat || !formData.address_lng) {
+      const coords = await confirmAddress();
+      if (!coords) return; // Stop if confirmation fails
+      currentData.address_lat = coords.lat;
+      currentData.address_lng = coords.lng;
     }
 
-    updateUserMutation.mutate(payload);
+    updateUserMutation.mutate(currentData);
   };
 
   const handleCancel = () => {
@@ -215,69 +221,53 @@ export default function UserInfoSection({ user, setUser }) {
 
           {/* Address */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
               <Label>Address</Label>
-              {(formData.address_lat && formData.address_lng) ? (
-                 <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Address Confirmed</Badge>
+              {user.address_lat && user.address_lng ? (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Address Confirmed</Badge>
               ) : (
-                 <Badge variant="destructive" className="bg-red-100 text-red-800 hover:bg-red-100 border-red-200">Address Not Confirmed</Badge>
+                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Address Not Confirmed</Badge>
               )}
             </div>
             
-            {!(formData.address_lat && formData.address_lng) && (
-              <p className="text-xs text-amber-600">Confirm your address to enable Neighborhood Sales</p>
+            {(!user.address_lat || !user.address_lng) && (
+              <p className="text-xs text-orange-600 mb-2">Confirm your address to enable Neighborhood Sales</p>
             )}
 
             {isEditing ? (
               <div className="space-y-4 pt-2">
-                <AddressFields 
-                  formData={formData} 
-                  setFormData={(updater) => {
-                    setFormData((prev) => {
-                      const newVal = typeof updater === 'function' ? updater(prev) : updater;
-                      if (
-                        newVal.street_address !== prev.street_address ||
-                        newVal.city !== prev.city ||
-                        newVal.state !== prev.state ||
-                        newVal.zip_code !== prev.zip_code
-                      ) {
-                        newVal.address_lat = null;
-                        newVal.address_lng = null;
-                      }
-                      return newVal;
-                    });
-                  }} 
-                  required={true} 
-                />
+                <AddressFields formData={formData} setFormData={setFormData} required={false} />
                 <Button 
-                   type="button"
-                   variant="outline"
-                   onClick={() => confirmAddress(true)}
-                   disabled={isConfirmingAddress || (formData.address_lat && formData.address_lng)}
-                   className="w-full mt-2"
+                  type="button" 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={confirmAddress}
+                  disabled={isConfirmingAddress}
+                  className="w-full gap-2"
                 >
-                  {isConfirmingAddress ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  {isConfirmingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
                   {isConfirmingAddress ? "Confirming..." : "Confirm Address"}
                 </Button>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <p className="text-lg font-medium">
                   {user.street_address && user.city && user.state && user.zip_code
                     ? `${user.street_address}, ${user.city}, ${user.state} ${user.zip_code}`
                     : "Not set"}
                 </p>
-                {!(formData.address_lat && formData.address_lng) && (
-                   <Button 
-                     type="button" 
-                     variant="outline" 
-                     onClick={() => confirmAddress(true)}
-                     disabled={isConfirmingAddress}
-                     className="mt-2"
-                   >
-                     {isConfirmingAddress ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                     {isConfirmingAddress ? "Confirming..." : "Confirm Address"}
-                   </Button>
+                {(!user.address_lat || !user.address_lng) && user.street_address && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={confirmAddress}
+                    disabled={isConfirmingAddress}
+                    className="gap-2"
+                  >
+                    {isConfirmingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                    {isConfirmingAddress ? "Confirming..." : "Confirm Address"}
+                  </Button>
                 )}
               </div>
             )}
