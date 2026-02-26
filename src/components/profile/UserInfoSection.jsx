@@ -34,13 +34,13 @@ export default function UserInfoSection({ user, setUser }) {
     setIsConfirmingAddress(true);
     const query = `${street_address}, ${city}, ${state}, ${zip_code}`;
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+      const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?limit=1&access_token=${MAPBOX_TOKEN}`;
       const response = await fetch(url);
       const data = await response.json();
 
-      if (data && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
+      if (data && data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
         
         setFormData(prev => ({ ...prev, address_lat: lat, address_lng: lng }));
         await base44.auth.updateMe({ address_lat: lat, address_lng: lng });
