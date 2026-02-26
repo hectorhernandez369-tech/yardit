@@ -57,6 +57,8 @@ export default function CreateListingPage() {
     zip: "",
     lat: null,
     lng: null,
+    event_center_lat: null,
+    event_center_lng: null,
 
     // (plain english) listing-local timezone; we’ll derive later from lat/lng
     timeZoneId: FALLBACK_TZ,
@@ -113,6 +115,8 @@ export default function CreateListingPage() {
         zip: pre.zip || pre.zip_code || "",
         lat: pre.lat ?? null,
         lng: pre.lng ?? null,
+        event_center_lat: pre.lat ?? null,
+        event_center_lng: pre.lng ?? null,
 
         // ✅ reset Step 3 fields so user must re-pick
         tier: "",
@@ -210,6 +214,15 @@ export default function CreateListingPage() {
     }
 
     if (step === 2) {
+      if (formData.listingType === "neighborhood_sale") {
+        if (!formData.event_center_lat || !formData.event_center_lng) {
+          toast.error("Please pick an event center on the map");
+          return;
+        }
+        setStep(3);
+        return;
+      }
+
       if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
         toast.error("Please complete all address fields");
         return;
