@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { clearAdminSession } from "../components/admin/AdminLoginModal";
+import UserInfoSection from "@/components/profile/UserInfoSection";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -115,6 +116,10 @@ export default function SettingsPage() {
             </form>
           </CardContent>
         </Card>
+
+        <div className="mb-6">
+          <UserInfoSection user={user} setUser={setUser} />
+        </div>
 
         <Card>
           <CardHeader>
