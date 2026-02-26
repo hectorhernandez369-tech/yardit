@@ -235,7 +235,44 @@ export default function UserInfoSection({ user, setUser }) {
 
             {isEditing ? (
               <div className="space-y-4 pt-2">
-                <AddressFields formData={formData} setFormData={setFormData} required={false} />
+                <div className="space-y-2">
+                  <Label htmlFor="street_address">Street Address</Label>
+                  <Input
+                    id="street_address"
+                    value={formData.street_address}
+                    onChange={(e) => setFormData(prev => ({ ...prev, street_address: e.target.value, address_lat: null, address_lng: null }))}
+                    placeholder="123 Main St"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value, address_lat: null, address_lng: null }))}
+                      placeholder="City"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      value={formData.state}
+                      onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value, address_lat: null, address_lng: null }))}
+                      placeholder="State"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zip_code">Zip Code</Label>
+                  <Input
+                    id="zip_code"
+                    value={formData.zip_code}
+                    onChange={(e) => setFormData(prev => ({ ...prev, zip_code: e.target.value, address_lat: null, address_lng: null }))}
+                    placeholder="Zip Code"
+                  />
+                </div>
                 <Button 
                   type="button" 
                   variant="secondary" 
