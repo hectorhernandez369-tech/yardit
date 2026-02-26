@@ -25,6 +25,33 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
     },
   });
 
+  const handleJoinRequestAction = async (e, notification, action) => {
+    e.stopPropagation();
+    try {
+      const eventTitle = notification.metadata?.event_title || 'Neighborhood Event';
+      const message = action === 'accept' 
+        ? `Approved — you joined ${eventTitle}.` 
+        : `Denied — not added to ${eventTitle}.`;
+
+      await base44.entities.Notification.create({
+        user_email: notification.metadata?.requester_email,
+        title: action === 'accept' ? 'Join Request Approved' : 'Join Request Denied',
+        message: message,
+        type: 'join_request_result',
+        read: false
+      });
+
+      await base44.entities.Notification.update(notification.id, {
+        status: action === 'accept' ? 'accepted' : 'denied',
+        message: `You ${action === 'accept' ? 'accepted' : 'denied'} the join request.`
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    } catch (error) {
+      console.error("Error processing join request:", error);
+    }
+  };
+
   const getIcon = (type) => {
     switch (type) {
       case "new_listing":
@@ -33,6 +60,14 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
         return <Clock className="w-4 h-4 text-orange-600" />;
       case "own_expiring":
         return <Clock className="w-4 h-4 text-red-600" />;
+      case "join_request":
+        return <Users className="w-4 h-4 text-purple-600" />;
+      case "join_request_result":
+        return <CheckCheck className="w-4 h-4 text-green-600" />;
+      case "join_request_sent":
+        return <Clock className="w-4 h-4 text-blue-500" />;
+      case "join_request_expired":
+        return <X className="w-4 h-4 text-red-500" />;
       default:
         return <MapPin className="w-4 h-4" />;
     }
