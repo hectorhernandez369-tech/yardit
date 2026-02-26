@@ -19,7 +19,7 @@ L.Icon.Default.mergeOptions({
 });
 
 function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) {
-  const [position, setPosition] = useState(initialLat && initialLng ? [initialLat, initialLng] : null);
+  const [selectedCenter, setSelectedCenter] = useState(initialLat && initialLng ? [initialLat, initialLng] : null);
   const [mapCenter, setMapCenter] = useState([39.8283, -98.5795]);
   const [mapZoom, setMapZoom] = useState(4);
   const [isLocating, setIsLocating] = useState(false);
@@ -27,7 +27,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
   useEffect(() => {
     if (isOpen) {
       if (initialLat && initialLng) {
-        setPosition([initialLat, initialLng]);
+        setSelectedCenter([initialLat, initialLng]);
         setMapCenter([initialLat, initialLng]);
         setMapZoom(15);
       } else {
@@ -52,7 +52,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
   const MapEvents = () => {
     useMapEvents({
       click(e) {
-        setPosition([e.latlng.lat, e.latlng.lng]);
+        setSelectedCenter([e.latlng.lat, e.latlng.lng]);
       },
     });
     return null;
@@ -74,13 +74,18 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
       </div>
       <div className="flex-1 relative">
         <MapContainer center={mapCenter} zoom={mapZoom} className="w-full h-full" zoomControl={false}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer
+            attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA"
+            tileSize={512}
+            zoomOffset={-1}
+          />
           <MapEvents />
           <Recenter />
-          {position && (
+          {selectedCenter && (
             <>
-              <Marker position={position} />
-              <Circle center={position} radius={152.4} pathOptions={{ color: '#5DADA5', fillColor: '#5DADA5', fillOpacity: 0.2 }} />
+              <Marker position={selectedCenter} />
+              <Circle center={selectedCenter} radius={152.4} pathOptions={{ color: '#5DADA5', fillColor: '#5DADA5', fillOpacity: 0.2 }} />
             </>
           )}
         </MapContainer>
@@ -96,7 +101,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
                      const coords = [pos.coords.latitude, pos.coords.longitude];
                      setMapCenter(coords);
                      setMapZoom(16);
-                     setPosition(coords);
+                     setSelectedCenter(coords);
                      setIsLocating(false);
                    },
                    () => setIsLocating(false)
@@ -109,10 +114,10 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
           </Button>
           <Button 
             className="flex-1 bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border border-[#2C4F4E] shadow-lg font-bold"
-            disabled={!position}
-            onClick={() => onConfirm(position[0], position[1])}
+            disabled={!selectedCenter}
+            onClick={() => onConfirm(selectedCenter[0], selectedCenter[1])}
           >
-            Confirm
+            Confirm Center
           </Button>
         </div>
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-md text-sm text-[#2C4F4E] font-medium border border-[#2C4F4E]/20">
