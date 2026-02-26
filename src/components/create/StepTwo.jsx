@@ -255,6 +255,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
             ...prev,
             lat: parseFloat(data[0].lat),
             lng: parseFloat(data[0].lon),
+            ...(prev.listingType === "neighborhood_sale" ? { event_center_lat: parseFloat(data[0].lat), event_center_lng: parseFloat(data[0].lon) } : {})
           }));
           toast.success("Address located!");
           return true;
