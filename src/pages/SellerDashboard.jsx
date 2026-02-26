@@ -68,6 +68,24 @@ export default function SellerDashboard() {
     userLocations.some(loc => loc.id === checkIn.location_id)
   ).length;
 
+  const handleStartAdvertising = async (event_id) => {
+      try {
+          await base44.functions.invoke('startAdvertisingNeighborhoodEvent', { event_id });
+          toast.success("Advertising started!");
+      } catch (e) {
+          toast.error(e.message || "Failed to start advertising.");
+      }
+  };
+
+  const handleManageRequest = async (request_id, action) => {
+      try {
+          await base44.functions.invoke('manageJoinRequest', { request_id, action });
+          toast.success(`Request ${action}d!`);
+      } catch (e) {
+          toast.error(e.message || "Failed to manage request.");
+      }
+  };
+
   if (isLoadingUser) {
     return (
       <div className="min-h-[calc(100vh-140px)] flex items-center justify-center">
