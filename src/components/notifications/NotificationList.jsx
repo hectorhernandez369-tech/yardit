@@ -137,7 +137,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                             respondToRequestMutation.mutate({
                               notificationId: notification.id,
                               action: 'accept',
-                              requesterEmail: notification.metadata?.requester_email || notification.user_email,
+                              requesterEmail: notification.metadata?.requester_email || notification.metadata?.userId || notification.user_email,
                               eventTitle: notification.metadata?.event_title || 'the neighborhood sale'
                             });
                           }}
@@ -153,7 +153,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                             respondToRequestMutation.mutate({
                               notificationId: notification.id,
                               action: 'deny',
-                              requesterEmail: notification.metadata?.requester_email || notification.user_email,
+                              requesterEmail: notification.metadata?.requester_email || notification.metadata?.userId || notification.user_email,
                               eventTitle: notification.metadata?.event_title || 'the neighborhood sale'
                             });
                           }}
