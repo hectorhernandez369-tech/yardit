@@ -299,10 +299,13 @@ export default function CreateListingPage() {
 
     if (payload.listingType === "neighborhood_sale") {
       payload.spanFeet = 500;
+      payload.tier = "neighborhood_tier";
+      payload.startDateTime = new Date(formData.selectedRangeStartDate + "T00:00:00Z").toISOString();
+      payload.endDateTime = new Date(formData.selectedRangeEndDate + "T23:59:59Z").toISOString();
     }
 
     // FREE (normal): compute weekend window + confirm if posted during weekend
-    if (formData.tier === "free" && !isDemoMode()) {
+    if (payload.listingType !== "neighborhood_sale" && formData.tier === "free" && !isDemoMode()) {
       const window = computeFreeWindow(new Date(), timeZoneId);
 
       if (window.isCurrentlyWeekend) {
