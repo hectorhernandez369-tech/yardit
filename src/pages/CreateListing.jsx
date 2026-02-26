@@ -329,7 +329,7 @@ export default function CreateListingPage() {
     }
 
     // FREE (demo): accept date-range OR ISO timestamps
-    if (formData.tier === "free" && isDemoMode()) {
+    if (payload.listingType !== "neighborhood_sale" && formData.tier === "free" && isDemoMode()) {
       const hasRange = formData.selectedRangeStartDate && formData.selectedRangeEndDate;
       const hasISO = formData.startDateTime && formData.endDateTime;
 
