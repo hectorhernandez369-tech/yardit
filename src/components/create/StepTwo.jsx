@@ -502,6 +502,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
                     zip: addr.postcode || formData.zip,
                     lat: parseFloat(suggestion.lat),
                     lng: parseFloat(suggestion.lon),
+                    ...(prev.listingType === "neighborhood_sale" ? { event_center_lat: parseFloat(suggestion.lat), event_center_lng: parseFloat(suggestion.lon) } : {})
                   }));
                   setAddressSuggestions([]);
                   toast.success("Address selected");
