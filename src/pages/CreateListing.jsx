@@ -26,6 +26,18 @@ const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 // (plain english) fallback timezone until we auto-detect timezone from lat/lng later
 const FALLBACK_TZ = "America/Los_Angeles";
 
+function getDistanceFeet(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+  const R = 20902231; // Earth radius in feet
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 // (plain english) DEV BYPASS: your account can ignore the “1 active listing” rule while building
 // Replace with your real Base44 user.id
 const DEV_BYPASS_USER_IDS = ["PUT_YOUR_USER_ID_HERE"];
@@ -47,7 +59,6 @@ export default function CreateListingPage() {
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
     tier: "free",
-    locationMethod: "map",
 
     title: "",
     description: "",
@@ -220,28 +231,6 @@ export default function CreateListingPage() {
           toast.error("Please provide a location for the event center");
           return;
         }
-
-        if (formData.locationMethod === "map") {
-          if (!user?.lat || !user?.lng) {
-            toast.error("Please add/confirm your profile address before creating a Neighborhood Sale.");
-            return;
-          }
-
-          const R = 20902231; // Radius of the Earth in feet
-          const dLat = (formData.event_center_lat - user.lat) * (Math.PI / 180);
-          const dLon = (formData.event_center_lng - user.lng) * (Math.PI / 180);
-          const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(user.lat * (Math.PI / 180)) * Math.cos(formData.event_center_lat * (Math.PI / 180)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          const distanceInFeet = R * c;
-
-          if (distanceInFeet > 500) {
-            toast.error("Your profile address must be within 500 ft of the Neighborhood center.");
-            return;
-          }
-        }
-
         if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
           toast.error("Please select start and end dates");
           return;
