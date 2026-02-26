@@ -222,14 +222,14 @@ export default function UserInfoSection({ user, setUser }) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Address</Label>
-              {formData.address_lat && formData.address_lng ? (
+              {(isEditing ? formData.address_lat && formData.address_lng : user.address_lat && user.address_lng) ? (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Address Confirmed</Badge>
               ) : (
                 <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Address Not Confirmed</Badge>
               )}
             </div>
             
-            {(!formData.address_lat || !formData.address_lng) && (
+            {!(isEditing ? formData.address_lat && formData.address_lng : user.address_lat && user.address_lng) && (
               <p className="text-xs text-orange-600 mb-2">Confirm your address to enable Neighborhood Sales</p>
             )}
 
