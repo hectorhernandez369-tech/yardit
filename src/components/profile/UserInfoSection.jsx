@@ -215,17 +215,71 @@ export default function UserInfoSection({ user, setUser }) {
 
           {/* Address */}
           <div className="space-y-2">
-            <Label>Address</Label>
+            <div className="flex items-center gap-2">
+              <Label>Address</Label>
+              {(formData.address_lat && formData.address_lng) ? (
+                 <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Address Confirmed</Badge>
+              ) : (
+                 <Badge variant="destructive" className="bg-red-100 text-red-800 hover:bg-red-100 border-red-200">Address Not Confirmed</Badge>
+              )}
+            </div>
+            
+            {!(formData.address_lat && formData.address_lng) && (
+              <p className="text-xs text-amber-600">Confirm your address to enable Neighborhood Sales</p>
+            )}
+
             {isEditing ? (
               <div className="space-y-4 pt-2">
-                <AddressFields formData={formData} setFormData={setFormData} required={false} />
+                <AddressFields 
+                  formData={formData} 
+                  setFormData={(updater) => {
+                    setFormData((prev) => {
+                      const newVal = typeof updater === 'function' ? updater(prev) : updater;
+                      if (
+                        newVal.street_address !== prev.street_address ||
+                        newVal.city !== prev.city ||
+                        newVal.state !== prev.state ||
+                        newVal.zip_code !== prev.zip_code
+                      ) {
+                        newVal.address_lat = null;
+                        newVal.address_lng = null;
+                      }
+                      return newVal;
+                    });
+                  }} 
+                  required={true} 
+                />
+                <Button 
+                   type="button"
+                   variant="outline"
+                   onClick={() => confirmAddress(true)}
+                   disabled={isConfirmingAddress || (formData.address_lat && formData.address_lng)}
+                   className="w-full mt-2"
+                >
+                  {isConfirmingAddress ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  {isConfirmingAddress ? "Confirming..." : "Confirm Address"}
+                </Button>
               </div>
             ) : (
-              <p className="text-lg font-medium">
-                {user.street_address && user.city && user.state && user.zip_code
-                  ? `${user.street_address}, ${user.city}, ${user.state} ${user.zip_code}`
-                  : "Not set"}
-              </p>
+              <div className="space-y-2">
+                <p className="text-lg font-medium">
+                  {user.street_address && user.city && user.state && user.zip_code
+                    ? `${user.street_address}, ${user.city}, ${user.state} ${user.zip_code}`
+                    : "Not set"}
+                </p>
+                {!(formData.address_lat && formData.address_lng) && (
+                   <Button 
+                     type="button" 
+                     variant="outline" 
+                     onClick={() => confirmAddress(true)}
+                     disabled={isConfirmingAddress}
+                     className="mt-2"
+                   >
+                     {isConfirmingAddress ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                     {isConfirmingAddress ? "Confirming..." : "Confirm Address"}
+                   </Button>
+                )}
+              </div>
             )}
           </div>
 
