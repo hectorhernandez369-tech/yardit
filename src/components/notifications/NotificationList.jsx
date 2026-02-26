@@ -126,7 +126,44 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                       )}
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
-                    <div className="flex items-center justify-between">
+                    
+                    {notification.type === "join_request" && (
+                      <div className="flex gap-2 mt-2 mb-3">
+                        <Button 
+                          size="sm" 
+                          className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            respondToRequestMutation.mutate({
+                              notificationId: notification.id,
+                              action: 'accept',
+                              requesterEmail: notification.metadata?.requester_email || notification.user_email,
+                              eventTitle: notification.metadata?.event_title || 'the neighborhood sale'
+                            });
+                          }}
+                        >
+                          <Check className="w-3 h-3 mr-1" /> Accept
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            respondToRequestMutation.mutate({
+                              notificationId: notification.id,
+                              action: 'deny',
+                              requesterEmail: notification.metadata?.requester_email || notification.user_email,
+                              eventTitle: notification.metadata?.event_title || 'the neighborhood sale'
+                            });
+                          }}
+                        >
+                          <X className="w-3 h-3 mr-1" /> Deny
+                        </Button>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between mt-1">
                       <p className="text-xs text-gray-400">
                         {formatDistanceToNow(new Date(notification.created_date), { addSuffix: true })}
                       </p>
