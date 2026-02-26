@@ -431,13 +431,30 @@ export default function HomePage() {
     return listings.filter((listing) => {
       if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return false;
       if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
-      if (listing.status !== "active") return false;
-      if (!demo) {
+
+      if (listing.listingType === "neighborhood_sale") {
+        const confirmedCount = listing.confirmed_count || 0;
+        if (confirmedCount < 5 || listing.status !== "activated") return false;
+
         const start = new Date(listing.startDateTime);
         const end = new Date(listing.endDateTime);
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-        if (start > now || end < now) return false;
+
+        if (now > end) return false;
+
+        if (now < start && !listing.advertising_started_at) {
+          return false;
+        }
+      } else {
+        if (listing.status !== "active") return false;
+        if (!demo) {
+          const start = new Date(listing.startDateTime);
+          const end = new Date(listing.endDateTime);
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+          if (start > now || end < now) return false;
+        }
       }
+
       const matchesSearch =
         !searchQuery ||
         listing.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
