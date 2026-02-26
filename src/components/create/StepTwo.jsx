@@ -130,7 +130,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
   const [debugInfo, setDebugInfo] = useState({ lastQueryString: "", lastResponseCount: null, lastErrorMessage: "" });
   const [fieldErrors, setFieldErrors] = useState({});
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
-  const [locationMethod, setLocationMethod] = useState("map");
+  const [locMethod, setLocMethod] = useState("map");
   const isNeighborhood = formData.listingType === "neighborhood_sale";
 
   // Use a ref to read current formData inside geocodeAddress without re-creating the callback
@@ -151,13 +151,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
 
-        setFormData((prev) => ({ 
-          ...prev, 
-          lat, 
-          lng,
-          event_center_lat: lat,
-          event_center_lng: lng
-        }));
+        setFormData((prev) => ({ ...prev, lat, lng }));
 
         try {
           const response = await fetch(
@@ -256,8 +250,6 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
             ...prev,
             lat: parseFloat(data[0].lat),
             lng: parseFloat(data[0].lon),
-            event_center_lat: parseFloat(data[0].lat),
-            event_center_lng: parseFloat(data[0].lon),
           }));
           toast.success("Address located!");
           return true;
@@ -300,31 +292,27 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
       </div>
 
       {isNeighborhood && (
-        <div className="space-y-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Button type="button" variant={locationMethod === "map" ? "default" : "outline"} onClick={() => setLocationMethod("map")} className={locationMethod === "map" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : "border-[#5DADA5] text-[#5DADA5] bg-[#F3E6CF] hover:bg-[#E7D7B8]"}>Select Center on Map</Button>
-            <Button type="button" variant={locationMethod === "gps" ? "default" : "outline"} onClick={() => { setLocationMethod("gps"); getCurrentLocation(); }} className={locationMethod === "gps" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : "border-[#5DADA5] text-[#5DADA5] bg-[#F3E6CF] hover:bg-[#E7D7B8]"}>Use My Address</Button>
-            <Button type="button" variant={locationMethod === "manual" ? "default" : "outline"} onClick={() => setLocationMethod("manual")} className={locationMethod === "manual" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : "border-[#5DADA5] text-[#5DADA5] bg-[#F3E6CF] hover:bg-[#E7D7B8]"}>Enter Address Manually</Button>
-          </div>
-
-          {locationMethod === "map" && (
-            <div className="space-y-4">
-              <Button 
-                type="button" 
-                onClick={() => setIsMapModalOpen(true)}
-                className="w-full py-8 text-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white flex gap-3 shadow-md"
-              >
-                <MapIcon className="w-6 h-6" />
-                Pick center on map
-              </Button>
-              
-              {formData.event_center_lat && formData.event_center_lng && (
-                <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-4 py-3">
-                  <p className="text-sm font-medium text-[#2C4F4E] flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Center selected on map.
-                  </p>
-                </div>
+        <div className="space-y-4">
+          <Button 
+            type="button" 
+            onClick={() => setIsMapModalOpen(true)}
+            className="w-full py-8 text-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white flex gap-3 shadow-md"
+          >
+            <MapIcon className="w-6 h-6" />
+            Pick center on map
+          </Button>
+          
+          {formData.event_center_lat && formData.event_center_lng && (
+            <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-4 py-3">
+              <p className="text-sm font-medium text-[#2C4F4E] flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                Center Selected
+              </p>
+              <p className="text-xs text-[#1F2937] opacity-80 mt-1">
+                {Number(formData.event_center_lat).toFixed(4)}, {Number(formData.event_center_lng).toFixed(4)}
+              </p>
+              {formData.addressText && formData.addressText !== "Map Location" && (
+                 <p className="text-xs text-[#1F2937] opacity-80 mt-1">{formData.addressText}, {formData.city}</p>
               )}
             </div>
           )}
@@ -372,7 +360,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
         </div>
       )}
 
-      {(!isNeighborhood || locationMethod !== "map") && (
+      {!isNeighborhood && (
         <div className="space-y-6">
           <div>
             <Label className="text-[#2C4F4E]" htmlFor="addressText">
@@ -474,15 +462,10 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
           Locate Address (Search)
         </Button>
       </div>
-      {isNeighborhood && (!formData.event_center_lat || !formData.event_center_lng) && locationMethod === "manual" && (
-        <p className="text-sm font-semibold text-red-600 mt-2 text-center">
-          * Please click "Locate Address" to confirm your center point.
-        </p>
-      )}
       </div>
       )}
 
-      {(!isNeighborhood || locationMethod !== "map") && formData.lat && formData.lng && (
+      {!isNeighborhood && formData.lat && formData.lng && (
         <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-3 py-2">
           <p className="text-xs text-[#2C4F4E] flex items-center gap-1">
             <MapPin className="w-3 h-3" />
@@ -491,85 +474,6 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
           <p className="text-[11px] text-[#1F2937] opacity-70">
             (This is the pin location that will show on the map.)
           </p>
-        </div>
-      )}
-
-      {isNeighborhood && (
-        <div className="mt-8 p-4 bg-[#E7D7B8] rounded-xl border-2 border-[#2C4F4E]">
-          <h3 className="text-[#2C4F4E] font-semibold mb-4">Event Dates (Max 3 days)</h3>
-          <div className="grid grid-cols-2 gap-4">
-             <div>
-                <Label className="text-[#2C4F4E]">Start Date</Label>
-                <Input 
-                   type="date" 
-                   min={new Date().toISOString().split("T")[0]}
-                   value={formData.selectedRangeStartDate || ""}
-                   onChange={(e) => {
-                     const dateStr = e.target.value;
-                     setFormData(prev => {
-                       const next = { ...prev, selectedRangeStartDate: dateStr };
-                       if (dateStr) {
-                         next.startDateTime = new Date(dateStr + "T00:00:00").toISOString();
-                         if (next.selectedRangeEndDate) {
-                           const start = new Date(dateStr);
-                           const end = new Date(next.selectedRangeEndDate);
-                           const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
-                           if (end < start) {
-                             next.selectedRangeEndDate = dateStr;
-                             next.endDateTime = new Date(dateStr + "T23:59:59").toISOString();
-                           } else if (diffDays > 3) {
-                             const maxEnd = new Date(start);
-                             maxEnd.setDate(maxEnd.getDate() + 2);
-                             const maxEndStr = maxEnd.toISOString().split("T")[0];
-                             next.selectedRangeEndDate = maxEndStr;
-                             next.endDateTime = new Date(maxEndStr + "T23:59:59").toISOString();
-                             toast.error("Neighborhood sale can be maximum 3 days");
-                           }
-                         }
-                       } else {
-                         next.startDateTime = "";
-                       }
-                       return next;
-                     });
-                   }}
-                   className="bg-[#F3E6CF] border-[#2C4F4E]"
-                />
-             </div>
-             <div>
-                <Label className="text-[#2C4F4E]">End Date</Label>
-                <Input 
-                   type="date" 
-                   min={formData.selectedRangeStartDate || new Date().toISOString().split("T")[0]}
-                   value={formData.selectedRangeEndDate || ""}
-                   onChange={(e) => {
-                     const dateStr = e.target.value;
-                     setFormData(prev => {
-                       const next = { ...prev, selectedRangeEndDate: dateStr };
-                       if (dateStr) {
-                         next.endDateTime = new Date(dateStr + "T23:59:59").toISOString();
-                         if (next.selectedRangeStartDate) {
-                           const start = new Date(next.selectedRangeStartDate);
-                           const end = new Date(dateStr);
-                           const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
-                           if (diffDays > 3) {
-                             const maxEnd = new Date(start);
-                             maxEnd.setDate(maxEnd.getDate() + 2);
-                             const maxEndStr = maxEnd.toISOString().split("T")[0];
-                             next.selectedRangeEndDate = maxEndStr;
-                             next.endDateTime = new Date(maxEndStr + "T23:59:59").toISOString();
-                             toast.error("Neighborhood sale can be maximum 3 days");
-                           }
-                         }
-                       } else {
-                         next.endDateTime = "";
-                       }
-                       return next;
-                     });
-                   }}
-                   className="bg-[#F3E6CF] border-[#2C4F4E]"
-                />
-             </div>
-          </div>
         </div>
       )}
 
@@ -592,8 +496,6 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
                     zip: addr.postcode || formData.zip,
                     lat: parseFloat(suggestion.lat),
                     lng: parseFloat(suggestion.lon),
-                    event_center_lat: parseFloat(suggestion.lat),
-                    event_center_lng: parseFloat(suggestion.lon),
                   }));
                   setAddressSuggestions([]);
                   toast.success("Address selected");
