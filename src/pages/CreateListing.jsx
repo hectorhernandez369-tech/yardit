@@ -47,6 +47,7 @@ export default function CreateListingPage() {
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
     tier: "free",
+    locationMethod: "map",
 
     title: "",
     description: "",
