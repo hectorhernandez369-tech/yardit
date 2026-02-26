@@ -416,15 +416,23 @@ export default function HomePage() {
   const eligibleListings = useMemo(() => {
     const now = new Date();
     const demo = isDemoMode();
-    return listings.filter((listing) => {
-      if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return false;
-      if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
-      if (listing.status !== "active") return false;
+    const result = [];
+    
+    // Process Listings
+    listings.forEach((listing) => {
+      // Exclude event participants entirely
+      if (eventParticipants.some(ep => ep.listing_id === listing.id)) {
+          return; // skip participants
+      }
+
+      if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return;
+      if (!isFinite(listing.lat) || !isFinite(listing.lng)) return;
+      if (listing.status !== "active") return;
       if (!demo) {
         const start = new Date(listing.startDateTime);
         const end = new Date(listing.endDateTime);
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-        if (start > now || end < now) return false;
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
+        if (start > now || end < now) return;
       }
       const matchesSearch =
         !searchQuery ||
@@ -432,9 +440,56 @@ export default function HomePage() {
         listing.addressText?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         listing.city?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesFilter = filter === "all" || listing.listingType === filter;
-      return matchesFilter && matchesSearch;
+      if (matchesFilter && matchesSearch) {
+        result.push(listing);
+      }
     });
-  }, [listings, filter, searchQuery, demoOn]);
+
+    // Process NeighborhoodEvents
+    neighborhoodEvents.forEach((ev) => {
+      if (ev.status === "expired" || ev.status === "downgraded") return;
+      if (ev.status === "pending_activation") return; // only show activated/advertising
+
+      const start = new Date(ev.start_at);
+      const end = new Date(ev.end_at);
+      
+      let isComingSoon = false;
+      let isActive = false;
+      
+      if (ev.status === "activated" && ev.advertising_started_at) {
+          if (now < start) isComingSoon = true;
+          else if (now >= start && now <= end) isActive = true;
+      } else if (demo) {
+          isActive = true;
+      }
+
+      if (!isComingSoon && !isActive) return;
+
+      const matchesSearch = !searchQuery || ev.title?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFilter = filter === "all" || filter === "neighborhood_sale";
+      
+      if (matchesFilter && matchesSearch) {
+          result.push({
+              id: ev.id,
+              isNeighborhoodEvent: true, // flag to identify
+              title: ev.title,
+              description: `Neighborhood event with ${ev.confirmed_count} participants!`,
+              lat: ev.center_lat,
+              lng: ev.center_lng,
+              listingType: "neighborhood_sale",
+              tier: "neighborhood_tier",
+              startDateTime: ev.start_at,
+              endDateTime: ev.end_at,
+              confirmed_count: ev.confirmed_count,
+              isComingSoon,
+              status: "active",
+              addressText: "Neighborhood Event Area"
+          });
+      }
+    });
+
+    return result;
+  }, [listings, neighborhoodEvents, eventParticipants, filter, searchQuery, demoOn]);
 
   // For list view: filter out expired unless demo
   const listViewListings = useMemo(() => {
