@@ -799,27 +799,54 @@ export default function HomePage() {
 
                         {/* Sticky bottom action row */}
                         <div className="flex items-center gap-1.5 p-2 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
-                          <Button
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
-                            }}
-                            className="h-7 text-xs px-2 bg-amber-600 hover:bg-amber-700"
-                          >
-                            View Details
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setReportListingId(listing.id);
-                            }}
-                            className="h-7 text-xs px-2 text-red-600 border-red-300 hover:bg-red-50"
-                          >
-                            Report
-                          </Button>
+                          {!listing.isNeighborhoodEvent && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
+                                  }}
+                                  className="h-7 text-xs px-2 bg-amber-600 hover:bg-amber-700"
+                                >
+                                  View Details
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setReportListingId(listing.id);
+                                  }}
+                                  className="h-7 text-xs px-2 text-red-600 border-red-300 hover:bg-red-50"
+                                >
+                                  Report
+                                </Button>
+                              </>
+                          )}
+                          
+                          {listing.isNeighborhoodEvent && userListings?.length > 0 && (() => {
+                              const eligible = userListings.find(l => {
+                                  if (eventParticipants.some(ep => ep.listing_id === l.id && ep.event_id === listing.id)) return false;
+                                  const dist = calculateDistanceMeters(listing.lat, listing.lng, l.lat, l.lng);
+                                  return dist <= 152.4; // 500ft
+                              });
+                              if (eligible) {
+                                  return (
+                                      <Button
+                                        size="sm"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleAskToJoin(listing.id, eligible.id);
+                                        }}
+                                        className="h-7 text-xs px-2 bg-green-600 hover:bg-green-700 text-white"
+                                      >
+                                        Ask to Join
+                                      </Button>
+                                  );
+                              }
+                              return null;
+                          })()}
                           <div className="ml-auto flex gap-1.5">
                             {HUNT_ENABLED && (() => {
                               const huntStop = huntStops.find(s => s.id === listing.id);
