@@ -60,12 +60,16 @@ export default function StepThree({ formData, setFormData }) {
               <Badge className="bg-[#5DADA5] text-white border-2 border-[#2C4F4E] mb-4">
                 Neighborhood Sale
               </Badge>
-              <h3 className="text-2xl font-bold text-[#2C4F4E] mb-2">$49.99</h3>
-              <p className="text-[#1F2937] mb-4">2-day neighborhood event</p>
-              <ul className="text-left space-y-2 text-sm text-[#2C4F4E]">
-                <li>✓ Highest map priority</li>
-                <li>✓ Up to 10 homes</li>
-                <li>✓ Maximum 500 ft span</li>
+              <h3 className="text-2xl font-bold text-[#2C4F4E] mb-2">$49 flat rate</h3>
+              <p className="text-[#1F2937] mb-4 text-sm max-w-sm mx-auto">
+                Host a coordinated event with your neighbors.
+              </p>
+              <ul className="text-left space-y-2 text-sm text-[#2C4F4E] max-w-sm mx-auto bg-white/40 p-4 rounded-lg">
+                <li>✓ <strong>Covers:</strong> 500 ft radius, up to 25 homes</li>
+                <li>✓ <strong>Activation:</strong> Event goes live when 5 homes confirm</li>
+                <li>✓ <strong>Deadline:</strong> Need 5 homes 48 hrs before start (or downgrades to Premium Residential)</li>
+                <li>✓ <strong>Advertising:</strong> Start up to 10 days before event date</li>
+                <li><span className="text-xs opacity-80 mt-2 block italic">Counts as 1 stop for Join The Hunt</span></li>
               </ul>
             </div>
           </CardContent>
