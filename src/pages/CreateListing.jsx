@@ -364,55 +364,18 @@ export default function CreateListingPage() {
       payload.endDateTime = new Date(formData.selectedRangeEndDate + "T23:59:59Z").toISOString();
     }
 
-    // FREE (normal): compute weekend window + confirm if posted during weekend
-    if (payload.listingType !== "neighborhood_sale" && formData.tier === "free" && !isDemoMode()) {
-      const window = computeFreeWindow(new Date(), timeZoneId);
-
-      if (window.isCurrentlyWeekend) {
-        const ok = safeConfirm(
-          "Free listings always expire Sunday at 11:59pm local time regardless of when you post. Continue?"
-        );
-        if (!ok) return;
-      }
-
+    // FREE TIER DATE RULE (Phase 1 locked): Always next weekend in LA
+    if (payload.tier === "free") {
+      const nextWeekend = getNextWeekendLAISO();
       payload = {
         ...payload,
-        startDateTime: window.startDateTime.toISOString(),
-        endDateTime: window.endDateTime.toISOString(),
-
-        selectedRangeStartDate: "",
-        selectedRangeEndDate: "",
+        startDateTime: nextWeekend.start,
+        endDateTime: nextWeekend.end,
+        selectedRangeStartDate: nextWeekend.startDateStr,
+        selectedRangeEndDate: nextWeekend.endDateStr,
         earlyVisibilityDays: 0,
         earlyVisibilityDates: [],
         activeDates: []
-      };
-    }
-
-    // FREE (demo): accept date-range OR ISO timestamps
-    if (payload.listingType !== "neighborhood_sale" && formData.tier === "free" && isDemoMode()) {
-      const hasRange = formData.selectedRangeStartDate && formData.selectedRangeEndDate;
-      const hasISO = formData.startDateTime && formData.endDateTime;
-
-      if (!hasRange && !hasISO) {
-        toast.error("Please select start and end dates");
-        return;
-      }
-
-      // If TierSchedule set date-range fields, build ISO from them
-      if (hasRange && !hasISO) {
-        payload = {
-          ...payload,
-          startDateTime: new Date(formData.selectedRangeStartDate + "T00:00:00Z").toISOString(),
-          endDateTime: new Date(formData.selectedRangeEndDate + "T23:59:59Z").toISOString(),
-        };
-      }
-
-      // Clear tier-specific fields not used by Free
-      payload = {
-        ...payload,
-        earlyVisibilityDays: 0,
-        earlyVisibilityDates: [],
-        activeDates: [],
       };
     }
 
