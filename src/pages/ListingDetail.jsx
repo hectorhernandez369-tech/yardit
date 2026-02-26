@@ -42,48 +42,9 @@ export default function ListingDetailPage() {
     enabled: !!listingId,
   });
 
-  const { data: neighborhoodEvents } = useQuery({
-    queryKey: ["neighborhoodEvents"],
-    queryFn: () => base44.entities.NeighborhoodEvent.filter({}),
-    initialData: [],
-  });
-  
-  const askToJoinMutation = useMutation({
-    mutationFn: async (eventId) => {
-      const response = await base44.functions.invoke("neighborhoodEvents", {
-        action: "askToJoin",
-        event_id: eventId,
-        listing_id: listing.id
-      });
-      if (response.data.error) throw new Error(response.data.error);
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success("Request sent successfully!");
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to send request");
-    }
-  });
-
   if (isLoading || !listing) {
     return <div className="p-8 text-center">Loading...</div>;
   }
-  
-  // Calculate if within 500ft of any active/pending_activation event
-  const R = 6371e3;
-  const feetPerMeter = 3.28084;
-  const nearbyEvents = neighborhoodEvents.filter(ev => {
-    if (ev.status === "expired" || ev.status === "downgraded") return false;
-    if (!listing.lat || !listing.lng) return false;
-    const p1 = ev.center_lat * Math.PI/180;
-    const p2 = listing.lat * Math.PI/180;
-    const dp = (listing.lat - ev.center_lat) * Math.PI/180;
-    const dl = (listing.lng - ev.center_lng) * Math.PI/180;
-    const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
-    const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return d * feetPerMeter <= 500;
-  });
 
   const tierColors = {
     free: "bg-slate-500",
@@ -181,17 +142,6 @@ export default function ListingDetailPage() {
                 <Map className="w-4 h-4" />
                 Show on Map
               </Button>
-              
-              {nearbyEvents.length > 0 && user?.id === listing.ownerUserId && (
-                <Button
-                  onClick={() => askToJoinMutation.mutate(nearbyEvents[0].id)}
-                  disabled={askToJoinMutation.isPending}
-                  className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
-                >
-                  {askToJoinMutation.isPending ? "Requesting..." : "Ask to Join Event"}
-                </Button>
-              )}
-
               <Button
                 onClick={() => navigate(createPageUrl("Home"))}
                 variant="outline"

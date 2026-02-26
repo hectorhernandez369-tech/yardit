@@ -73,25 +73,6 @@ const createIcon = (type, tier, isSelected, location) => {
   const preAct = isPreActivated(location);
   const opacity = preAct ? 0.6 : 1.0;
 
-  if (location?.isNeighborhoodEvent) {
-      let scale = 1;
-      const cnt = location.confirmed_count || 1;
-      if (cnt >= 5 && cnt <= 10) scale = 1.25;
-      else if (cnt >= 11 && cnt <= 15) scale = 1.5;
-      else if (cnt >= 16 && cnt <= 19) scale = 1.75;
-      else if (cnt >= 20) scale = 2.0;
-
-      const sz = Math.round(40 * scale);
-      
-      if (location.isComingSoon) {
-          const key = `nh_soon_${sz}`;
-          return getCachedIcon(key, buildPinSvg("#9ca3af", "#4b5563", 2, sz, opacity), sz); // gray pin
-      } else {
-          const key = `nh_active_${sz}`;
-          return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, sz, opacity), sz); // full color pin
-      }
-  }
-
   if (isSelected) {
     const key = `selected_${opacity}`;
     return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 40, opacity), 40);
@@ -304,25 +285,6 @@ export default function HomePage() {
     initialData: [],
   });
 
-  const { data: neighborhoodEvents } = useQuery({
-    queryKey: ["neighborhoodEvents"],
-    queryFn: () => base44.entities.NeighborhoodEvent.filter({}),
-    initialData: [],
-  });
-
-  const { data: eventParticipants } = useQuery({
-    queryKey: ["eventParticipants"],
-    queryFn: () => base44.entities.EventParticipant.filter({}),
-    initialData: [],
-  });
-
-  const { data: userListings } = useQuery({
-    queryKey: ["userListings", user?.id],
-    queryFn: () => base44.entities.Listing.filter({ ownerUserId: user?.id, status: "active" }),
-    enabled: !!user?.id,
-    initialData: [],
-  });
-
   // Focus on a specific listing from URL param
   const focusListing = useMemo(() => {
     if (!focusListingId || listings.length === 0) return null;
@@ -442,23 +404,15 @@ export default function HomePage() {
   const eligibleListings = useMemo(() => {
     const now = new Date();
     const demo = isDemoMode();
-    const result = [];
-    
-    // Process Listings
-    listings.forEach((listing) => {
-      // Exclude event participants entirely
-      if (eventParticipants.some(ep => ep.listing_id === listing.id)) {
-          return; // skip participants
-      }
-
-      if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return;
-      if (!isFinite(listing.lat) || !isFinite(listing.lng)) return;
-      if (listing.status !== "active") return;
+    return listings.filter((listing) => {
+      if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return false;
+      if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
+      if (listing.status !== "active") return false;
       if (!demo) {
         const start = new Date(listing.startDateTime);
         const end = new Date(listing.endDateTime);
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
-        if (start > now || end < now) return;
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+        if (start > now || end < now) return false;
       }
       const matchesSearch =
         !searchQuery ||
@@ -466,56 +420,9 @@ export default function HomePage() {
         listing.addressText?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         listing.city?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesFilter = filter === "all" || listing.listingType === filter;
-      if (matchesFilter && matchesSearch) {
-        result.push(listing);
-      }
+      return matchesFilter && matchesSearch;
     });
-
-    // Process NeighborhoodEvents
-    neighborhoodEvents.forEach((ev) => {
-      if (ev.status === "expired" || ev.status === "downgraded") return;
-      if (ev.status === "pending_activation") return; // only show activated/advertising
-
-      const start = new Date(ev.start_at);
-      const end = new Date(ev.end_at);
-      
-      let isComingSoon = false;
-      let isActive = false;
-      
-      if (ev.status === "activated" && ev.advertising_started_at) {
-          if (now < start) isComingSoon = true;
-          else if (now >= start && now <= end) isActive = true;
-      } else if (demo) {
-          isActive = true;
-      }
-
-      if (!isComingSoon && !isActive) return;
-
-      const matchesSearch = !searchQuery || ev.title?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesFilter = filter === "all" || filter === "neighborhood_sale";
-      
-      if (matchesFilter && matchesSearch) {
-          result.push({
-              id: ev.id,
-              isNeighborhoodEvent: true, // flag to identify
-              title: ev.title,
-              description: `Neighborhood event with ${ev.confirmed_count} participants!`,
-              lat: ev.center_lat,
-              lng: ev.center_lng,
-              listingType: "neighborhood_sale",
-              tier: "neighborhood_tier",
-              startDateTime: ev.start_at,
-              endDateTime: ev.end_at,
-              confirmed_count: ev.confirmed_count,
-              isComingSoon,
-              status: "active",
-              addressText: "Neighborhood Event Area"
-          });
-      }
-    });
-
-    return result;
-  }, [listings, neighborhoodEvents, eventParticipants, filter, searchQuery, demoOn]);
+  }, [listings, filter, searchQuery, demoOn]);
 
   // For list view: filter out expired unless demo
   const listViewListings = useMemo(() => {
@@ -564,15 +471,6 @@ export default function HomePage() {
 
   const handlePinClick = (listing) => {
     setActiveFocusListing({ listing, fromUrl: false });
-  };
-
-  const handleAskToJoin = async (event_id, listing_id) => {
-    try {
-      await base44.functions.invoke('askToJoinNeighborhoodEvent', { event_id, listing_id });
-      toast.success("Join request sent!");
-    } catch (e) {
-      toast.error(e.message || "Failed to send request.");
-    }
   };
 
   const getCheckInCount = (locationId) => {
@@ -799,54 +697,27 @@ export default function HomePage() {
 
                         {/* Sticky bottom action row */}
                         <div className="flex items-center gap-1.5 p-2 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
-                          {!listing.isNeighborhoodEvent && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
-                                  }}
-                                  className="h-7 text-xs px-2 bg-amber-600 hover:bg-amber-700"
-                                >
-                                  View Details
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setReportListingId(listing.id);
-                                  }}
-                                  className="h-7 text-xs px-2 text-red-600 border-red-300 hover:bg-red-50"
-                                >
-                                  Report
-                                </Button>
-                              </>
-                          )}
-                          
-                          {listing.isNeighborhoodEvent && userListings?.length > 0 && (() => {
-                              const eligible = userListings.find(l => {
-                                  if (eventParticipants.some(ep => ep.listing_id === l.id && ep.event_id === listing.id)) return false;
-                                  const dist = calculateDistanceMeters(listing.lat, listing.lng, l.lat, l.lng);
-                                  return dist <= 152.4; // 500ft
-                              });
-                              if (eligible) {
-                                  return (
-                                      <Button
-                                        size="sm"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleAskToJoin(listing.id, eligible.id);
-                                        }}
-                                        className="h-7 text-xs px-2 bg-green-600 hover:bg-green-700 text-white"
-                                      >
-                                        Ask to Join
-                                      </Button>
-                                  );
-                              }
-                              return null;
-                          })()}
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
+                            }}
+                            className="h-7 text-xs px-2 bg-amber-600 hover:bg-amber-700"
+                          >
+                            View Details
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReportListingId(listing.id);
+                            }}
+                            className="h-7 text-xs px-2 text-red-600 border-red-300 hover:bg-red-50"
+                          >
+                            Report
+                          </Button>
                           <div className="ml-auto flex gap-1.5">
                             {HUNT_ENABLED && (() => {
                               const huntStop = huntStops.find(s => s.id === listing.id);
