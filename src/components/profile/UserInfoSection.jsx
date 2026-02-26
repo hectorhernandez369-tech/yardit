@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Edit2, Save, X, Shield, MapPin, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import AddressFields from "../shared/AddressFields";
 
 export default function UserInfoSection({ user, setUser }) {
   const [isEditing, setIsEditing] = useState(false);
