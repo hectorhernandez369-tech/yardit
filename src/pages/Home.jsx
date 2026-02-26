@@ -73,6 +73,25 @@ const createIcon = (type, tier, isSelected, location) => {
   const preAct = isPreActivated(location);
   const opacity = preAct ? 0.6 : 1.0;
 
+  if (location?.isNeighborhoodEvent) {
+      let scale = 1;
+      const cnt = location.confirmed_count || 1;
+      if (cnt >= 5 && cnt <= 10) scale = 1.25;
+      else if (cnt >= 11 && cnt <= 15) scale = 1.5;
+      else if (cnt >= 16 && cnt <= 19) scale = 1.75;
+      else if (cnt >= 20) scale = 2.0;
+
+      const sz = Math.round(40 * scale);
+      
+      if (location.isComingSoon) {
+          const key = `nh_soon_${sz}`;
+          return getCachedIcon(key, buildPinSvg("#9ca3af", "#4b5563", 2, sz, opacity), sz); // gray pin
+      } else {
+          const key = `nh_active_${sz}`;
+          return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, sz, opacity), sz); // full color pin
+      }
+  }
+
   if (isSelected) {
     const key = `selected_${opacity}`;
     return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 40, opacity), 40);
