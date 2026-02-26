@@ -188,7 +188,21 @@ export default function CreateListingPage() {
 
       return listing;
     },
-    onSuccess: () => {
+    onSuccess: async (listing) => {
+      if (listing.listingType === "neighborhood_sale") {
+        try {
+          await base44.functions.invoke('createNeighborhoodEvent', {
+            title: listing.title,
+            center_lat: listing.lat,
+            center_lng: listing.lng,
+            start_at: listing.startDateTime,
+            end_at: listing.endDateTime,
+            eo_listing_id: listing.id
+          });
+        } catch (e) {
+          toast.error("Created listing but failed to create event: " + e.message);
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       queryClient.invalidateQueries({ queryKey: ["userListings", user?.id] });
       toast.success("Listing created successfully!");
