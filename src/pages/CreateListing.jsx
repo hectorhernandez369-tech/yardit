@@ -56,6 +56,8 @@ export default function CreateListingPage() {
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
   const [geocodeRef, setGeocodeRef] = useState(null);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [nearbyEvent, setNearbyEvent] = useState(null);
 
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
@@ -290,6 +292,37 @@ export default function CreateListingPage() {
         }
       }
 
+      if (formData.listingType !== "neighborhood_sale") {
+        try {
+          const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale", status: "activated" });
+          const now = new Date();
+          
+          const nearby = sales.find(s => {
+            const dist = getDistanceFeet(formData.lat, formData.lng, s.lat, s.lng);
+            if (dist > 500) return false;
+            
+            const start = new Date(s.startDateTime);
+            const end = new Date(s.endDateTime);
+            const isUpcoming = s.advertising_started_at && now < start;
+            const isOngoing = now >= start && now <= end;
+            return isUpcoming || isOngoing;
+          });
+
+          if (nearby) {
+            const existingRequests = await base44.entities.JoinRequest.filter({ listing_id: nearby.id, user_email: user.email });
+            const existingParticipants = await base44.entities.Participant.filter({ listing_id: nearby.id, user_email: user.email });
+            
+            if (existingRequests.length === 0 && existingParticipants.length === 0) {
+              setNearbyEvent(nearby);
+              setShowJoinModal(true);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Error checking nearby sales", err);
+        }
+      }
+
       // (plain english) later: derive timezoneId from lat/lng; for now we keep fallback
       setStep(3);
       return;
@@ -334,55 +367,47 @@ export default function CreateListingPage() {
       payload.endDateTime = new Date(formData.selectedRangeEndDate + "T23:59:59Z").toISOString();
     }
 
-    // FREE (normal): compute weekend window + confirm if posted during weekend
-    if (payload.listingType !== "neighborhood_sale" && formData.tier === "free" && !isDemoMode()) {
-      const window = computeFreeWindow(new Date(), timeZoneId);
-
-      if (window.isCurrentlyWeekend) {
-        const ok = safeConfirm(
-          "Free listings always expire Sunday at 11:59pm local time regardless of when you post. Continue?"
-        );
-        if (!ok) return;
-      }
+    // FREE TIER RULE OVERRIDE: Automatically set to NEXT weekend (LA Time)
+    if (payload.listingType !== "neighborhood_sale" && formData.tier === "free") {
+      const now = new Date();
+      const options = { timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit' };
+      const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(now);
+      const year = parts.find(p => p.type === 'year').value;
+      const month = parts.find(p => p.type === 'month').value;
+      const day = parts.find(p => p.type === 'day').value;
+      
+      const laDate = new Date(`${year}-${month}-${day}T12:00:00Z`);
+      const dayOfWeek = laDate.getUTCDay();
+      
+      let daysToFriday = 5 - dayOfWeek;
+      if (daysToFriday <= 0) daysToFriday += 7;
+      
+      const nextFriday = new Date(laDate.getTime() + daysToFriday * 86400000);
+      const nextSunday = new Date(nextFriday.getTime() + 2 * 86400000);
+      
+      const formatDate = (d) => `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+      
+      const getUTCFromLA = (dateStr, timeStr) => {
+          for (let offset = 7; offset <= 8; offset++) {
+              const iso = `${dateStr}T${timeStr}-0${offset}:00`;
+              const test = new Date(iso);
+              const testLA = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(test);
+              if (testLA.includes(dateStr) && testLA.includes(timeStr)) {
+                  return test.toISOString();
+              }
+          }
+          return new Date(`${dateStr}T${timeStr}-08:00`).toISOString();
+      };
 
       payload = {
         ...payload,
-        startDateTime: window.startDateTime.toISOString(),
-        endDateTime: window.endDateTime.toISOString(),
-
+        startDateTime: getUTCFromLA(formatDate(nextFriday), '00:00:00'),
+        endDateTime: getUTCFromLA(formatDate(nextSunday), '23:59:59'),
         selectedRangeStartDate: "",
         selectedRangeEndDate: "",
         earlyVisibilityDays: 0,
         earlyVisibilityDates: [],
         activeDates: []
-      };
-    }
-
-    // FREE (demo): accept date-range OR ISO timestamps
-    if (payload.listingType !== "neighborhood_sale" && formData.tier === "free" && isDemoMode()) {
-      const hasRange = formData.selectedRangeStartDate && formData.selectedRangeEndDate;
-      const hasISO = formData.startDateTime && formData.endDateTime;
-
-      if (!hasRange && !hasISO) {
-        toast.error("Please select start and end dates");
-        return;
-      }
-
-      // If TierSchedule set date-range fields, build ISO from them
-      if (hasRange && !hasISO) {
-        payload = {
-          ...payload,
-          startDateTime: new Date(formData.selectedRangeStartDate + "T00:00:00Z").toISOString(),
-          endDateTime: new Date(formData.selectedRangeEndDate + "T23:59:59Z").toISOString(),
-        };
-      }
-
-      // Clear tier-specific fields not used by Free
-      payload = {
-        ...payload,
-        earlyVisibilityDays: 0,
-        earlyVisibilityDates: [],
-        activeDates: [],
       };
     }
 
@@ -527,6 +552,41 @@ export default function CreateListingPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={showJoinModal} onOpenChange={setShowJoinModal}>
+        <DialogContent className="bg-[#E7D7B8] border-2 border-[#2C4F4E]">
+          <DialogHeader>
+            <DialogTitle className="text-[#2C4F4E]">Neighborhood Sale in your area</DialogTitle>
+            <DialogDescription className="text-[#1F2937]">
+              {nearbyEvent?.title} is happening nearby. Want to request to join?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 mt-4">
+            <Button variant="outline" onClick={() => { setShowJoinModal(false); setStep(3); }} className="border-[#2C4F4E] text-[#2C4F4E]">
+              Not now
+            </Button>
+            <Button 
+              onClick={async () => {
+                try {
+                  await base44.entities.JoinRequest.create({ 
+                    listing_id: nearbyEvent.id, 
+                    user_email: user.email, 
+                    status: "pending" 
+                  });
+                  toast.success("Request sent!");
+                  setShowJoinModal(false);
+                  setStep(3);
+                } catch(e) {
+                  toast.error("Error sending request");
+                }
+              }} 
+              className="bg-[#5DADA5] hover:bg-[#4A9B93] text-white"
+            >
+              Ask to Join
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
