@@ -566,6 +566,15 @@ export default function HomePage() {
     setActiveFocusListing({ listing, fromUrl: false });
   };
 
+  const handleAskToJoin = async (event_id, listing_id) => {
+    try {
+      await base44.functions.invoke('askToJoinNeighborhoodEvent', { event_id, listing_id });
+      toast.success("Join request sent!");
+    } catch (e) {
+      toast.error(e.message || "Failed to send request.");
+    }
+  };
+
   const getCheckInCount = (locationId) => {
     return allCheckIns.filter(c => c.location_id === locationId).length;
   };
