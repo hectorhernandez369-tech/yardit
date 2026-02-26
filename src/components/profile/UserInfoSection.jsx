@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Save, X, Shield } from "lucide-react";
+import { Edit2, Save, X, Shield, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import AddressFields from "../shared/AddressFields";
 
 export default function UserInfoSection({ user, setUser }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isConfirmingAddress, setIsConfirmingAddress] = useState(false);
+  
   const [formData, setFormData] = useState({
     full_name: user.full_name || "",
     street_address: user.street_address || "",
@@ -19,6 +21,8 @@ export default function UserInfoSection({ user, setUser }) {
     state: user.state || "",
     zip_code: user.zip_code || "",
     phone: user.phone || "",
+    address_lat: user.address_lat || null,
+    address_lng: user.address_lng || null,
   });
 
   const updateUserMutation = useMutation({
@@ -34,8 +38,61 @@ export default function UserInfoSection({ user, setUser }) {
     },
   });
 
-  const handleSave = () => {
-    updateUserMutation.mutate(formData);
+  const confirmAddress = async (showSuccessToast = true) => {
+    if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) {
+      toast.error("Please fill out your full address before confirming.");
+      return null;
+    }
+
+    setIsConfirmingAddress(true);
+    try {
+      const q = `${formData.street_address}, ${formData.city}, ${formData.state} ${formData.zip_code}`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        setFormData(prev => ({ ...prev, address_lat: lat, address_lng: lng }));
+        
+        if (showSuccessToast) {
+          const updatedUser = await base44.auth.updateMe({ ...formData, address_lat: lat, address_lng: lng });
+          setUser(updatedUser);
+          toast.success("Address confirmed and saved.");
+        }
+        
+        return { lat, lng };
+      } else {
+        toast.error("Could not confirm address. Please double-check it.");
+        return null;
+      }
+    } catch (e) {
+      toast.error("Could not confirm address. Please double-check it.");
+      return null;
+    } finally {
+      setIsConfirmingAddress(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) {
+      toast.error("Address is required. Please fill out street, city, state, and zip code.");
+      return;
+    }
+
+    let payload = { ...formData };
+    if (!formData.address_lat || !formData.address_lng) {
+      const coords = await confirmAddress(false);
+      if (!coords) {
+         toast.error("Please confirm your address to save.");
+         return;
+      }
+      payload.address_lat = coords.lat;
+      payload.address_lng = coords.lng;
+    }
+
+    updateUserMutation.mutate(payload);
   };
 
   const handleCancel = () => {
@@ -46,6 +103,8 @@ export default function UserInfoSection({ user, setUser }) {
       state: user.state || "",
       zip_code: user.zip_code || "",
       phone: user.phone || "",
+      address_lat: user.address_lat || null,
+      address_lng: user.address_lng || null,
     });
     setIsEditing(false);
   };
