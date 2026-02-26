@@ -68,37 +68,8 @@ function getCachedIcon(key, url, size) {
   return iconCache[key];
 }
 
-function getEventRenderState(ev) {
-  const now = new Date();
-  const startAt = new Date(ev.start_at);
-  const endAt = new Date(ev.end_at);
-  
-  if (ev.status === "activated" && ev.advertising_started_at && now < startAt) return "coming_soon";
-  if (ev.status === "activated" && now >= startAt && now <= endAt) return "active";
-  return null;
-}
-
 // Custom marker icons based on tier
 const createIcon = (type, tier, isSelected, location) => {
-  if (type === "neighborhood_event_container") {
-    const isComingSoon = location.renderState === "coming_soon";
-    if (isComingSoon) {
-      const key = `event_soon`;
-      return getCachedIcon(key, buildPinSvg("#9ca3af", "#4b5563", 2, 40, 1), 40);
-    } else {
-      let scale = 1;
-      const count = location.confirmed_count || 1;
-      if (count >= 20) scale = 2.0;
-      else if (count >= 16) scale = 1.75;
-      else if (count >= 11) scale = 1.5;
-      else if (count >= 5) scale = 1.25;
-      
-      const size = Math.round(40 * scale);
-      const key = `event_active_${size}`;
-      return getCachedIcon(key, buildPinSvg("#10b981", "#047857", 2, size, 1), size);
-    }
-  }
-
   const preAct = isPreActivated(location);
   const opacity = preAct ? 0.6 : 1.0;
 
@@ -326,20 +297,6 @@ export default function HomePage() {
     initialData: [],
   });
 
-  const renderedEvents = useMemo(() => {
-    return neighborhoodEvents
-      .map(ev => ({ ...ev, renderState: getEventRenderState(ev) }))
-      .filter(ev => ev.renderState !== null);
-  }, [neighborhoodEvents]);
-
-  const participantListingIds = useMemo(() => {
-    const ids = new Set();
-    renderedEvents.forEach(ev => {
-      eventParticipants.filter(p => p.event_id === ev.id).forEach(p => ids.add(p.listing_id));
-    });
-    return ids;
-  }, [renderedEvents, eventParticipants]);
-
   // Focus on a specific listing from URL param
   const focusListing = useMemo(() => {
     if (!focusListingId || listings.length === 0) return null;
@@ -474,12 +431,10 @@ export default function HomePage() {
         listing.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         listing.addressText?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         listing.city?.toLowerCase().includes(searchQuery.toLowerCase());
-      if (participantListingIds.has(listing.id)) return false;
-
       const matchesFilter = filter === "all" || listing.listingType === filter;
       return matchesFilter && matchesSearch;
     });
-  }, [listings, filter, searchQuery, demoOn, participantListingIds]);
+  }, [listings, filter, searchQuery, demoOn]);
 
   // For list view: filter out expired unless demo
   const listViewListings = useMemo(() => {
@@ -544,18 +499,6 @@ export default function HomePage() {
   const { visiblePins, clusterPts, fallbackActive } = useMemo(() => {
     const pins = [];
     const cPoints = [];
-    
-    // Add Neighborhood Events first (they are always shown as pins when active/coming soon)
-    renderedEvents.forEach(ev => {
-      pins.push({
-        ...ev,
-        isEvent: true,
-        lat: ev.center_lat,
-        lng: ev.center_lng,
-        listingType: "neighborhood_event_container"
-      });
-    });
-
     eligibleListings.forEach(listing => {
       if (shouldShowAsPin(currentZoom, listing.tier)) {
         pins.push(listing);
