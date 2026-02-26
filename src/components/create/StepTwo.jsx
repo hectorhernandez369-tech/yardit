@@ -297,12 +297,30 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
         </p>
       </div>
 
+      {/* Location Options Toggle for Neighborhood Sale */}
       {isNeighborhood && (
+        <div className="flex flex-col gap-2">
+          <Label className="text-[#2C4F4E]">Location Method</Label>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant={locMethod === "map" ? "default" : "outline"} onClick={() => setLocMethod("map")} className={locMethod === "map" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : "border-[#2C4F4E] text-[#2C4F4E] bg-[#F3E6CF] hover:bg-[#E7D7B8]"}>
+              <MapIcon className="w-4 h-4 mr-2" /> Select Center on Map
+            </Button>
+            <Button type="button" variant={locMethod === "gps" ? "default" : "outline"} onClick={() => { setLocMethod("gps"); getCurrentLocation(); }} className={locMethod === "gps" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : "border-[#2C4F4E] text-[#2C4F4E] bg-[#F3E6CF] hover:bg-[#E7D7B8]"}>
+              <Navigation className="w-4 h-4 mr-2" /> Use My Address
+            </Button>
+            <Button type="button" variant={locMethod === "manual" ? "default" : "outline"} onClick={() => setLocMethod("manual")} className={locMethod === "manual" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : "border-[#2C4F4E] text-[#2C4F4E] bg-[#F3E6CF] hover:bg-[#E7D7B8]"}>
+              Enter Address Manually
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isNeighborhood && locMethod === "map" && (
         <div className="space-y-4">
           <Button 
             type="button" 
             onClick={() => setIsMapModalOpen(true)}
-            className="w-full py-8 text-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white flex gap-3 shadow-md"
+            className="w-full py-8 text-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white flex gap-3 shadow-md border-2 border-[#2C4F4E]"
           >
             <MapIcon className="w-6 h-6" />
             Pick center on map
@@ -312,14 +330,11 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
             <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-4 py-3">
               <p className="text-sm font-medium text-[#2C4F4E] flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                Center Selected
+                Center selected on map.
               </p>
               <p className="text-xs text-[#1F2937] opacity-80 mt-1">
                 {Number(formData.event_center_lat).toFixed(4)}, {Number(formData.event_center_lng).toFixed(4)}
               </p>
-              {formData.addressText && formData.addressText !== "Map Location" && (
-                 <p className="text-xs text-[#1F2937] opacity-80 mt-1">{formData.addressText}, {formData.city}</p>
-              )}
             </div>
           )}
 
@@ -366,7 +381,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
         </div>
       )}
 
-      {!isNeighborhood && (
+      {(!isNeighborhood || locMethod === "manual" || locMethod === "gps") && (
         <div className="space-y-6">
           <div>
             <Label className="text-[#2C4F4E]" htmlFor="addressText">
