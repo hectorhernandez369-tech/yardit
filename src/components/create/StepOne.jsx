@@ -32,7 +32,7 @@ export default function StepOne({ formData, setFormData }) {
             <RadioGroupItem value="neighborhood_sale" id="neighborhood_sale" />
             <Label htmlFor="neighborhood_sale" className="flex-1 cursor-pointer">
               <div className="font-semibold text-[#2C4F4E]">Neighborhood Sale</div>
-              <div className="text-sm text-[#1F2937] opacity-80">Multi-home event (max 10 homes, 500 ft span)</div>
+              <div className="text-sm text-[#1F2937] opacity-80">Up to 25 homes within a 500 ft radius</div>
             </Label>
           </div>
         </RadioGroup>
