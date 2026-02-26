@@ -73,6 +73,30 @@ const createIcon = (type, tier, isSelected, location) => {
   const preAct = isPreActivated(location);
   const opacity = preAct ? 0.6 : 1.0;
 
+  if (type === "neighborhood_sale") {
+    let scale = 1.0;
+    const count = location.confirmed_count || 0;
+    if (!preAct) {
+      if (count >= 20) scale = 2.0;
+      else if (count >= 16) scale = 1.75;
+      else if (count >= 11) scale = 1.5;
+      else if (count >= 5) scale = 1.25;
+    }
+    const size = Math.round(40 * scale);
+    
+    if (isSelected) {
+      const key = `ns_sel_${size}`;
+      return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, size, 1.0), size);
+    }
+    if (preAct) {
+      const key = `ns_pre_${size}`;
+      return getCachedIcon(key, buildPinSvg("#9ca3af", "#4b5563", 2, size, 1.0), size);
+    } else {
+      const key = `ns_act_${size}`;
+      return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, size, 1.0), size);
+    }
+  }
+
   if (isSelected) {
     const key = `selected_${opacity}`;
     return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 40, opacity), 40);
