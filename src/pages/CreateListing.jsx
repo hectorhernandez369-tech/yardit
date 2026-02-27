@@ -598,18 +598,26 @@ export default function CreateListingPage() {
         </Card>
       </div>
 
-      <Dialog open={showSaleModal} onOpenChange={setShowSaleModal}>
+      <Dialog open={showSaleModal} onOpenChange={(open) => { if (!open) handleDismissSaleModal(); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Neighborhood Sale in your area</DialogTitle>
           </DialogHeader>
           <div className="py-4">
+            <p className="text-slate-700 mb-2">
+              Neighborhood Sale listed nearby for {matchedSale?.startDateTime ? new Date(matchedSale.startDateTime).toLocaleDateString() : ""} - {matchedSale?.endDateTime ? new Date(matchedSale.endDateTime).toLocaleDateString() : ""}
+            </p>
+            {matchedSale && (matchedSale.homeCount || 0) < 5 && (
+              <p className="text-sm font-semibold text-amber-600 mb-2">
+                Needs {5 - (matchedSale.homeCount || 0)} more homes to activate.
+              </p>
+            )}
             <p className="text-slate-700">
               <span className="font-semibold">{matchedSale?.title}</span> is happening nearby. Want to request to join?
             </p>
           </div>
           <DialogFooter className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setShowSaleModal(false)}>
+            <Button variant="outline" onClick={handleDismissSaleModal}>
               Not now
             </Button>
             <Button onClick={handleJoinRequest} className="bg-amber-600 hover:bg-amber-700">
