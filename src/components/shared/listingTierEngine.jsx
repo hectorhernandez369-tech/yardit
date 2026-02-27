@@ -73,10 +73,10 @@ export function computeFeaturedDates(startDate, endDate) {
 export function computePremiumDates(startDate, endDate, earlyVisibilityDays = 0) {
   const dates = getConsecutiveDates(startDate, endDate);
 
-  if (dates.length !== 5) {
+  if (dates.length < 1 || dates.length > 5) {
     return {
       valid: false,
-      error: `Premium tier requires exactly 5 consecutive days. Got ${dates.length}.`,
+      error: `Premium tier allows 1 to 5 consecutive days. Got ${dates.length}.`,
       activeDates: [],
       earlyVisibilityDates: []
     };
@@ -84,8 +84,14 @@ export function computePremiumDates(startDate, endDate, earlyVisibilityDays = 0)
 
   const clampedEarly = Math.max(0, Math.min(3, Number(earlyVisibilityDays) || 0));
 
-  const earlyVisibilityDates = dates.slice(0, clampedEarly);
-  const activeDates = dates.slice(clampedEarly);
+  const earlyVisibilityDates = [];
+  if (clampedEarly > 0) {
+    for (let i = clampedEarly; i > 0; i--) {
+      earlyVisibilityDates.push(addDaysYMD(startDate, -i));
+    }
+  }
+
+  const activeDates = dates;
 
   return {
     valid: true,

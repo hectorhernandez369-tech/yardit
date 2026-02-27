@@ -6,6 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 
 export default function StepOne({ formData, setFormData }) {
+  const tier = formData?.tier || "free";
   const listingType = formData?.listingType || "yard_sale";
 
   return (
@@ -41,53 +42,7 @@ export default function StepOne({ formData, setFormData }) {
         </RadioGroup>
       </div>
 
-      {listingType !== "neighborhood_sale" && (
-        <div className="space-y-3 mt-4 pt-4 border-t border-[#2C4F4E]/20">
-          <Label className="text-[#2C4F4E] font-semibold block mb-2">Choose your tier</Label>
-          <div className="grid gap-3">
-            <Card className={`p-4 cursor-pointer border-2 transition-all ${tier === "free" ? "border-[#5DADA5] bg-[#E7D7B8] shadow-md" : "border-[#2C4F4E]/40 bg-[#F3E6CF] hover:border-[#2C4F4E]"}`} onClick={() => setTier("free")}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold text-[#2C4F4E] flex items-center gap-2">
-                    Free
-                    {tier === "free" && <span className="text-xs bg-[#5DADA5] text-white px-2 py-0.5 rounded-full">Selected</span>}
-                  </div>
-                  <div className="text-sm text-[#1F2937] opacity-80 mt-1">List view only. Runs next weekend (Fri–Sun).</div>
-                </div>
-                <div className="text-sm font-semibold text-[#2C4F4E]">Free</div>
-              </div>
-            </Card>
-
-            <Card className={`p-4 cursor-pointer border-2 transition-all ${tier === "featured" ? "border-[#5DADA5] bg-[#E7D7B8] shadow-md" : "border-[#2C4F4E]/40 bg-[#F3E6CF] hover:border-[#2C4F4E]"}`} onClick={() => setTier("featured")}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold text-[#2C4F4E] flex items-center gap-2">
-                    Featured
-                    {tier === "featured" && <span className="text-xs bg-[#5DADA5] text-white px-2 py-0.5 rounded-full">Selected</span>}
-                  </div>
-                  <div className="text-sm text-[#1F2937] opacity-80 mt-1">Strong visibility. Requires exactly 3 consecutive days.</div>
-                </div>
-                <div className="text-sm font-semibold text-[#2C4F4E]">($)</div>
-              </div>
-            </Card>
-
-            <Card className={`p-4 cursor-pointer border-2 transition-all ${tier === "premium" ? "border-[#F4A849] bg-[#E7D7B8] shadow-md" : "border-[#2C4F4E]/40 bg-[#F3E6CF] hover:border-[#2C4F4E]"}`} onClick={() => setTier("premium")}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold text-[#2C4F4E] flex items-center gap-2">
-                    Premium
-                    {tier === "premium" && <span className="text-xs bg-[#F4A849] text-[#2C4F4E] px-2 py-0.5 rounded-full">Selected</span>}
-                  </div>
-                  <div className="text-sm text-[#1F2937] opacity-80 mt-1">Highest residential tier. Requires exactly 5 consecutive days. (Pre-activation options available next step.)</div>
-                </div>
-                <div className="text-sm font-semibold text-[#2C4F4E]">$7.99</div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      )}
-
-      <div className="pt-4 border-t border-[#2C4F4E]/20">
+      <div className="pt-4 border-t border-[#2C4F4E]/20 mt-4">
         <Label className="text-[#2C4F4E]" htmlFor="title">Title *</Label>
         <Input
           id="title"

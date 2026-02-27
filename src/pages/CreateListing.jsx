@@ -437,21 +437,6 @@ export default function CreateListingPage() {
         return;
       }
 
-      if (formData.listingType !== "neighborhood_sale" && (formData.tier === "featured" || formData.tier === "premium")) {
-        if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
-          toast.error("Please select start and end dates");
-          return;
-        }
-        const start = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
-        const end = new Date(`${formData.selectedRangeEndDate}T00:00:00`);
-        const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
-        const requiredDays = formData.tier === "featured" ? 3 : 5;
-        if (diffDays !== requiredDays) {
-           toast.error(`${formData.tier === "featured" ? "Featured" : "Premium"} requires exactly ${requiredDays} consecutive days`);
-           return;
-        }
-      }
-
       // Auto-trigger geocoding if lat/lng not set
       if (!formData.lat || !formData.lng) {
         if (geocodeRef) {
@@ -549,7 +534,7 @@ export default function CreateListingPage() {
       };
     }
 
-    // PREMIUM: exactly 5 consecutive days + Early Visibility 0–3
+    // PREMIUM: 1-5 consecutive days + Early Visibility 0–3
     if (formData.tier === "premium") {
       if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
         toast.error("Please select start and end dates");
@@ -565,7 +550,7 @@ export default function CreateListingPage() {
       );
 
       if (!res.valid) {
-        toast.error(res.error || "Premium requires exactly 5 consecutive days");
+        toast.error(res.error || "Premium requires 1 to 5 consecutive days");
         return;
       }
 
