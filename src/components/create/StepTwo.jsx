@@ -171,18 +171,24 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
 
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA`
           );
           const data = await response.json();
+          const feature = data.features?.[0];
 
-          if (data?.address) {
-            const addr = data.address;
+          if (feature) {
+            let city = "", state = "", zip = "";
+            feature.context?.forEach(c => {
+              if (c.id.startsWith('place')) city = c.text;
+              if (c.id.startsWith('region')) state = c.text;
+              if (c.id.startsWith('postcode')) zip = c.text;
+            });
             setFormData((prev) => ({
               ...prev,
-              addressText: `${addr.house_number || ""} ${addr.road || ""}`.trim(),
-              city: addr.city || addr.town || addr.village || "",
-              state: addr.state || "",
-              zip: addr.postcode || "",
+              addressText: feature.address ? `${feature.address} ${feature.text}` : feature.text,
+              city: city || prev.city,
+              state: state || prev.state,
+              zip: zip || prev.zip,
             }));
           }
         } catch (error) {
@@ -236,11 +242,12 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
 
       let data = [];
       let usedQuery = "";
+      const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 
       for (const query of queries) {
         usedQuery = query;
 
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`;
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&limit=5`;
 
         const response = await fetch(url);
 
@@ -251,22 +258,23 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
           return false;
         }
 
-        data = await response.json();
+        const json = await response.json();
+        data = json.features || [];
 
-        if (Array.isArray(data) && data.length > 0) {
+        if (data.length > 0) {
           break;
         }
       }
 
       setDebugInfo({ lastQueryString: usedQuery, lastResponseCount: data?.length ?? 0, lastErrorMessage: "" });
 
-      if (Array.isArray(data) && data.length > 0) {
+      if (data.length > 0) {
         if (data.length === 1) {
           setFormData((prev) => ({
             ...prev,
-            lat: parseFloat(data[0].lat),
-            lng: parseFloat(data[0].lon),
-            ...(prev.listingType === "neighborhood_sale" ? { event_center_lat: parseFloat(data[0].lat), event_center_lng: parseFloat(data[0].lon) } : {})
+            lat: data[0].center[1],
+            lng: data[0].center[0],
+            ...(prev.listingType === "neighborhood_sale" ? { event_center_lat: data[0].center[1], event_center_lng: data[0].center[0] } : {})
           }));
           toast.success("Address located!");
           return true;
@@ -358,19 +366,28 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
               setIsMapModalOpen(false);
               toast.info("Saving location...");
               try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
+                const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`);
                 const data = await response.json();
-                const addr = data?.address || {};
+                const feature = data.features?.[0];
+                let city = "Unknown", state = "XX", zip = "00000";
+                if (feature) {
+                   feature.context?.forEach(c => {
+                     if (c.id.startsWith('place')) city = c.text;
+                     if (c.id.startsWith('region')) state = c.text;
+                     if (c.id.startsWith('postcode')) zip = c.text;
+                   });
+                }
                 setFormData(prev => ({
                   ...prev,
                   event_center_lat: lat,
                   event_center_lng: lng,
                   lat: lat,
                   lng: lng,
-                  addressText: (addr.house_number && addr.road) ? `${addr.house_number} ${addr.road}` : (addr.road || "Map Location"),
-                  city: addr.city || addr.town || addr.village || "Unknown",
-                  state: (addr.state || "XX").slice(0, 2).toUpperCase(),
-                  zip: addr.postcode || "00000"
+                  addressText: feature ? (feature.address ? `${feature.address} ${feature.text}` : feature.text) : "Map Location",
+                  city,
+                  state,
+                  zip
                 }));
                 toast.success("Center location saved!");
               } catch (e) {
@@ -519,23 +536,28 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
                 key={idx}
                 type="button"
                 onClick={() => {
-                  const addr = suggestion.address || {};
+                  let city = formData.city, state = formData.state, zip = formData.zip;
+                  suggestion.context?.forEach(c => {
+                    if (c.id.startsWith('place')) city = c.text;
+                    if (c.id.startsWith('region')) state = c.text;
+                    if (c.id.startsWith('postcode')) zip = c.text;
+                  });
                   setFormData((prev) => ({
                     ...prev,
-                    addressText: `${addr.house_number || ""} ${addr.road || ""}`.trim() || suggestion.display_name.split(',')[0],
-                    city: addr.city || addr.town || addr.village || formData.city,
-                    state: addr.state || formData.state,
-                    zip: addr.postcode || formData.zip,
-                    lat: parseFloat(suggestion.lat),
-                    lng: parseFloat(suggestion.lon),
-                    ...(prev.listingType === "neighborhood_sale" ? { event_center_lat: parseFloat(suggestion.lat), event_center_lng: parseFloat(suggestion.lon) } : {})
+                    addressText: suggestion.address ? `${suggestion.address} ${suggestion.text}` : suggestion.text,
+                    city,
+                    state,
+                    zip,
+                    lat: suggestion.center[1],
+                    lng: suggestion.center[0],
+                    ...(prev.listingType === "neighborhood_sale" ? { event_center_lat: suggestion.center[1], event_center_lng: suggestion.center[0] } : {})
                   }));
                   setAddressSuggestions([]);
                   toast.success("Address selected");
                 }}
                 className="w-full text-left p-3 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF] hover:bg-[#E7D7B8] transition-colors"
               >
-                <p className="text-sm text-[#2C4F4E] font-medium">{suggestion.display_name}</p>
+                <p className="text-sm text-[#2C4F4E] font-medium">{suggestion.place_name}</p>
               </button>
             ))}
           </div>
