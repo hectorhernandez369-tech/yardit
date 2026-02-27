@@ -22,6 +22,19 @@ function addDays(dateStr, delta) {
 
 export default function StepThree({ formData, setFormData }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
+  const tier = formData?.tier || "free";
+
+  const setTier = (nextTier) => {
+    setFormData((p) => {
+      const updated = { ...p, tier: nextTier };
+      if (nextTier === "free") {
+        delete updated.selectedRangeStartDate;
+        delete updated.selectedRangeEndDate;
+        updated.earlyVisibilityDays = 0;
+      }
+      return updated;
+    });
+  };
 
   useEffect(() => {
     if (!isNeighborhoodSale) return;
