@@ -3,8 +3,23 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Card } from "@/components/ui/card";
 
 export default function StepOne({ formData, setFormData }) {
+  const tier = formData?.tier || "free";
+  const listingType = formData?.listingType || "yard_sale";
+
+  const setTier = (nextTier) => {
+    setFormData((p) => {
+      const updated = { ...p, tier: nextTier };
+      if (nextTier === "free") {
+        delete updated.selectedRangeStartDate;
+        delete updated.selectedRangeEndDate;
+      }
+      return updated;
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -21,7 +36,7 @@ export default function StepOne({ formData, setFormData }) {
           value={formData.listingType}
           onValueChange={(value) => setFormData(prev => ({ ...prev, listingType: value }))}
         >
-          <div className="flex items-center space-x-2 p-4 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF]">
+          <div className="flex items-center space-x-2 p-4 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF] mb-2">
             <RadioGroupItem value="yard_sale" id="yard_sale" />
             <Label htmlFor="yard_sale" className="flex-1 cursor-pointer">
               <div className="font-semibold text-[#2C4F4E]">Yard Sale</div>
@@ -38,7 +53,53 @@ export default function StepOne({ formData, setFormData }) {
         </RadioGroup>
       </div>
 
-      <div>
+      {listingType !== "neighborhood_sale" && (
+        <div className="space-y-3 mt-4 pt-4 border-t border-[#2C4F4E]/20">
+          <Label className="text-[#2C4F4E] font-semibold block mb-2">Choose your tier</Label>
+          <div className="grid gap-3">
+            <Card className={`p-4 cursor-pointer border-2 transition-all ${tier === "free" ? "border-[#5DADA5] bg-[#E7D7B8] shadow-md" : "border-[#2C4F4E]/40 bg-[#F3E6CF] hover:border-[#2C4F4E]"}`} onClick={() => setTier("free")}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold text-[#2C4F4E] flex items-center gap-2">
+                    Free
+                    {tier === "free" && <span className="text-xs bg-[#5DADA5] text-white px-2 py-0.5 rounded-full">Selected</span>}
+                  </div>
+                  <div className="text-sm text-[#1F2937] opacity-80 mt-1">List view only. Runs next weekend (Fri–Sun).</div>
+                </div>
+                <div className="text-sm font-semibold text-[#2C4F4E]">Free</div>
+              </div>
+            </Card>
+
+            <Card className={`p-4 cursor-pointer border-2 transition-all ${tier === "featured" ? "border-[#5DADA5] bg-[#E7D7B8] shadow-md" : "border-[#2C4F4E]/40 bg-[#F3E6CF] hover:border-[#2C4F4E]"}`} onClick={() => setTier("featured")}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold text-[#2C4F4E] flex items-center gap-2">
+                    Featured
+                    {tier === "featured" && <span className="text-xs bg-[#5DADA5] text-white px-2 py-0.5 rounded-full">Selected</span>}
+                  </div>
+                  <div className="text-sm text-[#1F2937] opacity-80 mt-1">Strong visibility. Requires exactly 3 consecutive days.</div>
+                </div>
+                <div className="text-sm font-semibold text-[#2C4F4E]">($)</div>
+              </div>
+            </Card>
+
+            <Card className={`p-4 cursor-pointer border-2 transition-all ${tier === "premium" ? "border-[#F4A849] bg-[#E7D7B8] shadow-md" : "border-[#2C4F4E]/40 bg-[#F3E6CF] hover:border-[#2C4F4E]"}`} onClick={() => setTier("premium")}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold text-[#2C4F4E] flex items-center gap-2">
+                    Premium
+                    {tier === "premium" && <span className="text-xs bg-[#F4A849] text-[#2C4F4E] px-2 py-0.5 rounded-full">Selected</span>}
+                  </div>
+                  <div className="text-sm text-[#1F2937] opacity-80 mt-1">Highest residential tier. Requires exactly 5 consecutive days. (Pre-activation options available next step.)</div>
+                </div>
+                <div className="text-sm font-semibold text-[#2C4F4E]">$7.99</div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      <div className="pt-4 border-t border-[#2C4F4E]/20">
         <Label className="text-[#2C4F4E]" htmlFor="title">Title *</Label>
         <Input
           id="title"
@@ -46,7 +107,7 @@ export default function StepOne({ formData, setFormData }) {
           value={formData.title}
           onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
           required
-          className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
+          className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF] mt-2"
         />
       </div>
 
@@ -59,22 +120,22 @@ export default function StepOne({ formData, setFormData }) {
           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
           rows={5}
           required
-          className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
+          className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF] mt-2"
         />
       </div>
 
-      {formData.listingType === "neighborhood_sale" && (
-        <>
+      {listingType === "neighborhood_sale" && (
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label className="text-[#2C4F4E]" htmlFor="homeCount">Number of Homes (Up to 25)</Label>
+            <Label className="text-[#2C4F4E]" htmlFor="homeCount">Number of Homes (Max 25)</Label>
             <Input
               id="homeCount"
               type="number"
               min="1"
               max="25"
               value={formData.homeCount}
-              onChange={(e) => setFormData(prev => ({ ...prev, homeCount: parseInt(e.target.value) }))}
-              className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF]"
+              onChange={(e) => setFormData(prev => ({ ...prev, homeCount: parseInt(e.target.value) || 1 }))}
+              className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF] mt-2"
             />
           </div>
           <div>
@@ -84,10 +145,10 @@ export default function StepOne({ formData, setFormData }) {
               type="number"
               value={500}
               disabled
-              className="border-[#2C4F4E] bg-[#E7D7B8] opacity-70 cursor-not-allowed"
+              className="border-[#2C4F4E] bg-[#E7D7B8] opacity-70 cursor-not-allowed mt-2"
             />
           </div>
-        </>
+        </div>
       )}
     </div>
   );

@@ -51,6 +51,7 @@ import AdminLite from './pages/AdminLite';
 import CaseManagement from './pages/CaseManagement';
 import CreateListing from './pages/CreateListing';
 import Home from './pages/Home';
+import JoinNeighborhoodSale from './pages/JoinNeighborhoodSale';
 import Leaderboard from './pages/Leaderboard';
 import ListingDetail from './pages/ListingDetail';
 import MyHunt from './pages/MyHunt';
@@ -60,7 +61,6 @@ import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import SellerDashboard from './pages/SellerDashboard';
 import Settings from './pages/Settings';
-import JoinNeighborhoodSale from './pages/JoinNeighborhoodSale';
 import joinNeighborhoodSale from './pages/join-neighborhood-sale';
 import __Layout from './Layout.jsx';
 
@@ -70,6 +70,7 @@ export const PAGES = {
     "CaseManagement": CaseManagement,
     "CreateListing": CreateListing,
     "Home": Home,
+    "JoinNeighborhoodSale": JoinNeighborhoodSale,
     "Leaderboard": Leaderboard,
     "ListingDetail": ListingDetail,
     "MyHunt": MyHunt,
@@ -79,7 +80,6 @@ export const PAGES = {
     "Profile": Profile,
     "SellerDashboard": SellerDashboard,
     "Settings": Settings,
-    "JoinNeighborhoodSale": JoinNeighborhoodSale,
     "join-neighborhood-sale": joinNeighborhoodSale,
 }
 

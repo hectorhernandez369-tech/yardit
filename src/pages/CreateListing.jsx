@@ -449,6 +449,21 @@ export default function CreateListingPage() {
         return;
       }
 
+      if (formData.listingType !== "neighborhood_sale" && (formData.tier === "featured" || formData.tier === "premium")) {
+        if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
+          toast.error("Please select start and end dates");
+          return;
+        }
+        const start = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
+        const end = new Date(`${formData.selectedRangeEndDate}T00:00:00`);
+        const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        const requiredDays = formData.tier === "featured" ? 3 : 5;
+        if (diffDays !== requiredDays) {
+           toast.error(`${formData.tier === "featured" ? "Featured" : "Premium"} requires exactly ${requiredDays} consecutive days`);
+           return;
+        }
+      }
+
       // Auto-trigger geocoding if lat/lng not set
       if (!formData.lat || !formData.lng) {
         if (geocodeRef) {
@@ -553,10 +568,12 @@ export default function CreateListingPage() {
         return;
       }
 
+      const earlyDays = Math.max(0, Math.min(3, Number(formData.earlyVisibilityDays || 0)));
+
       const res = computePremiumDates(
         formData.selectedRangeStartDate,
         formData.selectedRangeEndDate,
-        Number(formData.earlyVisibilityDays || 0)
+        earlyDays
       );
 
       if (!res.valid) {
@@ -564,11 +581,19 @@ export default function CreateListingPage() {
         return;
       }
 
+      let earlyVisibilityStartDateTime = null;
+      if (earlyDays > 0) {
+         const startDt = new Date(`${formData.selectedRangeStartDate}T00:00:00Z`);
+         startDt.setDate(startDt.getDate() - earlyDays);
+         earlyVisibilityStartDateTime = startDt.toISOString();
+      }
+
       payload = {
         ...payload,
-        earlyVisibilityDays: Math.max(0, Math.min(3, Number(formData.earlyVisibilityDays || 0))),
+        earlyVisibilityDays: earlyDays,
         earlyVisibilityDates: res.earlyVisibilityDates,
-        activeDates: res.activeDates
+        activeDates: res.activeDates,
+        ...(earlyVisibilityStartDateTime && { earlyVisibilityStartDateTime })
       };
     }
 
