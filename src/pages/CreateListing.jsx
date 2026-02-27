@@ -584,6 +584,27 @@ export default function CreateListingPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={showSaleModal} onOpenChange={setShowSaleModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Neighborhood Sale in your area</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-slate-700">
+              <span className="font-semibold">{matchedSale?.title}</span> is happening nearby. Want to request to join?
+            </p>
+          </div>
+          <DialogFooter className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setShowSaleModal(false)}>
+              Not now
+            </Button>
+            <Button onClick={handleJoinRequest} className="bg-amber-600 hover:bg-amber-700">
+              Ask to Join
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
