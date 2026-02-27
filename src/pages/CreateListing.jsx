@@ -249,74 +249,62 @@ export default function CreateListingPage() {
     initialData: []
   });
 
-  /**
-   * (plain english) Sale-in-area detection:
-   * Show the popup EVEN IF the neighborhood sale is not "activated" yet
-   * as long as it is:
-   * - within 500ft
-   * - has dates
-   * - not expired
-   * - not canceled/downgraded
-   */
-  const { data: nearbyNeighborhoodSales } = useQuery({
-    queryKey: ["nearbyNeighborhoodSales", formData.lat, formData.lng, user?.id],
-    queryFn: async () => {
-      if (!formData.lat || !formData.lng) return [];
-      if (!user?.id) return [];
-
-      const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" });
-      const now = new Date();
-
-      return (sales || []).filter((s) => {
-        if (!s.startDateTime || !s.endDateTime) return false;
-
-        const end = new Date(s.endDateTime);
-        if (now >= end) return false;
-
-        if (s.status === "downgraded" || s.status === "canceled") return false;
-
-        // distance check: event center falls back to lat/lng if old data
-        const cLat = s.event_center_lat ?? s.lat;
-        const cLng = s.event_center_lng ?? s.lng;
-        const dist = getDistanceFeet(formData.lat, formData.lng, cLat, cLng);
-        if (dist > 500) return false;
-
-        // do not prompt EO
-        if (s.ownerUserId === user.id) return false;
-
-        // 24h spam guard
-        const dismissedAt = localStorage.getItem(`yardit_dismissed_sale_${s.id}`);
-        if (dismissedAt && now.getTime() - parseInt(dismissedAt, 10) < 24 * 60 * 60 * 1000) {
-          return false;
-        }
-
-        // don't prompt if already requested or approved
-        const alreadyRequested = (userJoinRequests || []).some(
-          (r) =>
-            r.listingId === s.id &&
-            (r.status === "pending" || r.status === "approved")
-        );
-        return !alreadyRequested;
-      });
-    },
-    // ✅ Key change: allow popup in step 2 or 3 (as soon as coords exist)
-    enabled:
-      !!user &&
-      !!userJoinRequests &&
-      formData.listingType !== "neighborhood_sale" &&
-      !!formData.lat &&
-      !!formData.lng &&
-      step >= 2,
-    initialData: []
-  });
-
+  // (plain english) Sale-in-area detection: triggers instantly when coords are available
   useEffect(() => {
-    if (nearbyNeighborhoodSales?.length > 0 && !hasPromptedSale && step >= 2) {
-      setMatchedSale(nearbyNeighborhoodSales[0]);
-      setShowSaleModal(true);
-      setHasPromptedSale(true);
-    }
-  }, [step, nearbyNeighborhoodSales, hasPromptedSale]);
+    if (!user?.id || formData.listingType === "neighborhood_sale" || !formData.lat || !formData.lng) return;
+    if (hasPromptedSale) return;
+
+    let isMounted = true;
+    const checkNearby = async () => {
+      try {
+        const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" });
+        if (!isMounted) return;
+        
+        let reqs = [];
+        try {
+          reqs = await base44.entities.JoinRequest.filter({ userId: user.id });
+        } catch {
+          // ignore
+        }
+        if (!isMounted) return;
+
+        const now = new Date();
+        const nearby = (sales || []).filter((s) => {
+          if (!s.startDateTime || !s.endDateTime) return false;
+          const end = new Date(s.endDateTime);
+          if (now >= end) return false;
+          if (s.status === "downgraded" || s.status === "canceled") return false;
+
+          const cLat = s.event_center_lat ?? s.lat;
+          const cLng = s.event_center_lng ?? s.lng;
+          const dist = getDistanceFeet(formData.lat, formData.lng, cLat, cLng);
+          if (dist > 500) return false;
+
+          if (s.ownerUserId === user.id) return false;
+
+          const dismissedAt = localStorage.getItem(`yardit_dismissed_sale_${s.id}`);
+          if (dismissedAt && now.getTime() - parseInt(dismissedAt, 10) < 24 * 60 * 60 * 1000) {
+            return false;
+          }
+
+          const alreadyRequested = reqs.some(
+            (r) => r.listingId === s.id && (r.status === "pending" || r.status === "approved")
+          );
+          return !alreadyRequested;
+        });
+
+        if (nearby.length > 0) {
+          setMatchedSale(nearby[0]);
+          setShowSaleModal(true);
+          setHasPromptedSale(true);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    checkNearby();
+    return () => { isMounted = false; };
+  }, [formData.lat, formData.lng, user?.id, formData.listingType, hasPromptedSale]);
 
   const handleJoinRequest = async () => {
     try {
