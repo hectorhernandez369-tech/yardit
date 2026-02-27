@@ -16,7 +16,6 @@ import { isDemoMode } from "../components/shared/DemoMode";
 
 // Tier Engine (shared business logic)
 import {
-  computeFreeWindow,
   computeFeaturedDates,
   computePremiumDates,
   enforcePhotoLimit
@@ -30,12 +29,15 @@ const FALLBACK_TZ = "America/Los_Angeles";
 function getDistanceFeet(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
   const R = 20902231; // Earth radius in feet
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
@@ -47,38 +49,62 @@ function isDevBypassUser(user) {
   return !!user?.id && DEV_BYPASS_USER_IDS.includes(user.id);
 }
 
+/**
+ * (plain english) Next weekend rule for Free tier:
+ * Auto schedule to next Friday 12:00am through Sunday 11:59pm (America/Los_Angeles)
+ */
 function getNextWeekendLAISO() {
   const now = new Date();
   const laString = now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
   const laNow = new Date(laString);
-  
+
   let daysToFriday = 5 - laNow.getDay();
   if (daysToFriday <= 0) daysToFriday += 7;
-  
+
   const fri = new Date(laNow);
   fri.setDate(laNow.getDate() + daysToFriday);
   const sun = new Date(laNow);
   sun.setDate(laNow.getDate() + daysToFriday + 2);
-  
-  const pad = (n) => n.toString().padStart(2, '0');
-  const friDateStr = `${fri.getFullYear()}-${pad(fri.getMonth()+1)}-${pad(fri.getDate())}`;
-  const sunDateStr = `${sun.getFullYear()}-${pad(sun.getMonth()+1)}-${pad(sun.getDate())}`;
+
+  const pad = (n) => n.toString().padStart(2, "0");
+  const friDateStr = `${fri.getFullYear()}-${pad(fri.getMonth() + 1)}-${pad(fri.getDate())}`;
+  const sunDateStr = `${sun.getFullYear()}-${pad(sun.getMonth() + 1)}-${pad(sun.getDate())}`;
 
   const getOffset = (dateStr) => {
     const d7 = new Date(`${dateStr}T00:00:00-07:00`);
-    const h7 = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', hour12: false }).format(d7), 10);
-    return (h7 === 0 || h7 === 24) ? 7 : 8;
+    const h7 = parseInt(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Los_Angeles",
+        hour: "numeric",
+        hour12: false
+      }).format(d7),
+      10
+    );
+    return h7 === 0 || h7 === 24 ? 7 : 8;
   };
-  
+
   const friOffset = getOffset(friDateStr);
   const sunOffset = getOffset(sunDateStr);
-  
+
   return {
     start: new Date(`${friDateStr}T00:00:00-0${friOffset}:00`).toISOString(),
     end: new Date(`${sunDateStr}T23:59:59-0${sunOffset}:00`).toISOString(),
     startDateStr: friDateStr,
     endDateStr: sunDateStr
   };
+}
+
+function getSaleConfirmedCount(sale) {
+  // (plain english) tries multiple field names so we don't miss it
+  const v =
+    sale?.homeCount ??
+    sale?.confirmed_count ??
+    sale?.confirmedCount ??
+    sale?.confirmedHomes ??
+    sale?.participantsCount ??
+    0;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 }
 
 export default function CreateListingPage() {
@@ -91,6 +117,7 @@ export default function CreateListingPage() {
   const [user, setUser] = useState(null);
   const [geocodeRef, setGeocodeRef] = useState(null);
 
+  // (plain english) "Sale in your area" modal state
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [matchedSale, setMatchedSale] = useState(null);
   const [hasPromptedSale, setHasPromptedSale] = useState(false);
@@ -108,6 +135,7 @@ export default function CreateListingPage() {
     zip: "",
     lat: null,
     lng: null,
+
     event_center_lat: null,
     event_center_lng: null,
 
@@ -127,7 +155,7 @@ export default function CreateListingPage() {
     earlyVisibilityDates: [],
     activeDates: [],
 
-    // Categories (saved now, used later for “category weekends”)
+    // Categories
     mainCategories: [],
     subCategories: [],
 
@@ -137,7 +165,10 @@ export default function CreateListingPage() {
     homeCount: 1,
     spanFeet: 0,
     validatedDistance: false,
-    validatedText: false
+    validatedText: false,
+
+    // optional flags
+    locationMethod: "address"
   });
 
   // ✅ Relist loader: reads localStorage + maps keys + jumps to Step 3
@@ -155,11 +186,8 @@ export default function CreateListingPage() {
 
       setFormData((prev) => ({
         ...prev,
-
-        // ✅ bring over what we can
         ...pre,
 
-        // ✅ map to CreateListing's actual keys (so Step 2 is filled)
         addressText: pre.addressText || pre.street || "",
         city: pre.city || "",
         state: pre.state || "",
@@ -169,7 +197,6 @@ export default function CreateListingPage() {
         event_center_lat: pre.lat ?? null,
         event_center_lng: pre.lng ?? null,
 
-        // ✅ reset Step 3 fields so user must re-pick
         tier: "",
         startDateTime: "",
         endDateTime: "",
@@ -183,7 +210,7 @@ export default function CreateListingPage() {
       setStep(3);
       localStorage.removeItem(RELIST_STORAGE_KEY);
       toast.success("Relist loaded — pick a tier and schedule");
-    } catch (e) {
+    } catch {
       // ignore parse errors
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -214,7 +241,7 @@ export default function CreateListingPage() {
     queryFn: async () => {
       try {
         return await base44.entities.JoinRequest.filter({ userId: user.id });
-      } catch (e) {
+      } catch {
         return [];
       }
     },
@@ -222,37 +249,69 @@ export default function CreateListingPage() {
     initialData: []
   });
 
+  /**
+   * (plain english) Sale-in-area detection:
+   * Show the popup EVEN IF the neighborhood sale is not "activated" yet
+   * as long as it is:
+   * - within 500ft
+   * - has dates
+   * - not expired
+   * - not canceled/downgraded
+   */
   const { data: nearbyNeighborhoodSales } = useQuery({
-    queryKey: ["nearbyNeighborhoodSales", formData.lat, formData.lng],
+    queryKey: ["nearbyNeighborhoodSales", formData.lat, formData.lng, user?.id],
     queryFn: async () => {
       if (!formData.lat || !formData.lng) return [];
+      if (!user?.id) return [];
+
       const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" });
       const now = new Date();
-      return sales.filter(s => {
+
+      return (sales || []).filter((s) => {
         if (!s.startDateTime || !s.endDateTime) return false;
+
         const end = new Date(s.endDateTime);
         if (now >= end) return false;
+
         if (s.status === "downgraded" || s.status === "canceled") return false;
 
-        const dist = getDistanceFeet(formData.lat, formData.lng, s.event_center_lat || s.lat, s.event_center_lng || s.lng);
+        // distance check: event center falls back to lat/lng if old data
+        const cLat = s.event_center_lat ?? s.lat;
+        const cLng = s.event_center_lng ?? s.lng;
+        const dist = getDistanceFeet(formData.lat, formData.lng, cLat, cLng);
         if (dist > 500) return false;
 
+        // do not prompt EO
         if (s.ownerUserId === user.id) return false;
 
+        // 24h spam guard
         const dismissedAt = localStorage.getItem(`yardit_dismissed_sale_${s.id}`);
         if (dismissedAt && now.getTime() - parseInt(dismissedAt, 10) < 24 * 60 * 60 * 1000) {
           return false;
         }
 
-        const alreadyRequested = userJoinRequests.some(r => r.listingId === s.id && (r.status === "pending" || r.status === "approved"));
+        // don't prompt if already requested or approved
+        const alreadyRequested = (userJoinRequests || []).some(
+          (r) =>
+            r.listingId === s.id &&
+            (r.status === "pending" || r.status === "approved")
+        );
         return !alreadyRequested;
       });
     },
-    enabled: step === 3 && formData.listingType !== "neighborhood_sale" && !!formData.lat && !!formData.lng && !!userJoinRequests
+    // ✅ Key change: allow popup in step 2 or 3 (as soon as coords exist)
+    enabled:
+      !!user &&
+      !!userJoinRequests &&
+      formData.listingType !== "neighborhood_sale" &&
+      !!formData.lat &&
+      !!formData.lng &&
+      step >= 2,
+    initialData: []
   });
 
   useEffect(() => {
-    if (step === 3 && nearbyNeighborhoodSales?.length > 0 && !hasPromptedSale) {
+    if (nearbyNeighborhoodSales?.length > 0 && !hasPromptedSale && step >= 2) {
       setMatchedSale(nearbyNeighborhoodSales[0]);
       setShowSaleModal(true);
       setHasPromptedSale(true);
@@ -267,8 +326,8 @@ export default function CreateListingPage() {
         ownerUserId: matchedSale.ownerUserId,
         status: "pending"
       });
-      toast.success("Join request sent!");
-    } catch (e) {
+      toast.success("Request sent — pending approval.");
+    } catch {
       toast.error("Failed to send join request.");
     }
     setShowSaleModal(false);
@@ -284,7 +343,6 @@ export default function CreateListingPage() {
   const hasActiveResidentialListing = () => {
     if (isDemoMode()) return false;
     if (isDevBypassUser(user)) return false; // (plain english) your account is exempt
-
     return (userListings || []).some((l) => l.status === "active");
   };
 
@@ -343,13 +401,21 @@ export default function CreateListingPage() {
           return;
         }
 
-        const isMapMethod = !formData.locationMethod || formData.locationMethod === "map" || formData.locMethod === "map";
+        // (plain english) organizer address must be within 500ft (uses confirmed profile coords)
+        const isMapMethod =
+          !formData.locationMethod ||
+          formData.locationMethod === "map" ||
+          formData.locMethod === "map";
+
         if (isMapMethod) {
-          if (!user?.lat || !user?.lng) {
+          const uLat = user?.address_lat ?? user?.lat;
+          const uLng = user?.address_lng ?? user?.lng;
+
+          if (!uLat || !uLng) {
             toast.error("Please add/confirm your profile address before creating a Neighborhood Sale.");
             return;
           }
-          const dist = getDistanceFeet(user.lat, user.lng, formData.event_center_lat, formData.event_center_lng);
+          const dist = getDistanceFeet(uLat, uLng, formData.event_center_lat, formData.event_center_lng);
           if (dist > 500) {
             toast.error("Your profile address must be within 500 ft of the Neighborhood center.");
             return;
@@ -360,17 +426,20 @@ export default function CreateListingPage() {
           toast.error("Please select start and end dates");
           return;
         }
+
         const start = new Date(formData.selectedRangeStartDate);
         const end = new Date(formData.selectedRangeEndDate);
         const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+
         if (diffDays > 3) {
-           toast.error("Event can be a maximum of 3 days");
-           return;
+          toast.error("Event can be a maximum of 3 days");
+          return;
         }
         if (end < start) {
-           toast.error("End date cannot be before start date");
-           return;
+          toast.error("End date cannot be before start date");
+          return;
         }
+
         setStep(3);
         return;
       }
@@ -386,9 +455,7 @@ export default function CreateListingPage() {
           toast.info("Verifying address...");
           const success = await geocodeRef();
           if (!success) {
-            toast.error(
-              "We couldn't confirm this address. Please select a suggestion or check spelling."
-            );
+            toast.error("We couldn't confirm this address. Please select a suggestion or check spelling.");
             return;
           }
         } else {
@@ -397,7 +464,6 @@ export default function CreateListingPage() {
         }
       }
 
-      // (plain english) later: derive timezoneId from lat/lng; for now we keep fallback
       setStep(3);
       return;
     }
@@ -434,6 +500,7 @@ export default function CreateListingPage() {
 
     let payload = { ...formData, timeZoneId };
 
+    // Neighborhood event normalization
     if (payload.listingType === "neighborhood_sale") {
       payload.spanFeet = 500;
       payload.tier = "neighborhood_tier";
@@ -441,7 +508,8 @@ export default function CreateListingPage() {
       payload.endDateTime = new Date(formData.selectedRangeEndDate + "T23:59:59Z").toISOString();
     }
 
-    // FREE TIER DATE RULE (Phase 1 locked): Always next weekend in LA
+    // ✅ FREE TIER DATE RULE (Phase 1 locked): always next weekend in LA
+    // (plain english: Free tier never lets the user choose dates)
     if (payload.tier === "free") {
       const nextWeekend = getNextWeekendLAISO();
       payload = {
@@ -463,11 +531,7 @@ export default function CreateListingPage() {
         return;
       }
 
-      const res = computeFeaturedDates(
-        formData.selectedRangeStartDate,
-        formData.selectedRangeEndDate
-      );
-
+      const res = computeFeaturedDates(formData.selectedRangeStartDate, formData.selectedRangeEndDate);
       if (!res.valid) {
         toast.error(res.error || "Featured requires exactly 3 consecutive days");
         return;
@@ -478,7 +542,6 @@ export default function CreateListingPage() {
         activeDates: res.activeDates,
         earlyVisibilityDays: 0,
         earlyVisibilityDates: []
-        // startDateTime/endDateTime should already be set by TierSchedule
       };
     }
 
@@ -505,7 +568,6 @@ export default function CreateListingPage() {
         earlyVisibilityDays: Math.max(0, Math.min(3, Number(formData.earlyVisibilityDays || 0))),
         earlyVisibilityDates: res.earlyVisibilityDates,
         activeDates: res.activeDates
-        // startDateTime/endDateTime should already be set by TierSchedule
       };
     }
 
@@ -566,11 +628,7 @@ export default function CreateListingPage() {
 
             {step === 1 && <StepOne formData={formData} setFormData={setFormData} />}
             {step === 2 && (
-              <StepTwo
-                formData={formData}
-                setFormData={setFormData}
-                onGeocodeRef={setGeocodeRef}
-              />
+              <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} />
             )}
             {step === 3 && <StepThree formData={formData} setFormData={setFormData} />}
 
@@ -598,24 +656,37 @@ export default function CreateListingPage() {
         </Card>
       </div>
 
-      <Dialog open={showSaleModal} onOpenChange={(open) => { if (!open) handleDismissSaleModal(); }}>
+      {/* (plain english) Sale-in-area popup */}
+      <Dialog
+        open={showSaleModal}
+        onOpenChange={(open) => {
+          if (!open) handleDismissSaleModal();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Neighborhood Sale in your area</DialogTitle>
           </DialogHeader>
+
           <div className="py-4">
             <p className="text-slate-700 mb-2">
-              Neighborhood Sale listed nearby for {matchedSale?.startDateTime ? new Date(matchedSale.startDateTime).toLocaleDateString() : ""} - {matchedSale?.endDateTime ? new Date(matchedSale.endDateTime).toLocaleDateString() : ""}
+              There is a Neighborhood Sale listed nearby for{" "}
+              {matchedSale?.startDateTime ? new Date(matchedSale.startDateTime).toLocaleDateString() : ""}{" "}
+              -{" "}
+              {matchedSale?.endDateTime ? new Date(matchedSale.endDateTime).toLocaleDateString() : ""}
             </p>
-            {matchedSale && (matchedSale.homeCount || 0) < 5 && (
+
+            {matchedSale && getSaleConfirmedCount(matchedSale) < 5 && (
               <p className="text-sm font-semibold text-amber-600 mb-2">
-                Needs {5 - (matchedSale.homeCount || 0)} more homes to activate.
+                Needs {5 - getSaleConfirmedCount(matchedSale)} more homes to activate.
               </p>
             )}
+
             <p className="text-slate-700">
               <span className="font-semibold">{matchedSale?.title}</span> is happening nearby. Want to request to join?
             </p>
           </div>
+
           <DialogFooter className="flex gap-2 justify-end">
             <Button variant="outline" onClick={handleDismissSaleModal}>
               Not now
@@ -628,13 +699,4 @@ export default function CreateListingPage() {
       </Dialog>
     </div>
   );
-}
-
-// (plain english) confirmation dialog helper
-function safeConfirm(message) {
-  try {
-    return window.confirm(message);
-  } catch (e) {
-    return true;
-  }
 }
