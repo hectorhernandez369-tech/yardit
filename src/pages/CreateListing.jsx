@@ -520,21 +520,34 @@ export default function CreateListingPage() {
         return;
       }
 
-      const res = computeFeaturedDates(formData.selectedRangeStartDate, formData.selectedRangeEndDate);
-      if (!res.valid) {
-        toast.error(res.error || "Featured requires exactly 3 consecutive days");
+      const startLocal = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
+      const endLocal = new Date(`${formData.selectedRangeEndDate}T00:00:00`);
+      const diffDays = Math.round((endLocal - startLocal) / (1000 * 60 * 60 * 24)) + 1;
+      
+      if (diffDays !== 3) {
+        toast.error("Featured requires exactly 3 consecutive days");
         return;
+      }
+
+      let activeDates = [];
+      const pad = (n) => String(n).padStart(2, "0");
+      for(let i=0; i<3; i++) {
+         const d = new Date(startLocal);
+         d.setDate(d.getDate() + i);
+         activeDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
       }
 
       payload = {
         ...payload,
-        activeDates: res.activeDates,
+        startDateTime: new Date(`${formData.selectedRangeStartDate}T00:00:00Z`).toISOString(),
+        endDateTime: new Date(`${formData.selectedRangeEndDate}T23:59:59Z`).toISOString(),
+        activeDates: activeDates,
         earlyVisibilityDays: 0,
         earlyVisibilityDates: []
       };
     }
 
-    // PREMIUM: exactly 5 consecutive days + Early Visibility 0–3
+    // PREMIUM: 1-5 consecutive days + Early Visibility 0–3
     if (formData.tier === "premium") {
       if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
         toast.error("Please select start and end dates");
@@ -543,29 +556,46 @@ export default function CreateListingPage() {
 
       const earlyDays = Math.max(0, Math.min(3, Number(formData.earlyVisibilityDays || 0)));
 
-      const res = computePremiumDates(
-        formData.selectedRangeStartDate,
-        formData.selectedRangeEndDate,
-        earlyDays
-      );
+      const startLocal = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
+      const endLocal = new Date(`${formData.selectedRangeEndDate}T00:00:00`);
+      const diffDays = Math.round((endLocal - startLocal) / (1000 * 60 * 60 * 24)) + 1;
 
-      if (!res.valid) {
-        toast.error(res.error || "Premium requires exactly 5 consecutive days");
-        return;
+      if (diffDays < 1 || diffDays > 5) {
+         toast.error("Premium allows 1 to 5 consecutive days");
+         return;
       }
 
       let earlyVisibilityStartDateTime = null;
+      let earlyVisibilityDates = [];
+      let activeDates = [];
+      
+      const pad = (n) => String(n).padStart(2, "0");
+      
+      for(let i=0; i<diffDays; i++) {
+         const d = new Date(startLocal);
+         d.setDate(d.getDate() + i);
+         activeDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+      }
+      
       if (earlyDays > 0) {
-         const startDt = new Date(`${formData.selectedRangeStartDate}T00:00:00Z`);
+         const startDt = new Date(startLocal);
          startDt.setDate(startDt.getDate() - earlyDays);
          earlyVisibilityStartDateTime = startDt.toISOString();
+         
+         for(let i=0; i<earlyDays; i++) {
+             const d = new Date(startDt);
+             d.setDate(d.getDate() + i);
+             earlyVisibilityDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+         }
       }
 
       payload = {
         ...payload,
+        startDateTime: new Date(`${formData.selectedRangeStartDate}T00:00:00Z`).toISOString(),
+        endDateTime: new Date(`${formData.selectedRangeEndDate}T23:59:59Z`).toISOString(),
         earlyVisibilityDays: earlyDays,
-        earlyVisibilityDates: res.earlyVisibilityDates,
-        activeDates: res.activeDates,
+        earlyVisibilityDates: earlyVisibilityDates,
+        activeDates: activeDates,
         ...(earlyVisibilityStartDateTime && { earlyVisibilityStartDateTime })
       };
     }
