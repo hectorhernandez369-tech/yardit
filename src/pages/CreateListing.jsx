@@ -267,30 +267,6 @@ export default function CreateListingPage() {
     }
     setShowSaleModal(false);
   };
-  });
-
-  useEffect(() => {
-    if (step === 3 && nearbyNeighborhoodSales?.length > 0 && !hasPromptedSale) {
-      setMatchedSale(nearbyNeighborhoodSales[0]);
-      setShowSaleModal(true);
-      setHasPromptedSale(true);
-    }
-  }, [step, nearbyNeighborhoodSales, hasPromptedSale]);
-
-  const handleJoinRequest = async () => {
-    try {
-      await base44.entities.JoinRequest.create({
-        listingId: matchedSale.id,
-        userId: user.id,
-        ownerUserId: matchedSale.ownerUserId,
-        status: "pending"
-      });
-      toast.success("Join request sent!");
-    } catch (e) {
-      toast.error("Failed to send join request.");
-    }
-    setShowSaleModal(false);
-  };
 
   const hasActiveResidentialListing = () => {
     if (isDemoMode()) return false;
