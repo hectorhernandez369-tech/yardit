@@ -632,6 +632,8 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef }) {
         </div>
       )}
 
+
+
       {/* Debug overlay (temporary) */}
       {(debugInfo.lastQueryString || debugInfo.lastErrorMessage) && (
         <div className="mt-4 rounded border border-dashed border-gray-400 bg-gray-100 p-2 text-[11px] font-mono text-gray-600">
