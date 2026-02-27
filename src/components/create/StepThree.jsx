@@ -1,403 +1,207 @@
-import React, { useEffect, useMemo } from "react";
-import { toast } from "sonner";
+import React, { useMemo } from "react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-function safeUUID() {
-  try {
-    if (crypto?.randomUUID) return crypto.randomUUID();
-  } catch {}
-  return `ns_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+// (plain english) simple helpers
+function daysBetweenInclusive(startStr, endStr) {
+  if (!startStr || !endStr) return 0;
+  const s = new Date(`${startStr}T00:00:00`);
+  const e = new Date(`${endStr}T00:00:00`);
+  const diff = Math.round((e - s) / (1000 * 60 * 60 * 24));
+  return diff >= 0 ? diff + 1 : 0;
 }
 
-function fmtDate(isoOrDateStr) {
-  if (!isoOrDateStr) return "Not set";
-  try {
-    const d = new Date(isoOrDateStr);
-    if (Number.isNaN(d.getTime())) return "Not set";
-    return d.toLocaleDateString();
-  } catch {
-    return "Not set";
-  }
-}
-
-function fmtRange(startISO, endISO) {
-  const a = fmtDate(startISO);
-  const b = fmtDate(endISO);
-  if (a === "Not set" || b === "Not set") return "Not set";
-  return `${a} – ${b}`;
-}
-
-// dateStr is "YYYY-MM-DD"
-function addDaysDateStr(dateStr, deltaDays) {
-  if (!dateStr) return null;
-  try {
-    const [y, m, d] = dateStr.split("-").map((x) => Number(x));
-    if (!y || !m || !d) return null;
-    const dt = new Date(y, m - 1, d);
-    dt.setDate(dt.getDate() + deltaDays);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
-  } catch {
-    return null;
-  }
-}
-
-function dateStrToISOStart(dateStr) {
+function addDays(dateStr, delta) {
   if (!dateStr) return "";
-  return new Date(`${dateStr}T00:00:00`).toISOString();
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setDate(d.getDate() + delta);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function dateStrToISOEnd(dateStr) {
-  if (!dateStr) return "";
-  return new Date(`${dateStr}T23:59:59`).toISOString();
-}
+export default function StepOne({ formData, setFormData, onNext }) {
+  const tier = formData?.tier || "free";
+  const listingType = formData?.listingType || "yard_sale"; // (plain english) neighborhood sale is separate flow
 
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-}
+  // (plain english) date fields used across your app already
+  const startDate = formData?.selectedRangeStartDate || "";
+  const endDate = formData?.selectedRangeEndDate || "";
 
-export default function StepThree({ formData, setFormData }) {
-  const listingType = formData?.listingType || "yard_sale";
-  const tier = formData?.tier || "";
-  const isNeighborhoodSale = listingType === "neighborhood_sale";
+  // (plain english) show date UI only for Featured/Premium AND only for normal listings
+  const showDatePickers =
+    listingType !== "neighborhood_sale" && (tier === "featured" || tier === "premium");
 
-  // Ensure Neighborhood invite code exists (so EO can share before publish)
-  useEffect(() => {
-    if (!isNeighborhoodSale) return;
+  // (plain english) enforce durations by tier (Featured 3, Premium 5)
+  const requiredDays = tier === "featured" ? 3 : tier === "premium" ? 5 : 0;
 
-    const existing = formData?.invite_code || formData?.neighborhoodDraftId;
-    if (existing) return;
+  const selectedDays = useMemo(() => {
+    return daysBetweenInclusive(startDate, endDate);
+  }, [startDate, endDate]);
 
-    const id = safeUUID();
-    setFormData((p) => ({
-      ...p,
-      invite_code: id,
-      neighborhoodDraftId: id,
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNeighborhoodSale]);
+  const durationOk = useMemo(() => {
+    if (!showDatePickers) return true;
+    return selectedDays === requiredDays;
+  }, [showDatePickers, selectedDays, requiredDays]);
 
-  // Premium pre-activation: +/- counter (0–3)
-  const earlyDays = useMemo(() => {
-    const n = Number(formData?.earlyVisibilityDays ?? 0);
-    return Number.isFinite(n) ? Math.max(0, Math.min(3, n)) : 0;
-  }, [formData?.earlyVisibilityDays]);
+  const durationHint = useMemo(() => {
+    if (!showDatePickers) return "";
+    if (!startDate || !endDate) return `Select ${requiredDays} consecutive days.`;
+    if (durationOk) return `Perfect: ${requiredDays} days selected.`;
+    if (selectedDays === 0) return `Select ${requiredDays} consecutive days.`;
+    return `Must be exactly ${requiredDays} consecutive days (you selected ${selectedDays}).`;
+  }, [showDatePickers, requiredDays, startDate, endDate, durationOk, selectedDays]);
 
-  const canShowSchedule = !isNeighborhoodSale && !!tier;
+  const setTier = (nextTier) => {
+    setFormData((p) => {
+      const updated = { ...p, tier: nextTier };
 
-  // Determine the date range fields used across the app
-  const startISO = formData?.startDateTime || "";
-  const endISO = formData?.endDateTime || "";
-
-  // If CreateListing hasn’t computed start/end yet, fall back to selected range
-  const selectedStart = formData?.selectedRangeStartDate || "";
-  const selectedEnd = formData?.selectedRangeEndDate || "";
-
-  const resolvedStartISO = useMemo(() => {
-    if (startISO) return startISO;
-    if (selectedStart) return dateStrToISOStart(selectedStart);
-    return "";
-  }, [startISO, selectedStart]);
-
-  const resolvedEndISO = useMemo(() => {
-    if (endISO) return endISO;
-    if (selectedEnd) return dateStrToISOEnd(selectedEnd);
-    return "";
-  }, [endISO, selectedEnd]);
-
-  const premiumAdvertisingStartISO = useMemo(() => {
-    if (!selectedStart) return "";
-    const advStart = addDaysDateStr(selectedStart, -earlyDays);
-    if (!advStart) return "";
-    return dateStrToISOStart(advStart);
-  }, [selectedStart, earlyDays]);
-
-  const inviteUrl = useMemo(() => {
-    if (!isNeighborhoodSale) return "";
-    const code = formData?.invite_code || formData?.neighborhoodDraftId;
-    if (!code) return "";
-    return `${window.location.origin}/join-neighborhood-sale?code=${encodeURIComponent(code)}`;
-  }, [isNeighborhoodSale, formData?.invite_code, formData?.neighborhoodDraftId]);
-
-  const onMinusEarly = () => {
-    setFormData((p) => ({
-      ...p,
-      earlyVisibilityDays: Math.max(0, Math.min(3, Number(p?.earlyVisibilityDays ?? 0) - 1)),
-    }));
-  };
-
-  const onPlusEarly = () => {
-    setFormData((p) => ({
-      ...p,
-      earlyVisibilityDays: Math.max(0, Math.min(3, Number(p?.earlyVisibilityDays ?? 0) + 1)),
-    }));
-  };
-
-  const onCopyLink = async () => {
-    if (!inviteUrl) return;
-    const ok = await copyToClipboard(inviteUrl);
-    if (ok) toast.success("Link copied");
-    else toast.error("Could not copy link");
-  };
-
-  const onShare = async () => {
-    if (!inviteUrl) return;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Join our Neighborhood Sale",
-          text: "Tap to request to join the Neighborhood Sale on Yardit.",
-          url: inviteUrl,
-        });
-        return;
-      } catch {
-        // user cancelled; fall back to copy
+      // (plain english) if they switch to Free, remove any chosen dates from UI layer
+      if (nextTier === "free") {
+        delete updated.selectedRangeStartDate;
+        delete updated.selectedRangeEndDate;
       }
-    }
-    await onCopyLink();
+
+      // (plain english) if they switch between Featured/Premium, keep startDate but auto-set endDate to valid length (if start exists)
+      if ((nextTier === "featured" || nextTier === "premium") && p?.selectedRangeStartDate) {
+        const req = nextTier === "featured" ? 3 : 5;
+        updated.selectedRangeEndDate = addDays(p.selectedRangeStartDate, req - 1);
+      }
+
+      return updated;
+    });
   };
+
+  const handleStartChange = (val) => {
+    setFormData((p) => {
+      const req = p?.tier === "featured" ? 3 : p?.tier === "premium" ? 5 : 0;
+      const next = { ...p, selectedRangeStartDate: val };
+
+      // (plain english) auto-fill end date to match required length
+      if (req > 0 && val) next.selectedRangeEndDate = addDays(val, req - 1);
+
+      return next;
+    });
+  };
+
+  const handleEndChange = (val) => {
+    // (plain english) allow manual end change, but still validate and warn
+    setFormData((p) => ({ ...p, selectedRangeEndDate: val }));
+  };
+
+  const canContinue = useMemo(() => {
+    if (listingType === "neighborhood_sale") return true; // handled elsewhere
+    if (tier === "free") return true;
+    if (tier === "featured" || tier === "premium") {
+      return !!startDate && !!endDate && durationOk;
+    }
+    return true;
+  }, [listingType, tier, startDate, endDate, durationOk]);
 
   return (
     <div className="space-y-4">
-      {/* 1) Review header */}
-      <div className="space-y-1">
-        <div className="text-base font-semibold">Review</div>
-        <div className="text-sm opacity-70">
-          (Confirm your schedule and rules before you publish.)
-        </div>
+      <div className="text-base font-semibold">Choose your tier</div>
+
+      {/* (plain english) Neighborhood Sale should NOT show here */}
+      <div className="grid gap-3">
+        {/* FREE */}
+        <Card
+          className={`p-4 cursor-pointer border ${
+            tier === "free" ? "ring-2 ring-black/20" : ""
+          }`}
+          onClick={() => setTier("free")}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="font-semibold">Free</div>
+              <div className="text-sm opacity-70">
+                List view only. Runs next weekend (Fri–Sun).
+              </div>
+            </div>
+            <div className="text-sm font-semibold">Free</div>
+          </div>
+        </Card>
+
+        {/* FEATURED */}
+        <Card
+          className={`p-4 cursor-pointer border ${
+            tier === "featured" ? "ring-2 ring-black/20" : ""
+          }`}
+          onClick={() => setTier("featured")}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="font-semibold">Featured</div>
+              <div className="text-sm opacity-70">
+                Strong visibility. Requires exactly 3 consecutive days.
+              </div>
+            </div>
+            <div className="text-sm font-semibold">(price)</div>
+          </div>
+        </Card>
+
+        {/* PREMIUM */}
+        <Card
+          className={`p-4 cursor-pointer border ${
+            tier === "premium" ? "ring-2 ring-black/20" : ""
+          }`}
+          onClick={() => setTier("premium")}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="font-semibold">Premium</div>
+              <div className="text-sm opacity-70">
+                Highest residential tier. Requires exactly 5 consecutive days.
+                (Pre-activation is set later in the flow.)
+              </div>
+            </div>
+            <div className="text-sm font-semibold">$7.99</div>
+          </div>
+        </Card>
       </div>
 
-      {/* 2) Schedule Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Schedule Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {isNeighborhoodSale ? (
-            <>
-              <div className="text-sm">
-                <div className="font-medium">Neighborhood Event Dates</div>
-                <div className="opacity-80">
-                  {fmtRange(resolvedStartISO, resolvedEndISO)}{" "}
-                  <span className="text-xs opacity-70">(max 3 days)</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg border p-3">
-                  <div className="text-xs opacity-70">Radius</div>
-                  <div className="font-semibold">500 ft (locked)</div>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <div className="text-xs opacity-70">Homes</div>
-                  <div className="font-semibold">Up to 25</div>
-                </div>
-              </div>
-            </>
-          ) : !canShowSchedule ? (
-            <div className="text-sm opacity-70">(Select a tier to see schedule details.)</div>
-          ) : tier === "free" ? (
-            <>
-              <div className="text-sm">
-                <div className="font-medium">Scheduled</div>
-                <div className="opacity-80">
-                  Next weekend (Fri–Sun){resolvedStartISO && resolvedEndISO ? `: ${fmtRange(resolvedStartISO, resolvedEndISO)}` : ""}
-                </div>
-              </div>
-              <div className="text-xs opacity-70">
-                Dates cannot be changed for Free listings.
-              </div>
-            </>
-          ) : tier === "featured" ? (
-            <>
-              <div className="text-sm">
-                <div className="font-medium">Active Dates</div>
-                <div className="opacity-80">
-                  {fmtRange(resolvedStartISO, resolvedEndISO)}{" "}
-                  <span className="text-xs opacity-70">(3 days)</span>
-                </div>
-              </div>
-              <div className="text-xs opacity-70">
-                Featured requires exactly 3 consecutive days.
-              </div>
-            </>
-          ) : tier === "premium" ? (
-            <>
-              <div className="text-sm">
-                <div className="font-medium">Active Dates</div>
-                <div className="opacity-80">
-                  {fmtRange(resolvedStartISO, resolvedEndISO)}{" "}
-                  <span className="text-xs opacity-70">(5 days)</span>
-                </div>
-              </div>
-
-              {/* Premium Pre-Activation */}
-              <div className="rounded-lg border p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-medium">Pre-Activation Advertising</div>
-                    <div className="text-xs opacity-70">
-                      Pre-activation shows your pin early for advertising only. (It does not start your sale early.)
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={onMinusEarly}
-                      className="h-9 w-10 px-0"
-                      aria-label="Decrease pre-activation days"
-                    >
-                      –
-                    </Button>
-                    <div className="min-w-[40px] text-center text-sm font-semibold">
-                      {earlyDays}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={onPlusEarly}
-                      className="h-9 w-10 px-0"
-                      aria-label="Increase pre-activation days"
-                    >
-                      +
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="mt-3 space-y-1 text-sm">
-                  <div>
-                    <span className="font-medium">Advertising starts:</span>{" "}
-                    <span className="opacity-80">{fmtDate(premiumAdvertisingStartISO)}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium">Sale active:</span>{" "}
-                    <span className="opacity-80">{fmtRange(resolvedStartISO, resolvedEndISO)}</span>
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="text-sm opacity-70">(Schedule rules not defined for this tier.)</div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 3) Tier Rules */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Tier Rules</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div className="space-y-1">
-            <div className="font-semibold">Free</div>
-            <ul className="list-disc pl-5 opacity-80 space-y-1">
-              <li>Appears in list view only (no priority pin).</li>
-              <li>Runs next weekend only (Fri–Sun).</li>
-            </ul>
+      {/* Date pickers (only for Featured/Premium) */}
+      {showDatePickers && (
+        <Card className="p-4">
+          <div className="font-semibold">Select your dates</div>
+          <div className="text-sm opacity-70 mt-1">
+            {tier === "featured"
+              ? "Featured listings must run exactly 3 consecutive days."
+              : "Premium listings must run exactly 5 consecutive days."}
           </div>
 
-          <div className="space-y-1">
-            <div className="font-semibold">Featured</div>
-            <ul className="list-disc pl-5 opacity-80 space-y-1">
-              <li>Exactly 3 consecutive days.</li>
-              <li>Higher visibility than standard/premium pins at broader zooms.</li>
-              <li>No pre-activation advertising.</li>
-            </ul>
-          </div>
-
-          <div className="space-y-1">
-            <div className="font-semibold">Premium</div>
-            <ul className="list-disc pl-5 opacity-80 space-y-1">
-              <li>Exactly 5 consecutive days.</li>
-              <li>Optional pre-activation advertising (0–3 days) using + / –.</li>
-              <li>Pre-activation shows your pin early for advertising only.</li>
-            </ul>
-          </div>
-
-          <div className="space-y-1">
-            <div className="font-semibold">Neighborhood Sale</div>
-            <ul className="list-disc pl-5 opacity-80 space-y-1">
-              <li>Separate event (opt-in only). Homes are not auto-included just by being nearby.</li>
-              <li>EO controls the event; homes request to join and EO approves/denies via notifications.</li>
-              <li>Radius is locked (500 ft) and event supports up to 25 homes.</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 4) Neighborhood Invite (only for neighborhood sale) */}
-      {isNeighborhoodSale && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Invite Homes</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-sm opacity-80">
-              Share this link so homes can request to join your Neighborhood Sale.
+          <div className="mt-4 grid gap-3">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Start Date</label>
+              <input
+                type="date"
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                value={startDate}
+                onChange={(e) => handleStartChange(e.target.value)}
+              />
             </div>
 
-            <input
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              readOnly
-              value={inviteUrl || ""}
-              onFocus={(e) => e.target.select()}
-            />
-
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={onCopyLink}>
-                Copy Link
-              </Button>
-              <Button type="button" className="flex-1" onClick={onShare}>
-                Share
-              </Button>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">End Date</label>
+              <input
+                type="date"
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                value={endDate}
+                onChange={(e) => handleEndChange(e.target.value)}
+              />
             </div>
 
-            <div className="text-[11px] opacity-60">
-              (Link opens a join page where homes can request approval.)
+            <div className={`text-sm ${durationOk ? "opacity-70" : "text-red-600"}`}>
+              {durationHint}
             </div>
-          </CardContent>
+          </div>
         </Card>
       )}
 
-      {/* 5) What happens next */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">What happens next?</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm space-y-2 opacity-90">
-          {isNeighborhoodSale ? (
-            <>
-              <div>• Homes who join will request approval.</div>
-              <div>• You’ll approve/deny from your notification bell.</div>
-              <div>• Once 5+ homes confirm, you can activate advertising (coming soon) before the event.</div>
-            </>
-          ) : (
-            <>
-              <div>• Your pin appears based on your tier rules.</div>
-              <div>• Your listing auto-expires after the end date.</div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <div className="flex justify-end">
+        <Button type="button" onClick={onNext} disabled={!canContinue}>
+          Continue
+        </Button>
+      </div>
     </div>
   );
 }
