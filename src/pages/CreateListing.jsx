@@ -534,7 +534,7 @@ export default function CreateListingPage() {
       };
     }
 
-    // PREMIUM: 1-5 consecutive days + Early Visibility 0–3
+    // PREMIUM: exactly 5 consecutive days + Early Visibility 0–3
     if (formData.tier === "premium") {
       if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
         toast.error("Please select start and end dates");
@@ -550,7 +550,7 @@ export default function CreateListingPage() {
       );
 
       if (!res.valid) {
-        toast.error(res.error || "Premium requires 1 to 5 consecutive days");
+        toast.error(res.error || "Premium requires exactly 5 consecutive days");
         return;
       }
 
