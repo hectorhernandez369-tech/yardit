@@ -226,19 +226,25 @@ export default function CreateListingPage() {
     queryKey: ["nearbyNeighborhoodSales", formData.lat, formData.lng],
     queryFn: async () => {
       if (!formData.lat || !formData.lng) return [];
-      const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale", status: "activated" });
+      const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" });
       const now = new Date();
       return sales.filter(s => {
+        if (!s.startDateTime || !s.endDateTime) return false;
+        const end = new Date(s.endDateTime);
+        if (now >= end) return false;
+        if (s.status === "downgraded" || s.status === "canceled") return false;
+
         const dist = getDistanceFeet(formData.lat, formData.lng, s.event_center_lat || s.lat, s.event_center_lng || s.lng);
         if (dist > 500) return false;
-        
-        const start = new Date(s.startDateTime);
-        const end = new Date(s.endDateTime);
-        const isAdvertising = s.advertising_started_at && now < start;
-        const isOngoing = now >= start && now <= end;
-        if (!isAdvertising && !isOngoing) return false;
 
-        const alreadyRequested = userJoinRequests.some(r => r.listingId === s.id);
+        if (s.ownerUserId === user.id) return false;
+
+        const dismissedAt = localStorage.getItem(`yardit_dismissed_sale_${s.id}`);
+        if (dismissedAt && now.getTime() - parseInt(dismissedAt, 10) < 24 * 60 * 60 * 1000) {
+          return false;
+        }
+
+        const alreadyRequested = userJoinRequests.some(r => r.listingId === s.id && (r.status === "pending" || r.status === "approved"));
         return !alreadyRequested;
       });
     },
@@ -264,6 +270,13 @@ export default function CreateListingPage() {
       toast.success("Join request sent!");
     } catch (e) {
       toast.error("Failed to send join request.");
+    }
+    setShowSaleModal(false);
+  };
+
+  const handleDismissSaleModal = () => {
+    if (matchedSale) {
+      localStorage.setItem(`yardit_dismissed_sale_${matchedSale.id}`, Date.now().toString());
     }
     setShowSaleModal(false);
   };
