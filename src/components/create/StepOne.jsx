@@ -6,7 +6,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 
 export default function StepOne({ formData, setFormData }) {
-  const tier = formData?.tier || "free";
   const listingType = formData?.listingType || "yard_sale";
 
   return (
@@ -42,7 +41,9 @@ export default function StepOne({ formData, setFormData }) {
         </RadioGroup>
       </div>
 
-      <div className="pt-4 border-t border-[#2C4F4E]/20 mt-4">
+
+
+      <div className="pt-4 border-t border-[#2C4F4E]/20">
         <Label className="text-[#2C4F4E]" htmlFor="title">Title *</Label>
         <Input
           id="title"
