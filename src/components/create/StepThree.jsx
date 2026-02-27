@@ -14,17 +14,18 @@ function makeId() {
 export default function StepThree({ formData, setFormData }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
 
-  // (plain english) create a stable draft invite code BEFORE publish, so EO can share immediately
+  // ---------------------------
+  // Neighborhood Invite Code
+  // ---------------------------
   useEffect(() => {
     if (!isNeighborhoodSale) return;
-    if (formData?.neighborhoodDraftId) return;
+    if (formData?.neighborhoodDraftId || formData?.invite_code) return;
 
     const id = makeId();
     setFormData((p) => ({
       ...p,
       neighborhoodDraftId: id,
-      // (plain english) store on the listing too so backend can save it as invite_code
-      invite_code: id,
+      invite_code: id, // (plain english) saved later on the listing record
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNeighborhoodSale]);
@@ -33,18 +34,15 @@ export default function StepThree({ formData, setFormData }) {
     if (!isNeighborhoodSale) return "";
     const code = formData?.neighborhoodDraftId || formData?.invite_code;
     if (!code) return "";
-    // (plain english) this is the link people will click to request to join
     return `${window.location.origin}/join-neighborhood-sale?code=${encodeURIComponent(code)}`;
   }, [isNeighborhoodSale, formData?.neighborhoodDraftId, formData?.invite_code]);
 
   const copyInviteLink = async () => {
     if (!inviteUrl) return;
-
     try {
       await navigator.clipboard.writeText(inviteUrl);
       toast.success("Link copied");
     } catch {
-      // (plain english) fallback for older devices
       try {
         const ta = document.createElement("textarea");
         ta.value = inviteUrl;
@@ -61,8 +59,6 @@ export default function StepThree({ formData, setFormData }) {
 
   const shareInviteLink = async () => {
     if (!inviteUrl) return;
-
-    // (plain english) use phone’s share sheet if available
     if (navigator.share) {
       try {
         await navigator.share({
@@ -72,21 +68,123 @@ export default function StepThree({ formData, setFormData }) {
         });
         return;
       } catch {
-        // user canceled share — do nothing
+        // user cancelled - ignore
       }
     }
-
-    // (plain english) fallback = copy
     await copyInviteLink();
   };
 
+  // ---------------------------
+  // Tier selection
+  // ---------------------------
+  const tier = formData?.tier || "free";
+
+  const setTier = (value) => {
+    setFormData((p) => ({
+      ...p,
+      tier: value,
+    }));
+  };
+
+  // (plain english) quick display values — the real FREE rules are enforced in CreateListing.jsx
+  const freeLabel = "Free (Next Weekend Only)";
+  const premiumLabel = "Premium ($7.99)";
+
+  // ---------------------------
+  // Review helper text
+  // ---------------------------
+  const reviewTypeText = isNeighborhoodSale ? "Neighborhood Sale (Event)" : "Standard Listing";
+  const reviewRadiusText = isNeighborhoodSale ? "500 ft radius (fixed)" : "Standard location rules";
+
+  const start = formData?.startDateTime || "";
+  const end = formData?.endDateTime || "";
+  const rangeText =
+    start && end
+      ? `${new Date(start).toLocaleDateString()} – ${new Date(end).toLocaleDateString()}`
+      : "(dates will be set by tier rules)";
+
   return (
     <div className="space-y-4">
-      {/* ===== Existing Tier / Review UI =====
-          (plain english) KEEP whatever you already had here.
-          If your previous StepThree had more content, paste it above/below this new section.
-      */}
+      {/* ---------------------------
+          Tier Selection (RESTORED)
+         --------------------------- */}
+      <Card className="p-4">
+        <div className="space-y-1">
+          <div className="text-sm font-semibold">Tier</div>
+          <div className="text-xs opacity-70">
+            Choose how much visibility you want. (plain english: free is limited, paid gets priority)
+          </div>
+        </div>
 
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setTier("free")}
+            className={[
+              "rounded-md border p-3 text-left transition",
+              tier === "free" ? "border-black/40 bg-black/[0.03]" : "hover:bg-black/[0.02]",
+            ].join(" ")}
+          >
+            <div className="text-sm font-semibold">{freeLabel}</div>
+            <div className="mt-1 text-xs opacity-70">
+              Runs the very next weekend (Fri–Sun). No custom dates.
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTier("premium")}
+            className={[
+              "rounded-md border p-3 text-left transition",
+              tier === "premium" ? "border-black/40 bg-black/[0.03]" : "hover:bg-black/[0.02]",
+            ].join(" ")}
+          >
+            <div className="text-sm font-semibold">{premiumLabel}</div>
+            <div className="mt-1 text-xs opacity-70">
+              Priority placement and better visibility.
+            </div>
+          </button>
+        </div>
+
+        {isNeighborhoodSale && (
+          <div className="mt-3 text-xs opacity-70">
+            Neighborhood Sale pricing is a flat rate ($49). (plain english: you don’t pick per-home tiers here)
+          </div>
+        )}
+      </Card>
+
+      {/* ---------------------------
+          Review / Summary
+         --------------------------- */}
+      <Card className="p-4">
+        <div className="text-sm font-semibold">Review</div>
+
+        <div className="mt-3 space-y-2 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="opacity-70">Listing Type</span>
+            <span className="font-medium">{reviewTypeText}</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="opacity-70">Tier Selected</span>
+            <span className="font-medium">{tier}</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="opacity-70">Dates</span>
+            <span className="font-medium">{rangeText}</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="opacity-70">Radius</span>
+            <span className="font-medium">{reviewRadiusText}</span>
+          </div>
+        </div>
+      </Card>
+
+      {/* ---------------------------
+          Invite Homes (Neighborhood Only)
+         --------------------------- */}
       {isNeighborhoodSale && (
         <Card className="p-4">
           <div className="flex items-start justify-between gap-3">
@@ -116,7 +214,7 @@ export default function StepThree({ formData, setFormData }) {
             </div>
 
             <div className="text-[11px] opacity-60">
-              (plain english) If you change this URL path later, update it in this file and in the join page route.
+              (plain english) This link sends people to the request-to-join page.
             </div>
           </div>
         </Card>
