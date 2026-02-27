@@ -209,6 +209,65 @@ export default function CreateListingPage() {
     initialData: []
   });
 
+  const { data: userJoinRequests } = useQuery({
+    queryKey: ["userJoinRequests", user?.id],
+    queryFn: async () => {
+      try {
+        return await base44.entities.JoinRequest.filter({ userId: user.id });
+      } catch (e) {
+        return [];
+      }
+    },
+    enabled: !!user,
+    initialData: []
+  });
+
+  const { data: nearbyNeighborhoodSales } = useQuery({
+    queryKey: ["nearbyNeighborhoodSales", formData.lat, formData.lng],
+    queryFn: async () => {
+      if (!formData.lat || !formData.lng) return [];
+      const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale", status: "activated" });
+      const now = new Date();
+      return sales.filter(s => {
+        const dist = getDistanceFeet(formData.lat, formData.lng, s.event_center_lat || s.lat, s.event_center_lng || s.lng);
+        if (dist > 500) return false;
+        
+        const start = new Date(s.startDateTime);
+        const end = new Date(s.endDateTime);
+        const isAdvertising = s.advertising_started_at && now < start;
+        const isOngoing = now >= start && now <= end;
+        if (!isAdvertising && !isOngoing) return false;
+
+        const alreadyRequested = userJoinRequests.some(r => r.listingId === s.id);
+        return !alreadyRequested;
+      });
+    },
+    enabled: step === 3 && formData.listingType !== "neighborhood_sale" && !!formData.lat && !!formData.lng && !!userJoinRequests
+  });
+
+  useEffect(() => {
+    if (step === 3 && nearbyNeighborhoodSales?.length > 0 && !hasPromptedSale) {
+      setMatchedSale(nearbyNeighborhoodSales[0]);
+      setShowSaleModal(true);
+      setHasPromptedSale(true);
+    }
+  }, [step, nearbyNeighborhoodSales, hasPromptedSale]);
+
+  const handleJoinRequest = async () => {
+    try {
+      await base44.entities.JoinRequest.create({
+        listingId: matchedSale.id,
+        userId: user.id,
+        ownerUserId: matchedSale.ownerUserId,
+        status: "pending"
+      });
+      toast.success("Join request sent!");
+    } catch (e) {
+      toast.error("Failed to send join request.");
+    }
+    setShowSaleModal(false);
+  };
+
   const hasActiveResidentialListing = () => {
     if (isDemoMode()) return false;
     if (isDevBypassUser(user)) return false; // (plain english) your account is exempt
