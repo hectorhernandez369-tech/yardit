@@ -506,6 +506,7 @@ export default function CreateListingPage() {
       payload.tier = "neighborhood_tier";
       payload.startDateTime = new Date(formData.selectedRangeStartDate + "T00:00:00Z").toISOString();
       payload.endDateTime = new Date(formData.selectedRangeEndDate + "T23:59:59Z").toISOString();
+      payload.invite_code = formData.invite_code || formData.neighborhoodDraftId;
     }
 
     // ✅ FREE TIER DATE RULE (Phase 1 locked): always next weekend in LA
