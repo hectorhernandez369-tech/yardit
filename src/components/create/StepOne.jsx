@@ -15,6 +15,7 @@ export default function StepOne({ formData, setFormData }) {
       if (nextTier === "free") {
         delete updated.selectedRangeStartDate;
         delete updated.selectedRangeEndDate;
+        updated.earlyVisibilityDays = 0;
       }
       return updated;
     });
