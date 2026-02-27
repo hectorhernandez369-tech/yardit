@@ -61,6 +61,7 @@ import Profile from './pages/Profile';
 import SellerDashboard from './pages/SellerDashboard';
 import Settings from './pages/Settings';
 import JoinNeighborhoodSale from './pages/JoinNeighborhoodSale';
+import joinNeighborhoodSale from './pages/join-neighborhood-sale';
 import __Layout from './Layout.jsx';
 
 
@@ -79,6 +80,7 @@ export const PAGES = {
     "SellerDashboard": SellerDashboard,
     "Settings": Settings,
     "JoinNeighborhoodSale": JoinNeighborhoodSale,
+    "join-neighborhood-sale": joinNeighborhoodSale,
 }
 
 export const pagesConfig = {
