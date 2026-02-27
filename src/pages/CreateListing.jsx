@@ -91,6 +91,10 @@ export default function CreateListingPage() {
   const [user, setUser] = useState(null);
   const [geocodeRef, setGeocodeRef] = useState(null);
 
+  const [showSaleModal, setShowSaleModal] = useState(false);
+  const [matchedSale, setMatchedSale] = useState(null);
+  const [hasPromptedSale, setHasPromptedSale] = useState(false);
+
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
     tier: "free",
