@@ -133,7 +133,7 @@ export default function StepThree({ formData, setFormData }) {
                     </div>
                     <div className="text-sm text-[#1F2937] opacity-80 mt-1">Strong visibility. Requires exactly 3 consecutive days.</div>
                   </div>
-                  <div className="text-sm font-semibold text-[#2C4F4E]">($)</div>
+                  <div className="text-sm font-semibold text-[#2C4F4E]">$4.99</div>
                 </div>
               </Card>
 
