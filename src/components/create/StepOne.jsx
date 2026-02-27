@@ -6,20 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 
 export default function StepOne({ formData, setFormData }) {
-  const tier = formData?.tier || "free";
   const listingType = formData?.listingType || "yard_sale";
-
-  const setTier = (nextTier) => {
-    setFormData((p) => {
-      const updated = { ...p, tier: nextTier };
-      if (nextTier === "free") {
-        delete updated.selectedRangeStartDate;
-        delete updated.selectedRangeEndDate;
-        updated.earlyVisibilityDays = 0;
-      }
-      return updated;
-    });
-  };
 
   return (
     <div className="space-y-6">
