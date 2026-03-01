@@ -166,7 +166,8 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                               notificationId: notification.id,
                               action: 'accept',
                               requesterEmail: notification.metadata?.requester_email || notification.metadata?.userId || notification.user_email,
-                              eventTitle: notification.metadata?.event_title || 'the neighborhood sale'
+                              eventTitle: notification.metadata?.event_title || 'the neighborhood sale',
+                              notification: notification
                             });
                           }}
                         >
