@@ -690,43 +690,79 @@ export default function CreateListingPage() {
         </Card>
       </div>
 
-      {/* (plain english) Sale-in-area popup */}
+      {/* Popup #1 */}
       <Dialog
-        open={showSaleModal}
+        open={saleModalStep === 1}
         onOpenChange={(open) => {
-          if (!open) handleDismissSaleModal();
+          if (!open) {
+            setJoinAction("none");
+            setSaleModalStep(0);
+            executeSubmit("none");
+          }
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Neighborhood Sale in your area</DialogTitle>
+            <DialogTitle>Neighborhood event in your area</DialogTitle>
           </DialogHeader>
 
           <div className="py-4">
             <p className="text-slate-700 mb-2">
-              There is a Neighborhood Sale listed nearby for{" "}
+              There is a Neighborhood Sale scheduled near you for{" "}
               {matchedSale?.startDateTime ? new Date(matchedSale.startDateTime).toLocaleDateString() : ""}{" "}
               -{" "}
               {matchedSale?.endDateTime ? new Date(matchedSale.endDateTime).toLocaleDateString() : ""}
             </p>
+          </div>
 
-            {matchedSale && getSaleConfirmedCount(matchedSale) < 5 && (
-              <p className="text-sm font-semibold text-amber-600 mb-2">
-                Needs {5 - getSaleConfirmedCount(matchedSale)} more homes to activate.
-              </p>
-            )}
+          <DialogFooter className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => {
+              setJoinAction("none");
+              setSaleModalStep(0);
+              executeSubmit("none");
+            }}>
+              NO THANKS
+            </Button>
+            <Button onClick={() => setSaleModalStep(2)} className="bg-amber-600 hover:bg-amber-700">
+              ASK TO JOIN
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            <p className="text-slate-700">
-              <span className="font-semibold">{matchedSale?.title}</span> is happening nearby. Want to request to join?
+      {/* Popup #2 */}
+      <Dialog
+        open={saleModalStep === 2}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSaleModalStep(0);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Important</DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-slate-700 whitespace-pre-line leading-relaxed">
+              If accepted, you will not be charged a listing fee.{"\n"}
+              Please continue checkout now — your request will not be sent until after checkout is submitted.{"\n"}
+              Your payment will be placed on hold.{"\n"}
+              If you are not accepted by the time your listing starts, you will be charged. No refund.
             </p>
           </div>
 
           <DialogFooter className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={handleDismissSaleModal}>
-              Not now
+            <Button variant="outline" onClick={() => setSaleModalStep(0)}>
+              CANCEL
             </Button>
-            <Button onClick={handleJoinRequest} className="bg-amber-600 hover:bg-amber-700">
-              Ask to Join
+            <Button onClick={() => {
+              setJoinAction("requested");
+              setSaleModalStep(0);
+              executeSubmit("requested");
+            }} className="bg-amber-600 hover:bg-amber-700">
+              CONTINUE CHECKOUT
             </Button>
           </DialogFooter>
         </DialogContent>
