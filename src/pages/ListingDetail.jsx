@@ -57,7 +57,8 @@ export default function ListingDetailPage() {
   });
 
   const pendingRequests = joinRequests?.filter(r => r.status === "pending") || [];
-  const approvedRequests = joinRequests?.filter(r => r.status === "approved") || [];
+  const approvedRequests = joinRequests?.filter(r => r.status === "approved" && !r.removed_by_eo) || [];
+  const removedRequests = joinRequests?.filter(r => r.status === "denied" && r.removed_by_eo === true) || [];
 
   // (plain english) query to get parent neighborhood sale info if the listing was approved to join one
   const { data: parentSale } = useQuery({
@@ -87,7 +88,12 @@ export default function ListingDetailPage() {
           metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId }
         });
       } else if (action === "remove") {
-        await base44.entities.JoinRequest.update(requestId, { status: "denied" });
+        await base44.entities.JoinRequest.update(requestId, { 
+          status: "denied",
+          removed_by_eo: true,
+          removed_at: new Date().toISOString(),
+          removal_reason: "eo_removed"
+        });
         await base44.entities.Listing.update(requesterListingId, {
           neighborhood_join_status: "denied",
           neighborhood_sale_id: null
@@ -291,6 +297,25 @@ export default function ListingDetailPage() {
                               Remove from Neighborhood
                             </Button>
                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* (plain english) section to show removed homes for EO */}
+                {user && user.id === listing.ownerUserId && removedRequests.length > 0 && (
+                  <div className="mt-4 border-t border-red-200 pt-4">
+                    <h4 className="font-semibold text-red-900 mb-3">Removed Homes ({removedRequests.length})</h4>
+                    <div className="space-y-3">
+                      {removedRequests.map(req => (
+                        <div key={req.id} className="bg-white p-3 rounded border border-red-100 shadow-sm opacity-75">
+                          <div className="flex justify-between items-start mb-1">
+                            <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
+                            <Badge className="bg-red-600 text-white hover:bg-red-700 border-none">Removed</Badge>
+                          </div>
+                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.addressText || "No address"}</p>
+                          <p className="text-sm text-slate-500 line-clamp-2 mb-3">{req.listingDetails?.description}</p>
                         </div>
                       ))}
                     </div>
