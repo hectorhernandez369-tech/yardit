@@ -42,11 +42,11 @@ export default function ListingDetailPage() {
     enabled: !!listingId,
   });
 
-  // (plain english) query to get pending join requests if the user is the owner of a neighborhood sale
+  // (plain english) query to get pending and approved join requests if the user is the owner of a neighborhood sale
   const { data: joinRequests } = useQuery({
     queryKey: ["joinRequests", listingId],
     queryFn: async () => {
-      const reqs = await base44.entities.JoinRequest.filter({ saleListingId: listingId, status: "pending" });
+      const reqs = await base44.entities.JoinRequest.filter({ saleListingId: listingId });
       const enriched = await Promise.all(reqs.map(async (r) => {
         const l = await base44.entities.Listing.filter({ id: r.listingId });
         return { ...r, listingDetails: l[0] };
@@ -55,6 +55,9 @@ export default function ListingDetailPage() {
     },
     enabled: !!listing && listing.listingType === "neighborhood_sale" && !!user && user.id === listing.ownerUserId,
   });
+
+  const pendingRequests = joinRequests?.filter(r => r.status === "pending") || [];
+  const approvedRequests = joinRequests?.filter(r => r.status === "approved") || [];
 
   // (plain english) query to get parent neighborhood sale info if the listing was approved to join one
   const { data: parentSale } = useQuery({
