@@ -571,7 +571,7 @@ export default function CreateListingPage() {
         const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" });
         let reqs = [];
         try {
-          reqs = await base44.entities.JoinRequest.filter({ userId: user.id });
+          reqs = await base44.entities.JoinRequest.filter({ requesterUserId: user.id });
         } catch {}
 
         const now = new Date();
