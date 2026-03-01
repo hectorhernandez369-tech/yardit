@@ -172,9 +172,26 @@ export default function MyListingsPage() {
     if (!ok) return;
 
     try {
-      // NOTE: if Base44 uses a different delete method name, swap it:
-      // delete -> remove / destroy (same behavior)
       await base44.entities.Listing.delete(listing.id);
+
+      // Notification Cleanup
+      try {
+        const reqs = await base44.entities.JoinRequest.filter({ listingId: listing.id });
+        for (const req of reqs) {
+          await base44.entities.JoinRequest.delete(req.id);
+        }
+
+        const allNotifs = await base44.entities.Notification.filter({});
+        const toDelete = allNotifs.filter(n => 
+          n.metadata?.requester_listing_id === listing.id || 
+          n.metadata?.sale_listing_id === listing.id
+        );
+        for (const n of toDelete) {
+          await base44.entities.Notification.delete(n.id);
+        }
+      } catch (err) {
+        console.error("Cleanup error", err);
+      }
 
       toast.success("Listing deleted");
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
