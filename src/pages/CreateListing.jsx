@@ -589,8 +589,10 @@ export default function CreateListingPage() {
           if (s.ownerUserId === user.id) return false;
 
           const alreadyRequested = reqs.some(
-            (r) => r.listingId === s.id && (r.status === "pending" || r.status === "approved")
-          );
+  (r) =>
+    r.saleListingId === s.id &&
+    (r.status === "pending" || r.status === "approved")
+);
           return !alreadyRequested;
         });
 
