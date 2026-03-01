@@ -27,31 +27,59 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
   });
 
   const respondToRequestMutation = useMutation({
-    mutationFn: async ({ notificationId, action, requesterEmail, eventTitle }) => {
-      // Create notification for homeowner
-      const message = action === 'accept' 
-        ? `Approved — you joined ${eventTitle}.`
-        : `Denied — not added to ${eventTitle}.`;
-        
-      await base44.entities.Notification.create({
-        userId: requesterEmail, // Using userId instead of user_email to match entity schema
-        title: "Neighborhood Sale Request",
-        message: message,
-        type: `join_response_${action}`,
-        read: false
-      });
+    mutationFn: async ({ notificationId, action, requesterEmail, eventTitle, notification }) => {
+      const reqUserId = notification?.metadata?.requester_user_id || requesterEmail;
+      const reqListingId = notification?.metadata?.requester_listing_id;
 
-      // Update EO notification to hide buttons and mark read
+      if (action === 'accept') {
+        if (reqListingId) {
+          await base44.entities.Listing.update(reqListingId, {
+            neighborhood_join_status: "approved",
+            payment_intent_status: "voided",
+            activation_status: "active"
+          });
+          const reqs = await base44.entities.JoinRequest.filter({ listingId: reqListingId });
+          if (reqs && reqs.length > 0) {
+            await base44.entities.JoinRequest.update(reqs[0].id, { status: "approved" });
+          }
+        }
+        
+        await base44.entities.Notification.create({
+          userId: reqUserId,
+          title: "Neighborhood Sale Request",
+          message: `Approved — you joined ${eventTitle}.`,
+          type: "join_response_accept",
+          read: false
+        });
+      } else {
+        if (reqListingId) {
+          await base44.entities.Listing.update(reqListingId, {
+            neighborhood_join_status: "denied"
+          });
+          const reqs = await base44.entities.JoinRequest.filter({ listingId: reqListingId });
+          if (reqs && reqs.length > 0) {
+            await base44.entities.JoinRequest.update(reqs[0].id, { status: "denied" });
+          }
+        }
+
+        await base44.entities.Notification.create({
+          userId: reqUserId,
+          title: "Neighborhood Sale Request",
+          message: "Request denied. Complete payment to activate listing.",
+          type: "join_response_deny",
+          read: false
+        });
+      }
+
       await base44.entities.Notification.update(notificationId, { 
         read: true,
         type: `join_request_resolved`,
         message: `You ${action === 'accept' ? 'approved' : 'denied'} the join request for ${eventTitle}.`
       });
-
-      // Normally we would also update the actual request entity here
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
       toast.success("Response sent");
     },
   });
