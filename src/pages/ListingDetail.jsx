@@ -210,11 +210,11 @@ export default function ListingDetailPage() {
                 </p>
 
                 {/* (plain english) section to show pending requests for EO */}
-                {user && user.id === listing.ownerUserId && joinRequests?.length > 0 && (
+                {user && user.id === listing.ownerUserId && pendingRequests.length > 0 && (
                   <div className="mt-4 border-t border-emerald-200 pt-4">
-                    <h4 className="font-semibold text-emerald-900 mb-3">Pending Join Requests ({joinRequests.length})</h4>
+                    <h4 className="font-semibold text-emerald-900 mb-3">Pending Join Requests ({pendingRequests.length})</h4>
                     <div className="space-y-3">
-                      {joinRequests.map(req => (
+                      {pendingRequests.map(req => (
                         <div key={req.id} className="bg-white p-3 rounded border border-emerald-100 shadow-sm">
                           <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
                           <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.addressText || "No address"}</p>
@@ -246,6 +246,49 @@ export default function ListingDetailPage() {
                               })}
                             >
                               Deny
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* (plain english) section to show participating homes for EO */}
+                {user && user.id === listing.ownerUserId && approvedRequests.length > 0 && (
+                  <div className="mt-4 border-t border-emerald-200 pt-4">
+                    <h4 className="font-semibold text-emerald-900 mb-3">Participating Homes ({approvedRequests.length})</h4>
+                    <div className="space-y-3">
+                      {approvedRequests.map(req => (
+                        <div key={req.id} className="bg-white p-3 rounded border border-emerald-100 shadow-sm">
+                          <div className="flex justify-between items-start mb-1">
+                            <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
+                            <Badge className="bg-green-600 text-white hover:bg-green-700 border-none">Approved</Badge>
+                          </div>
+                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.addressText || "No address"}</p>
+                          <p className="text-sm text-slate-500 line-clamp-2 mb-3">{req.listingDetails?.description}</p>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              onClick={() => navigate(createPageUrl("CreateListing") + "?edit=1&listingId=" + req.listingId)}
+                            >
+                              Edit Listing
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-red-600 border-red-200 hover:bg-red-50"
+                              onClick={() => respondToJoinRequestMutation.mutate({
+                                requestId: req.id,
+                                requesterListingId: req.listingId,
+                                action: "remove",
+                                requesterUserId: req.requesterUserId,
+                                eventTitle: listing.title
+                              })}
+                            >
+                              Remove from Neighborhood
                             </Button>
                           </div>
                         </div>
