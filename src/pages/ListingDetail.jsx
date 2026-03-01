@@ -192,6 +192,76 @@ export default function ListingDetailPage() {
                 <p className="text-sm text-emerald-800">
                   {listing.homeCount} homes participating • Span: {listing.spanFeet} ft
                 </p>
+
+                {/* (plain english) section to show pending requests for EO */}
+                {user && user.id === listing.ownerUserId && joinRequests?.length > 0 && (
+                  <div className="mt-4 border-t border-emerald-200 pt-4">
+                    <h4 className="font-semibold text-emerald-900 mb-3">Pending Join Requests ({joinRequests.length})</h4>
+                    <div className="space-y-3">
+                      {joinRequests.map(req => (
+                        <div key={req.id} className="bg-white p-3 rounded border border-emerald-100 shadow-sm">
+                          <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
+                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.addressText || "No address"}</p>
+                          <p className="text-sm text-slate-500 line-clamp-2 mb-3">{req.listingDetails?.description}</p>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => respondToJoinRequestMutation.mutate({
+                                requestId: req.id,
+                                requesterListingId: req.listingId,
+                                action: "approve",
+                                requesterUserId: req.requesterUserId,
+                                eventTitle: listing.title
+                              })}
+                            >
+                              Approve
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-red-600 border-red-200 hover:bg-red-50"
+                              onClick={() => respondToJoinRequestMutation.mutate({
+                                requestId: req.id,
+                                requesterListingId: req.listingId,
+                                action: "deny",
+                                requesterUserId: req.requesterUserId,
+                                eventTitle: listing.title
+                              })}
+                            >
+                              Deny
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* (plain english) info box for the requester about their join status */}
+            {(listing.neighborhood_join_status === "pending" || listing.neighborhood_join_status === "requested") && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h3 className="font-semibold text-yellow-900">Neighborhood Sale: Pending approval</h3>
+              </div>
+            )}
+            {listing.neighborhood_join_status === "approved" && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 className="font-semibold text-green-900 mb-1">Neighborhood Sale: Approved</h3>
+                {parentSale && (
+                  <div className="text-sm text-green-800 mt-2">
+                    <p><strong>Event:</strong> {parentSale.title}</p>
+                    {parentSale.startDateTime && parentSale.endDateTime && (
+                      <p><strong>Dates:</strong> {format(new Date(parentSale.startDateTime), "PPp")} - {format(new Date(parentSale.endDateTime), "PPp")}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            {listing.neighborhood_join_status === "denied" && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h3 className="font-semibold text-red-900">Neighborhood Sale: Denied</h3>
               </div>
             )}
 
