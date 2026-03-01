@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, CheckCheck, Trash2, Users, Check, X } from "lucide-react";
+import { MapPin, Clock, CheckCheck, Trash2, Users, Check, X, Bell } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
@@ -12,38 +11,45 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
   const queryClient = useQueryClient();
 
   const markReadMutation = useMutation({
-    mutationFn: (notificationId) => 
-      base44.entities.Notification.update(notificationId, { read: true }),
+    mutationFn: (notificationId) => base44.entities.Notification.update(notificationId, { read: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    },
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (notificationId) => base44.entities.Notification.delete(notificationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    },
+    }
   });
 
   const respondToRequestMutation = useMutation({
     mutationFn: async ({ notificationId, action, requesterEmail, eventTitle, notification }) => {
       const reqUserId = notification?.metadata?.requester_user_id || requesterEmail;
       const reqListingId = notification?.metadata?.requester_listing_id;
+      const saleListingId = notification?.metadata?.sale_listing_id;
 
-      if (action === 'accept') {
+      if (action === "accept") {
         if (reqListingId) {
           await base44.entities.Listing.update(reqListingId, {
             neighborhood_join_status: "approved",
             payment_intent_status: "voided",
+            // (plain english) keep this as-is unless your app uses `status` instead of `activation_status`
             activation_status: "active"
           });
-          const reqs = await base44.entities.JoinRequest.filter({ listingId: reqListingId });
+
+          // ✅ FIX: filter JoinRequest by listingId + saleListingId (prevents wrong request updates)
+          const reqs = await base44.entities.JoinRequest.filter({
+            listingId: reqListingId,
+            ...(saleListingId ? { saleListingId } : {})
+          });
+
           if (reqs && reqs.length > 0) {
             await base44.entities.JoinRequest.update(reqs[0].id, { status: "approved" });
           }
         }
-        
+
         await base44.entities.Notification.create({
           userId: reqUserId,
           title: "Neighborhood Sale Request",
@@ -56,7 +62,13 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
           await base44.entities.Listing.update(reqListingId, {
             neighborhood_join_status: "denied"
           });
-          const reqs = await base44.entities.JoinRequest.filter({ listingId: reqListingId });
+
+          // ✅ FIX: filter JoinRequest by listingId + saleListingId (prevents wrong request updates)
+          const reqs = await base44.entities.JoinRequest.filter({
+            listingId: reqListingId,
+            ...(saleListingId ? { saleListingId } : {})
+          });
+
           if (reqs && reqs.length > 0) {
             await base44.entities.JoinRequest.update(reqs[0].id, { status: "denied" });
           }
@@ -71,23 +83,22 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
         });
       }
 
-      await base44.entities.Notification.update(notificationId, { 
+      // mark EO's join_request notification as resolved (buttons disappear)
+      await base44.entities.Notification.update(notificationId, {
         read: true,
-        type: `join_request_resolved`,
-        message: `You ${action === 'accept' ? 'approved' : 'denied'} the join request for ${eventTitle}.`
+        type: "join_request_resolved",
+        message: `You ${action === "accept" ? "approved" : "denied"} the join request for ${eventTitle}.`
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       toast.success("Response sent");
-    },
+    }
   });
 
   const getIcon = (type) => {
-    if (type?.startsWith('join_')) {
-      return <Users className="w-4 h-4 text-purple-600" />;
-    }
+    if (type?.startsWith("join_")) return <Users className="w-4 h-4 text-purple-600" />;
     switch (type) {
       case "new_listing":
         return <MapPin className="w-4 h-4 text-blue-600" />;
@@ -101,9 +112,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
   };
 
   const handleNotificationClick = (notification) => {
-    if (!notification.read) {
-      markReadMutation.mutate(notification.id);
-    }
+    if (!notification.read) markReadMutation.mutate(notification.id);
     if (notification.location_id) {
       window.location.href = `/?location=${notification.metadata?.latitude},${notification.metadata?.longitude}`;
     }
@@ -113,13 +122,8 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
     <div className="flex flex-col max-h-[500px]">
       <div className="p-4 border-b flex items-center justify-between">
         <h3 className="font-semibold text-lg">Notifications</h3>
-        {notifications.some(n => !n.read) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onMarkAllRead}
-            className="text-xs gap-1"
-          >
+        {notifications.some((n) => !n.read) && (
+          <Button variant="ghost" size="sm" onClick={onMarkAllRead} className="text-xs gap-1">
             <CheckCheck className="w-3 h-3" />
             Mark all read
           </Button>
@@ -143,9 +147,8 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                 onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 mt-1">
-                    {getIcon(notification.type)}
-                  </div>
+                  <div className="flex-shrink-0 mt-1">{getIcon(notification.type)}</div>
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <p className="font-medium text-sm">{notification.title}</p>
@@ -153,38 +156,46 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                         <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1" />
                       )}
                     </div>
+
                     <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
-                    
+
                     {notification.type === "join_request" && (
                       <div className="flex gap-2 mt-2 mb-3">
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           className="h-7 text-xs bg-green-600 hover:bg-green-700"
                           onClick={(e) => {
                             e.stopPropagation();
                             respondToRequestMutation.mutate({
                               notificationId: notification.id,
-                              action: 'accept',
-                              requesterEmail: notification.metadata?.requester_email || notification.metadata?.userId || notification.user_email,
-                              eventTitle: notification.metadata?.event_title || 'the neighborhood sale',
-                              notification: notification
+                              action: "accept",
+                              requesterEmail:
+                                notification.metadata?.requester_email ||
+                                notification.metadata?.userId ||
+                                notification.user_email,
+                              eventTitle: notification.metadata?.event_title || "the neighborhood sale",
+                              notification
                             });
                           }}
                         >
                           <Check className="w-3 h-3 mr-1" /> Accept
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
                           onClick={(e) => {
                             e.stopPropagation();
                             respondToRequestMutation.mutate({
                               notificationId: notification.id,
-                              action: 'deny',
-                              requesterEmail: notification.metadata?.requester_email || notification.metadata?.userId || notification.user_email,
-                              eventTitle: notification.metadata?.event_title || 'the neighborhood sale',
-                              notification: notification
+                              action: "deny",
+                              requesterEmail:
+                                notification.metadata?.requester_email ||
+                                notification.metadata?.userId ||
+                                notification.user_email,
+                              eventTitle: notification.metadata?.event_title || "the neighborhood sale",
+                              notification
                             });
                           }}
                         >
@@ -197,6 +208,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                       <p className="text-xs text-gray-400">
                         {formatDistanceToNow(new Date(notification.created_date), { addSuffix: true })}
                       </p>
+
                       <Button
                         variant="ghost"
                         size="sm"
