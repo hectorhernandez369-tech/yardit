@@ -284,7 +284,40 @@ export default function CreateListingPage() {
 
       return listing;
     },
-    onSuccess: () => {
+    onSuccess: async (createdListing) => {
+      if (joinAction === "requested" && matchedSale) {
+        try {
+          await base44.entities.JoinRequest.create({
+            listingId: createdListing.id,
+            saleListingId: matchedSale.id,
+            ownerUserId: matchedSale.ownerUserId,
+            requesterUserId: user.id,
+            status: "pending"
+          });
+          
+          await base44.entities.Notification.create({
+            userId: matchedSale.ownerUserId,
+            title: "New Join Request",
+            message: "Someone requested to join your Neighborhood Sale.",
+            type: "join_request",
+            metadata: {
+              sale_listing_id: matchedSale.id,
+              requester_user_id: user.id,
+              requester_listing_id: createdListing.id
+            }
+          });
+          
+          await base44.entities.Notification.create({
+            userId: user.id,
+            title: "Join Request Sent",
+            message: "Your request to join the Neighborhood Sale has been sent.",
+            type: "join_request_sent"
+          });
+        } catch (err) {
+          console.error("Failed to create join request/notifications", err);
+        }
+      }
+
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       queryClient.invalidateQueries({ queryKey: ["userListings", user?.id] });
       toast.success("Listing created successfully!");
