@@ -315,6 +315,17 @@ export default function MyListingsPage() {
                       </p>
 
                       <div className="flex gap-2 flex-wrap">
+                        {/* (plain english) Requester listing badges for neighborhood join status */}
+                        {(listing.neighborhood_join_status === "pending" || listing.neighborhood_join_status === "requested") && (
+                          <Badge className="bg-yellow-500 text-yellow-950 hover:bg-yellow-600 border-none">Pending Neighborhood Approval</Badge>
+                        )}
+                        {listing.neighborhood_join_status === "approved" && (
+                          <Badge className="bg-green-600 text-white hover:bg-green-700 border-none">Neighborhood Approved</Badge>
+                        )}
+                        {listing.neighborhood_join_status === "denied" && (
+                          <Badge className="bg-red-600 text-white hover:bg-red-700 border-none">Neighborhood Denied</Badge>
+                        )}
+
                         <Badge className={tierColors[listing.tier] || "bg-slate-500"}>
                           {listing.tier === "neighborhood_tier"
                             ? "Neighborhood"
