@@ -118,9 +118,9 @@ export default function CreateListingPage() {
   const [geocodeRef, setGeocodeRef] = useState(null);
 
   // (plain english) "Sale in your area" modal state
-  const [showSaleModal, setShowSaleModal] = useState(false);
+  const [saleModalStep, setSaleModalStep] = useState(0); // 0: none, 1: popup1, 2: popup2
   const [matchedSale, setMatchedSale] = useState(null);
-  const [hasPromptedSale, setHasPromptedSale] = useState(false);
+  const [joinAction, setJoinAction] = useState(null); // null, "requested", "none"
 
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
