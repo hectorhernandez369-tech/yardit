@@ -42,6 +42,69 @@ export default function ListingDetailPage() {
     enabled: !!listingId,
   });
 
+  // (plain english) query to get pending join requests if the user is the owner of a neighborhood sale
+  const { data: joinRequests } = useQuery({
+    queryKey: ["joinRequests", listingId],
+    queryFn: async () => {
+      const reqs = await base44.entities.JoinRequest.filter({ saleListingId: listingId, status: "pending" });
+      const enriched = await Promise.all(reqs.map(async (r) => {
+        const l = await base44.entities.Listing.filter({ id: r.listingId });
+        return { ...r, listingDetails: l[0] };
+      }));
+      return enriched;
+    },
+    enabled: !!listing && listing.listingType === "neighborhood_sale" && !!user && user.id === listing.ownerUserId,
+  });
+
+  // (plain english) query to get parent neighborhood sale info if the listing was approved to join one
+  const { data: parentSale } = useQuery({
+    queryKey: ["parentSale", listing?.neighborhood_sale_id],
+    queryFn: async () => {
+      if (!listing?.neighborhood_sale_id) return null;
+      const sales = await base44.entities.Listing.filter({ id: listing.neighborhood_sale_id });
+      return sales[0];
+    },
+    enabled: !!listing && listing.neighborhood_join_status === "approved" && !!listing.neighborhood_sale_id,
+  });
+
+  const respondToJoinRequestMutation = useMutation({
+    mutationFn: async ({ requestId, requesterListingId, action, requesterUserId, eventTitle }) => {
+      if (action === "approve") {
+        await base44.entities.JoinRequest.update(requestId, { status: "approved" });
+        await base44.entities.Listing.update(requesterListingId, {
+          neighborhood_join_status: "approved",
+          payment_intent_status: "voided",
+          neighborhood_sale_id: listingId
+        });
+        await base44.entities.Notification.create({
+          userId: requesterUserId,
+          title: "Join Request Approved",
+          message: `Approved — you joined ${eventTitle}`,
+          type: "join_request_approved",
+          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId }
+        });
+      } else {
+        await base44.entities.JoinRequest.update(requestId, { status: "denied" });
+        await base44.entities.Listing.update(requesterListingId, {
+          neighborhood_join_status: "denied"
+        });
+        await base44.entities.Notification.create({
+          userId: requesterUserId,
+          title: "Join Request Denied",
+          message: `Denied — your listing stays active under your selected tier`,
+          type: "join_request_denied",
+          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId }
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["joinRequests"] });
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("Response sent");
+    }
+  });
+
   if (isLoading || !listing) {
     return <div className="p-8 text-center">Loading...</div>;
   }
