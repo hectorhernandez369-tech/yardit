@@ -86,6 +86,19 @@ export default function ListingDetailPage() {
           type: "join_request_approved",
           metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId }
         });
+      } else if (action === "remove") {
+        await base44.entities.JoinRequest.update(requestId, { status: "denied" });
+        await base44.entities.Listing.update(requesterListingId, {
+          neighborhood_join_status: "denied",
+          neighborhood_sale_id: null
+        });
+        await base44.entities.Notification.create({
+          userId: requesterUserId,
+          title: "Removed from Neighborhood Sale",
+          message: `Removed from neighborhood sale`,
+          type: "join_request_removed",
+          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId }
+        });
       } else {
         await base44.entities.JoinRequest.update(requestId, { status: "denied" });
         await base44.entities.Listing.update(requesterListingId, {
