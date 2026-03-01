@@ -413,36 +413,8 @@ export default function CreateListingPage() {
     }
   };
 
-  const handleSubmit = () => {
-    // ✅ Enforce 1 active listing per account (block early in UI too)
-    if (formData.listingType !== "neighborhood_sale" && hasActiveResidentialListing()) {
-      toast.error("You already have an active listing. End it before creating another.");
-      return;
-    }
-
-    if (formData.listingType === "neighborhood_sale") {
-      if (formData.homeCount < 1 || formData.homeCount > 25) {
-        toast.error("Neighborhood Sales must have between 1 and 25 homes.");
-        return;
-      }
-    }
-
-    // Must select tier
-    if (!formData.tier) {
-      toast.error("Please select a tier");
-      return;
-    }
-
-    const timeZoneId = formData.timeZoneId || FALLBACK_TZ;
-
-    // ✅ Photo limit enforcement (cannot bypass)
-    const photoCheck = enforcePhotoLimit(formData.tier, formData.photoUrls || []);
-    if (photoCheck.truncated) {
-      toast.error(`Too many photos for ${formData.tier}. Max allowed: ${photoCheck.max}.`);
-      return;
-    }
-
-    let payload = { ...formData, timeZoneId };
+  const executeSubmit = (actionStr = joinAction) => {
+    let payload = { ...formData, timeZoneId: formData.timeZoneId || FALLBACK_TZ };
 
     // Neighborhood event normalization
     if (payload.listingType === "neighborhood_sale") {
@@ -453,8 +425,7 @@ export default function CreateListingPage() {
       payload.invite_code = formData.invite_code || formData.neighborhoodDraftId;
     }
 
-    // ✅ FREE TIER DATE RULE (Phase 1 locked): always next weekend in LA
-    // (plain english: Free tier never lets the user choose dates)
+    // FREE TIER DATE RULE
     if (payload.tier === "free") {
       const nextWeekend = getNextWeekendLAISO();
       payload = {
@@ -469,22 +440,9 @@ export default function CreateListingPage() {
       };
     }
 
-    // FEATURED: exactly 3 consecutive days
+    // FEATURED
     if (formData.tier === "featured") {
-      if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
-        toast.error("Please select start and end dates");
-        return;
-      }
-
       const startLocal = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
-      const endLocal = new Date(`${formData.selectedRangeEndDate}T00:00:00`);
-      const diffDays = Math.round((endLocal - startLocal) / (1000 * 60 * 60 * 24)) + 1;
-      
-      if (diffDays !== 3) {
-        toast.error("Featured requires exactly 3 consecutive days");
-        return;
-      }
-
       let activeDates = [];
       const pad = (n) => String(n).padStart(2, "0");
       for(let i=0; i<3; i++) {
@@ -503,28 +461,16 @@ export default function CreateListingPage() {
       };
     }
 
-    // PREMIUM: 1-5 consecutive days + Early Visibility 0–3
+    // PREMIUM
     if (formData.tier === "premium") {
-      if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
-        toast.error("Please select start and end dates");
-        return;
-      }
-
       const earlyDays = Math.max(0, Math.min(3, Number(formData.earlyVisibilityDays || 0)));
-
       const startLocal = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
       const endLocal = new Date(`${formData.selectedRangeEndDate}T00:00:00`);
       const diffDays = Math.round((endLocal - startLocal) / (1000 * 60 * 60 * 24)) + 1;
 
-      if (diffDays < 1 || diffDays > 5) {
-         toast.error("Premium allows 1 to 5 consecutive days");
-         return;
-      }
-
       let earlyVisibilityStartDateTime = null;
       let earlyVisibilityDates = [];
       let activeDates = [];
-      
       const pad = (n) => String(n).padStart(2, "0");
       
       for(let i=0; i<diffDays; i++) {
@@ -556,7 +502,110 @@ export default function CreateListingPage() {
       };
     }
 
+    // Add Neighborhood Join Status fields
+    if (actionStr === "requested" && matchedSale) {
+      payload.neighborhood_join_status = "requested";
+      payload.payment_intent_status = "hold_requested";
+      payload.hold_deadline_at = payload.startDateTime;
+      payload.neighborhood_sale_id = matchedSale.id;
+    } else {
+      payload.neighborhood_join_status = "none";
+    }
+
     createListingMutation.mutate(payload);
+  };
+
+  const handleSubmit = async () => {
+    // Enforce 1 active listing per account
+    if (formData.listingType !== "neighborhood_sale" && hasActiveResidentialListing()) {
+      toast.error("You already have an active listing. End it before creating another.");
+      return;
+    }
+
+    if (formData.listingType === "neighborhood_sale") {
+      if (formData.homeCount < 1 || formData.homeCount > 25) {
+        toast.error("Neighborhood Sales must have between 1 and 25 homes.");
+        return;
+      }
+    }
+
+    // Must select tier
+    if (!formData.tier) {
+      toast.error("Please select a tier");
+      return;
+    }
+
+    // Validate dates for featured/premium
+    if ((formData.tier === "featured" || formData.tier === "premium") && (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate)) {
+      toast.error("Please select start and end dates");
+      return;
+    }
+    if (formData.tier === "featured") {
+      const startLocal = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
+      const endLocal = new Date(`${formData.selectedRangeEndDate}T00:00:00`);
+      if (Math.round((endLocal - startLocal) / (1000 * 60 * 60 * 24)) + 1 !== 3) {
+        toast.error("Featured requires exactly 3 consecutive days");
+        return;
+      }
+    }
+    if (formData.tier === "premium") {
+      const startLocal = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
+      const endLocal = new Date(`${formData.selectedRangeEndDate}T00:00:00`);
+      const diff = Math.round((endLocal - startLocal) / (1000 * 60 * 60 * 24)) + 1;
+      if (diff < 1 || diff > 5) {
+        toast.error("Premium allows 1 to 5 consecutive days");
+        return;
+      }
+    }
+
+    // Photo limit enforcement
+    const photoCheck = enforcePhotoLimit(formData.tier, formData.photoUrls || []);
+    if (photoCheck.truncated) {
+      toast.error(`Too many photos for ${formData.tier}. Max allowed: ${photoCheck.max}.`);
+      return;
+    }
+
+    // Check for nearby neighborhood sale if we haven't asked yet
+    if (formData.listingType !== "neighborhood_sale" && joinAction === null && formData.lat && formData.lng) {
+      try {
+        const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" });
+        let reqs = [];
+        try {
+          reqs = await base44.entities.JoinRequest.filter({ userId: user.id });
+        } catch {}
+
+        const now = new Date();
+        const nearby = (sales || []).filter((s) => {
+          if (!s.startDateTime || !s.endDateTime) return false;
+          const end = new Date(s.endDateTime);
+          if (now >= end) return false;
+          if (s.status === "downgraded" || s.status === "canceled") return false;
+
+          const cLat = s.event_center_lat ?? s.lat;
+          const cLng = s.event_center_lng ?? s.lng;
+          const dist = getDistanceFeet(formData.lat, formData.lng, cLat, cLng);
+          if (dist > 500) return false;
+
+          if (s.ownerUserId === user.id) return false;
+
+          const alreadyRequested = reqs.some(
+            (r) => r.listingId === s.id && (r.status === "pending" || r.status === "approved")
+          );
+          return !alreadyRequested;
+        });
+
+        if (nearby.length > 0) {
+          setMatchedSale(nearby[0]);
+          setSaleModalStep(1); // Show Popup #1
+          return; // Stop submission, wait for user response
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // If no popup needed or action already chosen, execute
+    executeSubmit();
   };
 
   if (!user) {
