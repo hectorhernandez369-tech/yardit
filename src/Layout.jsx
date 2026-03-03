@@ -85,7 +85,7 @@ function LayoutContent({ children, user, setUser }) {
             <div className="flex items-center gap-3">
               <Link
                 to={createPageUrl("Home")}
-                className="flex items-center group select-none touch-none"
+                className="flex flex-col items-center justify-center group select-none touch-none"
                 onPointerDown={onLogoPointerDown}
                 onPointerUp={onLogoPointerEnd}
                 onPointerCancel={onLogoPointerEnd}
@@ -96,9 +96,9 @@ function LayoutContent({ children, user, setUser }) {
                 <img 
                   src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/aa5288319_file_00000000c1b871f5aeb839b78344a9a4.png" 
                   alt="Yardit Logo" 
-                  className="w-10 h-10 rounded-lg object-cover"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover"
                 />
-                <span className="ml-2 text-xl font-bold text-[#F4A849] tracking-widest">YARDIT</span>
+                <span className="text-[10px] sm:text-xs font-bold text-[#F4A849] tracking-widest font-[cursive] leading-none mt-0.5">YARDIT</span>
               </Link>
               {demoActive && (
                 <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider animate-pulse">
