@@ -98,7 +98,7 @@ function LayoutContent({ children, user, setUser }) {
                   alt="Yardit Logo" 
                   className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover"
                 />
-                <span className="text-[10px] sm:text-xs font-bold text-[#F4A849] tracking-widest font-[cursive] leading-none mt-0.5">YARDIT</span>
+                <span className="text-[10px] sm:text-xs font-bold text-[#F4A849] tracking-widest font-[cursive] leading-none mt-0.5 [-webkit-text-stroke:0.5px_white]">YARDIT</span>
               </Link>
               {demoActive && (
                 <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider animate-pulse">
