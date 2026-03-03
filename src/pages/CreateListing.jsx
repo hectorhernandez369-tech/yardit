@@ -228,6 +228,13 @@ export default function CreateListingPage() {
     fetchUser();
   }, [navigate]);
 
+  // Fetch global app settings
+  const { data: appSettings } = useQuery({
+    queryKey: ["appSettings"],
+    queryFn: () => base44.entities.AppSetting.list(),
+  });
+  const isGlobalDemoMode = appSettings?.find(s => s.key === "app_mode")?.value === "demo";
+
   // Pull all user listings (used for “1 active listing” rule)
   const { data: userListings } = useQuery({
     queryKey: ["userListings", user?.id],
@@ -510,6 +517,11 @@ export default function CreateListingPage() {
       payload.neighborhood_sale_id = matchedSale.id;
     } else {
       payload.neighborhood_join_status = "none";
+    }
+
+    if (isGlobalDemoMode) {
+      payload.is_demo_listing = true;
+      payload.payment_intent_status = "none";
     }
 
     createListingMutation.mutate(payload);
