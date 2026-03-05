@@ -89,7 +89,7 @@ export default function StartupGuidePage() {
               <CardContent className="p-5">
                 <h3 className="text-xl font-bold text-[#2C4F4E] mb-4">Featured Listing</h3>
                 <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0d9ca6d4_Screenshot_20260305_122314_Base44.jpg" 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/d4ca673d9_Screenshot_20260305_122239_Base44.jpg" 
                   alt="Featured Listing Pin" 
                   className="w-full rounded-lg border-2 border-[#2C4F4E]/20 shadow-sm object-cover"
                 />
@@ -100,7 +100,7 @@ export default function StartupGuidePage() {
               <CardContent className="p-5">
                 <h3 className="text-xl font-bold text-[#2C4F4E] mb-4">Premium Listing</h3>
                 <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/d4ca673d9_Screenshot_20260305_122239_Base44.jpg" 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0d9ca6d4_Screenshot_20260305_122314_Base44.jpg" 
                   alt="Premium Listing Pin" 
                   className="w-full rounded-lg border-2 border-[#2C4F4E]/20 shadow-sm object-cover"
                 />
