@@ -49,46 +49,46 @@
  */
 import AdminLite from './pages/AdminLite';
 import CaseManagement from './pages/CaseManagement';
+import ContactSupport from './pages/ContactSupport';
 import CreateListing from './pages/CreateListing';
+import FAQ from './pages/FAQ';
 import Home from './pages/Home';
 import JoinNeighborhoodSale from './pages/JoinNeighborhoodSale';
 import Leaderboard from './pages/Leaderboard';
 import ListingDetail from './pages/ListingDetail';
 import MyHunt from './pages/MyHunt';
 import MyListings from './pages/MyListings';
+import MySupportTickets from './pages/MySupportTickets';
 import NotificationSettings from './pages/NotificationSettings';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import SellerDashboard from './pages/SellerDashboard';
 import Settings from './pages/Settings';
-import joinNeighborhoodSale from './pages/join-neighborhood-sale';
-import FAQ from './pages/FAQ';
 import StartupGuide from './pages/StartupGuide';
-import ContactSupport from './pages/ContactSupport';
-import MySupportTickets from './pages/MySupportTickets';
+import joinNeighborhoodSale from './pages/join-neighborhood-sale';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AdminLite": AdminLite,
     "CaseManagement": CaseManagement,
+    "ContactSupport": ContactSupport,
     "CreateListing": CreateListing,
+    "FAQ": FAQ,
     "Home": Home,
     "JoinNeighborhoodSale": JoinNeighborhoodSale,
     "Leaderboard": Leaderboard,
     "ListingDetail": ListingDetail,
     "MyHunt": MyHunt,
     "MyListings": MyListings,
+    "MySupportTickets": MySupportTickets,
     "NotificationSettings": NotificationSettings,
     "Notifications": Notifications,
     "Profile": Profile,
     "SellerDashboard": SellerDashboard,
     "Settings": Settings,
-    "join-neighborhood-sale": joinNeighborhoodSale,
-    "FAQ": FAQ,
     "StartupGuide": StartupGuide,
-    "ContactSupport": ContactSupport,
-    "MySupportTickets": MySupportTickets,
+    "join-neighborhood-sale": joinNeighborhoodSale,
 }
 
 export const pagesConfig = {

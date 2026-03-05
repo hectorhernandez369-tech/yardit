@@ -77,11 +77,18 @@ export default function ContactSupportPage() {
       const nextNum = existingTickets.length + 1;
       const ticket_number = `ST-${String(nextNum).padStart(5, '0')}`;
 
-      await base44.entities.SupportTicket.create({
+      const newTicket = await base44.entities.SupportTicket.create({
         ...formData,
         ticket_number,
         photo_paths,
-        status: "open"
+        status: "open",
+        priority: "normal"
+      });
+
+      await base44.entities.TicketAction.create({
+        ticket_id: newTicket.id,
+        action: "Ticket created",
+        details: `Ticket ${ticket_number} created by user`
       });
 
       toast.success("Support ticket created successfully!");
