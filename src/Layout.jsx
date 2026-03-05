@@ -11,6 +11,7 @@ import {
 import AdminNotificationBell from "./components/caseManagement/ui/AdminNotificationBell";
 import AdminLoginModal, { getAdminSession, clearAdminSession } from "./components/admin/AdminLoginModal";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { HuntProvider, useHunt, HUNT_ENABLED } from "./components/hunt/HuntContext";
 import { Map as MapIcon, Crosshair } from "lucide-react";
 import { base44 } from "@/api/base44Client";
