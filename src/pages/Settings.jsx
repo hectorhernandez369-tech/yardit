@@ -121,6 +121,21 @@ export default function SettingsPage() {
           <UserInfoSection user={user} setUser={setUser} />
         </div>
 
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Help</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => navigate(createPageUrl("StartupGuide"))}
+              variant="outline"
+              className="w-full"
+            >
+              View Startup Guide
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Account Actions</CardTitle>
