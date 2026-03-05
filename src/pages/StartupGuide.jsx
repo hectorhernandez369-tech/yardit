@@ -70,6 +70,45 @@ export default function StartupGuidePage() {
           ))}
         </div>
 
+        <div className="mt-12 pt-8 border-t-2 border-[#2C4F4E]/20">
+          <h2 className="text-2xl font-bold text-[#2C4F4E] mb-6 text-center">How Listings Appear on the Map</h2>
+          
+          <div className="grid gap-6">
+            <Card className="border-2 border-[#2C4F4E] bg-[#E7D7B8] shadow-sm">
+              <CardContent className="p-5">
+                <h3 className="text-xl font-bold text-[#2C4F4E] mb-4">Free Listing</h3>
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/7e93fa6d6_Screenshot_20260305_122152_Base44.jpg" 
+                  alt="Free Listing Pin" 
+                  className="w-full rounded-lg border-2 border-[#2C4F4E]/20 shadow-sm object-cover"
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-[#2C4F4E] bg-[#E7D7B8] shadow-sm">
+              <CardContent className="p-5">
+                <h3 className="text-xl font-bold text-[#2C4F4E] mb-4">Featured Listing</h3>
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0d9ca6d4_Screenshot_20260305_122314_Base44.jpg" 
+                  alt="Featured Listing Pin" 
+                  className="w-full rounded-lg border-2 border-[#2C4F4E]/20 shadow-sm object-cover"
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-[#2C4F4E] bg-[#E7D7B8] shadow-sm">
+              <CardContent className="p-5">
+                <h3 className="text-xl font-bold text-[#2C4F4E] mb-4">Premium Listing</h3>
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/d4ca673d9_Screenshot_20260305_122239_Base44.jpg" 
+                  alt="Premium Listing Pin" 
+                  className="w-full rounded-lg border-2 border-[#2C4F4E]/20 shadow-sm object-cover"
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
         <div className="mt-12 pt-6 border-t border-[#2C4F4E]/20 flex justify-center">
           <Button 
             onClick={handleUnderstand}
