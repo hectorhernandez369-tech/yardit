@@ -24,7 +24,7 @@ export default function AdminLiteDashboard({ user }) {
           <ReportsQueue />
         </TabsContent>
         <TabsContent value="support">
-          <SupportTicketQueue />
+          <SupportTicketQueue user={user} />
         </TabsContent>
         <TabsContent value="listings">
           <ListingManagement />
