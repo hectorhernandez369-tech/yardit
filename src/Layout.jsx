@@ -32,8 +32,26 @@ function LayoutContent({ children, user, setUser }) {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [hasAdminProfile, setHasAdminProfile] = useState(false);
   const [adminActivatedBanner, setAdminActivatedBanner] = useState(false);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const longPressTimer = useRef(null);
   const didLongPress = useRef(false);
+
+  useEffect(() => {
+    const hasSeenGuide = localStorage.getItem("yardit_has_seen_startup_guide");
+    if (!hasSeenGuide && location.pathname !== createPageUrl("StartupGuide")) {
+      setShowWelcomePopup(true);
+    }
+  }, [location.pathname]);
+
+  const handleSkipGuide = () => {
+    localStorage.setItem("yardit_has_seen_startup_guide", "true");
+    setShowWelcomePopup(false);
+  };
+
+  const handleLearnMore = () => {
+    setShowWelcomePopup(false);
+    navigate(createPageUrl("StartupGuide"));
+  };
 
   useEffect(() => {
     const handler = () => setDemoActive(isDemoMode());
