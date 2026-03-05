@@ -173,6 +173,10 @@ function LayoutContent({ children, user, setUser }) {
                           Admin
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuItem onClick={() => navigate(createPageUrl("FAQ"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
+                        <HelpCircle className="w-4 h-4 mr-2" />
+                        FAQ
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => base44.auth.logout()} className="cursor-pointer text-red-600 focus:bg-red-100 font-medium">
                         <LogOut className="w-4 h-4 mr-2" />
                         Logout
