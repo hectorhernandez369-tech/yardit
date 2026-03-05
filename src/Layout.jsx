@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Plus, Home, User, Settings, Shield, MoreVertical, LogOut } from "lucide-react";
+import { Plus, Home, User, Settings, Shield, MoreVertical, LogOut, HelpCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
