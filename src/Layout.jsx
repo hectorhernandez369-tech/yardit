@@ -248,6 +248,32 @@ function LayoutContent({ children, user, setUser }) {
         }}
       />
 
+      <Dialog open={showWelcomePopup} onOpenChange={setShowWelcomePopup}>
+        <DialogContent className="sm:max-w-md bg-[#F3E6CF] border-2 border-[#2C4F4E]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#2C4F4E] text-center">Welcome to Yardit</DialogTitle>
+            <DialogDescription className="text-center text-slate-700 mt-4 text-base">
+              Yardit helps you discover yard sales, neighborhood events, and hidden treasures happening around you.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-6">
+            <Button 
+              onClick={handleLearnMore}
+              className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] shadow-sm font-semibold"
+            >
+              Learn How Yardit Works
+            </Button>
+            <Button 
+              onClick={handleSkipGuide}
+              variant="outline"
+              className="w-full border-2 border-[#2C4F4E]/30 text-[#2C4F4E] hover:bg-[#E7D7B8]"
+            >
+              I Already Know How To Use Yardit
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-2">
           <img 
