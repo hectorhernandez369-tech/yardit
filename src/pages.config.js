@@ -64,6 +64,8 @@ import Settings from './pages/Settings';
 import joinNeighborhoodSale from './pages/join-neighborhood-sale';
 import FAQ from './pages/FAQ';
 import StartupGuide from './pages/StartupGuide';
+import ContactSupport from './pages/ContactSupport';
+import MySupportTickets from './pages/MySupportTickets';
 import __Layout from './Layout.jsx';
 
 
@@ -85,6 +87,8 @@ export const PAGES = {
     "join-neighborhood-sale": joinNeighborhoodSale,
     "FAQ": FAQ,
     "StartupGuide": StartupGuide,
+    "ContactSupport": ContactSupport,
+    "MySupportTickets": MySupportTickets,
 }
 
 export const pagesConfig = {

@@ -123,15 +123,36 @@ export default function SettingsPage() {
 
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Help</CardTitle>
+            <CardTitle>Help & Support</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <Button
               onClick={() => navigate(createPageUrl("StartupGuide"))}
               variant="outline"
-              className="w-full"
+              className="w-full justify-start text-left font-normal"
             >
               View Startup Guide
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl("FAQ"))}
+              variant="outline"
+              className="w-full justify-start text-left font-normal"
+            >
+              FAQ Section
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl("ContactSupport"))}
+              variant="outline"
+              className="w-full justify-start text-left font-normal"
+            >
+              Contact Support
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl("MySupportTickets"))}
+              variant="outline"
+              className="w-full justify-start text-left font-normal"
+            >
+              My Support Tickets
             </Button>
           </CardContent>
         </Card>
