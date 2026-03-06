@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Save, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import PromotionModal from "../promotions/PromotionModal";
 
 const statusColors = {
   active: "bg-green-600",
@@ -25,6 +26,7 @@ function deriveNames(user) {
 export default function UserAccountInfo({ user, onUserUpdated }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showPromoModal, setShowPromoModal] = useState(false);
   const { first, last } = deriveNames(user);
 
   const [form, setForm] = useState({
@@ -143,9 +145,14 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Account Holder Info</h3>
-        <Button size="sm" variant="outline" onClick={startEdit} className="gap-1 text-xs h-7">
-          <Pencil className="w-3 h-3" /> Edit
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => setShowPromoModal(true)} className="gap-1 text-xs h-7 bg-purple-600 hover:bg-purple-700 text-white">
+            PROMOTIONAL
+          </Button>
+          <Button size="sm" variant="outline" onClick={startEdit} className="gap-1 text-xs h-7">
+            <Pencil className="w-3 h-3" /> Edit
+          </Button>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <div>
@@ -183,6 +190,13 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
           <p className="font-medium capitalize">{user.role || "user"}</p>
         </div>
       </div>
+      {showPromoModal && (
+        <PromotionModal
+          open={showPromoModal}
+          onClose={() => setShowPromoModal(false)}
+          user={user}
+        />
+      )}
     </div>
   );
 }
