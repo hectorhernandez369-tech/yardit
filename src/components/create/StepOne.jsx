@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function StepOne({ formData, setFormData }) {
   const listingType = formData?.listingType || "yard_sale";
@@ -54,6 +55,59 @@ export default function StepOne({ formData, setFormData }) {
           className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF] mt-2"
         />
       </div>
+
+      <div>
+        <Label className="text-[#2C4F4E]">Category *</Label>
+        <Select
+          value={formData.category || ""}
+          onValueChange={(value) => {
+            setFormData(prev => ({ 
+              ...prev, 
+              category: value,
+              collectible_type: value === "Collectibles" ? prev.collectible_type : null
+            }));
+          }}
+        >
+          <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-2">
+            <SelectValue placeholder="Select a category" />
+          </SelectTrigger>
+          <SelectContent>
+            {[
+              "Household Items", "Furniture", "Clothing & Accessories",
+              "Electronics", "Tools & Hardware", "Toys & Games",
+              "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
+              "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
+              "Free Items", "Food / Baked Goods", "Miscellaneous"
+            ].map(cat => (
+              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {formData.category === "Collectibles" && (
+        <div>
+          <Label className="text-[#2C4F4E]">Collectible Type *</Label>
+          <Select
+            value={formData.collectible_type || ""}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, collectible_type: value }))}
+          >
+            <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-2">
+              <SelectValue placeholder="Select collectible type" />
+            </SelectTrigger>
+            <SelectContent>
+              {[
+                "Funko Pops", "Sports Cards", "Pokémon Cards",
+                "Trading Cards (Other)", "Star Wars Collectibles", "Comics",
+                "Action Figures", "Die-cast Cars", "Video Game Collectibles",
+                "Movie Memorabilia", "Other Collectible"
+              ].map(type => (
+                <SelectItem key={type} value={type}>{type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div>
         <Label className="text-[#2C4F4E]" htmlFor="description">Description *</Label>

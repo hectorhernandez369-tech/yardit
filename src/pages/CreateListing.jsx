@@ -156,8 +156,8 @@ export default function CreateListingPage() {
     activeDates: [],
 
     // Categories
-    mainCategories: [],
-    subCategories: [],
+    category: "",
+    collectible_type: null,
 
     photoUrls: [],
 
@@ -337,8 +337,12 @@ export default function CreateListingPage() {
 
   const handleNext = async () => {
     if (step === 1) {
-      if (!formData.title || !formData.description) {
+      if (!formData.title || !formData.description || !formData.category) {
         toast.error("Please fill in all required fields");
+        return;
+      }
+      if (formData.category === "Collectibles" && !formData.collectible_type) {
+        toast.error("Please select a collectible type");
         return;
       }
       setStep(2);
