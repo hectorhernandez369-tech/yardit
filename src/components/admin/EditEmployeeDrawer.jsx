@@ -13,8 +13,11 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
   const [form, setForm] = useState({});
   const [supervisors, setSupervisors] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [pinForm, setPinForm] = useState({ new_pin: "", confirm_pin: "" });
+  const [savingPin, setSavingPin] = useState(false);
 
   const isSelf = admin && currentUserProfile && (admin.id === currentUserProfile.id);
+  const isMaster = currentUserProfile?.role_label === "master";
 
   useEffect(() => {
     if (!open || !admin) return;
@@ -38,6 +41,39 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
   }, [open, admin]);
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleSetPin = async () => {
+    if (!pinForm.new_pin || !pinForm.confirm_pin) {
+      toast.error("Please fill both PIN fields.");
+      return;
+    }
+    if (pinForm.new_pin !== pinForm.confirm_pin) {
+      toast.error("New PINs do not match.");
+      return;
+    }
+    if (pinForm.new_pin.length < 4) {
+      toast.error("New PIN must be at least 4 digits.");
+      return;
+    }
+    setSavingPin(true);
+    try {
+      const response = await base44.functions.invoke("adminSetUserPin", {
+        target_employee_id: admin.employee_id,
+        new_pin: pinForm.new_pin,
+        current_admin_employee_id: currentUserProfile?.employee_id
+      });
+      if (response.data.ok) {
+        toast.success("PIN updated successfully.");
+        setPinForm({ new_pin: "", confirm_pin: "" });
+      } else {
+        toast.error(response.data.reason || "Failed to update PIN.");
+      }
+    } catch (error) {
+      toast.error("Error updating PIN.");
+    } finally {
+      setSavingPin(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!form.first_name.trim() || !form.last_name.trim()) {
@@ -206,6 +242,33 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
               Save Changes
             </Button>
           </div>
+
+          {isMaster && (
+            <div className="mt-8 pt-4 border-t border-red-100">
+              <h4 className="text-sm font-semibold text-red-800 mb-3">Master Override: Set New PIN</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-red-700">New PIN</Label>
+                    <Input type="password" value={pinForm.new_pin} onChange={e => setPinForm(p => ({...p, new_pin: e.target.value}))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-red-700">Confirm New PIN</Label>
+                    <Input type="password" value={pinForm.confirm_pin} onChange={e => setPinForm(p => ({...p, confirm_pin: e.target.value}))} />
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  className="w-full text-red-700 border-red-200 hover:bg-red-50"
+                  onClick={handleSetPin}
+                  disabled={savingPin}
+                >
+                  {savingPin ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                  Set New PIN
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
