@@ -10,6 +10,7 @@ import { MapPin, Calendar, AlertTriangle, Map } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ReportModal from "../components/ReportModal";
+import PromotionModal from "../components/admin/promotions/PromotionModal";
 
 export default function ListingDetailPage() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function ListingDetailPage() {
   const [listingId, setListingId] = useState(null);
   const [user, setUser] = useState(null);
   const [showReport, setShowReport] = useState(false);
+  const [showPromoModal, setShowPromoModal] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -154,6 +156,15 @@ export default function ListingDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+              {user?.isAdmin && (
+                <Button 
+                  size="sm" 
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                  onClick={() => setShowPromoModal(true)}
+                >
+                  PROMOTIONAL
+                </Button>
+              )}
               <Badge className={tierColors[listing.tier]}>
                 {listing.tier === "neighborhood_tier" ? "Neighborhood Sale" : listing.tier.toUpperCase()}
               </Badge>
@@ -376,6 +387,14 @@ export default function ListingDetailPage() {
         <ReportModal
           listingId={listingId}
           onClose={() => setShowReport(false)}
+        />
+      )}
+      
+      {showPromoModal && (
+        <PromotionModal
+          open={showPromoModal}
+          onClose={() => setShowPromoModal(false)}
+          listing={listing}
         />
       )}
     </div>
