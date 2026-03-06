@@ -8,10 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
+import PromotionModal from "./promotions/PromotionModal";
 
 export default function ListingManagement() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [promoListing, setPromoListing] = useState(null);
 
   const { data: listings, isLoading } = useQuery({
     queryKey: ["allListings"],
@@ -75,6 +77,13 @@ export default function ListingManagement() {
                 </div>
                 
                 <div className="flex gap-2 flex-shrink-0">
+                  <Button 
+                    size="sm" 
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => setPromoListing(listing)}
+                  >
+                    PROMOTIONAL
+                  </Button>
                   <Select
                     value={listing.status}
                     onValueChange={(value) => 
@@ -103,6 +112,14 @@ export default function ListingManagement() {
           </Card>
         ))}
       </div>
+      
+      {promoListing && (
+        <PromotionModal
+          open={!!promoListing}
+          onClose={() => setPromoListing(null)}
+          listing={promoListing}
+        />
+      )}
     </div>
   );
 }
