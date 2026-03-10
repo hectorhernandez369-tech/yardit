@@ -426,47 +426,9 @@ export default function HomePage() {
   }, []);
 
   const eligibleListings = useMemo(() => {
-    const now = new Date();
-    const demo = isDemoMode();
-    return listings.filter((listing) => {
-      if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return false;
-      if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
+  const now = new Date();
+  const demo = demoOn;
 
-      if (listing.listingType === "neighborhood_sale") {
-        const confirmedCount = listing.confirmed_count || 0;
-        if (confirmedCount < 5 || listing.status !== "activated") return false;
-
-        const start = new Date(listing.startDateTime);
-        const end = new Date(listing.endDateTime);
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-
-        if (now > end) return false;
-
-        if (now < start && !listing.advertising_started_at) {
-          return false;
-        }
-      } else {
-        if (listing.status !== "active") return false;
-        if (!demo) {
-          const start = new Date(listing.startDateTime);
-          const end = new Date(listing.endDateTime);
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-          if (start > now || end < now) return false;
-        }
-      }
-
-      const matchesSearch =
-        !searchQuery ||
-        listing.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        listing.addressText?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        listing.city?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesFilter = filter === "all" || listing.listingType === filter;
-      return matchesFilter && matchesSearch;
-    });
-  }, [listings, filter, searchQuery, demoOn]);
-
-  // For list view: filter out expired unless demo
-  
   return listings.filter((listing) => {
     if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return false;
     if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
@@ -480,13 +442,11 @@ export default function HomePage() {
 
       if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
 
-      // Neighborhood sale is expired
+      // Hide expired neighborhood sales
       if (now > end) return false;
 
-      // Future neighborhood sales only show if advertising has started
-      if (now < start && !listing.advertising_started_at) {
-        return false;
-      }
+      // Future neighborhood sales only show if advertising started
+      if (now < start && !listing.advertising_started_at) return false;
     } else {
       if (listing.status !== "active") return false;
 
@@ -495,7 +455,7 @@ export default function HomePage() {
 
       if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
 
-      // In live mode, hide future + expired listings
+      // In live mode, hide future and expired listings
       if (!demo && (start > now || end < now)) return false;
     }
 
@@ -514,7 +474,7 @@ export default function HomePage() {
 
 const listViewListings = useMemo(() => {
   const now = new Date();
-  const demo = isDemoMode();
+  const demo = demoOn;
 
   return listings.filter((l) => {
     if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
@@ -545,13 +505,12 @@ const listViewListings = useMemo(() => {
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
 
-    // In live mode, hide future + expired listings
+    // In live mode, hide future and expired listings
     if (!demo && (start > now || end < now)) return false;
 
     return true;
   });
 }, [listings, demoOn]);
-  const stats = useMemo(() => {
     return {
       total: eligibleListings.length,
       yard_sale: eligibleListings.filter((l) => l.listingType === "yard_sale").length,
