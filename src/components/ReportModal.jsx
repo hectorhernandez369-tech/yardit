@@ -119,8 +119,9 @@ return report;
       queryClient.invalidateQueries({ queryKey: ["reports"] });
       onClose();
     },
-    onError: () => {
+    onError: (error) => {
       setIsUploading(false);
+      console.error("Report submission failed:", error);
       toast.error("Failed to submit report");
     },
   });
