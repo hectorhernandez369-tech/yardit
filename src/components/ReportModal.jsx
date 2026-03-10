@@ -90,19 +90,26 @@ export default function ReportModal({ listingId, onClose }) {
       setIsUploading(false);
 
       const report = await base44.entities.Report.create({
-        ...data,
-        photo_urls: photo_urls.length > 0 ? photo_urls : undefined,
-        listingId,
-        reporterUserId: user.id,
-      });
+  ...data,
+  photo_urls: photo_urls.length > 0 ? photo_urls : undefined,
+  listingId,
+  reporterUserId: user.id,
+});
 
-      const listings = await base44.entities.Listing.filter({ id: listingId });
-      if (listings[0]) {
-        await base44.entities.Listing.update(listingId, {
-          reportCount: (listings[0].reportCount || 0) + 1,
-          lastReportedAt: new Date().toISOString(),
-        });
-      }
+// Do not fail the whole submission if reportCount update fails
+try {
+  const listings = await base44.entities.Listing.filter({ id: listingId });
+  if (listings[0]) {
+    await base44.entities.Listing.update(listingId, {
+      reportCount: (listings[0].reportCount || 0) + 1,
+      lastReportedAt: new Date().toISOString(),
+    });
+  }
+} catch (err) {
+  console.error("Report created, but failed to update listing report count:", err);
+}
+
+return report;
 
       return report;
     },
