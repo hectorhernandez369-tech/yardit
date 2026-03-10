@@ -511,15 +511,14 @@ const listViewListings = useMemo(() => {
     return true;
   });
 }, [listings, demoOn]);
-    return {
-      total: eligibleListings.length,
-      yard_sale: eligibleListings.filter((l) => l.listingType === "yard_sale").length,
-      neighborhood_sale: eligibleListings.filter((l) => l.listingType === "neighborhood_sale").length,
-    };
-  }, [eligibleListings]);
 
-  useEffect(() => {
-    if (filter !== "all" && filter !== "yard_sale" && filter !== "neighborhood_sale") {
+const stats = useMemo(() => {
+  return {
+    total: eligibleListings.length,
+    yard_sale: eligibleListings.filter((l) => l.listingType === "yard_sale").length,
+    neighborhood_sale: eligibleListings.filter((l) => l.listingType === "neighborhood_sale").length,
+  };
+}, [eligibleListings]);
       setFilter("all");
     }
   }, [filter]);
@@ -539,7 +538,7 @@ const listViewListings = useMemo(() => {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showControls]);
 
-  const handlePinClick = (listing) => {
+  const handlePinClick = (listing) => {const eligibleListings = useMemo(() => {
     setActiveFocusListing({ listing, fromUrl: false });
   };
 
