@@ -11,38 +11,51 @@ import { Loader2 } from "lucide-react";
 import ReportPhotoUploader from "./report/ReportPhotoUploader";
 
 const REPORT_REASONS = [
-  { group: "Safety / Illegal", items: [
-    { code: "SAFETY_WEAPONS", label: "Weapons / dangerous items" },
-    { code: "SAFETY_DRUGS", label: "Drugs / controlled substances" },
-    { code: "SAFETY_STOLEN_GOODS", label: "Stolen goods" },
-    { code: "SAFETY_THREAT", label: "Unsafe location / threat" },
-    { code: "SAFETY_HARASSMENT_HATE", label: "Harassment / hate" },
-  ]},
-  { group: "Fraud / Misleading", items: [
-    { code: "FRAUD_SCAM", label: "Scam / bait-and-switch" },
-    { code: "FRAUD_FAKE_LISTING", label: "Fake listing / not real sale" },
-    { code: "FRAUD_MISLEADING", label: "Misleading photos or description" },
-    { code: "FRAUD_WRONG_LOCATION", label: "Wrong location / address inaccurate" },
-    { code: "FRAUD_PRICING_DECEPTION", label: "Pricing deception" },
-  ]},
-  { group: "Content / Quality", items: [
-    { code: "CONTENT_ADULT", label: "Explicit / adult content" },
-    { code: "CONTENT_OFFENSIVE", label: "Offensive content" },
-    { code: "QUALITY_DUPLICATE", label: "Duplicate listing" },
-    { code: "QUALITY_WRONG_CATEGORY", label: "Wrong category" },
-    { code: "QUALITY_NOT_YARD_SALE", label: "Not a yard sale (vendor/business ad)" },
-  ]},
-  { group: "Platform Abuse", items: [
-    { code: "ABUSE_SPAM", label: "Spam" },
-    { code: "ABUSE_REPEAT_OFFENDER", label: "Repeat offender / abuse" },
-    { code: "ABUSE_TIER_CIRCUMVENT", label: "Circumventing tiers / policy" },
-  ]},
-  { group: "Other", items: [
-    { code: "OTHER", label: "Other (requires details)" },
-  ]},
+  {
+    group: "Safety / Illegal",
+    items: [
+      { code: "SAFETY_WEAPONS", label: "Weapons / dangerous items" },
+      { code: "SAFETY_DRUGS", label: "Drugs / controlled substances" },
+      { code: "SAFETY_STOLEN_GOODS", label: "Stolen goods" },
+      { code: "SAFETY_THREAT", label: "Unsafe location / threat" },
+      { code: "SAFETY_HARASSMENT_HATE", label: "Harassment / hate" },
+    ],
+  },
+  {
+    group: "Fraud / Misleading",
+    items: [
+      { code: "FRAUD_SCAM", label: "Scam / bait-and-switch" },
+      { code: "FRAUD_FAKE_LISTING", label: "Fake listing / not real sale" },
+      { code: "FRAUD_MISLEADING", label: "Misleading photos or description" },
+      { code: "FRAUD_WRONG_LOCATION", label: "Wrong location / address inaccurate" },
+      { code: "FRAUD_PRICING_DECEPTION", label: "Pricing deception" },
+    ],
+  },
+  {
+    group: "Content / Quality",
+    items: [
+      { code: "CONTENT_ADULT", label: "Explicit / adult content" },
+      { code: "CONTENT_OFFENSIVE", label: "Offensive content" },
+      { code: "QUALITY_DUPLICATE", label: "Duplicate listing" },
+      { code: "QUALITY_WRONG_CATEGORY", label: "Wrong category" },
+      { code: "QUALITY_NOT_YARD_SALE", label: "Not a yard sale (vendor/business ad)" },
+    ],
+  },
+  {
+    group: "Platform Abuse",
+    items: [
+      { code: "ABUSE_SPAM", label: "Spam" },
+      { code: "ABUSE_REPEAT_OFFENDER", label: "Repeat offender / abuse" },
+      { code: "ABUSE_TIER_CIRCUMVENT", label: "Circumventing tiers / policy" },
+    ],
+  },
+  {
+    group: "Other",
+    items: [{ code: "OTHER", label: "Other (requires details)" }],
+  },
 ];
 
-const ALL_REASONS = REPORT_REASONS.flatMap(g => g.items);
+const ALL_REASONS = REPORT_REASONS.flatMap((g) => g.items);
 
 export default function ReportModal({ listingId, onClose }) {
   const queryClient = useQueryClient();
@@ -63,17 +76,21 @@ export default function ReportModal({ listingId, onClose }) {
         onClose();
       }
     };
-    fetchUser();
-  }, []);
 
-  const selectedReason = ALL_REASONS.find(r => r.code === selectedCode);
+    fetchUser();
+  }, [onClose]);
+
+  const selectedReason = ALL_REASONS.find((r) => r.code === selectedCode);
   const isOther = selectedCode === "OTHER";
 
   const uploadPhotos = async () => {
     if (photos.length === 0) return [];
+
     const urls = [];
     for (const photo of photos) {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: photo.file });
+      const { file_url } = await base44.integrations.Core.UploadFile({
+        file: photo.file,
+      });
       urls.push(file_url);
     }
     return urls;
@@ -81,46 +98,61 @@ export default function ReportModal({ listingId, onClose }) {
 
   const reportMutation = useMutation({
     mutationFn: async (data) => {
-      // Upload photos first
-      setIsUploading(true);
-      let photo_urls = [];
-      if (photos.length > 0) {
-        photo_urls = await uploadPhotos();
+      if (!user?.id) {
+        throw new Error("User not logged in");
       }
-      setIsUploading(false);
 
-      const report = await base44.entities.Report.create({
-  ...data,
-  photo_urls: photo_urls.length > 0 ? photo_urls : undefined,
-  listingId,
-  reporterUserId: user.id,
-});
+      let photo_urls = [];
 
-// Do not fail the whole submission if reportCount update fails
-try {
-  const listings = await base44.entities.Listing.filter({ id: listingId });
-  if (listings[0]) {
-    await base44.entities.Listing.update(listingId, {
-      reportCount: (listings[0].reportCount || 0) + 1,
-      lastReportedAt: new Date().toISOString(),
-    });
-  }
-} catch (err) {
-  console.error("Report created, but failed to update listing report count:", err);
-}
+      try {
+        setIsUploading(true);
 
-return report;
+        if (photos.length > 0) {
+          photo_urls = await uploadPhotos();
+        }
 
-      return report;
+        const report = await base44.entities.Report.create({
+          ...data,
+          photo_urls: photo_urls.length > 0 ? photo_urls : undefined,
+          listingId,
+          reporterUserId: user.id,
+        });
+
+        // Secondary step only — should not fail the whole report
+        try {
+          const listings = await base44.entities.Listing.filter({ id: listingId });
+          if (listings?.[0]) {
+            await base44.entities.Listing.update(listingId, {
+              reportCount: (listings[0].reportCount || 0) + 1,
+              lastReportedAt: new Date().toISOString(),
+            });
+          }
+        } catch (err) {
+          console.error(
+            "Report created successfully, but failed to update listing report count:",
+            err
+          );
+        }
+
+        return report;
+      } finally {
+        setIsUploading(false);
+      }
     },
+
     onSuccess: () => {
-      photos.forEach((p) => URL.revokeObjectURL(p.preview));
+      photos.forEach((p) => {
+        if (p.preview) URL.revokeObjectURL(p.preview);
+      });
+
       toast.success("Report submitted successfully");
       queryClient.invalidateQueries({ queryKey: ["reports"] });
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
+      queryClient.invalidateQueries({ queryKey: ["listing", listingId] });
       onClose();
     },
+
     onError: (error) => {
-      setIsUploading(false);
       console.error("Report submission failed:", error);
       toast.error("Failed to submit report");
     },
@@ -130,10 +162,12 @@ return report;
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
     if (!selectedCode) {
       toast.error("Please select a reason");
       return;
     }
+
     if (isOther && !otherDetails.trim()) {
       toast.error("Please provide details for your report");
       return;
@@ -143,8 +177,8 @@ return report;
       reason: selectedReason?.label || selectedCode,
       reason_code: selectedCode,
       reason_label: selectedReason?.label || selectedCode,
-      details: details || undefined,
-      other_details: isOther ? otherDetails : undefined,
+      details: details?.trim() || undefined,
+      other_details: isOther ? otherDetails.trim() : undefined,
     });
   };
 
@@ -158,10 +192,7 @@ return report;
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label>Reason *</Label>
-            <Select
-              value={selectedCode}
-              onValueChange={setSelectedCode}
-            >
+            <Select value={selectedCode} onValueChange={setSelectedCode}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a reason" />
               </SelectTrigger>
@@ -176,7 +207,11 @@ return report;
                       {group.group}
                     </div>
                     {group.items.map((item) => (
-                      <SelectItem key={item.code} value={item.code} className="cursor-pointer hover:bg-gray-100">
+                      <SelectItem
+                        key={item.code}
+                        value={item.code}
+                        className="cursor-pointer hover:bg-gray-100"
+                      >
                         {item.label}
                       </SelectItem>
                     ))}
@@ -184,7 +219,9 @@ return report;
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">Choose the closest match.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Choose the closest match.
+            </p>
           </div>
 
           {isOther && (
@@ -221,6 +258,7 @@ return report;
             >
               Cancel
             </Button>
+
             <Button
               type="submit"
               disabled={isSubmitting}
@@ -231,7 +269,9 @@ return report;
                   <Loader2 className="w-4 h-4 animate-spin" />
                   {isUploading ? "Uploading photos…" : "Submitting report…"}
                 </span>
-              ) : "Submit Report"}
+              ) : (
+                "Submit Report"
+              )}
             </Button>
           </div>
         </form>
