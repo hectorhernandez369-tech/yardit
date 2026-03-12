@@ -14,7 +14,12 @@ export default function MapFocusController({ focusData, markerRefsMap, onFocusCo
   useEffect(() => {
     if (!focusData) return;
     const { listing, fromUrl } = focusData;
-    if (!listing || !listing.lat || !listing.lng) return;
+    if (!listing) return;
+
+    const lat = Number(listing.lat);
+    const lng = Number(listing.lng);
+
+    if (isNaN(lat) || isNaN(lng)) return;
 
     const currentZoom = map.getZoom();
     let targetZoom = currentZoom;
@@ -26,7 +31,7 @@ export default function MapFocusController({ focusData, markerRefsMap, onFocusCo
     }
 
     // Center map on listing
-    map.flyTo([listing.lat, listing.lng], targetZoom, { 
+    map.flyTo([lat, lng], targetZoom, { 
       animate: true,
       duration: 0.5 
     });
