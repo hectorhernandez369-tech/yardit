@@ -174,13 +174,6 @@ function MapController({ center, zoom, onUserMove, onZoomChange, onMapReady }) {
   return null;
 }
 
-function isHalloweenSeason() {
-  const now = new Date();
-  const month = now.getMonth();
-  const day = now.getDate();
-  return month === 9 && day >= 29 && day <= 31;
-}
-
 function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
   const R = 6371e3; // metres
@@ -197,29 +190,22 @@ function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function optimizeRoute(locations, startLat, startLng) {
-  if (locations.length === 0) return [];
-  const unvisited = [...locations];
-  const route = [];
-  let currentLat = startLat;
-  let currentLng = startLng;
-
-  while (unvisited.length > 0) {
-    let nearestIndex = 0;
-    let minDistance = Infinity;
-    unvisited.forEach((loc, index) => {
-      const dist = calculateDistanceMeters(currentLat, currentLng, loc.lat, loc.lng);
-      if (dist < minDistance) {
-        minDistance = dist;
-        nearestIndex = index;
-      }
-    });
-    const nearest = unvisited.splice(nearestIndex, 1)[0];
-    route.push(nearest);
-    currentLat = nearest.lat;
-    currentLng = nearest.lng;
+function isWithinViewingHours(startTime, endTime) {
+  if (!startTime || !endTime) return false;
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  
+  const startTotal = startH * 60 + startM;
+  const endTotal = endH * 60 + endM;
+  
+  if (endTotal < startTotal) {
+    return currentMinutes >= startTotal || currentMinutes <= endTotal;
   }
-  return route;
+  
+  return currentMinutes >= startTotal && currentMinutes <= endTotal;
 }
 
 export default function HomePage() {
@@ -259,7 +245,6 @@ export default function HomePage() {
   const markerRefsMap = useRef({});
   const hasCenteredOnUser = useRef(false);
   const userHasMovedMap = useRef(false);
-  const halloweenActive = isHalloweenSeason();
   const mapRef = useRef(null);
 
   // Debug overlay
@@ -418,12 +403,7 @@ export default function HomePage() {
     setCurrentZoom(z);
   }, []);
 
-  const [, forceUpdate] = useState(0);
-  useEffect(() => {
-    const handler = () => forceUpdate(n => n + 1);
-    window.addEventListener("demo-mode-change", handler);
-    return () => window.removeEventListener("demo-mode-change", handler);
-  }, []);
+
 
   const eligibleListings = useMemo(() => {
   const now = new Date();
