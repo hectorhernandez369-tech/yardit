@@ -1,4 +1,3 @@
-
 /**
  * Yardit Case Management System v1.3 — Mutation Layer
  * 
@@ -22,6 +21,7 @@
 
 export { assignCaseToSelf } from "./mutations/assignCaseToSelf";
 export { assignCase } from "./mutations/assignCase";
+export { openCase } from "./mutations/openCase";
 export { changeCasePriority } from "./mutations/changeCasePriority";
 export { addCaseComment } from "./mutations/addCaseComment";
 export { setDisposition } from "./mutations/setDisposition";

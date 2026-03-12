@@ -6,10 +6,11 @@ import { logAdminAction, notifyAdmin } from "../lib/auditLogger";
  * assignCase(caseId, supervisorAdminId, targetAdminId, supervisorUser)
  * - Only Supervisor/Master
  * - Only if Case.status == 'in_queue'
- * - Sets assigned_admin_id = targetAdminId, originating_admin_id = targetAdminId (first assignment), status = 'open'
+ * - Sets assigned_admin_id = targetAdminId, originating_admin_id = targetAdminId (first assignment), status = 'assigned'
  * - AdminAction: 'assign_other'
  * - Notifies targetAdminId
  */
+...
 export async function assignCase(caseId, supervisorAdminId, targetAdminId, supervisorUser) {
   const permErr = requireSupervisor(supervisorUser, "assignCase");
   if (permErr) return permErr;

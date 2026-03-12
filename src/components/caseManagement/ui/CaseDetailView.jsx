@@ -79,7 +79,7 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
           <Button variant="outline" size="sm" onClick={onClose}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
           <h2 className="text-lg sm:text-2xl font-bold break-all">Case: {caseData.account_number}</h2>
           <div className="flex flex-wrap gap-1.5">
-            <Badge className={caseData.status === "open" ? "bg-blue-100 text-blue-800" : caseData.status === "submitted" ? "bg-purple-100 text-purple-800" : caseData.status === "closed" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+            <Badge className={caseData.status === "assigned" ? "bg-amber-100 text-amber-800" : caseData.status === "open" ? "bg-blue-100 text-blue-800" : caseData.status === "submitted" ? "bg-purple-100 text-purple-800" : caseData.status === "closed" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
               {caseData.status}
             </Badge>
             {caseData.safety_flag && <Badge className="bg-red-600 text-white"><AlertTriangle className="w-3 h-3 mr-1" />Safety</Badge>}

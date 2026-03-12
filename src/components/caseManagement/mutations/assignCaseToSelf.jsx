@@ -5,10 +5,11 @@ import { logAdminAction, notifyAdmin } from "../lib/auditLogger";
 /**
  * assignCaseToSelf(caseId, adminId, adminUser)
  * - Only if Case.status == 'in_queue' AND assigned_admin_id is null
- * - Sets assigned_admin_id = adminId, originating_admin_id = adminId (first assignment), status = 'open'
+ * - Sets assigned_admin_id = adminId, originating_admin_id = adminId (first assignment), status = 'assigned'
  * - AdminAction: 'assign_self'
  * - Notifies adminId
  */
+...
 export async function assignCaseToSelf(caseId, adminId, adminUser) {
   const permErr = requireAnyAdmin(adminUser, "assignCaseToSelf");
   if (permErr) return permErr;
