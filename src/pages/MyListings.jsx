@@ -63,11 +63,13 @@ export default function MyListingsPage() {
   const statusColors = useMemo(
     () => ({
       active: "bg-green-600",
+      upcoming: "bg-teal-600",
       hidden: "bg-gray-500",
       under_review: "bg-yellow-600",
       suspended: "bg-red-600",
       completed: "bg-blue-600",
       expired: "bg-gray-400",
+      draft: "bg-slate-400",
     }),
     []
   );
@@ -94,15 +96,54 @@ export default function MyListingsPage() {
   };
 
   const isPastListing = (listing) => {
-    // (Past if endDateTime exists and has already passed)
+    if (listing?.status === "expired" || listing?.status === "completed") return true;
     if (!listing?.endDateTime) return false;
     const endMs = new Date(listing.endDateTime).getTime();
     if (Number.isNaN(endMs)) return false;
     return endMs < Date.now();
   };
 
-  const activeListings = useMemo(() => listings.filter((l) => !isPastListing(l)), [listings]);
-  const pastListings = useMemo(() => listings.filter((l) => isPastListing(l)), [listings]);
+  const normalizedListings = useMemo(() => {
+    const now = Date.now();
+    return listings.map(l => {
+      let displayStatus = l.status || "active";
+      const isPast = isPastListing(l);
+      
+      if (displayStatus === "active") {
+        if (isPast) {
+          displayStatus = "expired";
+        } else if (l.startDateTime && new Date(l.startDateTime).getTime() > now) {
+          displayStatus = "upcoming";
+        }
+      } else if (isPast && displayStatus !== "completed" && displayStatus !== "suspended") {
+        displayStatus = "expired";
+      }
+      return { ...l, displayStatus };
+    });
+  }, [listings]);
+
+  const activeListings = useMemo(() => normalizedListings.filter((l) => !isPastListing(l)), [normalizedListings]);
+  const pastListings = useMemo(() => normalizedListings.filter((l) => isPastListing(l)), [normalizedListings]);
+
+  useEffect(() => {
+    const cleanup = async () => {
+      if (!listings || listings.length === 0) return;
+      const now = Date.now();
+      const toUpdate = listings.filter(l => 
+        l.status === "active" && l.endDateTime && new Date(l.endDateTime).getTime() < now
+      );
+      
+      for (const l of toUpdate) {
+        try {
+          await base44.entities.Listing.update(l.id, { status: "expired" });
+        } catch (e) {}
+      }
+      if (toUpdate.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      }
+    };
+    cleanup();
+  }, [listings, user, queryClient]);
 
   const shownListings = tab === "past" ? pastListings : activeListings;
 
@@ -332,10 +373,10 @@ export default function MyListingsPage() {
                             : String(listing.tier || "free").toUpperCase()}
                         </Badge>
 
-                        <Badge className={statusColors[listing.status] || "bg-gray-500"}>
-                          {listing.status === "under_review"
+                        <Badge className={statusColors[listing.displayStatus] || "bg-gray-500"}>
+                          {listing.displayStatus === "under_review"
                             ? "Under Review"
-                            : String(listing.status || "active").toUpperCase()}
+                            : String(listing.displayStatus || "active").replace("_", " ").toUpperCase()}
                         </Badge>
                       </div>
                     </div>

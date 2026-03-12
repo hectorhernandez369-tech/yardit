@@ -260,9 +260,38 @@ export default function CreateListingPage() {
 
   const hasActiveResidentialListing = () => {
     if (isDemoMode()) return false;
-    if (isDevBypassUser(user)) return false; // (plain english) your account is exempt
-    return (userListings || []).some((l) => l.status === "active");
+    if (isDevBypassUser(user)) return false; 
+    
+    const now = Date.now();
+    return (userListings || []).some((l) => {
+      // Exclude implicitly or explicitly expired/past listings
+      if (l.status === "completed" || l.status === "suspended" || l.status === "expired") return false;
+      if (l.endDateTime && new Date(l.endDateTime).getTime() < now) return false;
+      
+      // Otherwise, it counts if it's active or pending review (includes upcoming listings)
+      return l.status === "active" || l.status === "under_review";
+    });
   };
+
+  useEffect(() => {
+    const cleanup = async () => {
+      if (!userListings || userListings.length === 0) return;
+      const now = Date.now();
+      const toUpdate = userListings.filter(l => 
+        l.status === "active" && l.endDateTime && new Date(l.endDateTime).getTime() < now
+      );
+      
+      for (const l of toUpdate) {
+        try {
+          await base44.entities.Listing.update(l.id, { status: "expired" });
+        } catch (e) {}
+      }
+      if (toUpdate.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ["userListings", user?.id] });
+      }
+    };
+    cleanup();
+  }, [userListings, user, queryClient]);
 
   const createListingMutation = useMutation({
     mutationFn: async (data) => {
