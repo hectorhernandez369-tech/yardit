@@ -13,6 +13,15 @@ import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import {
+  formatListingDateRange,
+  formatListingStatusLabel,
+  formatListingTierLabel,
+  getListingAddressLine,
+  getListingDisplayStatus,
+  statusColors,
+  tierColors,
+} from "@/components/listing/listingDisplay";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
@@ -50,30 +59,6 @@ export default function MyListingsPage() {
     initialData: [],
   });
 
-  const tierColors = useMemo(
-    () => ({
-      free: "bg-slate-500",
-      featured: "bg-purple-600",
-      premium: "bg-amber-600",
-      neighborhood_tier: "bg-emerald-600",
-    }),
-    []
-  );
-
-  const statusColors = useMemo(
-    () => ({
-      active: "bg-green-600",
-      upcoming: "bg-teal-600",
-      hidden: "bg-gray-500",
-      under_review: "bg-yellow-600",
-      suspended: "bg-red-600",
-      completed: "bg-blue-600",
-      expired: "bg-gray-400",
-      draft: "bg-slate-400",
-    }),
-    []
-  );
-
   // ---- Helpers ----
   const getLatLng = (listing) => {
     const lat = listing?.lat ?? listing?.latitude ?? null;
@@ -104,22 +89,10 @@ export default function MyListingsPage() {
   };
 
   const normalizedListings = useMemo(() => {
-    const now = Date.now();
-    return listings.map(l => {
-      let displayStatus = l.status || "active";
-      const isPast = isPastListing(l);
-      
-      if (displayStatus === "active") {
-        if (isPast) {
-          displayStatus = "expired";
-        } else if (l.startDateTime && new Date(l.startDateTime).getTime() > now) {
-          displayStatus = "upcoming";
-        }
-      } else if (isPast && displayStatus !== "completed" && displayStatus !== "suspended") {
-        displayStatus = "expired";
-      }
-      return { ...l, displayStatus };
-    });
+    return listings.map((listing) => ({
+      ...listing,
+      displayStatus: getListingDisplayStatus(listing),
+    }));
   }, [listings]);
 
   const activeListings = useMemo(() => normalizedListings.filter((l) => !isPastListing(l)), [normalizedListings]);
@@ -351,9 +324,10 @@ export default function MyListingsPage() {
                       <h3 className="text-lg sm:text-xl font-semibold mb-1 break-words">{listing.title}</h3>
 
                       {/* Listing # small print */}
-                      <p className="text-xs text-slate-500 mb-2 break-all">
-                        Listing #{String(listingNumberText(listing))}
-                      </p>
+                      <div className="text-xs text-slate-500 mb-2 space-y-1 break-all">
+                        <p>Listing #{String(listingNumberText(listing))}</p>
+                        <p>ID: {listing.id}</p>
+                      </div>
 
                       <div className="flex gap-2 flex-wrap">
                         {/* (plain english) Requester listing badges for neighborhood join status */}
@@ -368,15 +342,11 @@ export default function MyListingsPage() {
                         )}
 
                         <Badge className={tierColors[listing.tier] || "bg-slate-500"}>
-                          {listing.tier === "neighborhood_tier"
-                            ? "Neighborhood"
-                            : String(listing.tier || "free").toUpperCase()}
+                          {formatListingTierLabel(listing.tier)}
                         </Badge>
 
                         <Badge className={statusColors[listing.displayStatus] || "bg-gray-500"}>
-                          {listing.displayStatus === "under_review"
-                            ? "Under Review"
-                            : String(listing.displayStatus || "active").replace("_", " ").toUpperCase()}
+                          {formatListingStatusLabel(listing.displayStatus)}
                         </Badge>
                       </div>
                     </div>
@@ -438,22 +408,12 @@ export default function MyListingsPage() {
                   <div className="grid md:grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center gap-2 text-slate-600">
                       <MapPin className="w-4 h-4" />
-                      <span className="break-words">
-                        {listing.addressText || "Address unavailable"}
-                        {listing.city ? `, ${listing.city}` : ""}
-                        {listing.state ? `, ${listing.state}` : ""}
-                        {listing.zip ? ` ${listing.zip}` : ""}
-                      </span>
+                      <span className="break-words">{getListingAddressLine(listing)}</span>
                     </div>
 
                     <div className="flex items-center gap-2 text-slate-600">
                       <Calendar className="w-4 h-4" />
-                      <span>
-                        {listing.startDateTime
-                          ? format(new Date(listing.startDateTime), "PPp")
-                          : "No start time set"}
-                        {listing.endDateTime ? ` — ${format(new Date(listing.endDateTime), "PPp")}` : ""}
-                      </span>
+                      <span>{formatListingDateRange(listing)}</span>
                     </div>
                   </div>
 
