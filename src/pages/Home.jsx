@@ -519,6 +519,9 @@ const stats = useMemo(() => {
     neighborhood_sale: eligibleListings.filter((l) => l.listingType === "neighborhood_sale").length,
   };
 }, [eligibleListings]);
+
+  useEffect(() => {
+    if (filter !== "all" && filter !== "yard_sale" && filter !== "neighborhood_sale") {
       setFilter("all");
     }
   }, [filter]);
@@ -538,7 +541,7 @@ const stats = useMemo(() => {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showControls]);
 
-  const handlePinClick = (listing) => {const eligibleListings = useMemo(() => {
+  const handlePinClick = (listing) => {
     setActiveFocusListing({ listing, fromUrl: false });
   };
 
