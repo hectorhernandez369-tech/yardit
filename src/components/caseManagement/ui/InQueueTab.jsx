@@ -109,12 +109,13 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
                     <td className="p-3"><Badge className={priorityColors[c.case_priority] || ""}>{c.case_priority}</Badge></td>
                     <td className="p-3">{c.safety_flag ? <Badge className="bg-red-600 text-white"><AlertTriangle className="w-3 h-3 mr-1" />Safety</Badge> : "—"}</td>
                     <td className="p-3">
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap">
+                        <Button size="sm" variant="ghost" onClick={() => onOpenCase(c.id)}>View More Details</Button>
                         <Button size="sm" variant="outline" onClick={() => handleAssignSelf(c)} disabled={assigning === c.id}>
-                          {assigning === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Assign Self"}
+                          {assigning === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Assign to Self"}
                         </Button>
                         {isSupervisor(user) && (
-                          <Button size="sm" variant="outline" onClick={() => setShowAssignDialog(c)}>Assign</Button>
+                          <Button size="sm" variant="outline" onClick={() => setShowAssignDialog(c)}>Assign To</Button>
                         )}
                       </div>
                     </td>
@@ -144,12 +145,13 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
                 <p className="text-sm font-medium truncate">{listing?.title || "—"}</p>
                 <p className="text-xs text-gray-500 truncate">{listing ? `${listing.addressText || ""}, ${listing.city || ""}` : ""}</p>
                 <p className="text-xs text-gray-500">{latestReport?.reason_label || latestReport?.reason_code || "—"} · {latestReport?.created_date ? new Date(latestReport.created_date).toLocaleDateString() : "—"}</p>
-                <div className="flex gap-2 pt-1">
-                  <Button size="sm" variant="outline" className="flex-1" onClick={() => handleAssignSelf(c)} disabled={assigning === c.id}>
-                    {assigning === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Assign Self"}
+                <div className="flex gap-2 pt-1 flex-wrap">
+                  <Button size="sm" variant="ghost" className="flex-1 min-w-[120px]" onClick={() => onOpenCase(c.id)}>View More Details</Button>
+                  <Button size="sm" variant="outline" className="flex-1 min-w-[120px]" onClick={() => handleAssignSelf(c)} disabled={assigning === c.id}>
+                    {assigning === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Assign to Self"}
                   </Button>
                   {isSupervisor(user) && (
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setShowAssignDialog(c)}>Assign</Button>
+                    <Button size="sm" variant="outline" className="flex-1 min-w-[120px]" onClick={() => setShowAssignDialog(c)}>Assign To</Button>
                   )}
                 </div>
               </div>

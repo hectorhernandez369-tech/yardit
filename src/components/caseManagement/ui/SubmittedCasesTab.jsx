@@ -13,8 +13,8 @@ export default function SubmittedCasesTab({ user, searchResults, onOpenCase, ref
 
   const loadData = async () => {
     setLoading(true);
-    const allCases = await base44.entities.Case.filter({ status: "submitted" });
-    setCases(allCases);
+    const allCases = await base44.entities.Case.list();
+    setCases(allCases.filter(c => ["submitted", "submitted_for_review", "escalated_to_supervisor", "escalated_to_master"].includes(c.status)));
 
     const users = await base44.entities.User.list();
     const adminMap = {};
