@@ -13,7 +13,7 @@ export default function OpenCasesTab({ user, searchResults, onOpenCase, refreshK
 
   const loadData = async () => {
     setLoading(true);
-    const allCases = await base44.entities.Case.filter({ status: "open" });
+    const allCases = await base44.entities.Case.filter({ status: "open", assigned_admin_id: user.id });
     setCases(allCases);
 
     const users = await base44.entities.User.list();
