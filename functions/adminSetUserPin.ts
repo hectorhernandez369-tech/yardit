@@ -29,19 +29,29 @@ Deno.serve(async (req) => {
     const accessKeys = await base44.asServiceRole.entities.AdminAccessKey.filter({ employee_id: target_employee_id });
     const accessKey = accessKeys.length > 0 ? accessKeys[0] : null;
 
-    if (!accessKey) {
-      return Response.json({ ok: false, reason: "invalid_employee" }, { status: 404 });
-    }
-
     // Hash new pin
     const salt = await bcrypt.genSalt(10);
     const new_pin_hash = await bcrypt.hash(new_pin, salt);
 
-    await base44.asServiceRole.entities.AdminAccessKey.update(accessKey.id, {
-      pin_hash: new_pin_hash,
-      failed_attempts: 0,
-      locked_until: null
-    });
+    if (!accessKey) {
+      const targetProfiles = await base44.asServiceRole.entities.AdminProfile.filter({ employee_id: target_employee_id });
+      if (targetProfiles.length === 0) {
+        return Response.json({ ok: false, reason: "invalid_employee_profile" }, { status: 404 });
+      }
+      
+      await base44.asServiceRole.entities.AdminAccessKey.create({
+        employee_id: target_employee_id,
+        pin_hash: new_pin_hash,
+        failed_attempts: 0,
+        locked_until: null
+      });
+    } else {
+      await base44.asServiceRole.entities.AdminAccessKey.update(accessKey.id, {
+        pin_hash: new_pin_hash,
+        failed_attempts: 0,
+        locked_until: null
+      });
+    }
 
     await base44.asServiceRole.entities.AdminAuditLog.create({
       user_id: user.id,

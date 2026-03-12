@@ -60,16 +60,17 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
       const response = await base44.functions.invoke("adminSetUserPin", {
         target_employee_id: admin.employee_id,
         new_pin: pinForm.new_pin,
-        current_admin_employee_id: currentUserProfile?.employee_id
+        current_admin_employee_id: currentUserProfile?.employee_id || ""
       });
       if (response.data.ok) {
         toast.success("PIN updated successfully.");
         setPinForm({ new_pin: "", confirm_pin: "" });
       } else {
-        toast.error(response.data.reason || "Failed to update PIN.");
+        toast.error(`Failed to update PIN: ${response.data.reason || "Unknown error"}`);
       }
     } catch (error) {
-      toast.error("Error updating PIN.");
+      const errorMsg = error.response?.data?.reason || error.message || "Unknown error";
+      toast.error(`Error updating PIN: ${errorMsg}`);
     } finally {
       setSavingPin(false);
     }
