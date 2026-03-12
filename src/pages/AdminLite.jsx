@@ -42,7 +42,11 @@ export default function AdminLitePage() {
 
   // Case management state
   const [caseTab, setCaseTab] = useState("queue");
-...
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
+  const [searching, setSearching] = useState(false);
+  const [selectedCaseId, setSelectedCaseId] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [counts, setCounts] = useState({ in_queue: 0, assigned: 0, open: 0, submitted: 0, closed: 0 });
 
   useEffect(() => {
