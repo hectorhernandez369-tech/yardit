@@ -53,10 +53,10 @@ export default function AdminLitePage() {
     const fetchCounts = async () => {
       try {
         const allCases = await base44.entities.Case.list();
-        const newCounts = { in_queue: 0, my_open: 0, submitted: 0, closed: 0 };
+        const newCounts = { in_queue: 0, case_management: 0, submitted: 0, closed: 0 };
         allCases.forEach(c => {
           if (c.status === "in_queue") newCounts.in_queue++;
-          else if (c.status === "open" && c.assigned_admin_id === user.id) newCounts.my_open++;
+          else if (c.status === "open" && c.assigned_admin_id === user.id) newCounts.case_management++;
           else if (c.status === "closed") newCounts.closed++;
           else if (["submitted", "submitted_for_review", "escalated_to_supervisor", "escalated_to_master"].includes(c.status)) newCounts.submitted++;
         });
@@ -308,9 +308,9 @@ export default function AdminLitePage() {
 
             <Tabs value={caseTab} onValueChange={handleCaseTabChange}>
               <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-2xl p-1">
-                <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">My Cases ({counts.my_open})</TabsTrigger>
-                <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Submitted ({counts.submitted})</TabsTrigger>
-                <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
+                <TabsTrigger value="open" className="flex-1 min-w-[calc(33%-0.25rem)] sm:min-w-0">Open Cases ({counts.case_management})</TabsTrigger>
+                <TabsTrigger value="submitted" className="flex-1 min-w-[calc(33%-0.25rem)] sm:min-w-0">Submitted ({counts.submitted})</TabsTrigger>
+                <TabsTrigger value="closed" className="flex-1 min-w-[calc(33%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
               </TabsList>
 
               <TabsContent value="open">
@@ -329,11 +329,12 @@ export default function AdminLitePage() {
           <TabsContent value="lite">
             <AdminLiteDashboard 
               user={user} 
+              counts={counts}
               allAdminUsers={allAdminUsers}
+              searchResults={searchResults}
               onOpenCase={handleOpenCase}
               refreshKey={refreshKey}
               triggerRefresh={triggerRefresh}
-              counts={counts}
             />
           </TabsContent>
 
