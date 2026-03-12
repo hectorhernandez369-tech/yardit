@@ -38,13 +38,21 @@ Deno.serve(async (req) => {
       if (targetProfiles.length === 0) {
         return Response.json({ ok: false, reason: "invalid_employee_profile" }, { status: 404 });
       }
+      const targetProfile = targetProfiles[0];
       
-      await base44.asServiceRole.entities.AdminAccessKey.create({
-        employee_id: target_employee_id,
-        pin_hash: new_pin_hash,
-        failed_attempts: 0,
-        locked_until: null
-      });
+      try {
+        await base44.asServiceRole.entities.AdminAccessKey.create({
+          employee_id: target_employee_id,
+          user_id: targetProfile.user_id || "",
+          pin_hash: new_pin_hash,
+          is_active: true,
+          failed_attempts: 0,
+          locked_until: null
+        });
+      } catch (createError) {
+        console.error("Error creating AdminAccessKey:", createError);
+        return Response.json({ ok: false, reason: "create_access_key_failed", details: createError.message }, { status: 500 });
+      }
     } else {
       await base44.asServiceRole.entities.AdminAccessKey.update(accessKey.id, {
         pin_hash: new_pin_hash,
