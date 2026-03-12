@@ -264,11 +264,9 @@ export default function CreateListingPage() {
     
     const now = Date.now();
     return (userListings || []).some((l) => {
-      // Exclude implicitly or explicitly expired/past listings
       if (l.status === "completed" || l.status === "suspended" || l.status === "expired") return false;
       if (l.endDateTime && new Date(l.endDateTime).getTime() < now) return false;
       
-      // Otherwise, it counts if it's active or pending review (includes upcoming listings)
       return l.status === "active" || l.status === "under_review";
     });
   };
