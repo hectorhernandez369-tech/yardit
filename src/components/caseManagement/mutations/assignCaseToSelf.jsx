@@ -9,7 +9,6 @@ import { logAdminAction, notifyAdmin } from "../lib/auditLogger";
  * - AdminAction: 'assign_self'
  * - Notifies adminId
  */
-...
 export async function assignCaseToSelf(caseId, adminId, adminUser) {
   const permErr = requireAnyAdmin(adminUser, "assignCaseToSelf");
   if (permErr) return permErr;
@@ -27,7 +26,7 @@ export async function assignCaseToSelf(caseId, adminId, adminUser) {
 
   const updateData = {
     assigned_admin_id: adminId,
-    status: "open",
+    status: "assigned",
   };
   // Set originating_admin_id only if not already set (first assignment from in_queue)
   if (!c.originating_admin_id) {
@@ -41,7 +40,7 @@ export async function assignCaseToSelf(caseId, adminId, adminUser) {
     adminId,
     actionType: "assign_self",
     oldValue: { status: c.status, assigned_admin_id: null },
-    newValue: { status: "open", assigned_admin_id: adminId, originating_admin_id: updateData.originating_admin_id || c.originating_admin_id },
+    newValue: { status: "assigned", assigned_admin_id: adminId, originating_admin_id: updateData.originating_admin_id || c.originating_admin_id },
   });
 
   // Mutate

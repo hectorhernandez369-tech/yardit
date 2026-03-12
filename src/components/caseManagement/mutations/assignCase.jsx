@@ -10,7 +10,6 @@ import { logAdminAction, notifyAdmin } from "../lib/auditLogger";
  * - AdminAction: 'assign_other'
  * - Notifies targetAdminId
  */
-...
 export async function assignCase(caseId, supervisorAdminId, targetAdminId, supervisorUser) {
   const permErr = requireSupervisor(supervisorUser, "assignCase");
   if (permErr) return permErr;
@@ -25,7 +24,7 @@ export async function assignCase(caseId, supervisorAdminId, targetAdminId, super
 
   const updateData = {
     assigned_admin_id: targetAdminId,
-    status: "open",
+    status: "assigned",
   };
   // Set originating_admin_id only if not already set (first assignment from in_queue)
   if (!c.originating_admin_id) {
@@ -39,7 +38,7 @@ export async function assignCase(caseId, supervisorAdminId, targetAdminId, super
     adminId: supervisorAdminId,
     actionType: "assign_other",
     oldValue: { status: c.status, assigned_admin_id: c.assigned_admin_id || null },
-    newValue: { status: "open", assigned_admin_id: targetAdminId, originating_admin_id: updateData.originating_admin_id || c.originating_admin_id },
+    newValue: { status: "assigned", assigned_admin_id: targetAdminId, originating_admin_id: updateData.originating_admin_id || c.originating_admin_id },
   });
 
   // Mutate

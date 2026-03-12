@@ -10,8 +10,8 @@ import { toast } from "sonner";
 import { logAdminEvent, searchCases, isSupervisor } from "../components/caseManagement";
 import { hasCapability } from "../components/admin/adminCapabilities";
 
-import InQueueTab from "../components/caseManagement/ui/InQueueTab";
 import OpenCasesTab from "../components/caseManagement/ui/OpenCasesTab";
+import ActiveOpenCasesTab from "../components/caseManagement/ui/ActiveOpenCasesTab";
 import SubmittedCasesTab from "../components/caseManagement/ui/SubmittedCasesTab";
 import ClosedCasesTab from "../components/caseManagement/ui/ClosedCasesTab";
 import CaseDetailView from "../components/caseManagement/ui/CaseDetailView";
@@ -41,22 +41,19 @@ export default function AdminLitePage() {
   const [topTab, setTopTab] = useState(initialTopTab);
 
   // Case management state
-  const [caseTab, setCaseTab] = useState("open");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState(null);
-  const [searching, setSearching] = useState(false);
-  const [selectedCaseId, setSelectedCaseId] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [counts, setCounts] = useState({ in_queue: 0, open: 0, submitted: 0, closed: 0 });
+  const [caseTab, setCaseTab] = useState("queue");
+...
+  const [counts, setCounts] = useState({ in_queue: 0, assigned: 0, open: 0, submitted: 0, closed: 0 });
 
   useEffect(() => {
     const fetchCounts = async () => {
       try {
         const allCases = await base44.entities.Case.list();
-        const newCounts = { in_queue: 0, case_management: 0, submitted: 0, closed: 0 };
+        const newCounts = { in_queue: 0, assigned: 0, open: 0, submitted: 0, closed: 0 };
         allCases.forEach(c => {
           if (c.status === "in_queue") newCounts.in_queue++;
-          else if (c.status === "open" && c.assigned_admin_id === user.id) newCounts.case_management++;
+          else if (c.status === "assigned" && c.assigned_admin_id === user.id) newCounts.assigned++;
+          else if (c.status === "open" && c.assigned_admin_id === user.id) newCounts.open++;
           else if (c.status === "closed") newCounts.closed++;
           else if (["submitted", "submitted_for_review", "escalated_to_supervisor", "escalated_to_master"].includes(c.status)) newCounts.submitted++;
         });
@@ -307,14 +304,18 @@ export default function AdminLitePage() {
             )}
 
             <Tabs value={caseTab} onValueChange={handleCaseTabChange}>
-              <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-2xl p-1">
-                <TabsTrigger value="open" className="flex-1 min-w-[calc(33%-0.25rem)] sm:min-w-0">Queue ({counts.case_management})</TabsTrigger>
-                <TabsTrigger value="submitted" className="flex-1 min-w-[calc(33%-0.25rem)] sm:min-w-0">Submitted ({counts.submitted})</TabsTrigger>
-                <TabsTrigger value="closed" className="flex-1 min-w-[calc(33%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
+              <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-3xl p-1">
+                <TabsTrigger value="queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Queue ({counts.assigned})</TabsTrigger>
+                <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Open ({counts.open})</TabsTrigger>
+                <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Submitted ({counts.submitted})</TabsTrigger>
+                <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
               </TabsList>
 
+              <TabsContent value="queue">
+                <OpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} triggerRefresh={triggerRefresh} />
+              </TabsContent>
               <TabsContent value="open">
-                <OpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
+                <ActiveOpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
               </TabsContent>
               <TabsContent value="submitted">
                 <SubmittedCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
