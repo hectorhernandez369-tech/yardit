@@ -50,19 +50,23 @@ export default function AdminLitePage() {
   const [counts, setCounts] = useState({ in_queue: 0, open: 0, submitted: 0, closed: 0 });
 
   useEffect(() => {
-    if (!user) return;
-    base44.entities.Case.list().then(allCases => {
-      const c = { in_queue: 0, open: 0, submitted: 0, closed: 0 };
-      allCases.forEach(caseItem => {
-        const s = caseItem.status;
-        if (s === "in_queue") c.in_queue++;
-        else if (s === "open") c.open++;
-        else if (["submitted", "submitted_for_review", "escalated_to_supervisor", "escalated_to_master"].includes(s)) c.submitted++;
-        else if (s === "closed") c.closed++;
-      });
-      setCounts(c);
-    });
-  }, [refreshKey, user]);
+    const fetchCounts = async () => {
+      try {
+        const allCases = await base44.entities.Case.list();
+        const newCounts = { in_queue: 0, open: 0, submitted: 0, closed: 0 };
+        allCases.forEach(c => {
+          if (c.status === "in_queue") newCounts.in_queue++;
+          else if (c.status === "open") newCounts.open++;
+          else if (c.status === "closed") newCounts.closed++;
+          else if (["submitted", "submitted_for_review", "escalated_to_supervisor", "escalated_to_master"].includes(c.status)) newCounts.submitted++;
+        });
+        setCounts(newCounts);
+      } catch (e) {
+        console.error("Error fetching case counts:", e);
+      }
+    };
+    if (user && adminSession) fetchCounts();
+  }, [user, adminSession, refreshKey]);
 
   useEffect(() => {
     const init = async () => {
@@ -304,10 +308,10 @@ export default function AdminLitePage() {
 
             <Tabs value={caseTab} onValueChange={handleCaseTabChange}>
               <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-2xl p-1">
-                <TabsTrigger value="in_queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">In Queue {counts.in_queue > 0 ? `(${counts.in_queue})` : ""}</TabsTrigger>
-                <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Open Cases {counts.open > 0 ? `(${counts.open})` : ""}</TabsTrigger>
-                <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Submitted {counts.submitted > 0 ? `(${counts.submitted})` : ""}</TabsTrigger>
-                <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Closed {counts.closed > 0 ? `(${counts.closed})` : ""}</TabsTrigger>
+                <TabsTrigger value="in_queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">In Queue ({counts.in_queue})</TabsTrigger>
+                <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Open Cases ({counts.open})</TabsTrigger>
+                <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Submitted ({counts.submitted})</TabsTrigger>
+                <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
               </TabsList>
 
               <TabsContent value="in_queue">
