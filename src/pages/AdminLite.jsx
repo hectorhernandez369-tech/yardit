@@ -308,7 +308,7 @@ export default function AdminLitePage() {
 
             <Tabs value={caseTab} onValueChange={handleCaseTabChange}>
               <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-2xl p-1">
-                <TabsTrigger value="open" className="flex-1 min-w-[calc(33%-0.25rem)] sm:min-w-0">Open Cases ({counts.case_management})</TabsTrigger>
+                <TabsTrigger value="open" className="flex-1 min-w-[calc(33%-0.25rem)] sm:min-w-0">Queue ({counts.case_management})</TabsTrigger>
                 <TabsTrigger value="submitted" className="flex-1 min-w-[calc(33%-0.25rem)] sm:min-w-0">Submitted ({counts.submitted})</TabsTrigger>
                 <TabsTrigger value="closed" className="flex-1 min-w-[calc(33%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
               </TabsList>

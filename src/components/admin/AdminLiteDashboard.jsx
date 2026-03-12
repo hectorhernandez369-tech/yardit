@@ -14,7 +14,7 @@ export default function AdminLiteDashboard({ user, counts, allAdminUsers, search
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full max-w-5xl grid-cols-5 h-auto min-h-10">
           <TabsTrigger value="admin_lite_queue" className="whitespace-normal h-full">
-            Admin Lite Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
+            Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
           </TabsTrigger>
           <TabsTrigger value="support" className="whitespace-normal h-full">Support Tickets</TabsTrigger>
           <TabsTrigger value="listings" className="whitespace-normal h-full">Listings</TabsTrigger>

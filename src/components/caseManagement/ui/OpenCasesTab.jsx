@@ -37,7 +37,7 @@ export default function OpenCasesTab({ user, searchResults, onOpenCase, refreshK
   return (
     <div className="mt-4">
       {displayed.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">No open cases.</p>
+        <p className="text-gray-500 text-center py-8">No assigned cases in your queue.</p>
       ) : (
         <>
           <div className="hidden md:block overflow-x-auto">
