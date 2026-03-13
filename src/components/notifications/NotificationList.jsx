@@ -270,6 +270,15 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
           </div>
         )}
       </ScrollArea>
+      <div className="p-2 border-t border-slate-100 bg-slate-50">
+        <Button 
+          variant="ghost" 
+          className="w-full text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+          onClick={() => navigate(createPageUrl("Notifications"))}
+        >
+          View All Notifications
+        </Button>
+      </div>
     </div>
   );
 }
