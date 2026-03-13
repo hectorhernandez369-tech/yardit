@@ -6,7 +6,7 @@ import { createPageUrl } from "@/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, AlertTriangle, Map } from "lucide-react";
+import { MapPin, Calendar, AlertTriangle, Map, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ReportModal from "../components/ReportModal";
@@ -67,12 +67,16 @@ export default function ListingDetailPage() {
       }));
       return enriched;
     },
-    enabled: !!listing && listing.listingType === "neighborhood_sale" && !!user && user.id === listing.ownerUserId,
+    enabled: !!listing && listing.listingType === "neighborhood_sale",
   });
 
   const pendingRequests = joinRequests?.filter(r => r.status === "pending") || [];
   const approvedRequests = joinRequests?.filter(r => r.status === "approved" && !r.removed_by_eo) || [];
   const removedRequests = joinRequests?.filter(r => r.status === "denied" && r.removed_by_eo === true) || [];
+  const participantAddresses = approvedRequests
+    .map((request) => request.listingDetails)
+    .filter(Boolean)
+    .map((participantListing) => `${participantListing.addressText || "Address unavailable"}${participantListing.city ? `, ${participantListing.city}` : ""}`);
 
   // (plain english) query to get parent neighborhood sale info if the listing was approved to join one
   const { data: parentSale } = useQuery({
@@ -151,6 +155,22 @@ export default function ListingDetailPage() {
     premium: "bg-amber-600",
     neighborhood_tier: "bg-emerald-600"
   };
+
+  const eventAddress = `${listing.addressText || "Address unavailable"}${listing.city ? `, ${listing.city}` : ""}${listing.state ? `, ${listing.state}` : ""}${listing.zip ? ` ${listing.zip}` : ""}`;
+  const eventDateText = listing.startDateTime && listing.endDateTime
+    ? `${format(new Date(listing.startDateTime), "PPp")} - ${format(new Date(listing.endDateTime), "PPp")}`
+    : listing.startDateTime
+      ? format(new Date(listing.startDateTime), "PPp")
+      : "Date not set";
+  const inviteLink = listing.invite_code
+    ? `${window.location.origin}${createPageUrl("JoinNeighborhoodSale")}?code=${listing.invite_code}`
+    : "";
+  const inviteMessage = [
+    `Join the neighborhood sale: ${listing.title}`,
+    `Date: ${eventDateText}`,
+    `Address: ${eventAddress}`,
+    inviteLink ? `Request to join: ${inviteLink}` : "",
+  ].filter(Boolean).join("\n");
 
   return (
     <div className="min-h-[calc(100vh-140px)] bg-slate-50">
@@ -246,10 +266,49 @@ export default function ListingDetailPage() {
 
             {listing.listingType === "neighborhood_sale" && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                <h3 className="font-semibold text-emerald-900 mb-2">Neighborhood Sale</h3>
-                <p className="text-sm text-emerald-800">
-                  {listing.homeCount} homes participating • Span: {listing.spanFeet} ft
-                </p>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                  <div>
+                    <h3 className="font-semibold text-emerald-900 mb-2">Neighborhood Sale</h3>
+                    <p className="text-sm text-emerald-800">
+                      {listing.homeCount} homes participating • Span: {listing.spanFeet} ft
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                    onClick={() => {
+                      navigator.clipboard.writeText(inviteMessage).then(() => {
+                        toast.success("Invite copied");
+                      });
+                    }}
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Invite
+                  </Button>
+                </div>
+
+                <div className="bg-white/70 border border-emerald-200 rounded-lg p-4 mb-4 space-y-2">
+                  <h4 className="font-semibold text-emerald-900">Event Address</h4>
+                  <p className="text-sm text-slate-700">{eventAddress}</p>
+                  <p className="text-sm text-slate-600">{eventDateText}</p>
+                </div>
+
+                <div className="bg-white/70 border border-emerald-200 rounded-lg p-4 mb-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="font-semibold text-emerald-900">Participating in Sale</h4>
+                    <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 border-none">{approvedRequests.length} Approved</Badge>
+                  </div>
+                  {participantAddresses.length > 0 ? (
+                    <div className="space-y-2">
+                      {participantAddresses.map((address, index) => (
+                        <p key={`${address}-${index}`} className="text-sm text-slate-700">• {address}</p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">No approved participating homes yet.</p>
+                  )}
+                </div>
 
                 {/* (plain english) section to show pending requests for EO */}
                 {user && user.id === listing.ownerUserId && pendingRequests.length > 0 && (
