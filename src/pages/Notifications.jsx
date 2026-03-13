@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, BellOff, Trash2, Check, MapPin, Calendar, Loader2 } from "lucide-react";
+import { Bell, BellOff, Trash2, Check, MapPin, Calendar, Loader2, Users, AlertTriangle, LifeBuoy } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -28,14 +28,29 @@ export default function NotificationsPage() {
   }, []);
 
   const { data: notifications, isLoading } = useQuery({
-    queryKey: ["notifications", user?.email],
-    queryFn: () => base44.entities.Notification.filter({ user_email: user.email }, "-created_date"),
-    enabled: !!user?.email,
+    queryKey: ["notifications", user?.id],
+    queryFn: async () => {
+       const byId = await base44.entities.Notification.filter({ user_id: user.id }, "-created_date");
+       const byUserId = await base44.entities.Notification.filter({ userId: user.id }, "-created_date");
+       const byEmail = await base44.entities.Notification.filter({ user_email: user.email }, "-created_date");
+       
+       const all = [...byEmail, ...byId, ...byUserId];
+       const unique = [];
+       const seen = new Set();
+       for (const n of all) {
+           if (!seen.has(n.id)) {
+               seen.add(n.id);
+               unique.push(n);
+           }
+       }
+       return unique.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+    },
+    enabled: !!user,
     initialData: [],
   });
 
   const markReadMutation = useMutation({
-    mutationFn: (notificationId) => base44.entities.Notification.update(notificationId, { read: true }),
+    mutationFn: (notificationId) => base44.entities.Notification.update(notificationId, { read: true, is_read: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
@@ -43,8 +58,8 @@ export default function NotificationsPage() {
 
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
-      const unread = notifications.filter(n => !n.read);
-      await Promise.all(unread.map(n => base44.entities.Notification.update(n.id, { read: true })));
+      const unread = notifications.filter(n => !n.read && !n.is_read);
+      await Promise.all(unread.map(n => base44.entities.Notification.update(n.id, { read: true, is_read: true })));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -61,28 +76,60 @@ export default function NotificationsPage() {
   });
 
   const handleNotificationClick = (notification) => {
-    if (!notification.read) {
+    if (!notification.read && !notification.is_read) {
       markReadMutation.mutate(notification.id);
     }
-    if (notification.location_id) {
-      navigate(createPageUrl("Map"));
+    
+    let url = null;
+    const entityId = notification.related_entity_id || notification.metadata?.listing_id || notification.metadata?.sale_listing_id || notification.location_id;
+
+    if (notification.type?.startsWith("report_")) {
+      url = createPageUrl("AdminLite") + "?tab=cases";
+    } else if (notification.type?.startsWith("support_ticket_")) {
+      url = createPageUrl("MySupportTickets");
+    } else if (notification.type?.startsWith("join_")) {
+      if (entityId) {
+        url = createPageUrl("ListingDetail") + "?id=" + entityId;
+      } else {
+        url = createPageUrl("MyListings");
+      }
+    } else if (notification.type?.startsWith("listing_")) {
+      if (notification.type === "listing_removed") {
+        url = createPageUrl("MyListings");
+      } else if (entityId) {
+        url = createPageUrl("ListingDetail") + "?id=" + entityId;
+      } else {
+        url = createPageUrl("MyListings");
+      }
+    }
+
+    if (!url && notification.location_id) {
+       url = `/?location=${notification.metadata?.latitude || ''},${notification.metadata?.longitude || ''}`;
+    }
+
+    if (url) {
+      navigate(url);
     }
   };
 
   const getNotificationIcon = (type) => {
+    if (type?.startsWith("join_")) return { icon: Users, color: "text-purple-600", bg: "bg-purple-100" };
+    if (type?.startsWith("report_")) return { icon: AlertTriangle, color: "text-red-600", bg: "bg-red-100" };
+    if (type?.startsWith("support_")) return { icon: LifeBuoy, color: "text-blue-600", bg: "bg-blue-100" };
+    if (type?.startsWith("listing_")) return { icon: MapPin, color: "text-orange-600", bg: "bg-orange-100" };
     switch (type) {
       case "new_listing":
         return { icon: MapPin, color: "text-blue-600", bg: "bg-blue-100" };
-      case "listing_expiring":
+      case "expiring_tracked":
         return { icon: Calendar, color: "text-orange-600", bg: "bg-orange-100" };
-      case "own_listing_expiring":
+      case "own_expiring":
         return { icon: Calendar, color: "text-red-600", bg: "bg-red-100" };
       default:
         return { icon: Bell, color: "text-gray-600", bg: "bg-gray-100" };
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.read && !n.is_read).length;
 
   if (!user) {
     return (
@@ -175,7 +222,7 @@ export default function NotificationsPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-1">
                               <h3 className="font-semibold text-gray-900">{notification.title}</h3>
-                              {!notification.read && (
+                              {(!notification.read && !notification.is_read) && (
                                 <Badge className="bg-blue-600 text-white">New</Badge>
                               )}
                             </div>

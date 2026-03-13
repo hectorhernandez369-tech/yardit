@@ -28,19 +28,34 @@ export default function NotificationBell() {
   }, []);
 
   const { data: notifications } = useQuery({
-    queryKey: ["notifications", user?.email],
-    queryFn: () => base44.entities.Notification.filter({ user_email: user.email }, "-created_date"),
-    enabled: !!user?.email,
+    queryKey: ["notifications", user?.id],
+    queryFn: async () => {
+       const byId = await base44.entities.Notification.filter({ user_id: user.id }, "-created_date");
+       const byUserId = await base44.entities.Notification.filter({ userId: user.id }, "-created_date");
+       const byEmail = await base44.entities.Notification.filter({ user_email: user.email }, "-created_date");
+       
+       const all = [...byEmail, ...byId, ...byUserId];
+       const unique = [];
+       const seen = new Set();
+       for (const n of all) {
+           if (!seen.has(n.id)) {
+               seen.add(n.id);
+               unique.push(n);
+           }
+       }
+       return unique.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+    },
+    enabled: !!user,
     initialData: [],
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
   });
 
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
-      const unreadNotifications = notifications.filter(n => !n.read);
+      const unreadNotifications = notifications.filter(n => !n.read && !n.is_read);
       await Promise.all(
         unreadNotifications.map(n => 
-          base44.entities.Notification.update(n.id, { read: true })
+          base44.entities.Notification.update(n.id, { read: true, is_read: true })
         )
       );
     },
@@ -49,23 +64,23 @@ export default function NotificationBell() {
     },
   });
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.read && !n.is_read).length;
 
   if (!user) return null;
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 h-8 w-8">
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500">
+            <Badge className="absolute -top-1 -right-1 h-4 w-4 text-[10px] flex items-center justify-center p-0 bg-red-500 border border-white">
               {unreadCount > 9 ? "9+" : unreadCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 md:w-96 p-0" align="end">
+      <PopoverContent className="w-80 md:w-96 p-0 z-[99999]" align="end">
         <NotificationList 
           notifications={notifications}
           onMarkAllRead={() => markAllReadMutation.mutate()}

@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import AdminNotificationBell from "./components/caseManagement/ui/AdminNotificationBell";
+import NotificationBell from "./components/notifications/NotificationBell";
 import AdminLoginModal, { getAdminSession, clearAdminSession } from "./components/admin/AdminLoginModal";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -100,6 +101,7 @@ function LayoutContent({ children, user, setUser }) {
               {user && (
                 <>
                   {hasAdminProfile && <AdminNotificationBell user={user} />}
+                  <NotificationBell />
                   
                   <Link to={createPageUrl("CreateListing")}>
                     <Button

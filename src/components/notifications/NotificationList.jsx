@@ -3,15 +3,18 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, Clock, CheckCheck, Trash2, Users, Check, X, Bell } from "lucide-react";
+import { MapPin, Clock, CheckCheck, Trash2, Users, Check, X, Bell, AlertTriangle, LifeBuoy } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function NotificationList({ notifications, onMarkAllRead }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const markReadMutation = useMutation({
-    mutationFn: (notificationId) => base44.entities.Notification.update(notificationId, { read: true }),
+    mutationFn: (notificationId) => base44.entities.Notification.update(notificationId, { read: true, is_read: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     }
@@ -35,11 +38,9 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
           await base44.entities.Listing.update(reqListingId, {
             neighborhood_join_status: "approved",
             payment_intent_status: "voided",
-            // (plain english) keep this as-is unless your app uses `status` instead of `activation_status`
             activation_status: "active"
           });
 
-          // ✅ FIX: filter JoinRequest by listingId + saleListingId (prevents wrong request updates)
           const reqs = await base44.entities.JoinRequest.filter({
             listingId: reqListingId,
             ...(saleListingId ? { saleListingId } : {})
@@ -52,10 +53,14 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
 
         await base44.entities.Notification.create({
           userId: reqUserId,
+          user_id: reqUserId,
           title: "Neighborhood Sale Request",
           message: `Approved — you joined ${eventTitle}.`,
-          type: "join_response_accept",
-          read: false
+          type: "join_request_accepted",
+          related_entity_type: "listing",
+          related_entity_id: saleListingId,
+          read: false,
+          is_read: false
         });
       } else {
         if (reqListingId) {
@@ -63,7 +68,6 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
             neighborhood_join_status: "denied"
           });
 
-          // ✅ FIX: filter JoinRequest by listingId + saleListingId (prevents wrong request updates)
           const reqs = await base44.entities.JoinRequest.filter({
             listingId: reqListingId,
             ...(saleListingId ? { saleListingId } : {})
@@ -76,16 +80,20 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
 
         await base44.entities.Notification.create({
           userId: reqUserId,
+          user_id: reqUserId,
           title: "Neighborhood Sale Request",
           message: "Request denied. Complete payment to activate listing.",
-          type: "join_response_deny",
-          read: false
+          type: "join_request_denied",
+          related_entity_type: "listing",
+          related_entity_id: saleListingId,
+          read: false,
+          is_read: false
         });
       }
 
-      // mark EO's join_request notification as resolved (buttons disappear)
       await base44.entities.Notification.update(notificationId, {
         read: true,
+        is_read: true,
         type: "join_request_resolved",
         message: `You ${action === "accept" ? "approved" : "denied"} the join request for ${eventTitle}.`
       });
@@ -99,22 +107,53 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
 
   const getIcon = (type) => {
     if (type?.startsWith("join_")) return <Users className="w-4 h-4 text-purple-600" />;
+    if (type?.startsWith("report_")) return <AlertTriangle className="w-4 h-4 text-red-600" />;
+    if (type?.startsWith("support_")) return <LifeBuoy className="w-4 h-4 text-blue-600" />;
+    if (type?.startsWith("listing_")) return <MapPin className="w-4 h-4 text-orange-600" />;
     switch (type) {
       case "new_listing":
         return <MapPin className="w-4 h-4 text-blue-600" />;
       case "expiring_tracked":
-        return <Clock className="w-4 h-4 text-orange-600" />;
       case "own_expiring":
         return <Clock className="w-4 h-4 text-red-600" />;
       default:
-        return <MapPin className="w-4 h-4" />;
+        return <Bell className="w-4 h-4 text-gray-500" />;
     }
   };
 
   const handleNotificationClick = (notification) => {
-    if (!notification.read) markReadMutation.mutate(notification.id);
-    if (notification.location_id) {
-      window.location.href = `/?location=${notification.metadata?.latitude},${notification.metadata?.longitude}`;
+    if (!notification.read && !notification.is_read) {
+       markReadMutation.mutate(notification.id);
+    }
+    let url = null;
+    const entityId = notification.related_entity_id || notification.metadata?.listing_id || notification.metadata?.sale_listing_id || notification.location_id;
+
+    if (notification.type?.startsWith("report_")) {
+      url = createPageUrl("AdminLite") + "?tab=cases";
+    } else if (notification.type?.startsWith("support_ticket_")) {
+      url = createPageUrl("MySupportTickets");
+    } else if (notification.type?.startsWith("join_")) {
+      if (entityId) {
+        url = createPageUrl("ListingDetail") + "?id=" + entityId;
+      } else {
+        url = createPageUrl("MyListings");
+      }
+    } else if (notification.type?.startsWith("listing_")) {
+      if (notification.type === "listing_removed") {
+        url = createPageUrl("MyListings");
+      } else if (entityId) {
+        url = createPageUrl("ListingDetail") + "?id=" + entityId;
+      } else {
+        url = createPageUrl("MyListings");
+      }
+    }
+
+    if (!url && notification.location_id) {
+       url = `/?location=${notification.metadata?.latitude || ''},${notification.metadata?.longitude || ''}`;
+    }
+
+    if (url) {
+      navigate(url);
     }
   };
 
@@ -122,7 +161,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
     <div className="flex flex-col max-h-[500px]">
       <div className="p-4 border-b flex items-center justify-between">
         <h3 className="font-semibold text-lg">Notifications</h3>
-        {notifications.some((n) => !n.read) && (
+        {notifications.some((n) => !n.read && !n.is_read) && (
           <Button variant="ghost" size="sm" onClick={onMarkAllRead} className="text-xs gap-1">
             <CheckCheck className="w-3 h-3" />
             Mark all read
@@ -138,93 +177,96 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
           </div>
         ) : (
           <div className="divide-y">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                  !notification.read ? "bg-blue-50" : ""
-                }`}
-                onClick={() => handleNotificationClick(notification)}
-              >
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0 mt-1">{getIcon(notification.type)}</div>
+            {notifications.map((notification) => {
+              const isUnread = !notification.read && !notification.is_read;
+              return (
+                <div
+                  key={notification.id}
+                  className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                    isUnread ? "bg-blue-50" : ""
+                  }`}
+                  onClick={() => handleNotificationClick(notification)}
+                >
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0 mt-1">{getIcon(notification.type)}</div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="font-medium text-sm">{notification.title}</p>
-                      {!notification.read && (
-                        <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="font-medium text-sm">{notification.title}</p>
+                        {isUnread && (
+                          <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1" />
+                        )}
+                      </div>
+
+                      <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
+
+                      {notification.type === "join_request" && (
+                        <div className="flex gap-2 mt-2 mb-3">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              respondToRequestMutation.mutate({
+                                notificationId: notification.id,
+                                action: "accept",
+                                requesterEmail:
+                                  notification.metadata?.requester_email ||
+                                  notification.metadata?.userId ||
+                                  notification.user_email || notification.user_id,
+                                eventTitle: notification.metadata?.event_title || "the neighborhood sale",
+                                notification
+                              });
+                            }}
+                          >
+                            <Check className="w-3 h-3 mr-1" /> Accept
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              respondToRequestMutation.mutate({
+                                notificationId: notification.id,
+                                action: "deny",
+                                requesterEmail:
+                                  notification.metadata?.requester_email ||
+                                  notification.metadata?.userId ||
+                                  notification.user_email || notification.user_id,
+                                eventTitle: notification.metadata?.event_title || "the neighborhood sale",
+                                notification
+                              });
+                            }}
+                          >
+                            <X className="w-3 h-3 mr-1" /> Deny
+                          </Button>
+                        </div>
                       )}
-                    </div>
 
-                    <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
-
-                    {notification.type === "join_request" && (
-                      <div className="flex gap-2 mt-2 mb-3">
-                        <Button
-                          size="sm"
-                          className="h-7 text-xs bg-green-600 hover:bg-green-700"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            respondToRequestMutation.mutate({
-                              notificationId: notification.id,
-                              action: "accept",
-                              requesterEmail:
-                                notification.metadata?.requester_email ||
-                                notification.metadata?.userId ||
-                                notification.user_email,
-                              eventTitle: notification.metadata?.event_title || "the neighborhood sale",
-                              notification
-                            });
-                          }}
-                        >
-                          <Check className="w-3 h-3 mr-1" /> Accept
-                        </Button>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-xs text-gray-400">
+                          {formatDistanceToNow(new Date(notification.created_date), { addSuffix: true })}
+                        </p>
 
                         <Button
+                          variant="ghost"
                           size="sm"
-                          variant="outline"
-                          className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
                           onClick={(e) => {
                             e.stopPropagation();
-                            respondToRequestMutation.mutate({
-                              notificationId: notification.id,
-                              action: "deny",
-                              requesterEmail:
-                                notification.metadata?.requester_email ||
-                                notification.metadata?.userId ||
-                                notification.user_email,
-                              eventTitle: notification.metadata?.event_title || "the neighborhood sale",
-                              notification
-                            });
+                            deleteMutation.mutate(notification.id);
                           }}
+                          className="h-6 w-6 p-0"
                         >
-                          <X className="w-3 h-3 mr-1" /> Deny
+                          <Trash2 className="w-3 h-3 text-gray-400" />
                         </Button>
                       </div>
-                    )}
-
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-xs text-gray-400">
-                        {formatDistanceToNow(new Date(notification.created_date), { addSuffix: true })}
-                      </p>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteMutation.mutate(notification.id);
-                        }}
-                        className="h-6 w-6 p-0"
-                      >
-                        <Trash2 className="w-3 h-3 text-gray-400" />
-                      </Button>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </ScrollArea>
