@@ -19,6 +19,7 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
   const [comments, setComments] = useState([]);
   const [actions, setActions] = useState([]);
   const [reporterUser, setReporterUser] = useState(null);
+  const [reportUsers, setReportUsers] = useState({});
   const [ownerUser, setOwnerUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,16 +37,19 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
       setListing(foundListing);
 
       const allReports = await base44.entities.Report.filter({ listingId: c.listing_id });
-      setReports(allReports);
+      const sortedReports = [...allReports].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+      setReports(sortedReports);
 
-      // Fetch reporter user from first report
-      const firstReporter = allReports[0]?.reporterUserId;
-      if (firstReporter) {
+      const reporterIds = [...new Set(sortedReports.map((report) => report.reporterUserId).filter(Boolean))];
+      const reporterMap = {};
+      for (const reporterId of reporterIds) {
         try {
-          const users = await base44.entities.User.filter({ id: firstReporter });
-          setReporterUser(users[0] || null);
-        } catch { setReporterUser(null); }
+          const users = await base44.entities.User.filter({ id: reporterId });
+          if (users[0]) reporterMap[reporterId] = users[0];
+        } catch {}
       }
+      setReportUsers(reporterMap);
+      setReporterUser(sortedReports[0]?.reporterUserId ? reporterMap[sortedReports[0].reporterUserId] || null : null);
 
       // Fetch listing owner user
       if (foundListing?.ownerUserId) {
@@ -107,7 +111,7 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
                 fallbackLabel="Owner info unavailable"
               />
             </div>
-            <CaseReportInfo reports={reports} user={user} caseId={caseId} />
+            <CaseReportInfo reports={reports} reportUsers={reportUsers} comments={comments} actions={actions} user={user} caseId={caseId} />
           </div>
 
           <div className="space-y-6">
