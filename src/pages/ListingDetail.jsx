@@ -11,11 +11,13 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import ReportModal from "../components/ReportModal";
 import PromotionModal from "../components/admin/promotions/PromotionModal";
+import { getListingNumber, getOwnerDisplayName } from "@/components/listing/listingDisplay";
 
 export default function ListingDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [listingId, setListingId] = useState(null);
+  const [returnTarget, setReturnTarget] = useState("default");
   const [user, setUser] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [showPromoModal, setShowPromoModal] = useState(false);
@@ -23,7 +25,8 @@ export default function ListingDetailPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setListingId(params.get("id"));
-    
+    setReturnTarget(params.get("from") || "default");
+
     const fetchUser = async () => {
       try {
         const currentUser = await base44.auth.me();
@@ -42,6 +45,15 @@ export default function ListingDetailPage() {
       return listings[0];
     },
     enabled: !!listingId,
+  });
+
+  const { data: ownerUser } = useQuery({
+    queryKey: ["listingOwner", listing?.ownerUserId],
+    queryFn: async () => {
+      const users = await base44.entities.User.filter({ id: listing.ownerUserId });
+      return users[0] || null;
+    },
+    enabled: !!listing?.ownerUserId,
   });
 
   // (plain english) query to get pending and approved join requests if the user is the owner of a neighborhood sale
@@ -153,6 +165,19 @@ export default function ListingDetailPage() {
                 <span className="break-words">
                   {listing.addressText || "Address unavailable"}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}{listing.zip ? ` ${listing.zip}` : ""}
                 </span>
+              </div>
+              <div className="mt-1 space-y-1 text-xs text-slate-500">
+                <p>Listing #: {getListingNumber(listing)}</p>
+                <p>
+                  Owner:{" "}
+                  <button
+                    type="button"
+                    onClick={() => navigate(createPageUrl("AdminLite") + `?tab=lite&liteTab=users&openUserId=${listing.ownerUserId}`)}
+                    className="font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                  >
+                    {getOwnerDisplayName(ownerUser, listing)}
+                  </button>
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
@@ -371,7 +396,7 @@ export default function ListingDetailPage() {
                 Show on Map
               </Button>
               <Button
-                onClick={() => navigate(createPageUrl("Home"))}
+                onClick={() => navigate(returnTarget === "admin-lite-listings" ? createPageUrl("AdminLite") + "?tab=lite&liteTab=listings" : createPageUrl("Home"))}
                 variant="outline"
                 className="flex-1"
               >

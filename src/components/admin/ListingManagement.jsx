@@ -120,7 +120,7 @@ export default function ListingManagement() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+                      onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}&from=admin-lite-listings`)}
                     >
                       View More Details
                     </Button>

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ListingManagement from "./ListingManagement";
 import UserManagement from "./UserManagement";
@@ -7,7 +8,16 @@ import SupportTicketQueue from "./SupportTicketQueue";
 import InQueueTab from "../caseManagement/ui/InQueueTab";
 
 export default function AdminLiteDashboard({ user, counts, allAdminUsers, searchResults, onOpenCase, refreshKey, triggerRefresh }) {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("admin_lite_queue");
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const liteTab = urlParams.get("liteTab");
+    if (liteTab) {
+      setActiveTab(liteTab);
+    }
+  }, [location.search]);
 
   return (
     <div className="mt-4">

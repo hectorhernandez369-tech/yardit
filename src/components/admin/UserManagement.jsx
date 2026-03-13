@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { toast } from "sonner";
 import UserDetailDrawer from "./userDetail/UserDetailDrawer";
 
 export default function UserManagement() {
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
@@ -46,6 +48,17 @@ export default function UserManagement() {
     suspended: "bg-red-600",
     banned: "bg-black"
   };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const openUserId = urlParams.get("openUserId");
+    if (openUserId && users.length > 0) {
+      const matchedUser = users.find((u) => u.id === openUserId);
+      if (matchedUser) {
+        setSelectedUser(matchedUser);
+      }
+    }
+  }, [location.search, users]);
 
   return (
     <div className="mt-6">

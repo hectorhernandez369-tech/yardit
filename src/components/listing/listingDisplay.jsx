@@ -73,3 +73,11 @@ export function formatListingDateRange(listing) {
 export function getOwnerDisplayName(owner, listing) {
   return owner?.full_name || owner?.email || listing?.created_by || listing?.ownerUserId || "Owner unavailable";
 }
+
+export function getListingNumber(listing) {
+  if (listing?.listingNumber) return listing.listingNumber;
+  const st = (listing?.state || "XX").toUpperCase().slice(0, 2);
+  const zp = (listing?.zip || "0000").slice(-4).padStart(4, "0");
+  const idSuffix = (listing?.id || "00000").slice(-5).toLowerCase();
+  return `${st}${zp}-${idSuffix}`;
+}
