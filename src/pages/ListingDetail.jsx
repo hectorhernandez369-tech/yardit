@@ -293,11 +293,52 @@ export default function ListingDetailPage() {
                     <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Participating in Sale</p>
                     <p className="text-sm text-emerald-950 font-medium">{approvedRequests.length} approved participating homes</p>
                   </div>
-                  {participantAddresses.length > 0 ? (
-                    <div className="space-y-2">
-                      {participantAddresses.map((address, index) => (
-                        <div key={`${address}-${index}`} className="text-sm text-emerald-900 border rounded-md bg-white p-2">
-                          {address}
+                  {approvedRequests.length > 0 ? (
+                    <div className="space-y-3">
+                      {approvedRequests.map((req, index) => (
+                        <div key={req.id || index} className="text-sm text-emerald-900 border border-emerald-200 rounded-md bg-white p-3 space-y-2">
+                          <div>
+                            <p className="font-semibold text-emerald-950">{req.listingDetails?.title || "Participant"}</p>
+                            <p className="text-emerald-800">{req.listingDetails ? formatAddress(req.listingDetails) : "Address unavailable"}</p>
+                          </div>
+                          <div className="flex gap-2 flex-wrap pt-2 mt-2 border-t border-emerald-100">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                              onClick={() => navigate(createPageUrl("ListingDetail") + "?id=" + req.listingId)}
+                            >
+                              View More Details
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                              onClick={() => toast.info("Messaging feature coming soon.")}
+                            >
+                              Send Message
+                            </Button>
+                            {(user?.id === listing.ownerUserId || user?.isAdmin) && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                onClick={() => {
+                                  if (window.confirm("Are you sure you want to remove this participant from the sale?")) {
+                                    respondToJoinRequestMutation.mutate({
+                                      requestId: req.id,
+                                      requesterListingId: req.listingId,
+                                      action: "remove",
+                                      requesterUserId: req.requesterUserId,
+                                      eventTitle: listing.title
+                                    });
+                                  }
+                                }}
+                              >
+                                Remove From Sale
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
