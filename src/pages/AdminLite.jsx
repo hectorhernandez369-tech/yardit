@@ -190,7 +190,7 @@ export default function AdminLitePage() {
         <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-[#2C4F4E] mb-2">No Admin Access</h2>
         <p className="text-gray-600 mb-6 text-sm">You don't have an active admin profile. Contact a master administrator for access.</p>
-        <Button onClick={() => navigate(createPageUrl("Home"))} variant="outline">Back to Map</Button>
+        <Button onClick={() => navigate(-1)} variant="outline">Back</Button>
       </div>
     );
   }
