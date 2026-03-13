@@ -1,41 +1,36 @@
-import React, { useState, useEffect } from "react";
-import { Switch } from "@/components/ui/switch";
-import { FlaskConical } from "lucide-react";
+import React, { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 
-const DEMO_KEY = "yardit_demo_mode";
-
-export function isDemoMode() {
-  try {
-    return localStorage.getItem(DEMO_KEY) === "true";
-  } catch {
-    return false;
-  }
+export function getAppMode(settings) {
+  const appModeSetting = (settings || []).find((setting) => setting.key === "app_mode");
+  return appModeSetting?.value === "demo" ? "demo" : "live";
 }
 
-export function setDemoMode(value) {
-  try {
-    localStorage.setItem(DEMO_KEY, value ? "true" : "false");
-  } catch {}
+export function isDemoMode(settings) {
+  if (Array.isArray(settings)) {
+    return getAppMode(settings) === "demo";
+  }
+  return window.__yarditAppMode === "demo";
+}
+
+export function useAppMode() {
+  const { data: settings = [], isLoading } = useQuery({
+    queryKey: ["appSettings"],
+    queryFn: () => base44.entities.AppSetting.list(),
+    initialData: [],
+  });
+
+  const appMode = getAppMode(settings);
+  const demoEnabled = appMode === "demo";
+
+  useEffect(() => {
+    window.__yarditAppMode = appMode;
+  }, [appMode]);
+
+  return { appMode, isDemoMode: demoEnabled, isLoading, settings };
 }
 
 export default function DemoModeToggle() {
-  const [enabled, setEnabled] = useState(isDemoMode());
-
-  const handleToggle = (checked) => {
-    setEnabled(checked);
-    setDemoMode(checked);
-    window.dispatchEvent(new Event("demo-mode-change"));
-  };
-
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-100 border border-purple-300">
-      <FlaskConical className="w-4 h-4 text-purple-600" />
-      <span className="text-xs font-semibold text-purple-700">Demo</span>
-      <Switch
-        checked={enabled}
-        onCheckedChange={handleToggle}
-        className="scale-75"
-      />
-    </div>
-  );
+  return null;
 }

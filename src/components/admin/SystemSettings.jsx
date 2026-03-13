@@ -10,6 +10,22 @@ import { Loader2 } from "lucide-react";
 export default function SystemSettings() {
   const queryClient = useQueryClient();
 
+  const { data: currentUser, isLoading: isLoadingUser } = useQuery({
+    queryKey: ["currentUserForSystemSettings"],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: adminProfiles = [], isLoading: isLoadingAdminProfile } = useQuery({
+    queryKey: ["systemSettingsAdminProfile", currentUser?.id],
+    queryFn: async () => {
+      const byUserId = await base44.entities.AdminProfile.filter({ user_id: currentUser.id });
+      if (byUserId.length > 0) return byUserId;
+      return await base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() });
+    },
+    enabled: !!currentUser,
+    initialData: [],
+  });
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ["appSettings"],
     queryFn: () => base44.entities.AppSetting.list(),
@@ -50,7 +66,10 @@ export default function SystemSettings() {
     }
   });
 
-  if (isLoading) return <div className="p-4"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+  const canManageDemoMode = adminProfiles[0]?.role_label === "master";
+
+  if (isLoading || isLoadingUser || isLoadingAdminProfile) return <div className="p-4"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+  if (!canManageDemoMode) return null;
 
   return (
     <div className="space-y-6 mt-4">

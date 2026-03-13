@@ -12,7 +12,7 @@ import StepOne from "../components/create/StepOne";
 import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import FormScrollHelper from "../components/create/FormScrollHelper";
-import { isDemoMode } from "../components/shared/DemoMode";
+import { useAppMode } from "../components/shared/DemoMode";
 
 // Tier Engine (shared business logic)
 import {
@@ -228,12 +228,7 @@ export default function CreateListingPage() {
     fetchUser();
   }, [navigate]);
 
-  // Fetch global app settings
-  const { data: appSettings } = useQuery({
-    queryKey: ["appSettings"],
-    queryFn: () => base44.entities.AppSetting.list(),
-  });
-  const isGlobalDemoMode = appSettings?.find(s => s.key === "app_mode")?.value === "demo";
+  const { isDemoMode: isGlobalDemoMode } = useAppMode();
 
   // Pull all user listings (used for “1 active listing” rule)
   const { data: userListings } = useQuery({
@@ -259,7 +254,7 @@ export default function CreateListingPage() {
   // Sale in area check is done on submit
 
   const hasActiveResidentialListing = () => {
-    if (isDemoMode()) return false;
+    if (isGlobalDemoMode) return false;
     if (isDevBypassUser(user)) return false; 
     
     const now = Date.now();
@@ -298,7 +293,7 @@ export default function CreateListingPage() {
         throw new Error("You already have an active listing. End it before creating another.");
       }
 
-      const demoPrefix = isDemoMode() ? "Demo listing: " : "";
+      const demoPrefix = isGlobalDemoMode ? "Demo listing: " : "";
 
       // Generate listing number: STATE + last4zip + dash + 5 random chars
       const stateCode = (data.state || "XX").toUpperCase().slice(0, 2);

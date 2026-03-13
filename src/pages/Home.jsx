@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ListView from "../components/home/ListView";
-import { isDemoMode } from "../components/shared/DemoMode";
+import { useAppMode } from "../components/shared/DemoMode";
 
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle, CircleMarker } from "react-leaflet";
 import L from "leaflet";
@@ -408,12 +408,7 @@ export default function HomePage() {
     }
   }, []);
 
-  const [demoOn, setDemoOn] = useState(isDemoMode());
-  useEffect(() => {
-    const handler = () => setDemoOn(isDemoMode());
-    window.addEventListener("demo-mode-change", handler);
-    return () => window.removeEventListener("demo-mode-change", handler);
-  }, []);
+  const { isDemoMode: demoOn } = useAppMode();
 
   const { data: listings, isLoading } = useQuery({
     queryKey: ["listings"],
@@ -966,9 +961,8 @@ const stats = useMemo(() => {
                               }
 
                               // status === "not_started"
-                              const isDemo = isDemoMode();
                               const distanceMeters = gpsLocation ? calculateDistanceMeters(gpsLocation.lat, gpsLocation.lng, listing.lat, listing.lng) : Infinity;
-                              const isWithinDistance = isDemo || distanceMeters <= 15; // 50ft approx
+                              const isWithinDistance = demoOn || distanceMeters <= 15; // 50ft approx
 
                               if (isWithinDistance) {
                                 return (
