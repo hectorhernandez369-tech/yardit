@@ -12,8 +12,8 @@ Deno.serve(async (req) => {
         const profiles = await base44.asServiceRole.entities.AdminProfile.filter({ user_id: user.id });
         const adminProfile = profiles[0];
         
-        if (!adminProfile || !adminProfile.is_active) {
-            return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+        if (!adminProfile || !adminProfile.is_active || adminProfile.role_label !== 'master') {
+            return Response.json({ error: 'Forbidden: Master admin access required' }, { status: 403 });
         }
 
         const listings = await base44.asServiceRole.entities.Listing.filter({ is_demo_listing: true });

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAppMode } from "@/components/shared/DemoMode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import { CreditCard, Loader2, Lock, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PaymentForm({ amount, plan, onPaymentComplete, onCancel, isProcessing }) {
+  const { isDemoMode } = useAppMode();
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [cardDetails, setCardDetails] = useState({
     cardNumber: "",
@@ -284,17 +286,18 @@ export default function PaymentForm({ amount, plan, onPaymentComplete, onCancel,
             </div>
           </div>
 
-          {/* Demo Notice */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
-              <strong>Demo Mode:</strong> This is a demonstration of the payment flow. 
-              No actual charges will be made. In production, this would integrate with 
-              Stripe, PayPal, or another payment processor.
-            </p>
-            <p className="text-xs text-yellow-700 mt-2">
-              Test with any card number (e.g., 4242 4242 4242 4242)
-            </p>
-          </div>
+          {isDemoMode && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                <strong>Demo Mode:</strong> This is a demonstration of the payment flow. 
+                No actual charges will be made. In production, this would integrate with 
+                Stripe, PayPal, or another payment processor.
+              </p>
+              <p className="text-xs text-yellow-700 mt-2">
+                Test with any card number (e.g., 4242 4242 4242 4242)
+              </p>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
