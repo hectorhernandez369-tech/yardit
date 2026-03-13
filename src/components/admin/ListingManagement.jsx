@@ -111,7 +111,14 @@ export default function ListingManagement() {
                         <span>{formatListingDateRange(listing)}</span>
                       </div>
                       <p className="text-xs text-slate-500">
-                        Owner: {getOwnerDisplayName(owner, listing)}
+                        Owner:{" "}
+                        <button
+                          type="button"
+                          onClick={() => navigate(createPageUrl("AdminLite") + `?tab=lite&liteTab=users&openUserId=${listing.ownerUserId}`)}
+                          className="font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                        >
+                          {getOwnerDisplayName(owner, listing)}
+                        </button>
                       </p>
                     </div>
                   </div>
