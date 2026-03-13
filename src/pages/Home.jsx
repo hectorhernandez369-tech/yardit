@@ -265,6 +265,7 @@ export default function HomePage() {
     offsetY: 0,
   });
   const suppressButtonClickRef = useRef(false);
+  const huntButtonPositionRef = useRef({ x: 0, y: 112 });
   const [huntButtonPosition, setHuntButtonPosition] = useState({ x: 0, y: 112 });
   const [user, setUser] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
@@ -299,6 +300,7 @@ export default function HomePage() {
       const savedRaw = localStorage.getItem(HUNT_BUTTON_STORAGE_KEY);
       const saved = savedRaw ? JSON.parse(savedRaw) : null;
       const nextPosition = saved ? clampHuntButtonPosition(saved, rect) : getDefaultHuntButtonPosition(rect);
+      huntButtonPositionRef.current = nextPosition;
       setHuntButtonPosition(nextPosition);
       if (!saved || nextPosition.x !== saved.x || nextPosition.y !== saved.y) {
         saveHuntButtonPosition(nextPosition);
@@ -326,15 +328,17 @@ export default function HomePage() {
       if (!dragState.isDragging) return;
 
       const rect = mapAreaRef.current.getBoundingClientRect();
-      setHuntButtonPosition(clampHuntButtonPosition({
+      const nextPosition = clampHuntButtonPosition({
         x: event.clientX - rect.left - dragState.offsetX,
         y: event.clientY - rect.top - dragState.offsetY,
-      }, rect));
+      }, rect);
+      huntButtonPositionRef.current = nextPosition;
+      setHuntButtonPosition(nextPosition);
     };
 
     const handlePointerUp = () => {
       if (dragStateRef.current.isDragging) {
-        saveHuntButtonPosition(huntButtonPosition);
+        saveHuntButtonPosition(huntButtonPositionRef.current);
       }
       dragStateRef.current = {
         isPointerDown: false,
@@ -355,7 +359,7 @@ export default function HomePage() {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [huntButtonPosition, saveHuntButtonPosition]);
+  }, [saveHuntButtonPosition]);
 
   const handleHuntButtonPointerDown = useCallback((event) => {
     if (!controlsBtnRef.current) return;
