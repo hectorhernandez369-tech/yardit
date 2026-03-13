@@ -74,9 +74,12 @@ export default function ListingDetailPage() {
   const approvedRequests = joinRequests?.filter(r => r.status === "approved" && !r.removed_by_eo) || [];
   const removedRequests = joinRequests?.filter(r => r.status === "denied" && r.removed_by_eo === true) || [];
   const participantAddresses = approvedRequests
-    .map((request) => request.listingDetails)
-    .filter(Boolean)
-    .map((participantListing) => `${participantListing.addressText || "Address unavailable"}${participantListing.city ? `, ${participantListing.city}` : ""}`);
+    .map((req) => {
+      const participant = req.listingDetails;
+      if (!participant) return null;
+      return [participant.addressText, participant.city, participant.state, participant.zip].filter(Boolean).join(participant.zip ? " " : ", ");
+    })
+    .filter(Boolean);
 
   // (plain english) query to get parent neighborhood sale info if the listing was approved to join one
   const { data: parentSale } = useQuery({
@@ -156,21 +159,22 @@ export default function ListingDetailPage() {
     neighborhood_tier: "bg-emerald-600"
   };
 
-  const eventAddress = `${listing.addressText || "Address unavailable"}${listing.city ? `, ${listing.city}` : ""}${listing.state ? `, ${listing.state}` : ""}${listing.zip ? ` ${listing.zip}` : ""}`;
-  const eventDateText = listing.startDateTime && listing.endDateTime
-    ? `${format(new Date(listing.startDateTime), "PPp")} - ${format(new Date(listing.endDateTime), "PPp")}`
-    : listing.startDateTime
-      ? format(new Date(listing.startDateTime), "PPp")
-      : "Date not set";
-  const inviteLink = listing.invite_code
-    ? `${window.location.origin}${createPageUrl("JoinNeighborhoodSale")}?code=${listing.invite_code}`
-    : "";
-  const inviteMessage = [
-    `Join the neighborhood sale: ${listing.title}`,
-    `Date: ${eventDateText}`,
-    `Address: ${eventAddress}`,
-    inviteLink ? `Request to join: ${inviteLink}` : "",
+  const eventAddress = [listing.addressText || "Address unavailable", listing.city, listing.state, listing.zip].filter(Boolean).join(listing.zip ? " " : ", ");
+  const inviteLink = listing.invite_code ? `${window.location.origin}${createPageUrl("JoinNeighborhoodSale")}?code=${listing.invite_code}` : "";
+  const inviteText = [
+    listing.title,
+    listing.startDateTime && listing.endDateTime
+      ? `${format(new Date(listing.startDateTime), "PPp")} - ${format(new Date(listing.endDateTime), "PPp")}`
+      : null,
+    eventAddress,
+    inviteLink || null,
   ].filter(Boolean).join("\n");
+
+  const handleCopyInvite = () => {
+    navigator.clipboard.writeText(inviteText).then(() => {
+      toast.success("Invite copied");
+    });
+  };
 
   return (
     <div className="min-h-[calc(100vh-140px)] bg-slate-50">
@@ -265,48 +269,40 @@ export default function ListingDetailPage() {
             </div>
 
             {listing.listingType === "neighborhood_sale" && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div>
                     <h3 className="font-semibold text-emerald-900 mb-2">Neighborhood Sale</h3>
                     <p className="text-sm text-emerald-800">
                       {listing.homeCount} homes participating • Span: {listing.spanFeet} ft
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-emerald-300 text-emerald-800 hover:bg-emerald-100"
-                    onClick={() => {
-                      navigator.clipboard.writeText(inviteMessage).then(() => {
-                        toast.success("Invite copied");
-                      });
-                    }}
-                  >
-                    <Copy className="w-4 h-4 mr-2" />
+                  <Button size="sm" variant="outline" className="gap-2 border-emerald-300 text-emerald-800 hover:bg-emerald-100" onClick={handleCopyInvite}>
+                    <Copy className="w-4 h-4" />
                     Copy Invite
                   </Button>
                 </div>
 
-                <div className="bg-white/70 border border-emerald-200 rounded-lg p-4 mb-4 space-y-2">
-                  <h4 className="font-semibold text-emerald-900">Event Address</h4>
-                  <p className="text-sm text-slate-700">{eventAddress}</p>
-                  <p className="text-sm text-slate-600">{eventDateText}</p>
+                <div className="bg-white/70 border border-emerald-200 rounded-lg p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Main Event Address</p>
+                  <p className="text-sm text-emerald-950 font-medium">{eventAddress}</p>
                 </div>
 
-                <div className="bg-white/70 border border-emerald-200 rounded-lg p-4 mb-4 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <h4 className="font-semibold text-emerald-900">Participating in Sale</h4>
-                    <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 border-none">{approvedRequests.length} Approved</Badge>
+                <div className="bg-white/70 border border-emerald-200 rounded-lg p-3 space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Participating in Sale</p>
+                    <p className="text-sm text-emerald-950 font-medium">{approvedRequests.length} approved participating homes</p>
                   </div>
                   {participantAddresses.length > 0 ? (
                     <div className="space-y-2">
                       {participantAddresses.map((address, index) => (
-                        <p key={`${address}-${index}`} className="text-sm text-slate-700">• {address}</p>
+                        <div key={`${address}-${index}`} className="text-sm text-emerald-900 border rounded-md bg-white p-2">
+                          {address}
+                        </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-slate-500">No approved participating homes yet.</p>
+                    <p className="text-sm text-emerald-800">No approved participant addresses available yet.</p>
                   )}
                 </div>
 
