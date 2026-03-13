@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -208,6 +208,27 @@ function isWithinViewingHours(startTime, endTime) {
   return currentMinutes >= startTotal && currentMinutes <= endTotal;
 }
 
+const HUNT_BUTTON_STORAGE_KEY = "yardit_hunt_button_position_v1";
+const HUNT_BUTTON_SIZE = 70;
+const HUNT_BUTTON_MARGIN = 16;
+
+function clampHuntButtonPosition(position, containerRect) {
+  const maxX = Math.max(HUNT_BUTTON_MARGIN, containerRect.width - HUNT_BUTTON_SIZE - HUNT_BUTTON_MARGIN);
+  const maxY = Math.max(HUNT_BUTTON_MARGIN, containerRect.height - HUNT_BUTTON_SIZE - HUNT_BUTTON_MARGIN);
+
+  return {
+    x: Math.min(Math.max(position.x, HUNT_BUTTON_MARGIN), maxX),
+    y: Math.min(Math.max(position.y, HUNT_BUTTON_MARGIN), maxY),
+  };
+}
+
+function getDefaultHuntButtonPosition(containerRect) {
+  return clampHuntButtonPosition({
+    x: containerRect.width - HUNT_BUTTON_SIZE - HUNT_BUTTON_MARGIN,
+    y: 112,
+  }, containerRect);
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const [view, setView] = useState("map");
@@ -234,6 +255,18 @@ export default function HomePage() {
   const [showControls, setShowControls] = useState(false);
   const controlsPanelRef = useRef(null);
   const controlsBtnRef = useRef(null);
+  const mapAreaRef = useRef(null);
+  const dragStateRef = useRef({
+    isPointerDown: false,
+    isDragging: false,
+    pointerId: null,
+    startX: 0,
+    startY: 0,
+    offsetX: 0,
+    offsetY: 0,
+  });
+  const suppressButtonClickRef = useRef(false);
+  const [huntButtonPosition, setHuntButtonPosition] = useState({ x: 0, y: 112 });
   const [user, setUser] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
@@ -255,6 +288,102 @@ export default function HomePage() {
   const [debugVisible, setDebugVisible] = useState(false);
   const [debugPinned, setDebugPinned] = useState(debugForceOn);
   const debugTimerRef = useRef(null);
+
+  const saveHuntButtonPosition = useCallback((position) => {
+    localStorage.setItem(HUNT_BUTTON_STORAGE_KEY, JSON.stringify(position));
+  }, []);
+
+  useEffect(() => {
+    const updatePositionFromBounds = () => {
+      if (!mapAreaRef.current) return;
+      const rect = mapAreaRef.current.getBoundingClientRect();
+      const savedRaw = localStorage.getItem(HUNT_BUTTON_STORAGE_KEY);
+      const saved = savedRaw ? JSON.parse(savedRaw) : null;
+      const nextPosition = saved ? clampHuntButtonPosition(saved, rect) : getDefaultHuntButtonPosition(rect);
+      setHuntButtonPosition(nextPosition);
+      if (!saved || nextPosition.x !== saved.x || nextPosition.y !== saved.y) {
+        saveHuntButtonPosition(nextPosition);
+      }
+    };
+
+    updatePositionFromBounds();
+    window.addEventListener("resize", updatePositionFromBounds);
+    return () => window.removeEventListener("resize", updatePositionFromBounds);
+  }, [saveHuntButtonPosition]);
+
+  useEffect(() => {
+    const handlePointerMove = (event) => {
+      const dragState = dragStateRef.current;
+      if (!dragState.isPointerDown || !mapAreaRef.current) return;
+
+      const deltaX = event.clientX - dragState.startX;
+      const deltaY = event.clientY - dragState.startY;
+
+      if (!dragState.isDragging && (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6)) {
+        dragState.isDragging = true;
+        suppressButtonClickRef.current = true;
+      }
+
+      if (!dragState.isDragging) return;
+
+      const rect = mapAreaRef.current.getBoundingClientRect();
+      const nextPosition = clampHuntButtonPosition({
+        x: event.clientX - rect.left - dragState.offsetX,
+        y: event.clientY - rect.top - dragState.offsetY,
+      }, rect);
+
+      setHuntButtonPosition(nextPosition);
+    };
+
+    const handlePointerUp = () => {
+      const dragState = dragStateRef.current;
+      if (dragState.isDragging) {
+        saveHuntButtonPosition(huntButtonPosition);
+      }
+      dragStateRef.current = {
+        isPointerDown: false,
+        isDragging: false,
+        pointerId: null,
+        startX: 0,
+        startY: 0,
+        offsetX: 0,
+        offsetY: 0,
+      };
+      setTimeout(() => {
+        suppressButtonClickRef.current = false;
+      }, 0);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [huntButtonPosition, saveHuntButtonPosition]);
+
+  const handleHuntButtonPointerDown = useCallback((event) => {
+    if (!controlsBtnRef.current) return;
+    const buttonRect = controlsBtnRef.current.getBoundingClientRect();
+    dragStateRef.current = {
+      isPointerDown: true,
+      isDragging: false,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: event.clientX - buttonRect.left,
+      offsetY: event.clientY - buttonRect.top,
+    };
+  }, []);
+
+  const handleHuntButtonClick = useCallback((event) => {
+    if (suppressButtonClickRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    setShowControls((prev) => !prev);
+  }, []);
 
   useEffect(() => {
     if (debugPinned || debugForceOn) return;
@@ -615,12 +744,14 @@ const stats = useMemo(() => {
           <ListView listings={listViewListings} userLocation={userLocation} />
         </div>
       ) : (
-        <div className="flex-1 relative min-w-0 w-full">
+        <div ref={mapAreaRef} className="flex-1 relative min-w-0 w-full">
           {/* Route Builder FAB */}
           <button
             ref={controlsBtnRef}
-            onClick={() => setShowControls(prev => !prev)}
-            className="absolute top-4 right-3 z-[1002] w-[70px] h-[70px] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-none outline-none shadow-none"
+            onPointerDown={handleHuntButtonPointerDown}
+            onClick={handleHuntButtonClick}
+            className="absolute z-[1002] w-[70px] h-[70px] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-none outline-none shadow-none"
+            style={{ left: `${huntButtonPosition.x}px`, top: `${huntButtonPosition.y}px`, touchAction: "none" }}
           >
             {showControls ? (
               <X className="w-12 h-12 text-[#2C4F4E]" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
