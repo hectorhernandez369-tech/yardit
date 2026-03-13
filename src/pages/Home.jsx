@@ -259,7 +259,6 @@ export default function HomePage() {
   const dragStateRef = useRef({
     isPointerDown: false,
     isDragging: false,
-    pointerId: null,
     startX: 0,
     startY: 0,
     offsetX: 0,
@@ -327,23 +326,19 @@ export default function HomePage() {
       if (!dragState.isDragging) return;
 
       const rect = mapAreaRef.current.getBoundingClientRect();
-      const nextPosition = clampHuntButtonPosition({
+      setHuntButtonPosition(clampHuntButtonPosition({
         x: event.clientX - rect.left - dragState.offsetX,
         y: event.clientY - rect.top - dragState.offsetY,
-      }, rect);
-
-      setHuntButtonPosition(nextPosition);
+      }, rect));
     };
 
     const handlePointerUp = () => {
-      const dragState = dragStateRef.current;
-      if (dragState.isDragging) {
+      if (dragStateRef.current.isDragging) {
         saveHuntButtonPosition(huntButtonPosition);
       }
       dragStateRef.current = {
         isPointerDown: false,
         isDragging: false,
-        pointerId: null,
         startX: 0,
         startY: 0,
         offsetX: 0,
@@ -368,7 +363,6 @@ export default function HomePage() {
     dragStateRef.current = {
       isPointerDown: true,
       isDragging: false,
-      pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
       offsetX: event.clientX - buttonRect.left,
