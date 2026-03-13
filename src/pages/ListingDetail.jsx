@@ -451,7 +451,7 @@ export default function ListingDetailPage() {
                 Show on Map
               </Button>
               <Button
-                onClick={() => navigate(returnTarget === "admin-lite-listings" ? createPageUrl("AdminLite") + "?tab=lite&liteTab=listings" : createPageUrl("Home"))}
+                onClick={() => navigate(-1)}
                 variant="outline"
                 className="flex-1"
               >
