@@ -175,7 +175,8 @@ function MapController({ center, zoom, onUserMove, onZoomChange, onMapReady }) {
 }
 
 function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return Infinity;
+  if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) return Infinity;
   const R = 6371e3; // metres
   const φ1 = lat1 * Math.PI/180;
   const φ2 = lat2 * Math.PI/180;
@@ -961,8 +962,26 @@ const stats = useMemo(() => {
                               }
 
                               // status === "not_started"
-                              const distanceMeters = gpsLocation ? calculateDistanceMeters(gpsLocation.lat, gpsLocation.lng, listing.lat, listing.lng) : Infinity;
-                              const isWithinDistance = demoOn || distanceMeters <= 15; // 50ft approx
+                              const uLat = gpsLocation ? Number(gpsLocation.lat) : null;
+                              const uLng = gpsLocation ? Number(gpsLocation.lng) : null;
+                              const lLat = Number(listing.lat);
+                              const lLng = Number(listing.lng);
+                              
+                              if (isNaN(lLat) || isNaN(lLng)) {
+                                console.error(`[Proximity Debug] Listing ${listing.id} has invalid coordinates: lat=${listing.lat}, lng=${listing.lng}`);
+                              }
+
+                              let distanceFeet = Infinity;
+
+                              if (uLat !== null && uLng !== null && !isNaN(lLat) && !isNaN(lLng)) {
+                                const distanceMeters = calculateDistanceMeters(uLat, uLng, lLat, lLng);
+                                distanceFeet = distanceMeters * 3.28084; // strict conversion
+                                console.log(`[Proximity Debug] User GPS: [${uLat}, ${uLng}] (Accuracy: ${gpsLocation.accuracy}m)`);
+                                console.log(`[Proximity Debug] Listing [${listing.id}]: [${lLat}, ${lLng}]`);
+                                console.log(`[Proximity Debug] Distance: ${distanceFeet.toFixed(2)} feet | Required: 50.00 feet`);
+                              }
+
+                              const isWithinDistance = demoOn || distanceFeet <= 50;
 
                               if (isWithinDistance) {
                                 return (
@@ -991,7 +1010,7 @@ const stats = useMemo(() => {
                                     Check In
                                   </Button>
                                   <span className="text-[9px] text-gray-500 mt-0.5 leading-tight text-right">
-                                    Move within 50ft
+                                    {distanceFeet !== Infinity ? `Move within 50ft (${distanceFeet.toFixed(0)}ft away)` : `Move within 50ft`}
                                   </span>
                                 </div>
                               );
@@ -1004,6 +1023,29 @@ const stats = useMemo(() => {
                 );
               })}
             </MapContainer>
+
+            {/* Temporary Proximity Debug Overlay */}
+            {gpsLocation && huntStops.some(s => s.huntStatus === 'not_started') && (
+              <div className="absolute top-[80px] right-4 z-[1000] bg-black/80 text-white text-[11px] p-3 rounded-md font-mono shadow-lg border border-green-500 pointer-events-none w-64 max-h-[40vh] overflow-y-auto">
+                <div className="font-bold text-green-400 mb-1 border-b border-green-800 pb-1">GPS Proximity Debug</div>
+                <div>Accuracy: {gpsLocation.accuracy ? gpsLocation.accuracy.toFixed(1) : '?'}m</div>
+                <div className="text-[9px] text-gray-400 break-all mb-2">Loc: [{gpsLocation.lat?.toFixed(5)}, {gpsLocation.lng?.toFixed(5)}]</div>
+                <div className="space-y-1.5">
+                  {huntStops.filter(s => s.huntStatus === 'not_started').map((stop) => {
+                    const lLat = Number(stop.lat);
+                    const lLng = Number(stop.lng);
+                    if (isNaN(lLat) || isNaN(lLng)) return <div key={stop.id}>Stop: Invalid coords</div>;
+                    const distFt = calculateDistanceMeters(Number(gpsLocation.lat), Number(gpsLocation.lng), lLat, lLng) * 3.28084;
+                    return (
+                      <div key={stop.id} className={`flex flex-col ${distFt <= 50 ? "text-green-300" : "text-amber-200"}`}>
+                        <span className="font-semibold truncate">{stop.title}</span>
+                        <span className="text-[10px]">Dist: {distFt.toFixed(1)} ft {distFt <= 50 ? '(Arrived)' : ''}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Debug Overlay */}
             <div
