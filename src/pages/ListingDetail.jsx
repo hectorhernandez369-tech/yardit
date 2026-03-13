@@ -73,12 +73,12 @@ export default function ListingDetailPage() {
   const pendingRequests = joinRequests?.filter(r => r.status === "pending") || [];
   const approvedRequests = joinRequests?.filter(r => r.status === "approved" && !r.removed_by_eo) || [];
   const removedRequests = joinRequests?.filter(r => r.status === "denied" && r.removed_by_eo === true) || [];
+  const formatAddress = (item) => {
+    const base = [item.addressText || "Address unavailable", item.city, item.state].filter(Boolean).join(", ");
+    return item.zip ? `${base} ${item.zip}` : base;
+  };
   const participantAddresses = approvedRequests
-    .map((req) => {
-      const participant = req.listingDetails;
-      if (!participant) return null;
-      return [participant.addressText, participant.city, participant.state, participant.zip].filter(Boolean).join(participant.zip ? " " : ", ");
-    })
+    .map((req) => req.listingDetails ? formatAddress(req.listingDetails) : null)
     .filter(Boolean);
 
   // (plain english) query to get parent neighborhood sale info if the listing was approved to join one
@@ -159,7 +159,7 @@ export default function ListingDetailPage() {
     neighborhood_tier: "bg-emerald-600"
   };
 
-  const eventAddress = [listing.addressText || "Address unavailable", listing.city, listing.state, listing.zip].filter(Boolean).join(listing.zip ? " " : ", ");
+  const eventAddress = formatAddress(listing);
   const inviteLink = listing.invite_code ? `${window.location.origin}${createPageUrl("JoinNeighborhoodSale")}?code=${listing.invite_code}` : "";
   const inviteText = [
     listing.title,
