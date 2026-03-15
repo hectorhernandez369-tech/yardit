@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bell, BellOff, Trash2, Check, MapPin, Calendar, Loader2, Users, AlertTriangle, LifeBuoy, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -15,6 +15,8 @@ export default function NotificationsPage() {
   const [user, setUser] = useState(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
+  const defaultTab = new URLSearchParams(location.search).get("tab") === "history" ? "history" : "recent";
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -293,7 +295,7 @@ export default function NotificationsPage() {
             </Button>
           </Card>
         ) : (
-          <Tabs defaultValue="recent" className="w-full">
+          <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-6">
               <TabsTrigger value="recent" className="data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white">
                 Recent ({unreadCount})
