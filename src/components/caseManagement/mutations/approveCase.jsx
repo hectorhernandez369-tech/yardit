@@ -52,7 +52,9 @@ export async function approveCase(caseId, supervisorAdminId, supervisorComment, 
     await notifyAdmin({
       caseId,
       adminId: c.assigned_admin_id,
+      title: "Case Closed",
       message: "Case approved and closed",
+      type: "case_closed",
     });
   }
 

@@ -48,8 +48,39 @@ export default function ListingManagement() {
   }, [users]);
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status, reason }) =>
-      base44.entities.Listing.update(id, { status, statusReason: reason }),
+    mutationFn: async ({ id, ownerUserId, status, reason, title }) => {
+      await base44.entities.Listing.update(id, { status, statusReason: reason });
+      
+      let notifType = "listing_status_change";
+      let notifTitle = "Listing Status Changed";
+      let message = `Your listing "${title}" status changed to ${status}.`;
+
+      if (status === "suspended" || status === "hidden") {
+        notifType = "listing_removed";
+        notifTitle = "Listing Removed";
+        message = `Your listing "${title}" has been removed/suspended. Reason: ${reason}`;
+      } else if (status === "under_review") {
+        notifType = "listing_flagged";
+        notifTitle = "Listing Flagged";
+        message = `Your listing "${title}" is currently under review.`;
+      } else if (status === "expired") {
+        notifType = "listing_expired";
+        notifTitle = "Listing Expired";
+        message = `Your listing "${title}" has expired.`;
+      }
+
+      await base44.entities.Notification.create({
+        user_id: ownerUserId,
+        userId: ownerUserId,
+        type: notifType,
+        title: notifTitle,
+        message,
+        related_entity_type: "listing",
+        related_entity_id: id,
+        is_read: false,
+        read: false,
+      });
+    },
     onSuccess: () => {
       toast.success("Listing status updated");
       queryClient.invalidateQueries({ queryKey: ["allListings"] });
@@ -143,8 +174,10 @@ export default function ListingManagement() {
                       onValueChange={(value) =>
                         updateStatusMutation.mutate({
                           id: listing.id,
+                          ownerUserId: listing.ownerUserId,
                           status: value,
                           reason: `Admin changed status to ${value}`,
+                          title: listing.title || "Untitled",
                         })
                       }
                     >
