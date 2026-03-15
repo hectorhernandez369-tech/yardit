@@ -112,6 +112,17 @@ export default function MyListingsPage() {
       for (const l of toUpdate) {
         try {
           await base44.entities.Listing.update(l.id, { status: "expired" });
+          await base44.entities.Notification.create({
+            user_id: user?.id,
+            userId: user?.id,
+            type: "listing_expired",
+            title: "Listing Expired",
+            message: `Your listing "${l.title}" has expired.`,
+            related_entity_type: "listing",
+            related_entity_id: l.id,
+            is_read: false,
+            read: false,
+          });
         } catch (e) {}
       }
       if (toUpdate.length > 0) {
