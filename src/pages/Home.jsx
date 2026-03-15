@@ -233,6 +233,74 @@ function getDefaultHuntButtonPosition(containerRect) {
   }, containerRect);
 }
 
+function levenshteinDistance(a, b) {
+  if (!a) return b ? b.length : 0;
+  if (!b) return a ? a.length : 0;
+  if (a === b) return 0;
+
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+function fuzzyMatchString(query, text) {
+  if (!query || !text) return false;
+  const q = String(query).toLowerCase();
+  const t = String(text).toLowerCase();
+  if (t.includes(q)) return true;
+
+  const queryWords = q.split(/\s+/).filter(Boolean);
+  const textWords = t.split(/[\s,.\-#]+/).filter(Boolean);
+
+  return queryWords.every(qw => {
+    return textWords.some(tw => {
+      if (Math.abs(tw.length - qw.length) > 2) return false;
+      return levenshteinDistance(qw, tw) <= 2;
+    });
+  });
+}
+
+function listingMatchesQuery(listing, query, isFuzzy) {
+  if (!query) return true;
+  const q = String(query).toLowerCase();
+  
+  if (!isFuzzy) {
+    return (
+      listing.title?.toLowerCase().includes(q) ||
+      listing.description?.toLowerCase().includes(q) ||
+      (listing.categories || []).some(c => c?.toLowerCase().includes(q)) ||
+      listing.category?.toLowerCase().includes(q) ||
+      listing.addressText?.toLowerCase().includes(q) ||
+      listing.city?.toLowerCase().includes(q)
+    );
+  }
+
+  if (fuzzyMatchString(q, listing.title)) return true;
+  if (fuzzyMatchString(q, listing.description)) return true;
+  if ((listing.categories || []).some(c => fuzzyMatchString(q, c))) return true;
+  if (fuzzyMatchString(q, listing.category)) return true;
+  
+  return false;
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const [view, setView] = useState("map");
@@ -533,111 +601,87 @@ export default function HomePage() {
 
 
   const eligibleListings = useMemo(() => {
-  const now = new Date();
-  const demo = demoOn;
+    const now = new Date();
+    const demo = demoOn;
 
-  return listings.filter((listing) => {
-    if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return false;
-    if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
+    const baseListings = listings.filter((listing) => {
+      if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return false;
+      if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
 
-    if (listing.listingType === "neighborhood_sale") {
-      const confirmedCount = listing.confirmed_count || 0;
-      if (confirmedCount < 5 || listing.status !== "activated") return false;
+      if (listing.listingType === "neighborhood_sale") {
+        const confirmedCount = listing.confirmed_count || 0;
+        if (confirmedCount < 5 || listing.status !== "activated") return false;
 
-      const start = new Date(listing.startDateTime);
-      const end = new Date(listing.endDateTime);
+        const start = new Date(listing.startDateTime);
+        const end = new Date(listing.endDateTime);
 
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+        if (now > end) return false;
+        if (now < start && !listing.advertising_started_at) return false;
+      } else {
+        if (listing.status !== "active") return false;
 
-      // Hide expired neighborhood sales
-      if (now > end) return false;
+        const start = new Date(listing.startDateTime);
+        const end = new Date(listing.endDateTime);
 
-      // Future neighborhood sales only show if advertising started
-      if (now < start && !listing.advertising_started_at) return false;
-    } else {
-      if (listing.status !== "active") return false;
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+        if (!demo && (start > now || end < now)) return false;
+      }
 
-      const start = new Date(listing.startDateTime);
-      const end = new Date(listing.endDateTime);
+      const matchesFilter = filter === "all" || listing.listingType === filter;
+      const matchesCategory = selectedCategories.length === 0 || 
+        selectedCategories.some(cat => (listing.categories || []).includes(cat) || listing.category === cat);
 
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+      return matchesFilter && matchesCategory;
+    });
 
-      // In live mode, hide future and expired listings
-      if (!demo && (start > now || end < now)) return false;
-    }
+    const strictMatches = baseListings.filter(l => listingMatchesQuery(l, searchQuery, false));
+    if (strictMatches.length > 0 || !searchQuery) return strictMatches;
 
-    const matchesSearch =
-      !searchQuery ||
-      listing.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      listing.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (listing.categories || []).some(c => c?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      listing.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      listing.addressText?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      listing.city?.toLowerCase().includes(searchQuery.toLowerCase());
+    return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true));
+  }, [listings, filter, searchQuery, selectedCategories, demoOn]);
 
-    const matchesFilter =
-      filter === "all" || listing.listingType === filter;
+  const listViewListings = useMemo(() => {
+    const now = new Date();
+    const demo = demoOn;
 
-    const matchesCategory = selectedCategories.length === 0 || 
-      selectedCategories.some(cat => (listing.categories || []).includes(cat) || listing.category === cat);
+    const baseListings = listings.filter((l) => {
+      if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
+      if (!isFinite(l.lat) || !isFinite(l.lng)) return false;
 
-    return matchesFilter && matchesSearch && matchesCategory;
-  });
-}, [listings, filter, searchQuery, selectedCategories, demoOn]);
+      if (l.listingType === "neighborhood_sale") {
+        const confirmedCount = l.confirmed_count || 0;
+        if (confirmedCount < 5 || l.status !== "activated") return false;
 
-const listViewListings = useMemo(() => {
-  const now = new Date();
-  const demo = demoOn;
+        const start = new Date(l.startDateTime);
+        const end = new Date(l.endDateTime);
 
-  return listings.filter((l) => {
-    if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
-    if (!isFinite(l.lat) || !isFinite(l.lng)) return false;
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+        if (!demo && end < now) return false;
+        if (!demo && now < start && !l.advertising_started_at) return false;
+        return true;
+      }
 
-    if (l.listingType === "neighborhood_sale") {
-      const confirmedCount = l.confirmed_count || 0;
-      if (confirmedCount < 5 || l.status !== "activated") return false;
+      if (l.status !== "active") return false;
 
       const start = new Date(l.startDateTime);
       const end = new Date(l.endDateTime);
 
       if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-
-      // In live mode, hide expired neighborhood sales
-      if (!demo && end < now) return false;
-
-      // In live mode, don't show future neighborhood sales unless advertising started
-      if (!demo && now < start && !l.advertising_started_at) return false;
+      if (!demo && (start > now || end < now)) return false;
 
       return true;
-    }
+    }).filter(l => {
+      const matchesCategory = selectedCategories.length === 0 || 
+        selectedCategories.some(cat => (l.categories || []).includes(cat) || l.category === cat);
+      return matchesCategory;
+    });
 
-    if (l.status !== "active") return false;
+    const strictMatches = baseListings.filter(l => listingMatchesQuery(l, searchQuery, false));
+    if (strictMatches.length > 0 || !searchQuery) return strictMatches;
 
-    const matchesSearch =
-      !searchQuery ||
-      l.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (l.categories || []).some(c => c?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      l.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.addressText?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.city?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCategory = selectedCategories.length === 0 || 
-      selectedCategories.some(cat => (l.categories || []).includes(cat) || l.category === cat);
-
-    if (!matchesSearch || !matchesCategory) return false;
-
-    const start = new Date(l.startDateTime);
-    const end = new Date(l.endDateTime);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-
-    // In live mode, hide future and expired listings
-    if (!demo && (start > now || end < now)) return false;
-
-    return true;
-  });
-}, [listings, searchQuery, selectedCategories, demoOn]);
+    return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true));
+  }, [listings, searchQuery, selectedCategories, demoOn]);
 
 const stats = useMemo(() => {
   return {
