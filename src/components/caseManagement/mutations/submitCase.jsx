@@ -58,7 +58,9 @@ export async function submitCase(caseId, assignedAdminId, commentText, adminUser
   // Notify supervisors
   await notifySupervisors({
     caseId,
-    message: "Case submitted for review",
+    title: "Case Submitted",
+    message: "A case has been submitted for review.",
+    type: "case_submitted",
     allAdminUsers,
   });
 

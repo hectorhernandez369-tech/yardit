@@ -37,22 +37,38 @@ export async function logAdminAction({
 /**
  * Create a CaseNotification for a specific admin.
  */
-export async function notifyAdmin({ caseId, adminId, message }) {
-  await base44.entities.CaseNotification.create({
-    case_id: caseId,
-    admin_id: adminId,
-    message,
-  });
+export async function notifyAdmin({ caseId, adminId, message, title = "Case Update", type = "case_update" }) {
+  try {
+    await base44.entities.CaseNotification.create({
+      case_id: caseId,
+      admin_id: adminId,
+      message,
+    });
+  } catch (e) {}
+
+  try {
+    await base44.entities.Notification.create({
+      user_id: adminId,
+      userId: adminId,
+      type,
+      title,
+      message,
+      related_entity_type: "case",
+      related_entity_id: caseId,
+      is_read: false,
+      read: false,
+    });
+  } catch (e) {}
 }
 
 /**
  * Notify all supervisors/masters. Requires a list of admin users.
  */
-export async function notifySupervisors({ caseId, message, allAdminUsers }) {
+export async function notifySupervisors({ caseId, message, allAdminUsers, title = "Case Update", type = "case_update" }) {
   const supervisors = allAdminUsers.filter(
     (u) => u.role === "supervisor" || u.role === "master"
   );
   for (const sup of supervisors) {
-    await notifyAdmin({ caseId, adminId: sup.id, message });
+    await notifyAdmin({ caseId, adminId: sup.id, message, title, type });
   }
 }

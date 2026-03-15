@@ -45,7 +45,13 @@ export async function assignCase(caseId, supervisorAdminId, targetAdminId, super
   await base44.entities.Case.update(caseId, updateData);
 
   // Notify
-  await notifyAdmin({ caseId, adminId: targetAdminId, message: "Case assigned to you" });
+  await notifyAdmin({ 
+    caseId, 
+    adminId: targetAdminId, 
+    title: "Case Assigned", 
+    message: "A supervisor has assigned a case to you.", 
+    type: "assign_admin" 
+  });
 
   return { success: true };
 }

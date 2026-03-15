@@ -47,7 +47,13 @@ export async function assignCaseToSelf(caseId, adminId, adminUser) {
   await base44.entities.Case.update(caseId, updateData);
 
   // Notify
-  await notifyAdmin({ caseId, adminId, message: "Case assigned to you" });
+  await notifyAdmin({ 
+    caseId, 
+    adminId, 
+    title: "Case Assigned", 
+    message: "Case assigned to you", 
+    type: "assign_self" 
+  });
 
   return { success: true };
 }
