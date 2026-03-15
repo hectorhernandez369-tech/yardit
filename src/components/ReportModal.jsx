@@ -118,6 +118,23 @@ export default function ReportModal({ listingId, onClose }) {
           reporterUserId: user.id,
         });
 
+        // Reporter Confirmation Notification
+        try {
+          await base44.entities.Notification.create({
+            user_id: user.id,
+            userId: user.id,
+            type: "report_received",
+            title: "Report Received",
+            message: "Your report has been received and is under review.",
+            related_entity_type: "report",
+            related_entity_id: report.id,
+            is_read: false,
+            read: false,
+          });
+        } catch (err) {
+          console.error("Failed to create reporter confirmation notification:", err);
+        }
+
         // Secondary step only — should not fail the whole report
         try {
           const listings = await base44.entities.Listing.filter({ id: listingId });
