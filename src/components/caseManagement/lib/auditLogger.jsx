@@ -38,14 +38,7 @@ export async function logAdminAction({
  * Create a CaseNotification for a specific admin.
  */
 export async function notifyAdmin({ caseId, adminId, message, title = "Case Update", type = "case_update" }) {
-  try {
-    await base44.entities.CaseNotification.create({
-      case_id: caseId,
-      admin_id: adminId,
-      message,
-    });
-  } catch (e) {}
-
+  // We no longer create CaseNotification because we migrated to the global Notification system
   try {
     const notif = await base44.entities.Notification.create({
       user_id: adminId,
