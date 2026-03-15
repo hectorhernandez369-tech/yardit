@@ -53,7 +53,9 @@ export async function reassignSubmittedCase(caseId, supervisorAdminId, newAdminI
   await notifyAdmin({
     caseId,
     adminId: newAdminId,
+    title: "Case Reassigned",
     message: "Case reassigned to you (Submitted)",
+    type: "case_reassigned"
   });
 
   // Notify old admin if different
@@ -61,7 +63,9 @@ export async function reassignSubmittedCase(caseId, supervisorAdminId, newAdminI
     await notifyAdmin({
       caseId,
       adminId: oldAdminId,
+      title: "Case Reassigned",
       message: "Case reassigned away from you",
+      type: "case_reassigned_away"
     });
   }
 
