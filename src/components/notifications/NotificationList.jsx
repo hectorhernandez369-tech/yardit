@@ -116,6 +116,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
     if (type?.startsWith("report_")) return <AlertTriangle className="w-4 h-4 text-red-600" />;
     if (type?.startsWith("support_")) return <LifeBuoy className="w-4 h-4 text-blue-600" />;
     if (type?.startsWith("listing_")) return <MapPin className="w-4 h-4 text-orange-600" />;
+    if (type?.startsWith("case_") || type?.startsWith("assign_")) return <LifeBuoy className="w-4 h-4 text-indigo-600" />;
     switch (type) {
       case "new_listing":
         return <MapPin className="w-4 h-4 text-blue-600" />;
@@ -137,8 +138,8 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
     } else {
       const entityId = notification.related_entity_id || notification.metadata?.listing_id || notification.metadata?.sale_listing_id || notification.location_id;
 
-      if (notification.type?.startsWith("report_")) {
-        url = createPageUrl("AdminLite") + "?tab=cases";
+      if (notification.type?.startsWith("report_") || notification.type?.startsWith("case_") || notification.type?.startsWith("assign_")) {
+        url = createPageUrl("AdminLite") + "?tab=cases" + (entityId ? `&openCaseId=${entityId}` : "");
       } else if (notification.type?.startsWith("support_ticket_")) {
         url = createPageUrl("MySupportTickets");
       } else if (notification.type?.startsWith("join_")) {
