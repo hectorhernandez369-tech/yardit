@@ -93,6 +93,7 @@ export default function ListingManagement() {
     onSuccess: () => {
       toast.success("Listing status updated");
       queryClient.invalidateQueries({ queryKey: ["allListings"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 

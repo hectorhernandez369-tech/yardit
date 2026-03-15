@@ -136,6 +136,7 @@ export default function MyListingsPage() {
       }
       if (toUpdate.length > 0) {
         queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
       }
     };
     cleanup();

@@ -175,6 +175,7 @@ export default function ReportModal({ listingId, onClose }) {
       queryClient.invalidateQueries({ queryKey: ["reports"] });
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       queryClient.invalidateQueries({ queryKey: ["listing", listingId] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       onClose();
     },
 
