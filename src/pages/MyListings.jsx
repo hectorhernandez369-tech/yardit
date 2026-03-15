@@ -7,11 +7,13 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Map, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Map, Trash2, X } from "lucide-react";
 import { format } from "date-fns";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   formatListingDateRange,
@@ -34,9 +36,10 @@ export default function MyListingsPage() {
   // (Tabs) "active" | "past" | "billing" | "hunt"
   const [tab, setTab] = useState("active");
 
-  // (Edit Description modal state)
+  // (Edit Listing modal state)
   const [editingListing, setEditingListing] = useState(null);
   const [editDescription, setEditDescription] = useState("");
+  const [editCategories, setEditCategories] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -123,27 +126,36 @@ export default function MyListingsPage() {
   const openEditDescription = (listing) => {
     setEditingListing(listing);
     setEditDescription(listing?.description || "");
+    setEditCategories(listing?.categories?.length > 0 ? listing.categories : (listing?.category ? [listing.category] : []));
   };
 
   const closeEditDescription = () => {
     setEditingListing(null);
     setEditDescription("");
+    setEditCategories([]);
   };
 
   const saveDescription = async () => {
     if (!editingListing) return;
 
+    if (editCategories.length === 0) {
+      toast.error("Please select at least 1 category");
+      return;
+    }
+
     setIsSaving(true);
     try {
       await base44.entities.Listing.update(editingListing.id, {
         description: editDescription,
+        categories: editCategories,
+        category: editCategories[0] || "",
       });
 
-      toast.success("Description updated");
+      toast.success("Listing updated");
       closeEditDescription();
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
     } catch (e) {
-      toast.error("Could not update description");
+      toast.error("Could not update listing");
     } finally {
       setIsSaving(false);
     }
@@ -375,7 +387,7 @@ export default function MyListingsPage() {
                         onClick={() => openEditDescription(listing)}
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                       >
-                        Edit Description
+                        Edit Listing
                       </Button>
 
                       <Button
@@ -431,19 +443,62 @@ export default function MyListingsPage() {
         )}
       </div>
 
-      {/* (Edit Description popup) */}
+      {/* (Edit Listing popup) */}
       <Dialog open={!!editingListing} onOpenChange={(open) => !open && closeEditDescription()}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Description</DialogTitle>
+            <DialogTitle>Edit Listing</DialogTitle>
           </DialogHeader>
 
-          <Textarea
-            value={editDescription}
-            onChange={(e) => setEditDescription(e.target.value)}
-            rows={7}
-            placeholder="Update your description..."
-          />
+          <div className="space-y-4">
+            <div>
+              <Label className="text-[#2C4F4E]">Categories (Up to 10) *</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {editCategories.map((cat, i) => (
+                   <Badge key={i} className="flex items-center gap-1 bg-[#5DADA5] py-1.5 px-3 text-sm rounded-full">
+                      {cat} 
+                      <X className="w-3 h-3 cursor-pointer" onClick={() => {
+                        setEditCategories(prev => prev.filter((_, idx) => idx !== i));
+                      }} />
+                   </Badge>
+                ))}
+              </div>
+              {editCategories.length < 10 && (
+                <Select
+                  value=""
+                  onValueChange={(value) => {
+                    if (editCategories.includes(value)) return;
+                    setEditCategories(prev => [...prev, value]);
+                  }}
+                >
+                  <SelectTrigger className="border-[#2C4F4E] mt-3">
+                    <SelectValue placeholder="Add Category +" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[
+                      "Household Items", "Furniture", "Clothing & Accessories",
+                      "Electronics", "Tools & Hardware", "Toys & Games",
+                      "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
+                      "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
+                      "Free Items", "Food / Baked Goods", "Miscellaneous"
+                    ].filter(cat => !editCategories.includes(cat)).map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-[#2C4F4E] mb-2 block">Description</Label>
+              <Textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={5}
+                placeholder="Update your description..."
+              />
+            </div>
+          </div>
 
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={closeEditDescription}>
