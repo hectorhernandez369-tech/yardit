@@ -489,6 +489,44 @@ export default function HomePage() {
     initialData: [],
   });
 
+  // Map movement on city search
+  useEffect(() => {
+    if (!searchQuery) return;
+    const timeoutId = setTimeout(() => {
+      const q = searchQuery.toLowerCase().trim();
+      if (!q) return;
+
+      // Priority Rule: Keep current behavior if exact title or listing number match
+      const exactListingMatch = listings.find(
+        (l) =>
+          l.title?.toLowerCase().trim() === q ||
+          (l.listingNumber && l.listingNumber.toLowerCase().trim() === q)
+      );
+
+      if (exactListingMatch) return;
+
+      // City Search Detection
+      const cityListings = listings.filter(
+        (l) => l.city && l.city.toLowerCase().trim() === q
+      );
+
+      if (cityListings.length > 0) {
+        const validListings = cityListings.filter(
+          (l) => typeof l.lat === "number" && typeof l.lng === "number" && isFinite(l.lat) && isFinite(l.lng)
+        );
+        
+        if (validListings.length > 0) {
+          const avgLat = validListings.reduce((sum, l) => sum + l.lat, 0) / validListings.length;
+          const avgLng = validListings.reduce((sum, l) => sum + l.lng, 0) / validListings.length;
+          setMapCenter([avgLat, avgLng]);
+          setMapZoom(12); // Reasonable city-level zoom
+        }
+      }
+    }, 700);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, listings]);
+
   // Focus on a specific listing from URL param
   const focusListing = useMemo(() => {
     if (!focusListingId || listings.length === 0) return null;
