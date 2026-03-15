@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, CheckCircle, ArrowLeft, UserPlus } from "lucide-react";
 import { approveCase, sendBackCase, reassignSubmittedCase, logAdminEvent } from "../index";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function CaseSupervisorActions({ caseData, user, allAdminUsers, onRefresh }) {
+  const queryClient = useQueryClient();
   const [action, setAction] = useState(null);
   const [notes, setNotes] = useState("");
   const [reassignTarget, setReassignTarget] = useState("");
@@ -20,6 +22,7 @@ export default function CaseSupervisorActions({ caseData, user, allAdminUsers, o
     const res = await approveCase(caseData.id, user.id, notes.trim() || null, user);
     if (res.success) {
       toast.success("Case approved and closed");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       onRefresh();
     } else {
       toast.error(res.error);
@@ -34,6 +37,7 @@ export default function CaseSupervisorActions({ caseData, user, allAdminUsers, o
     const res = await sendBackCase(caseData.id, user.id, notes.trim(), user);
     if (res.success) {
       toast.success("Case sent back");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       onRefresh();
     } else {
       toast.error(res.error);
@@ -48,6 +52,7 @@ export default function CaseSupervisorActions({ caseData, user, allAdminUsers, o
     const res = await reassignSubmittedCase(caseData.id, user.id, reassignTarget, notes.trim() || null, user);
     if (res.success) {
       toast.success("Case reassigned");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       onRefresh();
     } else {
       toast.error(res.error);

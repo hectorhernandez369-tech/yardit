@@ -6,8 +6,10 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import { assignCaseToSelf, assignCase, isSupervisor, logAdminEvent } from "../index";
 import { toast } from "sonner";
 import AssignDialog from "./AssignDialog";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenCase, onRefresh, refreshKey }) {
+  const queryClient = useQueryClient();
   const [cases, setCases] = useState([]);
   const [listings, setListings] = useState({});
   const [reports, setReports] = useState({});
@@ -48,6 +50,7 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
     const res = await assignCaseToSelf(caseItem.id, user.id, user);
     if (res.success) {
       toast.success("Case assigned to you");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       onRefresh();
     } else {
       toast.error(res.error);
@@ -61,6 +64,7 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
     const res = await assignCase(caseItem.id, user.id, targetAdminId, user);
     if (res.success) {
       toast.success("Case assigned");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       onRefresh();
     } else {
       toast.error(res.error);

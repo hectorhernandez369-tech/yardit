@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { setDisposition, submitCase, logAdminEvent } from "../index";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function CaseDispositionPanel({ caseData, user, allAdminUsers, isAssigned, onRefresh }) {
+  const queryClient = useQueryClient();
   const [disposition, setDispositionVal] = useState(caseData.disposition || "");
   const [submitComment, setSubmitComment] = useState("");
   const [saving, setSaving] = useState(false);
@@ -38,6 +40,7 @@ export default function CaseDispositionPanel({ caseData, user, allAdminUsers, is
     const res = await submitCase(caseData.id, user.id, submitComment.trim(), user, allAdminUsers);
     if (res.success) {
       toast.success("Case submitted for review");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       onRefresh();
     } else {
       toast.error(res.error);

@@ -65,7 +65,9 @@ export async function sendBackCase(caseId, supervisorAdminId, supervisorNotes, s
   await notifyAdmin({
     caseId,
     adminId: returnToAdminId,
+    title: "Case Sent Back",
     message: "Case sent back for further investigation",
+    type: "case_sent_back",
   });
 
   return { success: true };
