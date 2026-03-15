@@ -14,14 +14,20 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
   const navigate = useNavigate();
 
   const markReadMutation = useMutation({
-    mutationFn: (notificationId) => base44.entities.Notification.update(notificationId, { read: true, is_read: true }),
+    mutationFn: (notification) => {
+      if (notification._isCaseNotif) return base44.entities.CaseNotification.update(notification.id, { is_read: true });
+      return base44.entities.Notification.update(notification.id, { read: true, is_read: true });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     }
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (notificationId) => base44.entities.Notification.delete(notificationId),
+    mutationFn: (notification) => {
+      if (notification._isCaseNotif) return base44.entities.CaseNotification.delete(notification.id);
+      return base44.entities.Notification.delete(notification.id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     }
@@ -123,33 +129,37 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
 
   const handleNotificationClick = (notification) => {
     if (!notification.read && !notification.is_read) {
-       markReadMutation.mutate(notification.id);
+       markReadMutation.mutate(notification);
     }
     let url = null;
-    const entityId = notification.related_entity_id || notification.metadata?.listing_id || notification.metadata?.sale_listing_id || notification.location_id;
+    if (notification._isCaseNotif) {
+      url = createPageUrl("CaseManagement") + `?openCaseId=${notification.case_id}`;
+    } else {
+      const entityId = notification.related_entity_id || notification.metadata?.listing_id || notification.metadata?.sale_listing_id || notification.location_id;
 
-    if (notification.type?.startsWith("report_")) {
-      url = createPageUrl("AdminLite") + "?tab=cases";
-    } else if (notification.type?.startsWith("support_ticket_")) {
-      url = createPageUrl("MySupportTickets");
-    } else if (notification.type?.startsWith("join_")) {
-      if (entityId) {
-        url = createPageUrl("ListingDetail") + "?id=" + entityId;
-      } else {
-        url = createPageUrl("MyListings");
+      if (notification.type?.startsWith("report_")) {
+        url = createPageUrl("AdminLite") + "?tab=cases";
+      } else if (notification.type?.startsWith("support_ticket_")) {
+        url = createPageUrl("MySupportTickets");
+      } else if (notification.type?.startsWith("join_")) {
+        if (entityId) {
+          url = createPageUrl("ListingDetail") + "?id=" + entityId;
+        } else {
+          url = createPageUrl("MyListings");
+        }
+      } else if (notification.type?.startsWith("listing_")) {
+        if (notification.type === "listing_removed") {
+          url = createPageUrl("MyListings");
+        } else if (entityId) {
+          url = createPageUrl("ListingDetail") + "?id=" + entityId;
+        } else {
+          url = createPageUrl("MyListings");
+        }
       }
-    } else if (notification.type?.startsWith("listing_")) {
-      if (notification.type === "listing_removed") {
-        url = createPageUrl("MyListings");
-      } else if (entityId) {
-        url = createPageUrl("ListingDetail") + "?id=" + entityId;
-      } else {
-        url = createPageUrl("MyListings");
-      }
-    }
 
-    if (!url && notification.location_id) {
-       url = `/?location=${notification.metadata?.latitude || ''},${notification.metadata?.longitude || ''}`;
+      if (!url && notification.location_id) {
+         url = `/?location=${notification.metadata?.latitude || ''},${notification.metadata?.longitude || ''}`;
+      }
     }
 
     if (url) {
@@ -255,7 +265,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteMutation.mutate(notification.id);
+                            deleteMutation.mutate(notification);
                           }}
                           className="h-6 w-6 p-0"
                         >

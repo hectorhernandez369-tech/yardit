@@ -35,7 +35,13 @@ export default function NotificationsPage() {
        const byUserId = await base44.entities.Notification.filter({ userId: user.id }, "-created_date");
        const byEmail = await base44.entities.Notification.filter({ user_email: user.email }, "-created_date");
        
-       const all = [...byEmail, ...byId, ...byUserId];
+       let adminNotifs = [];
+       if (user?.isAdmin) {
+         adminNotifs = await base44.entities.CaseNotification.filter({ admin_id: user.id }, "-created_date");
+         adminNotifs = adminNotifs.map(n => ({ ...n, _isCaseNotif: true, title: "Case Management", type: "report_case" }));
+       }
+
+       const all = [...byEmail, ...byId, ...byUserId, ...adminNotifs];
        const unique = [];
        const seen = new Set();
        for (const n of all) {
@@ -51,7 +57,10 @@ export default function NotificationsPage() {
   });
 
   const markReadMutation = useMutation({
-    mutationFn: (notificationId) => base44.entities.Notification.update(notificationId, { read: true, is_read: true }),
+    mutationFn: (notification) => {
+      if (notification._isCaseNotif) return base44.entities.CaseNotification.update(notification.id, { is_read: true });
+      return base44.entities.Notification.update(notification.id, { read: true, is_read: true });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
@@ -60,7 +69,7 @@ export default function NotificationsPage() {
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
       const unread = notifications.filter(n => !n.read && !n.is_read);
-      await Promise.all(unread.map(n => base44.entities.Notification.update(n.id, { read: true, is_read: true })));
+      await Promise.all(unread.map(n => n._isCaseNotif ? base44.entities.CaseNotification.update(n.id, { is_read: true }) : base44.entities.Notification.update(n.id, { read: true, is_read: true })));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -69,7 +78,10 @@ export default function NotificationsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (notificationId) => base44.entities.Notification.delete(notificationId),
+    mutationFn: (notification) => {
+      if (notification._isCaseNotif) return base44.entities.CaseNotification.delete(notification.id);
+      return base44.entities.Notification.delete(notification.id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("Notification deleted");
@@ -77,6 +89,10 @@ export default function NotificationsPage() {
   });
 
   const getNotificationUrl = (notification) => {
+    if (notification._isCaseNotif) {
+      return createPageUrl("CaseManagement") + `?openCaseId=${notification.case_id}`;
+    }
+
     let url = null;
     const entityId = notification.related_entity_id || notification.metadata?.listing_id || notification.metadata?.sale_listing_id || notification.location_id;
 
@@ -180,7 +196,7 @@ export default function NotificationsPage() {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      markReadMutation.mutate(notification.id);
+                      markReadMutation.mutate(notification);
                     }}
                     className="h-8 text-xs"
                   >
@@ -193,7 +209,7 @@ export default function NotificationsPage() {
                     className="h-8 text-xs bg-[#5DADA5] hover:bg-[#4A9B93] text-white"
                     onClick={(e) => {
                        e.stopPropagation();
-                       if (isUnread) markReadMutation.mutate(notification.id);
+                       if (isUnread) markReadMutation.mutate(notification);
                        navigate(url);
                     }}
                   >
@@ -206,7 +222,7 @@ export default function NotificationsPage() {
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  deleteMutation.mutate(notification.id);
+                  deleteMutation.mutate(notification);
                 }}
                 className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 sm:self-end"
                 title="Delete Notification"

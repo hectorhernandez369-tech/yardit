@@ -34,7 +34,13 @@ export default function NotificationBell() {
        const byUserId = await base44.entities.Notification.filter({ userId: user.id }, "-created_date");
        const byEmail = await base44.entities.Notification.filter({ user_email: user.email }, "-created_date");
        
-       const all = [...byEmail, ...byId, ...byUserId];
+       let adminNotifs = [];
+       if (user?.isAdmin) {
+         adminNotifs = await base44.entities.CaseNotification.filter({ admin_id: user.id }, "-created_date");
+         adminNotifs = adminNotifs.map(n => ({ ...n, _isCaseNotif: true, title: "Case Management", type: "report_case" }));
+       }
+
+       const all = [...byEmail, ...byId, ...byUserId, ...adminNotifs];
        const unique = [];
        const seen = new Set();
        for (const n of all) {
@@ -55,7 +61,9 @@ export default function NotificationBell() {
       const unreadNotifications = notifications.filter(n => !n.read && !n.is_read);
       await Promise.all(
         unreadNotifications.map(n => 
-          base44.entities.Notification.update(n.id, { read: true, is_read: true })
+          n._isCaseNotif 
+            ? base44.entities.CaseNotification.update(n.id, { is_read: true })
+            : base44.entities.Notification.update(n.id, { read: true, is_read: true })
         )
       );
     },

@@ -157,6 +157,21 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>My Notifications</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => navigate(createPageUrl("Notifications") + "?tab=history")}
+              variant="outline"
+              className="w-full justify-start text-left font-normal"
+            >
+              Notification History
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Account Actions</CardTitle>
