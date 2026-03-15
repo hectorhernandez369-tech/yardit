@@ -250,8 +250,26 @@ export default function ListingDetailPage() {
 
             <div>
               <h3 className="font-semibold mb-2">Description</h3>
-              <p className="text-slate-700">{listing.description}</p>
+              <p className="text-slate-700 whitespace-pre-wrap">{listing.description}</p>
             </div>
+
+            {(listing.categories?.length > 0 || listing.category) && (
+              <div>
+                <h3 className="font-semibold mb-2">Categories</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(listing.categories?.length > 0 ? listing.categories : [listing.category]).filter(Boolean).map((cat, idx) => (
+                    <Badge key={idx} variant="outline" className="border-[#2C4F4E] text-[#2C4F4E] bg-[#E7D7B8] px-3 py-1">
+                      {cat}
+                    </Badge>
+                  ))}
+                  {listing.collectible_type && (
+                    <Badge variant="outline" className="border-[#2C4F4E] text-[#2C4F4E] bg-[#E7D7B8] px-3 py-1">
+                      {listing.collectible_type}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="flex items-start gap-2 text-slate-600">
               <MapPin className="w-5 h-5 mt-0.5" />

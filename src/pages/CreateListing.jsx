@@ -157,6 +157,7 @@ export default function CreateListingPage() {
 
     // Categories
     category: "",
+    categories: [],
     collectible_type: null,
 
     photoUrls: [],
@@ -359,11 +360,11 @@ export default function CreateListingPage() {
 
   const handleNext = async () => {
     if (step === 1) {
-      if (!formData.title || !formData.description || !formData.category) {
+      if (!formData.title || !formData.description || (!formData.category && (!formData.categories || formData.categories.length === 0))) {
         toast.error("Please fill in all required fields");
         return;
       }
-      if (formData.category === "Collectibles" && !formData.collectible_type) {
+      if ((formData.category === "Collectibles" || formData.categories?.includes("Collectibles")) && !formData.collectible_type) {
         toast.error("Please select a collectible type");
         return;
       }

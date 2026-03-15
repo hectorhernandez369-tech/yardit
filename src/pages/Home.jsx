@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, Calendar, User, Search, ShoppingBag, Plus, Check, Users, Star, Crosshair, Loader2, SlidersHorizontal, X, Map as MapIcon, List } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
 import CheckInButton from "../components/map/CheckInButton";
@@ -251,6 +254,7 @@ export default function HomePage() {
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [mapCenter, setMapCenter] = useState([37.7749, -122.4194]);
   const [mapZoom, setMapZoom] = useState(13);
   const [showControls, setShowControls] = useState(false);
@@ -565,15 +569,21 @@ export default function HomePage() {
     const matchesSearch =
       !searchQuery ||
       listing.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      listing.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (listing.categories || []).some(c => c?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      listing.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       listing.addressText?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       listing.city?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesFilter =
       filter === "all" || listing.listingType === filter;
 
-    return matchesFilter && matchesSearch;
+    const matchesCategory = selectedCategories.length === 0 || 
+      selectedCategories.some(cat => (listing.categories || []).includes(cat) || listing.category === cat);
+
+    return matchesFilter && matchesSearch && matchesCategory;
   });
-}, [listings, filter, searchQuery, demoOn]);
+}, [listings, filter, searchQuery, selectedCategories, demoOn]);
 
 const listViewListings = useMemo(() => {
   const now = new Date();
@@ -603,6 +613,20 @@ const listViewListings = useMemo(() => {
 
     if (l.status !== "active") return false;
 
+    const matchesSearch =
+      !searchQuery ||
+      l.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.categories || []).some(c => c?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      l.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.addressText?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.city?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory = selectedCategories.length === 0 || 
+      selectedCategories.some(cat => (l.categories || []).includes(cat) || l.category === cat);
+
+    if (!matchesSearch || !matchesCategory) return false;
+
     const start = new Date(l.startDateTime);
     const end = new Date(l.endDateTime);
 
@@ -613,7 +637,7 @@ const listViewListings = useMemo(() => {
 
     return true;
   });
-}, [listings, demoOn]);
+}, [listings, searchQuery, selectedCategories, demoOn]);
 
 const stats = useMemo(() => {
   return {
@@ -1116,7 +1140,7 @@ const stats = useMemo(() => {
           <DialogHeader>
             <DialogTitle>Filters</DialogTitle>
           </DialogHeader>
-          <div className="py-4 space-y-4">
+          <div className="py-4 space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Listing Type</label>
               <Tabs value={filter} onValueChange={setFilter}>
@@ -1136,7 +1160,45 @@ const stats = useMemo(() => {
                 </TabsList>
               </Tabs>
             </div>
-            <p className="text-sm text-gray-500">More filters coming soon...</p>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Categories</label>
+                {selectedCategories.length > 0 && (
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setSelectedCategories([])}>
+                    Clear
+                  </Button>
+                )}
+              </div>
+              <ScrollArea className="h-48 rounded-md border p-4">
+                <div className="grid grid-cols-1 gap-3">
+                  {[
+                    "Household Items", "Furniture", "Clothing & Accessories",
+                    "Electronics", "Tools & Hardware", "Toys & Games",
+                    "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
+                    "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
+                    "Free Items", "Food / Baked Goods", "Miscellaneous"
+                  ].map((cat) => (
+                    <div key={cat} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`filter-${cat}`} 
+                        checked={selectedCategories.includes(cat)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedCategories([...selectedCategories, cat]);
+                          } else {
+                            setSelectedCategories(selectedCategories.filter(c => c !== cat));
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`filter-${cat}`} className="text-sm font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        {cat}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

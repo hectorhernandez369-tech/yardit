@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function StepOne({ formData, setFormData }) {
   const listingType = formData?.listingType || "yard_sale";
@@ -57,35 +59,56 @@ export default function StepOne({ formData, setFormData }) {
       </div>
 
       <div>
-        <Label className="text-[#2C4F4E]">Category *</Label>
-        <Select
-          value={formData.category || ""}
-          onValueChange={(value) => {
-            setFormData(prev => ({ 
-              ...prev, 
-              category: value,
-              collectible_type: value === "Collectibles" ? prev.collectible_type : null
-            }));
-          }}
-        >
-          <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-2">
-            <SelectValue placeholder="Select a category" />
-          </SelectTrigger>
-          <SelectContent>
-            {[
-              "Household Items", "Furniture", "Clothing & Accessories",
-              "Electronics", "Tools & Hardware", "Toys & Games",
-              "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
-              "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
-              "Free Items", "Food / Baked Goods", "Miscellaneous"
-            ].map(cat => (
-              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label className="text-[#2C4F4E]">Categories (Up to 10) *</Label>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {formData.categories?.map((cat, i) => (
+             <Badge key={i} className="flex items-center gap-1 bg-[#5DADA5] py-1.5 px-3 text-sm rounded-full">
+                {cat} 
+                <X className="w-3 h-3 cursor-pointer" onClick={() => {
+                  const newCats = formData.categories.filter((_, idx) => idx !== i);
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    categories: newCats, 
+                    category: newCats[0] || "", 
+                    collectible_type: newCats.includes("Collectibles") ? prev.collectible_type : null 
+                  }));
+                }} />
+             </Badge>
+          ))}
+        </div>
+        {(!formData.categories || formData.categories.length < 10) && (
+          <Select
+            value=""
+            onValueChange={(value) => {
+              if (formData.categories?.includes(value)) return;
+              const newCats = [...(formData.categories || []), value];
+              setFormData(prev => ({ 
+                ...prev, 
+                categories: newCats,
+                category: newCats[0] || "",
+                collectible_type: newCats.includes("Collectibles") ? prev.collectible_type : null
+              }));
+            }}
+          >
+            <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-3">
+              <SelectValue placeholder="Add Category +" />
+            </SelectTrigger>
+            <SelectContent>
+              {[
+                "Household Items", "Furniture", "Clothing & Accessories",
+                "Electronics", "Tools & Hardware", "Toys & Games",
+                "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
+                "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
+                "Free Items", "Food / Baked Goods", "Miscellaneous"
+              ].filter(cat => !(formData.categories || []).includes(cat)).map(cat => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
-      {formData.category === "Collectibles" && (
+      {(formData.category === "Collectibles" || formData.categories?.includes("Collectibles")) && (
         <div>
           <Label className="text-[#2C4F4E]">Collectible Type *</Label>
           <Select
@@ -111,6 +134,9 @@ export default function StepOne({ formData, setFormData }) {
 
       <div>
         <Label className="text-[#2C4F4E]" htmlFor="description">Description *</Label>
+        <p className="text-xs text-[#1F2937] opacity-80 mt-1">
+          Tip: Use searchable keywords like #item, #Pokémon card, #baby crib, #tools, #furniture.
+        </p>
         <Textarea
           id="description"
           placeholder="Describe what you're selling..."
