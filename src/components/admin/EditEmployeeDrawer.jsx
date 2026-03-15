@@ -30,7 +30,7 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
       is_active: admin.is_active !== false,
       supervisor_user_id: admin.supervisor_user_id || "",
       supervisor_employee_id: admin.supervisor_employee_id || "",
-      user_id: admin.user_id || "",
+      employee_id: admin.employee_id || "",
     });
     // Load supervisors for assignment
     base44.entities.AdminProfile.filter({ role_label: "supervisor" }).then(sups => {
@@ -102,15 +102,15 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
       update.is_active = form.is_active;
     }
 
-    if (isMaster && form.user_id && form.user_id.trim() !== admin.user_id) {
-      const newUserId = form.user_id.trim();
-      const existing = await base44.entities.AdminProfile.filter({ user_id: newUserId });
+    if (isMaster && form.employee_id && form.employee_id.trim() !== admin.employee_id) {
+      const newEmployeeId = form.employee_id.trim();
+      const existing = await base44.entities.AdminProfile.filter({ employee_id: newEmployeeId });
       if (existing.length > 0 && existing[0].id !== admin.id) {
-        toast.error("User ID is already in use by another admin.");
+        toast.error("Employee ID is already in use by another admin.");
         setSaving(false);
         return;
       }
-      update.user_id = newUserId;
+      update.employee_id = newEmployeeId;
     }
 
     // Supervisor assignment (only relevant for basic role)
@@ -126,7 +126,7 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
     // Build before/after for audit
     const before = {};
     const after = {};
-    const fields = ["first_name", "last_name", "phone", "address", "role_label", "is_active", "supervisor_user_id", "supervisor_employee_id", "user_id"];
+    const fields = ["first_name", "last_name", "phone", "address", "role_label", "is_active", "supervisor_user_id", "supervisor_employee_id", "employee_id"];
     fields.forEach(f => {
       const oldVal = admin[f] ?? "";
       const newVal = update[f] ?? admin[f] ?? "";
@@ -144,11 +144,19 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
 
     await base44.entities.AdminProfile.update(admin.id, update);
 
-    if (update.user_id) {
+    if (update.employee_id) {
+      // Also update the employee_id in the AdminAccessKey to not break login
+      const existingAccessKeys = await base44.entities.AdminAccessKey.filter({ employee_id: admin.employee_id });
+      if (existingAccessKeys.length > 0) {
+        for (const key of existingAccessKeys) {
+          await base44.entities.AdminAccessKey.update(key.id, { employee_id: update.employee_id });
+        }
+      }
+
       await base44.entities.Notification.create({
-        user_id: update.user_id,
-        title: "User ID Updated",
-        message: "Your User ID has been updated by an administrator.",
+        user_id: admin.user_id,
+        title: "Employee ID Updated",
+        message: "Your Employee ID has been updated by an administrator.",
         type: "account_update",
         related_entity_type: "AdminProfile",
         related_entity_id: admin.id,
@@ -204,8 +212,8 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
 
           {isMaster && (
             <div>
-              <Label className="text-xs">System User ID (Master Only)</Label>
-              <Input value={form.user_id || ""} onChange={e => set("user_id", e.target.value)} placeholder="User ID" />
+              <Label className="text-xs">Employee ID (Master Only)</Label>
+              <Input value={form.employee_id || ""} onChange={e => set("employee_id", e.target.value)} placeholder="Employee ID" />
             </div>
           )}
 
