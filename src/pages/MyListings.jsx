@@ -112,7 +112,7 @@ export default function MyListingsPage() {
       for (const l of toUpdate) {
         try {
           await base44.entities.Listing.update(l.id, { status: "expired" });
-          await base44.entities.Notification.create({
+          const notif = await base44.entities.Notification.create({
             user_id: user?.id,
             userId: user?.id,
             type: "listing_expired",
@@ -122,6 +122,15 @@ export default function MyListingsPage() {
             related_entity_id: l.id,
             is_read: false,
             read: false,
+          });
+          console.log("Created Notification:", {
+            user_id: notif.user_id || notif.userId,
+            type: notif.type,
+            title: notif.title,
+            message: notif.message,
+            related_entity_type: notif.related_entity_type,
+            related_entity_id: notif.related_entity_id,
+            created_at: notif.created_date
           });
         } catch (e) {}
       }

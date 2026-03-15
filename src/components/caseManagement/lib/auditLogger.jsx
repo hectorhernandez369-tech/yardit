@@ -47,7 +47,7 @@ export async function notifyAdmin({ caseId, adminId, message, title = "Case Upda
   } catch (e) {}
 
   try {
-    await base44.entities.Notification.create({
+    const notif = await base44.entities.Notification.create({
       user_id: adminId,
       userId: adminId,
       type,
@@ -58,7 +58,18 @@ export async function notifyAdmin({ caseId, adminId, message, title = "Case Upda
       is_read: false,
       read: false,
     });
-  } catch (e) {}
+    console.log("Created Notification:", {
+      user_id: notif.user_id || notif.userId,
+      type: notif.type,
+      title: notif.title,
+      message: notif.message,
+      related_entity_type: notif.related_entity_type,
+      related_entity_id: notif.related_entity_id,
+      created_at: notif.created_date
+    });
+  } catch (e) {
+    console.error("Failed to create case notification:", e);
+  }
 }
 
 /**
