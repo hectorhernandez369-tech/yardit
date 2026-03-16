@@ -40,6 +40,7 @@ const AuthenticatedApp = () => {
   }
 
   // Render the main app
+  if (true) throw new Error("MY_FILES: " + Object.keys(import.meta.glob('/src/**/*.{js,jsx}', {eager: true})).join(', '));
   return (
     <>
       <FileScanner />
