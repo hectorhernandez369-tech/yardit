@@ -1,19 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export default function FileScanner() {
+    const [matches, setMatches] = useState([]);
     useEffect(() => {
         try {
             const files = import.meta.glob('/src/**/*.{js,jsx}', { query: '?raw', import: 'default', eager: true });
-            const matches = [];
+            const m = [];
             for (const [path, content] of Object.entries(files)) {
                 if (typeof content === 'string' && (content.includes('demo') || content.includes('Demo') || content.includes('DEMO'))) {
-                    matches.push(path);
+                    m.push(path);
                 }
             }
-            console.log("DEMO_FILES_FOUND:", matches.join(", "));
+            setMatches(m);
         } catch (e) {
-            console.error("SCANNER_ERROR:", e.message);
+            setMatches(["ERROR: " + e.message]);
         }
     }, []);
-    return <div data-testid="scanner-done">Scanning...</div>;
+    return <div style={{position: 'fixed', top: 0, left: 0, zIndex: 9999, background: 'white', padding: '10px', maxHeight: '100vh', overflow: 'auto', border: '2px solid red'}}>
+        <h3>Demo Files:</h3>
+        {matches.map(m => <div key={m}>{m}</div>)}
+    </div>;
 }
