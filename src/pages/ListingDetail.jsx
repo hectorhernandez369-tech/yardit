@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,11 +6,19 @@ import { createPageUrl } from "@/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, AlertTriangle, Map, Copy } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MapPin, Calendar, AlertTriangle, Map, Copy, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ReportModal from "../components/ReportModal";
 import PromotionModal from "../components/admin/promotions/PromotionModal";
+import { useAppMode } from "../components/shared/DemoMode";
+import {
+  getNeighborhoodPricingSummary,
+  NEIGHBORHOOD_MAX_HOMES,
+  NEIGHBORHOOD_MIN_HOMES,
+  NEIGHBORHOOD_PRICE_CAP,
+} from "@/lib/neighborhoodSalePricing";
 import { getListingNumber, getOwnerDisplayName } from "@/components/listing/listingDisplay";
 
 export default function ListingDetailPage() {
@@ -21,6 +29,8 @@ export default function ListingDetailPage() {
   const [user, setUser] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [showPromoModal, setShowPromoModal] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -72,12 +82,18 @@ export default function ListingDetailPage() {
 
   const pendingRequests = joinRequests?.filter(r => r.status === "pending") || [];
   const approvedRequests = joinRequests?.filter(r => r.status === "approved" && !r.removed_by_eo) || [];
+  const pendingPaymentRequests = joinRequests?.filter(r => r.status === "approved_pending_payment" && !r.removed_by_eo) || [];
   const removedRequests = joinRequests?.filter(r => r.status === "denied" && r.removed_by_eo === true) || [];
   const formatAddress = (item) => {
     const base = [item.addressText || "Address unavailable", item.city, item.state].filter(Boolean).join(", ");
     return item.zip ? `${base} ${item.zip}` : base;
   };
-  const participantAddresses = approvedRequests
+  const salePricing = useMemo(() => {
+    if (!listing || listing.listingType !== "neighborhood_sale") return null;
+    return getNeighborhoodPricingSummary(joinRequests || [], listing.pricePaid || 0);
+  }, [joinRequests, listing]);
+  const isNeighborhoodSaleLive = listing?.listingType === "neighborhood_sale" && ["active", "payment_pending_adjustment"].includes(listing.status);
+  const participantAddresses = (isNeighborhoodSaleLive ? approvedRequests : [])
     .map((req) => req.listingDetails ? formatAddress(req.listingDetails) : null)
     .filter(Boolean);
 
@@ -89,25 +105,77 @@ export default function ListingDetailPage() {
       const sales = await base44.entities.Listing.filter({ id: listing.neighborhood_sale_id });
       return sales[0];
     },
-    enabled: !!listing && listing.neighborhood_join_status === "approved" && !!listing.neighborhood_sale_id,
+    enabled: !!listing && ["approved", "approved_pending_payment"].includes(listing.neighborhood_join_status) && !!listing.neighborhood_sale_id,
   });
+
+  const { isDemoMode } = useAppMode();
+
+  const syncNeighborhoodSaleListing = async (saleId, paidAmountOverride) => {
+    const sales = await base44.entities.Listing.filter({ id: saleId });
+    const sale = sales[0];
+    if (!sale) return null;
+
+    const requests = await base44.entities.JoinRequest.filter({ saleListingId: saleId });
+    const paidAmount = Number(paidAmountOverride ?? sale.pricePaid || 0);
+    const summary = getNeighborhoodPricingSummary(requests, paidAmount);
+    const alreadyLive = ["active", "payment_pending_adjustment"].includes(sale.status) || paidAmount > 0;
+    const nextStatus = alreadyLive
+      ? (summary.additionalDue > 0 ? "payment_pending_adjustment" : "active")
+      : (summary.readyForPayment ? "ready_for_payment" : "collecting_participants");
+
+    await base44.entities.Listing.update(saleId, {
+      status: nextStatus,
+      activation_status: ["active", "payment_pending_adjustment"].includes(nextStatus) ? "active" : "pending",
+      homeCount: summary.visibleHomeCount,
+    });
+
+    return { summary, nextStatus };
+  };
 
   const respondToJoinRequestMutation = useMutation({
     mutationFn: async ({ requestId, requesterListingId, action, requesterUserId, eventTitle }) => {
+      const sales = await base44.entities.Listing.filter({ id: listingId });
+      const sale = sales[0];
+      const saleRequests = await base44.entities.JoinRequest.filter({ saleListingId: listingId });
+
       if (action === "approve") {
-        await base44.entities.JoinRequest.update(requestId, { status: "approved" });
+        const activeHomes = 1 + saleRequests.filter((request) => request.removed_by_eo !== true && ["approved", "approved_pending_payment"].includes(request.status)).length;
+        if (activeHomes >= NEIGHBORHOOD_MAX_HOMES) {
+          throw new Error("Neighborhood Sale has reached the 25-home limit.");
+        }
+
+        const saleIsLive = ["active", "payment_pending_adjustment"].includes(sale?.status);
+        let requestStatus = "approved";
+        let requesterStatus = "approved";
+
+        if (saleIsLive) {
+          const projectedSummary = getNeighborhoodPricingSummary([
+            ...saleRequests.filter((request) => request.id !== requestId && request.removed_by_eo !== true),
+            { id: requestId, status: "approved" }
+          ], sale?.pricePaid || 0);
+
+          if (projectedSummary.additionalDue > 0) {
+            requestStatus = "approved_pending_payment";
+            requesterStatus = "approved_pending_payment";
+          }
+        }
+
+        await base44.entities.JoinRequest.update(requestId, { status: requestStatus });
         await base44.entities.Listing.update(requesterListingId, {
-          neighborhood_join_status: "approved",
-          payment_intent_status: "voided",
+          neighborhood_join_status: requesterStatus,
+          payment_intent_status: requestStatus === "approved_pending_payment" ? "hold_requested" : "voided",
           neighborhood_sale_id: listingId
         });
         await base44.entities.Notification.create({
           userId: requesterUserId,
-          title: "Join Request Approved",
-          message: `Approved — you joined ${eventTitle}`,
-          type: "join_request_approved",
+          title: requestStatus === "approved_pending_payment" ? "Approved Pending Organizer Payment" : "Join Request Approved",
+          message: requestStatus === "approved_pending_payment"
+            ? "Approved — this home will go live after the organizer completes the additional payment."
+            : `Approved — you joined ${eventTitle}`,
+          type: requestStatus === "approved_pending_payment" ? "join_request_approved_pending_payment" : "join_request_approved",
           metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId }
         });
+        await syncNeighborhoodSaleListing(listingId);
       } else if (action === "remove") {
         await base44.entities.JoinRequest.update(requestId, { 
           status: "denied",
@@ -117,36 +185,101 @@ export default function ListingDetailPage() {
         });
         await base44.entities.Listing.update(requesterListingId, {
           neighborhood_join_status: "denied",
-          neighborhood_sale_id: null
+          neighborhood_sale_id: null,
+          payment_intent_status: "none"
         });
         await base44.entities.Notification.create({
           userId: requesterUserId,
           title: "Removed from Neighborhood Sale",
-          message: `Removed from neighborhood sale`,
+          message: "Removed from neighborhood sale",
           type: "join_request_removed",
           metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId }
         });
+        await syncNeighborhoodSaleListing(listingId);
       } else {
         await base44.entities.JoinRequest.update(requestId, { status: "denied" });
         await base44.entities.Listing.update(requesterListingId, {
-          neighborhood_join_status: "denied"
+          neighborhood_join_status: "denied",
+          payment_intent_status: "none"
         });
         await base44.entities.Notification.create({
           userId: requesterUserId,
           title: "Join Request Denied",
-          message: `Denied — your listing stays active under your selected tier`,
+          message: "Denied — your listing stays active under your selected tier",
           type: "join_request_denied",
           metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId }
         });
+        await syncNeighborhoodSaleListing(listingId);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["joinRequests"] });
+      queryClient.invalidateQueries({ queryKey: ["joinRequests", listingId] });
+      queryClient.invalidateQueries({ queryKey: ["listing", listingId] });
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("Response sent");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Could not update request.");
     }
   });
+
+  const handleNeighborhoodSalePayment = async () => {
+    if (!salePricing || salePricing.additionalDue <= 0) return;
+
+    setIsProcessingPayment(true);
+    try {
+      const durationDays = Math.max(
+        1,
+        Math.ceil((new Date(listing.endDateTime).getTime() - new Date(listing.startDateTime).getTime()) / (1000 * 60 * 60 * 24)) + 1
+      );
+
+      await base44.entities.Payment.create({
+        location_id: listingId,
+        amount: salePricing.additionalDue,
+        plan: Number(listing.pricePaid || 0) > 0 ? "neighborhood_sale_adjustment" : "neighborhood_sale_initial",
+        duration_days: durationDays,
+        status: "completed",
+        payment_method: isDemoMode ? "none" : "simulated_card",
+        transaction_id: `${isDemoMode ? "DEMO" : "TXN"}_${Date.now()}`,
+      });
+
+      for (const request of pendingPaymentRequests) {
+        await base44.entities.JoinRequest.update(request.id, { status: "approved" });
+        await base44.entities.Listing.update(request.listingId, {
+          neighborhood_join_status: "approved",
+          payment_intent_status: isDemoMode ? "none" : "captured",
+          neighborhood_sale_id: listingId,
+        });
+      }
+
+      const newPaidAmount = Math.min(
+        NEIGHBORHOOD_PRICE_CAP,
+        Number(listing.pricePaid || 0) + Number(salePricing.additionalDue || 0)
+      );
+      const refreshedRequests = await base44.entities.JoinRequest.filter({ saleListingId: listingId });
+      const refreshedSummary = getNeighborhoodPricingSummary(refreshedRequests, newPaidAmount);
+
+      await base44.entities.Listing.update(listingId, {
+        pricePaid: newPaidAmount,
+        status: refreshedSummary.additionalDue > 0 ? "payment_pending_adjustment" : "active",
+        activation_status: "active",
+        homeCount: refreshedSummary.visibleHomeCount,
+        payment_intent_status: isDemoMode ? "none" : "captured",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["joinRequests", listingId] });
+      queryClient.invalidateQueries({ queryKey: ["listing", listingId] });
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      setShowPaymentDialog(false);
+      toast.success(Number(listing.pricePaid || 0) > 0 ? "Additional payment recorded." : "Neighborhood Sale is now live.");
+    } catch {
+      toast.error("Payment could not be completed.");
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
   if (isLoading || !listing) {
     return <div className="p-8 text-center">Loading...</div>;
@@ -306,12 +439,56 @@ export default function ListingDetailPage() {
                   <p className="text-sm text-emerald-950 font-medium">{eventAddress}</p>
                 </div>
 
+                {user && user.id === listing.ownerUserId && salePricing && (
+                  <div className="bg-white/70 border border-emerald-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Neighborhood Sale Payment</p>
+                        <p className="text-sm text-emerald-950 font-medium">{salePricing.totalApprovedHomes} approved homes • {salePricing.visibleHomeCount} currently visible</p>
+                      </div>
+                      <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 border-none capitalize">
+                        {String(listing.status || "collecting_participants").replace(/_/g, " ")}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                      <div className="rounded-md border border-emerald-200 bg-white p-3">
+                        <p className="text-xs uppercase tracking-wide text-emerald-700">Paid</p>
+                        <p className="font-semibold text-emerald-950">${Number(listing.pricePaid || 0).toFixed(2)}</p>
+                      </div>
+                      <div className="rounded-md border border-emerald-200 bg-white p-3">
+                        <p className="text-xs uppercase tracking-wide text-emerald-700">Total Due</p>
+                        <p className="font-semibold text-emerald-950">${Number(salePricing.totalDue || 0).toFixed(2)}</p>
+                      </div>
+                      <div className="rounded-md border border-emerald-200 bg-white p-3">
+                        <p className="text-xs uppercase tracking-wide text-emerald-700">Additional Due</p>
+                        <p className="font-semibold text-emerald-950">${Number(salePricing.additionalDue || 0).toFixed(2)}</p>
+                      </div>
+                    </div>
+                    {salePricing.totalApprovedHomes < NEIGHBORHOOD_MIN_HOMES ? (
+                      <p className="text-sm text-emerald-800">At least {NEIGHBORHOOD_MIN_HOMES} approved homes are required before payment and activation.</p>
+                    ) : salePricing.additionalDue > 0 ? (
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <p className="text-sm text-emerald-800">
+                          {Number(listing.pricePaid || 0) > 0
+                            ? "Newly approved homes will stay pending until the difference is paid."
+                            : "Payment is required before the sale goes live."}
+                        </p>
+                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setShowPaymentDialog(true)}>
+                          {Number(listing.pricePaid || 0) > 0 ? `Pay Additional $${Number(salePricing.additionalDue || 0).toFixed(2)}` : `Pay & Activate Sale ($${Number(salePricing.additionalDue || 0).toFixed(2)})`}
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-emerald-800">This sale is fully paid up{salePricing.atCap ? " and has reached the $50 cap" : ""}.</p>
+                    )}
+                  </div>
+                )}
+
                 <div className="bg-white/70 border border-emerald-200 rounded-lg p-3 space-y-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Participating in Sale</p>
-                    <p className="text-sm text-emerald-950 font-medium">{approvedRequests.length} approved participating homes</p>
+                    <p className="text-sm text-emerald-950 font-medium">{salePricing?.visibleHomeCount || 1} homes currently live in this sale</p>
                   </div>
-                  {approvedRequests.length > 0 ? (
+                  {isNeighborhoodSaleLive && approvedRequests.length > 0 ? (
                     <div className="space-y-3">
                       {approvedRequests.map((req, index) => (
                         <div key={req.id || index} className="text-sm text-emerald-900 border border-emerald-200 rounded-md bg-white p-3 space-y-2">
@@ -361,7 +538,11 @@ export default function ListingDetailPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-emerald-800">No approved participant addresses available yet.</p>
+                    <p className="text-sm text-emerald-800">
+                      {isNeighborhoodSaleLive
+                        ? "No approved participant addresses available yet."
+                        : "This sale is not public yet. Approved homes become visible after payment is completed."}
+                    </p>
                   )}
                 </div>
 
@@ -453,6 +634,24 @@ export default function ListingDetailPage() {
                   </div>
                 )}
 
+                {user && user.id === listing.ownerUserId && pendingPaymentRequests.length > 0 && (
+                  <div className="mt-4 border-t border-amber-200 pt-4">
+                    <h4 className="font-semibold text-amber-900 mb-3">Approved Pending Payment ({pendingPaymentRequests.length})</h4>
+                    <div className="space-y-3">
+                      {pendingPaymentRequests.map(req => (
+                        <div key={req.id} className="bg-white p-3 rounded border border-amber-100 shadow-sm">
+                          <div className="flex justify-between items-start mb-1">
+                            <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
+                            <Badge className="bg-amber-500 text-amber-950 hover:bg-amber-600 border-none">Pending Payment</Badge>
+                          </div>
+                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.addressText || "No address"}</p>
+                          <p className="text-sm text-slate-500 line-clamp-2">This home is approved and will go live after the organizer pays the remaining difference.</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* (plain english) section to show removed homes for EO */}
                 {user && user.id === listing.ownerUserId && removedRequests.length > 0 && (
                   <div className="mt-4 border-t border-red-200 pt-4">
@@ -493,6 +692,17 @@ export default function ListingDetailPage() {
                 )}
               </div>
             )}
+            {listing.neighborhood_join_status === "approved_pending_payment" && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <h3 className="font-semibold text-amber-900 mb-1">Neighborhood Sale: Approved Pending Payment</h3>
+                <p className="text-sm text-amber-800">This home will go live in the sale after the organizer pays the remaining amount.</p>
+                {parentSale && (
+                  <div className="text-sm text-amber-800 mt-2">
+                    <p><strong>Event:</strong> {parentSale.title}</p>
+                  </div>
+                )}
+              </div>
+            )}
             {listing.neighborhood_join_status === "denied" && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <h3 className="font-semibold text-red-900">Neighborhood Sale: Denied</h3>
@@ -521,6 +731,31 @@ export default function ListingDetailPage() {
         </Card>
         </div>
       </div>
+
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{Number(listing.pricePaid || 0) > 0 ? "Pay Additional Neighborhood Sale Balance" : "Pay & Activate Neighborhood Sale"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 space-y-2">
+              <p><strong>Approved homes:</strong> {salePricing?.totalApprovedHomes || 0}</p>
+              <p><strong>Already paid:</strong> ${Number(listing.pricePaid || 0).toFixed(2)}</p>
+              <p><strong>Amount due now:</strong> ${Number(salePricing?.additionalDue || 0).toFixed(2)}</p>
+              <p>{isDemoMode ? "Demo Mode will follow the same activation flow without a real charge." : "This uses the current in-app payment flow to record the sale payment."}</p>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowPaymentDialog(false)} disabled={isProcessingPayment}>
+                Cancel
+              </Button>
+              <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleNeighborhoodSalePayment} disabled={isProcessingPayment || !salePricing || salePricing.additionalDue <= 0}>
+                {isProcessingPayment ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {Number(listing.pricePaid || 0) > 0 ? "Pay Difference" : "Confirm Payment"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {showReport && (
         <ReportModal
