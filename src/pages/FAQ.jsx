@@ -99,6 +99,11 @@ export default function FAQPage() {
         {
           q: "How do I join a Neighborhood Sale?",
           a: "If a Neighborhood Sale is happening near your home (within 500 feet), you will be prompted with an option to 'Ask to Join' when you create a listing. The event organizer will review your request. If approved, your listing is added to the event."
+        },
+        {
+          id: "neighborhood-sale-pricing",
+          q: "What is Neighborhood Sale pricing?",
+          a: "Neighborhood Sale pricing requires at least 5 approved homes before the organizer can activate the sale. Pricing is $10 base + $2 per approved home, capped at $50 total. The sale does not go live until payment is completed. If more homes are approved later, only the difference is charged. Newly approved homes stay pending until any additional amount is paid."
         }
       ]
     },
@@ -149,6 +154,7 @@ export default function FAQPage() {
                 {section.questions.map((item, qIndex) => (
                   <AccordionItem 
                     key={qIndex} 
+                    id={item.id}
                     value={`item-${index}-${qIndex}`}
                     className="border-b border-[#2C4F4E]/10 last:border-0 px-4 md:px-6"
                   >

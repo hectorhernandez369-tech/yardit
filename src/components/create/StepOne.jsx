@@ -1,4 +1,5 @@
 import React from "react";
+import { createPageUrl } from "@/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -149,28 +150,38 @@ export default function StepOne({ formData, setFormData }) {
       </div>
 
       {listingType === "neighborhood_sale" && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-[#2C4F4E]" htmlFor="homeCount">Number of Homes (Max 25)</Label>
-            <Input
-              id="homeCount"
-              type="number"
-              min="1"
-              max="25"
-              value={formData.homeCount}
-              onChange={(e) => setFormData(prev => ({ ...prev, homeCount: parseInt(e.target.value) || 1 }))}
-              className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF] mt-2"
-            />
+        <div className="space-y-4 rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <p className="font-semibold text-[#2C4F4E]">Neighborhood Sale pricing</p>
+              <p className="text-sm text-[#1F2937] opacity-80">Organizer starts the event and homes are added after approval.</p>
+            </div>
+            <a
+              href={createPageUrl("FAQ") + "#neighborhood-sale-pricing"}
+              className="text-sm font-semibold text-[#0F766E] underline underline-offset-4"
+            >
+              Click here for pricing info
+            </a>
           </div>
-          <div>
-            <Label className="text-[#2C4F4E]" htmlFor="spanFeet">Radius in Feet</Label>
-            <Input
-              id="spanFeet"
-              type="number"
-              value={500}
-              disabled
-              className="border-[#2C4F4E] bg-[#E7D7B8] opacity-70 cursor-not-allowed mt-2"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-[#2C4F4E]">Starting Homes</Label>
+              <Input
+                value={1}
+                disabled
+                className="border-[#2C4F4E] bg-[#F3E6CF] opacity-70 cursor-not-allowed mt-2"
+              />
+            </div>
+            <div>
+              <Label className="text-[#2C4F4E]" htmlFor="spanFeet">Radius in Feet</Label>
+              <Input
+                id="spanFeet"
+                type="number"
+                value={500}
+                disabled
+                className="border-[#2C4F4E] bg-[#F3E6CF] opacity-70 cursor-not-allowed mt-2"
+              />
+            </div>
           </div>
         </div>
       )}

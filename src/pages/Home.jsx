@@ -78,7 +78,7 @@ const createIcon = (type, tier, isSelected, location) => {
 
   if (type === "neighborhood_sale") {
     let scale = 1.0;
-    const count = location.confirmed_count || 0;
+    const count = location.homeCount || location.confirmed_count || 0;
     if (!preAct) {
       if (count >= 20) scale = 2.0;
       else if (count >= 16) scale = 1.75;
@@ -647,8 +647,8 @@ export default function HomePage() {
       if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
 
       if (listing.listingType === "neighborhood_sale") {
-        const confirmedCount = listing.confirmed_count || 0;
-        if (confirmedCount < 5 || listing.status !== "activated") return false;
+        const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
+        if (visibleHomes < 5 || !["active", "payment_pending_adjustment"].includes(listing.status)) return false;
 
         const start = new Date(listing.startDateTime);
         const end = new Date(listing.endDateTime);
@@ -657,6 +657,7 @@ export default function HomePage() {
         if (now > end) return false;
         if (now < start && !listing.advertising_started_at) return false;
       } else {
+        if (["approved", "approved_pending_payment"].includes(listing.neighborhood_join_status) && listing.neighborhood_sale_id) return false;
         if (listing.status !== "active") return false;
 
         const start = new Date(listing.startDateTime);
@@ -688,18 +689,19 @@ export default function HomePage() {
       if (!isFinite(l.lat) || !isFinite(l.lng)) return false;
 
       if (l.listingType === "neighborhood_sale") {
-        const confirmedCount = l.confirmed_count || 0;
-        if (confirmedCount < 5 || l.status !== "activated") return false;
+        const visibleHomes = Number(l.homeCount || l.confirmed_count || 0);
+        if (visibleHomes < 5 || !["active", "payment_pending_adjustment"].includes(l.status)) return false;
 
         const start = new Date(l.startDateTime);
         const end = new Date(l.endDateTime);
 
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-        if (!demo && end < now) return false;
-        if (!demo && now < start && !l.advertising_started_at) return false;
+        if (end < now) return false;
+        if (now < start && !l.advertising_started_at) return false;
         return true;
       }
 
+      if (["approved", "approved_pending_payment"].includes(l.neighborhood_join_status) && l.neighborhood_sale_id) return false;
       if (l.status !== "active") return false;
 
       const start = new Date(l.startDateTime);

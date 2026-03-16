@@ -308,7 +308,7 @@ export default function CreateListingPage() {
         ...data,
         title: demoPrefix + data.title,
         ownerUserId: user.id,
-        status: "active",
+        status: data.listingType === "neighborhood_sale" ? (data.status || "collecting_participants") : "active",
         listingNumber
       });
 
@@ -457,6 +457,10 @@ export default function CreateListingPage() {
       payload.startDateTime = new Date(formData.selectedRangeStartDate + "T00:00:00Z").toISOString();
       payload.endDateTime = new Date(formData.selectedRangeEndDate + "T23:59:59Z").toISOString();
       payload.invite_code = formData.invite_code || formData.neighborhoodDraftId;
+      payload.status = "collecting_participants";
+      payload.activation_status = "pending";
+      payload.homeCount = 1;
+      payload.pricePaid = 0;
     }
 
     // FREE TIER DATE RULE
