@@ -116,7 +116,7 @@ export default function ListingDetailPage() {
     if (!sale) return null;
 
     const requests = await base44.entities.JoinRequest.filter({ saleListingId: saleId });
-    const paidAmount = Number(paidAmountOverride ?? sale.pricePaid || 0);
+    const paidAmount = Number(paidAmountOverride ?? sale.pricePaid ?? 0);
     const summary = getNeighborhoodPricingSummary(requests, paidAmount);
     const alreadyLive = ["active", "payment_pending_adjustment"].includes(sale.status) || paidAmount > 0;
     const nextStatus = alreadyLive
