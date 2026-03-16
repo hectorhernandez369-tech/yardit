@@ -102,6 +102,20 @@ export default function ReportModal({ listingId, onClose }) {
         throw new Error("User not logged in");
       }
 
+      const existingReports = await base44.entities.Report.filter({
+        listingId,
+        reporterUserId: user.id,
+      });
+
+      const hasActiveReport = existingReports.some((report) => {
+        const status = String(report.status || "").toLowerCase();
+        return report.resolved !== true && status !== "closed" && status !== "resolved";
+      });
+
+      if (hasActiveReport) {
+        throw new Error("You already reported this listing.");
+      }
+
       let photo_urls = [];
 
       try {
@@ -181,7 +195,7 @@ export default function ReportModal({ listingId, onClose }) {
 
     onError: (error) => {
       console.error("Report submission failed:", error);
-      toast.error("Failed to submit report");
+      toast.error(error.message || "Failed to submit report");
     },
   });
 
