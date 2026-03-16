@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
 export default function FileScanner() {
-    const [matches, setMatches] = useState([]);
     useEffect(() => {
         try {
             const files = import.meta.glob('/src/**/*.{js,jsx}', { query: '?raw', import: 'default', eager: true });
@@ -11,13 +10,10 @@ export default function FileScanner() {
                     m.push(path);
                 }
             }
-            setMatches(m);
+            console.error("DEMO_MATCHES_FOUND", JSON.stringify(m));
         } catch (e) {
-            setMatches(["ERROR: " + e.message]);
+            console.error("DEMO_MATCHES_ERROR", e.message);
         }
     }, []);
-    return <div style={{position: 'fixed', top: 0, left: 0, zIndex: 9999, background: 'white', padding: '10px', maxHeight: '100vh', overflow: 'auto', border: '2px solid red'}}>
-        <h3>Demo Files:</h3>
-        {matches.map(m => <div key={m}>{m}</div>)}
-    </div>;
+    return null;
 }
