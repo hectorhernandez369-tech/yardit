@@ -239,7 +239,11 @@ export default function ListingDetailPage() {
   });
 
   const handleNeighborhoodSalePayment = async () => {
-    if (!salePricing || salePricing.additionalDue <= 0) return;
+    if (!salePricing || salePricing.totalApprovedHomes < NEIGHBORHOOD_MIN_HOMES) {
+      toast.error(`Neighborhood Sale needs ${NEIGHBORHOOD_MIN_HOMES} homes before activation.`);
+      return;
+    }
+    if (salePricing.additionalDue <= 0) return;
 
     setIsProcessingPayment(true);
     try {

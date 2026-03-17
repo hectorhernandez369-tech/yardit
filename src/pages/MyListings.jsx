@@ -262,6 +262,7 @@ export default function MyListingsPage() {
 
       toast.success("Listing deleted");
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
     } catch (e) {
       toast.error("Could not delete listing");
     }

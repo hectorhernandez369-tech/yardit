@@ -114,8 +114,10 @@ export default function NotificationsPage() {
       url = createPageUrl("AdminLite") + "?tab=cases";
     } else if (notification.type?.startsWith("support_ticket_")) {
       url = createPageUrl("MySupportTickets");
-    } else if (notification.type?.startsWith("join_")) {
-      if (entityId) {
+    } else if (notification.type?.startsWith("join_") || notification.type === "removed_from_neighborhood") {
+      if (notification.metadata?.requester_listing_id) {
+        url = createPageUrl("ListingDetail") + "?id=" + notification.metadata.requester_listing_id;
+      } else if (entityId) {
         url = createPageUrl("ListingDetail") + "?id=" + entityId;
       } else {
         url = createPageUrl("MyListings");
