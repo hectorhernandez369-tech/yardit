@@ -20,6 +20,7 @@ import {
   NEIGHBORHOOD_PRICE_CAP,
 } from "@/lib/neighborhoodSalePricing";
 import { getListingNumber, getOwnerDisplayName } from "@/components/listing/listingDisplay";
+import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 
 export default function ListingDetailPage() {
   const navigate = useNavigate();
@@ -73,7 +74,12 @@ export default function ListingDetailPage() {
       const reqs = await base44.entities.JoinRequest.filter({ saleListingId: listingId });
       const enriched = await Promise.all(reqs.map(async (r) => {
         const l = await base44.entities.Listing.filter({ id: r.listingId });
-        return { ...r, listingDetails: l[0] };
+        return {
+          ...r,
+          raw_status: r.status,
+          status: normalizeNeighborhoodJoinStatus(r.status),
+          listingDetails: l[0],
+        };
       }));
       return enriched;
     },
@@ -81,9 +87,9 @@ export default function ListingDetailPage() {
   });
 
   const pendingRequests = joinRequests?.filter(r => r.status === "pending") || [];
-  const approvedRequests = joinRequests?.filter(r => r.status === "approved" && !r.removed_by_eo) || [];
-  const pendingPaymentRequests = joinRequests?.filter(r => r.status === "approved_pending_payment" && !r.removed_by_eo) || [];
-  const removedRequests = joinRequests?.filter(r => r.status === "denied" && r.removed_by_eo === true) || [];
+  const approvedRequests = joinRequests?.filter(r => r.status === "approved" && r.removed_by_eo !== true) || [];
+  const pendingPaymentRequests = joinRequests?.filter(r => r.raw_status === "approved_pending_payment" && r.removed_by_eo !== true) || [];
+  const removedRequests = joinRequests?.filter(r => r.removed_by_eo === true) || [];
   const formatAddress = (item) => {
     const base = [item.addressText || "Address unavailable", item.city, item.state].filter(Boolean).join(", ");
     return item.zip ? `${base} ${item.zip}` : base;
@@ -92,7 +98,8 @@ export default function ListingDetailPage() {
     if (!listing || listing.listingType !== "neighborhood_sale") return null;
     return getNeighborhoodPricingSummary(joinRequests || [], listing.pricePaid || 0);
   }, [joinRequests, listing]);
-  const isNeighborhoodSaleLive = listing?.listingType === "neighborhood_sale" && ["active", "payment_pending_adjustment"].includes(listing.status);
+  const neighborhoodEventState = useMemo(() => deriveNeighborhoodEventState(listing), [listing]);
+  const isNeighborhoodSaleLive = listing?.listingType === "neighborhood_sale" && neighborhoodEventState === "active";
   const participantAddresses = (isNeighborhoodSaleLive ? approvedRequests : [])
     .map((req) => req.listingDetails ? formatAddress(req.listingDetails) : null)
     .filter(Boolean);
@@ -122,9 +129,11 @@ export default function ListingDetailPage() {
     const nextStatus = alreadyLive
       ? (summary.additionalDue > 0 ? "payment_pending_adjustment" : "active")
       : (summary.readyForPayment ? "ready_for_payment" : "collecting_participants");
+    const nextEventState = deriveNeighborhoodEventState({ ...sale, status: nextStatus }, new Date());
 
     await base44.entities.Listing.update(saleId, {
       status: nextStatus,
+      event_state: nextEventState,
       activation_status: ["active", "payment_pending_adjustment"].includes(nextStatus) ? "active" : "pending",
       homeCount: summary.visibleHomeCount,
     });
@@ -173,7 +182,7 @@ export default function ListingDetailPage() {
             ? "Approved — this home will go live after the organizer completes the additional payment."
             : `Approved — you joined ${eventTitle}`,
           type: requestStatus === "approved_pending_payment" ? "join_request_approved_pending_payment" : "join_request_approved",
-          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId }
+          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
         });
         await syncNeighborhoodSaleListing(listingId);
       } else if (action === "remove") {
@@ -193,7 +202,7 @@ export default function ListingDetailPage() {
           title: "Removed from Neighborhood Sale",
           message: "Removed from neighborhood sale",
           type: "join_request_removed",
-          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId }
+          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
         });
         await syncNeighborhoodSaleListing(listingId);
       } else {
@@ -207,7 +216,7 @@ export default function ListingDetailPage() {
           title: "Join Request Denied",
           message: "Denied — your listing stays active under your selected tier",
           type: "join_request_denied",
-          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId }
+          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
         });
         await syncNeighborhoodSaleListing(listingId);
       }
@@ -260,9 +269,13 @@ export default function ListingDetailPage() {
       const refreshedRequests = await base44.entities.JoinRequest.filter({ saleListingId: listingId });
       const refreshedSummary = getNeighborhoodPricingSummary(refreshedRequests, newPaidAmount);
 
+      const nextStatus = refreshedSummary.additionalDue > 0 ? "payment_pending_adjustment" : "active";
+      const nextEventState = deriveNeighborhoodEventState({ ...listing, status: nextStatus }, new Date());
+
       await base44.entities.Listing.update(listingId, {
         pricePaid: newPaidAmount,
-        status: refreshedSummary.additionalDue > 0 ? "payment_pending_adjustment" : "active",
+        status: nextStatus,
+        event_state: nextEventState,
         activation_status: "active",
         homeCount: refreshedSummary.visibleHomeCount,
         payment_intent_status: isDemoMode ? "none" : "captured",
@@ -447,7 +460,7 @@ export default function ListingDetailPage() {
                         <p className="text-sm text-emerald-950 font-medium">{salePricing.totalApprovedHomes} approved homes • {salePricing.visibleHomeCount} currently visible</p>
                       </div>
                       <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 border-none capitalize">
-                        {String(listing.status || "collecting_participants").replace(/_/g, " ")}
+                        {String(neighborhoodEventState || "pending_activation").replace(/_/g, " ")}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
@@ -634,24 +647,6 @@ export default function ListingDetailPage() {
                   </div>
                 )}
 
-                {user && user.id === listing.ownerUserId && pendingPaymentRequests.length > 0 && (
-                  <div className="mt-4 border-t border-amber-200 pt-4">
-                    <h4 className="font-semibold text-amber-900 mb-3">Approved Pending Payment ({pendingPaymentRequests.length})</h4>
-                    <div className="space-y-3">
-                      {pendingPaymentRequests.map(req => (
-                        <div key={req.id} className="bg-white p-3 rounded border border-amber-100 shadow-sm">
-                          <div className="flex justify-between items-start mb-1">
-                            <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
-                            <Badge className="bg-amber-500 text-amber-950 hover:bg-amber-600 border-none">Pending Payment</Badge>
-                          </div>
-                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.addressText || "No address"}</p>
-                          <p className="text-sm text-slate-500 line-clamp-2">This home is approved and will go live after the organizer pays the remaining difference.</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* (plain english) section to show removed homes for EO */}
                 {user && user.id === listing.ownerUserId && removedRequests.length > 0 && (
                   <div className="mt-4 border-t border-red-200 pt-4">
@@ -674,7 +669,7 @@ export default function ListingDetailPage() {
             )}
 
             {/* (plain english) info box for the requester about their join status */}
-            {(listing.neighborhood_join_status === "pending" || listing.neighborhood_join_status === "requested") && (
+            {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <h3 className="font-semibold text-yellow-900">Neighborhood Sale: Pending approval</h3>
               </div>
