@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function StepOne({ formData, setFormData }) {
+  const navigate = useNavigate();
   const listingType = formData?.listingType || "yard_sale";
 
   return (
@@ -168,12 +170,13 @@ export default function StepOne({ formData, setFormData }) {
               <p className="font-semibold text-[#2C4F4E]">Neighborhood Sale pricing</p>
               <p className="text-sm text-[#1F2937] opacity-80">Maximum 25 homes within a 500-foot radius.</p>
             </div>
-            <a
-              href={createPageUrl("FAQ") + "#neighborhood-sale-pricing"}
+            <button
+              type="button"
+              onClick={() => navigate(createPageUrl("FAQ") + "#neighborhood-sale-pricing")}
               className="text-sm font-semibold text-[#0F766E] underline underline-offset-4"
             >
               Click here for pricing info
-            </a>
+            </button>
           </div>
           <p className="text-sm text-[#2C4F4E]">Neighborhood Sale does not require categories or description during creation.</p>
         </div>

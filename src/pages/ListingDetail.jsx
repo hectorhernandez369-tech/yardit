@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createPageUrl } from "@/utils";
+import { createPageUrl, safeBack } from "@/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -720,7 +720,7 @@ export default function ListingDetailPage() {
                 Show on Map
               </Button>
               <Button
-                onClick={() => navigate(-1)}
+                onClick={() => safeBack(navigate, createPageUrl("Home"), returnTarget !== "default" ? createPageUrl(returnTarget) : null)}
                 variant="outline"
                 className="flex-1"
               >

@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { base44 } from '@/api/base44Client';
 import { pagesConfig } from '@/pages.config';
+import { rememberAppRoute } from '@/utils';
 
 export default function NavigationTracker() {
     const location = useLocation();
@@ -16,6 +17,10 @@ export default function NavigationTracker() {
             type: "app_changed_url",
             url: window.location.href
         }, '*');
+    }, [location]);
+
+    useEffect(() => {
+        rememberAppRoute(`${location.pathname}${location.search}${location.hash}`);
     }, [location]);
 
     // Log user activity when navigating to a page
