@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
+import { deriveNeighborhoodEventState, shouldDisplayNeighborhoodEvent, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 import CheckInButton from "../components/map/CheckInButton";
 import { toast } from "sonner";
 import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
@@ -70,6 +71,13 @@ function getCachedIcon(key, url, size) {
   }
   return iconCache[key];
 }
+
+const neighborhoodParticipantIcon = new L.DivIcon({
+  className: "neighborhood-participant-pin",
+  html: `<div style="width:12px;height:12px;border-radius:9999px;background:#5DADA5;border:2px solid #ffffff;box-shadow:0 1px 4px rgba(0,0,0,0.25);"></div>`,
+  iconSize: [12, 12],
+  iconAnchor: [6, 6],
+});
 
 // Custom marker icons based on tier
 const createIcon = (type, tier, isSelected, location) => {
@@ -557,6 +565,12 @@ export default function HomePage() {
     initialData: [],
   });
 
+  const { data: allJoinRequests } = useQuery({
+    queryKey: ["allJoinRequests"],
+    queryFn: () => base44.entities.JoinRequest.list(),
+    initialData: [],
+  });
+
   // Live location tracking
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -648,14 +662,14 @@ export default function HomePage() {
 
       if (listing.listingType === "neighborhood_sale") {
         const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
-        if (visibleHomes < 5 || !["active", "payment_pending_adjustment"].includes(listing.status)) return false;
+        const eventState = deriveNeighborhoodEventState(listing, now);
+        if (visibleHomes < 5 || !shouldDisplayNeighborhoodEvent(eventState)) return false;
 
         const start = new Date(listing.startDateTime);
         const end = new Date(listing.endDateTime);
 
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
         if (now > end) return false;
-        if (now < start && !listing.advertising_started_at) return false;
       } else {
         if (["approved", "approved_pending_payment"].includes(listing.neighborhood_join_status) && listing.neighborhood_sale_id) return false;
         if (listing.status !== "active") return false;
@@ -782,7 +796,7 @@ const stats = useMemo(() => {
     if (pins.length === 0 && eligibleListings.length > 0 && currentZoom >= 11) {
       fallback = true;
       eligibleListings.forEach(listing => {
-        if (listing.tier === "premium" || listing.tier === "neighborhood_tier") {
+        if (listing.tier === "premium") {
           if (!pins.find(p => p.id === listing.id)) {
             pins.push(listing);
             const idx = cPoints.findIndex(p => p.id === listing.id);
@@ -794,6 +808,32 @@ const stats = useMemo(() => {
 
     return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
   }, [eligibleListings, currentZoom]);
+
+  const neighborhoodParticipantPins = useMemo(() => {
+    if (currentZoom < 15 || !allJoinRequests?.length) return [];
+
+    return allJoinRequests
+      .filter((request) => normalizeNeighborhoodJoinStatus(request.status) === "approved" && request.removed_by_eo !== true)
+      .map((request) => {
+        const participantListing = listings.find((item) => item.id === request.listingId);
+        const eventListing = listings.find((item) => item.id === request.saleListingId);
+        if (!participantListing || !eventListing) return null;
+        if (eventListing.listingType !== "neighborhood_sale") return null;
+        if (!shouldDisplayNeighborhoodEvent(deriveNeighborhoodEventState(eventListing))) return null;
+        if (typeof participantListing.lat !== "number" || typeof participantListing.lng !== "number") return null;
+
+        return {
+          id: `participant-${request.id}`,
+          requestId: request.id,
+          listingId: participantListing.id,
+          title: participantListing.title,
+          addressText: participantListing.addressText,
+          lat: participantListing.lat,
+          lng: participantListing.lng,
+        };
+      })
+      .filter(Boolean);
+  }, [allJoinRequests, currentZoom, listings]);
 
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
@@ -961,175 +1001,36 @@ const stats = useMemo(() => {
                               <Badge className="text-[10px] px-1.5 py-0.5 bg-blue-600">Stop #{routeIndex + 1}</Badge>
                             )}
                           </div>
-
-                          <h3 className="font-bold text-sm leading-tight mb-0.5">{listing.title}</h3>
-                          <p className="text-xs text-gray-600 mb-1">{listing.addressText}</p>
-
-                          {listing.description && (
-                            <p className="text-xs text-gray-500 mb-1 line-clamp-3">{listing.description}</p>
-                          )}
-
-                          <div className="flex items-center gap-1 text-[11px] text-gray-500 mb-1">
-                            <Calendar className="w-3 h-3 shrink-0" />
-                            {format(new Date(listing.startDateTime), "MMM d, h:mm a")} — {format(new Date(listing.endDateTime), "MMM d, h:mm a")}
-                          </div>
-
-                          <div className="flex items-center gap-1 text-[11px] text-gray-400">
-                            <User className="w-3 h-3" />
-                            {listing.created_by?.split("@")[0] || "Anonymous"}
-                          </div>
-                        </div>
-
-                        {/* Sticky bottom action row */}
-                        <div className="flex items-center gap-1.5 p-2 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
-                          <Button
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
-                            }}
-                            className="h-7 text-xs px-2 bg-amber-600 hover:bg-amber-700"
-                          >
-                            View Details
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setReportListingId(listing.id);
-                            }}
-                            className="h-7 text-xs px-2 text-red-600 border-red-300 hover:bg-red-50"
-                          >
-                            Report
-                          </Button>
-                          <div className="ml-auto flex gap-1.5">
-                            {HUNT_ENABLED && (() => {
-                              const huntStop = huntStops.find(s => s.id === listing.id);
-                              
-                              if (!huntStop) {
-                                return (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      addToHunt(listing);
-                                    }}
-                                    className="gap-1 h-7 text-xs px-2"
-                                  >
-                                    <Plus className="w-3 h-3" /> Add Stop
-                                  </Button>
-                                );
-                              }
-
-                              const status = huntStop.huntStatus || "not_started";
-                              
-                              if (status === "completed") {
-                                return (
-                                  <Badge className="bg-gray-400 text-white h-7 flex items-center px-2 text-xs">
-                                    Completed ✅
-                                  </Badge>
-                                );
-                              }
-                              
-                              if (status === "skipped") {
-                                return (
-                                  <div className="flex gap-1">
-                                    <Badge className="bg-gray-400 text-white h-7 flex items-center px-2 text-xs">
-                                      Skipped
-                                    </Badge>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        updateStopStatus(listing.id, "not_started");
-                                      }}
-                                      className="h-7 text-xs px-2 text-blue-600 border-blue-300 hover:bg-blue-50"
-                                    >
-                                      Reset
-                                    </Button>
-                                  </div>
-                                );
-                              }
-                              
-                              if (status === "arrived") {
-                                return (
-                                  <Button
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      updateStopStatus(listing.id, "completed");
-                                    }}
-                                    className="h-7 text-xs px-2 bg-green-600 hover:bg-green-700 text-white"
-                                  >
-                                    Complete
-                                  </Button>
-                                );
-                              }
-
-                              // status === "not_started"
-                              const uLat = gpsLocation ? Number(gpsLocation.lat) : null;
-                              const uLng = gpsLocation ? Number(gpsLocation.lng) : null;
-                              const lLat = Number(listing.lat);
-                              const lLng = Number(listing.lng);
-                              
-                              if (isNaN(lLat) || isNaN(lLng)) {
-                                console.error(`[Proximity Debug] Listing ${listing.id} has invalid coordinates: lat=${listing.lat}, lng=${listing.lng}`);
-                              }
-
-                              let distanceFeet = Infinity;
-
-                              if (uLat !== null && uLng !== null && !isNaN(lLat) && !isNaN(lLng)) {
-                                const distanceMeters = calculateDistanceMeters(uLat, uLng, lLat, lLng);
-                                distanceFeet = distanceMeters * 3.28084; // strict conversion
-                                console.log(`[Proximity Debug] User GPS: [${uLat}, ${uLng}] (Accuracy: ${gpsLocation.accuracy}m)`);
-                                console.log(`[Proximity Debug] Listing [${listing.id}]: [${lLat}, ${lLng}]`);
-                                console.log(`[Proximity Debug] Distance: ${distanceFeet.toFixed(2)} feet | Required: 50.00 feet`);
-                              }
-
-                              const isWithinDistance = demoOn || distanceFeet <= 50;
-
-                              if (isWithinDistance) {
-                                return (
-                                  <Button
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      updateStopStatus(listing.id, "arrived");
-                                    }}
-                                    variant="outline"
-                                    className="h-7 text-xs px-2 border-green-600 text-green-700 hover:bg-green-50 bg-white/50"
-                                  >
-                                    Check In
-                                  </Button>
-                                );
-                              }
-
-                              return (
-                                <div className="flex flex-col items-end">
-                                  <Button
-                                    size="sm"
-                                    disabled
-                                    variant="outline"
-                                    className="h-7 text-xs px-2 border-gray-400 text-gray-500 bg-gray-100 opacity-60"
-                                  >
-                                    Check In
-                                  </Button>
-                                  <span className="text-[9px] text-gray-500 mt-0.5 leading-tight text-right">
-                                    {distanceFeet !== Infinity ? `Move within 50ft (${distanceFeet.toFixed(0)}ft away)` : `Move within 50ft`}
-                                  </span>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                      </div>
-                    </Popup>
+...
                   </Marker>
                 );
               })}
+
+              {neighborhoodParticipantPins.map((pin) => (
+                <Marker
+                  key={pin.id}
+                  position={[pin.lat, pin.lng]}
+                  icon={neighborhoodParticipantIcon}
+                >
+                  <Popup>
+                    <div className="space-y-2 min-w-[180px]">
+                      <Badge className="bg-emerald-600 text-white">Participant Home</Badge>
+                      <p className="font-semibold text-sm">{pin.title || "Participant"}</p>
+                      <p className="text-xs text-slate-600">{pin.addressText || "Address unavailable"}</p>
+                      <Button
+                        size="sm"
+                        className="w-full h-7 text-xs bg-amber-600 hover:bg-amber-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(createPageUrl("ListingDetail") + `?id=${pin.listingId}`);
+                        }}
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
             </MapContainer>
 
             {/* Temporary Proximity Debug Overlay */}
