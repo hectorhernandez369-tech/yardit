@@ -13,6 +13,7 @@ import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import FormScrollHelper from "../components/create/FormScrollHelper";
 import { useAppMode } from "../components/shared/DemoMode";
+import { deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
 
 // Tier Engine (shared business logic)
 import {
@@ -245,7 +246,7 @@ export default function CreateListingPage() {
     queryKey: ["userJoinRequests", user?.id],
     queryFn: async () => {
       try {
-        return await base44.entities.JoinRequest.filter({ userId: user.id });
+        return await base44.entities.JoinRequest.filter({ requesterUserId: user.id });
       } catch {
         return [];
       }
@@ -311,6 +312,7 @@ export default function CreateListingPage() {
         title: demoPrefix + data.title,
         ownerUserId: user.id,
         status: data.listingType === "neighborhood_sale" ? (data.status || "collecting_participants") : "active",
+        event_state: data.listingType === "neighborhood_sale" ? (data.event_state || "pending_activation") : data.event_state,
         listingNumber
       });
 
@@ -335,7 +337,8 @@ export default function CreateListingPage() {
             metadata: {
               sale_listing_id: matchedSale.id,
               requester_user_id: user.id,
-              requester_listing_id: createdListing.id
+              requester_listing_id: createdListing.id,
+              event_title: matchedSale.title
             }
           });
           
@@ -343,7 +346,13 @@ export default function CreateListingPage() {
             userId: user.id,
             title: "Join Request Sent",
             message: "Your request to join the Neighborhood Sale has been sent.",
-            type: "join_request_sent"
+            type: "join_request_sent",
+            metadata: {
+              sale_listing_id: matchedSale.id,
+              requester_user_id: user.id,
+              requester_listing_id: createdListing.id,
+              event_title: matchedSale.title
+            }
           });
         } catch (err) {
           console.error("Failed to create join request/notifications", err);
@@ -496,6 +505,7 @@ export default function CreateListingPage() {
       payload.invite_code = formData.invite_code || formData.neighborhoodDraftId;
       payload.status = "collecting_participants";
       payload.activation_status = "pending";
+      payload.event_state = "pending_activation";
       payload.homeCount = 1;
       payload.pricePaid = 0;
       payload.addressText = formData.host_addressText || payload.addressText;
@@ -583,7 +593,7 @@ export default function CreateListingPage() {
 
     // Add Neighborhood Join Status fields
     if (actionStr === "requested" && matchedSale) {
-      payload.neighborhood_join_status = "requested";
+      payload.neighborhood_join_status = "pending";
       payload.payment_intent_status = "hold_requested";
       payload.hold_deadline_at = payload.startDateTime;
       payload.neighborhood_sale_id = matchedSale.id;
@@ -663,7 +673,8 @@ export default function CreateListingPage() {
           if (!s.startDateTime || !s.endDateTime) return false;
           const end = new Date(s.endDateTime);
           if (now >= end) return false;
-          if (s.status === "downgraded" || s.status === "canceled") return false;
+          const eventState = deriveNeighborhoodEventState(s, now);
+          if (["downgraded", "canceled", "expired", "pending_activation"].includes(eventState)) return false;
 
           const cLat = s.event_center_lat ?? s.lat;
           const cLng = s.event_center_lng ?? s.lng;
