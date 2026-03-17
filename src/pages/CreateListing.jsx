@@ -230,6 +230,8 @@ export default function CreateListingPage() {
   }, [navigate]);
 
   const { isDemoMode: isGlobalDemoMode } = useAppMode();
+  const profileAddressMissing = !user?.street_address || !user?.city || !user?.state || !user?.zip_code;
+  const regularAddressIncomplete = !formData.addressText || !formData.city || !formData.state || !formData.zip || !formData.lat || !formData.lng;
 
   // Pull all user listings (used for “1 active listing” rule)
   const { data: userListings } = useQuery({
@@ -437,8 +439,13 @@ export default function CreateListingPage() {
         return;
       }
 
+      if (profileAddressMissing) {
+        toast.error("Please add an address in your profile before creating a listing");
+        return;
+      }
+
       if (!formData.addressText || !formData.city || !formData.state || !formData.zip) {
-        toast.error("Please complete all address fields");
+        toast.error("Address is still loading. Please wait a moment and try again.");
         return;
       }
 
@@ -464,6 +471,18 @@ export default function CreateListingPage() {
 
   const executeSubmit = (actionStr = joinAction) => {
     let payload = { ...formData, timeZoneId: formData.timeZoneId || FALLBACK_TZ };
+
+    if (payload.listingType !== "neighborhood_sale" && !isGlobalDemoMode) {
+      payload = {
+        ...payload,
+        addressText: user?.street_address || payload.addressText,
+        city: user?.city || payload.city,
+        state: (user?.state || payload.state || "").toUpperCase().slice(0, 2),
+        zip: user?.zip_code || payload.zip,
+        lat: user?.address_lat ?? payload.lat,
+        lng: user?.address_lng ?? payload.lng,
+      };
+    }
 
     // Neighborhood event normalization
     if (payload.listingType === "neighborhood_sale") {
@@ -740,7 +759,11 @@ export default function CreateListingPage() {
                 </Button>
               )}
               {step < 3 ? (
-                <Button onClick={handleNext} className="flex-1 bg-amber-600 hover:bg-amber-700">
+                <Button
+                  onClick={handleNext}
+                  disabled={step === 2 && formData.listingType !== "neighborhood_sale" && (profileAddressMissing || regularAddressIncomplete)}
+                  className="flex-1 bg-amber-600 hover:bg-amber-700"
+                >
                   Continue
                 </Button>
               ) : (
