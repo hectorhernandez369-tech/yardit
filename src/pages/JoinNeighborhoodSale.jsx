@@ -205,7 +205,7 @@ export default function JoinNeighborhoodSale() {
           ) : (
             <Button 
               onClick={handleRequest} 
-              disabled={!!activeRequest || requestMutation.isPending || sale.ownerUserId === user.id} 
+              disabled={!!activeRequest || cannotRequestYet || requestMutation.isPending || sale.ownerUserId === user.id} 
               className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-bold disabled:opacity-50"
             >
               {requestMutation.isPending ? "Sending..." : activeRequest ? "Request sent" : "Request to Join"}
