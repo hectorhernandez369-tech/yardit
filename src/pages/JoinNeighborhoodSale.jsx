@@ -42,7 +42,7 @@ export default function JoinNeighborhoodSale() {
     queryKey: ["join_requests", user?.id, sale?.id],
     queryFn: async () => {
       if (!user?.id || !sale?.id) return [];
-      return await base44.entities.JoinRequest.filter({ userId: user.id, listingId: sale.id });
+      return await base44.entities.JoinRequest.filter({ requesterUserId: user.id, saleListingId: sale.id });
     },
     enabled: !!user?.id && !!sale?.id,
   });
@@ -51,7 +51,8 @@ export default function JoinNeighborhoodSale() {
     mutationFn: async () => {
       return await base44.entities.JoinRequest.create({
         listingId: sale.id,
-        userId: user.id,
+        saleListingId: sale.id,
+        requesterUserId: user.id,
         ownerUserId: sale.ownerUserId,
         status: "pending"
       });
