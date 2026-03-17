@@ -117,8 +117,8 @@ export default function JoinNeighborhoodSale() {
       queryClient.invalidateQueries({ queryKey: ["join_requests"] });
       toast.success("Request sent successfully!");
     },
-    onError: () => {
-      toast.error("Failed to send request. Please try again.");
+    onError: (error) => {
+      toast.error(error.message || "Failed to send request. Please try again.");
     }
   });
 
