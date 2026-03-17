@@ -34,6 +34,19 @@ Deno.serve(async (req) => {
       if (approvedHomes >= NEIGHBORHOOD_MIN_HOMES) continue;
 
       await base44.asServiceRole.entities.Listing.update(listing.id, {
+        ...listing,
+        ownerUserId: listing.ownerUserId,
+        listingType: listing.listingType || 'neighborhood_sale',
+        title: listing.title || 'Neighborhood Sale',
+        city: listing.city || 'Unknown',
+        zip: listing.zip || '00000',
+        lat: listing.lat,
+        lng: listing.lng,
+        timeZoneId: listing.timeZoneId || 'America/Los_Angeles',
+        tier: listing.tier || 'neighborhood_tier',
+        category: listing.category || 'Neighborhood Sale',
+        startDateTime: listing.startDateTime,
+        endDateTime: listing.endDateTime,
         event_state: 'downgraded',
         status: 'closed',
         activation_status: 'pending',

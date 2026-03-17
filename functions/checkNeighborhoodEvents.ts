@@ -61,6 +61,18 @@ Deno.serve(async (req) => {
       if (listing.event_state !== nextEventState || listing.homeCount !== approvedHomes || listing.status !== nextStatus) {
         await base44.asServiceRole.entities.Listing.update(listing.id, {
           ...listing,
+          ownerUserId: listing.ownerUserId,
+          listingType: listing.listingType || 'neighborhood_sale',
+          title: listing.title || 'Neighborhood Sale',
+          city: listing.city || 'Unknown',
+          zip: listing.zip || '00000',
+          lat: listing.lat,
+          lng: listing.lng,
+          timeZoneId: listing.timeZoneId || 'America/Los_Angeles',
+          tier: listing.tier || 'neighborhood_tier',
+          category: listing.category || 'Neighborhood Sale',
+          startDateTime: listing.startDateTime,
+          endDateTime: listing.endDateTime,
           event_state: nextEventState,
           homeCount: approvedHomes,
           status: nextStatus,
