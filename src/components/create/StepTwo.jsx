@@ -454,16 +454,14 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
-        <h3 className="text-[#2C4F4E] font-semibold">
-          {isNeighborhood ? "Location" : "Confirm Listing Address"}
-        </h3>
-        <p className="text-sm text-[#1F2937] opacity-80">
-          {isNeighborhood
-            ? "Pick the central location for your Neighborhood Sale and confirm the host address inside the 500-foot radius."
-            : "This is where your listing will appear on the map"}
-        </p>
-      </div>
+      {isNeighborhood && (
+        <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
+          <h3 className="text-[#2C4F4E] font-semibold">Location</h3>
+          <p className="text-sm text-[#1F2937] opacity-80">
+            Pick the central location for your Neighborhood Sale and confirm the host address inside the 500-foot radius.
+          </p>
+        </div>
+      )}
 
       {isNeighborhood && (
         <div className="space-y-4">
