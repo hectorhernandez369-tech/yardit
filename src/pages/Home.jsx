@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
-import { deriveNeighborhoodEventState, shouldDisplayNeighborhoodEvent, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
+import { deriveNeighborhoodEventState, isNeighborhoodVisibleOnMap, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 import CheckInButton from "../components/map/CheckInButton";
 import { toast } from "sonner";
 import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
@@ -663,7 +663,7 @@ export default function HomePage() {
       if (listing.listingType === "neighborhood_sale") {
         const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
         const eventState = deriveNeighborhoodEventState(listing, now);
-        if (visibleHomes < 5 || !shouldDisplayNeighborhoodEvent(eventState)) return false;
+        if (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now)) return false;
 
         const start = new Date(listing.startDateTime);
         const end = new Date(listing.endDateTime);
@@ -704,8 +704,7 @@ export default function HomePage() {
 
       if (l.listingType === "neighborhood_sale") {
         const visibleHomes = Number(l.homeCount || l.confirmed_count || 0);
-        const eventState = deriveNeighborhoodEventState(l, now);
-        if (visibleHomes < 5 || !shouldDisplayNeighborhoodEvent(eventState)) return false;
+        if (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(l, now)) return false;
 
         const start = new Date(l.startDateTime);
         const end = new Date(l.endDateTime);
@@ -715,7 +714,7 @@ export default function HomePage() {
         return true;
       }
 
-      if (["approved", "approved_pending_payment"].includes(l.neighborhood_join_status) && l.neighborhood_sale_id) return false;
+      if (normalizeNeighborhoodJoinStatus(l.neighborhood_join_status) === "approved" && l.neighborhood_sale_id) return false;
       if (l.status !== "active") return false;
 
       const start = new Date(l.startDateTime);
@@ -819,7 +818,7 @@ const stats = useMemo(() => {
         const eventListing = listings.find((item) => item.id === request.saleListingId);
         if (!participantListing || !eventListing) return null;
         if (eventListing.listingType !== "neighborhood_sale") return null;
-        if (!shouldDisplayNeighborhoodEvent(deriveNeighborhoodEventState(eventListing))) return null;
+        if (!isNeighborhoodVisibleOnMap(eventListing)) return null;
         if (typeof participantListing.lat !== "number" || typeof participantListing.lng !== "number") return null;
 
         return {

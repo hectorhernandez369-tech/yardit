@@ -13,7 +13,7 @@ import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import FormScrollHelper from "../components/create/FormScrollHelper";
 import { useAppMode } from "../components/shared/DemoMode";
-import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
+import { deriveNeighborhoodEventState, isNeighborhoodJoinAllowed, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 
 // Tier Engine (shared business logic)
 import {
@@ -673,8 +673,7 @@ export default function CreateListingPage() {
           if (!s.startDateTime || !s.endDateTime) return false;
           const end = new Date(s.endDateTime);
           if (now >= end) return false;
-          const eventState = deriveNeighborhoodEventState(s, now);
-          if (["downgraded", "canceled", "expired", "pending_activation"].includes(eventState)) return false;
+          if (!isNeighborhoodJoinAllowed(s, now)) return false;
 
           const cLat = s.event_center_lat ?? s.lat;
           const cLng = s.event_center_lng ?? s.lng;
