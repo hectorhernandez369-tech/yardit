@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AddressFields from "@/components/shared/AddressFields";
+import ListingAddressReview from "@/components/create/ListingAddressReview";
+import { useAppMode } from "@/components/shared/DemoMode";
 import { MapPin, Navigation, Loader2, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from "react-leaflet";
@@ -20,6 +22,8 @@ L.Icon.Default.mergeOptions({
   iconUrl: iconUrl,
   shadowUrl: shadowUrl,
 });
+
+const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 
 function getDistanceFeet(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
@@ -150,6 +154,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
 }
 
 export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
+  const { isDemoMode } = useAppMode();
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
@@ -168,6 +173,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
   const isNeighborhood = formData.listingType === "neighborhood_sale";
 
   const formDataRef = React.useRef(formData);
+  const didPrefillProfileRef = React.useRef(false);
   formDataRef.current = formData;
 
   const confirmedUserAddress = useMemo(() => {
@@ -222,7 +228,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
         try {
           const response = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA`
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`
           );
           const data = await response.json();
           const feature = data.features?.[0];
@@ -291,7 +297,6 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
       let data = [];
       let usedQuery = "";
-      const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 
       for (const query of queries) {
         usedQuery = query;
@@ -411,6 +416,40 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
     if (formData.cohost_invite_status === "pending") return "Co-host request pending acceptance";
     return "No host address selected yet";
   }, [formData]);
+
+  const hasProfileAddress = !!(user?.street_address && user?.city && user?.state && user?.zip_code);
+
+  useEffect(() => {
+    if (isNeighborhood || !user || didPrefillProfileRef.current) return;
+
+    didPrefillProfileRef.current = true;
+    setFormData((prev) => ({
+      ...prev,
+      addressText: user.street_address || "",
+      city: user.city || "",
+      state: (user.state || "").toUpperCase().slice(0, 2),
+      zip: user.zip_code || "",
+      lat: user.address_lat ?? prev.lat ?? null,
+      lng: user.address_lng ?? prev.lng ?? null,
+      locationMethod: "profile",
+    }));
+
+    if (user.street_address && user.city && user.state && user.zip_code && (!user.address_lat || !user.address_lng)) {
+      const query = `${user.street_address}, ${user.city}, ${user.state}, ${user.zip_code}`;
+      fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?limit=1&access_token=${MAPBOX_TOKEN}`)
+        .then((response) => response.json())
+        .then((data) => {
+          const feature = data?.features?.[0];
+          if (!feature) return;
+          setFormData((prev) => ({
+            ...prev,
+            lat: feature.center[1],
+            lng: feature.center[0],
+          }));
+        })
+        .catch(() => {});
+    }
+  }, [isNeighborhood, setFormData, user]);
 
   return (
     <div className="space-y-6">
@@ -533,8 +572,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
               setIsMapModalOpen(false);
               toast.info("Saving location...");
               try {
-                const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
-                const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`);
+                          const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`);
                 const data = await response.json();
                 const feature = data.features?.[0];
                 let city = "Unknown", state = "XX", zip = "00000";
@@ -577,138 +615,36 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       )}
 
       {!isNeighborhood && (
-        <div className="space-y-6">
-          <div>
-            <Label className="text-[#2C4F4E]" htmlFor="addressText">Street Address *</Label>
-            <Input
-              id="addressText"
-              placeholder="123 Main St"
-              value={formData.addressText}
-              onChange={(e) => {
-                setFormData((prev) => ({ ...prev, addressText: e.target.value }));
-                if (e.target.value.trim()) setFieldErrors((prev) => ({ ...prev, addressText: false }));
-              }}
-              required
-              className={`focus-visible:ring-[#5DADA5] bg-[#F3E6CF] ${fieldErrors.addressText ? "border-red-500 border-2" : "border-[#2C4F4E]"}`}
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label className="text-[#2C4F4E]" htmlFor="city">City *</Label>
-              <Input
-                id="city"
-                value={formData.city}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, city: e.target.value }));
-                  if (e.target.value.trim()) setFieldErrors((prev) => ({ ...prev, city: false }));
-                }}
-                required
-                className={`focus-visible:ring-[#5DADA5] bg-[#F3E6CF] ${fieldErrors.city ? "border-red-500 border-2" : "border-[#2C4F4E]"}`}
-              />
-            </div>
-
-            <div>
-              <Label className="text-[#2C4F4E]" htmlFor="state">State *</Label>
-              <Input
-                id="state"
-                value={formData.state || ""}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, state: e.target.value.toUpperCase() }));
-                  if (e.target.value.trim()) setFieldErrors((prev) => ({ ...prev, state: false }));
-                }}
-                required
-                maxLength={2}
-                placeholder="CA"
-                className={`focus-visible:ring-[#5DADA5] bg-[#F3E6CF] uppercase ${fieldErrors.state ? "border-red-500 border-2" : "border-[#2C4F4E]"}`}
-              />
-            </div>
-
-            <div>
-              <Label className="text-[#2C4F4E]" htmlFor="zip">ZIP Code *</Label>
-              <Input
-                id="zip"
-                value={formData.zip}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, zip: e.target.value }));
-                  if (e.target.value.trim()) setFieldErrors((prev) => ({ ...prev, zip: false }));
-                }}
-                required
-                className={`focus-visible:ring-[#5DADA5] bg-[#F3E6CF] ${fieldErrors.zip ? "border-red-500 border-2" : "border-[#2C4F4E]"}`}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Button
-              type="button"
-              onClick={getCurrentLocation}
-              disabled={isGettingLocation}
-              variant="outline"
-              className="gap-2 border-2 border-[#2C4F4E] bg-[#F3E6CF] text-[#2C4F4E] hover:bg-[#E7D7B8]"
-            >
-              {isGettingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-              Use My Location (GPS)
-            </Button>
-
-            <Button
-              type="button"
-              onClick={() => geocodeAddress()}
-              disabled={isGeocoding}
-              variant="outline"
-              className="gap-2 border-2 border-[#F4A849] bg-[#F3E6CF] text-[#2C4F4E] hover:bg-[#E7D7B8]"
-            >
-              {isGeocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-              Locate Address (Search)
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {!isNeighborhood && formData.lat && formData.lng && (
-        <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-3 py-2">
-          <p className="text-xs text-[#2C4F4E] flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            Location set: {Number(formData.lat).toFixed(4)}, {Number(formData.lng).toFixed(4)}
-          </p>
-          <p className="text-[11px] text-[#1F2937] opacity-70">(This is the pin location that will show on the map.)</p>
-        </div>
-      )}
-
-      {!isNeighborhood && addressSuggestions.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-[#2C4F4E]">Suggested Matches (tap to select):</Label>
-          <div className="space-y-2">
-            {addressSuggestions.map((suggestion, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  let city = formData.city, state = formData.state, zip = formData.zip;
-                  suggestion.context?.forEach((c) => {
-                    if (c.id.startsWith("place")) city = c.text;
-                    if (c.id.startsWith("region")) state = c.text;
-                    if (c.id.startsWith("postcode")) zip = c.text;
-                  });
-                  setFormData((prev) => ({
-                    ...prev,
-                    addressText: suggestion.address ? `${suggestion.address} ${suggestion.text}` : suggestion.text,
-                    city,
-                    state,
-                    zip,
-                    lat: suggestion.center[1],
-                    lng: suggestion.center[0],
-                  }));
-                  setAddressSuggestions([]);
-                  toast.success("Address selected");
-                }}
-                className="w-full text-left p-3 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF] hover:bg-[#E7D7B8] transition-colors"
-              >
-                <p className="text-sm text-[#2C4F4E] font-medium">{suggestion.place_name}</p>
-              </button>
-            ))}
-          </div>
-        </div>
+        <ListingAddressReview
+          formData={formData}
+          setFormData={setFormData}
+          isDemoMode={isDemoMode}
+          hasProfileAddress={hasProfileAddress}
+          isGettingLocation={isGettingLocation}
+          isGeocoding={isGeocoding}
+          onUseCurrentLocation={getCurrentLocation}
+          onLocateAddress={() => geocodeAddress()}
+          addressSuggestions={addressSuggestions}
+          onSelectSuggestion={(suggestion) => {
+            let city = formData.city, state = formData.state, zip = formData.zip;
+            suggestion.context?.forEach((c) => {
+              if (c.id.startsWith("place")) city = c.text;
+              if (c.id.startsWith("region")) state = c.text;
+              if (c.id.startsWith("postcode")) zip = c.text;
+            });
+            setFormData((prev) => ({
+              ...prev,
+              addressText: suggestion.address ? `${suggestion.address} ${suggestion.text}` : suggestion.text,
+              city,
+              state,
+              zip,
+              lat: suggestion.center[1],
+              lng: suggestion.center[0],
+            }));
+            setAddressSuggestions([]);
+            toast.success("Address selected");
+          }}
+        />
       )}
 
       {isNeighborhood && (
@@ -774,7 +710,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
         </div>
       )}
 
-      {(debugInfo.lastQueryString || debugInfo.lastErrorMessage) && !isNeighborhood && (
+      {isDemoMode && (debugInfo.lastQueryString || debugInfo.lastErrorMessage) && !isNeighborhood && (
         <div className="mt-4 rounded border border-dashed border-gray-400 bg-gray-100 p-2 text-[11px] font-mono text-gray-600">
           <p><strong>DEBUG</strong></p>
           <p>Query: {debugInfo.lastQueryString || "—"}</p>
