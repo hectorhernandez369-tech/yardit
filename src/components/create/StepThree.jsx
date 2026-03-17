@@ -23,6 +23,24 @@ function addDays(dateStr, delta) {
 export default function StepThree({ formData, setFormData }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
+  const tierDetails = {
+    free: [
+      "List view only",
+      "Runs next weekend (Fri–Sun)",
+    ],
+    featured: [
+      "Strong visibility on map",
+      "Larger pin size / highlighted color",
+      "Active for exactly 3 days (user-selected)",
+      "Higher placement in results",
+    ],
+    premium: [
+      "Highest residential tier",
+      "Largest highlighted pin",
+      "Active for 1–5 consecutive days",
+      "Includes pre-activation advertising",
+    ],
+  };
 
   const setTier = (nextTier) => {
     setFormData((p) => {
@@ -109,48 +127,77 @@ export default function StepThree({ formData, setFormData }) {
           </div>
 
           <div className="space-y-3 mt-4">
-            <Label className="text-[#2C4F4E] font-semibold block mb-2">Choose your tier</Label>
+            <Label className="text-[#2C4F4E] font-semibold block mb-2 text-base">Choose your tier</Label>
             <div className="grid gap-3">
-              <Card className={`p-4 cursor-pointer border-2 transition-all ${tier === "free" ? "border-[#5DADA5] bg-[#E7D7B8] shadow-md" : "border-[#2C4F4E]/40 bg-[#F3E6CF] hover:border-[#2C4F4E]"}`} onClick={() => setTier("free")}>
+              <Card
+                className={`p-4 cursor-pointer transition-all ${tier === "free" ? "border-[3px] border-[#5DADA5] bg-white shadow-lg" : "border border-[#2C4F4E]/20 bg-[#F3E6CF]/70 shadow-none hover:border-[#2C4F4E]/40"}`}
+                onClick={() => setTier("free")}
+              >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-[#2C4F4E] flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-[#2C4F4E] flex items-center gap-2 text-base">
                       Free
                       {tier === "free" && <span className="text-xs bg-[#5DADA5] text-white px-2 py-0.5 rounded-full">Selected</span>}
                     </div>
-                    <div className="text-sm text-[#1F2937] opacity-80 mt-1">List view only. Runs next weekend (Fri–Sun).</div>
+                    {tier === "free" && (
+                      <ul className="mt-3 space-y-1 text-sm text-[#1F2937] opacity-90 list-disc pl-5">
+                        {tierDetails.free.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <div className="text-sm font-semibold text-[#2C4F4E]">Free</div>
+                  <div className="text-sm font-semibold text-[#2C4F4E] shrink-0">Free</div>
                 </div>
               </Card>
 
-              <Card className={`p-4 cursor-pointer border-2 transition-all ${tier === "featured" ? "border-[#5DADA5] bg-[#E7D7B8] shadow-md" : "border-[#2C4F4E]/40 bg-[#F3E6CF] hover:border-[#2C4F4E]"}`} onClick={() => setTier("featured")}>
+              <Card
+                className={`p-4 cursor-pointer transition-all ${tier === "featured" ? "border-[3px] border-[#5DADA5] bg-white shadow-lg" : "border border-[#2C4F4E]/20 bg-[#F3E6CF]/70 shadow-none hover:border-[#2C4F4E]/40"}`}
+                onClick={() => setTier("featured")}
+              >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-[#2C4F4E] flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-[#2C4F4E] flex items-center gap-2 text-base">
                       Featured
                       {tier === "featured" && <span className="text-xs bg-[#5DADA5] text-white px-2 py-0.5 rounded-full">Selected</span>}
                     </div>
-                    <div className="text-sm text-[#1F2937] opacity-80 mt-1">Strong visibility. Requires exactly 3 consecutive days.</div>
+                    {tier === "featured" && (
+                      <ul className="mt-3 space-y-1 text-sm text-[#1F2937] opacity-90 list-disc pl-5">
+                        {tierDetails.featured.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <div className="text-sm font-semibold text-[#2C4F4E]">$4.99</div>
+                  <div className="text-sm font-semibold text-[#2C4F4E] shrink-0">$4.99</div>
                 </div>
               </Card>
 
-              <Card className={`p-4 cursor-pointer border-2 transition-all ${tier === "premium" ? "border-[#F4A849] bg-[#E7D7B8] shadow-md" : "border-[#2C4F4E]/40 bg-[#F3E6CF] hover:border-[#2C4F4E]"}`} onClick={() => setTier("premium")}>
+              <Card
+                className={`p-4 cursor-pointer transition-all ${tier === "premium" ? "border-[3px] border-[#F4A849] bg-white shadow-lg" : "border border-[#2C4F4E]/20 bg-[#F3E6CF]/70 shadow-none hover:border-[#2C4F4E]/40"}`}
+                onClick={() => setTier("premium")}
+              >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-[#2C4F4E] flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-[#2C4F4E] flex items-center gap-2 text-base">
                       Premium
                       {tier === "premium" && <span className="text-xs bg-[#F4A849] text-[#2C4F4E] px-2 py-0.5 rounded-full">Selected</span>}
                     </div>
-                    <div className="text-sm text-[#1F2937] opacity-80 mt-1">Highest residential tier. Allows 1-5 consecutive days. Includes pre-activation advertising.</div>
+                    {tier === "premium" && (
+                      <ul className="mt-3 space-y-1 text-sm text-[#1F2937] opacity-90 list-disc pl-5">
+                        {tierDetails.premium.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <div className="text-sm font-semibold text-[#2C4F4E]">$7.99</div>
+                  <div className="text-sm font-semibold text-[#2C4F4E] shrink-0">$7.99</div>
                 </div>
               </Card>
             </div>
           </div>
+
+          <div className="my-8 border-t border-dashed border-[#2C4F4E]/20" />
 
           {(tier === "featured" || tier === "premium") && (
             <div className="pt-6 mt-6 border-t-2 border-[#2C4F4E]/20">
@@ -271,14 +318,15 @@ export default function StepThree({ formData, setFormData }) {
         </>
       )}
 
-      <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 mt-8">
-        <h3 className="text-[#2C4F4E] font-semibold">Review & Summary</h3>
-        <p className="text-sm text-[#1F2937] opacity-80">
+      <div className="rounded-xl border border-[#2C4F4E]/15 bg-white/60 p-3 mt-4">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-[#2C4F4E]/60 font-semibold">Next step</p>
+        <h3 className="text-[#2C4F4E] font-semibold text-base mt-1">Review & Summary</h3>
+        <p className="text-sm text-[#1F2937] opacity-70">
           Review your listing details before creating.
         </p>
       </div>
 
-      <Card className="p-4 border-2 border-[#2C4F4E] bg-[#F3E6CF] shadow-sm">
+      <Card className="p-4 border border-[#2C4F4E]/15 bg-white/70 shadow-none">
         <div className="space-y-4">
           <div>
             <div className="text-xs text-[#1F2937] opacity-70 mb-1">Type & Tier</div>
@@ -321,7 +369,7 @@ export default function StepThree({ formData, setFormData }) {
       </Card>
 
       {isNeighborhoodSale && (
-        <Card className="p-4 border-2 border-[#2C4F4E] bg-[#E7D7B8]">
+        <Card className="p-4 border border-[#2C4F4E]/20 bg-[#E7D7B8]/70 shadow-none">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
               <div className="text-sm font-semibold text-[#2C4F4E]">Invite Homes</div>
