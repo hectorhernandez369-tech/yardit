@@ -360,13 +360,19 @@ export default function CreateListingPage() {
 
   const handleNext = async () => {
     if (step === 1) {
-      if (!formData.title || !formData.description || (!formData.category && (!formData.categories || formData.categories.length === 0))) {
+      if (!formData.title) {
         toast.error("Please fill in all required fields");
         return;
       }
-      if ((formData.category === "Collectibles" || formData.categories?.includes("Collectibles")) && !formData.collectible_type) {
-        toast.error("Please select a collectible type");
-        return;
+      if (formData.listingType !== "neighborhood_sale") {
+        if (!formData.description || (!formData.category && (!formData.categories || formData.categories.length === 0))) {
+          toast.error("Please fill in all required fields");
+          return;
+        }
+        if ((formData.category === "Collectibles" || formData.categories?.includes("Collectibles")) && !formData.collectible_type) {
+          toast.error("Please select a collectible type");
+          return;
+        }
       }
       setStep(2);
       return;
@@ -379,25 +385,34 @@ export default function CreateListingPage() {
           return;
         }
 
-        // (plain english) organizer address must be within 500ft (uses confirmed profile coords)
-        const isMapMethod =
-          !formData.locationMethod ||
-          formData.locationMethod === "map" ||
-          formData.locMethod === "map";
+        if (formData.host_mode === "self") {
+          const uLat = user?.address_lat;
+          const uLng = user?.address_lng;
 
-        if (isMapMethod) {
-          const uLat = user?.address_lat ?? user?.lat;
-          const uLng = user?.address_lng ?? user?.lng;
-
-          if (!uLat || !uLng) {
-            toast.error("Please add/confirm your profile address before creating a Neighborhood Sale.");
+          if (!user?.street_address || !user?.city || !user?.state || !user?.zip_code || !uLat || !uLng) {
+            toast.error("Please use your confirmed address before creating a Neighborhood Sale.");
             return;
           }
+
           const dist = getDistanceFeet(uLat, uLng, formData.event_center_lat, formData.event_center_lng);
           if (dist > 500) {
-            toast.error("Your profile address must be within 500 ft of the Neighborhood center.");
+            toast.error("Your confirmed address must be within 500 ft of the Neighborhood center.");
             return;
           }
+        } else if (formData.host_mode === "cohost") {
+          if (formData.cohost_invite_status !== "accepted" || !formData.host_address_lat || !formData.host_address_lng) {
+            toast.error("A co-host with a confirmed in-radius address must accept before this sale can be created.");
+            return;
+          }
+
+          const dist = getDistanceFeet(formData.host_address_lat, formData.host_address_lng, formData.event_center_lat, formData.event_center_lng);
+          if (dist > 500) {
+            toast.error("The accepted co-host address must be within 500 ft of the Neighborhood center.");
+            return;
+          }
+        } else {
+          toast.error("Please confirm the host address for this Neighborhood Sale.");
+          return;
         }
 
         if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
@@ -454,6 +469,9 @@ export default function CreateListingPage() {
     if (payload.listingType === "neighborhood_sale") {
       payload.spanFeet = 500;
       payload.tier = "neighborhood_tier";
+      payload.category = "Neighborhood Sale";
+      payload.categories = [];
+      payload.description = payload.description || "";
       payload.startDateTime = new Date(formData.selectedRangeStartDate + "T00:00:00Z").toISOString();
       payload.endDateTime = new Date(formData.selectedRangeEndDate + "T23:59:59Z").toISOString();
       payload.invite_code = formData.invite_code || formData.neighborhoodDraftId;
@@ -461,6 +479,10 @@ export default function CreateListingPage() {
       payload.activation_status = "pending";
       payload.homeCount = 1;
       payload.pricePaid = 0;
+      payload.addressText = formData.host_addressText || payload.addressText;
+      payload.city = formData.host_city || payload.city;
+      payload.state = formData.host_state || payload.state;
+      payload.zip = formData.host_zip || payload.zip;
     }
 
     // FREE TIER DATE RULE
@@ -707,7 +729,7 @@ export default function CreateListingPage() {
 
             {step === 1 && <StepOne formData={formData} setFormData={setFormData} />}
             {step === 2 && (
-              <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} />
+              <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} />
             )}
             {step === 3 && <StepThree formData={formData} setFormData={setFormData} />}
 

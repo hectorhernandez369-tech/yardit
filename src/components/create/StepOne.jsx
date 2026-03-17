@@ -26,7 +26,15 @@ export default function StepOne({ formData, setFormData }) {
         <Label className="mb-3 block text-[#2C4F4E]">Listing Type</Label>
         <RadioGroup
           value={formData.listingType}
-          onValueChange={(value) => setFormData(prev => ({ ...prev, listingType: value }))}
+          onValueChange={(value) => setFormData(prev => ({
+            ...prev,
+            listingType: value,
+            ...(value === "neighborhood_sale" ? {
+              categories: [],
+              category: "Neighborhood Sale",
+              description: "",
+            } : {}),
+          }))}
         >
           <div className="flex items-center space-x-2 p-4 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF] mb-2">
             <RadioGroupItem value="yard_sale" id="yard_sale" />
@@ -59,102 +67,106 @@ export default function StepOne({ formData, setFormData }) {
         />
       </div>
 
-      <div>
-        <Label className="text-[#2C4F4E]">Categories (Up to 10) *</Label>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {formData.categories?.map((cat, i) => (
-             <Badge key={i} className="flex items-center gap-1 bg-[#5DADA5] py-1.5 px-3 text-sm rounded-full">
-                {cat} 
-                <X className="w-3 h-3 cursor-pointer" onClick={() => {
-                  const newCats = formData.categories.filter((_, idx) => idx !== i);
+      {listingType !== "neighborhood_sale" && (
+        <>
+          <div>
+            <Label className="text-[#2C4F4E]">Categories (Up to 10) *</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {formData.categories?.map((cat, i) => (
+                 <Badge key={i} className="flex items-center gap-1 bg-[#5DADA5] py-1.5 px-3 text-sm rounded-full">
+                    {cat} 
+                    <X className="w-3 h-3 cursor-pointer" onClick={() => {
+                      const newCats = formData.categories.filter((_, idx) => idx !== i);
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        categories: newCats, 
+                        category: newCats[0] || "", 
+                        collectible_type: newCats.includes("Collectibles") ? prev.collectible_type : null 
+                      }));
+                    }} />
+                 </Badge>
+              ))}
+            </div>
+            {(!formData.categories || formData.categories.length < 10) && (
+              <Select
+                value=""
+                onValueChange={(value) => {
+                  if (formData.categories?.includes(value)) return;
+                  const newCats = [...(formData.categories || []), value];
                   setFormData(prev => ({ 
                     ...prev, 
-                    categories: newCats, 
-                    category: newCats[0] || "", 
-                    collectible_type: newCats.includes("Collectibles") ? prev.collectible_type : null 
+                    categories: newCats,
+                    category: newCats[0] || "",
+                    collectible_type: newCats.includes("Collectibles") ? prev.collectible_type : null
                   }));
-                }} />
-             </Badge>
-          ))}
-        </div>
-        {(!formData.categories || formData.categories.length < 10) && (
-          <Select
-            value=""
-            onValueChange={(value) => {
-              if (formData.categories?.includes(value)) return;
-              const newCats = [...(formData.categories || []), value];
-              setFormData(prev => ({ 
-                ...prev, 
-                categories: newCats,
-                category: newCats[0] || "",
-                collectible_type: newCats.includes("Collectibles") ? prev.collectible_type : null
-              }));
-            }}
-          >
-            <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-3">
-              <SelectValue placeholder="Add Category +" />
-            </SelectTrigger>
-            <SelectContent>
-              {[
-                "Household Items", "Furniture", "Clothing & Accessories",
-                "Electronics", "Tools & Hardware", "Toys & Games",
-                "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
-                "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
-                "Free Items", "Food / Baked Goods", "Miscellaneous"
-              ].filter(cat => !(formData.categories || []).includes(cat)).map(cat => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
+                }}
+              >
+                <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-3">
+                  <SelectValue placeholder="Add Category +" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    "Household Items", "Furniture", "Clothing & Accessories",
+                    "Electronics", "Tools & Hardware", "Toys & Games",
+                    "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
+                    "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
+                    "Free Items", "Food / Baked Goods", "Miscellaneous"
+                  ].filter(cat => !(formData.categories || []).includes(cat)).map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
 
-      {(formData.category === "Collectibles" || formData.categories?.includes("Collectibles")) && (
-        <div>
-          <Label className="text-[#2C4F4E]">Collectible Type *</Label>
-          <Select
-            value={formData.collectible_type || ""}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, collectible_type: value }))}
-          >
-            <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-2">
-              <SelectValue placeholder="Select collectible type" />
-            </SelectTrigger>
-            <SelectContent>
-              {[
-                "Funko Pops", "Sports Cards", "Pokémon Cards",
-                "Trading Cards (Other)", "Star Wars Collectibles", "Comics",
-                "Action Figures", "Die-cast Cars", "Video Game Collectibles",
-                "Movie Memorabilia", "Other Collectible"
-              ].map(type => (
-                <SelectItem key={type} value={type}>{type}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          {(formData.category === "Collectibles" || formData.categories?.includes("Collectibles")) && (
+            <div>
+              <Label className="text-[#2C4F4E]">Collectible Type *</Label>
+              <Select
+                value={formData.collectible_type || ""}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, collectible_type: value }))}
+              >
+                <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-2">
+                  <SelectValue placeholder="Select collectible type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    "Funko Pops", "Sports Cards", "Pokémon Cards",
+                    "Trading Cards (Other)", "Star Wars Collectibles", "Comics",
+                    "Action Figures", "Die-cast Cars", "Video Game Collectibles",
+                    "Movie Memorabilia", "Other Collectible"
+                  ].map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div>
+            <Label className="text-[#2C4F4E]" htmlFor="description">Description *</Label>
+            <p className="text-xs text-[#1F2937] opacity-80 mt-1">
+              Tip: Use searchable keywords like #item, #Pokémon card, #baby crib, #tools, #furniture.
+            </p>
+            <Textarea
+              id="description"
+              placeholder="Describe what you're selling..."
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              rows={5}
+              required
+              className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF] mt-2"
+            />
+          </div>
+        </>
       )}
 
-      <div>
-        <Label className="text-[#2C4F4E]" htmlFor="description">Description *</Label>
-        <p className="text-xs text-[#1F2937] opacity-80 mt-1">
-          Tip: Use searchable keywords like #item, #Pokémon card, #baby crib, #tools, #furniture.
-        </p>
-        <Textarea
-          id="description"
-          placeholder="Describe what you're selling..."
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          rows={5}
-          required
-          className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF] mt-2"
-        />
-      </div>
-
       {listingType === "neighborhood_sale" && (
-        <div className="space-y-4 rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
+        <div className="space-y-3 rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
               <p className="font-semibold text-[#2C4F4E]">Neighborhood Sale pricing</p>
-              <p className="text-sm text-[#1F2937] opacity-80">Organizer starts the event and homes are added after approval.</p>
+              <p className="text-sm text-[#1F2937] opacity-80">Maximum 25 homes within a 500-foot radius.</p>
             </div>
             <a
               href={createPageUrl("FAQ") + "#neighborhood-sale-pricing"}
@@ -163,26 +175,7 @@ export default function StepOne({ formData, setFormData }) {
               Click here for pricing info
             </a>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-[#2C4F4E]">Starting Homes</Label>
-              <Input
-                value={1}
-                disabled
-                className="border-[#2C4F4E] bg-[#F3E6CF] opacity-70 cursor-not-allowed mt-2"
-              />
-            </div>
-            <div>
-              <Label className="text-[#2C4F4E]" htmlFor="spanFeet">Radius in Feet</Label>
-              <Input
-                id="spanFeet"
-                type="number"
-                value={500}
-                disabled
-                className="border-[#2C4F4E] bg-[#F3E6CF] opacity-70 cursor-not-allowed mt-2"
-              />
-            </div>
-          </div>
+          <p className="text-sm text-[#2C4F4E]">Neighborhood Sale does not require categories or description during creation.</p>
         </div>
       )}
     </div>

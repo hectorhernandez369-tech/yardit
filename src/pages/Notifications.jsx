@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { respondToCoHostInvite } from "@/lib/coHostInviteActions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function NotificationsPage() {
@@ -87,6 +88,17 @@ export default function NotificationsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("Notification deleted");
+    },
+  });
+
+  const coHostInviteMutation = useMutation({
+    mutationFn: ({ notification, action }) => respondToCoHostInvite(notification, action),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success(variables.action === "accept" ? "Co-host request accepted" : "Co-host request declined");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Could not respond to co-host request.");
     },
   });
 
@@ -191,9 +203,34 @@ export default function NotificationsPage() {
             </div>
           </div>
           <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 mt-2 sm:mt-0">
-             <div className="flex gap-2 items-center">
-                {isUnread && (
+           <div className="flex gap-2 items-center flex-wrap justify-end">
+              {notification.type === "co_host_invite" && (
+                <>
                   <Button
+                    size="sm"
+                    className="h-8 text-xs bg-green-600 hover:bg-green-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      coHostInviteMutation.mutate({ notification, action: "accept" });
+                    }}
+                  >
+                    <Check className="w-3 h-3 mr-1" /> Accept
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      coHostInviteMutation.mutate({ notification, action: "decline" });
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Decline
+                  </Button>
+                </>
+              )}
+              {isUnread && notification.type !== "co_host_invite" && (
+                <Button
                     variant="outline"
                     size="sm"
                     onClick={(e) => {

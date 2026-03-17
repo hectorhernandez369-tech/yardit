@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { respondToCoHostInvite } from "@/lib/coHostInviteActions";
 
 export default function NotificationList({ notifications, onMarkAllRead }) {
   const queryClient = useQueryClient();
@@ -111,6 +112,17 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
     }
   });
 
+  const coHostInviteMutation = useMutation({
+    mutationFn: ({ notification, action }) => respondToCoHostInvite(notification, action),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success(variables.action === "accept" ? "Co-host request accepted" : "Co-host request declined");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Could not respond to co-host request.");
+    }
+  });
+
   const getIcon = (type) => {
     if (type?.startsWith("join_")) return <Users className="w-4 h-4 text-purple-600" />;
     if (type?.startsWith("report_")) return <AlertTriangle className="w-4 h-4 text-red-600" />;
@@ -210,6 +222,33 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                       </div>
 
                       <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
+
+                      {notification.type === "co_host_invite" && (
+                        <div className="flex gap-2 mt-2 mb-3">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              coHostInviteMutation.mutate({ notification, action: "accept" });
+                            }}
+                          >
+                            <Check className="w-3 h-3 mr-1" /> Accept
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              coHostInviteMutation.mutate({ notification, action: "decline" });
+                            }}
+                          >
+                            <X className="w-3 h-3 mr-1" /> Deny
+                          </Button>
+                        </div>
+                      )}
 
                       {notification.type === "join_request" && (
                         <div className="flex gap-2 mt-2 mb-3">

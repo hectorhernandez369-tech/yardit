@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -9,6 +9,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, ShoppingBag, Target, Users, Settings, AlertTriangle, HelpCircle, Star } from "lucide-react";
 
 export default function FAQPage() {
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+    const el = document.getElementById(hash);
+    if (el) {
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+    }
+  }, []);
+
+  const activeHash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
   const faqSections = [
     {
       title: "General",
@@ -150,7 +160,15 @@ export default function FAQPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <Accordion type="single" collapsible className="w-full">
+              <Accordion
+                type="single"
+                collapsible
+                defaultValue={(() => {
+                  const matchIndex = section.questions.findIndex((question) => question.id === activeHash);
+                  return matchIndex >= 0 ? `item-${index}-${matchIndex}` : undefined;
+                })()}
+                className="w-full"
+              >
                 {section.questions.map((item, qIndex) => (
                   <AccordionItem 
                     key={qIndex} 

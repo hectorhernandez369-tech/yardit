@@ -240,6 +240,7 @@ export default function Layout({ children }) {
         try {
           const { accepted, adminProfile } = await syncAdminInvite(currentUser);
           const profileUserId = relId(adminProfile?.user_id);
+          await base44.functions.invoke("syncNeighborhoodCoHostInvite", {});
 
           adminIsActive = !!adminProfile && adminProfile.is_active === true && profileUserId === currentUser.id;
 
