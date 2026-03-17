@@ -57,7 +57,7 @@ const REPORT_REASONS = [
 
 const ALL_REASONS = REPORT_REASONS.flatMap((g) => g.items);
 
-export default function ReportModal({ listingId, onClose }) {
+export default function ReportModal({ listingId, onClose, neighborhoodRemovalContext = null }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [selectedCode, setSelectedCode] = useState("");
@@ -132,6 +132,37 @@ export default function ReportModal({ listingId, onClose }) {
           reporterUserId: user.id,
         });
 
+        if (data.performRemoval && neighborhoodRemovalContext) {
+          await base44.entities.JoinRequest.update(neighborhoodRemovalContext.joinRequestId, {
+            status: "denied",
+            removed_by_eo: true,
+            removed_at: new Date().toISOString(),
+            removal_reason: data.reason_code || "safety_report",
+          });
+
+          await base44.entities.Listing.update(neighborhoodRemovalContext.requesterListingId, {
+            neighborhood_join_status: "denied",
+            neighborhood_sale_id: null,
+            payment_intent_status: "none",
+          });
+
+          await base44.entities.Notification.create({
+            userId: neighborhoodRemovalContext.requesterUserId,
+            user_id: neighborhoodRemovalContext.requesterUserId,
+            title: "Removed from Neighborhood Sale",
+            message: `${neighborhoodRemovalContext.eventTitle || "Neighborhood Sale"}: you were removed for a safety report review.`,
+            type: "removed_from_neighborhood",
+            metadata: {
+              sale_listing_id: neighborhoodRemovalContext.saleListingId,
+              requester_listing_id: neighborhoodRemovalContext.requesterListingId,
+              requester_user_id: neighborhoodRemovalContext.requesterUserId,
+              event_title: neighborhoodRemovalContext.eventTitle,
+            },
+            read: false,
+            is_read: false,
+          });
+        }
+
         // Reporter Confirmation Notification
         try {
           const notif = await base44.entities.Notification.create({
@@ -190,6 +221,10 @@ export default function ReportModal({ listingId, onClose }) {
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       queryClient.invalidateQueries({ queryKey: ["listing", listingId] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      if (neighborhoodRemovalContext?.saleListingId) {
+        queryClient.invalidateQueries({ queryKey: ["joinRequests", neighborhoodRemovalContext.saleListingId] });
+        queryClient.invalidateQueries({ queryKey: ["listing", neighborhoodRemovalContext.saleListingId] });
+      }
       onClose();
     },
 
@@ -201,9 +236,7 @@ export default function ReportModal({ listingId, onClose }) {
 
   const isSubmitting = reportMutation.isPending || isUploading;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
+  const submitReport = (performRemoval = false) => {
     if (!selectedCode) {
       toast.error("Please select a reason");
       return;
@@ -220,7 +253,13 @@ export default function ReportModal({ listingId, onClose }) {
       reason_label: selectedReason?.label || selectedCode,
       details: details?.trim() || undefined,
       other_details: isOther ? otherDetails.trim() : undefined,
+      performRemoval,
     });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    submitReport(false);
   };
 
   return (
@@ -289,7 +328,7 @@ export default function ReportModal({ listingId, onClose }) {
 
           <ReportPhotoUploader photos={photos} onPhotosChange={setPhotos} />
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <Button
               type="button"
               variant="outline"
@@ -299,6 +338,24 @@ export default function ReportModal({ listingId, onClose }) {
             >
               Cancel
             </Button>
+
+            {neighborhoodRemovalContext && (
+              <Button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => submitReport(true)}
+                className="flex-1 bg-orange-600 hover:bg-orange-700"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {isUploading ? "Uploading photos…" : "Submitting…"}
+                  </span>
+                ) : (
+                  "Submit and Remove"
+                )}
+              </Button>
+            )}
 
             <Button
               type="submit"
