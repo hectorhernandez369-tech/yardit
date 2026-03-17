@@ -124,7 +124,7 @@ const createIcon = (type, tier, isSelected, location) => {
 
   if (tier === "premium") {
     const key = `premium_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#5DADA5", "#F4A849", 2, 40, opacity), 40);
+    return getCachedIcon(key, buildPinSvg("#5DADA5", "#F4A849", 2, 42, opacity), 42);
   }
 
   if (tier === "neighborhood_event") {
@@ -138,7 +138,7 @@ const createIcon = (type, tier, isSelected, location) => {
   }
 
   const key = `free_${opacity}`;
-  return getCachedIcon(key, buildPinSvg("#6b7280", "#4b5563", 2, 36, opacity), 36);
+  return getCachedIcon(key, buildPinSvg("#6b7280", "#4b5563", 2, 34, opacity), 34);
 };
 
 function MapController({ center, zoom, onUserMove, onZoomChange, onMapReady }) {
