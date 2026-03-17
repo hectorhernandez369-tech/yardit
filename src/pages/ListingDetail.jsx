@@ -14,6 +14,7 @@ import ReportModal from "../components/ReportModal";
 import PromotionModal from "../components/admin/promotions/PromotionModal";
 import { useAppMode } from "../components/shared/DemoMode";
 import {
+  calculateNeighborhoodSalePrice,
   getNeighborhoodPricingSummary,
   NEIGHBORHOOD_MAX_HOMES,
   NEIGHBORHOOD_MIN_HOMES,
@@ -29,6 +30,7 @@ export default function ListingDetailPage() {
   const [returnTarget, setReturnTarget] = useState("default");
   const [user, setUser] = useState(null);
   const [showReport, setShowReport] = useState(false);
+  const [reportContext, setReportContext] = useState(null);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -153,7 +155,7 @@ export default function ListingDetailPage() {
           throw new Error("Neighborhood Sale has reached the 25-home limit.");
         }
 
-        const saleIsLive = ["active", "payment_pending_adjustment"].includes(sale?.status);
+        const saleIsLive = deriveNeighborhoodEventState(sale) === "active";
         let requestStatus = "approved";
         let requesterStatus = "approved";
 
@@ -165,7 +167,7 @@ export default function ListingDetailPage() {
 
           if (projectedSummary.additionalDue > 0) {
             requestStatus = "approved_pending_payment";
-            requesterStatus = "approved_pending_payment";
+            requesterStatus = "approved";
           }
         }
 
@@ -181,11 +183,14 @@ export default function ListingDetailPage() {
           message: requestStatus === "approved_pending_payment"
             ? "Approved — this home will go live after the organizer completes the additional payment."
             : `Approved — you joined ${eventTitle}`,
-          type: requestStatus === "approved_pending_payment" ? "join_request_approved_pending_payment" : "join_request_approved",
+          type: "join_response_accept",
           metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
         });
         await syncNeighborhoodSaleListing(listingId);
       } else if (action === "remove") {
+        if (deriveNeighborhoodEventState(sale) === "active") {
+          throw new Error("Active Neighborhood Sales require the report flow for removal.");
+        }
         await base44.entities.JoinRequest.update(requestId, { 
           status: "denied",
           removed_by_eo: true,
@@ -201,7 +206,7 @@ export default function ListingDetailPage() {
           userId: requesterUserId,
           title: "Removed from Neighborhood Sale",
           message: "Removed from neighborhood sale",
-          type: "join_request_removed",
+          type: "removed_from_neighborhood",
           metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
         });
         await syncNeighborhoodSaleListing(listingId);
@@ -215,7 +220,7 @@ export default function ListingDetailPage() {
           userId: requesterUserId,
           title: "Join Request Denied",
           message: "Denied — your listing stays active under your selected tier",
-          type: "join_request_denied",
+          type: "join_response_deny",
           metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
         });
         await syncNeighborhoodSaleListing(listingId);
@@ -457,7 +462,7 @@ export default function ListingDetailPage() {
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Neighborhood Sale Payment</p>
-                        <p className="text-sm text-emerald-950 font-medium">{salePricing.totalApprovedHomes} approved homes • {salePricing.visibleHomeCount} currently visible</p>
+                        <p className="text-sm text-emerald-950 font-medium">{salePricing.totalApprovedHomes} homes • {salePricing.homesNeeded > 0 ? `${salePricing.homesNeeded} more needed to activate` : salePricing.totalApprovedHomes >= 20 ? 'Cap reached / max event price' : 'Activated / ready'}</p>
                       </div>
                       <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 border-none capitalize">
                         {String(neighborhoodEventState || "pending_activation").replace(/_/g, " ")}
@@ -469,8 +474,8 @@ export default function ListingDetailPage() {
                         <p className="font-semibold text-emerald-950">${Number(listing.pricePaid || 0).toFixed(2)}</p>
                       </div>
                       <div className="rounded-md border border-emerald-200 bg-white p-3">
-                        <p className="text-xs uppercase tracking-wide text-emerald-700">Total Due</p>
-                        <p className="font-semibold text-emerald-950">${Number(salePricing.totalDue || 0).toFixed(2)}</p>
+                        <p className="text-xs uppercase tracking-wide text-emerald-700">Activation Price</p>
+                        <p className="font-semibold text-emerald-950">${Number(calculateNeighborhoodSalePrice(salePricing.totalApprovedHomes) || 0).toFixed(2)}</p>
                       </div>
                       <div className="rounded-md border border-emerald-200 bg-white p-3">
                         <p className="text-xs uppercase tracking-wide text-emerald-700">Additional Due</p>
@@ -527,24 +532,44 @@ export default function ListingDetailPage() {
                               Send Message
                             </Button>
                             {(user?.id === listing.ownerUserId || user?.isAdmin) && (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="text-red-600 border-red-200 hover:bg-red-50"
-                                onClick={() => {
-                                  if (window.confirm("Are you sure you want to remove this participant from the sale?")) {
-                                    respondToJoinRequestMutation.mutate({
-                                      requestId: req.id,
+                              isNeighborhoodSaleLive ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-600 border-red-200 hover:bg-red-50"
+                                  onClick={() => {
+                                    setReportContext({
+                                      joinRequestId: req.id,
                                       requesterListingId: req.listingId,
-                                      action: "remove",
                                       requesterUserId: req.requesterUserId,
-                                      eventTitle: listing.title
+                                      saleListingId: listingId,
+                                      eventTitle: listing.title,
                                     });
-                                  }
-                                }}
-                              >
-                                Remove From Sale
-                              </Button>
+                                    setShowReport(true);
+                                  }}
+                                >
+                                  Report
+                                </Button>
+                              ) : (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-red-600 border-red-200 hover:bg-red-50"
+                                  onClick={() => {
+                                    if (window.confirm("Are you sure you want to remove this participant from the sale?")) {
+                                      respondToJoinRequestMutation.mutate({
+                                        requestId: req.id,
+                                        requesterListingId: req.listingId,
+                                        action: "remove",
+                                        requesterUserId: req.requesterUserId,
+                                        eventTitle: listing.title
+                                      });
+                                    }
+                                  }}
+                                >
+                                  Remove From Sale
+                                </Button>
+                              )
                             )}
                           </div>
                         </div>
@@ -743,8 +768,12 @@ export default function ListingDetailPage() {
 
       {showReport && (
         <ReportModal
-          listingId={listingId}
-          onClose={() => setShowReport(false)}
+          listingId={reportContext?.requesterListingId || listingId}
+          neighborhoodRemovalContext={reportContext}
+          onClose={() => {
+            setShowReport(false);
+            setReportContext(null);
+          }}
         />
       )}
       
