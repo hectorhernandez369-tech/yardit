@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
 
 export const tierColors = {
   free: "bg-slate-500",
@@ -16,9 +17,18 @@ export const statusColors = {
   completed: "bg-blue-600",
   expired: "bg-gray-400",
   draft: "bg-slate-400",
+  pending_activation: "bg-amber-500",
+  activated: "bg-teal-600",
+  coming_soon: "bg-cyan-600",
+  downgraded: "bg-red-600",
+  canceled: "bg-slate-500",
 };
 
 export function getListingDisplayStatus(listing) {
+  if (listing?.listingType === "neighborhood_sale") {
+    return deriveNeighborhoodEventState(listing) || "pending_activation";
+  }
+
   const now = Date.now();
   const rawStatus = listing?.status || "active";
   const endMs = listing?.endDateTime ? new Date(listing.endDateTime).getTime() : null;
