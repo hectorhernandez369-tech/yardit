@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 
 export default function JoinNeighborhoodSale() {
   const [searchParams] = useSearchParams();
@@ -67,7 +68,7 @@ export default function JoinNeighborhoodSale() {
       }
 
       const existing = await base44.entities.JoinRequest.filter({ requesterUserId: user.id, saleListingId: sale.id });
-      if (existing.some((request) => ["pending", "approved"].includes(request.status))) {
+      if (existing.some((request) => ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status)))) {
         throw new Error("You already have a join request for this Neighborhood Sale.");
       }
 
@@ -165,7 +166,7 @@ export default function JoinNeighborhoodSale() {
     requestMutation.mutate();
   };
 
-  const activeRequest = existingRequests?.find(r => r.status === "pending" || r.status === "approved");
+  const activeRequest = existingRequests?.find((request) => ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status)));
   const cannotRequestYet = user && !requesterListing && !activeRequest;
 
   return (
