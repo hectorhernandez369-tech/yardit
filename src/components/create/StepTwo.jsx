@@ -192,7 +192,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
   );
 
   useEffect(() => {
-    if (!isNeighborhood || !userAddressInRadius) return;
+    if (!isNeighborhood || !userAddressInRadius || formData.host_mode === "cohost") return;
     setFormData((prev) => ({
       ...prev,
       host_mode: "self",
@@ -205,7 +205,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       cohost_invite_id: "",
       cohost_invite_status: "",
     }));
-  }, [isNeighborhood, userAddressInRadius, setFormData, user]);
+  }, [formData.host_mode, isNeighborhood, userAddressInRadius, setFormData, user]);
 
   const getCurrentLocation = () => {
     setIsGettingLocation(true);
@@ -415,10 +415,54 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
     if (formData.host_mode === "self") return "Using your confirmed address";
     if (formData.cohost_invite_status === "accepted") return "Accepted co-host address selected";
     if (formData.cohost_invite_status === "pending") return "Co-host request pending acceptance";
+    if (formData.host_mode === "cohost") return "Alternate host flow selected";
     return "No host address selected yet";
   }, [formData]);
 
   const hasProfileAddress = !!(user?.street_address && user?.city && user?.state && user?.zip_code);
+
+  const handleUseConfirmedAddress = () => {
+    if (!userHasConfirmedAddress) return;
+    setFormData((prev) => ({
+      ...prev,
+      event_center_lat: user.address_lat,
+      event_center_lng: user.address_lng,
+      lat: user.address_lat,
+      lng: user.address_lng,
+      addressText: user.street_address,
+      city: user.city,
+      state: user.state,
+      zip: user.zip_code,
+      host_mode: "self",
+      host_addressText: user.street_address,
+      host_city: user.city,
+      host_state: user.state,
+      host_zip: user.zip_code,
+      host_address_lat: user.address_lat,
+      host_address_lng: user.address_lng,
+      cohost_invite_id: "",
+      cohost_invite_status: "",
+    }));
+    setShowHostDialog(false);
+    toast.success("Using your confirmed address.");
+  };
+
+  const handleUseAlternateHostFlow = () => {
+    setFormData((prev) => ({
+      ...prev,
+      host_mode: "cohost",
+      host_addressText: "",
+      host_city: "",
+      host_state: "",
+      host_zip: "",
+      host_address_lat: null,
+      host_address_lng: null,
+      cohost_invite_id: "",
+      cohost_invite_status: "",
+    }));
+    setHostLookupResult(null);
+    setShowHostDialog(true);
+  };
 
   useEffect(() => {
     if (isNeighborhood || !user || didPrefillProfileRef.current) return;
@@ -455,21 +499,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
   return (
     <div className="space-y-6">
       {isNeighborhood && (
-        <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
-          <h3 className="text-[#2C4F4E] font-semibold">Location</h3>
-          <p className="text-sm text-[#1F2937] opacity-80">
-            Pick the central location for your Neighborhood Sale and confirm the host address inside the 500-foot radius.
-          </p>
-        </div>
-      )}
-
-      {isNeighborhood && (
         <div className="space-y-4">
-          <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#F3E6CF] p-4">
-            <p className="font-semibold text-[#2C4F4E]">Maximum 25 homes within a 500-foot radius</p>
-            <p className="text-sm text-[#1F2937] opacity-80 mt-1">Neighborhood Sales must be anchored to a confirmed address inside the radius.</p>
-          </div>
-
           <Button
             type="button"
             onClick={() => setIsMapModalOpen(true)}
@@ -523,23 +553,9 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
               <Button
                 type="button"
                 variant="outline"
-                disabled={!userHasConfirmedAddress || !formData.event_center_lat || !formData.event_center_lng || !userAddressInRadius}
+                disabled={!userHasConfirmedAddress}
                 className="border-[#2C4F4E] text-[#2C4F4E]"
-                onClick={() => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    host_mode: "self",
-                    host_addressText: user.street_address,
-                    host_city: user.city,
-                    host_state: user.state,
-                    host_zip: user.zip_code,
-                    host_address_lat: user.address_lat,
-                    host_address_lng: user.address_lng,
-                    cohost_invite_id: "",
-                    cohost_invite_status: "",
-                  }));
-                  toast.success("Using your confirmed address.");
-                }}
+                onClick={handleUseConfirmedAddress}
               >
                 Use My Confirmed Address
               </Button>
@@ -549,12 +565,19 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                   type="button"
                   className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border border-[#2C4F4E]"
                   disabled={!formData.event_center_lat || !formData.event_center_lng}
-                  onClick={() => setShowHostDialog(true)}
+                  onClick={handleUseAlternateHostFlow}
                 >
                   I don’t live in the radius
                 </Button>
               )}
             </div>
+
+            {formData.host_mode === "cohost" && !formData.host_addressText && (
+              <div className="rounded-lg border border-[#2C4F4E]/30 bg-white p-3 text-sm text-[#2C4F4E]">
+                <p className="font-medium">Alternate host flow selected</p>
+                <p className="mt-1">Your confirmed address is not being used for this sale. Enter or request a host address inside the radius.</p>
+              </div>
+            )}
 
             {formData.host_addressText && (
               <div className="rounded-lg border border-[#2C4F4E]/30 bg-white p-3 text-sm text-[#2C4F4E]">
