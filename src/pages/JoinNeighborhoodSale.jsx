@@ -115,6 +115,8 @@ export default function JoinNeighborhoodSale() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["join_requests"] });
+      queryClient.invalidateQueries({ queryKey: ["myListings"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("Request sent successfully!");
     },
     onError: (error) => {
