@@ -20,20 +20,15 @@ export function getNeighborhoodPricingSummary(requests = [], amountAlreadyPaid =
   const activeRequests = (requests || []).filter((request) => request?.removed_by_eo !== true);
   const approvedRequests = activeRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === "approved");
   const approvedCount = approvedRequests.length;
-  const pendingPaymentCount = activeRequests.filter((request) => request.status === "approved_pending_payment").length;
-
   const visibleHomeCount = Math.min(NEIGHBORHOOD_MAX_HOMES, getNeighborhoodApprovedHomesCount(activeRequests));
-  const totalApprovedHomes = Math.min(
-    NEIGHBORHOOD_MAX_HOMES,
-    getNeighborhoodApprovedHomesCount(activeRequests, { includePendingPayment: true })
-  );
+  const totalApprovedHomes = visibleHomeCount;
   const amountPaid = Number(amountAlreadyPaid || 0);
   const totalDue = calculateNeighborhoodSalePrice(totalApprovedHomes);
   const additionalDue = Math.max(0, Number((totalDue - amountPaid).toFixed(2)));
 
   return {
     approvedCount,
-    pendingPaymentCount,
+    pendingPaymentCount: 0,
     visibleHomeCount,
     totalApprovedHomes,
     amountPaid,
