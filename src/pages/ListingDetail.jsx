@@ -149,7 +149,7 @@ export default function ListingDetailPage() {
       const saleRequests = await base44.entities.JoinRequest.filter({ saleListingId: listingId });
 
       if (action === "approve") {
-        const activeHomes = 1 + saleRequests.filter((request) => request.removed_by_eo !== true && ["approved", "approved_pending_payment"].includes(request.status)).length;
+        const activeHomes = 1 + saleRequests.filter((request) => request.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === "approved").length;
         if (activeHomes >= NEIGHBORHOOD_MAX_HOMES) {
           throw new Error("Neighborhood Sale has reached the 25-home limit.");
         }
