@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
 
       if (listing.event_state !== nextEventState || listing.homeCount !== approvedHomes || listing.status !== nextStatus) {
         await base44.asServiceRole.entities.Listing.update(listing.id, {
+          ...listing,
           event_state: nextEventState,
           homeCount: approvedHomes,
           status: nextStatus,
