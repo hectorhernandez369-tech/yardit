@@ -101,7 +101,8 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
         <MapContainer center={mapCenter} zoom={mapZoom} className="w-full h-full" zoomControl={false}>
           <TileLayer
             attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA"
+            url={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`}
+
             tileSize={512}
             zoomOffset={-1}
           />
@@ -454,11 +455,13 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
   return (
     <div className="space-y-6">
       <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
-        <h3 className="text-[#2C4F4E] font-semibold">Location</h3>
+        <h3 className="text-[#2C4F4E] font-semibold">
+          {isNeighborhood ? "Location" : "Confirm Listing Address"}
+        </h3>
         <p className="text-sm text-[#1F2937] opacity-80">
           {isNeighborhood
             ? "Pick the central location for your Neighborhood Sale and confirm the host address inside the 500-foot radius."
-            : "Add your address or use your GPS. (This sets the pin location.)"}
+            : "This is where your listing will appear on the map"}
         </p>
       </div>
 
