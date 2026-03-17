@@ -671,7 +671,7 @@ export default function HomePage() {
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
         if (now > end) return false;
       } else {
-        if (["approved", "approved_pending_payment"].includes(listing.neighborhood_join_status) && listing.neighborhood_sale_id) return false;
+        if (normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && listing.neighborhood_sale_id) return false;
         if (listing.status !== "active") return false;
 
         const start = new Date(listing.startDateTime);
@@ -704,14 +704,14 @@ export default function HomePage() {
 
       if (l.listingType === "neighborhood_sale") {
         const visibleHomes = Number(l.homeCount || l.confirmed_count || 0);
-        if (visibleHomes < 5 || !["active", "payment_pending_adjustment"].includes(l.status)) return false;
+        const eventState = deriveNeighborhoodEventState(l, now);
+        if (visibleHomes < 5 || !shouldDisplayNeighborhoodEvent(eventState)) return false;
 
         const start = new Date(l.startDateTime);
         const end = new Date(l.endDateTime);
 
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
         if (end < now) return false;
-        if (now < start && !l.advertising_started_at) return false;
         return true;
       }
 

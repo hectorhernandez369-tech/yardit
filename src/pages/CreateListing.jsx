@@ -13,7 +13,7 @@ import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import FormScrollHelper from "../components/create/FormScrollHelper";
 import { useAppMode } from "../components/shared/DemoMode";
-import { deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
+import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 
 // Tier Engine (shared business logic)
 import {
@@ -684,10 +684,8 @@ export default function CreateListingPage() {
           if (s.ownerUserId === user.id) return false;
 
           const alreadyRequested = reqs.some(
-  (r) =>
-    r.saleListingId === s.id &&
-    (r.status === "pending" || r.status === "approved")
-);
+            (r) => r.saleListingId === s.id && ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(r.status))
+          );
           return !alreadyRequested;
         });
 

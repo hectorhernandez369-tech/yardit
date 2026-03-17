@@ -112,7 +112,7 @@ export default function ListingDetailPage() {
       const sales = await base44.entities.Listing.filter({ id: listing.neighborhood_sale_id });
       return sales[0];
     },
-    enabled: !!listing && ["approved", "approved_pending_payment"].includes(listing.neighborhood_join_status) && !!listing.neighborhood_sale_id,
+    enabled: !!listing && normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && !!listing.neighborhood_sale_id,
   });
 
   const { isDemoMode } = useAppMode();
@@ -674,7 +674,7 @@ export default function ListingDetailPage() {
                 <h3 className="font-semibold text-yellow-900">Neighborhood Sale: Pending approval</h3>
               </div>
             )}
-            {listing.neighborhood_join_status === "approved" && (
+            {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <h3 className="font-semibold text-green-900 mb-1">Neighborhood Sale: Approved</h3>
                 {parentSale && (
@@ -683,17 +683,6 @@ export default function ListingDetailPage() {
                     {parentSale.startDateTime && parentSale.endDateTime && (
                       <p><strong>Dates:</strong> {format(new Date(parentSale.startDateTime), "PPp")} - {format(new Date(parentSale.endDateTime), "PPp")}</p>
                     )}
-                  </div>
-                )}
-              </div>
-            )}
-            {listing.neighborhood_join_status === "approved_pending_payment" && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <h3 className="font-semibold text-amber-900 mb-1">Neighborhood Sale: Approved Pending Payment</h3>
-                <p className="text-sm text-amber-800">This home will go live in the sale after the organizer pays the remaining amount.</p>
-                {parentSale && (
-                  <div className="text-sm text-amber-800 mt-2">
-                    <p><strong>Event:</strong> {parentSale.title}</p>
                   </div>
                 )}
               </div>
