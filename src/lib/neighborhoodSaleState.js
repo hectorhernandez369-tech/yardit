@@ -15,15 +15,10 @@ export function normalizeNeighborhoodJoinStatus(status) {
 }
 
 export function getNeighborhoodApprovedHomesCount(requests = [], options = {}) {
-  const { includeOrganizer = true, includePendingPayment = false } = options;
+  const { includeOrganizer = true } = options;
   const activeRequests = (requests || []).filter((request) => request?.removed_by_eo !== true);
   const approvedRequests = activeRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === "approved");
-  const approvedCount = approvedRequests.length + (includeOrganizer ? 1 : 0);
-
-  if (!includePendingPayment) return approvedCount;
-
-  const pendingPaymentCount = activeRequests.filter((request) => request?.status === "approved_pending_payment").length;
-  return approvedCount + pendingPaymentCount;
+  return approvedRequests.length + (includeOrganizer ? 1 : 0);
 }
 
 export function deriveNeighborhoodEventState(listing, nowInput = new Date()) {

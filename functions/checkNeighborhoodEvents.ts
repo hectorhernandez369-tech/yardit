@@ -9,12 +9,9 @@ function normalizeNeighborhoodJoinStatus(status) {
   return status;
 }
 
-function getApprovedHomesCount(requests = [], includePendingPayment = false) {
+function getApprovedHomesCount(requests = []) {
   const activeRequests = (requests || []).filter((request) => request?.removed_by_eo !== true);
-  const approvedCount = activeRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + 1;
-  if (!includePendingPayment) return approvedCount;
-  const pendingPaymentCount = activeRequests.filter((request) => request?.status === 'approved_pending_payment').length;
-  return approvedCount + pendingPaymentCount;
+  return activeRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + 1;
 }
 
 function deriveNeighborhoodEventState(listing, nowInput = new Date()) {
@@ -48,15 +45,17 @@ Deno.serve(async (req) => {
 
     for (const listing of listings) {
       const requests = await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId: listing.id });
-      const approvedHomes = Math.min(NEIGHBORHOOD_MAX_HOMES, getApprovedHomesCount(requests, true));
+      const approvedHomes = Math.min(NEIGHBORHOOD_MAX_HOMES, getApprovedHomesCount(requests));
       const nextEventState = deriveNeighborhoodEventState({ ...listing, homeCount: approvedHomes }, now);
       const nextStatus = nextEventState === 'active' || nextEventState === 'coming_soon' || nextEventState === 'activated'
-        ? (listing.pricePaid > 0 ? 'active' : listing.status)
+        ? 'active'
         : nextEventState === 'expired'
           ? 'expired'
-          : nextEventState === 'pending_activation'
-            ? (approvedHomes >= NEIGHBORHOOD_MIN_HOMES ? 'ready_for_payment' : 'collecting_participants')
-            : listing.status;
+          : nextEventState === 'downgraded' || nextEventState === 'canceled'
+            ? 'closed'
+            : nextEventState === 'pending_activation'
+              ? (approvedHomes >= NEIGHBORHOOD_MIN_HOMES ? 'ready_for_payment' : 'collecting_participants')
+              : listing.status;
 
       if (listing.event_state !== nextEventState || listing.homeCount !== approvedHomes || listing.status !== nextStatus) {
         await base44.asServiceRole.entities.Listing.update(listing.id, {

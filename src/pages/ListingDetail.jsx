@@ -90,7 +90,6 @@ export default function ListingDetailPage() {
 
   const pendingRequests = joinRequests?.filter(r => r.status === "pending") || [];
   const approvedRequests = joinRequests?.filter(r => r.status === "approved" && r.removed_by_eo !== true) || [];
-  const pendingPaymentRequests = joinRequests?.filter(r => r.raw_status === "approved_pending_payment" && r.removed_by_eo !== true) || [];
   const removedRequests = joinRequests?.filter(r => r.removed_by_eo === true) || [];
   const formatAddress = (item) => {
     const base = [item.addressText || "Address unavailable", item.city, item.state].filter(Boolean).join(", ");
@@ -127,16 +126,16 @@ export default function ListingDetailPage() {
     const requests = await base44.entities.JoinRequest.filter({ saleListingId: saleId });
     const paidAmount = Number(paidAmountOverride ?? sale.pricePaid ?? 0);
     const summary = getNeighborhoodPricingSummary(requests, paidAmount);
-    const alreadyLive = ["active", "payment_pending_adjustment"].includes(sale.status) || paidAmount > 0;
+    const alreadyLive = sale.status === "active" || paidAmount > 0;
     const nextStatus = alreadyLive
-      ? (summary.additionalDue > 0 ? "payment_pending_adjustment" : "active")
+      ? "active"
       : (summary.readyForPayment ? "ready_for_payment" : "collecting_participants");
     const nextEventState = deriveNeighborhoodEventState({ ...sale, status: nextStatus }, new Date());
 
     await base44.entities.Listing.update(saleId, {
       status: nextStatus,
       event_state: nextEventState,
-      activation_status: ["active", "payment_pending_adjustment"].includes(nextStatus) ? "active" : "pending",
+      activation_status: nextStatus === "active" ? "active" : "pending",
       homeCount: summary.visibleHomeCount,
     });
 
@@ -155,34 +154,16 @@ export default function ListingDetailPage() {
           throw new Error("Neighborhood Sale has reached the 25-home limit.");
         }
 
-        const saleIsLive = deriveNeighborhoodEventState(sale) === "active";
-        let requestStatus = "approved";
-        let requesterStatus = "approved";
-
-        if (saleIsLive) {
-          const projectedSummary = getNeighborhoodPricingSummary([
-            ...saleRequests.filter((request) => request.id !== requestId && request.removed_by_eo !== true),
-            { id: requestId, status: "approved" }
-          ], sale?.pricePaid || 0);
-
-          if (projectedSummary.additionalDue > 0) {
-            requestStatus = "approved_pending_payment";
-            requesterStatus = "approved";
-          }
-        }
-
-        await base44.entities.JoinRequest.update(requestId, { status: requestStatus });
+        await base44.entities.JoinRequest.update(requestId, { status: "approved" });
         await base44.entities.Listing.update(requesterListingId, {
-          neighborhood_join_status: requesterStatus,
-          payment_intent_status: requestStatus === "approved_pending_payment" ? "hold_requested" : "voided",
+          neighborhood_join_status: "approved",
+          payment_intent_status: "voided",
           neighborhood_sale_id: listingId
         });
         await base44.entities.Notification.create({
           userId: requesterUserId,
-          title: requestStatus === "approved_pending_payment" ? "Approved Pending Organizer Payment" : "Join Request Approved",
-          message: requestStatus === "approved_pending_payment"
-            ? "Approved — this home will go live after the organizer completes the additional payment."
-            : `Approved — you joined ${eventTitle}`,
+          title: "Join Request Approved",
+          message: `Approved — you joined ${eventTitle}`,
           type: "join_response_accept",
           metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
         });
@@ -262,15 +243,6 @@ export default function ListingDetailPage() {
         transaction_id: `${isDemoMode ? "DEMO" : "TXN"}_${Date.now()}`,
       });
 
-      for (const request of pendingPaymentRequests) {
-        await base44.entities.JoinRequest.update(request.id, { status: "approved" });
-        await base44.entities.Listing.update(request.listingId, {
-          neighborhood_join_status: "approved",
-          payment_intent_status: isDemoMode ? "none" : "captured",
-          neighborhood_sale_id: listingId,
-        });
-      }
-
       const newPaidAmount = Math.min(
         NEIGHBORHOOD_PRICE_CAP,
         Number(listing.pricePaid || 0) + Number(salePricing.additionalDue || 0)
@@ -278,7 +250,7 @@ export default function ListingDetailPage() {
       const refreshedRequests = await base44.entities.JoinRequest.filter({ saleListingId: listingId });
       const refreshedSummary = getNeighborhoodPricingSummary(refreshedRequests, newPaidAmount);
 
-      const nextStatus = refreshedSummary.additionalDue > 0 ? "payment_pending_adjustment" : "active";
+      const nextStatus = "active";
       const nextEventState = deriveNeighborhoodEventState({ ...listing, status: nextStatus }, new Date());
 
       await base44.entities.Listing.update(listingId, {
@@ -295,7 +267,7 @@ export default function ListingDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       setShowPaymentDialog(false);
-      toast.success(Number(listing.pricePaid || 0) > 0 ? "Additional payment recorded." : "Neighborhood Sale is now live.");
+      toast.success(Number(listing.pricePaid || 0) > 0 ? "Neighborhood Sale payment updated." : "Neighborhood Sale is now live.");
     } catch {
       toast.error("Payment could not be completed.");
     } finally {
@@ -492,7 +464,7 @@ export default function ListingDetailPage() {
                       <div className="flex items-center justify-between gap-3 flex-wrap">
                         <p className="text-sm text-emerald-800">
                           {Number(listing.pricePaid || 0) > 0
-                            ? "Newly approved homes will stay pending until the difference is paid."
+                            ? "More approved homes increased the event total. Pay the difference to keep it fully paid."
                             : "Payment is required before the sale goes live."}
                         </p>
                         <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setShowPaymentDialog(true)}>
