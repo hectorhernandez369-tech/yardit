@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -38,6 +38,19 @@ export default function JoinNeighborhoodSale() {
     enabled: !!code,
   });
 
+  const { data: requesterListings = [] } = useQuery({
+    queryKey: ["join_request_requester_listings", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const listings = await base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date");
+      return listings.filter((listing) => listing.listingType !== "neighborhood_sale" && listing.status === "active");
+    },
+    enabled: !!user?.id,
+    initialData: [],
+  });
+
+  const requesterListing = useMemo(() => requesterListings[0] || null, [requesterListings]);
+
   const { data: existingRequests } = useQuery({
     queryKey: ["join_requests", user?.id, sale?.id],
     queryFn: async () => {
@@ -49,8 +62,50 @@ export default function JoinNeighborhoodSale() {
 
   const requestMutation = useMutation({
     mutationFn: async () => {
+      if (!requesterListing?.id) {
+        throw new Error("Create a standard listing first before requesting to join this Neighborhood Sale.");
+      }
+
+      const existing = await base44.entities.JoinRequest.filter({ requesterUserId: user.id, saleListingId: sale.id });
+      if (existing.some((request) => ["pending", "approved"].includes(request.status))) {
+        throw new Error("You already have a join request for this Neighborhood Sale.");
+      }
+
+      await base44.entities.Listing.update(requesterListing.id, {
+        neighborhood_join_status: "pending",
+        neighborhood_sale_id: sale.id,
+        payment_intent_status: "hold_requested",
+        hold_deadline_at: sale.startDateTime || null,
+      });
+
+      await base44.entities.Notification.create({
+        userId: sale.ownerUserId,
+        title: "New Join Request",
+        message: "Someone requested to join your Neighborhood Sale.",
+        type: "join_request",
+        metadata: {
+          sale_listing_id: sale.id,
+          requester_listing_id: requesterListing.id,
+          requester_user_id: user.id,
+          event_title: sale.title,
+        },
+      });
+
+      await base44.entities.Notification.create({
+        userId: user.id,
+        title: "Join Request Sent",
+        message: "Your request to join the Neighborhood Sale has been sent.",
+        type: "join_request_sent",
+        metadata: {
+          sale_listing_id: sale.id,
+          requester_listing_id: requesterListing.id,
+          requester_user_id: user.id,
+          event_title: sale.title,
+        },
+      });
+
       return await base44.entities.JoinRequest.create({
-        listingId: sale.id,
+        listingId: requesterListing.id,
         saleListingId: sale.id,
         requesterUserId: user.id,
         ownerUserId: sale.ownerUserId,
@@ -111,6 +166,7 @@ export default function JoinNeighborhoodSale() {
   };
 
   const activeRequest = existingRequests?.find(r => r.status === "pending" || r.status === "approved");
+  const cannotRequestYet = user && !requesterListing && !activeRequest;
 
   return (
     <div className="min-h-[calc(100vh-140px)] flex items-center justify-center p-4">
@@ -131,6 +187,12 @@ export default function JoinNeighborhoodSale() {
           {user && activeRequest && (
             <div className="p-3 bg-white/50 border border-[#2C4F4E]/30 rounded-md text-[#2C4F4E] text-sm font-medium">
               {activeRequest.status === "approved" ? "Your request has been approved." : "Request already sent. Pending approval."}
+            </div>
+          )}
+
+          {cannotRequestYet && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-900 text-sm font-medium">
+              Create a standard listing first, then come back to request to join this Neighborhood Sale.
             </div>
           )}
           

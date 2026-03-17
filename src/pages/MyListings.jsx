@@ -24,6 +24,7 @@ import {
   statusColors,
   tierColors,
 } from "@/components/listing/listingDisplay";
+import { normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
@@ -223,9 +224,28 @@ export default function MyListingsPage() {
 
       // Notification Cleanup
       try {
-        const reqs = await base44.entities.JoinRequest.filter({ listingId: listing.id });
-        for (const req of reqs) {
+        const requesterReqs = await base44.entities.JoinRequest.filter({ listingId: listing.id });
+        for (const req of requesterReqs) {
           await base44.entities.JoinRequest.delete(req.id);
+        }
+
+        if (listing.listingType === "neighborhood_sale") {
+          const saleReqs = await base44.entities.JoinRequest.filter({ saleListingId: listing.id });
+          for (const req of saleReqs) {
+            await base44.entities.JoinRequest.update(req.id, {
+              status: "denied",
+              removed_by_eo: true,
+              removed_at: new Date().toISOString(),
+              removal_reason: "event_deleted",
+            });
+            if (req.listingId) {
+              await base44.entities.Listing.update(req.listingId, {
+                neighborhood_join_status: "denied",
+                neighborhood_sale_id: null,
+                payment_intent_status: "none",
+              });
+            }
+          }
         }
 
         const allNotifs = await base44.entities.Notification.filter({});
@@ -364,10 +384,10 @@ export default function MyListingsPage() {
 
                       <div className="flex gap-2 flex-wrap">
                         {/* (plain english) Requester listing badges for neighborhood join status */}
-                        {(listing.neighborhood_join_status === "pending" || listing.neighborhood_join_status === "requested") && (
+                        {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && (
                           <Badge className="bg-yellow-500 text-yellow-950 hover:bg-yellow-600 border-none">Pending Neighborhood Approval</Badge>
                         )}
-                        {listing.neighborhood_join_status === "approved" && (
+                        {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && (
                           <Badge className="bg-green-600 text-white hover:bg-green-700 border-none">Neighborhood Approved</Badge>
                         )}
                         {listing.neighborhood_join_status === "denied" && (
