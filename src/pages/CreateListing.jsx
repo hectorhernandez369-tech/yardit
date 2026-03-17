@@ -397,17 +397,17 @@ export default function CreateListingPage() {
         }
 
         if (formData.host_mode === "self") {
-          const uLat = user?.address_lat;
-          const uLng = user?.address_lng;
+          const hostLat = formData.host_address_lat ?? user?.address_lat;
+          const hostLng = formData.host_address_lng ?? user?.address_lng;
 
-          if (!user?.street_address || !user?.city || !user?.state || !user?.zip_code || !uLat || !uLng) {
+          if (!user?.street_address || !user?.city || !user?.state || !user?.zip_code || !hostLat || !hostLng) {
             toast.error("Please use your confirmed address before creating a Neighborhood Sale.");
             return;
           }
 
-          const dist = getDistanceFeet(uLat, uLng, formData.event_center_lat, formData.event_center_lng);
+          const dist = getDistanceFeet(hostLat, hostLng, formData.event_center_lat, formData.event_center_lng);
           if (dist > 500) {
-            toast.error("Your confirmed address must be within 500 ft of the Neighborhood center.");
+            toast.error("Host must be within 500 ft of the selected Neighborhood Sale center.");
             return;
           }
         } else if (formData.host_mode === "cohost") {
@@ -418,7 +418,7 @@ export default function CreateListingPage() {
 
           const dist = getDistanceFeet(formData.host_address_lat, formData.host_address_lng, formData.event_center_lat, formData.event_center_lng);
           if (dist > 500) {
-            toast.error("The accepted co-host address must be within 500 ft of the Neighborhood center.");
+            toast.error("Host must be within 500 ft of the selected Neighborhood Sale center.");
             return;
           }
         } else {

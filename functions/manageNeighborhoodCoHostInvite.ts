@@ -13,6 +13,21 @@ function normalizeAddress(payload) {
   return { street_address, city, state, zip_code, address_key };
 }
 
+function getDistanceFeet(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const R = 20902231;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 async function findInvite(base44, organizerUserId, addressKey) {
   const invites = await base44.asServiceRole.entities.NeighborhoodCoHostInvite.filter({
     organizer_user_id: organizerUserId,
@@ -88,6 +103,22 @@ Deno.serve(async (req) => {
       const address = normalizeAddress(payload);
       if (!address.street_address || !address.city || !address.state || !address.zip_code) {
         return Response.json({ error: 'Complete host address is required.' }, { status: 400 });
+      }
+
+      if (action === 'request') {
+        const eventCenterLat = Number(payload.event_center_lat);
+        const eventCenterLng = Number(payload.event_center_lng);
+        const hostAddressLat = Number(payload.host_address_lat);
+        const hostAddressLng = Number(payload.host_address_lng);
+
+        if (!Number.isFinite(eventCenterLat) || !Number.isFinite(eventCenterLng) || !Number.isFinite(hostAddressLat) || !Number.isFinite(hostAddressLng)) {
+          return Response.json({ error: 'Event center and host address coordinates are required.' }, { status: 400 });
+        }
+
+        const distanceFeet = getDistanceFeet(eventCenterLat, eventCenterLng, hostAddressLat, hostAddressLng);
+        if (distanceFeet > 500) {
+          return Response.json({ error: 'Host must be within 500 ft of the selected Neighborhood Sale center.' }, { status: 400 });
+        }
       }
 
       const matchedHost = await findMatchedHost(base44, user.id, address);

@@ -191,6 +191,50 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
     getDistanceFeet(user.address_lat, user.address_lng, formData.event_center_lat, formData.event_center_lng) <= 500
   );
 
+  const validateHostWithinRadius = React.useCallback((hostLat, hostLng, showToastMessage = true) => {
+    const centerLat = formDataRef.current.event_center_lat;
+    const centerLng = formDataRef.current.event_center_lng;
+
+    if (!centerLat || !centerLng || !hostLat || !hostLng) {
+      if (showToastMessage) {
+        toast.error("Host must be within 500 ft of the selected Neighborhood Sale center.");
+      }
+      return false;
+    }
+
+    const distanceFeet = getDistanceFeet(centerLat, centerLng, hostLat, hostLng);
+    if (distanceFeet > 500) {
+      if (showToastMessage) {
+        toast.error("Host must be within 500 ft of the selected Neighborhood Sale center.");
+      }
+      return false;
+    }
+
+    return true;
+  }, []);
+
+  const geocodeHostAddress = React.useCallback(async () => {
+    const query = [hostForm.street_address, hostForm.city, hostForm.state, hostForm.zip_code].filter(Boolean).join(", ");
+    if (!query) {
+      toast.error("Complete host address is required.");
+      return null;
+    }
+
+    const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
+    const data = await response.json();
+    const feature = data.features?.[0];
+
+    if (!feature) {
+      toast.error("Could not locate that host address.");
+      return null;
+    }
+
+    return {
+      lat: feature.center[1],
+      lng: feature.center[0],
+    };
+  }, [hostForm.city, hostForm.state, hostForm.street_address, hostForm.zip_code]);
+
   useEffect(() => {
     if (!isNeighborhood || !userAddressInRadius || formData.host_mode === "cohost") return;
     setFormData((prev) => ({
@@ -353,12 +397,31 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
   }, [geocodeAddress, onGeocodeRef]);
 
   const handleCheckHostAddress = async (requestInvite = false) => {
+    let hostCoords = null;
+
+    if (requestInvite) {
+      if (!formData.event_center_lat || !formData.event_center_lng) {
+        toast.error("Please pick the Neighborhood Sale center first.");
+        return;
+      }
+
+      hostCoords = await geocodeHostAddress();
+      if (!hostCoords) return;
+      if (!validateHostWithinRadius(hostCoords.lat, hostCoords.lng)) return;
+    }
+
     setIsCheckingHost(true);
     try {
       const response = await base44.functions.invoke("manageNeighborhoodCoHostInvite", {
         action: requestInvite ? "request" : "lookup",
         ...hostForm,
         event_title: formData.title,
+        ...(requestInvite ? {
+          event_center_lat: formData.event_center_lat,
+          event_center_lng: formData.event_center_lng,
+          host_address_lat: hostCoords.lat,
+          host_address_lng: hostCoords.lng,
+        } : {}),
       });
 
       const data = response.data;
@@ -423,16 +486,22 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
   const handleUseConfirmedAddress = () => {
     if (!userHasConfirmedAddress) return;
+
+    const hasSelectedCenter = !!(formData.event_center_lat && formData.event_center_lng);
+    if (hasSelectedCenter && !validateHostWithinRadius(user.address_lat, user.address_lng)) {
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
-      event_center_lat: user.address_lat,
-      event_center_lng: user.address_lng,
-      lat: user.address_lat,
-      lng: user.address_lng,
-      addressText: user.street_address,
-      city: user.city,
-      state: user.state,
-      zip: user.zip_code,
+      event_center_lat: prev.event_center_lat || user.address_lat,
+      event_center_lng: prev.event_center_lng || user.address_lng,
+      lat: prev.event_center_lat && prev.event_center_lng ? prev.lat : user.address_lat,
+      lng: prev.event_center_lat && prev.event_center_lng ? prev.lng : user.address_lng,
+      addressText: prev.event_center_lat && prev.event_center_lng ? prev.addressText : user.street_address,
+      city: prev.event_center_lat && prev.event_center_lng ? prev.city : user.city,
+      state: prev.event_center_lat && prev.event_center_lng ? prev.state : user.state,
+      zip: prev.event_center_lat && prev.event_center_lng ? prev.zip : user.zip_code,
       host_mode: "self",
       host_addressText: user.street_address,
       host_city: user.city,
@@ -744,55 +813,57 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       )}
 
       <Dialog open={showHostDialog} onOpenChange={setShowHostDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Enter Host Address Here</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-2">
-              <p>Neighborhood Sales must be anchored to a confirmed address within the 500-foot radius.</p>
-              <p>If you do not live within the radius, you must designate a co-host who does.</p>
-              <p>The co-host must have (or create) an account with the matching confirmed address and must accept the invitation before the sale can use that address.</p>
-            </div>
-
+          <div className="overflow-y-auto pr-1">
             <div className="space-y-4">
-              <AddressFields formData={hostForm} setFormData={setHostForm} />
-            </div>
-
-            {hostLookupResult && (
-              <div className="rounded-lg border border-[#2C4F4E]/20 bg-slate-50 p-4 space-y-3 text-sm">
-                {hostLookupResult.has_match ? (
-                  <>
-                    <p className="font-semibold text-slate-900">Active account found at this confirmed address</p>
-                    <p className="text-slate-700">
-                      {hostLookupResult.matched_host?.full_name} — {hostLookupResult.matched_host?.street_address}, {hostLookupResult.matched_host?.city}, {hostLookupResult.matched_host?.state} {hostLookupResult.matched_host?.zip_code}
-                    </p>
-                    <p className="text-slate-600">
-                      {hostLookupResult.invite?.status === "pending" ? "A co-host request can be sent to this user." : "This co-host invite has already been created."}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-semibold text-slate-900">No active account exists for that address</p>
-                    <p className="text-slate-600">You can still create the invite now and share the app link so the host can create an account, confirm the same address, and receive the co-host request.</p>
-                  </>
-                )}
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-2">
+                <p>Neighborhood Sales must be anchored to a confirmed address within the 500-foot radius.</p>
+                <p>If you do not live within the radius, you must designate a co-host who does.</p>
+                <p>The co-host must have (or create) an account with the matching confirmed address and must accept the invitation before the sale can use that address.</p>
               </div>
-            )}
 
-            <div className="flex gap-3 flex-wrap">
-              <Button variant="outline" onClick={() => handleCheckHostAddress(false)} disabled={isCheckingHost}>
-                {isCheckingHost ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Check Host Address
-              </Button>
-              <Button
-                className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border border-[#2C4F4E]"
-                onClick={() => handleCheckHostAddress(true)}
-                disabled={isCheckingHost}
-              >
-                {isCheckingHost ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {hostLookupResult?.has_match ? "Send Co-Host Request" : "Send Invite Link"}
-              </Button>
+              <div className="space-y-4">
+                <AddressFields formData={hostForm} setFormData={setHostForm} />
+              </div>
+
+              {hostLookupResult && (
+                <div className="rounded-lg border border-[#2C4F4E]/20 bg-slate-50 p-4 space-y-3 text-sm">
+                  {hostLookupResult.has_match ? (
+                    <>
+                      <p className="font-semibold text-slate-900">Active account found at this confirmed address</p>
+                      <p className="text-slate-700">
+                        {hostLookupResult.matched_host?.full_name} — {hostLookupResult.matched_host?.street_address}, {hostLookupResult.matched_host?.city}, {hostLookupResult.matched_host?.state} {hostLookupResult.matched_host?.zip_code}
+                      </p>
+                      <p className="text-slate-600">
+                        {hostLookupResult.invite?.status === "pending" ? "A co-host request can be sent to this user." : "This co-host invite has already been created."}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-slate-900">No active account exists for that address</p>
+                      <p className="text-slate-600">You can still create the invite now and share the app link so the host can create an account, confirm the same address, and receive the co-host request.</p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-3 flex-wrap pb-1">
+                <Button variant="outline" onClick={() => handleCheckHostAddress(false)} disabled={isCheckingHost}>
+                  {isCheckingHost ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Check Host Address
+                </Button>
+                <Button
+                  className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border border-[#2C4F4E]"
+                  onClick={() => handleCheckHostAddress(true)}
+                  disabled={isCheckingHost}
+                >
+                  {isCheckingHost ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  {hostLookupResult?.has_match ? "Send Co-Host Request" : "Send Invite Link"}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
