@@ -56,7 +56,7 @@ export default function ComingSoon() {
             <div className="rounded-2xl border border-[#2C4F4E]/15 bg-[#F3E6CF]/80 p-5">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#5DADA5]">Follow us</p>
               <h2 className="mt-2 text-xl font-bold text-[#2C4F4E]">Follow us on Facebook & Instagram</h2>
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-4 flex flex-row items-center gap-3">
                 <a
                   href="https://www.facebook.com/share/18PP8zJpgM/"
                   target="_blank"
