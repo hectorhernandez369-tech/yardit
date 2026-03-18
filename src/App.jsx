@@ -8,7 +8,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import { base44 } from "@/api/base44Client";
 import { syncAdminInvite } from "@/components/admin/adminInviteSync";
-import { COMING_SOON_SETTING_KEY, isComingSoonModeEnabled } from '@/lib/comingSoonMode';
+import { isComingSoonModeEnabled } from '@/lib/comingSoonMode';
 import PageNotFound from './lib/PageNotFound';
 import ComingSoon from './pages/ComingSoon';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
