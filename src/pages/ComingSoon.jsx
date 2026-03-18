@@ -57,11 +57,19 @@ export default function ComingSoon() {
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#5DADA5]">Follow us</p>
               <h2 className="mt-2 text-xl font-bold text-[#2C4F4E]">Follow us on Facebook & Instagram</h2>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <Button asChild className="border-2 border-[#2C4F4E] bg-[#5DADA5] text-white hover:bg-[#4A9B93]">
-                  <a href="https://www.facebook.com/share/18PP8zJpgM/" target="_blank" rel="noopener noreferrer">
-                    Facebook
-                  </a>
-                </Button>
+                <a
+                  href="https://www.facebook.com/share/18PP8zJpgM/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Visit Yardit on Facebook"
+                  className="inline-flex w-fit rounded-[18px] transition-transform hover:scale-105"
+                >
+                  <img
+                    src="https://media.base44.com/images/public/690f554506edf795e5d84121/6a848e02d_file_000000002984722fad81c30a0e4b6599.png"
+                    alt="Facebook"
+                    className="h-14 w-14 rounded-[18px] object-cover shadow-md"
+                  />
+                </a>
                 <Button asChild variant="outline" className="border-2 border-[#2C4F4E] bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635] hover:text-[#2C4F4E]">
                   <a href="https://www.instagram.com/yardit.app?igsh=NXFzdHdnenZ1ZXlk" target="_blank" rel="noopener noreferrer">
                     Instagram
