@@ -29,7 +29,9 @@ export default function ComingSoon() {
         </div>
 
         <div className="flex flex-col items-center gap-3 text-center">
-          <img src={logoUrl} alt="Yardit logo" className="h-24 w-24 rounded-[28px] border-2 border-[#2C4F4E] bg-white object-cover shadow-lg sm:h-28 sm:w-28" />
+          <div className="rounded-[32px] bg-[#E7D7B8]/70 p-3 shadow-[0_12px_30px_rgba(44,79,78,0.12)] ring-1 ring-[#2C4F4E]/10">
+            <img src={logoUrl} alt="Yardit logo" className="h-24 w-24 object-contain drop-shadow-[0_10px_18px_rgba(44,79,78,0.22)] sm:h-28 sm:w-28" />
+          </div>
           <p className="text-sm font-bold tracking-[0.42em] text-[#F4A849] [-webkit-text-stroke:0.5px_white]">YARDIT</p>
         </div>
 
