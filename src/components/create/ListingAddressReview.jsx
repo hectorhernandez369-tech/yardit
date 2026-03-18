@@ -109,25 +109,12 @@ export default function ListingAddressReview({
             {isGettingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
             Use My Location
           </Button>
-
-          <Button
-            type="button"
-            onClick={onLocateAddress}
-            disabled={isGeocoding}
-            variant="outline"
-            className="gap-2 border-2 border-[#F4A849] bg-[#F3E6CF] text-[#2C4F4E] hover:bg-[#E7D7B8]"
-          >
-            {isGeocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-            Update Pin from Address
-          </Button>
         </div>
       )}
 
       <AddressReviewMap
         lat={formData.lat}
         lng={formData.lng}
-        interactive={isDemoMode && hasProfileAddress}
-        onChange={(lat, lng) => setFormData((prev) => ({ ...prev, lat, lng }))}
       />
 
       {typeof formData.lat === "number" && typeof formData.lng === "number" && (
