@@ -7,7 +7,6 @@ import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import { base44 } from "@/api/base44Client";
-import { syncAdminInvite } from "@/components/admin/adminInviteSync";
 import { isComingSoonModeEnabled } from '@/lib/comingSoonMode';
 import PageNotFound from './lib/PageNotFound';
 import ComingSoon from './pages/ComingSoon';
@@ -22,10 +21,8 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
 
-const relId = (value) => (value && typeof value === 'object' ? value.id : value);
-
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -53,21 +50,10 @@ const AuthenticatedApp = () => {
     initialData: [],
   });
 
-  const { data: hasAdminBypass = false, isLoading: isLoadingAdminBypass } = useQuery({
-    queryKey: ["comingSoonAdminBypass", isAuthenticated],
-    enabled: !!isAuthenticated,
-    queryFn: async () => {
-      const currentUser = await base44.auth.me();
-      const { adminProfile } = await syncAdminInvite(currentUser);
-      return !!adminProfile && adminProfile.is_active === true && relId(adminProfile.user_id) === currentUser.id;
-    },
-    initialData: false,
-  });
-
   const isComingSoonMode = isComingSoonModeEnabled(appSettings);
   const AdminPage = Pages.AdminLite;
 
-  if (isLoadingAppSettings || (isAuthenticated && isLoadingAdminBypass)) {
+  if (isLoadingAppSettings) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
@@ -75,7 +61,7 @@ const AuthenticatedApp = () => {
     );
   }
 
-  if (isComingSoonMode && !hasAdminBypass) {
+  if (isComingSoonMode) {
     return (
       <Routes>
         {AdminPage && (
