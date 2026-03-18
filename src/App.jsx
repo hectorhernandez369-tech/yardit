@@ -1,12 +1,16 @@
 import './App.css'
 import { Toaster } from "@/components/ui/toaster"
-import { QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
+import { base44 } from "@/api/base44Client";
+import { syncAdminInvite } from "@/components/admin/adminInviteSync";
+import { COMING_SOON_SETTING_KEY, isComingSoonModeEnabled } from '@/lib/comingSoonMode';
 import PageNotFound from './lib/PageNotFound';
+import ComingSoon from './pages/ComingSoon';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -17,6 +21,8 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
+
+const relId = (value) => (value && typeof value === 'object' ? value.id : value);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin } = useAuth();
@@ -41,6 +47,53 @@ const AuthenticatedApp = () => {
     }
   }
 
+  const { data: appSettings = [], isLoading: isLoadingAppSettings } = useQuery({
+    queryKey: ["appSettings"],
+    queryFn: () => base44.entities.AppSetting.list(),
+    initialData: [],
+  });
+
+  const { data: hasAdminBypass = false, isLoading: isLoadingAdminBypass } = useQuery({
+    queryKey: ["comingSoonAdminBypass", isAuthenticated],
+    enabled: !!isAuthenticated,
+    queryFn: async () => {
+      const currentUser = await base44.auth.me();
+      const { adminProfile } = await syncAdminInvite(currentUser);
+      return !!adminProfile && adminProfile.is_active === true && relId(adminProfile.user_id) === currentUser.id;
+    },
+    initialData: false,
+  });
+
+  const isComingSoonMode = isComingSoonModeEnabled(appSettings);
+  const AdminPage = Pages.AdminLite;
+
+  if (isLoadingAppSettings || (isAuthenticated && isLoadingAdminBypass)) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (isComingSoonMode && !hasAdminBypass) {
+    return (
+      <Routes>
+        {AdminPage && (
+          <Route
+            path="/AdminLite"
+            element={
+              <LayoutWrapper currentPageName="AdminLite">
+                <AdminPage />
+              </LayoutWrapper>
+            }
+          />
+        )}
+        <Route path="/ComingSoon" element={<ComingSoon />} />
+        <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
+      </Routes>
+    );
+  }
+
   // Render the main app
   return (
     <Routes>
@@ -60,6 +113,7 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
+      <Route path="/ComingSoon" element={<ComingSoon />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
