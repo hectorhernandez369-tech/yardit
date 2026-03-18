@@ -35,8 +35,8 @@ export default function ComingSoon() {
           <p className="text-sm font-bold tracking-[0.42em] text-[#F4A849] [-webkit-text-stroke:0.5px_white]">YARDIT</p>
         </div>
 
-        <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
-          <div className="space-y-6 rounded-[32px] border-2 border-[#2C4F4E] bg-[#E7D7B8]/90 p-6 shadow-[0_18px_50px_rgba(44,79,78,0.14)] sm:p-8">
+        <div className="rounded-[32px] border-2 border-[#2C4F4E] bg-[#E7D7B8]/90 p-6 shadow-[0_18px_50px_rgba(44,79,78,0.14)] sm:p-8">
+          <div className="space-y-6">
             <div className="space-y-4">
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#5DADA5]">Launching soon</p>
               <h1 className="text-4xl font-black leading-tight text-[#2C4F4E] sm:text-5xl">Yardit is Coming Soon</h1>
@@ -49,45 +49,53 @@ export default function ComingSoon() {
               Yardit is a local discovery platform built to help people find yard sales, community events, and local vendors happening nearby. Instead of searching all over the place, users can explore what’s happening around them, view listings on a map, and plan their weekend like a treasure hunt. Whether you’re looking for hidden gems, promoting a sale, or exploring your community, Yardit is designed to make local discovery easier and more exciting.
             </p>
 
-            <p className="text-lg font-semibold text-[#2C4F4E] sm:text-xl">Be the first to know when Yardit launches.</p>
+            <div className="pt-2">
+              <ComingSoonPreviewCard imageUrl={mapScreenshotUrl} />
+            </div>
 
-            <LaunchNotificationForm />
+            <div className="grid gap-5 pt-2 lg:grid-cols-2 lg:items-start">
+              <div className="rounded-2xl border border-[#2C4F4E]/15 bg-[#F3E6CF]/80 p-5">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#5DADA5]">Get notified</p>
+                <h2 className="mt-2 text-xl font-bold text-[#2C4F4E]">Be the first to know when Yardit launches.</h2>
+                <div className="mt-4">
+                  <LaunchNotificationForm />
+                </div>
+              </div>
 
-            <div className="rounded-2xl border border-[#2C4F4E]/15 bg-[#F3E6CF]/80 p-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#5DADA5]">Follow us</p>
-              <h2 className="mt-2 text-xl font-bold text-[#2C4F4E]">Follow us on Facebook & Instagram</h2>
-              <div className="mt-4 flex flex-row items-center gap-3">
-                <a
-                  href="https://www.facebook.com/share/18PP8zJpgM/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Visit Yardit on Facebook"
-                  className="inline-flex w-fit rounded-[18px] transition-transform hover:scale-105"
-                >
-                  <img
-                    src="https://media.base44.com/images/public/690f554506edf795e5d84121/6a848e02d_file_000000002984722fad81c30a0e4b6599.png"
-                    alt="Facebook"
-                    className="h-14 w-14 rounded-[18px] object-cover shadow-md"
-                  />
-                </a>
-                <a
-                  href="https://www.instagram.com/yardit.app?igsh=NXFzdHdnenZ1ZXlk"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Visit Yardit on Instagram"
-                  className="inline-flex w-fit rounded-[18px] transition-transform hover:scale-105"
-                >
-                  <img
-                    src="https://media.base44.com/images/public/690f554506edf795e5d84121/1e2e7440b_file_00000000609471f5a4c3d8fb89db2e37.png"
-                    alt="Instagram"
-                    className="h-14 w-14 rounded-[18px] object-cover shadow-md"
-                  />
-                </a>
+              <div className="rounded-2xl border border-[#2C4F4E]/15 bg-[#F3E6CF]/80 p-5">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#5DADA5]">Follow us</p>
+                <h2 className="mt-2 text-xl font-bold text-[#2C4F4E]">Follow us on Facebook & Instagram</h2>
+                <div className="mt-4 flex flex-row items-center gap-3">
+                  <a
+                    href="https://www.facebook.com/share/18PP8zJpgM/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Visit Yardit on Facebook"
+                    className="inline-flex w-fit rounded-[18px] transition-transform hover:scale-105"
+                  >
+                    <img
+                      src="https://media.base44.com/images/public/690f554506edf795e5d84121/6a848e02d_file_000000002984722fad81c30a0e4b6599.png"
+                      alt="Facebook"
+                      className="h-14 w-14 rounded-[18px] object-cover shadow-md"
+                    />
+                  </a>
+                  <a
+                    href="https://www.instagram.com/yardit.app?igsh=NXFzdHdnenZ1ZXlk"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Visit Yardit on Instagram"
+                    className="inline-flex w-fit rounded-[18px] transition-transform hover:scale-105"
+                  >
+                    <img
+                      src="https://media.base44.com/images/public/690f554506edf795e5d84121/1e2e7440b_file_00000000609471f5a4c3d8fb89db2e37.png"
+                      alt="Instagram"
+                      className="h-14 w-14 rounded-[18px] object-cover shadow-md"
+                    />
+                  </a>
+                </div>
               </div>
             </div>
           </div>
-
-          <ComingSoonPreviewCard imageUrl={mapScreenshotUrl} />
         </div>
       </div>
     </div>
