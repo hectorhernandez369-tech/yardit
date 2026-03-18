@@ -104,6 +104,8 @@ export default function MySettingsTab({ user, session }) {
           </form>
         </CardContent>
       </Card>
+
+      {user?.role === "master" && <ComingSoonModeCard />}
     </div>
   );
 }
