@@ -175,6 +175,11 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
   const formDataRef = React.useRef(formData);
   const didPrefillProfileRef = React.useRef(false);
+  const confirmedAddressKeyRef = React.useRef("");
+  const buildAddressKey = (value) =>
+    [value?.addressText, value?.city, value?.state, value?.zip]
+      .map((part) => String(part || "").trim().toLowerCase())
+      .join("|");
   formDataRef.current = formData;
 
   const confirmedUserAddress = useMemo(() => {
@@ -327,6 +332,17 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       return false;
     }
 
+    const currentAddressKey = buildAddressKey(fd);
+    if (
+      currentAddressKey &&
+      currentAddressKey === confirmedAddressKeyRef.current &&
+      typeof fd.lat === "number" &&
+      typeof fd.lng === "number" &&
+      addressSuggestions.length === 0
+    ) {
+      return true;
+    }
+
     toast.info("Locating address...");
     setIsGeocoding(true);
     setAddressSuggestions([]);
@@ -364,6 +380,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
       if (data.length > 0) {
         if (data.length === 1) {
+          confirmedAddressKeyRef.current = currentAddressKey;
           setFormData((prev) => ({
             ...prev,
             lat: data[0].center[1],
@@ -373,22 +390,25 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
           return true;
         }
 
+        confirmedAddressKeyRef.current = "";
         setAddressSuggestions(data.slice(0, 5));
         toast.info(`Found ${data.length} possible matches. Select one below.`);
         return false;
       }
 
+      confirmedAddressKeyRef.current = "";
       setDebugInfo((prev) => ({ ...prev, lastErrorMessage: "Zero results" }));
       toast.error("No match found. Try a suggestion or adjust spelling.");
       return false;
-    } catch (error) {
+      } catch (error) {
+      confirmedAddressKeyRef.current = "";
       setDebugInfo((prev) => ({ ...prev, lastErrorMessage: error.message }));
       toast.error("Address search failed. Please try again.");
       return false;
     } finally {
       setIsGeocoding(false);
     }
-  }, [setFormData]);
+  }, [addressSuggestions.length, setFormData]);
 
   useEffect(() => {
     if (onGeocodeRef) {
@@ -725,9 +745,16 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
               if (c.id.startsWith("region")) state = c.text;
               if (c.id.startsWith("postcode")) zip = c.text;
             });
+            const nextAddressText = suggestion.address ? `${suggestion.address} ${suggestion.text}` : suggestion.text;
+            confirmedAddressKeyRef.current = buildAddressKey({
+              addressText: nextAddressText,
+              city,
+              state,
+              zip,
+            });
             setFormData((prev) => ({
               ...prev,
-              addressText: suggestion.address ? `${suggestion.address} ${suggestion.text}` : suggestion.text,
+              addressText: nextAddressText,
               city,
               state,
               zip,

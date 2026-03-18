@@ -126,7 +126,7 @@ export default function ListingAddressReview({
         </div>
       )}
 
-      {isDemoMode && addressSuggestions.length > 0 && (
+      {addressSuggestions.length > 0 && (
         <div className="space-y-2">
           <Label className="text-[#2C4F4E]">Suggested Matches</Label>
           <div className="space-y-2">

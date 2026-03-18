@@ -232,7 +232,7 @@ export default function CreateListingPage() {
 
   const { isDemoMode: isGlobalDemoMode } = useAppMode();
   const profileAddressMissing = !user?.street_address || !user?.city || !user?.state || !user?.zip_code;
-  const regularAddressIncomplete = !formData.addressText || !formData.city || !formData.state || !formData.zip || !formData.lat || !formData.lng;
+  const regularAddressIncomplete = !formData.addressText || !formData.city || !formData.state || !formData.zip;
 
   // Pull all user listings (used for “1 active listing” rule)
   const { data: userListings } = useQuery({
@@ -458,19 +458,14 @@ export default function CreateListingPage() {
         return;
       }
 
-      // Auto-trigger geocoding if lat/lng not set
-      if (!formData.lat || !formData.lng) {
-        if (geocodeRef) {
-          toast.info("Verifying address...");
-          const success = await geocodeRef();
-          if (!success) {
-            toast.error("We couldn't confirm this address. Please select a suggestion or check spelling.");
-            return;
-          }
-        } else {
-          toast.error("Please use 'Locate Address' to confirm your location");
-          return;
-        }
+      if (!geocodeRef) {
+        toast.error("Please use 'Locate Address' to confirm your location");
+        return;
+      }
+
+      const success = await geocodeRef();
+      if (!success) {
+        return;
       }
 
       setStep(3);
