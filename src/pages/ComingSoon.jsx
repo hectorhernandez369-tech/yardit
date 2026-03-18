@@ -52,6 +52,23 @@ export default function ComingSoon() {
             <p className="text-lg font-semibold text-[#2C4F4E] sm:text-xl">Be the first to know when Yardit launches.</p>
 
             <LaunchNotificationForm />
+
+            <div className="rounded-2xl border border-[#2C4F4E]/15 bg-[#F3E6CF]/80 p-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#5DADA5]">Follow us</p>
+              <h2 className="mt-2 text-xl font-bold text-[#2C4F4E]">Follow us on Facebook & Instagram</h2>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <Button asChild className="border-2 border-[#2C4F4E] bg-[#5DADA5] text-white hover:bg-[#4A9B93]">
+                  <a href="https://www.facebook.com/share/18PP8zJpgM/" target="_blank" rel="noopener noreferrer">
+                    Facebook
+                  </a>
+                </Button>
+                <Button asChild variant="outline" className="border-2 border-[#2C4F4E] bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635] hover:text-[#2C4F4E]">
+                  <a href="https://www.instagram.com/yardit.app?igsh=NXFzdHdnenZ1ZXlk" target="_blank" rel="noopener noreferrer">
+                    Instagram
+                  </a>
+                </Button>
+              </div>
+            </div>
           </div>
 
           <ComingSoonPreviewCard imageUrl={mapScreenshotUrl} />
