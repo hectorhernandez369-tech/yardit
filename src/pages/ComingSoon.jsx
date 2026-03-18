@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import LaunchNotificationForm from "@/components/coming-soon/LaunchNotificationForm";
 import ComingSoonPreviewCard from "@/components/coming-soon/ComingSoonPreviewCard";
 
-const logoUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/aa5288319_file_00000000c1b871f5aeb839b78344a9a4.png";
+const logoUrl = "https://media.base44.com/images/public/690f554506edf795e5d84121/418a5e7a0_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
 const shipWatermarkUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0ba1ba06_file_00000000fce071fd9ff100a6a9cf19951.png";
 const mapScreenshotUrl = "https://media.base44.com/images/public/690f554506edf795e5d84121/3b0113ec3_Screenshot_20260318_085622_Base44.jpg";
 
