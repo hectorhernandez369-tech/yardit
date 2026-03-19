@@ -668,21 +668,16 @@ export default function HomePage() {
 
       if (listing.listingType === "neighborhood_sale") {
         const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
-        const eventState = deriveNeighborhoodEventState(listing, now);
         if (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now)) return false;
 
         const start = new Date(listing.startDateTime);
         const end = new Date(listing.endDateTime);
-
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-        if (now > end) return false;
+        if (isNaN(start.getTime()) || isNaN(end.getTime()) || now > end) return false;
       } else {
-        if (normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && listing.neighborhood_sale_id) return false;
-        if (listing.status !== "active") return false;
+        if (!shouldShowListingOnMainMap(listing, now)) return false;
 
         const start = new Date(listing.startDateTime);
         const end = new Date(listing.endDateTime);
-
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
         if (!demo && (start > now || end < now)) return false;
       }
