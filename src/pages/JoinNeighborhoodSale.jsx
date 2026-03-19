@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -6,6 +6,13 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
+
+function buildListingNumber(state = "XX", zip = "0000") {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let suffix = "";
+  for (let i = 0; i < 5; i++) suffix += chars[Math.floor(Math.random() * chars.length)];
+  return `${String(state).toUpperCase().slice(0, 2)}${String(zip).slice(-4).padStart(4, "0")}-${suffix}`;
+}
 
 export default function JoinNeighborhoodSale() {
   const [searchParams] = useSearchParams();
@@ -34,37 +41,25 @@ export default function JoinNeighborhoodSale() {
     queryFn: async () => {
       if (!code) return null;
       const sales = await base44.entities.Listing.filter({ invite_code: code, listingType: "neighborhood_sale" });
-      return sales.length > 0 ? sales[0] : null;
+      return sales[0] || null;
     },
     enabled: !!code,
   });
 
-  const { data: requesterListings = [] } = useQuery({
-    queryKey: ["join_request_requester_listings", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const listings = await base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date");
-      return listings.filter((listing) => listing.listingType !== "neighborhood_sale" && listing.status === "active");
-    },
-    enabled: !!user?.id,
-    initialData: [],
-  });
-
-  const requesterListing = useMemo(() => requesterListings[0] || null, [requesterListings]);
-
-  const { data: existingRequests } = useQuery({
+  const { data: existingRequests = [] } = useQuery({
     queryKey: ["join_requests", user?.id, sale?.id],
     queryFn: async () => {
       if (!user?.id || !sale?.id) return [];
       return await base44.entities.JoinRequest.filter({ requesterUserId: user.id, saleListingId: sale.id });
     },
     enabled: !!user?.id && !!sale?.id,
+    initialData: [],
   });
 
   const requestMutation = useMutation({
     mutationFn: async () => {
-      if (!requesterListing?.id) {
-        throw new Error("Create a standard listing first before requesting to join this Neighborhood Sale.");
+      if (!user?.street_address || !user?.city || !user?.state || !user?.zip_code || !user?.address_lat || !user?.address_lng) {
+        throw new Error("Please confirm your address in Settings before joining this Neighborhood Sale.");
       }
 
       const existing = await base44.entities.JoinRequest.filter({ requesterUserId: user.id, saleListingId: sale.id });
@@ -72,21 +67,44 @@ export default function JoinNeighborhoodSale() {
         throw new Error("You already have a join request for this Neighborhood Sale.");
       }
 
-      await base44.entities.Listing.update(requesterListing.id, {
+      const inviteListing = await base44.entities.Listing.create({
+        ownerUserId: user.id,
+        listingType: "yard_sale",
+        title: user.street_address ? `Yard Sale at ${user.street_address}` : "Yard Sale",
+        description: "",
+        addressText: user.street_address,
+        city: user.city,
+        state: String(user.state || "").toUpperCase().slice(0, 2),
+        zip: user.zip_code,
+        lat: user.address_lat,
+        lng: user.address_lng,
+        timeZoneId: sale.timeZoneId || "America/Los_Angeles",
+        tier: "free",
+        pricePaid: 0,
+        status: "active",
+        category: "Neighborhood Sale",
+        categories: [],
+        startDateTime: sale.startDateTime,
+        endDateTime: sale.endDateTime,
+        selectedRangeStartDate: sale.selectedRangeStartDate || sale.startDateTime?.slice(0, 10),
+        selectedRangeEndDate: sale.selectedRangeEndDate || sale.endDateTime?.slice(0, 10),
         neighborhood_join_status: "pending",
+        payment_intent_status: "none",
         neighborhood_sale_id: sale.id,
-        payment_intent_status: "hold_requested",
-        hold_deadline_at: sale.startDateTime || null,
+        participant_origin: "neighborhood_invite",
+        origin_sale_listing_id: sale.id,
+        listingNumber: buildListingNumber(user.state, user.zip_code),
       });
 
       await base44.entities.Notification.create({
         userId: sale.ownerUserId,
+        user_id: sale.ownerUserId,
         title: "New Join Request",
         message: "Someone requested to join your Neighborhood Sale.",
         type: "join_request",
         metadata: {
           sale_listing_id: sale.id,
-          requester_listing_id: requesterListing.id,
+          requester_listing_id: inviteListing.id,
           requester_user_id: user.id,
           event_title: sale.title,
         },
@@ -94,23 +112,25 @@ export default function JoinNeighborhoodSale() {
 
       await base44.entities.Notification.create({
         userId: user.id,
+        user_id: user.id,
         title: "Join Request Sent",
         message: "Your request to join the Neighborhood Sale has been sent.",
         type: "join_request_sent",
         metadata: {
           sale_listing_id: sale.id,
-          requester_listing_id: requesterListing.id,
+          requester_listing_id: inviteListing.id,
           requester_user_id: user.id,
           event_title: sale.title,
         },
       });
 
       return await base44.entities.JoinRequest.create({
-        listingId: requesterListing.id,
+        listingId: inviteListing.id,
         saleListingId: sale.id,
         requesterUserId: user.id,
         ownerUserId: sale.ownerUserId,
-        status: "pending"
+        status: "pending",
+        participant_origin_snapshot: "neighborhood_invite",
       });
     },
     onSuccess: () => {
@@ -128,9 +148,7 @@ export default function JoinNeighborhoodSale() {
     return (
       <div className="min-h-[calc(100vh-140px)] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <CardContent className="pt-6 text-center text-slate-500">
-            Invalid invite link
-          </CardContent>
+          <CardContent className="pt-6 text-center text-slate-500">Invalid invite link</CardContent>
         </Card>
       </div>
     );
@@ -144,9 +162,7 @@ export default function JoinNeighborhoodSale() {
     return (
       <div className="min-h-[calc(100vh-140px)] flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <CardContent className="pt-6 text-center text-slate-500">
-            Sale not found or invalid code.
-          </CardContent>
+          <CardContent className="pt-6 text-center text-slate-500">Sale not found or invalid code.</CardContent>
         </Card>
       </div>
     );
@@ -154,6 +170,8 @@ export default function JoinNeighborhoodSale() {
 
   const startDate = sale.startDateTime ? new Date(sale.startDateTime).toLocaleDateString() : "";
   const endDate = sale.endDateTime ? new Date(sale.endDateTime).toLocaleDateString() : "";
+  const activeRequest = existingRequests.find((request) => ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status)));
+  const missingConfirmedAddress = user && (!user.street_address || !user.city || !user.state || !user.zip_code || !user.address_lat || !user.address_lng);
 
   const handleSignIn = () => {
     const nextUrl = window.location.pathname + window.location.search;
@@ -168,9 +186,6 @@ export default function JoinNeighborhoodSale() {
     requestMutation.mutate();
   };
 
-  const activeRequest = existingRequests?.find((request) => ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status)));
-  const cannotRequestYet = user && !requesterListing && !activeRequest;
-
   return (
     <div className="min-h-[calc(100vh-140px)] flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-2 border-[#2C4F4E] bg-[#E7D7B8]">
@@ -181,37 +196,38 @@ export default function JoinNeighborhoodSale() {
           <div>
             <h3 className="font-bold text-lg text-[#2C4F4E]">{sale.title}</h3>
             {startDate && endDate && (
-              <p className="text-sm text-[#1F2937]">
-                {startDate} - {endDate}
-              </p>
+              <p className="text-sm text-[#1F2937]">{startDate} - {endDate}</p>
             )}
           </div>
-          
+
+          <div className="p-3 bg-white/60 border border-[#2C4F4E]/20 rounded-md text-sm text-[#2C4F4E]">
+            Joining from this invite link creates a free invite-based participant listing using your confirmed address.
+          </div>
+
           {user && activeRequest && (
             <div className="p-3 bg-white/50 border border-[#2C4F4E]/30 rounded-md text-[#2C4F4E] text-sm font-medium">
-              {activeRequest.status === "approved" ? "Your request has been approved." : "Request already sent. Pending approval."}
+              {normalizeNeighborhoodJoinStatus(activeRequest.status) === "approved" ? "Your request has been approved." : "Request already sent. Pending approval."}
             </div>
           )}
 
-          {cannotRequestYet && (
+          {missingConfirmedAddress && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-900 text-sm font-medium">
-              Create a standard listing first, then come back to request to join this Neighborhood Sale.
+              Confirm your address in Settings before joining this Neighborhood Sale.
             </div>
           )}
-          
         </CardContent>
         <CardFooter>
           {!user ? (
             <Button onClick={handleSignIn} className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-bold">
-              Sign in to Request
+              Sign in to Join
             </Button>
           ) : (
-            <Button 
-              onClick={handleRequest} 
-              disabled={!!activeRequest || cannotRequestYet || requestMutation.isPending || sale.ownerUserId === user.id} 
+            <Button
+              onClick={handleRequest}
+              disabled={!!activeRequest || missingConfirmedAddress || requestMutation.isPending || sale.ownerUserId === user.id}
               className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-bold disabled:opacity-50"
             >
-              {requestMutation.isPending ? "Sending..." : activeRequest ? "Request sent" : "Request to Join"}
+              {requestMutation.isPending ? "Sending..." : activeRequest ? "Request sent" : "Join Neighborhood Sale"}
             </Button>
           )}
         </CardFooter>
