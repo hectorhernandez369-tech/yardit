@@ -13,7 +13,12 @@ import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import FormScrollHelper from "../components/create/FormScrollHelper";
 import { useAppMode } from "../components/shared/DemoMode";
-import { deriveNeighborhoodEventState, isNeighborhoodJoinAllowed, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
+import {
+  deriveNeighborhoodEventState,
+  getNeighborhoodCreationLeadTimeError,
+  isNeighborhoodJoinAllowed,
+  normalizeNeighborhoodJoinStatus,
+} from "@/lib/neighborhoodSaleState";
 
 // Tier Engine (shared business logic)
 import {
@@ -108,6 +113,24 @@ function getSaleConfirmedCount(sale) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function buildNeighborhoodDeadlineJobs(startDateTime, saleListingId) {
+  const start = new Date(startDateTime);
+  return [
+    {
+      sale_listing_id: saleListingId,
+      checkpoint_type: "warning_48h",
+      run_at: new Date(start.getTime() - 48 * 60 * 60 * 1000).toISOString(),
+      status: "pending",
+    },
+    {
+      sale_listing_id: saleListingId,
+      checkpoint_type: "cancel_24h",
+      run_at: new Date(start.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+      status: "pending",
+    },
+  ];
+}
+
 export default function CreateListingPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -122,6 +145,7 @@ export default function CreateListingPage() {
   const [saleModalStep, setSaleModalStep] = useState(0); // 0: none, 1: popup1, 2: popup2
   const [matchedSale, setMatchedSale] = useState(null);
   const [joinAction, setJoinAction] = useState(null); // null, "requested", "none"
+  const [activeRescue, setActiveRescue] = useState(null);
 
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
@@ -217,6 +241,51 @@ export default function CreateListingPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
+
+  useEffect(() => {
+    const rescueToken = new URLSearchParams(location.search).get("rescueToken");
+    if (!rescueToken || !user?.id) return;
+
+    const loadRescue = async () => {
+      const rescues = await base44.entities.NeighborhoodTierRescue.filter({ token: rescueToken }, "-created_date");
+      const rescue = rescues.find((item) => item.user_id === user.id && item.status === "active" && (!item.expires_at || new Date(item.expires_at) > new Date()));
+      if (!rescue) {
+        toast.error("This rescue link is no longer available.");
+        return;
+      }
+
+      setActiveRescue(rescue);
+      setFormData((prev) => ({
+        ...prev,
+        listingType: "yard_sale",
+        title: prev.title || "Yard Sale",
+        description: prev.description || "",
+        tier: "",
+        addressText: rescue.addressText,
+        city: rescue.city,
+        state: rescue.state,
+        zip: rescue.zip,
+        lat: rescue.lat,
+        lng: rescue.lng,
+        locationMethod: "profile",
+        participant_origin: "standalone",
+        neighborhood_join_status: "none",
+        neighborhood_sale_id: "",
+        origin_sale_listing_id: "",
+        startDateTime: "",
+        endDateTime: "",
+        selectedRangeStartDate: "",
+        selectedRangeEndDate: "",
+        earlyVisibilityDays: 0,
+        earlyVisibilityDates: [],
+        activeDates: [],
+      }));
+      setStep(3);
+      toast.success("Neighborhood rescue loaded — choose a tier to keep your sale live.");
+    };
+
+    loadRescue();
+  }, [location.search, user?.id]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -320,6 +389,15 @@ export default function CreateListingPage() {
       return listing;
     },
     onSuccess: async (createdListing) => {
+      if (createdListing.listingType === "neighborhood_sale") {
+        try {
+          const jobs = buildNeighborhoodDeadlineJobs(createdListing.startDateTime, createdListing.id);
+          await Promise.all(jobs.map((job) => base44.entities.NeighborhoodDeadlineJob.create(job)));
+        } catch (err) {
+          console.error("Failed to create neighborhood deadline jobs", err);
+        }
+      }
+
       if (joinAction === "requested" && matchedSale) {
         try {
           await base44.entities.JoinRequest.create({
@@ -327,11 +405,13 @@ export default function CreateListingPage() {
             saleListingId: matchedSale.id,
             ownerUserId: matchedSale.ownerUserId,
             requesterUserId: user.id,
-            status: "pending"
+            status: "pending",
+            participant_origin_snapshot: "standalone"
           });
-          
+
           await base44.entities.Notification.create({
             userId: matchedSale.ownerUserId,
+            user_id: matchedSale.ownerUserId,
             title: "New Join Request",
             message: "Someone requested to join your Neighborhood Sale.",
             type: "join_request",
@@ -342,9 +422,10 @@ export default function CreateListingPage() {
               event_title: matchedSale.title
             }
           });
-          
+
           await base44.entities.Notification.create({
             userId: user.id,
+            user_id: user.id,
             title: "Join Request Sent",
             message: "Your request to join the Neighborhood Sale has been sent.",
             type: "join_request_sent",
@@ -360,8 +441,20 @@ export default function CreateListingPage() {
         }
       }
 
+      if (activeRescue?.id) {
+        try {
+          await base44.entities.NeighborhoodTierRescue.update(activeRescue.id, {
+            status: "used",
+            used_at: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.error("Failed to mark rescue as used", err);
+        }
+      }
+
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       queryClient.invalidateQueries({ queryKey: ["userListings", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("Listing created successfully!");
       navigate(createPageUrl("MyListings"));
     },
@@ -429,6 +522,12 @@ export default function CreateListingPage() {
 
         if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
           toast.error("Please select start and end dates");
+          return;
+        }
+
+        const leadTimeError = getNeighborhoodCreationLeadTimeError(formData.selectedRangeStartDate);
+        if (leadTimeError) {
+          toast.error(leadTimeError);
           return;
         }
 
@@ -636,6 +735,11 @@ export default function CreateListingPage() {
     if (formData.listingType === "neighborhood_sale") {
       if (formData.homeCount < 1 || formData.homeCount > 25) {
         toast.error("Neighborhood Sales must have between 1 and 25 homes.");
+        return;
+      }
+      const leadTimeError = getNeighborhoodCreationLeadTimeError(formData.selectedRangeStartDate);
+      if (leadTimeError) {
+        toast.error(leadTimeError);
         return;
       }
     }
