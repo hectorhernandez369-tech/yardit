@@ -220,7 +220,9 @@ export default function MyListingsPage() {
     if (!ok) return;
 
     try {
-      await base44.entities.Listing.delete(listing.id);
+      if (listing.listingType !== "neighborhood_sale") {
+        await base44.entities.Listing.delete(listing.id);
+      }
 
       // Notification Cleanup
       try {
@@ -230,22 +232,12 @@ export default function MyListingsPage() {
         }
 
         if (listing.listingType === "neighborhood_sale") {
-          const saleReqs = await base44.entities.JoinRequest.filter({ saleListingId: listing.id });
-          for (const req of saleReqs) {
-            await base44.entities.JoinRequest.update(req.id, {
-              status: "denied",
-              removed_by_eo: true,
-              removed_at: new Date().toISOString(),
-              removal_reason: "event_deleted",
-            });
-            if (req.listingId) {
-              await base44.entities.Listing.update(req.listingId, {
-                neighborhood_join_status: "denied",
-                neighborhood_sale_id: null,
-                payment_intent_status: "none",
-              });
-            }
-          }
+          await base44.functions.invoke("cancelNeighborhoodSale", {
+            saleListingId: listing.id,
+            reason: "event_deleted",
+            finalState: "canceled",
+            deleteSale: true,
+          });
         }
 
         const allNotifs = await base44.entities.Notification.filter({});
