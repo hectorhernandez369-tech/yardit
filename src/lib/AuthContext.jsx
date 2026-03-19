@@ -19,6 +19,11 @@ export const AuthProvider = ({ children }) => {
 
   const checkAppState = async () => {
     try {
+      console.log('AUTH_DEBUG checkAppState:start', {
+        hasToken: !!appParams.token,
+        appId: appParams.appId,
+        serverUrl: appParams.serverUrl,
+      });
       setIsLoadingPublicSettings(true);
       setAuthError(null);
       
@@ -34,19 +39,35 @@ export const AuthProvider = ({ children }) => {
       });
       
       try {
+        console.log('AUTH_DEBUG checkAppState:publicSettings:request', {
+          url: `${appParams.serverUrl}/api/apps/public/prod/public-settings/by-id/${appParams.appId}`,
+          hasToken: !!appParams.token,
+        });
         const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
+        console.log('AUTH_DEBUG checkAppState:publicSettings:success', {
+          status: publicSettings?.status,
+          hasData: !!publicSettings,
+        });
         setAppPublicSettings(publicSettings);
         
         // If we got the app public settings successfully, check if user is authenticated
         if (appParams.token) {
+          console.log('AUTH_DEBUG checkAppState:tokenPresent -> checkUserAuth');
           await checkUserAuth();
         } else {
+          console.log('AUTH_DEBUG checkAppState:noToken');
           setIsLoadingAuth(false);
           setIsAuthenticated(false);
         }
         setIsLoadingPublicSettings(false);
       } catch (appError) {
         console.error('App state check failed:', appError);
+        console.log('AUTH_DEBUG checkAppState:publicSettings:error', {
+          status: appError?.status,
+          data: appError?.data,
+          message: appError?.message,
+          reason: appError?.data?.extra_data?.reason,
+        });
         
         // Handle app-level errors
         if (appError.status === 403 && appError.data?.extra_data?.reason) {
@@ -89,14 +110,24 @@ export const AuthProvider = ({ children }) => {
 
   const checkUserAuth = async () => {
     try {
+      console.log('AUTH_DEBUG checkUserAuth:start', { hasToken: !!appParams.token });
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
+      console.log('AUTH_DEBUG base44.auth.me:success', {
+        userId: currentUser?.id,
+        email: currentUser?.email,
+      });
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
     } catch (error) {
       console.error('User auth check failed:', error);
+      console.log('AUTH_DEBUG base44.auth.me:error', {
+        status: error?.status,
+        data: error?.data,
+        message: error?.message,
+      });
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       
@@ -124,6 +155,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
+    console.log('AUTH_DEBUG navigateToLogin', {
+      hasToken: !!appParams.token,
+      currentUrl: window.location.href,
+      authError,
+    });
     // Use the SDK's redirectToLogin method
     base44.auth.redirectToLogin(window.location.href);
   };
