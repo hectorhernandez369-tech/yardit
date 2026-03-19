@@ -8,6 +8,9 @@ export const NEIGHBORHOOD_EVENT_STATES = [
   "canceled",
 ];
 
+export const NEIGHBORHOOD_MIN_HOMES = 5;
+export const NEIGHBORHOOD_CREATION_MIN_LEAD_DAYS = 7;
+
 export function normalizeNeighborhoodJoinStatus(status) {
   if (status === "requested") return "pending";
   if (status === "approved_pending_payment") return "approved";
@@ -19,6 +22,17 @@ export function getNeighborhoodApprovedHomesCount(requests = [], options = {}) {
   const activeRequests = (requests || []).filter((request) => request?.removed_by_eo !== true);
   const approvedRequests = activeRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === "approved");
   return approvedRequests.length + (includeOrganizer ? 1 : 0);
+}
+
+export function getNeighborhoodCreationLeadTimeError(startValue, nowInput = new Date()) {
+  if (!startValue) return null;
+  const start = String(startValue).includes("T") ? new Date(startValue) : new Date(`${startValue}T00:00:00`);
+  if (Number.isNaN(start.getTime())) return null;
+  const now = nowInput instanceof Date ? nowInput : new Date(nowInput);
+  if (start.getTime() - now.getTime() < NEIGHBORHOOD_CREATION_MIN_LEAD_DAYS * 24 * 60 * 60 * 1000) {
+    return "Neighborhood Sales must be scheduled at least 7 days in advance.";
+  }
+  return null;
 }
 
 export function deriveNeighborhoodEventState(listing, nowInput = new Date()) {
@@ -49,7 +63,7 @@ export function deriveNeighborhoodEventState(listing, nowInput = new Date()) {
     return "expired";
   }
 
-  return "pending_activation";
+  return status === "closed" ? (listing.event_state || "expired") : "pending_activation";
 }
 
 export function isNeighborhoodVisibleOnMap(listing, nowInput = new Date()) {
@@ -59,4 +73,30 @@ export function isNeighborhoodVisibleOnMap(listing, nowInput = new Date()) {
 export function isNeighborhoodJoinAllowed(listing, nowInput = new Date()) {
   const eventState = deriveNeighborhoodEventState(listing, nowInput);
   return ["pending_activation", "activated", "coming_soon", "active"].includes(eventState);
+}
+
+export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
+  if (!listing) return false;
+
+  if (listing.listingType === "neighborhood_sale") {
+    return isNeighborhoodVisibleOnMap(listing, nowInput) && Number(listing.homeCount || 0) >= NEIGHBORHOOD_MIN_HOMES;
+  }
+
+  if (listing.status !== "active") return false;
+
+  const joinStatus = normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status);
+  const isJoined = joinStatus === "approved" && !!listing.neighborhood_sale_id;
+  if (!isJoined) return true;
+
+  if (listing.participant_origin === "neighborhood_invite") return false;
+  return listing.tier === "featured" || listing.tier === "premium";
+}
+
+export function shouldShowListingInNeighborhoodParticipantView(participantListing, eventListing, request, nowInput = new Date()) {
+  if (!participantListing || !eventListing || eventListing.listingType !== "neighborhood_sale") return false;
+  if (!isNeighborhoodVisibleOnMap(eventListing, nowInput)) return false;
+  if (request?.removed_by_eo === true || normalizeNeighborhoodJoinStatus(request?.status) !== "approved") return false;
+
+  if (participantListing.participant_origin === "neighborhood_invite") return true;
+  return participantListing.tier === "free";
 }
