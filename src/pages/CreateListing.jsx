@@ -708,13 +708,19 @@ export default function CreateListingPage() {
     }
 
     // Add Neighborhood Join Status fields
+    if (payload.listingType !== "neighborhood_sale") {
+      payload.participant_origin = payload.participant_origin || "standalone";
+    }
+
     if (actionStr === "requested" && matchedSale) {
       payload.neighborhood_join_status = "pending";
-      payload.payment_intent_status = "hold_requested";
-      payload.hold_deadline_at = payload.startDateTime;
+      payload.payment_intent_status = "none";
+      payload.hold_deadline_at = null;
       payload.neighborhood_sale_id = matchedSale.id;
+      payload.participant_origin = "standalone";
+      payload.origin_sale_listing_id = null;
     } else {
-      payload.neighborhood_join_status = "none";
+      payload.neighborhood_join_status = payload.neighborhood_join_status || "none";
     }
 
     if (isGlobalDemoMode) {
@@ -965,10 +971,9 @@ export default function CreateListingPage() {
 
           <div className="py-4">
             <p className="text-slate-700 whitespace-pre-line leading-relaxed">
-              If accepted, you will not be charged a listing fee.{"\n"}
-              Please continue checkout now — your request will not be sent until after checkout is submitted.{"\n"}
-              Your payment will be placed on hold.{"\n"}
-              If you are not accepted by the time your listing starts, you will be charged. No refund.
+              Joining a Neighborhood Sale is free.{"\n"}
+              Your standalone listing keeps its current tier and visibility benefits if approved.{"\n"}
+              If the organizer does not approve your request, your listing still stays active under its selected tier.
             </p>
           </div>
 
