@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 const NEIGHBORHOOD_MIN_HOMES = 5;
 const NEIGHBORHOOD_MAX_HOMES = 25;
@@ -33,7 +33,7 @@ function deriveNeighborhoodEventState(listing, nowInput = new Date()) {
     if (end && !Number.isNaN(end.getTime()) && now <= end) return 'active';
     return 'expired';
   }
-  return 'pending_activation';
+  return status === 'closed' ? (explicit || 'expired') : 'pending_activation';
 }
 
 Deno.serve(async (req) => {
@@ -59,19 +59,6 @@ Deno.serve(async (req) => {
 
       if (listing.event_state !== nextEventState || listing.homeCount !== approvedHomes || listing.status !== nextStatus) {
         await base44.asServiceRole.entities.Listing.update(listing.id, {
-          ...listing,
-          ownerUserId: listing.ownerUserId,
-          listingType: listing.listingType || 'neighborhood_sale',
-          title: listing.title || 'Neighborhood Sale',
-          city: listing.city || 'Unknown',
-          zip: listing.zip || '00000',
-          lat: listing.lat,
-          lng: listing.lng,
-          timeZoneId: listing.timeZoneId || 'America/Los_Angeles',
-          tier: listing.tier || 'neighborhood_tier',
-          category: listing.category || 'Neighborhood Sale',
-          startDateTime: listing.startDateTime,
-          endDateTime: listing.endDateTime,
           event_state: nextEventState,
           homeCount: approvedHomes,
           status: nextStatus,

@@ -1,7 +1,6 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 const NEIGHBORHOOD_MIN_HOMES = 5;
-const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 
 function normalizeNeighborhoodJoinStatus(status) {
   if (status === 'requested') return 'pending';
@@ -13,86 +12,115 @@ function getApprovedHomesCount(requests = []) {
   return (requests || []).filter((request) => request?.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + 1;
 }
 
+function isTerminalSale(listing) {
+  return listing?.event_state === 'downgraded' || listing?.event_state === 'canceled' || listing?.status === 'closed';
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const listings = await base44.asServiceRole.entities.Listing.filter({ listingType: 'neighborhood_sale' });
+    const jobs = await base44.asServiceRole.entities.NeighborhoodDeadlineJob.list('-created_date');
     const now = new Date();
-    const downgraded = [];
+    const processed = [];
 
-    for (const listing of listings) {
-      if (listing.event_state === 'downgraded' || listing.event_state === 'canceled') continue;
-      if (!listing.startDateTime) continue;
+    for (const job of jobs.filter((item) => item.status === 'pending')) {
+      const runAt = job.run_at ? new Date(job.run_at) : null;
+      if (!runAt || Number.isNaN(runAt.getTime()) || runAt > now) continue;
 
-      const start = new Date(listing.startDateTime);
-      if (Number.isNaN(start.getTime())) continue;
-      const msUntilStart = start.getTime() - now.getTime();
-      if (msUntilStart > FORTY_EIGHT_HOURS_MS || msUntilStart < 0) continue;
-
-      const requests = await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId: listing.id });
-      const approvedHomes = getApprovedHomesCount(requests);
-      if (approvedHomes >= NEIGHBORHOOD_MIN_HOMES) continue;
-
-      await base44.asServiceRole.entities.Listing.update(listing.id, {
-        ...listing,
-        ownerUserId: listing.ownerUserId,
-        listingType: listing.listingType || 'neighborhood_sale',
-        title: listing.title || 'Neighborhood Sale',
-        city: listing.city || 'Unknown',
-        zip: listing.zip || '00000',
-        lat: listing.lat,
-        lng: listing.lng,
-        timeZoneId: listing.timeZoneId || 'America/Los_Angeles',
-        tier: listing.tier || 'neighborhood_tier',
-        category: listing.category || 'Neighborhood Sale',
-        startDateTime: listing.startDateTime,
-        endDateTime: listing.endDateTime,
-        event_state: 'downgraded',
-        status: 'closed',
-        activation_status: 'pending',
-        statusReason: 'Neighborhood Sale downgraded: fewer than 5 approved homes by the 48-hour activation deadline.',
-        homeCount: approvedHomes,
-      });
-
-      for (const request of requests) {
-        await base44.asServiceRole.entities.JoinRequest.update(request.id, {
-          status: 'denied',
-          removed_by_eo: true,
-          removed_at: now.toISOString(),
-          removal_reason: 'downgraded_minimum_not_met',
+      const sales = await base44.asServiceRole.entities.Listing.filter({ id: job.sale_listing_id });
+      const sale = sales[0];
+      if (!sale) {
+        await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
+          status: 'cancelled',
+          processed_at: now.toISOString(),
+          error_message: 'Sale not found',
         });
+        continue;
+      }
 
-        if (request.listingId) {
-          await base44.asServiceRole.entities.Listing.update(request.listingId, {
-            neighborhood_join_status: 'denied',
-            neighborhood_sale_id: null,
-            payment_intent_status: 'none',
-          });
-        }
+      if (isTerminalSale(sale)) {
+        await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
+          status: 'cancelled',
+          processed_at: now.toISOString(),
+        });
+        continue;
+      }
 
-        if (request.requesterUserId) {
-          await base44.asServiceRole.entities.Notification.create({
-            userId: request.requesterUserId,
-            user_id: request.requesterUserId,
-            title: 'Neighborhood Sale Not Activated',
-            message: `${listing.title || 'Neighborhood Sale'} did not reach the 5-home minimum and was downgraded.`,
-            type: 'removed_from_neighborhood',
-            metadata: {
-              sale_listing_id: listing.id,
-              requester_listing_id: request.listingId,
-              requester_user_id: request.requesterUserId,
-              event_title: listing.title,
-            },
-            read: false,
-            is_read: false,
-          });
+      const requests = await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId: sale.id });
+      const approvedHomes = getApprovedHomesCount(requests);
+      await base44.asServiceRole.entities.Listing.update(sale.id, { homeCount: approvedHomes });
+
+      if (job.checkpoint_type === 'warning_48h') {
+        if (approvedHomes < NEIGHBORHOOD_MIN_HOMES) {
+          if (!sale.host_warning_48h_sent_at && sale.ownerUserId) {
+            await base44.asServiceRole.entities.Notification.create({
+              userId: sale.ownerUserId,
+              user_id: sale.ownerUserId,
+              title: 'Neighborhood Sale Warning',
+              message: `${sale.title || 'Neighborhood Sale'} is below the 5-home minimum with 48 hours remaining.`,
+              type: 'neighborhood_sale_warning_48h',
+              related_entity_type: 'listing',
+              related_entity_id: sale.id,
+              metadata: {
+                sale_listing_id: sale.id,
+                event_title: sale.title,
+              },
+              read: false,
+              is_read: false,
+            });
+            await base44.asServiceRole.entities.Listing.update(sale.id, {
+              host_warning_48h_sent_at: now.toISOString(),
+              homeCount: approvedHomes,
+            });
+          }
+
+          for (const request of requests) {
+            if (request.removed_by_eo === true || normalizeNeighborhoodJoinStatus(request.status) !== 'approved' || request.warning_48h_sent_at) continue;
+            if (!request.requesterUserId) continue;
+            await base44.asServiceRole.entities.Notification.create({
+              userId: request.requesterUserId,
+              user_id: request.requesterUserId,
+              title: 'Neighborhood Sale Warning',
+              message: `${sale.title || 'Neighborhood Sale'} is still below the 5-home minimum with 48 hours remaining.`,
+              type: 'neighborhood_sale_warning_48h',
+              related_entity_type: 'listing',
+              related_entity_id: sale.id,
+              metadata: {
+                sale_listing_id: sale.id,
+                requester_listing_id: request.listingId,
+                requester_user_id: request.requesterUserId,
+                event_title: sale.title,
+              },
+              read: false,
+              is_read: false,
+            });
+            await base44.asServiceRole.entities.JoinRequest.update(request.id, {
+              warning_48h_sent_at: now.toISOString(),
+            });
+          }
         }
       }
 
-      downgraded.push({ id: listing.id, approvedHomes });
+      if (job.checkpoint_type === 'cancel_24h' && approvedHomes < NEIGHBORHOOD_MIN_HOMES) {
+        await base44.asServiceRole.functions.invoke('cancelNeighborhoodSale', {
+          saleListingId: sale.id,
+          internal: true,
+          reason: 'minimum_not_met_24h',
+          finalState: 'downgraded',
+          deleteSale: false,
+        });
+      }
+
+      await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
+        status: 'completed',
+        processed_at: now.toISOString(),
+        error_message: null,
+      });
+
+      processed.push({ jobId: job.id, checkpoint_type: job.checkpoint_type, saleListingId: sale.id, approvedHomes });
     }
 
-    return Response.json({ success: true, downgraded_count: downgraded.length, downgraded });
+    return Response.json({ success: true, processed_count: processed.length, processed });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
