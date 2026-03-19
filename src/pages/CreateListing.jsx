@@ -232,6 +232,7 @@ export default function CreateListingPage() {
 
   const { isDemoMode: isGlobalDemoMode } = useAppMode();
   const profileAddressMissing = !user?.street_address || !user?.city || !user?.state || !user?.zip_code;
+  const profileAddressUnconfirmed = profileAddressMissing || !user?.address_lat || !user?.address_lng;
   const regularAddressIncomplete = !formData.addressText || !formData.city || !formData.state || !formData.zip;
 
   // Pull all user listings (used for “1 active listing” rule)
@@ -444,6 +445,27 @@ export default function CreateListingPage() {
           return;
         }
 
+        setStep(3);
+        return;
+      }
+
+      if (!isGlobalDemoMode) {
+        if (profileAddressUnconfirmed) {
+          toast.error("Your address must be confirmed in Settings before you can complete account setup or create a live listing.");
+          navigate(createPageUrl("Settings"));
+          return;
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          addressText: user.street_address,
+          city: user.city,
+          state: (user.state || "").toUpperCase().slice(0, 2),
+          zip: user.zip_code,
+          lat: user.address_lat,
+          lng: user.address_lng,
+          locationMethod: "profile"
+        }));
         setStep(3);
         return;
       }
@@ -764,7 +786,7 @@ export default function CreateListingPage() {
               {step < 3 ? (
                 <Button
                   onClick={handleNext}
-                  disabled={step === 2 && formData.listingType !== "neighborhood_sale" && (profileAddressMissing || regularAddressIncomplete)}
+                  disabled={step === 2 && formData.listingType !== "neighborhood_sale" && (isGlobalDemoMode ? (profileAddressMissing || regularAddressIncomplete) : profileAddressUnconfirmed)}
                   className="flex-1 bg-amber-600 hover:bg-amber-700"
                 >
                   Continue

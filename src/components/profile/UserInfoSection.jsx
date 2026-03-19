@@ -78,7 +78,7 @@ export default function UserInfoSection({ user, setUser }) {
     const { street_address, city, state, zip_code } = formData;
     
     if (!street_address || !city || !state || !zip_code) {
-      toast.error("A complete address (street, city, state, zip) is required.");
+      toast.error("A complete address (street, city, state, zip) is required to finish account setup.");
       return;
     }
 
@@ -230,7 +230,7 @@ export default function UserInfoSection({ user, setUser }) {
             </div>
             
             {(!user.address_lat || !user.address_lng) && (
-              <p className="text-xs text-orange-600 mb-2">Confirm your address to enable Neighborhood Sales</p>
+              <p className="text-xs text-orange-600 mb-2">Confirm your address to finish account setup and create live listings.</p>
             )}
 
             {isEditing ? (
