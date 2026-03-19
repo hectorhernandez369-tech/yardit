@@ -19,7 +19,13 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import RouteBuilder from "../components/map/RouteBuilder";
-import { deriveNeighborhoodEventState, isNeighborhoodVisibleOnMap, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
+import {
+  deriveNeighborhoodEventState,
+  isNeighborhoodVisibleOnMap,
+  normalizeNeighborhoodJoinStatus,
+  shouldShowListingInNeighborhoodParticipantView,
+  shouldShowListingOnMainMap,
+} from "@/lib/neighborhoodSaleState";
 import CheckInButton from "../components/map/CheckInButton";
 import { toast } from "sonner";
 import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
@@ -708,18 +714,14 @@ export default function HomePage() {
 
         const start = new Date(l.startDateTime);
         const end = new Date(l.endDateTime);
-
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-        if (end < now) return false;
+        if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < now) return false;
         return true;
       }
 
-      if (normalizeNeighborhoodJoinStatus(l.neighborhood_join_status) === "approved" && l.neighborhood_sale_id) return false;
-      if (l.status !== "active") return false;
+      if (!shouldShowListingOnMainMap(l, now)) return false;
 
       const start = new Date(l.startDateTime);
       const end = new Date(l.endDateTime);
-
       if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
       if (!demo && (start > now || end < now)) return false;
 
@@ -811,14 +813,14 @@ const stats = useMemo(() => {
   const neighborhoodParticipantPins = useMemo(() => {
     if (currentZoom < 15 || !allJoinRequests?.length) return [];
 
+    const visiblePinIds = new Set(visiblePins.map((pin) => pin.id));
     return allJoinRequests
-      .filter((request) => normalizeNeighborhoodJoinStatus(request.status) === "approved" && request.removed_by_eo !== true)
       .map((request) => {
         const participantListing = listings.find((item) => item.id === request.listingId);
         const eventListing = listings.find((item) => item.id === request.saleListingId);
         if (!participantListing || !eventListing) return null;
-        if (eventListing.listingType !== "neighborhood_sale") return null;
-        if (!isNeighborhoodVisibleOnMap(eventListing)) return null;
+        if (!shouldShowListingInNeighborhoodParticipantView(participantListing, eventListing, request, new Date())) return null;
+        if (visiblePinIds.has(participantListing.id)) return null;
         if (typeof participantListing.lat !== "number" || typeof participantListing.lng !== "number") return null;
 
         return {
@@ -832,7 +834,7 @@ const stats = useMemo(() => {
         };
       })
       .filter(Boolean);
-  }, [allJoinRequests, currentZoom, listings]);
+  }, [allJoinRequests, currentZoom, listings, visiblePins]);
 
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
