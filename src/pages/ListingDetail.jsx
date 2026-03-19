@@ -123,9 +123,20 @@ export default function ListingDetailPage() {
     const sale = sales[0];
     if (!sale) return null;
 
+    const terminalState = deriveNeighborhoodEventState(sale);
     const requests = await base44.entities.JoinRequest.filter({ saleListingId: saleId });
     const paidAmount = Number(paidAmountOverride ?? sale.pricePaid ?? 0);
     const summary = getNeighborhoodPricingSummary(requests, paidAmount);
+
+    if (["downgraded", "canceled"].includes(terminalState)) {
+      await base44.entities.Listing.update(saleId, {
+        homeCount: summary.visibleHomeCount,
+        status: "closed",
+        event_state: terminalState,
+      });
+      return { summary, nextStatus: "closed" };
+    }
+
     const alreadyLive = sale.status === "active" || paidAmount > 0;
     const nextStatus = alreadyLive
       ? "active"
@@ -157,7 +168,8 @@ export default function ListingDetailPage() {
         await base44.entities.JoinRequest.update(requestId, { status: "approved" });
         await base44.entities.Listing.update(requesterListingId, {
           neighborhood_join_status: "approved",
-          payment_intent_status: "voided",
+          payment_intent_status: "none",
+          hold_deadline_at: null,
           neighborhood_sale_id: listingId
         });
         await base44.entities.Notification.create({

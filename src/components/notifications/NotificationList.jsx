@@ -41,12 +41,13 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
       const saleListingId = notification?.metadata?.sale_listing_id;
 
       if (action === "accept") {
-        if (reqListingId) {
-          await base44.entities.Listing.update(reqListingId, {
-            neighborhood_join_status: "approved",
-            payment_intent_status: "voided",
-            activation_status: "active"
-          });
+      if (reqListingId) {
+        await base44.entities.Listing.update(reqListingId, {
+          neighborhood_join_status: "approved",
+          payment_intent_status: "none",
+          hold_deadline_at: null,
+          activation_status: "active"
+        });
 
           const reqs = await base44.entities.JoinRequest.filter({
             listingId: reqListingId,
@@ -154,6 +155,8 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
         url = createPageUrl("AdminLite") + "?tab=cases" + (entityId ? `&openCaseId=${entityId}` : "");
       } else if (notification.type?.startsWith("support_ticket_")) {
         url = createPageUrl("MySupportTickets");
+      } else if (notification.metadata?.rescue_token) {
+        url = createPageUrl("CreateListing") + "?rescueToken=" + notification.metadata.rescue_token;
       } else if (notification.type?.startsWith("join_")) {
         if (entityId) {
           url = createPageUrl("ListingDetail") + "?id=" + entityId;
