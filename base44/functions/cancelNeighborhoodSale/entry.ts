@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
-const RESCUE_EXPIRY_DAYS = 7;
+const NEIGHBORHOOD_MIN_HOMES = 5;
+const RESCUE_EXPIRATION_DAYS = 7;
 
 function normalizeNeighborhoodJoinStatus(status) {
   if (status === 'requested') return 'pending';
@@ -8,19 +9,39 @@ function normalizeNeighborhoodJoinStatus(status) {
   return status;
 }
 
-function buildRescueExpiry(now) {
-  return new Date(now.getTime() + RESCUE_EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString();
+function getApprovedHomesCount(requests = []) {
+  return (requests || []).filter((request) => request?.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + 1;
+}
+
+function createToken() {
+  return crypto.randomUUID().replaceAll('-', '');
+}
+
+function getFallbackRescuePayload(sale, participantListing) {
+  return {
+    title: participantListing?.title || 'My Yard Sale',
+    description: participantListing?.description || '',
+    category: participantListing?.category || 'Miscellaneous',
+    categories: participantListing?.categories?.length ? participantListing.categories : ['Miscellaneous'],
+    collectible_type: participantListing?.collectible_type || null,
+    addressText: participantListing?.addressText || '',
+    city: participantListing?.city || '',
+    state: participantListing?.state || '',
+    zip: participantListing?.zip || '',
+    lat: participantListing?.lat ?? null,
+    lng: participantListing?.lng ?? null,
+    saleTitle: sale?.title || 'Neighborhood Sale',
+  };
 }
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const payload = await req.json().catch(() => ({}));
-    const saleListingId = payload.saleListingId;
-    const reason = payload.reason || 'minimum_not_met_24h';
-    const finalState = payload.finalState || 'downgraded';
-    const deleteSale = payload.deleteSale === true;
-    const internal = payload.internal === true;
+    const saleListingId = payload?.saleListingId;
+    const reason = payload?.reason || 'neighborhood_sale_canceled';
+    const deleteSale = payload?.deleteSale === true;
+    const trigger = payload?.trigger || 'manual';
 
     if (!saleListingId) {
       return Response.json({ error: 'saleListingId is required' }, { status: 400 });
@@ -28,151 +49,183 @@ Deno.serve(async (req) => {
 
     const sales = await base44.asServiceRole.entities.Listing.filter({ id: saleListingId });
     const sale = sales[0];
+
     if (!sale) {
       return Response.json({ error: 'Neighborhood Sale not found' }, { status: 404 });
     }
 
-    if (!internal) {
-      const user = await base44.auth.me();
-      if (!user) {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-      if (user.role !== 'admin' && user.id !== sale.ownerUserId) {
-        return Response.json({ error: 'Forbidden' }, { status: 403 });
-      }
+    const actingUser = await base44.auth.me().catch(() => null);
+    if (actingUser && actingUser.id !== sale.ownerUserId && actingUser.role !== 'admin') {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const now = new Date();
+    const nowIso = now.toISOString();
+    const rescueExpiry = new Date(now.getTime() + RESCUE_EXPIRATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const requests = await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId });
-    const participantListings = await base44.asServiceRole.entities.Listing.list();
-    const listingById = new Map(participantListings.map((listing) => [listing.id, listing]));
-    const processed = [];
+    const approvedHomes = getApprovedHomesCount(requests);
+
+    let typeADeleted = 0;
+    let typeBDetached = 0;
+    let rescueCount = 0;
 
     for (const request of requests) {
-      const participantListing = listingById.get(request.listingId);
-      const origin = request.participant_origin_snapshot || participantListing?.participant_origin || 'standalone';
+      const participantListings = request.listingId
+        ? await base44.asServiceRole.entities.Listing.filter({ id: request.listingId })
+        : [];
+      const participantListing = participantListings[0] || null;
+      const participantOrigin = request.participant_origin_snapshot || participantListing?.participant_origin || 'standalone';
+      const requesterUserId = request.requesterUserId || participantListing?.ownerUserId || null;
+      let cancellationSentAt = request.cancellation_24h_sent_at || null;
+
+      if (!cancellationSentAt && requesterUserId) {
+        if (participantOrigin === 'neighborhood_invite' && participantListing?.addressText && participantListing?.city && participantListing?.state && participantListing?.zip && typeof participantListing?.lat === 'number' && typeof participantListing?.lng === 'number') {
+          const rescueToken = createToken();
+          const rescuePayload = getFallbackRescuePayload(sale, participantListing);
+
+          await base44.asServiceRole.entities.NeighborhoodTierRescue.create({
+            token: rescueToken,
+            user_id: requesterUserId,
+            listing_id: participantListing.id,
+            sale_listing_id: saleListingId,
+            title: rescuePayload.title,
+            description: rescuePayload.description,
+            category: rescuePayload.category,
+            categories: rescuePayload.categories,
+            collectible_type: rescuePayload.collectible_type,
+            addressText: rescuePayload.addressText,
+            city: rescuePayload.city,
+            state: rescuePayload.state,
+            zip: rescuePayload.zip,
+            lat: rescuePayload.lat,
+            lng: rescuePayload.lng,
+            status: 'pending',
+            expires_at: rescueExpiry,
+          });
+
+          await base44.asServiceRole.entities.Notification.create({
+            userId: requesterUserId,
+            user_id: requesterUserId,
+            title: 'Neighborhood Sale canceled',
+            message: `${sale.title || 'Neighborhood Sale'} did not reach the ${NEIGHBORHOOD_MIN_HOMES}-home minimum. Pick a tier to finish your own Yard Sale.`,
+            type: 'neighborhood_rescue_ready',
+            related_entity_type: 'listing',
+            related_entity_id: saleListingId,
+            metadata: {
+              sale_listing_id: saleListingId,
+              requester_listing_id: participantListing.id,
+              requester_user_id: requesterUserId,
+              event_title: sale.title,
+              rescue_token: rescueToken,
+              rescue_expires_at: rescueExpiry,
+            },
+            read: false,
+            is_read: false,
+          });
+
+          rescueCount += 1;
+        } else {
+          await base44.asServiceRole.entities.Notification.create({
+            userId: requesterUserId,
+            user_id: requesterUserId,
+            title: 'Neighborhood Sale canceled',
+            message: `${sale.title || 'Neighborhood Sale'} was canceled. Your listing is no longer grouped with this event.`,
+            type: 'neighborhood_sale_canceled',
+            related_entity_type: 'listing',
+            related_entity_id: saleListingId,
+            metadata: {
+              sale_listing_id: saleListingId,
+              requester_listing_id: request.listingId,
+              requester_user_id: requesterUserId,
+              event_title: sale.title,
+            },
+            read: false,
+            is_read: false,
+          });
+        }
+
+        cancellationSentAt = nowIso;
+      }
 
       await base44.asServiceRole.entities.JoinRequest.update(request.id, {
         status: 'denied',
         removed_by_eo: true,
-        removed_at: now.toISOString(),
+        removed_at: nowIso,
         removal_reason: reason,
-        cancellation_24h_sent_at: request.cancellation_24h_sent_at || now.toISOString(),
+        participant_origin_snapshot: participantOrigin,
+        cancellation_24h_sent_at: cancellationSentAt,
       });
 
-      if (participantListing) {
-        if (origin === 'neighborhood_invite') {
-          const token = crypto.randomUUID();
-          await base44.asServiceRole.entities.NeighborhoodTierRescue.create({
-            token,
-            user_id: request.requesterUserId,
-            listing_id: participantListing.id,
-            sale_listing_id: sale.id,
-            addressText: participantListing.addressText,
-            city: participantListing.city,
-            state: participantListing.state,
-            zip: participantListing.zip,
-            lat: participantListing.lat,
-            lng: participantListing.lng,
-            status: 'active',
-            expires_at: buildRescueExpiry(now),
-          });
-
-          if (request.requesterUserId) {
-            await base44.asServiceRole.entities.Notification.create({
-              userId: request.requesterUserId,
-              user_id: request.requesterUserId,
-              title: 'Neighborhood Sale Cancelled',
-              message: `${sale.title || 'Neighborhood Sale'} did not reach the 5-home minimum. Choose a tier to keep your sale live.`,
-              type: 'neighborhood_tier_rescue',
-              related_entity_type: 'listing',
-              related_entity_id: sale.id,
-              metadata: {
-                sale_listing_id: sale.id,
-                requester_listing_id: participantListing.id,
-                requester_user_id: request.requesterUserId,
-                rescue_token: token,
-                event_title: sale.title,
-              },
-              read: false,
-              is_read: false,
-            });
-          }
-
-          await base44.asServiceRole.entities.Listing.delete(participantListing.id);
-          processed.push({ requestId: request.id, listingId: participantListing.id, origin, action: 'rescued_and_deleted' });
-        } else {
-          await base44.asServiceRole.entities.Listing.update(participantListing.id, {
-            neighborhood_join_status: 'none',
-            neighborhood_sale_id: null,
-            payment_intent_status: 'none',
-            hold_deadline_at: null,
-          });
-
-          if (request.requesterUserId) {
-            await base44.asServiceRole.entities.Notification.create({
-              userId: request.requesterUserId,
-              user_id: request.requesterUserId,
-              title: 'Neighborhood Sale Cancelled',
-              message: `${sale.title || 'Neighborhood Sale'} was cancelled. Your listing stays active under its current tier.`,
-              type: 'removed_from_neighborhood',
-              related_entity_type: 'listing',
-              related_entity_id: sale.id,
-              metadata: {
-                sale_listing_id: sale.id,
-                requester_listing_id: participantListing.id,
-                requester_user_id: request.requesterUserId,
-                event_title: sale.title,
-              },
-              read: false,
-              is_read: false,
-            });
-          }
-
-          processed.push({ requestId: request.id, listingId: participantListing.id, origin, action: 'detached_only' });
-        }
+      if (!participantListing) {
+        continue;
       }
+
+      if (participantOrigin === 'neighborhood_invite') {
+        await base44.asServiceRole.entities.Listing.delete(participantListing.id);
+        typeADeleted += 1;
+        continue;
+      }
+
+      await base44.asServiceRole.entities.Listing.update(participantListing.id, {
+        neighborhood_join_status: 'none',
+        neighborhood_sale_id: null,
+        payment_intent_status: 'none',
+        hold_deadline_at: null,
+      });
+      typeBDetached += 1;
     }
 
-    if (!sale.host_cancellation_24h_sent_at && sale.ownerUserId) {
+    if (!deleteSale && sale.ownerUserId && !sale.host_cancellation_24h_sent_at) {
       await base44.asServiceRole.entities.Notification.create({
         userId: sale.ownerUserId,
         user_id: sale.ownerUserId,
-        title: 'Neighborhood Sale Cancelled',
-        message: `${sale.title || 'Neighborhood Sale'} did not reach the 5-home minimum by the 24-hour checkpoint.`,
-        type: 'neighborhood_sale_cancelled',
+        title: 'Neighborhood Sale canceled',
+        message: `${sale.title || 'Neighborhood Sale'} did not reach the ${NEIGHBORHOOD_MIN_HOMES}-home minimum and has been canceled.`,
+        type: 'neighborhood_sale_canceled_host',
         related_entity_type: 'listing',
-        related_entity_id: sale.id,
+        related_entity_id: saleListingId,
         metadata: {
-          sale_listing_id: sale.id,
+          sale_listing_id: saleListingId,
           event_title: sale.title,
+          trigger,
         },
         read: false,
         is_read: false,
       });
     }
 
-    const pendingJobs = await base44.asServiceRole.entities.NeighborhoodDeadlineJob.filter({ sale_listing_id: sale.id, status: 'pending' });
-    for (const job of pendingJobs) {
-      await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
-        status: 'cancelled',
-        processed_at: now.toISOString(),
-      });
+    const jobs = await base44.asServiceRole.entities.NeighborhoodDeadlineJob.filter({ sale_listing_id: saleListingId });
+    for (const job of jobs) {
+      if (job.status === 'pending') {
+        await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
+          status: 'cancelled',
+          processed_at: nowIso,
+        });
+      }
     }
 
     if (deleteSale) {
-      await base44.asServiceRole.entities.Listing.delete(sale.id);
+      await base44.asServiceRole.entities.Listing.delete(saleListingId);
     } else {
-      await base44.asServiceRole.entities.Listing.update(sale.id, {
-        event_state: finalState,
+      await base44.asServiceRole.entities.Listing.update(saleListingId, {
+        event_state: 'canceled',
         status: 'closed',
         activation_status: 'pending',
-        statusReason: 'Neighborhood Sale cancelled: fewer than 5 total homes at the 24-hour checkpoint.',
-        host_cancellation_24h_sent_at: sale.host_cancellation_24h_sent_at || now.toISOString(),
+        statusReason: reason,
+        homeCount: approvedHomes,
+        host_cancellation_24h_sent_at: sale.host_cancellation_24h_sent_at || nowIso,
       });
     }
 
-    return Response.json({ success: true, saleListingId, processed });
+    return Response.json({
+      success: true,
+      saleListingId,
+      deleteSale,
+      approvedHomes,
+      typeADeleted,
+      typeBDetached,
+      rescueCount,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
