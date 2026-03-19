@@ -24,6 +24,13 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
+  const { data: appSettings = [], isLoading: isLoadingAppSettings } = useQuery({
+    queryKey: ["appSettings"],
+    queryFn: () => base44.entities.AppSetting.list(),
+    initialData: [],
+    enabled: !isLoadingPublicSettings && !isLoadingAuth && !authError,
+  });
+
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
@@ -43,12 +50,6 @@ const AuthenticatedApp = () => {
       return null;
     }
   }
-
-  const { data: appSettings = [], isLoading: isLoadingAppSettings } = useQuery({
-    queryKey: ["appSettings"],
-    queryFn: () => base44.entities.AppSetting.list(),
-    initialData: [],
-  });
 
   const isComingSoonMode = isComingSoonModeEnabled(appSettings);
   const AdminPage = Pages.AdminLite;
