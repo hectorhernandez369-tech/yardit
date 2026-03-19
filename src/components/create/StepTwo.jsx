@@ -9,6 +9,7 @@ import ListingAddressReview from "@/components/create/ListingAddressReview";
 import { useAppMode } from "@/components/shared/DemoMode";
 import { MapPin, Navigation, Loader2, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
+import { getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -772,6 +773,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
           <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 mb-4">
             <h3 className="text-[#2C4F4E] font-semibold">Event Dates</h3>
             <p className="text-sm text-[#1F2937] opacity-80">Select the start and end dates for your Neighborhood Sale (up to 3 days).</p>
+            <p className="text-sm text-red-700 mt-2 font-medium">Neighborhood Sales must be scheduled at least 7 days in advance.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -782,6 +784,10 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                 value={formData.selectedRangeStartDate || ""}
                 onChange={(e) => {
                   const newStart = e.target.value;
+                  const leadTimeError = getNeighborhoodCreationLeadTimeError(newStart);
+                  if (leadTimeError) {
+                    toast.error(leadTimeError);
+                  }
                   setFormData((prev) => ({ ...prev, selectedRangeStartDate: newStart }));
                   if (formData.selectedRangeEndDate) {
                     const start = new Date(newStart);
