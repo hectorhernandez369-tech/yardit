@@ -110,7 +110,53 @@ function getChestIcon(size, count = 0) {
 const createIcon = (type, tier, isSelected, location) => {
   const preAct = isPreActivated(location);
   const opacity = preAct ? 0.6 : 1.0;
-...
+
+  if (type === "neighborhood_sale") {
+    let scale = 1.0;
+    const count = location.homeCount || location.confirmed_count || 0;
+    if (count >= 20) scale = 1.35;
+    else if (count >= 12) scale = 1.2;
+    else if (count >= 5) scale = 1.05;
+    return getChestIcon(38 * scale, count);
+  }
+
+  if (isSelected) {
+    const key = `selected_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 40, opacity), 40);
+  }
+
+  if (type === "halloween_candy") {
+    const key = `halloween_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#9333ea", "#ffffff", 2, 36, opacity), 36);
+  }
+
+  if (type === "holiday_lights") {
+    const isGlowing = location &&
+      location.display_active &&
+      isWithinViewingHours(location.viewing_start_time, location.viewing_end_time);
+    if (isGlowing) {
+      const key = `lights_glow_${opacity}`;
+      return getCachedIcon(key, buildPinSvg("#ffd700", "#dc2626", 2, 40, opacity), 40);
+    }
+    const key = `lights_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#dc2626", "#ffffff", 2, 36, opacity), 36);
+  }
+
+  if (tier === "premium") {
+    const key = `premium_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#5DADA5", "#F4A849", 2, 42, opacity), 42);
+  }
+
+  if (tier === "neighborhood_event") {
+    const key = `hq_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 40, opacity), 40);
+  }
+
+  if (tier === "featured" || tier === "map_pin") {
+    const key = `featured_${opacity}`;
+    return getCachedIcon(key, buildPinSvg("#5DADA5", "#2C4F4E", 2, 36, opacity), 36);
+  }
+
   const key = `free_${opacity}`;
   return getCachedIcon(key, buildPinSvg("#6b7280", "#4b5563", 2, 34, opacity), 34);
 };
