@@ -67,7 +67,7 @@ export function deriveNeighborhoodEventState(listing, nowInput = new Date()) {
 }
 
 export function isNeighborhoodVisibleOnMap(listing, nowInput = new Date()) {
-  return ["activated", "coming_soon", "active"].includes(deriveNeighborhoodEventState(listing, nowInput));
+  return ["coming_soon", "active"].includes(deriveNeighborhoodEventState(listing, nowInput));
 }
 
 export function isNeighborhoodJoinAllowed(listing, nowInput = new Date()) {
@@ -88,8 +88,7 @@ export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
   const isJoined = joinStatus === "approved" && !!listing.neighborhood_sale_id;
   if (!isJoined) return true;
 
-  if (listing.participant_origin === "neighborhood_invite") return false;
-  return listing.tier === "featured" || listing.tier === "premium";
+  return true;
 }
 
 export function shouldShowListingInNeighborhoodParticipantView(participantListing, eventListing, request, nowInput = new Date()) {
