@@ -85,6 +85,21 @@ const neighborhoodParticipantIcon = new L.DivIcon({
   iconAnchor: [6, 6],
 });
 
+const chestIconCache = {};
+function getChestIcon(size) {
+  const key = `chest_${size}`;
+  if (!chestIconCache[key]) {
+    chestIconCache[key] = L.divIcon({
+      className: "neighborhood-chest-marker",
+      html: `<img src="/chest.svg" alt="Neighborhood Sale" style="width:${size}px;height:${size}px;display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.28));" />`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size * 0.78],
+      popupAnchor: [0, -size * 0.72],
+    });
+  }
+  return chestIconCache[key];
+}
+
 // Custom marker icons based on tier
 const createIcon = (type, tier, isSelected, location) => {
   const preAct = isPreActivated(location);
@@ -93,25 +108,10 @@ const createIcon = (type, tier, isSelected, location) => {
   if (type === "neighborhood_sale") {
     let scale = 1.0;
     const count = location.homeCount || location.confirmed_count || 0;
-    if (!preAct) {
-      if (count >= 20) scale = 2.0;
-      else if (count >= 16) scale = 1.75;
-      else if (count >= 11) scale = 1.5;
-      else if (count >= 5) scale = 1.25;
-    }
-    const size = Math.round(40 * scale);
-    
-    if (isSelected) {
-      const key = `ns_sel_${size}`;
-      return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, size, 1.0), size);
-    }
-    if (preAct) {
-      const key = `ns_pre_${size}`;
-      return getCachedIcon(key, buildPinSvg("#9ca3af", "#4b5563", 2, size, 1.0), size);
-    } else {
-      const key = `ns_act_${size}`;
-      return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, size, 1.0), size);
-    }
+    if (count >= 20) scale = 1.35;
+    else if (count >= 12) scale = 1.2;
+    else if (count >= 5) scale = 1.05;
+    return getChestIcon(Math.round(42 * scale));
   }
 
   if (isSelected) {
@@ -360,6 +360,7 @@ export default function HomePage() {
   const [isLocating, setIsLocating] = useState(false);
   const [focusListingId, setFocusListingId] = useState(null);
   const [activeFocusListing, setActiveFocusListing] = useState(null);
+  const [isShowingAllListings, setIsShowingAllListings] = useState(false);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
   const markerRefsMap = useRef({});
@@ -781,7 +782,12 @@ const stats = useMemo(() => {
     const pins = [];
     const cPoints = [];
     eligibleListings.forEach(listing => {
-      if (shouldShowAsPin(currentZoom, listing.tier)) {
+      const isNeighborhoodEvent = listing.listingType === "neighborhood_sale";
+      const shouldRevealPin = isNeighborhoodEvent
+        ? shouldShowAsPin(currentZoom, listing.tier)
+        : (isShowingAllListings || shouldShowAsPin(currentZoom, listing.tier));
+
+      if (shouldRevealPin) {
         pins.push(listing);
       } else {
         cPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id });
@@ -789,10 +795,10 @@ const stats = useMemo(() => {
     });
 
     let fallback = false;
-    if (pins.length === 0 && eligibleListings.length > 0 && currentZoom >= 11) {
+    if (!isShowingAllListings && pins.length === 0 && eligibleListings.length > 0 && currentZoom >= 11) {
       fallback = true;
       eligibleListings.forEach(listing => {
-        if (listing.tier === "premium") {
+        if (listing.listingType !== "neighborhood_sale" && listing.tier === "premium") {
           if (!pins.find(p => p.id === listing.id)) {
             pins.push(listing);
             const idx = cPoints.findIndex(p => p.id === listing.id);
@@ -803,7 +809,7 @@ const stats = useMemo(() => {
     }
 
     return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
-  }, [eligibleListings, currentZoom]);
+  }, [eligibleListings, currentZoom, isShowingAllListings]);
 
   const neighborhoodParticipantPins = useMemo(() => {
     if (currentZoom < 15 || !allJoinRequests?.length) return [];
@@ -862,7 +868,20 @@ const stats = useMemo(() => {
           </Tabs>
 
           {view === "map" && (
-            <div className="absolute left-1/2 ml-20">
+            <div className="absolute left-1/2 ml-20 flex items-center gap-2">
+              <Button 
+                variant="outline"
+                size="sm"
+                onPointerDown={() => setIsShowingAllListings(true)}
+                onPointerUp={() => setIsShowingAllListings(false)}
+                onPointerLeave={() => setIsShowingAllListings(false)}
+                onPointerCancel={() => setIsShowingAllListings(false)}
+                onTouchStart={() => setIsShowingAllListings(true)}
+                onTouchEnd={() => setIsShowingAllListings(false)}
+                className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-3"
+              >
+                Show Listings
+              </Button>
               <Button 
                 variant="outline" 
                 size="icon" 
