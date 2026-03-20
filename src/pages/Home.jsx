@@ -795,17 +795,9 @@ const stats = useMemo(() => {
     const cPoints = [];
     eligibleListings.forEach(listing => {
       const isNeighborhoodEvent = listing.listingType === "neighborhood_sale";
-      const isNeighborhoodParticipant = isNeighborhoodParticipantListing(listing);
 
       if (isNeighborhoodEvent) {
         if (currentZoom >= 12 && currentZoom < 18) {
-          pins.push(listing);
-        }
-        return;
-      }
-
-      if (isNeighborhoodParticipant) {
-        if (currentZoom >= 18) {
           pins.push(listing);
         }
         return;
@@ -823,7 +815,7 @@ const stats = useMemo(() => {
     if (!isShowingAllListings && pins.length === 0 && eligibleListings.length > 0 && currentZoom >= 11) {
       fallback = true;
       eligibleListings.forEach(listing => {
-        if (!isNeighborhoodParticipantListing(listing) && listing.listingType !== "neighborhood_sale" && listing.tier === "premium") {
+        if (listing.listingType !== "neighborhood_sale" && listing.tier === "premium") {
           if (!pins.find(p => p.id === listing.id)) {
             pins.push(listing);
             const idx = cPoints.findIndex(p => p.id === listing.id);
@@ -857,6 +849,8 @@ const stats = useMemo(() => {
           addressText: participantListing.addressText,
           lat: participantListing.lat,
           lng: participantListing.lng,
+          listingType: participantListing.listingType,
+          tier: participantListing.tier || "free",
         };
       })
       .filter(Boolean);
@@ -1212,7 +1206,7 @@ const stats = useMemo(() => {
                 <Marker
                   key={pin.id}
                   position={[pin.lat, pin.lng]}
-                  icon={neighborhoodParticipantIcon}
+                  icon={createIcon(pin.listingType || "yard_sale", "free", false, { ...pin, startDateTime: new Date().toISOString() })}
                 >
                   <Popup>
                     <div className="space-y-2 min-w-[180px]">

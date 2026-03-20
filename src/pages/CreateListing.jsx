@@ -145,6 +145,37 @@ export default function CreateListingPage() {
   const [saleModalStep, setSaleModalStep] = useState(0); // 0: none, 1: popup1, 2: popup2
   const [matchedSale, setMatchedSale] = useState(null);
   const [joinAction, setJoinAction] = useState(null); // null, "requested", "none"
+
+  const findNearbyNeighborhoodSale = async () => {
+    if (!user?.id || formData.listingType === "neighborhood_sale" || !formData.lat || !formData.lng) return null;
+
+    const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" });
+    let reqs = [];
+    try {
+      reqs = await base44.entities.JoinRequest.filter({ requesterUserId: user.id });
+    } catch {}
+
+    const now = new Date();
+    const nearby = (sales || []).filter((sale) => {
+      if (!sale.startDateTime || !sale.endDateTime) return false;
+      const end = new Date(sale.endDateTime);
+      if (now >= end) return false;
+      if (!isNeighborhoodJoinAllowed(sale, now)) return false;
+
+      const cLat = sale.event_center_lat ?? sale.lat;
+      const cLng = sale.event_center_lng ?? sale.lng;
+      const dist = getDistanceFeet(formData.lat, formData.lng, cLat, cLng);
+      if (dist > 500) return false;
+      if (sale.ownerUserId === user.id) return false;
+
+      const alreadyRequested = reqs.some(
+        (request) => request.saleListingId === sale.id && ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status))
+      );
+      return !alreadyRequested;
+    });
+
+    return nearby[0] || null;
+  };
   const [activeRescue, setActiveRescue] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -393,6 +424,42 @@ export default function CreateListingPage() {
         try {
           const jobs = buildNeighborhoodDeadlineJobs(createdListing.startDateTime, createdListing.id);
           await Promise.all(jobs.map((job) => base44.entities.NeighborhoodDeadlineJob.create(job)));
+
+          const allListings = await base44.entities.Listing.list("-created_date");
+          const saleStart = new Date(createdListing.startDateTime).getTime();
+          const saleEnd = new Date(createdListing.endDateTime).getTime();
+          const inviteTargets = (allListings || []).filter((candidate) => {
+            if (!candidate || candidate.listingType === "neighborhood_sale") return false;
+            if (candidate.ownerUserId === createdListing.ownerUserId) return false;
+            if (candidate.status !== "active" && candidate.status !== "under_review") return false;
+            if (candidate.neighborhood_sale_id || normalizeNeighborhoodJoinStatus(candidate.neighborhood_join_status) !== "none") return false;
+            if (typeof candidate.lat !== "number" || typeof candidate.lng !== "number") return false;
+
+            const candidateStart = candidate.startDateTime ? new Date(candidate.startDateTime).getTime() : null;
+            const candidateEnd = candidate.endDateTime ? new Date(candidate.endDateTime).getTime() : null;
+            if (!candidateStart || !candidateEnd) return false;
+            if (candidateEnd < saleStart || candidateStart > saleEnd) return false;
+
+            const cLat = createdListing.event_center_lat ?? createdListing.lat;
+            const cLng = createdListing.event_center_lng ?? createdListing.lng;
+            return getDistanceFeet(candidate.lat, candidate.lng, cLat, cLng) <= 500;
+          });
+
+          const invitedUsers = [...new Set(inviteTargets.map((candidate) => candidate.ownerUserId).filter(Boolean))];
+          await Promise.all(invitedUsers.map((userId) => base44.entities.Notification.create({
+            userId,
+            user_id: userId,
+            title: "Neighborhood Sale Invitation",
+            message: "A Neighborhood Sale was created near your listing. Cancel your current listing first, then tap here to request to join as a Neighborhood participant.",
+            type: "join_invitation",
+            related_entity_type: "listing",
+            related_entity_id: createdListing.id,
+            metadata: {
+              sale_listing_id: createdListing.id,
+              invite_code: createdListing.invite_code,
+              event_title: createdListing.title,
+            }
+          })));
         } catch (err) {
           console.error("Failed to create neighborhood deadline jobs", err);
         }
@@ -555,8 +622,8 @@ export default function CreateListingPage() {
           return;
         }
 
-        setFormData((prev) => ({
-          ...prev,
+        const nextData = {
+          ...formData,
           addressText: user.street_address,
           city: user.city,
           state: (user.state || "").toUpperCase().slice(0, 2),
@@ -564,7 +631,16 @@ export default function CreateListingPage() {
           lat: user.address_lat,
           lng: user.address_lng,
           locationMethod: "profile"
-        }));
+        };
+        setFormData(nextData);
+
+        const nearbySale = await findNearbyNeighborhoodSale();
+        if (nearbySale) {
+          setMatchedSale(nearbySale);
+          setSaleModalStep(1);
+          return;
+        }
+
         setStep(3);
         return;
       }
@@ -586,6 +662,13 @@ export default function CreateListingPage() {
 
       const success = await geocodeRef();
       if (!success) {
+        return;
+      }
+
+      const nearbySale = await findNearbyNeighborhoodSale();
+      if (nearbySale) {
+        setMatchedSale(nearbySale);
+        setSaleModalStep(1);
         return;
       }
 
@@ -630,8 +713,23 @@ export default function CreateListingPage() {
       payload.zip = formData.host_zip || payload.zip;
     }
 
+    if (actionStr === "requested" && matchedSale) {
+      payload = {
+        ...payload,
+        tier: "free",
+        pricePaid: 0,
+        startDateTime: matchedSale.startDateTime,
+        endDateTime: matchedSale.endDateTime,
+        selectedRangeStartDate: matchedSale.selectedRangeStartDate || matchedSale.startDateTime?.slice(0, 10),
+        selectedRangeEndDate: matchedSale.selectedRangeEndDate || matchedSale.endDateTime?.slice(0, 10),
+        earlyVisibilityDays: 0,
+        earlyVisibilityDates: [],
+        activeDates: matchedSale.activeDates || [],
+      };
+    }
+
     // FREE TIER DATE RULE
-    if (payload.tier === "free") {
+    if (payload.tier === "free" && actionStr !== "requested") {
       const nextWeekend = getNextWeekendLAISO();
       payload = {
         ...payload,
@@ -717,8 +815,9 @@ export default function CreateListingPage() {
       payload.payment_intent_status = "none";
       payload.hold_deadline_at = null;
       payload.neighborhood_sale_id = matchedSale.id;
-      payload.participant_origin = "standalone";
-      payload.origin_sale_listing_id = null;
+      payload.participant_origin = "neighborhood_invite";
+      payload.origin_sale_listing_id = matchedSale.id;
+      payload.status = "active";
     } else {
       payload.neighborhood_join_status = payload.neighborhood_join_status || "none";
     }
@@ -786,46 +885,6 @@ export default function CreateListingPage() {
       return;
     }
 
-    // Check for nearby neighborhood sale if we haven't asked yet
-    if (formData.listingType !== "neighborhood_sale" && joinAction === null && formData.lat && formData.lng) {
-      try {
-        const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" });
-        let reqs = [];
-        try {
-          reqs = await base44.entities.JoinRequest.filter({ requesterUserId: user.id });
-        } catch {}
-
-        const now = new Date();
-        const nearby = (sales || []).filter((s) => {
-          if (!s.startDateTime || !s.endDateTime) return false;
-          const end = new Date(s.endDateTime);
-          if (now >= end) return false;
-          if (!isNeighborhoodJoinAllowed(s, now)) return false;
-
-          const cLat = s.event_center_lat ?? s.lat;
-          const cLng = s.event_center_lng ?? s.lng;
-          const dist = getDistanceFeet(formData.lat, formData.lng, cLat, cLng);
-          if (dist > 500) return false;
-
-          if (s.ownerUserId === user.id) return false;
-
-          const alreadyRequested = reqs.some(
-            (r) => r.saleListingId === s.id && ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(r.status))
-          );
-          return !alreadyRequested;
-        });
-
-        if (nearby.length > 0) {
-          setMatchedSale(nearby[0]);
-          setSaleModalStep(1); // Show Popup #1
-          return; // Stop submission, wait for user response
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    // If no popup needed or action already chosen, execute
     executeSubmit();
   };
 
@@ -933,10 +992,11 @@ export default function CreateListingPage() {
 
           <div className="py-4">
             <p className="text-slate-700 mb-2">
-              There is a Neighborhood Sale scheduled near you for{" "}
-              {matchedSale?.startDateTime ? new Date(matchedSale.startDateTime).toLocaleDateString() : ""}{" "}
-              -{" "}
-              {matchedSale?.endDateTime ? new Date(matchedSale.endDateTime).toLocaleDateString() : ""}
+              There is a Neighborhood Sale in your area. Request to Join?
+            </p>
+            <p className="text-sm text-slate-600">
+              {matchedSale?.startDateTime ? new Date(matchedSale.startDateTime).toLocaleDateString() : ""}
+              {matchedSale?.endDateTime ? ` - ${new Date(matchedSale.endDateTime).toLocaleDateString()}` : ""}
             </p>
           </div>
 
@@ -944,7 +1004,7 @@ export default function CreateListingPage() {
             <Button variant="outline" onClick={() => {
               setJoinAction("none");
               setSaleModalStep(0);
-              executeSubmit("none");
+              setStep(3);
             }}>
               NO THANKS
             </Button>
@@ -971,14 +1031,17 @@ export default function CreateListingPage() {
 
           <div className="py-4">
             <p className="text-slate-700 whitespace-pre-line leading-relaxed">
-              Joining a Neighborhood Sale is free.{"\n"}
-              Your standalone listing keeps its current tier and visibility benefits if approved.{"\n"}
-              If the organizer does not approve your request, your listing still stays active under its selected tier.
+              Joining a Neighborhood Sale creates a Neighborhood participant listing and skips normal tier/payment checkout.{"\n"}
+              If this Neighborhood Sale is canceled or your participation is removed, you will need to create a normal listing to appear independently.
             </p>
           </div>
 
           <DialogFooter className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setSaleModalStep(0)}>
+            <Button variant="outline" onClick={() => {
+              setJoinAction("none");
+              setSaleModalStep(0);
+              setStep(3);
+            }}>
               CANCEL
             </Button>
             <Button onClick={() => {
@@ -986,7 +1049,7 @@ export default function CreateListingPage() {
               setSaleModalStep(0);
               executeSubmit("requested");
             }} className="bg-amber-600 hover:bg-amber-700">
-              CONTINUE CHECKOUT
+              REQUEST TO JOIN
             </Button>
           </DialogFooter>
         </DialogContent>

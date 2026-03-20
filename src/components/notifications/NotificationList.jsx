@@ -157,6 +157,8 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
         url = createPageUrl("MySupportTickets");
       } else if (notification.metadata?.rescue_token) {
         url = createPageUrl("CreateListing") + "?rescueToken=" + notification.metadata.rescue_token;
+      } else if (notification.type === "join_invitation" && notification.metadata?.invite_code) {
+        url = createPageUrl("JoinNeighborhoodSale") + `?code=${encodeURIComponent(notification.metadata.invite_code)}`;
       } else if (notification.type?.startsWith("join_")) {
         if (entityId) {
           url = createPageUrl("ListingDetail") + "?id=" + entityId;
@@ -253,50 +255,6 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                         </div>
                       )}
 
-                      {notification.type === "join_request" && (
-                        <div className="flex gap-2 mt-2 mb-3">
-                          <Button
-                            size="sm"
-                            className="h-7 text-xs bg-green-600 hover:bg-green-700"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              respondToRequestMutation.mutate({
-                                notificationId: notification.id,
-                                action: "accept",
-                                requesterEmail:
-                                  notification.metadata?.requester_email ||
-                                  notification.metadata?.userId ||
-                                  notification.user_email || notification.user_id,
-                                eventTitle: notification.metadata?.event_title || "the neighborhood sale",
-                                notification
-                              });
-                            }}
-                          >
-                            <Check className="w-3 h-3 mr-1" /> Accept
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              respondToRequestMutation.mutate({
-                                notificationId: notification.id,
-                                action: "deny",
-                                requesterEmail:
-                                  notification.metadata?.requester_email ||
-                                  notification.metadata?.userId ||
-                                  notification.user_email || notification.user_id,
-                                eventTitle: notification.metadata?.event_title || "the neighborhood sale",
-                                notification
-                              });
-                            }}
-                          >
-                            <X className="w-3 h-3 mr-1" /> Deny
-                          </Button>
-                        </div>
-                      )}
 
                       <div className="flex items-center justify-between mt-1">
                         <p className="text-xs text-gray-400">

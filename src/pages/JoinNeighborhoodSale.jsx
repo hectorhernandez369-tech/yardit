@@ -56,6 +56,16 @@ export default function JoinNeighborhoodSale() {
     initialData: [],
   });
 
+  const { data: existingListings = [] } = useQuery({
+    queryKey: ["existingListingsForNeighborhoodJoin", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return await base44.entities.Listing.filter({ ownerUserId: user.id });
+    },
+    enabled: !!user?.id,
+    initialData: [],
+  });
+
   const requestMutation = useMutation({
     mutationFn: async () => {
       if (!user?.street_address || !user?.city || !user?.state || !user?.zip_code || !user?.address_lat || !user?.address_lng) {
@@ -172,6 +182,7 @@ export default function JoinNeighborhoodSale() {
   const endDate = sale.endDateTime ? new Date(sale.endDateTime).toLocaleDateString() : "";
   const activeRequest = existingRequests.find((request) => ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status)));
   const missingConfirmedAddress = user && (!user.street_address || !user.city || !user.state || !user.zip_code || !user.address_lat || !user.address_lng);
+  const hasBlockingResidentialListing = existingListings.some((listing) => listing.listingType !== "neighborhood_sale" && listing.status === "active" && !listing.neighborhood_sale_id && normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "none");
 
   const handleSignIn = () => {
     const nextUrl = window.location.pathname + window.location.search;
@@ -181,6 +192,10 @@ export default function JoinNeighborhoodSale() {
   const handleRequest = () => {
     if (sale.ownerUserId === user.id) {
       toast.error("You are the organizer of this event.");
+      return;
+    }
+    if (hasBlockingResidentialListing) {
+      toast.error("Cancel your current listing first, then request to join this Neighborhood Sale.");
       return;
     }
     requestMutation.mutate();
@@ -201,7 +216,10 @@ export default function JoinNeighborhoodSale() {
           </div>
 
           <div className="p-3 bg-white/60 border border-[#2C4F4E]/20 rounded-md text-sm text-[#2C4F4E]">
-            Joining from this invite link creates a free invite-based participant listing using your confirmed address.
+            Joining from this invite link creates a free Neighborhood participant listing using your confirmed address.
+          </div>
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-900 text-sm font-medium">
+            If this Neighborhood Sale is canceled or your participation is removed, you will need to create a normal listing to appear independently.
           </div>
 
           {user && activeRequest && (
@@ -215,6 +233,12 @@ export default function JoinNeighborhoodSale() {
               Confirm your address in Settings before joining this Neighborhood Sale.
             </div>
           )}
+
+          {hasBlockingResidentialListing && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-900 text-sm font-medium">
+              You already have a normal active listing. Cancel it first, then come back here to request to join.
+            </div>
+          )}
         </CardContent>
         <CardFooter>
           {!user ? (
@@ -224,7 +248,7 @@ export default function JoinNeighborhoodSale() {
           ) : (
             <Button
               onClick={handleRequest}
-              disabled={!!activeRequest || missingConfirmedAddress || requestMutation.isPending || sale.ownerUserId === user.id}
+              disabled={!!activeRequest || missingConfirmedAddress || hasBlockingResidentialListing || requestMutation.isPending || sale.ownerUserId === user.id}
               className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-bold disabled:opacity-50"
             >
               {requestMutation.isPending ? "Sending..." : activeRequest ? "Request sent" : "Join Neighborhood Sale"}

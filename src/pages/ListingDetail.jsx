@@ -170,7 +170,10 @@ export default function ListingDetailPage() {
           neighborhood_join_status: "approved",
           payment_intent_status: "none",
           hold_deadline_at: null,
-          neighborhood_sale_id: listingId
+          neighborhood_sale_id: listingId,
+          tier: "free",
+          pricePaid: 0,
+          participant_origin: "neighborhood_invite",
         });
         await base44.entities.Notification.create({
           userId: requesterUserId,
@@ -212,7 +215,7 @@ export default function ListingDetailPage() {
         await base44.entities.Notification.create({
           userId: requesterUserId,
           title: "Join Request Denied",
-          message: "Denied — your listing stays active under your selected tier",
+          message: "Denied — create a normal listing if you still want to appear independently.",
           type: "join_response_deny",
           metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
         });
@@ -696,6 +699,7 @@ export default function ListingDetailPage() {
                     {parentSale.startDateTime && parentSale.endDateTime && (
                       <p><strong>Dates:</strong> {format(new Date(parentSale.startDateTime), "PPp")} - {format(new Date(parentSale.endDateTime), "PPp")}</p>
                     )}
+                    <p className="mt-2">If this Neighborhood Sale is canceled or your participation is removed, you will need to create a normal listing to appear independently.</p>
                   </div>
                 )}
               </div>
