@@ -94,8 +94,8 @@ export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
 export function shouldShowListingInNeighborhoodParticipantView(participantListing, eventListing, request, nowInput = new Date()) {
   if (!participantListing || !eventListing || eventListing.listingType !== "neighborhood_sale") return false;
   if (!isNeighborhoodVisibleOnMap(eventListing, nowInput)) return false;
+  if (participantListing.status !== "active") return false;
   if (request?.removed_by_eo === true || normalizeNeighborhoodJoinStatus(request?.status) !== "approved") return false;
 
-  if (participantListing.participant_origin === "neighborhood_invite") return true;
-  return participantListing.tier === "free";
+  return true;
 }
