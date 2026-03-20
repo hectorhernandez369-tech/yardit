@@ -102,7 +102,7 @@ export default function AdminLoginModal({ open, onClose, onSuccess }) {
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-[#5DADA5]" />
-            <h2 className="text-lg font-bold text-[#2C4F4E]">Admin Login</h2>
+            <h2 className="text-lg font-bold text-[#2C4F4E]">Admin Mode Verification</h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
@@ -135,7 +135,7 @@ export default function AdminLoginModal({ open, onClose, onSuccess }) {
         </form>
 
         <p className="text-xs text-gray-400 mt-4 text-center">
-          5 failed attempts will lock access for 10 minutes.
+          You are signed into the app already — this step only verifies Admin Mode access with your Employee ID and PIN.
         </p>
       </div>
     </div>,

@@ -204,7 +204,8 @@ export default function AdminLitePage() {
         <div className="p-8 text-center max-w-md mx-auto mt-12">
           <Shield className="w-12 h-12 text-[#5DADA5] mx-auto mb-4" />
           <h2 className="text-xl font-bold text-[#2C4F4E] mb-2">Admin Mode Required</h2>
-          <p className="text-gray-600 mb-6 text-sm">You must verify your Employee ID and PIN to access the Admin portal.</p>
+          <p className="text-gray-600 text-sm mb-2">You are already signed in as {user.email}.</p>
+          <p className="text-gray-600 mb-6 text-sm">This screen is a second admin verification step that requires your Employee ID and PIN.</p>
           <Button onClick={() => setShowAdminLogin(true)} className="bg-[#5DADA5] hover:bg-[#4A9B93] gap-2">
             <Shield className="w-4 h-4" /> Enter Admin Mode
           </Button>
