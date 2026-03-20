@@ -35,6 +35,7 @@ import { createPageUrl } from "@/utils";
 import MapDebugOverlay from "../components/map/MapDebugOverlay";
 import MapZoomControl from "../components/map/MapZoomControl";
 import MapFocusController from "../components/map/MapFocusController";
+import MapTierDebugBox from "../components/map/MapTierDebugBox";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import HuntMapLayers from "@/components/hunt/HuntMapLayers";
 import { calculateTotalDistance } from "@/components/hunt/huntUtils";
@@ -85,16 +86,19 @@ const neighborhoodParticipantIcon = new L.DivIcon({
   iconAnchor: [6, 6],
 });
 
+const CHEST_ICON_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/1bb335014_file_00000000d7e871f58415b8d892f56c4b.png";
+const CHEST_ANCHOR_RATIO = 0.92;
 const chestIconCache = {};
 function getChestIcon(size) {
-  const key = `chest_${size}`;
+  const iconSize = Math.round(size);
+  const key = `chest_${iconSize}`;
   if (!chestIconCache[key]) {
-    chestIconCache[key] = L.divIcon({
+    chestIconCache[key] = new L.Icon({
+      iconUrl: CHEST_ICON_URL,
+      iconSize: [iconSize, iconSize],
+      iconAnchor: [iconSize / 2, Math.round(iconSize * CHEST_ANCHOR_RATIO)],
+      popupAnchor: [0, -Math.round(iconSize * 0.82)],
       className: "neighborhood-chest-marker",
-      html: `<img src="https://media.base44.com/images/public/690f554506edf795e5d84121/1bb335014_file_00000000d7e871f58415b8d892f56c4b.png" alt="Neighborhood Sale" style="width:${size}px;height:${size}px;display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.28));" />`,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size * 0.78],
-      popupAnchor: [0, -size * 0.72],
     });
   }
   return chestIconCache[key];
@@ -111,7 +115,7 @@ const createIcon = (type, tier, isSelected, location) => {
     if (count >= 20) scale = 1.35;
     else if (count >= 12) scale = 1.2;
     else if (count >= 5) scale = 1.05;
-    return getChestIcon(Math.round(42 * scale));
+    return getChestIcon(38 * scale);
   }
 
   if (isSelected) {
@@ -1271,6 +1275,13 @@ const stats = useMemo(() => {
               >
                 Debug
               </button>
+            )}
+
+            {demoOn && (
+              <MapTierDebugBox
+                zoom={currentZoom}
+                showListingsActive={isShowingAllListings}
+              />
             )}
 
             {locationError && (
