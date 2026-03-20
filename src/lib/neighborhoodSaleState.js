@@ -85,8 +85,7 @@ export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
   if (listing.status !== "active") return false;
 
   const joinStatus = normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status);
-  const isJoined = joinStatus === "approved" && !!listing.neighborhood_sale_id;
-  if (!isJoined) return true;
+  if (joinStatus !== "none" || !!listing.neighborhood_sale_id) return false;
 
   return true;
 }
@@ -95,6 +94,8 @@ export function shouldShowListingInNeighborhoodParticipantView(participantListin
   if (!participantListing || !eventListing || eventListing.listingType !== "neighborhood_sale") return false;
   if (!isNeighborhoodVisibleOnMap(eventListing, nowInput)) return false;
   if (participantListing.status !== "active") return false;
+  if (participantListing.neighborhood_sale_id !== eventListing.id) return false;
+  if (normalizeNeighborhoodJoinStatus(participantListing.neighborhood_join_status) !== "approved") return false;
   if (request?.removed_by_eo === true || normalizeNeighborhoodJoinStatus(request?.status) !== "approved") return false;
 
   return true;

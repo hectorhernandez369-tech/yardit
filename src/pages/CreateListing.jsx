@@ -146,8 +146,9 @@ export default function CreateListingPage() {
   const [matchedSale, setMatchedSale] = useState(null);
   const [joinAction, setJoinAction] = useState(null); // null, "requested", "none"
 
-  const findNearbyNeighborhoodSale = async () => {
-    if (!user?.id || formData.listingType === "neighborhood_sale" || !formData.lat || !formData.lng) return null;
+  const findNearbyNeighborhoodSale = async (locationOverride = null) => {
+    const sourceLocation = locationOverride || formData;
+    if (!user?.id || formData.listingType === "neighborhood_sale" || !sourceLocation?.lat || !sourceLocation?.lng) return null;
 
     const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" });
     let reqs = [];
@@ -634,7 +635,7 @@ export default function CreateListingPage() {
         };
         setFormData(nextData);
 
-        const nearbySale = await findNearbyNeighborhoodSale();
+        const nearbySale = await findNearbyNeighborhoodSale(nextData);
         if (nearbySale) {
           setMatchedSale(nearbySale);
           setSaleModalStep(1);
