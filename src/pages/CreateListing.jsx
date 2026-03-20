@@ -165,7 +165,7 @@ export default function CreateListingPage() {
 
       const cLat = sale.event_center_lat ?? sale.lat;
       const cLng = sale.event_center_lng ?? sale.lng;
-      const dist = getDistanceFeet(formData.lat, formData.lng, cLat, cLng);
+      const dist = getDistanceFeet(sourceLocation.lat, sourceLocation.lng, cLat, cLng);
       if (dist > 500) return false;
       if (sale.ownerUserId === user.id) return false;
 
@@ -474,7 +474,7 @@ export default function CreateListingPage() {
             ownerUserId: matchedSale.ownerUserId,
             requesterUserId: user.id,
             status: "pending",
-            participant_origin_snapshot: "standalone"
+            participant_origin_snapshot: "neighborhood_invite"
           });
 
           await base44.entities.Notification.create({
