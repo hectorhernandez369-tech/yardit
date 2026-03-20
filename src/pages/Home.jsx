@@ -87,18 +87,20 @@ const neighborhoodParticipantIcon = new L.DivIcon({
 });
 
 const CHEST_ICON_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/1bb335014_file_00000000d7e871f58415b8d892f56c4b.png";
-const CHEST_ANCHOR_RATIO = 0.92;
 const chestIconCache = {};
-function getChestIcon(size) {
+function getChestIcon(size, count = 0) {
   const iconSize = Math.round(size);
-  const key = `chest_${iconSize}`;
+  const countLabel = Number(count || 0) > 0 ? String(Math.round(Number(count))) : "";
+  const key = `chest_${iconSize}_${countLabel}`;
   if (!chestIconCache[key]) {
-    chestIconCache[key] = new L.Icon({
-      iconUrl: CHEST_ICON_URL,
-      iconSize: [iconSize, iconSize],
-      iconAnchor: [iconSize / 2, Math.round(iconSize * CHEST_ANCHOR_RATIO)],
-      popupAnchor: [0, -Math.round(iconSize * 0.82)],
+    const badgeSize = Math.max(18, Math.round(iconSize * 0.34));
+    const badgeFont = Math.max(10, Math.round(iconSize * 0.22));
+    chestIconCache[key] = L.divIcon({
       className: "neighborhood-chest-marker",
+      html: `<div style="position:relative;width:${iconSize}px;height:${iconSize}px;"><img src="${CHEST_ICON_URL}" alt="Neighborhood Sale" style="width:${iconSize}px;height:${iconSize}px;display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.28));" />${countLabel ? `<div style="position:absolute;top:-4px;right:-4px;min-width:${badgeSize}px;height:${badgeSize}px;padding:0 4px;border-radius:9999px;background:rgba(44,79,78,0.96);border:2px solid #F4A849;color:#ffffff;font-weight:700;font-size:${badgeFont}px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.28);">${countLabel}</div>` : ""}</div>`,
+      iconSize: [iconSize, iconSize],
+      iconAnchor: [iconSize / 2, iconSize],
+      popupAnchor: [0, -Math.round(iconSize * 0.86)],
     });
   }
   return chestIconCache[key];
@@ -108,56 +110,16 @@ function getChestIcon(size) {
 const createIcon = (type, tier, isSelected, location) => {
   const preAct = isPreActivated(location);
   const opacity = preAct ? 0.6 : 1.0;
-
-  if (type === "neighborhood_sale") {
-    let scale = 1.0;
-    const count = location.homeCount || location.confirmed_count || 0;
-    if (count >= 20) scale = 1.35;
-    else if (count >= 12) scale = 1.2;
-    else if (count >= 5) scale = 1.05;
-    return getChestIcon(38 * scale);
-  }
-
-  if (isSelected) {
-    const key = `selected_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 40, opacity), 40);
-  }
-
-  if (type === "halloween_candy") {
-    const key = `halloween_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#9333ea", "#ffffff", 2, 36, opacity), 36);
-  }
-
-  if (type === "holiday_lights") {
-    const isGlowing = location &&
-      location.display_active &&
-      isWithinViewingHours(location.viewing_start_time, location.viewing_end_time);
-    if (isGlowing) {
-      const key = `lights_glow_${opacity}`;
-      return getCachedIcon(key, buildPinSvg("#ffd700", "#dc2626", 2, 40, opacity), 40);
-    }
-    const key = `lights_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#dc2626", "#ffffff", 2, 36, opacity), 36);
-  }
-
-  if (tier === "premium") {
-    const key = `premium_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#5DADA5", "#F4A849", 2, 42, opacity), 42);
-  }
-
-  if (tier === "neighborhood_event") {
-    const key = `hq_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 40, opacity), 40);
-  }
-
-  if (tier === "featured" || tier === "map_pin") {
-    const key = `featured_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#5DADA5", "#2C4F4E", 2, 36, opacity), 36);
-  }
-
+...
   const key = `free_${opacity}`;
   return getCachedIcon(key, buildPinSvg("#6b7280", "#4b5563", 2, 34, opacity), 34);
 };
+
+function isNeighborhoodParticipantListing(listing) {
+  return listing?.listingType !== "neighborhood_sale" &&
+    !!listing?.neighborhood_sale_id &&
+    normalizeNeighborhoodJoinStatus(listing?.neighborhood_join_status) === "approved";
+}
 
 function MapController({ center, zoom, onUserMove, onZoomChange, onMapReady }) {
   const map = useMap();
@@ -787,10 +749,23 @@ const stats = useMemo(() => {
     const cPoints = [];
     eligibleListings.forEach(listing => {
       const isNeighborhoodEvent = listing.listingType === "neighborhood_sale";
-      const shouldRevealPin = isNeighborhoodEvent
-        ? shouldShowAsPin(currentZoom, listing.tier)
-        : (isShowingAllListings || shouldShowAsPin(currentZoom, listing.tier));
+      const isNeighborhoodParticipant = isNeighborhoodParticipantListing(listing);
 
+      if (isNeighborhoodEvent) {
+        if (currentZoom >= 12 && currentZoom < 18) {
+          pins.push(listing);
+        }
+        return;
+      }
+
+      if (isNeighborhoodParticipant) {
+        if (currentZoom >= 18) {
+          pins.push(listing);
+        }
+        return;
+      }
+
+      const shouldRevealPin = isShowingAllListings || shouldShowAsPin(currentZoom, listing.tier);
       if (shouldRevealPin) {
         pins.push(listing);
       } else {
@@ -802,7 +777,7 @@ const stats = useMemo(() => {
     if (!isShowingAllListings && pins.length === 0 && eligibleListings.length > 0 && currentZoom >= 11) {
       fallback = true;
       eligibleListings.forEach(listing => {
-        if (listing.listingType !== "neighborhood_sale" && listing.tier === "premium") {
+        if (!isNeighborhoodParticipantListing(listing) && listing.listingType !== "neighborhood_sale" && listing.tier === "premium") {
           if (!pins.find(p => p.id === listing.id)) {
             pins.push(listing);
             const idx = cPoints.findIndex(p => p.id === listing.id);
@@ -816,7 +791,7 @@ const stats = useMemo(() => {
   }, [eligibleListings, currentZoom, isShowingAllListings]);
 
   const neighborhoodParticipantPins = useMemo(() => {
-    if (currentZoom < 15 || !allJoinRequests?.length) return [];
+    if (currentZoom < 18 || !allJoinRequests?.length) return [];
 
     const visiblePinIds = new Set(visiblePins.map((pin) => pin.id));
     return allJoinRequests
