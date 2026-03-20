@@ -981,7 +981,7 @@ export default function CreateListingPage() {
           if (!open) {
             setJoinAction("none");
             setSaleModalStep(0);
-            executeSubmit("none");
+            setStep(3);
           }
         }}
       >
