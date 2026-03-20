@@ -91,7 +91,7 @@ function getChestIcon(size) {
   if (!chestIconCache[key]) {
     chestIconCache[key] = L.divIcon({
       className: "neighborhood-chest-marker",
-      html: `<img src="/chest.svg" alt="Neighborhood Sale" style="width:${size}px;height:${size}px;display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.28));" />`,
+      html: `<img src="https://media.base44.com/images/public/690f554506edf795e5d84121/1bb335014_file_00000000d7e871f58415b8d892f56c4b.png" alt="Neighborhood Sale" style="width:${size}px;height:${size}px;display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.28));" />`,
       iconSize: [size, size],
       iconAnchor: [size / 2, size * 0.78],
       popupAnchor: [0, -size * 0.72],
