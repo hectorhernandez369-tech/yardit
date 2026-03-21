@@ -988,7 +988,7 @@ export default function CreateListingPage() {
     } catch {
       localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
     }
-  }, [location.search]);
+  }, [location.search, user?.id]);
 
   if (!user) {
     return <div className="p-8 text-center">Loading...</div>;
