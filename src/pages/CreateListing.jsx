@@ -12,7 +12,6 @@ import StepOne from "../components/create/StepOne";
 import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import FormScrollHelper from "../components/create/FormScrollHelper";
-import ResidentialPaymentStep from "../components/payment/ResidentialPaymentStep";
 import { useAppMode } from "../components/shared/DemoMode";
 import {
   deriveNeighborhoodEventState,
@@ -29,8 +28,11 @@ import {
 } from "../components/shared/listingTierEngine";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
-const RESIDENTIAL_PAYMENT_STORAGE_KEY = "yardit_residential_payment_v1";
-const RESIDENTIAL_TIER_AMOUNTS = { featured: 4.99, premium: 7.99 };
+const PAID_LISTING_CHECKOUT_KEY = "yardit_paid_listing_checkout_v1";
+const RESIDENTIAL_TIER_PRICES = {
+  featured: 499,
+  premium: 799,
+};
 
 // (plain english) fallback timezone until we auto-detect timezone from lat/lng later
 const FALLBACK_TZ = "America/Los_Angeles";
@@ -143,14 +145,13 @@ export default function CreateListingPage() {
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
   const [geocodeRef, setGeocodeRef] = useState(null);
+  const [isStartingPayment, setIsStartingPayment] = useState(false);
+  const handledCheckoutSessionRef = useRef(null);
 
   // (plain english) "Sale in your area" modal state
   const [saleModalStep, setSaleModalStep] = useState(0); // 0: none, 1: popup1, 2: popup2
   const [matchedSale, setMatchedSale] = useState(null);
   const [joinAction, setJoinAction] = useState(null); // null, "requested", "none"
-  const [paymentMessage, setPaymentMessage] = useState("");
-  const [isStartingPayment, setIsStartingPayment] = useState(false);
-  const paymentReturnHandledRef = useRef(false);
 
   const findNearbyNeighborhoodSale = async (locationOverride = null) => {
     const sourceLocation = locationOverride || formData;
@@ -374,8 +375,43 @@ export default function CreateListingPage() {
       if (l.status === "completed" || l.status === "suspended" || l.status === "expired") return false;
       if (l.endDateTime && new Date(l.endDateTime).getTime() < now) return false;
       
-      return l.status === "active" || l.status === "under_review" || l.status === "scheduled";
+      return l.status === "active" || l.status === "under_review";
     });
+  };
+
+  const startPaidListingCheckout = async () => {
+    if (window.self !== window.top) {
+      toast.error("Stripe checkout works only from the published app.");
+      return;
+    }
+
+    const amountCents = RESIDENTIAL_TIER_PRICES[formData.tier];
+    if (!amountCents) {
+      toast.error("Unsupported paid tier.");
+      return;
+    }
+
+    try {
+      setIsStartingPayment(true);
+      localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({ formData }));
+
+      const returnUrl = `${window.location.origin}${createPageUrl("CreateListing")}`;
+      const response = await base44.functions.invoke("createResidentialListingCheckout", {
+        amount_cents: amountCents,
+        tier: formData.tier,
+        return_url: returnUrl,
+      });
+
+      const checkoutUrl = response?.data?.checkoutUrl;
+      if (!checkoutUrl) {
+        throw new Error("Payment checkout could not start.");
+      }
+
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      setIsStartingPayment(false);
+      toast.error(error?.response?.data?.error || error?.message || "Payment could not start.");
+    }
   };
 
   useEffect(() => {
@@ -419,7 +455,7 @@ export default function CreateListingPage() {
         ...data,
         title: demoPrefix + data.title,
         ownerUserId: user.id,
-        status: data.listingType === "neighborhood_sale" ? (data.status || "collecting_participants") : (data.status || "active"),
+        status: data.status || (data.listingType === "neighborhood_sale" ? "collecting_participants" : "active"),
         event_state: data.listingType === "neighborhood_sale" ? (data.event_state || "pending_activation") : data.event_state,
         listingNumber
       });
@@ -526,7 +562,8 @@ export default function CreateListingPage() {
         }
       }
 
-      localStorage.removeItem(RESIDENTIAL_PAYMENT_STORAGE_KEY);
+      localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
+      setIsStartingPayment(false);
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       queryClient.invalidateQueries({ queryKey: ["userListings", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -685,8 +722,8 @@ export default function CreateListingPage() {
     }
   };
 
-  const executeSubmit = (actionStr = joinAction) => {
-    let payload = { ...formData, timeZoneId: formData.timeZoneId || FALLBACK_TZ };
+  const executeSubmit = (actionStr = joinAction, sourceFormData = formData) => {
+    let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId || FALLBACK_TZ };
 
     if (payload.listingType !== "neighborhood_sale" && !isGlobalDemoMode) {
       payload = {
@@ -700,25 +737,24 @@ export default function CreateListingPage() {
       };
     }
 
-    // Neighborhood event normalization
     if (payload.listingType === "neighborhood_sale") {
       payload.spanFeet = 500;
       payload.tier = "neighborhood_tier";
       payload.category = "Neighborhood Sale";
       payload.categories = [];
       payload.description = payload.description || "";
-      payload.startDateTime = new Date(formData.selectedRangeStartDate + "T00:00:00Z").toISOString();
-      payload.endDateTime = new Date(formData.selectedRangeEndDate + "T23:59:59Z").toISOString();
-      payload.invite_code = formData.invite_code || formData.neighborhoodDraftId;
+      payload.startDateTime = new Date(sourceFormData.selectedRangeStartDate + "T00:00:00Z").toISOString();
+      payload.endDateTime = new Date(sourceFormData.selectedRangeEndDate + "T23:59:59Z").toISOString();
+      payload.invite_code = sourceFormData.invite_code || sourceFormData.neighborhoodDraftId;
       payload.status = "collecting_participants";
       payload.activation_status = "pending";
       payload.event_state = "pending_activation";
       payload.homeCount = 1;
       payload.pricePaid = 0;
-      payload.addressText = formData.host_addressText || payload.addressText;
-      payload.city = formData.host_city || payload.city;
-      payload.state = formData.host_state || payload.state;
-      payload.zip = formData.host_zip || payload.zip;
+      payload.addressText = sourceFormData.host_addressText || payload.addressText;
+      payload.city = sourceFormData.host_city || payload.city;
+      payload.state = sourceFormData.host_state || payload.state;
+      payload.zip = sourceFormData.host_zip || payload.zip;
     }
 
     if (actionStr === "requested" && matchedSale) {
@@ -736,7 +772,6 @@ export default function CreateListingPage() {
       };
     }
 
-    // FREE TIER DATE RULE
     if (payload.tier === "free" && actionStr !== "requested") {
       const nextWeekend = getNextWeekendLAISO();
       payload = {
@@ -751,69 +786,66 @@ export default function CreateListingPage() {
       };
     }
 
-    // FEATURED
-    if (formData.tier === "featured") {
-      const startLocal = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
+    if (sourceFormData.tier === "featured") {
+      const startLocal = new Date(`${sourceFormData.selectedRangeStartDate}T00:00:00`);
       let activeDates = [];
       const pad = (n) => String(n).padStart(2, "0");
-      for(let i=0; i<3; i++) {
-         const d = new Date(startLocal);
-         d.setDate(d.getDate() + i);
-         activeDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+      for (let i = 0; i < 3; i++) {
+        const d = new Date(startLocal);
+        d.setDate(d.getDate() + i);
+        activeDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
       }
 
       payload = {
         ...payload,
-        startDateTime: new Date(`${formData.selectedRangeStartDate}T00:00:00Z`).toISOString(),
-        endDateTime: new Date(`${formData.selectedRangeEndDate}T23:59:59Z`).toISOString(),
-        activeDates: activeDates,
+        startDateTime: new Date(`${sourceFormData.selectedRangeStartDate}T00:00:00Z`).toISOString(),
+        endDateTime: new Date(`${sourceFormData.selectedRangeEndDate}T23:59:59Z`).toISOString(),
+        activeDates,
         earlyVisibilityDays: 0,
         earlyVisibilityDates: []
       };
     }
 
-    // PREMIUM
-    if (formData.tier === "premium") {
-      const earlyDays = Math.max(0, Math.min(3, Number(formData.earlyVisibilityDays || 0)));
-      const startLocal = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
-      const endLocal = new Date(`${formData.selectedRangeEndDate}T00:00:00`);
+    if (sourceFormData.tier === "premium") {
+      const earlyDays = Math.max(0, Math.min(3, Number(sourceFormData.earlyVisibilityDays || 0)));
+      const startLocal = new Date(`${sourceFormData.selectedRangeStartDate}T00:00:00`);
+      const endLocal = new Date(`${sourceFormData.selectedRangeEndDate}T00:00:00`);
       const diffDays = Math.round((endLocal - startLocal) / (1000 * 60 * 60 * 24)) + 1;
 
       let earlyVisibilityStartDateTime = null;
       let earlyVisibilityDates = [];
       let activeDates = [];
       const pad = (n) => String(n).padStart(2, "0");
-      
-      for(let i=0; i<diffDays; i++) {
-         const d = new Date(startLocal);
-         d.setDate(d.getDate() + i);
-         activeDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+
+      for (let i = 0; i < diffDays; i++) {
+        const d = new Date(startLocal);
+        d.setDate(d.getDate() + i);
+        activeDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
       }
-      
+
       if (earlyDays > 0) {
-         const startDt = new Date(startLocal);
-         startDt.setDate(startDt.getDate() - earlyDays);
-         earlyVisibilityStartDateTime = startDt.toISOString();
-         
-         for(let i=0; i<earlyDays; i++) {
-             const d = new Date(startDt);
-             d.setDate(d.getDate() + i);
-             earlyVisibilityDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
-         }
+        const startDt = new Date(startLocal);
+        startDt.setDate(startDt.getDate() - earlyDays);
+        earlyVisibilityStartDateTime = startDt.toISOString();
+
+        for (let i = 0; i < earlyDays; i++) {
+          const d = new Date(startDt);
+          d.setDate(d.getDate() + i);
+          earlyVisibilityDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+        }
       }
 
       payload = {
         ...payload,
-        startDateTime: new Date(`${formData.selectedRangeStartDate}T00:00:00Z`).toISOString(),
-        endDateTime: new Date(`${formData.selectedRangeEndDate}T23:59:59Z`).toISOString(),
+        startDateTime: new Date(`${sourceFormData.selectedRangeStartDate}T00:00:00Z`).toISOString(),
+        endDateTime: new Date(`${sourceFormData.selectedRangeEndDate}T23:59:59Z`).toISOString(),
         earlyVisibilityDays: earlyDays,
-        earlyVisibilityDates: earlyVisibilityDates,
-        activeDates: activeDates,
+        earlyVisibilityDates,
+        activeDates,
         ...(earlyVisibilityStartDateTime && { earlyVisibilityStartDateTime })
       };
     }
 
-    // Add Neighborhood Join Status fields
     if (payload.listingType !== "neighborhood_sale") {
       payload.participant_origin = payload.participant_origin || "standalone";
     }
@@ -830,6 +862,11 @@ export default function CreateListingPage() {
       payload.neighborhood_join_status = payload.neighborhood_join_status || "none";
     }
 
+    if (actionStr === "paid_success" && ["featured", "premium"].includes(payload.tier)) {
+      payload.status = "scheduled";
+      payload.pricePaid = (RESIDENTIAL_TIER_PRICES[payload.tier] || 0) / 100;
+    }
+
     if (isGlobalDemoMode) {
       payload.is_demo_listing = true;
       payload.payment_intent_status = "none";
@@ -839,7 +876,6 @@ export default function CreateListingPage() {
   };
 
   const handleSubmit = async () => {
-    // Enforce 1 active listing per account
     if (formData.listingType !== "neighborhood_sale" && hasActiveResidentialListing()) {
       toast.error("You already have an active listing. End it before creating another.");
       return;
@@ -857,13 +893,11 @@ export default function CreateListingPage() {
       }
     }
 
-    // Must select tier
     if (!formData.tier) {
       toast.error("Please select a tier");
       return;
     }
 
-    // Validate dates for featured/premium
     if ((formData.tier === "featured" || formData.tier === "premium") && (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate)) {
       toast.error("Please select start and end dates");
       return;
@@ -886,15 +920,74 @@ export default function CreateListingPage() {
       }
     }
 
-    // Photo limit enforcement
     const photoCheck = enforcePhotoLimit(formData.tier, formData.photoUrls || []);
     if (photoCheck.truncated) {
       toast.error(`Too many photos for ${formData.tier}. Max allowed: ${photoCheck.max}.`);
       return;
     }
 
+    if (formData.listingType !== "neighborhood_sale" && ["featured", "premium"].includes(formData.tier)) {
+      if (isGlobalDemoMode) {
+        setIsStartingPayment(true);
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        setIsStartingPayment(false);
+        toast.success("Demo payment successful.");
+        executeSubmit("paid_success");
+        return;
+      }
+
+      await startPaidListingCheckout();
+      return;
+    }
+
     executeSubmit();
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const paymentState = params.get("payment");
+    const sessionId = params.get("session_id");
+    if (!paymentState) return;
+
+    const raw = localStorage.getItem(PAID_LISTING_CHECKOUT_KEY);
+    if (!raw) return;
+
+    try {
+      const stored = JSON.parse(raw);
+      if (stored?.formData) {
+        setFormData(stored.formData);
+        setStep(3);
+      }
+
+      window.history.replaceState({}, "", createPageUrl("CreateListing"));
+
+      if (paymentState === "cancel") {
+        toast.error("Payment was canceled. No listing was created.");
+        return;
+      }
+
+      if (paymentState === "success" && sessionId && handledCheckoutSessionRef.current !== sessionId && stored?.formData) {
+        handledCheckoutSessionRef.current = sessionId;
+        localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
+
+        base44.functions.invoke("createResidentialListingCheckout", {
+          action: "verify",
+          session_id: sessionId,
+        }).then((response) => {
+          if (response?.data?.paid) {
+            toast.success("Payment successful.");
+            executeSubmit("paid_success", stored.formData);
+          } else {
+            toast.error("Payment could not be confirmed. No listing was created.");
+          }
+        }).catch((error) => {
+          toast.error(error?.response?.data?.error || error?.message || "Payment verification failed.");
+        });
+      }
+    } catch {
+      localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
+    }
+  }, [location.search]);
 
   if (!user) {
     return <div className="p-8 text-center">Loading...</div>;
@@ -971,10 +1064,16 @@ export default function CreateListingPage() {
               ) : (
                 <Button
                   onClick={handleSubmit}
-                  disabled={createListingMutation.isPending}
+                  disabled={createListingMutation.isPending || isStartingPayment}
                   className="flex-1 bg-amber-600 hover:bg-amber-700"
                 >
-                  {createListingMutation.isPending ? "Creating..." : "Create Listing"}
+                  {isStartingPayment
+                    ? "Starting Payment..."
+                    : createListingMutation.isPending
+                    ? "Creating..."
+                    : formData.listingType !== "neighborhood_sale" && ["featured", "premium"].includes(formData.tier)
+                    ? "Continue to Payment"
+                    : "Create Listing"}
                 </Button>
               )}
             </div>
