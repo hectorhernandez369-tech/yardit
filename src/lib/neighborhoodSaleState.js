@@ -82,7 +82,16 @@ export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
     return isNeighborhoodVisibleOnMap(listing, nowInput) && Number(listing.homeCount || 0) >= NEIGHBORHOOD_MIN_HOMES;
   }
 
-  if (!["active", "scheduled"].includes(listing.status)) return false;
+  const now = nowInput instanceof Date ? nowInput : new Date(nowInput);
+  const start = listing.startDateTime ? new Date(listing.startDateTime) : null;
+  const end = listing.endDateTime ? new Date(listing.endDateTime) : null;
+
+  if (listing.status === "scheduled") {
+    if (!start || Number.isNaN(start.getTime()) || now < start) return false;
+    if (end && !Number.isNaN(end.getTime()) && now > end) return false;
+  } else if (listing.status !== "active") {
+    return false;
+  }
 
   const joinStatus = normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status);
   if (joinStatus !== "none" || !!listing.neighborhood_sale_id) return false;

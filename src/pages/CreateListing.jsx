@@ -12,6 +12,7 @@ import StepOne from "../components/create/StepOne";
 import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import FormScrollHelper from "../components/create/FormScrollHelper";
+import ResidentialPaymentStep from "../components/payment/ResidentialPaymentStep";
 import { useAppMode } from "../components/shared/DemoMode";
 import {
   deriveNeighborhoodEventState,
@@ -28,11 +29,8 @@ import {
 } from "../components/shared/listingTierEngine";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
-const PAID_LISTING_CHECKOUT_KEY = "yardit_paid_listing_checkout_v1";
-const RESIDENTIAL_TIER_PRICES = {
-  featured: 499,
-  premium: 799,
-};
+const RESIDENTIAL_PAYMENT_STORAGE_KEY = "yardit_residential_payment_v1";
+const RESIDENTIAL_TIER_AMOUNTS = { featured: 4.99, premium: 7.99 };
 
 // (plain english) fallback timezone until we auto-detect timezone from lat/lng later
 const FALLBACK_TZ = "America/Los_Angeles";
@@ -145,13 +143,14 @@ export default function CreateListingPage() {
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
   const [geocodeRef, setGeocodeRef] = useState(null);
-  const [isStartingPayment, setIsStartingPayment] = useState(false);
-  const handledCheckoutSessionRef = useRef(null);
 
   // (plain english) "Sale in your area" modal state
   const [saleModalStep, setSaleModalStep] = useState(0); // 0: none, 1: popup1, 2: popup2
   const [matchedSale, setMatchedSale] = useState(null);
   const [joinAction, setJoinAction] = useState(null); // null, "requested", "none"
+  const [paymentMessage, setPaymentMessage] = useState("");
+  const [isStartingPayment, setIsStartingPayment] = useState(false);
+  const paymentReturnHandledRef = useRef(false);
 
   const findNearbyNeighborhoodSale = async (locationOverride = null) => {
     const sourceLocation = locationOverride || formData;
@@ -375,7 +374,7 @@ export default function CreateListingPage() {
       if (l.status === "completed" || l.status === "suspended" || l.status === "expired") return false;
       if (l.endDateTime && new Date(l.endDateTime).getTime() < now) return false;
       
-      return l.status === "active" || l.status === "under_review";
+      return l.status === "active" || l.status === "under_review" || l.status === "scheduled";
     });
   };
 
@@ -420,7 +419,7 @@ export default function CreateListingPage() {
         ...data,
         title: demoPrefix + data.title,
         ownerUserId: user.id,
-        status: data.status || (data.listingType === "neighborhood_sale" ? "collecting_participants" : "active"),
+        status: data.listingType === "neighborhood_sale" ? (data.status || "collecting_participants") : (data.status || "active"),
         event_state: data.listingType === "neighborhood_sale" ? (data.event_state || "pending_activation") : data.event_state,
         listingNumber
       });
@@ -527,6 +526,7 @@ export default function CreateListingPage() {
         }
       }
 
+      localStorage.removeItem(RESIDENTIAL_PAYMENT_STORAGE_KEY);
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       queryClient.invalidateQueries({ queryKey: ["userListings", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
