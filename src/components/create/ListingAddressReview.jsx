@@ -15,6 +15,8 @@ export default function ListingAddressReview({
   onUseCurrentLocation,
   onLocateAddress,
   addressSuggestions,
+  addressSelectionMessage,
+  addressConfirmed,
   onSelectSuggestion,
 }) {
   const readOnly = !isDemoMode;
@@ -123,11 +125,17 @@ export default function ListingAddressReview({
             <MapPin className="w-3 h-3" />
             Location set: {Number(formData.lat).toFixed(4)}, {Number(formData.lng).toFixed(4)}
           </p>
+          {addressConfirmed && (
+            <p className="mt-1 text-xs font-medium text-green-700">Address confirmed</p>
+          )}
         </div>
       )}
 
       {addressSuggestions.length > 0 && (
         <div className="space-y-2">
+          {addressSelectionMessage && (
+            <p className="text-sm text-[#2C4F4E]">{addressSelectionMessage}</p>
+          )}
           <Label className="text-[#2C4F4E]">Suggested Matches</Label>
           <div className="space-y-2">
             {addressSuggestions.map((suggestion, idx) => (

@@ -700,7 +700,7 @@ export default function CreateListingPage() {
         return;
       }
 
-      if (!geocodeRef) {
+      if (!geocodeRef || typeof geocodeRef !== "function") {
         toast.error("Please use 'Locate Address' to confirm your location");
         return;
       }

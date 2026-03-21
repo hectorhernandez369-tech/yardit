@@ -160,6 +160,9 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [addressSelectionMessage, setAddressSelectionMessage] = useState("");
+  const [addressConfirmed, setAddressConfirmed] = useState(false);
+  const addressConfirmedRef = React.useRef(false);
   const [debugInfo, setDebugInfo] = useState({ lastQueryString: "", lastResponseCount: null, lastErrorMessage: "" });
   const [fieldErrors, setFieldErrors] = useState({});
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
@@ -337,16 +340,19 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
     if (
       currentAddressKey &&
       currentAddressKey === confirmedAddressKeyRef.current &&
+      addressConfirmedRef.current &&
       typeof fd.lat === "number" &&
-      typeof fd.lng === "number" &&
-      addressSuggestions.length === 0
+      typeof fd.lng === "number"
     ) {
       return true;
     }
 
-    toast.info("Locating address...");
+    addressConfirmedRef.current = false;
+    setAddressConfirmed(false);
+    confirmedAddressKeyRef.current = "";
     setIsGeocoding(true);
     setAddressSuggestions([]);
+    setAddressSelectionMessage("");
     setDebugInfo({ lastQueryString: "", lastResponseCount: null, lastErrorMessage: "" });
 
     try {
@@ -382,6 +388,10 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       if (data.length > 0) {
         if (data.length === 1) {
           confirmedAddressKeyRef.current = currentAddressKey;
+          addressConfirmedRef.current = true;
+          setAddressConfirmed(true);
+          setAddressSelectionMessage("");
+          setAddressSuggestions([]);
           setFormData((prev) => ({
             ...prev,
             lat: data[0].center[1],
@@ -392,17 +402,25 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
         }
 
         confirmedAddressKeyRef.current = "";
+        addressConfirmedRef.current = false;
+        setAddressConfirmed(false);
         setAddressSuggestions(data.slice(0, 5));
-        toast.info(`Found ${data.length} possible matches. Select one below.`);
+        setAddressSelectionMessage(`Found ${data.length} possible matches. Select one below.`);
         return false;
       }
 
       confirmedAddressKeyRef.current = "";
+      addressConfirmedRef.current = false;
+      setAddressConfirmed(false);
+      setAddressSelectionMessage("");
       setDebugInfo((prev) => ({ ...prev, lastErrorMessage: "Zero results" }));
       toast.error("No match found. Try a suggestion or adjust spelling.");
       return false;
       } catch (error) {
       confirmedAddressKeyRef.current = "";
+      addressConfirmedRef.current = false;
+      setAddressConfirmed(false);
+      setAddressSelectionMessage("");
       setDebugInfo((prev) => ({ ...prev, lastErrorMessage: error.message }));
       toast.error("Address search failed. Please try again.");
       return false;
@@ -413,7 +431,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
   useEffect(() => {
     if (onGeocodeRef) {
-      onGeocodeRef(geocodeAddress);
+      onGeocodeRef(() => geocodeAddress);
     }
   }, [geocodeAddress, onGeocodeRef]);
 
@@ -739,6 +757,8 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
           onUseCurrentLocation={getCurrentLocation}
           onLocateAddress={() => geocodeAddress()}
           addressSuggestions={addressSuggestions}
+          addressSelectionMessage={addressSelectionMessage}
+          addressConfirmed={addressConfirmed}
           onSelectSuggestion={(suggestion) => {
             let city = formData.city, state = formData.state, zip = formData.zip;
             suggestion.context?.forEach((c) => {
@@ -753,6 +773,9 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
               state,
               zip,
             });
+            addressConfirmedRef.current = true;
+            setAddressConfirmed(true);
+            setAddressSelectionMessage("");
             setFormData((prev) => ({
               ...prev,
               addressText: nextAddressText,
