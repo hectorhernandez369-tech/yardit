@@ -28,6 +28,11 @@ import {
 } from "../components/shared/listingTierEngine";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
+const PAID_LISTING_CHECKOUT_KEY = "yardit_paid_listing_checkout_v1";
+const RESIDENTIAL_TIER_PRICES = {
+  featured: 499,
+  premium: 799,
+};
 
 // (plain english) fallback timezone until we auto-detect timezone from lat/lng later
 const FALLBACK_TZ = "America/Los_Angeles";
@@ -140,6 +145,8 @@ export default function CreateListingPage() {
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
   const [geocodeRef, setGeocodeRef] = useState(null);
+  const [isStartingPayment, setIsStartingPayment] = useState(false);
+  const handledCheckoutSessionRef = useRef(null);
 
   // (plain english) "Sale in your area" modal state
   const [saleModalStep, setSaleModalStep] = useState(0); // 0: none, 1: popup1, 2: popup2
@@ -413,7 +420,7 @@ export default function CreateListingPage() {
         ...data,
         title: demoPrefix + data.title,
         ownerUserId: user.id,
-        status: data.listingType === "neighborhood_sale" ? (data.status || "collecting_participants") : "active",
+        status: data.status || (data.listingType === "neighborhood_sale" ? "collecting_participants" : "active"),
         event_state: data.listingType === "neighborhood_sale" ? (data.event_state || "pending_activation") : data.event_state,
         listingNumber
       });

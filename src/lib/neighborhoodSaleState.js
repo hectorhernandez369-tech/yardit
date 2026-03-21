@@ -82,7 +82,7 @@ export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
     return isNeighborhoodVisibleOnMap(listing, nowInput) && Number(listing.homeCount || 0) >= NEIGHBORHOOD_MIN_HOMES;
   }
 
-  if (listing.status !== "active") return false;
+  if (!["active", "scheduled"].includes(listing.status)) return false;
 
   const joinStatus = normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status);
   if (joinStatus !== "none" || !!listing.neighborhood_sale_id) return false;
