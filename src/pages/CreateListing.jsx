@@ -128,12 +128,14 @@ function buildNeighborhoodDeadlineJobs(startDateTime, saleListingId) {
       checkpoint_type: "warning_48h",
       run_at: new Date(start.getTime() - 48 * 60 * 60 * 1000).toISOString(),
       status: "pending",
+      attempt_count: 0,
     },
     {
       sale_listing_id: saleListingId,
-      checkpoint_type: "cancel_24h",
+      checkpoint_type: "charge_24h",
       run_at: new Date(start.getTime() - 24 * 60 * 60 * 1000).toISOString(),
       status: "pending",
+      attempt_count: 0,
     },
   ];
 }
