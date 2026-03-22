@@ -7,10 +7,10 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 
 const NEIGHBORHOOD_MIN_HOMES = 5;
 const NEIGHBORHOOD_MAX_HOMES = 25;
-const NEIGHBORHOOD_BASE_PRICE_CENTS = 1999;
-const NEIGHBORHOOD_PRICE_PER_HOME_CENTS = 200;
-const NEIGHBORHOOD_PRICE_CAP_CENTS = 5000;
-const PREMIUM_FALLBACK_CENTS = 799;
+const NEIGHBORHOOD_BASE_PRICE = 19.99;
+const NEIGHBORHOOD_PRICE_PER_HOME = 2;
+const NEIGHBORHOOD_PRICE_CAP = 50;
+const PREMIUM_FALLBACK_PRICE = 7.99;
 const RETRY_DELAY_MS = 6 * 60 * 60 * 1000;
 
 function normalizeNeighborhoodJoinStatus(status) {
@@ -20,185 +20,309 @@ function normalizeNeighborhoodJoinStatus(status) {
 }
 
 function getApprovedHomesCount(requests = []) {
-  return Math.min(
-    NEIGHBORHOOD_MAX_HOMES,
-    (requests || []).filter((request) => request?.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + 1,
-  );
+  const approved = (requests || []).filter((request) => request?.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + 1;
+  return Math.min(NEIGHBORHOOD_MAX_HOMES, approved);
 }
 
 function isTerminalSale(listing) {
-  return listing?.event_state === 'downgraded' || listing?.event_state === 'canceled' || listing?.status === 'closed' || listing?.status === 'expired';
+  return listing?.event_state === 'downgraded' || listing?.event_state === 'canceled' || listing?.status === 'closed' || listing?.status === 'cancelled';
 }
 
-function centsToAmount(cents) {
-  return Number((Number(cents || 0) / 100).toFixed(2));
+function roundAmount(amount) {
+  return Math.round(Number(amount || 0) * 100) / 100;
 }
 
-function calculateNeighborhoodChargeCents(approvedHomes) {
-  const homes = Math.max(0, Math.min(NEIGHBORHOOD_MAX_HOMES, Number(approvedHomes) || 0));
-  return Math.min(NEIGHBORHOOD_PRICE_CAP_CENTS, NEIGHBORHOOD_BASE_PRICE_CENTS + homes * NEIGHBORHOOD_PRICE_PER_HOME_CENTS);
+function getNeighborhoodChargeAmount(approvedHomes) {
+  return roundAmount(Math.min(NEIGHBORHOOD_PRICE_CAP, NEIGHBORHOOD_BASE_PRICE + (approvedHomes * NEIGHBORHOOD_PRICE_PER_HOME)));
 }
 
-function getDurationDays(listing) {
-  const start = listing?.selectedRangeStartDate ? new Date(`${listing.selectedRangeStartDate}T00:00:00`) : null;
-  const end = listing?.selectedRangeEndDate ? new Date(`${listing.selectedRangeEndDate}T00:00:00`) : null;
+function getDurationDays(sale) {
+  const start = sale?.startDateTime ? new Date(sale.startDateTime) : null;
+  const end = sale?.endDateTime ? new Date(sale.endDateTime) : null;
   if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 1;
-  return Math.max(1, Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1);
+  return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 }
 
-async function createNotification(base44, payload) {
-  if (!payload?.userId && !payload?.user_id) return;
+function toCents(amount) {
+  return Math.round(roundAmount(amount) * 100);
+}
+
+function sortNewest(records = []) {
+  return [...records].sort((a, b) => new Date(b.created_date || b.created_at || 0).getTime() - new Date(a.created_date || a.created_at || 0).getTime());
+}
+
+async function getLatestPayment(base44, relatedEntityId, type) {
+  const payments = await base44.asServiceRole.entities.Payment.filter({ related_entity_id: relatedEntityId, type });
+  return sortNewest(payments)[0] || null;
+}
+
+async function upsertPayment(base44, currentPayment, payload) {
+  if (currentPayment?.id) {
+    return await base44.asServiceRole.entities.Payment.update(currentPayment.id, payload);
+  }
+  return await base44.asServiceRole.entities.Payment.create(payload);
+}
+
+async function chargeSavedMethod({ sale, paymentRecord, amount, purpose }) {
+  if (sale?.is_demo_listing) {
+    return {
+      success: true,
+      paymentIntentId: `demo_${purpose}_${Date.now()}`,
+      method: 'demo_card',
+    };
+  }
+
+  if (!paymentRecord?.stripe_customer_id || !paymentRecord?.stripe_payment_method_id) {
+    return { success: false, error: 'No saved payment method was found for the organizer.' };
+  }
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: toCents(amount),
+      currency: 'usd',
+      customer: paymentRecord.stripe_customer_id,
+      payment_method: paymentRecord.stripe_payment_method_id,
+      off_session: true,
+      confirm: true,
+      metadata: {
+        base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
+        purpose,
+        sale_listing_id: sale.id,
+        owner_user_id: sale.ownerUserId,
+      },
+    });
+
+    return {
+      success: paymentIntent.status === 'succeeded',
+      paymentIntentId: paymentIntent.id,
+      method: paymentIntent.payment_method ? 'saved_card' : 'card',
+      error: paymentIntent.status === 'succeeded' ? null : `Stripe status: ${paymentIntent.status}`,
+    };
+  } catch (error) {
+    console.error('Neighborhood Stripe charge failed:', error?.message || error);
+    return { success: false, error: error?.message || 'Stripe charge failed' };
+  }
+}
+
+async function notify(base44, userId, title, message, type, relatedEntityId, metadata = {}) {
+  if (!userId) return;
   await base44.asServiceRole.entities.Notification.create({
+    userId,
+    user_id: userId,
+    title,
+    message,
+    type,
+    related_entity_type: 'listing',
+    related_entity_id: relatedEntityId,
+    metadata,
     read: false,
     is_read: false,
-    ...payload,
   });
 }
 
-async function findPayment(base44, relatedEntityId, type) {
-  const payments = await base44.asServiceRole.entities.Payment.filter({ related_entity_id: relatedEntityId, type }, '-created_date');
-  return payments[0] || null;
+async function scheduleRetryJob(base44, saleId, now) {
+  const existing = await base44.asServiceRole.entities.NeighborhoodDeadlineJob.filter({ sale_listing_id: saleId, checkpoint_type: 'payment_retry_6h' });
+  const activeRetry = existing.find((job) => job.status === 'pending');
+  if (activeRetry) return activeRetry;
+
+  return await base44.asServiceRole.entities.NeighborhoodDeadlineJob.create({
+    sale_listing_id: saleId,
+    checkpoint_type: 'payment_retry_6h',
+    run_at: new Date(now.getTime() + RETRY_DELAY_MS).toISOString(),
+    status: 'pending',
+  });
 }
 
-async function upsertPayment(base44, paymentData) {
-  const existing = await findPayment(base44, paymentData.related_entity_id, paymentData.type);
-  if (existing) {
-    await base44.asServiceRole.entities.Payment.update(existing.id, paymentData);
-    return existing.id;
+async function applyFallbackFlow(base44, sale, approvedHomes, reason, triggerLabel) {
+  const nowIso = new Date().toISOString();
+  const neighborhoodPayment = await getLatestPayment(base44, sale.id, 'neighborhood_event');
+  const fallbackPayment = await getLatestPayment(base44, sale.id, 'fallback_listing');
+  const durationDays = getDurationDays(sale);
+
+  if (neighborhoodPayment?.id && neighborhoodPayment.status !== 'succeeded' && neighborhoodPayment.status !== 'completed') {
+    await base44.asServiceRole.entities.Payment.update(neighborhoodPayment.id, {
+      status: 'cancelled',
+      transaction_id: neighborhoodPayment.transaction_id || '',
+    });
   }
-  const created = await base44.asServiceRole.entities.Payment.create(paymentData);
-  return created.id;
-}
 
-async function chargeSavedMethod({ sale, amountCents, metadata, description }) {
-  if (!sale?.organizer_stripe_customer_id || !sale?.organizer_stripe_payment_method_id) {
-    throw new Error('Organizer payment method is missing');
-  }
-
-  return await stripe.paymentIntents.create({
-    amount: amountCents,
-    currency: 'usd',
-    customer: sale.organizer_stripe_customer_id,
-    payment_method: sale.organizer_stripe_payment_method_id,
-    off_session: true,
-    confirm: true,
-    description,
-    metadata: {
-      base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
-      organizer_user_id: sale.ownerUserId || '',
-      sale_listing_id: sale.id,
-      ...metadata,
-    },
-  });
-}
-
-function buildFallbackListingUpdate(sale, nowIso) {
-  const cleanedCategories = (sale?.categories || []).filter((item) => item && item !== 'Neighborhood Sale');
-  const category = sale?.category && sale.category !== 'Neighborhood Sale' ? sale.category : 'Miscellaneous';
-
-  return {
-    listingType: 'yard_sale',
-    tier: 'premium',
-    status: 'scheduled',
-    activation_status: 'active',
-    category,
-    categories: cleanedCategories.length ? cleanedCategories : [category],
-    collectible_type: sale?.collectible_type || null,
-    addressText: sale?.host_addressText || sale?.addressText,
-    city: sale?.host_city || sale?.city,
-    state: sale?.host_state || sale?.state,
-    zip: sale?.host_zip || sale?.zip,
-    lat: sale?.host_address_lat ?? sale?.lat,
-    lng: sale?.host_address_lng ?? sale?.lng,
-    pricePaid: centsToAmount(PREMIUM_FALLBACK_CENTS),
-    payment_intent_status: 'captured',
-    neighborhood_join_status: 'none',
-    neighborhood_sale_id: null,
-    participant_origin: 'standalone',
-    hold_deadline_at: null,
-    participant_lock_at: nowIso,
-    neighborhood_charge_locked_at: nowIso,
-    neighborhood_charge_amount: centsToAmount(PREMIUM_FALLBACK_CENTS),
-    statusReason: 'Neighborhood Sale converted to Premium fallback.',
-  };
-}
-
-async function completeFallbackFlow(base44, sale, nowIso, approvedHomes, reason, fallbackIntentId, fallbackSucceeded) {
-  await upsertPayment(base44, {
+  const preparedFallback = await upsertPayment(base44, fallbackPayment, {
     location_id: sale.id,
-    related_entity_id: sale.id,
+    amount: PREMIUM_FALLBACK_PRICE,
+    plan: 'fallback_listing',
+    duration_days: durationDays,
+    status: 'pending',
+    payment_method: sale.is_demo_listing ? 'demo_saved_card' : 'saved_card',
+    transaction_id: fallbackPayment?.transaction_id || '',
     user_id: sale.ownerUserId,
-    amount: sale.neighborhood_charge_amount || 0,
-    type: 'neighborhood_event',
-    plan: 'neighborhood_sale_initial',
-    duration_days: getDurationDays(sale),
-    status: 'cancelled',
-    payment_method: sale.organizer_stripe_payment_method_id || '',
-    transaction_id: sale.organizer_setup_intent_id || sale.organizer_setup_session_id || '',
-    stripe_payment_intent_id: '',
-    stripe_customer_id: sale.organizer_stripe_customer_id || '',
-    stripe_payment_method_id: sale.organizer_stripe_payment_method_id || '',
-    setup_reference_id: sale.organizer_setup_intent_id || sale.organizer_setup_session_id || '',
-  });
-
-  await upsertPayment(base44, {
-    location_id: sale.id,
-    related_entity_id: sale.id,
-    user_id: sale.ownerUserId,
-    amount: centsToAmount(PREMIUM_FALLBACK_CENTS),
     type: 'fallback_listing',
-    plan: 'premium_fallback',
-    duration_days: getDurationDays(sale),
-    status: fallbackSucceeded ? 'succeeded' : 'failed',
-    payment_method: sale.organizer_stripe_payment_method_id || '',
-    transaction_id: fallbackIntentId || sale.organizer_setup_intent_id || sale.organizer_setup_session_id || '',
-    stripe_payment_intent_id: fallbackIntentId || '',
-    stripe_customer_id: sale.organizer_stripe_customer_id || '',
-    stripe_payment_method_id: sale.organizer_stripe_payment_method_id || '',
-    setup_reference_id: sale.organizer_setup_intent_id || sale.organizer_setup_session_id || '',
+    related_entity_id: sale.id,
+    stripe_payment_intent_id: fallbackPayment?.stripe_payment_intent_id || '',
+    stripe_customer_id: fallbackPayment?.stripe_customer_id || neighborhoodPayment?.stripe_customer_id || '',
+    stripe_payment_method_id: fallbackPayment?.stripe_payment_method_id || neighborhoodPayment?.stripe_payment_method_id || '',
+    created_at: fallbackPayment?.created_at || nowIso,
+  });
+
+  const fallbackCharge = await chargeSavedMethod({
+    sale,
+    paymentRecord: preparedFallback,
+    amount: PREMIUM_FALLBACK_PRICE,
+    purpose: 'neighborhood_sale_fallback_listing',
+  });
+
+  await base44.asServiceRole.entities.Payment.update(preparedFallback.id, {
+    amount: PREMIUM_FALLBACK_PRICE,
+    status: fallbackCharge.success ? 'succeeded' : 'failed',
+    payment_method: fallbackCharge.method || preparedFallback.payment_method || 'saved_card',
+    transaction_id: fallbackCharge.paymentIntentId || preparedFallback.transaction_id || '',
+    stripe_payment_intent_id: fallbackCharge.paymentIntentId || preparedFallback.stripe_payment_intent_id || '',
   });
 
   await base44.asServiceRole.functions.invoke('cancelNeighborhoodSale', {
     saleListingId: sale.id,
     internal: true,
     reason,
-    finalState: 'downgraded',
+    finalState: fallbackCharge.success ? 'downgraded' : 'canceled',
     deleteSale: false,
-    trigger: reason,
+    trigger: triggerLabel,
   });
 
-  if (fallbackSucceeded) {
-    await base44.asServiceRole.entities.Listing.update(sale.id, buildFallbackListingUpdate(sale, nowIso));
-    await createNotification(base44, {
-      userId: sale.ownerUserId,
-      user_id: sale.ownerUserId,
-      title: 'Neighborhood Sale converted to Premium',
-      message: approvedHomes < NEIGHBORHOOD_MIN_HOMES
-        ? `${sale.title || 'Neighborhood Sale'} did not reach 5 approved homes. Your organizer listing was converted to Premium and charged $7.99.`
-        : `${sale.title || 'Neighborhood Sale'} could not complete organizer payment after retry. Your organizer listing was converted to Premium and charged $7.99.`,
-      type: 'neighborhood_sale_fallback_success',
-      related_entity_type: 'listing',
-      related_entity_id: sale.id,
-      metadata: {
-        sale_listing_id: sale.id,
-        approved_homes: approvedHomes,
-      },
+  if (fallbackCharge.success) {
+    await base44.asServiceRole.entities.Listing.update(sale.id, {
+      listingType: 'yard_sale',
+      tier: 'premium',
+      status: 'scheduled',
+      event_state: 'downgraded',
+      activation_status: 'pending',
+      statusReason: reason,
+      homeCount: 1,
+      spanFeet: 0,
+      pricePaid: PREMIUM_FALLBACK_PRICE,
+      payment_intent_status: 'captured',
+      invite_code: '',
+      neighborhood_join_status: 'none',
+      neighborhood_sale_id: null,
+      participant_origin: 'standalone',
+      origin_sale_listing_id: null,
+      category: sale.category && sale.category !== 'Neighborhood Sale' ? sale.category : 'Miscellaneous',
     });
+
+    await notify(
+      base44,
+      sale.ownerUserId,
+      'Neighborhood Sale changed to Premium fallback',
+      `Your Neighborhood Sale did not lock successfully, so it was converted to a Premium listing and charged $${PREMIUM_FALLBACK_PRICE.toFixed(2)}.`,
+      'neighborhood_sale_fallback_applied',
+      sale.id,
+      { sale_listing_id: sale.id, approved_homes: approvedHomes, reason }
+    );
   } else {
-    await createNotification(base44, {
-      userId: sale.ownerUserId,
-      user_id: sale.ownerUserId,
-      title: 'Neighborhood Sale payment failed',
-      message: `${sale.title || 'Neighborhood Sale'} could not be completed and the Premium fallback charge also failed. The event has been canceled.`,
-      type: 'neighborhood_sale_fallback_failed',
-      related_entity_type: 'listing',
-      related_entity_id: sale.id,
-      metadata: {
-        sale_listing_id: sale.id,
-        approved_homes: approvedHomes,
-      },
+    await base44.asServiceRole.entities.Listing.update(sale.id, {
+      status: 'cancelled',
+      event_state: 'canceled',
+      activation_status: 'pending',
+      statusReason: `${reason}: ${fallbackCharge.error || 'fallback charge failed'}`,
+      payment_intent_status: 'voided',
     });
+
+    await notify(
+      base44,
+      sale.ownerUserId,
+      'Neighborhood Sale cancelled',
+      'Your Neighborhood Sale could not be charged at the 24-hour lock point or during the retry, and the fallback Premium charge also failed, so the event was cancelled.',
+      'neighborhood_sale_payment_failed_cancelled',
+      sale.id,
+      { sale_listing_id: sale.id, approved_homes: approvedHomes, reason, error: fallbackCharge.error || null }
+    );
   }
+}
+
+async function processNeighborhoodCharge(base44, sale, approvedHomes, now, isRetry = false) {
+  const durationDays = getDurationDays(sale);
+  const existingPayment = await getLatestPayment(base44, sale.id, 'neighborhood_event');
+  const lockedAmount = existingPayment?.amount && Number(existingPayment.amount) > 0
+    ? roundAmount(existingPayment.amount)
+    : getNeighborhoodChargeAmount(approvedHomes);
+
+  const paymentRecord = await upsertPayment(base44, existingPayment, {
+    location_id: sale.id,
+    amount: lockedAmount,
+    plan: 'neighborhood_sale_initial',
+    duration_days: durationDays,
+    status: 'pending',
+    payment_method: sale.is_demo_listing ? 'demo_saved_card' : 'saved_card',
+    transaction_id: existingPayment?.transaction_id || '',
+    user_id: sale.ownerUserId,
+    type: 'neighborhood_event',
+    related_entity_id: sale.id,
+    stripe_payment_intent_id: existingPayment?.stripe_payment_intent_id || '',
+    stripe_customer_id: existingPayment?.stripe_customer_id || '',
+    stripe_payment_method_id: existingPayment?.stripe_payment_method_id || '',
+    created_at: existingPayment?.created_at || now.toISOString(),
+  });
+
+  const charge = await chargeSavedMethod({
+    sale,
+    paymentRecord,
+    amount: lockedAmount,
+    purpose: 'neighborhood_sale_event_charge',
+  });
+
+  await base44.asServiceRole.entities.Payment.update(paymentRecord.id, {
+    amount: lockedAmount,
+    status: charge.success ? 'succeeded' : 'failed',
+    payment_method: charge.method || paymentRecord.payment_method || 'saved_card',
+    transaction_id: charge.paymentIntentId || paymentRecord.transaction_id || '',
+    stripe_payment_intent_id: charge.paymentIntentId || paymentRecord.stripe_payment_intent_id || '',
+  });
+
+  if (charge.success) {
+    await base44.asServiceRole.entities.Listing.update(sale.id, {
+      pricePaid: lockedAmount,
+      status: 'active',
+      event_state: 'activated',
+      activation_status: 'active',
+      homeCount: approvedHomes,
+      payment_intent_status: 'captured',
+      hold_deadline_at: null,
+      statusReason: 'Neighborhood Sale payment locked successfully',
+    });
+
+    await notify(
+      base44,
+      sale.ownerUserId,
+      'Neighborhood Sale payment succeeded',
+      `Your Neighborhood Sale was charged $${lockedAmount.toFixed(2)} and is now locked for activation.`,
+      'neighborhood_sale_payment_succeeded',
+      sale.id,
+      { sale_listing_id: sale.id, approved_homes: approvedHomes, amount: lockedAmount }
+    );
+    return;
+  }
+
+  if (!isRetry) {
+    await base44.asServiceRole.entities.Listing.update(sale.id, {
+      homeCount: approvedHomes,
+      status: 'payment_pending',
+      payment_intent_status: 'hold_requested',
+      hold_deadline_at: new Date(now.getTime() + RETRY_DELAY_MS).toISOString(),
+      statusReason: charge.error || 'Neighborhood Sale payment failed at 24-hour lock point',
+    });
+
+    await scheduleRetryJob(base44, sale.id, now);
+    await notify(
+      base44,
+      sale.ownerUserId,
+      'Neighborhood Sale payment retry scheduled',
+      'The 24-hour Neighborhood Sale charge failed. Yardit will retry once in 6 hours using your saved payment method.',
+      'neighborhood_sale_payment_retry_scheduled',
+      sale.id,
+      { sale_listing_id: sale.id, approved_homes: approvedHomes, amount: lockedAmount, error: charge.error || null }
+    );
+    return;
+  }
+
+  await applyFallbackFlow(base44, sale, approvedHomes, 'payment_retry_failed', 'payment_retry_failed');
 }
 
 Deno.serve(async (req) => {
@@ -206,7 +330,6 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const jobs = await base44.asServiceRole.entities.NeighborhoodDeadlineJob.list('-created_date');
     const now = new Date();
-    const nowIso = now.toISOString();
     const processed = [];
 
     for (const job of jobs.filter((item) => item.status === 'pending')) {
@@ -218,7 +341,7 @@ Deno.serve(async (req) => {
       if (!sale) {
         await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
           status: 'cancelled',
-          processed_at: nowIso,
+          processed_at: now.toISOString(),
           error_message: 'Sale not found',
         });
         continue;
@@ -227,7 +350,7 @@ Deno.serve(async (req) => {
       if (isTerminalSale(sale)) {
         await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
           status: 'cancelled',
-          processed_at: nowIso,
+          processed_at: now.toISOString(),
         });
         continue;
       }
@@ -239,271 +362,68 @@ Deno.serve(async (req) => {
       if (job.checkpoint_type === 'warning_48h') {
         if (approvedHomes < NEIGHBORHOOD_MIN_HOMES) {
           if (!sale.host_warning_48h_sent_at && sale.ownerUserId) {
-            await createNotification(base44, {
-              userId: sale.ownerUserId,
-              user_id: sale.ownerUserId,
-              title: 'Neighborhood Sale Warning',
-              message: `${sale.title || 'Neighborhood Sale'} is below the 5-home minimum with 48 hours remaining.`,
-              type: 'neighborhood_sale_warning_48h',
-              related_entity_type: 'listing',
-              related_entity_id: sale.id,
-              metadata: {
-                sale_listing_id: sale.id,
-                event_title: sale.title,
-              },
-            });
+            await notify(
+              base44,
+              sale.ownerUserId,
+              'Neighborhood Sale Warning',
+              `${sale.title || 'Neighborhood Sale'} is below the 5-home minimum with 48 hours remaining.`,
+              'neighborhood_sale_warning_48h',
+              sale.id,
+              { sale_listing_id: sale.id, event_title: sale.title }
+            );
             await base44.asServiceRole.entities.Listing.update(sale.id, {
-              host_warning_48h_sent_at: nowIso,
+              host_warning_48h_sent_at: now.toISOString(),
               homeCount: approvedHomes,
             });
           }
 
           for (const request of requests) {
-            if (request.removed_by_eo === true || normalizeNeighborhoodJoinStatus(request.status) !== 'approved' || request.warning_48h_sent_at) continue;
-            if (!request.requesterUserId) continue;
-            await createNotification(base44, {
-              userId: request.requesterUserId,
-              user_id: request.requesterUserId,
-              title: 'Neighborhood Sale Warning',
-              message: `${sale.title || 'Neighborhood Sale'} is still below the 5-home minimum with 48 hours remaining.`,
-              type: 'neighborhood_sale_warning_48h',
-              related_entity_type: 'listing',
-              related_entity_id: sale.id,
-              metadata: {
+            if (request.removed_by_eo === true || normalizeNeighborhoodJoinStatus(request.status) !== 'approved' || request.warning_48h_sent_at || !request.requesterUserId) continue;
+            await notify(
+              base44,
+              request.requesterUserId,
+              'Neighborhood Sale Warning',
+              `${sale.title || 'Neighborhood Sale'} is still below the 5-home minimum with 48 hours remaining.`,
+              'neighborhood_sale_warning_48h',
+              sale.id,
+              {
                 sale_listing_id: sale.id,
                 requester_listing_id: request.listingId,
                 requester_user_id: request.requesterUserId,
                 event_title: sale.title,
-              },
-            });
+              }
+            );
             await base44.asServiceRole.entities.JoinRequest.update(request.id, {
-              warning_48h_sent_at: nowIso,
+              warning_48h_sent_at: now.toISOString(),
             });
           }
         }
-
-        await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
-          status: 'completed',
-          processed_at: nowIso,
-          error_message: null,
-        });
-        processed.push({ jobId: job.id, checkpoint_type: job.checkpoint_type, saleListingId: sale.id, approvedHomes });
-        continue;
       }
 
-      if (job.checkpoint_type !== 'charge_24h' && job.checkpoint_type !== 'cancel_24h') {
-        continue;
-      }
-
-      if (sale.neighborhood_charge_locked_at && sale.payment_intent_status === 'captured') {
-        await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
-          status: 'completed',
-          processed_at: nowIso,
-          error_message: null,
-        });
-        processed.push({ jobId: job.id, checkpoint_type: job.checkpoint_type, saleListingId: sale.id, approvedHomes, result: 'already_captured' });
-        continue;
-      }
-
-      if (approvedHomes < NEIGHBORHOOD_MIN_HOMES) {
-        let fallbackIntentId = '';
-        let fallbackSucceeded = false;
-
-        try {
-          const fallbackIntent = sale.is_demo_listing
-            ? { id: `demo_fallback_${crypto.randomUUID()}` }
-            : await chargeSavedMethod({
-                sale,
-                amountCents: PREMIUM_FALLBACK_CENTS,
-                description: 'Yardit Neighborhood Sale Premium fallback',
-                metadata: {
-                  purpose: 'fallback_listing',
-                  approved_homes: String(approvedHomes),
-                },
-              });
-          fallbackIntentId = fallbackIntent.id;
-          fallbackSucceeded = true;
-        } catch (error) {
-          console.error('Premium fallback charge failed:', error?.message || error);
+      if (job.checkpoint_type === 'cancel_24h') {
+        if (approvedHomes < NEIGHBORHOOD_MIN_HOMES) {
+          await applyFallbackFlow(base44, sale, approvedHomes, 'minimum_not_met_24h', 'minimum_not_met_24h');
+        } else {
+          await processNeighborhoodCharge(base44, sale, approvedHomes, now, false);
         }
-
-        await completeFallbackFlow(base44, sale, nowIso, approvedHomes, 'minimum_not_met_24h', fallbackIntentId, fallbackSucceeded);
-        await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
-          status: 'completed',
-          processed_at: nowIso,
-          error_message: fallbackSucceeded ? null : 'Premium fallback charge failed',
-        });
-        processed.push({ jobId: job.id, checkpoint_type: 'charge_24h', saleListingId: sale.id, approvedHomes, result: fallbackSucceeded ? 'fallback_success' : 'fallback_failed' });
-        continue;
       }
 
-      const lockedAmountCents = sale.neighborhood_charge_amount
-        ? Math.round(Number(sale.neighborhood_charge_amount) * 100)
-        : calculateNeighborhoodChargeCents(approvedHomes);
+      if (job.checkpoint_type === 'payment_retry_6h') {
+        await processNeighborhoodCharge(base44, sale, approvedHomes, now, true);
+      }
 
-      await base44.asServiceRole.entities.Listing.update(sale.id, {
-        homeCount: approvedHomes,
-        neighborhood_charge_amount: centsToAmount(lockedAmountCents),
-        neighborhood_charge_locked_at: sale.neighborhood_charge_locked_at || nowIso,
+      await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
+        status: 'completed',
+        processed_at: now.toISOString(),
+        error_message: null,
       });
 
-      await upsertPayment(base44, {
-        location_id: sale.id,
-        related_entity_id: sale.id,
-        user_id: sale.ownerUserId,
-        amount: centsToAmount(lockedAmountCents),
-        type: 'neighborhood_event',
-        plan: 'neighborhood_sale_initial',
-        duration_days: getDurationDays(sale),
-        status: 'pending',
-        payment_method: sale.organizer_stripe_payment_method_id || '',
-        transaction_id: sale.organizer_setup_intent_id || sale.organizer_setup_session_id || '',
-        stripe_payment_intent_id: '',
-        stripe_customer_id: sale.organizer_stripe_customer_id || '',
-        stripe_payment_method_id: sale.organizer_stripe_payment_method_id || '',
-        setup_reference_id: sale.organizer_setup_intent_id || sale.organizer_setup_session_id || '',
-      });
-
-      try {
-        const paymentIntent = sale.is_demo_listing
-          ? { id: `demo_neighborhood_${crypto.randomUUID()}` }
-          : await chargeSavedMethod({
-              sale,
-              amountCents: lockedAmountCents,
-              description: 'Yardit Neighborhood Sale organizer charge',
-              metadata: {
-                purpose: 'neighborhood_event',
-                approved_homes: String(approvedHomes),
-                locked_amount_cents: String(lockedAmountCents),
-              },
-            });
-
-        await upsertPayment(base44, {
-          location_id: sale.id,
-          related_entity_id: sale.id,
-          user_id: sale.ownerUserId,
-          amount: centsToAmount(lockedAmountCents),
-          type: 'neighborhood_event',
-          plan: 'neighborhood_sale_initial',
-          duration_days: getDurationDays(sale),
-          status: 'succeeded',
-          payment_method: sale.organizer_stripe_payment_method_id || '',
-          transaction_id: paymentIntent.id,
-          stripe_payment_intent_id: paymentIntent.id,
-          stripe_customer_id: sale.organizer_stripe_customer_id || '',
-          stripe_payment_method_id: sale.organizer_stripe_payment_method_id || '',
-          setup_reference_id: sale.organizer_setup_intent_id || sale.organizer_setup_session_id || '',
-        });
-
-        await base44.asServiceRole.entities.Listing.update(sale.id, {
-          status: 'activated_locked',
-          activation_status: 'active',
-          event_state: 'activated',
-          payment_intent_status: 'captured',
-          neighborhood_charge_locked_at: sale.neighborhood_charge_locked_at || nowIso,
-          neighborhood_charge_amount: centsToAmount(lockedAmountCents),
-          neighborhood_payment_retry_count: Number(job.attempt_count || 0),
-          participant_lock_at: nowIso,
-          pricePaid: centsToAmount(lockedAmountCents),
-          statusReason: 'Neighborhood Sale organizer payment completed.',
-          homeCount: approvedHomes,
-        });
-
-        await createNotification(base44, {
-          userId: sale.ownerUserId,
-          user_id: sale.ownerUserId,
-          title: 'Neighborhood Sale payment succeeded',
-          message: `${sale.title || 'Neighborhood Sale'} organizer payment of $${centsToAmount(lockedAmountCents).toFixed(2)} succeeded. The event is now locked and will follow its scheduled visibility timing.`,
-          type: 'neighborhood_sale_charge_success',
-          related_entity_type: 'listing',
-          related_entity_id: sale.id,
-          metadata: {
-            sale_listing_id: sale.id,
-            approved_homes: approvedHomes,
-            amount: centsToAmount(lockedAmountCents),
-          },
-        });
-
-        await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
-          status: 'completed',
-          processed_at: nowIso,
-          error_message: null,
-        });
-        processed.push({ jobId: job.id, checkpoint_type: 'charge_24h', saleListingId: sale.id, approvedHomes, result: 'charged', amount: centsToAmount(lockedAmountCents) });
-        continue;
-      } catch (error) {
-        console.error('Neighborhood organizer charge failed:', error?.message || error);
-        const attemptCount = Number(job.attempt_count || 0);
-
-        if (attemptCount < 1) {
-          const retryAt = new Date(now.getTime() + RETRY_DELAY_MS).toISOString();
-          await base44.asServiceRole.entities.Listing.update(sale.id, {
-            status: 'payment_pending',
-            homeCount: approvedHomes,
-            neighborhood_charge_locked_at: sale.neighborhood_charge_locked_at || nowIso,
-            neighborhood_charge_amount: centsToAmount(lockedAmountCents),
-            neighborhood_payment_retry_count: 1,
-            statusReason: 'Organizer payment failed. Retry scheduled in 6 hours.',
-          });
-          await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
-            status: 'pending',
-            run_at: retryAt,
-            attempt_count: 1,
-            processed_at: null,
-            error_message: error?.message || 'Organizer payment failed',
-          });
-          await createNotification(base44, {
-            userId: sale.ownerUserId,
-            user_id: sale.ownerUserId,
-            title: 'Neighborhood Sale payment retry scheduled',
-            message: `${sale.title || 'Neighborhood Sale'} organizer payment failed. Yardit will retry once in 6 hours.`,
-            type: 'neighborhood_sale_charge_retry',
-            related_entity_type: 'listing',
-            related_entity_id: sale.id,
-            metadata: {
-              sale_listing_id: sale.id,
-              approved_homes: approvedHomes,
-              retry_at: retryAt,
-              amount: centsToAmount(lockedAmountCents),
-            },
-          });
-          processed.push({ jobId: job.id, checkpoint_type: 'charge_24h', saleListingId: sale.id, approvedHomes, result: 'retry_scheduled' });
-          continue;
-        }
-
-        let fallbackIntentId = '';
-        let fallbackSucceeded = false;
-        try {
-          const fallbackIntent = sale.is_demo_listing
-            ? { id: `demo_fallback_${crypto.randomUUID()}` }
-            : await chargeSavedMethod({
-                sale,
-                amountCents: PREMIUM_FALLBACK_CENTS,
-                description: 'Yardit Neighborhood Sale Premium fallback after failed retry',
-                metadata: {
-                  purpose: 'fallback_listing_after_failed_retry',
-                  approved_homes: String(approvedHomes),
-                },
-              });
-          fallbackIntentId = fallbackIntent.id;
-          fallbackSucceeded = true;
-        } catch (fallbackError) {
-          console.error('Premium fallback charge after retry failed:', fallbackError?.message || fallbackError);
-        }
-
-        await completeFallbackFlow(base44, sale, nowIso, approvedHomes, 'payment_failed_after_retry', fallbackIntentId, fallbackSucceeded);
-        await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
-          status: 'completed',
-          processed_at: nowIso,
-          error_message: fallbackSucceeded ? (error?.message || 'Organizer payment failed before fallback') : 'Fallback charge failed after payment retry',
-        });
-        processed.push({ jobId: job.id, checkpoint_type: 'charge_24h', saleListingId: sale.id, approvedHomes, result: fallbackSucceeded ? 'fallback_after_retry_success' : 'fallback_after_retry_failed' });
-      }
+      processed.push({ jobId: job.id, checkpoint_type: job.checkpoint_type, saleListingId: sale.id, approvedHomes });
     }
 
     return Response.json({ success: true, processed_count: processed.length, processed });
   } catch (error) {
-    console.error('Activation deadline error:', error?.message || error);
+    console.error('checkActivationDeadline failed:', error?.message || error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

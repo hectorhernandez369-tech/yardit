@@ -19,6 +19,7 @@ export const statusColors = {
   draft: "bg-slate-400",
   pending_activation: "bg-amber-500",
   activated: "bg-teal-600",
+  activated_locked: "bg-emerald-700",
   coming_soon: "bg-cyan-600",
   downgraded: "bg-red-600",
   canceled: "bg-slate-500",
