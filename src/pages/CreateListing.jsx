@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import StepOne from "../components/create/StepOne";
 import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
+import ResidentialPaymentStep from "../components/payment/ResidentialPaymentStep";
 import FormScrollHelper from "../components/create/FormScrollHelper";
 import { useAppMode } from "../components/shared/DemoMode";
 import {
@@ -146,6 +147,7 @@ export default function CreateListingPage() {
   const [user, setUser] = useState(null);
   const [geocodeRef, setGeocodeRef] = useState(null);
   const [isStartingPayment, setIsStartingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
   const handledCheckoutSessionRef = useRef(null);
 
   // (plain english) "Sale in your area" modal state
@@ -382,7 +384,8 @@ export default function CreateListingPage() {
   const startPaidListingCheckout = async () => {
     if (window.self !== window.top) {
       console.warn("Stripe checkout blocked inside iframe preview");
-      toast.error("Stripe checkout works only from the published app.");
+      setPaymentError("Stripe checkout must be tested from the published app, not the Base44 preview.");
+      toast.error("Stripe checkout must be tested from the published app, not the Base44 preview.");
       return;
     }
 
@@ -393,6 +396,7 @@ export default function CreateListingPage() {
     }
 
     try {
+      setPaymentError("");
       setIsStartingPayment(true);
       localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({ formData }));
 
@@ -426,6 +430,7 @@ export default function CreateListingPage() {
       }, 120);
     } catch (error) {
       setIsStartingPayment(false);
+      setPaymentError(error?.response?.data?.error || error?.message || "Payment could not start.");
       toast.error(error?.response?.data?.error || error?.message || "Payment could not start.");
     }
   };
@@ -891,6 +896,20 @@ export default function CreateListingPage() {
     createListingMutation.mutate(payload);
   };
 
+  const handlePaymentStepSubmit = async () => {
+    if (isGlobalDemoMode) {
+      setPaymentError("");
+      setIsStartingPayment(true);
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      setIsStartingPayment(false);
+      toast.success("Demo payment successful.");
+      executeSubmit("paid_success");
+      return;
+    }
+
+    await startPaidListingCheckout();
+  };
+
   const handleSubmit = async () => {
     if (formData.listingType !== "neighborhood_sale" && hasActiveResidentialListing()) {
       toast.error("You already have an active listing. End it before creating another.");
@@ -943,16 +962,8 @@ export default function CreateListingPage() {
     }
 
     if (formData.listingType !== "neighborhood_sale" && ["featured", "premium"].includes(formData.tier)) {
-      if (isGlobalDemoMode) {
-        setIsStartingPayment(true);
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        setIsStartingPayment(false);
-        toast.success("Demo payment successful.");
-        executeSubmit("paid_success");
-        return;
-      }
-
-      await startPaidListingCheckout();
+      setPaymentError("");
+      setStep(4);
       return;
     }
 
@@ -972,7 +983,7 @@ export default function CreateListingPage() {
       const stored = JSON.parse(raw);
       if (stored?.formData) {
         setFormData(stored.formData);
-        setStep(3);
+        setStep(4);
       }
 
       window.history.replaceState({}, "", createPageUrl("CreateListing"));
@@ -980,6 +991,7 @@ export default function CreateListingPage() {
       if (paymentState === "cancel") {
         console.log("Return from Stripe cancel");
         setIsStartingPayment(false);
+        setPaymentError("Payment was canceled. No listing was created.");
         toast.error("Payment was canceled. No listing was created.");
         return;
       }
@@ -995,12 +1007,17 @@ export default function CreateListingPage() {
           session_id: sessionId,
         }).then((response) => {
           if (response?.data?.paid) {
+            setPaymentError("");
             toast.success("Payment successful.");
             executeSubmit("paid_success", stored.formData);
           } else {
+            setIsStartingPayment(false);
+            setPaymentError("Payment could not be confirmed. No listing was created.");
             toast.error("Payment could not be confirmed. No listing was created.");
           }
         }).catch((error) => {
+          setIsStartingPayment(false);
+          setPaymentError(error?.response?.data?.error || error?.message || "Payment verification failed.");
           toast.error(error?.response?.data?.error || error?.message || "Payment verification failed.");
         });
       }
@@ -1019,7 +1036,7 @@ export default function CreateListingPage() {
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            {[1, 2, 3].map((s) => (
+            {[1, 2, 3, 4].map((s) => (
               <React.Fragment key={s}>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
@@ -1032,7 +1049,7 @@ export default function CreateListingPage() {
                 >
                   {s < step ? "✓" : s}
                 </div>
-                {s < 3 && (
+                {s < 4 && (
                   <div
                     key={`line-${s}`}
                     className={`w-12 h-1 ${s < step ? "bg-green-600" : "bg-slate-200"}`}
@@ -1045,6 +1062,7 @@ export default function CreateListingPage() {
             <span className={step === 1 ? "font-semibold" : ""}>Details</span>
             <span className={step === 2 ? "font-semibold" : ""}>Location & Time</span>
             <span className={step === 3 ? "font-semibold" : ""}>Tier & Review</span>
+            <span className={step === 4 ? "font-semibold" : ""}>Payment</span>
           </div>
         </div>
 
@@ -1066,8 +1084,22 @@ export default function CreateListingPage() {
               <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} />
             )}
             {step === 3 && <StepThree formData={formData} setFormData={setFormData} />}
+            {step === 4 && (
+              <ResidentialPaymentStep
+                tier={formData.tier}
+                amount={(RESIDENTIAL_TIER_PRICES[formData.tier] || 0) / 100}
+                isDemoMode={isGlobalDemoMode}
+                isProcessing={isStartingPayment}
+                errorMessage={paymentError}
+                onBack={() => {
+                  setPaymentError("");
+                  setStep(3);
+                }}
+                onPay={handlePaymentStepSubmit}
+              />
+            )}
 
-            <div className="flex gap-3 mt-6">
+            {step !== 4 && <div className="flex gap-3 mt-6">
               {step > 1 && (
                 <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
                   Back
@@ -1096,7 +1128,7 @@ export default function CreateListingPage() {
                     : "Create Listing"}
                 </Button>
               )}
-            </div>
+            </div>}
           </CardContent>
         </Card>
       </div>
