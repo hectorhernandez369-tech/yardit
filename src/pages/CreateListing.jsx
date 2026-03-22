@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useAuth } from "@/lib/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -38,6 +39,16 @@ const RESIDENTIAL_TIER_PRICES = {
 
 // (plain english) fallback timezone until we auto-detect timezone from lat/lng later
 const FALLBACK_TZ = "America/Los_Angeles";
+
+function getRequestedStep(search) {
+  const params = new URLSearchParams(search);
+  if (params.get("relist") === "1" || params.get("rescueToken") || params.get("payment") || params.get("neighborhoodSetup")) {
+    return null;
+  }
+
+  const requestedStep = Number(params.get("step"));
+  return [1, 2, 3, 4].includes(requestedStep) ? requestedStep : null;
+}
 
 function getDistanceFeet(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
@@ -143,6 +154,7 @@ function buildNeighborhoodDeadlineJobs(startDateTime, saleListingId) {
 export default function CreateListingPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { navigateToLogin } = useAuth();
   const queryClient = useQueryClient();
   const formContainerRef = useRef(null);
 
@@ -242,6 +254,13 @@ export default function CreateListingPage() {
     locationMethod: "address"
   });
 
+  useEffect(() => {
+    const requestedStep = getRequestedStep(location.search);
+    if (requestedStep) {
+      setStep(requestedStep);
+    }
+  }, [location.search]);
+
   // ✅ Relist loader: reads localStorage + maps keys + jumps to Step 3
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -338,11 +357,11 @@ export default function CreateListingPage() {
         const currentUser = await base44.auth.me();
         setUser(currentUser);
       } catch (error) {
-        navigate(createPageUrl("Home"));
+        navigateToLogin();
       }
     };
     fetchUser();
-  }, [navigate]);
+  }, [navigateToLogin]);
 
   const { isDemoMode: isGlobalDemoMode } = useAppMode();
   const profileAddressMissing = !user?.street_address || !user?.city || !user?.state || !user?.zip_code;

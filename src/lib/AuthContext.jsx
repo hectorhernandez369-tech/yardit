@@ -4,6 +4,56 @@ import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 const AuthContext = createContext();
+const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
+const AUTH_RETURN_TO_MAX_AGE_MS = 30 * 60 * 1000;
+
+const saveAuthReturnTo = (url) => {
+  try {
+    localStorage.setItem(AUTH_RETURN_TO_KEY, JSON.stringify({ url, createdAt: Date.now() }));
+  } catch {}
+};
+
+const clearAuthReturnTo = () => {
+  try {
+    localStorage.removeItem(AUTH_RETURN_TO_KEY);
+  } catch {}
+};
+
+const restoreAuthReturnTo = () => {
+  try {
+    const raw = localStorage.getItem(AUTH_RETURN_TO_KEY);
+    if (!raw) return false;
+
+    const saved = JSON.parse(raw);
+    const targetUrl = saved?.url;
+    const createdAt = Number(saved?.createdAt || 0);
+
+    if (!targetUrl || !createdAt || Date.now() - createdAt > AUTH_RETURN_TO_MAX_AGE_MS) {
+      clearAuthReturnTo();
+      return false;
+    }
+
+    const current = new URL(window.location.href);
+    const target = new URL(targetUrl, window.location.origin);
+
+    if (target.origin !== window.location.origin) {
+      clearAuthReturnTo();
+      return false;
+    }
+
+    if (`${current.pathname}${current.search}${current.hash}` === `${target.pathname}${target.search}${target.hash}`) {
+      clearAuthReturnTo();
+      return false;
+    }
+
+    clearAuthReturnTo();
+    window.location.replace(target.toString());
+    return true;
+  } catch {
+    clearAuthReturnTo();
+    return false;
+  }
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -121,6 +171,7 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
+      restoreAuthReturnTo();
     } catch (error) {
       console.error('User auth check failed:', error);
       console.log('AUTH_DEBUG base44.auth.me:error', {
@@ -142,6 +193,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = (shouldRedirect = true) => {
+    clearAuthReturnTo();
     setUser(null);
     setIsAuthenticated(false);
     
@@ -160,7 +212,7 @@ export const AuthProvider = ({ children }) => {
       currentUrl: window.location.href,
       authError,
     });
-    // Use the SDK's redirectToLogin method
+    saveAuthReturnTo(window.location.href);
     base44.auth.redirectToLogin(window.location.href);
   };
 
