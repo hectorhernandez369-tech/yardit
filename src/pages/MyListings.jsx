@@ -85,11 +85,24 @@ export default function MyListingsPage() {
   };
 
   const isPastListing = (listing) => {
-    if (listing?.status === "expired" || listing?.status === "completed") return true;
+    if (["expired", "completed", "cancelled"].includes(listing?.status)) return true;
     if (!listing?.endDateTime) return false;
     const endMs = new Date(listing.endDateTime).getTime();
     if (Number.isNaN(endMs)) return false;
     return endMs < Date.now();
+  };
+
+  const isActiveListing = (listing) => listing?.status === "active";
+
+  const canCancelListingDirectly = (listing) => {
+    return [
+      "payment_pending",
+      "scheduled",
+      "ready_for_payment",
+      "payment_pending_adjustment",
+      "under_review",
+      "collecting_participants",
+    ].includes(listing?.status);
   };
 
   const normalizedListings = useMemo(() => {
@@ -213,6 +226,37 @@ export default function MyListingsPage() {
 
     // ✅ navigate to CreateListing which now reads relist + jumps to step 3
     navigate(createPageUrl("CreateListing") + "?relist=1&step=3");
+  };
+
+  const cancelListing = async (listing) => {
+    const ok = window.confirm(
+      listing.pricePaid > 0
+        ? "Cancel this listing before activation? Any eligible refund will be handled through the normal process."
+        : "Cancel this listing before activation?"
+    );
+    if (!ok) return;
+
+    try {
+      if (listing.listingType === "neighborhood_sale") {
+        await base44.functions.invoke("cancelNeighborhoodSale", {
+          saleListingId: listing.id,
+          reason: "owner_cancelled_before_activation",
+          finalState: "canceled",
+          deleteSale: false,
+        });
+      } else {
+        await base44.entities.Listing.update(listing.id, {
+          status: "cancelled",
+          statusReason: "Canceled by owner before activation",
+        });
+      }
+
+      toast.success("Listing canceled");
+      await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    } catch (e) {
+      toast.error("Could not cancel listing");
+    }
   };
 
   const deleteListing = async (listing) => {
@@ -432,16 +476,36 @@ export default function MyListingsPage() {
                         Relist
                       </Button>
 
-                      {/* Delete Listing */}
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => deleteListing(listing)}
-                        className="gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        Delete
-                      </Button>
+                      {canCancelListingDirectly(listing) ? (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => cancelListing(listing)}
+                          className="gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Cancel Listing
+                        </Button>
+                      ) : isActiveListing(listing) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(createPageUrl("ContactSupport"))}
+                          className="gap-1"
+                        >
+                          Need Help? Contact Support
+                        </Button>
+                      ) : isPastListing(listing) ? (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteListing(listing)}
+                          className="gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Delete
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
 
