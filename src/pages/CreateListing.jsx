@@ -291,7 +291,7 @@ export default function CreateListingPage() {
 
     const loadRescue = async () => {
       const rescues = await base44.entities.NeighborhoodTierRescue.filter({ token: rescueToken }, "-created_date");
-      const rescue = rescues.find((item) => item.user_id === user.id && item.status === "active" && (!item.expires_at || new Date(item.expires_at) > new Date()));
+      const rescue = rescues.find((item) => item.user_id === user.id && ["pending", "active"].includes(item.status) && (!item.expires_at || new Date(item.expires_at) > new Date()));
       if (!rescue) {
         toast.error("This rescue link is no longer available.");
         return;
