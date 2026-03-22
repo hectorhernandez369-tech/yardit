@@ -16,12 +16,14 @@ function buildJobs(startDateTime, saleListingId) {
       run_at: new Date(start.getTime() - 48 * 60 * 60 * 1000).toISOString(),
       sale_listing_id: saleListingId,
       status: 'pending',
+      attempt_count: 0,
     },
     {
-      checkpoint_type: 'cancel_24h',
+      checkpoint_type: 'charge_24h',
       run_at: new Date(start.getTime() - 24 * 60 * 60 * 1000).toISOString(),
       sale_listing_id: saleListingId,
       status: 'pending',
+      attempt_count: 0,
     },
   ];
 }
@@ -69,10 +71,12 @@ Deno.serve(async (req) => {
       }
 
       if (current.status === 'completed') continue;
-      if (current.run_at !== desired.run_at || current.status !== 'pending') {
+      const preserveRetryWindow = current.checkpoint_type === 'charge_24h' && current.status === 'pending' && Number(current.attempt_count || 0) > 0;
+      if (!preserveRetryWindow && (current.run_at !== desired.run_at || current.status !== 'pending')) {
         await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(current.id, {
           run_at: desired.run_at,
           status: 'pending',
+          attempt_count: 0,
           processed_at: null,
           error_message: null,
         });

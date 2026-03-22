@@ -20,16 +20,23 @@ function deriveNeighborhoodEventState(listing, nowInput = new Date()) {
   const end = listing?.endDateTime ? new Date(listing.endDateTime) : null;
   const status = listing?.status;
   const explicit = listing?.event_state;
-  const isLocked = Number(listing?.pricePaid || 0) > 0 || listing?.payment_intent_status === 'captured';
+  const isLockedActivation = status === 'activated_locked' || !!listing?.neighborhood_charge_locked_at || !!listing?.participant_lock_at;
 
   if (explicit === 'canceled' || status === 'cancelled' || status === 'canceled') return 'canceled';
   if (explicit === 'downgraded' || status === 'downgraded') return 'downgraded';
   if (end && !Number.isNaN(end.getTime()) && now > end) return 'expired';
-  if (status === 'collecting_participants' || status === 'ready_for_payment' || status === 'payment_pending') return 'pending_activation';
-  if (status === 'active' || status === 'payment_pending_adjustment' || explicit === 'activated' || explicit === 'coming_soon' || explicit === 'active') {
+  if (isLockedActivation || explicit === 'activated' || explicit === 'coming_soon' || explicit === 'active') {
     if (start && !Number.isNaN(start.getTime()) && now < start) {
-      if (listing?.advertising_started_at) return 'coming_soon';
-      return isLocked ? 'activated_locked' : 'activated';
+      return listing?.advertising_started_at ? 'coming_soon' : 'activated';
+    }
+    if (end && !Number.isNaN(end.getTime()) && now <= end) return 'active';
+    return 'expired';
+  }
+  if (explicit) return explicit;
+  if (status === 'collecting_participants' || status === 'ready_for_payment' || status === 'payment_pending') return 'pending_activation';
+  if (status === 'active' || status === 'payment_pending_adjustment') {
+    if (start && !Number.isNaN(start.getTime()) && now < start) {
+      return listing?.advertising_started_at ? 'coming_soon' : 'activated';
     }
     if (end && !Number.isNaN(end.getTime()) && now <= end) return 'active';
     return 'expired';
@@ -48,15 +55,17 @@ Deno.serve(async (req) => {
       const requests = await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId: listing.id });
       const approvedHomes = Math.min(NEIGHBORHOOD_MAX_HOMES, getApprovedHomesCount(requests));
       const nextEventState = deriveNeighborhoodEventState({ ...listing, homeCount: approvedHomes }, now);
-      const nextStatus = nextEventState === 'active' || nextEventState === 'coming_soon' || nextEventState === 'activated'
-        ? 'active'
-        : nextEventState === 'expired'
-          ? 'expired'
-          : nextEventState === 'downgraded' || nextEventState === 'canceled'
-            ? 'closed'
-            : nextEventState === 'pending_activation'
-              ? (approvedHomes >= NEIGHBORHOOD_MIN_HOMES ? 'ready_for_payment' : 'collecting_participants')
-              : listing.status;
+      const nextStatus = nextEventState === 'expired'
+        ? 'expired'
+        : nextEventState === 'downgraded' || nextEventState === 'canceled'
+          ? 'closed'
+          : listing.status === 'activated_locked' || listing.neighborhood_charge_locked_at
+            ? 'activated_locked'
+            : nextEventState === 'active' || nextEventState === 'coming_soon' || nextEventState === 'activated'
+              ? 'active'
+              : nextEventState === 'pending_activation'
+                ? (approvedHomes >= NEIGHBORHOOD_MIN_HOMES ? 'ready_for_payment' : 'collecting_participants')
+                : listing.status;
 
       if (listing.event_state !== nextEventState || listing.homeCount !== approvedHomes || listing.status !== nextStatus) {
         await base44.asServiceRole.entities.Listing.update(listing.id, {

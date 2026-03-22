@@ -43,10 +43,22 @@ export function deriveNeighborhoodEventState(listing, nowInput = new Date()) {
   const end = listing.endDateTime ? new Date(listing.endDateTime) : null;
   const status = listing.status;
   const explicit = NEIGHBORHOOD_EVENT_STATES.includes(listing.event_state) ? listing.event_state : null;
+  const isLockedActivation = status === "activated_locked" || !!listing.neighborhood_charge_locked_at || !!listing.participant_lock_at;
 
   if (explicit === "canceled" || status === "cancelled" || status === "canceled") return "canceled";
   if (explicit === "downgraded" || status === "downgraded") return "downgraded";
   if (end && !Number.isNaN(end.getTime()) && now > end) return "expired";
+
+  if (isLockedActivation || explicit === "activated" || explicit === "coming_soon" || explicit === "active") {
+    if (start && !Number.isNaN(start.getTime()) && now < start) {
+      return listing.advertising_started_at ? "coming_soon" : "activated";
+    }
+    if (end && !Number.isNaN(end.getTime()) && now <= end) {
+      return "active";
+    }
+    return "expired";
+  }
+
   if (explicit) return explicit;
 
   if (status === "collecting_participants" || status === "ready_for_payment" || status === "payment_pending") {
@@ -71,8 +83,15 @@ export function isNeighborhoodVisibleOnMap(listing, nowInput = new Date()) {
 }
 
 export function isNeighborhoodJoinAllowed(listing, nowInput = new Date()) {
-  const eventState = deriveNeighborhoodEventState(listing, nowInput);
-  return eventState === "pending_activation";
+  const now = nowInput instanceof Date ? nowInput : new Date(nowInput);
+  const eventState = deriveNeighborhoodEventState(listing, now);
+  const lockDeadline = listing?.hold_deadline_at ? new Date(listing.hold_deadline_at) : null;
+
+  if (lockDeadline && !Number.isNaN(lockDeadline.getTime()) && now >= lockDeadline) {
+    return false;
+  }
+
+  return ["pending_activation"].includes(eventState);
 }
 
 export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {

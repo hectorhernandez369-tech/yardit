@@ -9,7 +9,7 @@ export const NEIGHBORHOOD_PRICE_CAP = 50;
 export function calculateNeighborhoodSalePrice(approvedHomes) {
   const homes = Math.max(0, Math.min(NEIGHBORHOOD_MAX_HOMES, Number(approvedHomes) || 0));
   if (homes < NEIGHBORHOOD_MIN_HOMES) return 0;
-  return Math.round(Math.min(NEIGHBORHOOD_PRICE_CAP, NEIGHBORHOOD_BASE_PRICE + homes * NEIGHBORHOOD_PRICE_PER_HOME) * 100) / 100;
+  return Math.min(NEIGHBORHOOD_PRICE_CAP, NEIGHBORHOOD_BASE_PRICE + homes * NEIGHBORHOOD_PRICE_PER_HOME);
 }
 
 export function getNeighborhoodTotalDue(totalHomes) {
