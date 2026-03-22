@@ -92,7 +92,7 @@ export default function MyListingsPage() {
     return endMs < Date.now();
   };
 
-  const isActiveListing = (listing) => listing?.status === "active";
+  const isActiveListing = (listing) => ["active", "activated_locked"].includes(listing?.status);
 
   const canCancelListingDirectly = (listing) => {
     return [
