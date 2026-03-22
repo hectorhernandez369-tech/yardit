@@ -30,6 +30,7 @@ import {
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 const PAID_LISTING_CHECKOUT_KEY = "yardit_paid_listing_checkout_v1";
+const NEIGHBORHOOD_SETUP_CHECKOUT_KEY = "yardit_neighborhood_setup_checkout_v1";
 const RESIDENTIAL_TIER_PRICES = {
   featured: 499,
   premium: 799,
@@ -149,6 +150,7 @@ export default function CreateListingPage() {
   const [isStartingPayment, setIsStartingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const handledCheckoutSessionRef = useRef(null);
+  const handledNeighborhoodSetupSessionRef = useRef(null);
 
   // (plain english) "Sale in your area" modal state
   const [saleModalStep, setSaleModalStep] = useState(0); // 0: none, 1: popup1, 2: popup2
@@ -435,6 +437,37 @@ export default function CreateListingPage() {
     }
   };
 
+  const startNeighborhoodSaleSetup = async () => {
+    if (window.self !== window.top) {
+      console.warn("Stripe checkout blocked inside iframe preview");
+      setPaymentError("Stripe checkout must be tested from the published app, not the Base44 preview.");
+      toast.error("Stripe checkout must be tested from the published app, not the Base44 preview.");
+      return;
+    }
+
+    try {
+      setPaymentError("");
+      setIsStartingPayment(true);
+      localStorage.setItem(NEIGHBORHOOD_SETUP_CHECKOUT_KEY, JSON.stringify({ formData }));
+
+      const returnUrl = `${window.location.origin}${createPageUrl("CreateListing")}`;
+      const response = await base44.functions.invoke("createNeighborhoodSaleSetup", {
+        return_url: returnUrl,
+      });
+
+      const checkoutUrl = response?.data?.checkoutUrl;
+      if (!checkoutUrl) {
+        throw new Error("Payment method setup could not start.");
+      }
+
+      window.location.assign(checkoutUrl);
+    } catch (error) {
+      setIsStartingPayment(false);
+      setPaymentError(error?.response?.data?.error || error?.message || "Payment method setup could not start.");
+      toast.error(error?.response?.data?.error || error?.message || "Payment method setup could not start.");
+    }
+  };
+
   useEffect(() => {
     const cleanup = async () => {
       if (!userListings || userListings.length === 0) return;
@@ -457,29 +490,55 @@ export default function CreateListingPage() {
 
   const createListingMutation = useMutation({
     mutationFn: async (data) => {
+      const { neighborhoodPaymentSetup, ...listingData } = data;
+
       // ✅ Enforce 1 active listing per account (residential Phase 1)
-      if (data.listingType !== "neighborhood_sale" && hasActiveResidentialListing()) {
+      if (listingData.listingType !== "neighborhood_sale" && hasActiveResidentialListing()) {
         throw new Error("You already have an active listing. End it before creating another.");
       }
 
       const demoPrefix = isGlobalDemoMode ? "Demo listing: " : "";
 
       // Generate listing number: STATE + last4zip + dash + 5 random chars
-      const stateCode = (data.state || "XX").toUpperCase().slice(0, 2);
-      const zipLast4 = (data.zip || "0000").slice(-4).padStart(4, "0");
+      const stateCode = (listingData.state || "XX").toUpperCase().slice(0, 2);
+      const zipLast4 = (listingData.zip || "0000").slice(-4).padStart(4, "0");
       const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
       let rand5 = "";
       for (let i = 0; i < 5; i++) rand5 += chars[Math.floor(Math.random() * chars.length)];
       const listingNumber = `${stateCode}${zipLast4}-${rand5}`;
 
       const listing = await base44.entities.Listing.create({
-        ...data,
-        title: demoPrefix + data.title,
+        ...listingData,
+        title: demoPrefix + listingData.title,
         ownerUserId: user.id,
-        status: data.status || (data.listingType === "neighborhood_sale" ? "collecting_participants" : "active"),
-        event_state: data.listingType === "neighborhood_sale" ? (data.event_state || "pending_activation") : data.event_state,
+        status: listingData.status || (listingData.listingType === "neighborhood_sale" ? "collecting_participants" : "active"),
+        event_state: listingData.listingType === "neighborhood_sale" ? (listingData.event_state || "pending_activation") : listingData.event_state,
         listingNumber
       });
+
+      if (listingData.listingType === "neighborhood_sale" && neighborhoodPaymentSetup?.paymentMethodId) {
+        const durationDays = Math.max(
+          1,
+          Math.ceil((new Date(listingData.endDateTime).getTime() - new Date(listingData.startDateTime).getTime()) / (1000 * 60 * 60 * 24)) + 1
+        );
+
+        await base44.entities.Payment.create({
+          location_id: listing.id,
+          amount: 0,
+          plan: "neighborhood_sale_initial",
+          duration_days: durationDays,
+          status: "pending",
+          payment_method: neighborhoodPaymentSetup.isDemo ? "demo_saved_card" : "saved_card",
+          transaction_id: neighborhoodPaymentSetup.setupIntentId || "",
+          user_id: user.id,
+          type: "neighborhood_event",
+          related_entity_id: listing.id,
+          stripe_payment_intent_id: "",
+          stripe_customer_id: neighborhoodPaymentSetup.customerId || "",
+          stripe_payment_method_id: neighborhoodPaymentSetup.paymentMethodId || "",
+          created_at: new Date().toISOString(),
+        });
+      }
 
       return listing;
     },
@@ -967,13 +1026,90 @@ export default function CreateListingPage() {
       return;
     }
 
+    if (formData.listingType === "neighborhood_sale") {
+      if (isGlobalDemoMode) {
+        executeSubmit(undefined, {
+          ...formData,
+          neighborhoodPaymentSetup: {
+            isDemo: true,
+            customerId: `demo_customer_${Date.now()}`,
+            paymentMethodId: `demo_payment_method_${Date.now()}`,
+            setupIntentId: `demo_setup_${Date.now()}`,
+          },
+        });
+        return;
+      }
+
+      await startNeighborhoodSaleSetup();
+      return;
+    }
+
     executeSubmit();
   };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
+    const neighborhoodSetupState = params.get("ns_setup");
     const paymentState = params.get("payment");
     const sessionId = params.get("session_id");
+
+    if (neighborhoodSetupState) {
+      const raw = localStorage.getItem(NEIGHBORHOOD_SETUP_CHECKOUT_KEY);
+      if (!raw) return;
+
+      try {
+        const stored = JSON.parse(raw);
+        if (stored?.formData) {
+          setFormData(stored.formData);
+          setStep(3);
+        }
+
+        window.history.replaceState({}, "", createPageUrl("CreateListing"));
+
+        if (neighborhoodSetupState === "cancel") {
+          setIsStartingPayment(false);
+          setPaymentError("Payment method setup was canceled. Neighborhood Sale was not created.");
+          toast.error("Payment method setup was canceled. Neighborhood Sale was not created.");
+          return;
+        }
+
+        if (neighborhoodSetupState === "success" && sessionId && handledNeighborhoodSetupSessionRef.current !== sessionId && stored?.formData) {
+          if (!user?.id) return;
+          handledNeighborhoodSetupSessionRef.current = sessionId;
+          localStorage.removeItem(NEIGHBORHOOD_SETUP_CHECKOUT_KEY);
+
+          base44.functions.invoke("createNeighborhoodSaleSetup", {
+            action: "verify",
+            session_id: sessionId,
+          }).then((response) => {
+            if (response?.data?.setup_complete && response?.data?.payment_method_id) {
+              setPaymentError("");
+              toast.success("Payment method saved.");
+              executeSubmit(undefined, {
+                ...stored.formData,
+                neighborhoodPaymentSetup: {
+                  customerId: response.data.customer_id,
+                  paymentMethodId: response.data.payment_method_id,
+                  setupIntentId: response.data.setup_intent_id,
+                },
+              });
+            } else {
+              setIsStartingPayment(false);
+              setPaymentError("Payment method could not be confirmed. Neighborhood Sale was not created.");
+              toast.error("Payment method could not be confirmed. Neighborhood Sale was not created.");
+            }
+          }).catch((error) => {
+            setIsStartingPayment(false);
+            setPaymentError(error?.response?.data?.error || error?.message || "Payment method verification failed.");
+            toast.error(error?.response?.data?.error || error?.message || "Payment method verification failed.");
+          });
+        }
+        return;
+      } catch {
+        localStorage.removeItem(NEIGHBORHOOD_SETUP_CHECKOUT_KEY);
+      }
+    }
+
     if (!paymentState) return;
 
     const raw = localStorage.getItem(PAID_LISTING_CHECKOUT_KEY);
@@ -1120,7 +1256,9 @@ export default function CreateListingPage() {
                   className="flex-1 bg-amber-600 hover:bg-amber-700"
                 >
                   {isStartingPayment
-                    ? "Starting Payment..."
+                    ? formData.listingType === "neighborhood_sale"
+                      ? "Saving Payment Method..."
+                      : "Starting Payment..."
                     : createListingMutation.isPending
                     ? "Creating..."
                     : formData.listingType !== "neighborhood_sale" && ["featured", "premium"].includes(formData.tier)
