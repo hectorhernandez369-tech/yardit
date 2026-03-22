@@ -1068,6 +1068,7 @@ export default function CreateListingPage() {
         window.history.replaceState({}, "", createPageUrl("CreateListing"));
 
         if (neighborhoodSetupState === "cancel") {
+          localStorage.removeItem(NEIGHBORHOOD_SETUP_CHECKOUT_KEY);
           setIsStartingPayment(false);
           setPaymentError("Payment method setup was canceled. Neighborhood Sale was not created.");
           toast.error("Payment method setup was canceled. Neighborhood Sale was not created.");
