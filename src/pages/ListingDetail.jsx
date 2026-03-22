@@ -154,6 +154,11 @@ export default function ListingDetailPage() {
       const sales = await base44.entities.Listing.filter({ id: listingId });
       const sale = sales[0];
       const saleRequests = await base44.entities.JoinRequest.filter({ saleListingId: listingId });
+      const lockedState = deriveNeighborhoodEventState(sale);
+
+      if (["activated_locked", "coming_soon", "active"].includes(lockedState)) {
+        throw new Error("This Neighborhood Sale is locked and participant changes must go through the report flow.");
+      }
 
       if (action === "approve") {
         const activeHomes = 1 + saleRequests.filter((request) => request.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === "approved").length;
