@@ -32,8 +32,6 @@ export default function ListingDetailPage() {
   const [showReport, setShowReport] = useState(false);
   const [reportContext, setReportContext] = useState(null);
   const [showPromoModal, setShowPromoModal] = useState(false);
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -116,8 +114,6 @@ export default function ListingDetailPage() {
     enabled: !!listing && normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && !!listing.neighborhood_sale_id,
   });
 
-  const { isDemoMode } = useAppMode();
-
   const syncNeighborhoodSaleListing = async (saleId, paidAmountOverride) => {
     const sales = await base44.entities.Listing.filter({ id: saleId });
     const sale = sales[0];
@@ -137,15 +133,15 @@ export default function ListingDetailPage() {
       return { summary, nextStatus: "closed" };
     }
 
-    const alreadyLive = sale.status === "active" || paidAmount > 0;
-    const nextStatus = alreadyLive
+    const alreadyLocked = sale.status === "active" && (Number(paidAmount || 0) > 0 || sale.payment_intent_status === "captured");
+    const nextStatus = alreadyLocked || sale.status === "active"
       ? "active"
       : (summary.readyForPayment ? "ready_for_payment" : "collecting_participants");
-    const nextEventState = deriveNeighborhoodEventState({ ...sale, status: nextStatus }, new Date());
+    const nextEventState = deriveNeighborhoodEventState({ ...sale, status: nextStatus, pricePaid: paidAmount }, new Date());
 
     await base44.entities.Listing.update(saleId, {
       status: nextStatus,
-      event_state: nextEventState,
+      event_state: nextEventState === "activated_locked" ? "activated" : nextEventState,
       activation_status: nextStatus === "active" ? "active" : "pending",
       homeCount: summary.visibleHomeCount,
     });
@@ -184,8 +180,8 @@ export default function ListingDetailPage() {
         });
         await syncNeighborhoodSaleListing(listingId);
       } else if (action === "remove") {
-        if (deriveNeighborhoodEventState(sale) === "active") {
-          throw new Error("Active Neighborhood Sales require the report flow for removal.");
+        if (["activated_locked", "coming_soon", "active"].includes(deriveNeighborhoodEventState(sale))) {
+          throw new Error("Locked Neighborhood Sales require the report flow for removal.");
         }
         await base44.entities.JoinRequest.update(requestId, { 
           status: "denied",
@@ -234,61 +230,6 @@ export default function ListingDetailPage() {
     }
   });
 
-  const handleNeighborhoodSalePayment = async () => {
-    if (!salePricing || salePricing.totalApprovedHomes < NEIGHBORHOOD_MIN_HOMES) {
-      toast.error(`Neighborhood Sale needs ${NEIGHBORHOOD_MIN_HOMES} homes before activation.`);
-      return;
-    }
-    if (salePricing.additionalDue <= 0) return;
-
-    setIsProcessingPayment(true);
-    try {
-      const durationDays = Math.max(
-        1,
-        Math.ceil((new Date(listing.endDateTime).getTime() - new Date(listing.startDateTime).getTime()) / (1000 * 60 * 60 * 24)) + 1
-      );
-
-      await base44.entities.Payment.create({
-        location_id: listingId,
-        amount: salePricing.additionalDue,
-        plan: Number(listing.pricePaid || 0) > 0 ? "neighborhood_sale_adjustment" : "neighborhood_sale_initial",
-        duration_days: durationDays,
-        status: "completed",
-        payment_method: isDemoMode ? "none" : "simulated_card",
-        transaction_id: `${isDemoMode ? "DEMO" : "TXN"}_${Date.now()}`,
-      });
-
-      const newPaidAmount = Math.min(
-        NEIGHBORHOOD_PRICE_CAP,
-        Number(listing.pricePaid || 0) + Number(salePricing.additionalDue || 0)
-      );
-      const refreshedRequests = await base44.entities.JoinRequest.filter({ saleListingId: listingId });
-      const refreshedSummary = getNeighborhoodPricingSummary(refreshedRequests, newPaidAmount);
-
-      const nextStatus = "active";
-      const nextEventState = deriveNeighborhoodEventState({ ...listing, status: nextStatus }, new Date());
-
-      await base44.entities.Listing.update(listingId, {
-        pricePaid: newPaidAmount,
-        status: nextStatus,
-        event_state: nextEventState,
-        activation_status: "active",
-        homeCount: refreshedSummary.visibleHomeCount,
-        payment_intent_status: isDemoMode ? "none" : "captured",
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["joinRequests", listingId] });
-      queryClient.invalidateQueries({ queryKey: ["listing", listingId] });
-      queryClient.invalidateQueries({ queryKey: ["listings"] });
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      setShowPaymentDialog(false);
-      toast.success(Number(listing.pricePaid || 0) > 0 ? "Neighborhood Sale payment updated." : "Neighborhood Sale is now live.");
-    } catch {
-      toast.error("Payment could not be completed.");
-    } finally {
-      setIsProcessingPayment(false);
-    }
-  };
 
   if (isLoading || !listing) {
     return <div className="p-8 text-center">Loading...</div>;
@@ -474,20 +415,11 @@ export default function ListingDetailPage() {
                       </div>
                     </div>
                     {salePricing.totalApprovedHomes < NEIGHBORHOOD_MIN_HOMES ? (
-                      <p className="text-sm text-emerald-800">At least {NEIGHBORHOOD_MIN_HOMES} approved homes are required before payment and activation.</p>
-                    ) : salePricing.additionalDue > 0 ? (
-                      <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <p className="text-sm text-emerald-800">
-                          {Number(listing.pricePaid || 0) > 0
-                            ? "More approved homes increased the event total. Pay the difference to keep it fully paid."
-                            : "Payment is required before the sale goes live."}
-                        </p>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setShowPaymentDialog(true)}>
-                          {Number(listing.pricePaid || 0) > 0 ? `Pay Additional $${Number(salePricing.additionalDue || 0).toFixed(2)}` : `Pay & Activate Sale ($${Number(salePricing.additionalDue || 0).toFixed(2)})`}
-                        </Button>
-                      </div>
+                      <p className="text-sm text-emerald-800">If the sale is still under {NEIGHBORHOOD_MIN_HOMES} approved homes at the 24-hour lock point, Yardit will switch the organizer to the $7.99 Premium fallback and remove the Neighborhood container.</p>
+                    ) : neighborhoodEventState === "activated_locked" || neighborhoodEventState === "coming_soon" || neighborhoodEventState === "active" ? (
+                      <p className="text-sm text-emerald-800">This sale is locked after the organizer charge and can no longer add or remove participants through the normal flow.</p>
                     ) : (
-                      <p className="text-sm text-emerald-800">This sale is fully paid up{salePricing.atCap ? " and has reached the $50 cap" : ""}.</p>
+                      <p className="text-sm text-emerald-800">The organizer card on file will be charged automatically once, exactly 24 hours before start time, using the locked Neighborhood Sale pricing.</p>
                     )}
                   </div>
                 )}
@@ -732,31 +664,6 @@ export default function ListingDetailPage() {
         </Card>
         </div>
       </div>
-
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{Number(listing.pricePaid || 0) > 0 ? "Pay Additional Neighborhood Sale Balance" : "Pay & Activate Neighborhood Sale"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 space-y-2">
-              <p><strong>Approved homes:</strong> {salePricing?.totalApprovedHomes || 0}</p>
-              <p><strong>Already paid:</strong> ${Number(listing.pricePaid || 0).toFixed(2)}</p>
-              <p><strong>Amount due now:</strong> ${Number(salePricing?.additionalDue || 0).toFixed(2)}</p>
-              <p>{isDemoMode ? "Demo Mode will follow the same activation flow without a real charge." : "This uses the current in-app payment flow to record the sale payment."}</p>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setShowPaymentDialog(false)} disabled={isProcessingPayment}>
-                Cancel
-              </Button>
-              <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleNeighborhoodSalePayment} disabled={isProcessingPayment || !salePricing || salePricing.additionalDue <= 0}>
-                {isProcessingPayment ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {Number(listing.pricePaid || 0) > 0 ? "Pay Difference" : "Confirm Payment"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {showReport && (
         <ReportModal
