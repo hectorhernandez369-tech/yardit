@@ -381,6 +381,7 @@ export default function CreateListingPage() {
 
   const startPaidListingCheckout = async () => {
     if (window.self !== window.top) {
+      console.warn("Stripe checkout blocked inside iframe preview");
       toast.error("Stripe checkout works only from the published app.");
       return;
     }
@@ -402,12 +403,27 @@ export default function CreateListingPage() {
         return_url: returnUrl,
       });
 
+      console.log("Stripe session created", response?.data);
       const checkoutUrl = response?.data?.checkoutUrl;
+      const sessionId = response?.data?.sessionId;
+      console.log("Stripe checkout URL/session returned", { checkoutUrl, sessionId });
+
       if (!checkoutUrl) {
         throw new Error("Payment checkout could not start.");
       }
 
-      window.location.href = checkoutUrl;
+      console.log("Stripe redirect attempted", checkoutUrl);
+      window.location.assign(checkoutUrl);
+
+      setTimeout(() => {
+        const link = document.createElement("a");
+        link.href = checkoutUrl;
+        link.target = "_self";
+        link.rel = "noopener noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }, 120);
     } catch (error) {
       setIsStartingPayment(false);
       toast.error(error?.response?.data?.error || error?.message || "Payment could not start.");
@@ -962,11 +978,14 @@ export default function CreateListingPage() {
       window.history.replaceState({}, "", createPageUrl("CreateListing"));
 
       if (paymentState === "cancel") {
+        console.log("Return from Stripe cancel");
+        setIsStartingPayment(false);
         toast.error("Payment was canceled. No listing was created.");
         return;
       }
 
       if (paymentState === "success" && sessionId && handledCheckoutSessionRef.current !== sessionId && stored?.formData) {
+        console.log("Return from Stripe success", sessionId);
         if (!user?.id) return;
         handledCheckoutSessionRef.current = sessionId;
         localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);

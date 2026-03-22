@@ -22,6 +22,7 @@ Deno.serve(async (req) => {
       }
 
       const session = await stripe.checkout.sessions.retrieve(payload.session_id);
+      console.log('Stripe session verify:', { sessionId: session.id, paymentStatus: session.payment_status, status: session.status });
       return Response.json({
         ok: true,
         paid: session.payment_status === 'paid',
@@ -66,6 +67,8 @@ Deno.serve(async (req) => {
         user_id: user.id,
       },
     });
+
+    console.log('Stripe session created:', { sessionId: session.id, checkoutUrl: session.url, tier: payload.tier, amount: payload.amount_cents });
 
     return Response.json({
       ok: true,
