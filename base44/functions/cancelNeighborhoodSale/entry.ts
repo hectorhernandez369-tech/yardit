@@ -204,6 +204,12 @@ Deno.serve(async (req) => {
       }
     }
 
+    const updatedSale = {
+      ...sale,
+      event_state: 'canceled',
+      status: 'closed',
+    };
+
     if (deleteSale) {
       await base44.asServiceRole.entities.Listing.delete(saleListingId);
     } else {
@@ -216,6 +222,11 @@ Deno.serve(async (req) => {
         host_cancellation_24h_sent_at: sale.host_cancellation_24h_sent_at || nowIso,
       });
     }
+
+    await base44.asServiceRole.functions.invoke('syncNeighborhoodDeadlineJobs', {
+      data: deleteSale ? sale : updatedSale,
+      event: { type: deleteSale ? 'delete' : 'update', entity_id: saleListingId }
+    }).catch(e => console.error("sync error:", e));
 
     return Response.json({
       success: true,
