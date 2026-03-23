@@ -561,8 +561,10 @@ export default function CreateListingPage() {
             });
           }
 
-          const jobs = buildNeighborhoodDeadlineJobs(createdListing.startDateTime, createdListing.id);
-          await Promise.all(jobs.map((job) => base44.entities.NeighborhoodDeadlineJob.create(job)));
+          await base44.functions.invoke("syncNeighborhoodDeadlineJobs", {
+            data: createdListing,
+            event: { type: "create", entity_id: createdListing.id }
+          });
 
           const allListings = await base44.entities.Listing.list("-created_date");
           const saleStart = new Date(createdListing.startDateTime).getTime();
