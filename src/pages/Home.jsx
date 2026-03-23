@@ -89,7 +89,7 @@ const neighborhoodParticipantIcon = new L.DivIcon({
 const CHEST_ICON_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/1bb335014_file_00000000d7e871f58415b8d892f56c4b.png";
 const chestIconCache = {};
 function getChestIcon(size, count = 0) {
-  const iconSize = Math.round(size);
+  const iconSize = Math.min(34, Math.max(30, Math.round(size)));
   const countLabel = Number(count || 0) > 0 ? String(Math.round(Number(count))) : "";
   const key = `chest_${iconSize}_${countLabel}`;
   if (!chestIconCache[key]) {
@@ -117,17 +117,17 @@ const createIcon = (type, tier, isSelected, location) => {
     if (count >= 20) scale = 1.35;
     else if (count >= 12) scale = 1.2;
     else if (count >= 5) scale = 1.05;
-    return getChestIcon(38 * scale, count);
+    return getChestIcon(30 * scale, count);
   }
 
   if (isSelected) {
     const key = `selected_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 40, opacity), 40);
+    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 31, opacity), 31);
   }
 
   if (type === "halloween_candy") {
     const key = `halloween_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#9333ea", "#ffffff", 2, 36, opacity), 36);
+    return getCachedIcon(key, buildPinSvg("#9333ea", "#ffffff", 2, 25, opacity), 25);
   }
 
   if (type === "holiday_lights") {
@@ -136,29 +136,29 @@ const createIcon = (type, tier, isSelected, location) => {
       isWithinViewingHours(location.viewing_start_time, location.viewing_end_time);
     if (isGlowing) {
       const key = `lights_glow_${opacity}`;
-      return getCachedIcon(key, buildPinSvg("#ffd700", "#dc2626", 2, 40, opacity), 40);
+      return getCachedIcon(key, buildPinSvg("#ffd700", "#dc2626", 2, 28, opacity), 28);
     }
     const key = `lights_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#dc2626", "#ffffff", 2, 36, opacity), 36);
+    return getCachedIcon(key, buildPinSvg("#dc2626", "#ffffff", 2, 25, opacity), 25);
   }
 
   if (tier === "premium") {
     const key = `premium_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#5DADA5", "#F4A849", 2, 42, opacity), 42);
+    return getCachedIcon(key, buildPinSvg("#5DADA5", "#F4A849", 2, 28, opacity), 28);
   }
 
   if (tier === "neighborhood_event") {
     const key = `hq_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 40, opacity), 40);
+    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 30, opacity), 30);
   }
 
   if (tier === "featured" || tier === "map_pin") {
     const key = `featured_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#5DADA5", "#2C4F4E", 2, 36, opacity), 36);
+    return getCachedIcon(key, buildPinSvg("#5DADA5", "#2C4F4E", 2, 25, opacity), 25);
   }
 
   const key = `free_${opacity}`;
-  return getCachedIcon(key, buildPinSvg("#6b7280", "#4b5563", 2, 34, opacity), 34);
+  return getCachedIcon(key, buildPinSvg("#6b7280", "#4b5563", 2, 22, opacity), 22);
 };
 
 function isNeighborhoodParticipantListing(listing) {

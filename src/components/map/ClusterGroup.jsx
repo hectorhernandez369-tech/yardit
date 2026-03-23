@@ -34,9 +34,9 @@ function clusterPoints(points, map, radius) {
 }
 
 function getClusterStyle(count) {
-  if (count >= 25) return { color: "#F4A849", radius: 30 };
-  if (count >= 10) return { color: "#5DADA5", radius: 24 };
-  return { color: "#5DADA5", radius: 20 };
+  if (count >= 25) return { color: "#F4A849", radius: 20 };
+  if (count >= 10) return { color: "#5DADA5", radius: 16 };
+  return { color: "#5DADA5", radius: 14 };
 }
 
 function formatCount(n) {
