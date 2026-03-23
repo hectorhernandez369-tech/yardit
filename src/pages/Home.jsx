@@ -88,16 +88,19 @@ const neighborhoodParticipantIcon = new L.DivIcon({
 
 const CHEST_ICON_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/1bb335014_file_00000000d7e871f58415b8d892f56c4b.png";
 const chestIconCache = {};
-function getChestIcon(size, count = 0) {
-  const iconSize = Math.min(34, Math.max(30, Math.round(size)));
+function getChestIcon(size, count = 0, isSelected = false) {
+  const iconSize = Math.min(isSelected ? 36 : 34, Math.max(isSelected ? 32 : 30, Math.round(size)));
   const countLabel = Number(count || 0) > 0 ? String(Math.round(Number(count))) : "";
-  const key = `chest_${iconSize}_${countLabel}`;
+  const key = `chest_${iconSize}_${countLabel}_${isSelected ? "selected" : "default"}`;
   if (!chestIconCache[key]) {
     const badgeSize = Math.max(18, Math.round(iconSize * 0.34));
     const badgeFont = Math.max(10, Math.round(iconSize * 0.22));
+    const chestFilter = isSelected
+      ? "drop-shadow(0 0 0 rgba(244,168,73,0.75)) drop-shadow(0 4px 10px rgba(0,0,0,0.32))"
+      : "drop-shadow(0 3px 6px rgba(0,0,0,0.28))";
     chestIconCache[key] = L.divIcon({
       className: "neighborhood-chest-marker",
-      html: `<div style="position:relative;width:${iconSize}px;height:${iconSize}px;"><img src="${CHEST_ICON_URL}" alt="Neighborhood Sale" style="width:${iconSize}px;height:${iconSize}px;display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.28));" />${countLabel ? `<div style="position:absolute;top:-4px;right:-4px;min-width:${badgeSize}px;height:${badgeSize}px;padding:0 4px;border-radius:9999px;background:rgba(44,79,78,0.96);border:2px solid #F4A849;color:#ffffff;font-weight:700;font-size:${badgeFont}px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.28);">${countLabel}</div>` : ""}</div>`,
+      html: `<div style="position:relative;width:${iconSize}px;height:${iconSize}px;"><img src="${CHEST_ICON_URL}" alt="Neighborhood Sale" style="width:${iconSize}px;height:${iconSize}px;display:block;filter:${chestFilter};" />${countLabel ? `<div style="position:absolute;top:-4px;right:-4px;min-width:${badgeSize}px;height:${badgeSize}px;padding:0 4px;border-radius:9999px;background:rgba(44,79,78,0.96);border:2px solid #F4A849;color:#ffffff;font-weight:700;font-size:${badgeFont}px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.28);">${countLabel}</div>` : ""}</div>`,
       iconSize: [iconSize, iconSize],
       iconAnchor: [iconSize / 2, iconSize],
       popupAnchor: [0, -Math.round(iconSize * 0.86)],
@@ -117,48 +120,55 @@ const createIcon = (type, tier, isSelected, location) => {
     if (count >= 20) scale = 1.35;
     else if (count >= 12) scale = 1.2;
     else if (count >= 5) scale = 1.05;
-    return getChestIcon(30 * scale, count);
+    const chestSize = 30 * scale + (isSelected ? 2 : 0);
+    return getChestIcon(chestSize, count, isSelected);
   }
 
-  if (isSelected) {
-    const key = `selected_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 31, opacity), 31);
-  }
+  let fill = "#6b7280";
+  let stroke = "#4b5563";
+  let size = 22;
 
   if (type === "halloween_candy") {
-    const key = `halloween_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#9333ea", "#ffffff", 2, 25, opacity), 25);
-  }
-
-  if (type === "holiday_lights") {
+    fill = "#9333ea";
+    stroke = "#ffffff";
+    size = 25;
+  } else if (type === "holiday_lights") {
     const isGlowing = location &&
       location.display_active &&
       isWithinViewingHours(location.viewing_start_time, location.viewing_end_time);
     if (isGlowing) {
-      const key = `lights_glow_${opacity}`;
-      return getCachedIcon(key, buildPinSvg("#ffd700", "#dc2626", 2, 28, opacity), 28);
+      fill = "#ffd700";
+      stroke = "#dc2626";
+      size = 28;
+    } else {
+      fill = "#dc2626";
+      stroke = "#ffffff";
+      size = 25;
     }
-    const key = `lights_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#dc2626", "#ffffff", 2, 25, opacity), 25);
+  } else if (tier === "premium") {
+    fill = "#5DADA5";
+    stroke = "#F4A849";
+    size = 28;
+  } else if (tier === "neighborhood_event") {
+    fill = "#F4A849";
+    stroke = "#2C4F4E";
+    size = 30;
+  } else if (tier === "featured" || tier === "map_pin") {
+    fill = "#5DADA5";
+    stroke = "#2C4F4E";
+    size = 25;
   }
 
-  if (tier === "premium") {
-    const key = `premium_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#5DADA5", "#F4A849", 2, 28, opacity), 28);
-  }
+  const selectedSize = tier === "premium"
+    ? 31
+    : (tier === "featured" || tier === "map_pin" || type === "halloween_candy" || type === "holiday_lights")
+      ? 28
+      : 25;
+  const finalSize = isSelected ? selectedSize : size;
+  const finalStrokeWidth = isSelected ? 2.4 : 2;
+  const key = `${type || "listing"}_${tier || "default"}_${opacity}_${isSelected ? "selected" : "default"}`;
 
-  if (tier === "neighborhood_event") {
-    const key = `hq_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#F4A849", "#2C4F4E", 2, 30, opacity), 30);
-  }
-
-  if (tier === "featured" || tier === "map_pin") {
-    const key = `featured_${opacity}`;
-    return getCachedIcon(key, buildPinSvg("#5DADA5", "#2C4F4E", 2, 25, opacity), 25);
-  }
-
-  const key = `free_${opacity}`;
-  return getCachedIcon(key, buildPinSvg("#6b7280", "#4b5563", 2, 22, opacity), 22);
+  return getCachedIcon(key, buildPinSvg(fill, stroke, finalStrokeWidth, finalSize, opacity), finalSize);
 };
 
 function isNeighborhoodParticipantListing(listing) {
@@ -372,6 +382,7 @@ export default function HomePage() {
   const [isLocating, setIsLocating] = useState(false);
   const [focusListingId, setFocusListingId] = useState(null);
   const [activeFocusListing, setActiveFocusListing] = useState(null);
+  const [selectedListingId, setSelectedListingId] = useState(null);
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
@@ -568,9 +579,10 @@ export default function HomePage() {
       return;
     }
     if (hasHandledInitialFocus.current) return;
+    setSelectedListingId(focusListing.id);
     setActiveFocusListing({ listing: focusListing, fromUrl: true });
     hasHandledInitialFocus.current = true;
-  }, [focusListing, listings.length]);
+  }, [focusListing, focusListingId, listings.length]);
 
   const { data: allCheckIns } = useQuery({
     queryKey: ["allCheckIns"],
@@ -776,6 +788,7 @@ const stats = useMemo(() => {
   }, [showControls]);
 
   const handlePinClick = (listing) => {
+    setSelectedListingId(listing.id);
     setActiveFocusListing({ listing, fromUrl: false });
   };
 
@@ -1011,7 +1024,8 @@ const stats = useMemo(() => {
               <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />
 
               {visiblePins.map((listing) => {
-                const isSelected = huntStops.some(loc => loc.id === listing.id);
+                const isHuntStop = huntStops.some(loc => loc.id === listing.id);
+                const isMapSelected = selectedListingId === listing.id;
                 const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
                 
                 return (
@@ -1019,9 +1033,11 @@ const stats = useMemo(() => {
                     key={listing.id}
                     ref={(ref) => { if (ref) markerRefsMap.current[listing.id] = ref; }}
                     position={[listing.lat, listing.lng]}
-                    icon={createIcon(listing.listingType, listing.tier, isSelected, listing)}
+                    icon={createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
                     eventHandlers={{
-                      click: () => { handlePinClick(listing); }
+                      click: () => { handlePinClick(listing); },
+                      popupopen: () => setSelectedListingId(listing.id),
+                      popupclose: () => setSelectedListingId((current) => current === listing.id ? null : current),
                     }}
                   >
                     <Popup maxWidth={420} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]}>
@@ -1032,7 +1048,7 @@ const stats = useMemo(() => {
                               {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : "🏡 Yard Sale"}
                             </Badge>
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 capitalize">{listing.tier}</Badge>
-                            {isSelected && (
+                            {isHuntStop && (
                               <Badge className="text-[10px] px-1.5 py-0.5 bg-blue-600">Stop #{routeIndex + 1}</Badge>
                             )}
                           </div>
@@ -1208,7 +1224,12 @@ const stats = useMemo(() => {
                 <Marker
                   key={pin.id}
                   position={[pin.lat, pin.lng]}
-                  icon={createIcon(pin.listingType || "yard_sale", "free", false, { ...pin, startDateTime: new Date().toISOString() })}
+                  icon={createIcon(pin.listingType || "yard_sale", pin.tier || "free", selectedListingId === pin.listingId, { ...pin, startDateTime: new Date().toISOString() })}
+                  eventHandlers={{
+                    click: () => setSelectedListingId(pin.listingId),
+                    popupopen: () => setSelectedListingId(pin.listingId),
+                    popupclose: () => setSelectedListingId((current) => current === pin.listingId ? null : current),
+                  }}
                 >
                   <Popup>
                     <div className="space-y-2 min-w-[180px]">
