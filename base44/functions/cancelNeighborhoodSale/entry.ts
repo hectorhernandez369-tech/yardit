@@ -204,9 +204,11 @@ Deno.serve(async (req) => {
       }
     }
 
+    const finalState = payload?.finalState || 'canceled';
+    
     const updatedSale = {
       ...sale,
-      event_state: 'canceled',
+      event_state: finalState,
       status: 'closed',
     };
 
@@ -214,7 +216,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Listing.delete(saleListingId);
     } else {
       await base44.asServiceRole.entities.Listing.update(saleListingId, {
-        event_state: 'canceled',
+        event_state: finalState,
         status: 'closed',
         activation_status: 'pending',
         statusReason: reason,
