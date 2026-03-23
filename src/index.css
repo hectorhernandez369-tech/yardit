@@ -159,9 +159,13 @@ button:focus-visible {
 
 /* Compact map popups */
 .leaflet-popup-content {
-  margin: 10px 12px 10px 12px !important;
-  line-height: 1.3 !important;
+  margin: 8px 12px 8px 10px !important;
+  line-height: 1.25 !important;
 }
 .leaflet-popup-content p {
   margin: 0 !important;
+}
+.leaflet-popup-close-button {
+  margin-top: 4px !important;
+  margin-right: 4px !important;
 }
