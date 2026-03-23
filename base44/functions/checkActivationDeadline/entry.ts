@@ -242,7 +242,27 @@ async function processNeighborhoodCharge(base44, sale, approvedHomes, now, isRet
   const existingPayment = await getLatestPayment(base44, sale.id, 'neighborhood_event');
   const lockedAmount = existingPayment?.amount && Number(existingPayment.amount) > 0
     ? roundAmount(existingPayment.amount)
-    : getNeighborhoodChargeAmount(approvedHomes);
+    : Number(sale?.pricePaid || 0) > 0
+      ? roundAmount(sale.pricePaid)
+      : getNeighborhoodChargeAmount(approvedHomes);
+  const alreadyCharged = sale?.status === 'activated_locked'
+    || sale?.payment_intent_status === 'captured'
+    || existingPayment?.status === 'succeeded'
+    || existingPayment?.status === 'completed';
+
+  if (alreadyCharged) {
+    await base44.asServiceRole.entities.Listing.update(sale.id, {
+      pricePaid: lockedAmount,
+      status: 'activated_locked',
+      event_state: ['coming_soon', 'active'].includes(sale?.event_state) ? sale.event_state : 'activated_locked',
+      activation_status: 'pending',
+      homeCount: approvedHomes,
+      payment_intent_status: 'captured',
+      hold_deadline_at: null,
+      statusReason: sale?.statusReason || 'Neighborhood Sale payment locked successfully',
+    });
+    return;
+  }
 
   const paymentRecord = await upsertPayment(base44, existingPayment, {
     location_id: sale.id,
@@ -279,9 +299,9 @@ async function processNeighborhoodCharge(base44, sale, approvedHomes, now, isRet
   if (charge.success) {
     await base44.asServiceRole.entities.Listing.update(sale.id, {
       pricePaid: lockedAmount,
-      status: 'active',
-      event_state: 'activated',
-      activation_status: 'active',
+      status: 'activated_locked',
+      event_state: 'activated_locked',
+      activation_status: 'pending',
       homeCount: approvedHomes,
       payment_intent_status: 'captured',
       hold_deadline_at: null,
@@ -400,7 +420,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (job.checkpoint_type === 'cancel_24h') {
+      if (job.checkpoint_type === 'charge_24h') {
         if (approvedHomes < NEIGHBORHOOD_MIN_HOMES) {
           await applyFallbackFlow(base44, sale, approvedHomes, 'minimum_not_met_24h', 'minimum_not_met_24h');
         } else {
