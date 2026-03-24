@@ -182,7 +182,19 @@ export default function ListingDetailPage() {
           type: "join_response_accept",
           metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
         });
-        await syncNeighborhoodSaleListing(listingId);
+        
+        const { summary } = await syncNeighborhoodSaleListing(listingId);
+        
+        // Notify organizer if exactly hitting 5th participant (commitment trigger)
+        if (summary?.totalApprovedHomes === 5) {
+          await base44.entities.Notification.create({
+            userId: user.id,
+            title: "Neighborhood Sale Committed",
+            message: `Your sale has reached 5 homes and is now COMMITTED. Cancelling now will trigger an immediate charge. Otherwise, you will be charged once exactly 24 hours before the event.`,
+            type: "neighborhood_sale_committed",
+            metadata: { sale_listing_id: listingId, event_title: eventTitle }
+          });
+        }
       } else if (action === "remove") {
         if (["activated_locked", "coming_soon", "active"].includes(deriveNeighborhoodEventState(sale))) {
           throw new Error("Locked Neighborhood Sales require the report flow for removal.");
