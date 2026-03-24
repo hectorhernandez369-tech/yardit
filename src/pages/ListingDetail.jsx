@@ -399,7 +399,7 @@ export default function ListingDetailPage() {
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Neighborhood Sale Payment</p>
-                        <p className="text-sm text-emerald-950 font-medium">{salePricing.totalApprovedHomes} homes • {salePricing.homesNeeded > 0 ? `${salePricing.homesNeeded} more needed to activate` : salePricing.totalApprovedHomes >= 20 ? 'Cap reached / max event price' : 'Activated / ready'}</p>
+                        <p className="text-sm text-emerald-950 font-medium">{salePricing.totalApprovedHomes} homes • {salePricing.homesNeeded > 0 ? `${salePricing.homesNeeded} more needed to activate` : 'Activated / ready'}</p>
                       </div>
                       <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 border-none capitalize">
                         {String(neighborhoodEventState || "pending_activation").replace(/_/g, " ")}
