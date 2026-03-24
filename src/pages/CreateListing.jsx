@@ -1338,7 +1338,9 @@ export default function CreateListingPage() {
                       : "Starting Payment..."
                     : createListingMutation.isPending
                     ? "Creating..."
-                    : formData.listingType !== "neighborhood_sale" && ["featured", "premium"].includes(formData.tier)
+                    : formData.listingType === "neighborhood_sale"
+                    ? "Continue to Payment Setup"
+                    : ["featured", "premium"].includes(formData.tier)
                     ? "Continue to Payment"
                     : "Create Listing"}
                 </Button>
