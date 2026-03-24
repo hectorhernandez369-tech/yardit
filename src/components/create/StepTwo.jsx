@@ -344,7 +344,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       typeof fd.lat === "number" &&
       typeof fd.lng === "number"
     ) {
-      return true;
+      return { lat: fd.lat, lng: fd.lng };
     }
 
     addressConfirmedRef.current = false;
