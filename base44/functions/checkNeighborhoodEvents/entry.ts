@@ -33,7 +33,8 @@ function deriveNeighborhoodEventState(listing, nowInput = new Date()) {
     return 'expired';
   }
   if (explicit) return explicit;
-  if (status === 'collecting_participants' || status === 'ready_for_payment' || status === 'payment_pending') return 'pending_activation';
+  if (status === 'ready_for_payment') return 'committed';
+  if (status === 'collecting_participants' || status === 'payment_pending') return 'pending_activation';
   if (status === 'active' || status === 'payment_pending_adjustment') {
     if (start && !Number.isNaN(start.getTime()) && now < start) {
       return listing?.advertising_started_at ? 'coming_soon' : 'activated';
