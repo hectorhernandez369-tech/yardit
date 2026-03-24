@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
             ? 'activated_locked'
             : nextEventState === 'active' || nextEventState === 'coming_soon' || nextEventState === 'activated'
               ? 'active'
-              : nextEventState === 'pending_activation'
+              : nextEventState === 'pending_activation' || nextEventState === 'committed'
                 ? (approvedHomes >= NEIGHBORHOOD_MIN_HOMES ? 'ready_for_payment' : 'collecting_participants')
                 : listing.status;
 
