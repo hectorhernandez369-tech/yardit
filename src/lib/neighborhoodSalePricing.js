@@ -35,6 +35,6 @@ export function getNeighborhoodPricingSummary(requests = [], amountAlreadyPaid =
     additionalDue,
     homesNeeded: Math.max(0, NEIGHBORHOOD_MIN_HOMES - totalApprovedHomes),
     readyForPayment: totalApprovedHomes >= NEIGHBORHOOD_MIN_HOMES,
-    atCap: totalDue >= NEIGHBORHOOD_PRICE_CAP,
+    atCap: false,
   };
 }
