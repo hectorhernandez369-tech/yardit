@@ -174,7 +174,17 @@ export default function CreateListingPage() {
 
   const findNearbyNeighborhoodSale = async (locationOverride = null) => {
     const sourceLocation = locationOverride || formData;
-    if (!user?.id || formData.listingType === "neighborhood_sale" || !sourceLocation?.lat || !sourceLocation?.lng) return null;
+    console.log("[JOIN_DEBUG] Checking for nearby neighborhood sales...", {
+      sourceLat: sourceLocation?.lat,
+      sourceLng: sourceLocation?.lng,
+      listingType: formData.listingType,
+      userId: user?.id
+    });
+
+    if (!user?.id || formData.listingType === "neighborhood_sale" || !sourceLocation?.lat || !sourceLocation?.lng) {
+      console.log("[JOIN_DEBUG] Aborting check: missing location or wrong type");
+      return null;
+    }
 
     const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" });
     let reqs = [];
@@ -184,23 +194,50 @@ export default function CreateListingPage() {
 
     const now = new Date();
     const nearby = (sales || []).filter((sale) => {
-      if (!sale.startDateTime || !sale.endDateTime) return false;
+      if (!sale.startDateTime || !sale.endDateTime) {
+        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: missing dates`);
+        return false;
+      }
       const end = new Date(sale.endDateTime);
-      if (now >= end) return false;
-      if (!isNeighborhoodJoinAllowed(sale, now)) return false;
+      if (now >= end) {
+        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: expired`);
+        return false;
+      }
+      
+      const isAllowed = isNeighborhoodJoinAllowed(sale, now);
+      if (!isAllowed) {
+        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: join not allowed (state: ${sale.event_state || sale.status})`);
+        return false;
+      }
 
       const cLat = sale.event_center_lat ?? sale.lat;
       const cLng = sale.event_center_lng ?? sale.lng;
       const dist = getDistanceFeet(sourceLocation.lat, sourceLocation.lng, cLat, cLng);
+      
+      console.log(`[JOIN_DEBUG] Sale ${sale.id} distance check:`, {
+        dist,
+        threshold: 500,
+        isWithin: dist <= 500
+      });
+
       if (dist > 500) return false;
-      if (sale.ownerUserId === user.id) return false;
+      if (sale.ownerUserId === user.id) {
+        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: current user is owner`);
+        return false;
+      }
 
       const alreadyRequested = reqs.some(
         (request) => request.saleListingId === sale.id && ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status))
       );
+      
+      if (alreadyRequested) {
+        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: already requested`);
+      }
+      
       return !alreadyRequested;
     });
 
+    console.log(`[JOIN_DEBUG] Found ${nearby.length} nearby sales`);
     return nearby[0] || null;
   };
   const [activeRescue, setActiveRescue] = useState(null);
