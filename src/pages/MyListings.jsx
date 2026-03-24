@@ -300,25 +300,26 @@ export default function MyListingsPage() {
   };
 
   const cancelListing = async (listing) => {
-    const ok = window.confirm(
-      listing.pricePaid > 0
-        ? "Cancel this listing before activation? Any eligible refund will be handled through the normal process."
-        : "Cancel this listing before activation?"
-    );
+    const isActive = listing.status === "active" || listing.status === "activated_locked";
+    const message = listing.pricePaid > 0
+      ? `Cancel this ${isActive ? 'active ' : ''}listing? Any eligible refund will be handled through the normal process.`
+      : `Cancel this ${isActive ? 'active ' : ''}listing?`;
+      
+    const ok = window.confirm(message);
     if (!ok) return;
 
     try {
       if (listing.listingType === "neighborhood_sale") {
         await base44.functions.invoke("cancelNeighborhoodSale", {
           saleListingId: listing.id,
-          reason: "owner_cancelled_before_activation",
+          reason: isActive ? "owner_cancelled_active" : "owner_cancelled_before_activation",
           finalState: "canceled",
           deleteSale: false,
         });
       } else {
         await base44.entities.Listing.update(listing.id, {
           status: "cancelled",
-          statusReason: "Canceled by owner before activation",
+          statusReason: isActive ? "Canceled by owner" : "Canceled by owner before activation",
         });
       }
 
