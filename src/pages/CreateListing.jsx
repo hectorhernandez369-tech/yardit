@@ -1005,6 +1005,42 @@ export default function CreateListingPage() {
     await startPaidListingCheckout();
   };
 
+  const handleNeighborhoodSetupSubmit = async () => {
+    if (isGlobalDemoMode) {
+      setPaymentError("");
+      setIsStartingPayment(true);
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      
+      const demoSetupData = formData.organizer_stripe_payment_method_id
+        ? formData
+        : {
+            ...formData,
+            organizer_stripe_customer_id: `demo_cus_${Date.now()}`,
+            organizer_stripe_payment_method_id: `demo_pm_${Date.now()}`,
+            organizer_setup_session_id: `demo_session_${Date.now()}`,
+            organizer_setup_intent_id: `demo_setup_${Date.now()}`,
+            payment_setup_status: "saved",
+            payment_method_collected_at: new Date().toISOString(),
+          };
+
+      if (!formData.organizer_stripe_payment_method_id) {
+        setFormData(demoSetupData);
+      }
+
+      setIsStartingPayment(false);
+      toast.success("Demo payment method saved.");
+      executeSubmit(undefined, demoSetupData);
+      return;
+    }
+
+    if (!formData.organizer_stripe_payment_method_id || !formData.organizer_stripe_customer_id) {
+      await startNeighborhoodSaleSetup();
+      return;
+    }
+
+    executeSubmit();
+  };
+
   const handleSubmit = async () => {
     if (formData.listingType !== "neighborhood_sale" && hasActiveResidentialListing()) {
       toast.error("You already have an active listing. End it before creating another.");
