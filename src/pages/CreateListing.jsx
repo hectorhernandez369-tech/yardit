@@ -1286,7 +1286,7 @@ export default function CreateListingPage() {
               <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} />
             )}
             {step === 3 && <StepThree formData={formData} setFormData={setFormData} />}
-            {step === 4 && (
+            {step === 4 && formData.listingType !== "neighborhood_sale" && (
               <ResidentialPaymentStep
                 tier={formData.tier}
                 amount={(RESIDENTIAL_TIER_PRICES[formData.tier] || 0) / 100}
@@ -1298,6 +1298,17 @@ export default function CreateListingPage() {
                   setStep(3);
                 }}
                 onPay={handlePaymentStepSubmit}
+              />
+            )}
+            {step === 4 && formData.listingType === "neighborhood_sale" && (
+              <NeighborhoodSetupStep
+                isProcessing={isStartingPayment}
+                errorMessage={paymentError}
+                onBack={() => {
+                  setPaymentError("");
+                  setStep(3);
+                }}
+                onSetup={handleNeighborhoodSetupSubmit}
               />
             )}
 
