@@ -849,12 +849,15 @@ export default function CreateListingPage() {
         return;
       }
 
-      const success = await geocodeRef();
-      if (!success) {
+      const geocodeResult = await geocodeRef();
+      if (!geocodeResult) {
         return;
       }
 
-      const nearbySale = await findNearbyNeighborhoodSale();
+      const overrideLocation = typeof geocodeResult === "object" ? geocodeResult : null;
+      const nextData = overrideLocation ? { ...formData, ...overrideLocation } : formData;
+
+      const nearbySale = await findNearbyNeighborhoodSale(nextData);
       if (nearbySale) {
         setMatchedSale(nearbySale);
         setSaleModalStep(1);
