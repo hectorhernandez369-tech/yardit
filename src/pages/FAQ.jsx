@@ -113,7 +113,7 @@ export default function FAQPage() {
         {
           id: "neighborhood-sale-pricing",
           q: "What is Neighborhood Sale pricing?",
-          a: "Neighborhood Sale pricing requires at least 5 approved homes before the organizer can activate the sale. Pricing is $10 base + $2 per approved home, capped at $50 total. The sale does not go live until payment is completed. If more homes are approved later, only the difference is charged. Newly approved homes stay pending until any additional amount is paid."
+          a: "Neighborhood Sales work best when planned ahead with your neighbors.\n\nYour final cost is calculated as $19.99 base plus $2 per participating home.\n\nOnce your sale reaches 5 participating homes, your event is considered committed and the organizer will be charged at the 24-hour mark.\n\nAfter activation:\n• No additional homes can be added\n• The event is locked to provide a consistent experience for all participants\n\nWe recommend inviting neighbors early to get the most out of your sale. Participants are never charged."
         }
       ]
     },
