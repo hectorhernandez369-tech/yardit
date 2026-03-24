@@ -596,9 +596,24 @@ export default function MyListingsPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div>
-              <Label className="text-[#2C4F4E]">Categories (Up to 10) *</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
+            {editingListing?.listingType === "neighborhood_sale" && (
+              <div>
+                <Label className="text-[#2C4F4E] mb-2 block">Start Date</Label>
+                <Input
+                  type="date"
+                  min={new Date().toISOString().split("T")[0]}
+                  value={editStartDate}
+                  onChange={(e) => setEditStartDate(e.target.value)}
+                  className="bg-[#F3E6CF] border-[#2C4F4E]"
+                />
+                <p className="text-xs text-slate-500 mt-1">Must be at least 7 days in the future. Changing this updates your event deadline rules and charge date.</p>
+              </div>
+            )}
+
+            {editingListing?.listingType !== "neighborhood_sale" && (
+              <div>
+                <Label className="text-[#2C4F4E]">Categories (Up to 10) *</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
                 {editCategories.map((cat, i) => (
                    <Badge key={i} className="flex items-center gap-1 bg-[#5DADA5] py-1.5 px-3 text-sm rounded-full">
                       {cat} 
