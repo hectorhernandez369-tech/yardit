@@ -300,6 +300,17 @@ export default function MyListingsPage() {
   };
 
   const cancelListing = async (listing) => {
+    if (listing.listingType !== "neighborhood_sale" && listing.neighborhood_join_status === "approved" && listing.neighborhood_sale_id) {
+      try {
+        const parentSales = await base44.entities.Listing.filter({ id: listing.neighborhood_sale_id });
+        const parentSale = parentSales[0];
+        if (parentSale && ["activated_locked", "coming_soon", "active"].includes(parentSale.event_state)) {
+          toast.error("You cannot cancel your listing because the Neighborhood Sale is locked. Contact support if there is an emergency.");
+          return;
+        }
+      } catch (e) {}
+    }
+
     const isActive = listing.status === "active" || listing.status === "activated_locked";
     const message = listing.pricePaid > 0
       ? `Cancel this ${isActive ? 'active ' : ''}listing? Any eligible refund will be handled through the normal process.`
