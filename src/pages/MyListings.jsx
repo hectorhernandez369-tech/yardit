@@ -648,6 +648,7 @@ export default function MyListingsPage() {
                 </Select>
               )}
             </div>
+            )}
 
             <div>
               <Label className="text-[#2C4F4E] mb-2 block">Description</Label>
