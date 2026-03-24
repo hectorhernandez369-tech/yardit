@@ -435,7 +435,9 @@ export default function ListingDetailPage() {
                     ) : neighborhoodEventState === "activated_locked" || neighborhoodEventState === "coming_soon" || neighborhoodEventState === "active" ? (
                       <p className="text-sm text-emerald-800">This sale is locked after the organizer charge and can no longer add or remove participants through the normal flow.</p>
                     ) : (
-                      <p className="text-sm text-emerald-800">The organizer card on file will be charged automatically once, exactly 24 hours before start time, using the locked Neighborhood Sale pricing.</p>
+                      <p className="text-sm text-emerald-800">
+                        <strong>Committed:</strong> Your sale has reached {NEIGHBORHOOD_MIN_HOMES} homes. Cancelling now will trigger an immediate charge. Otherwise, your card on file will be charged exactly 24 hours before start time.
+                      </p>
                     )}
                   </div>
                 )}
