@@ -48,9 +48,16 @@ export default function ListingManagement() {
   }, [users]);
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, ownerUserId, status, reason, title }) => {
+    mutationFn: async ({ id, ownerUserId, status, reason, title, listingType, startDateTime, endDateTime, event_state }) => {
       await base44.entities.Listing.update(id, { status, statusReason: reason });
       
+      if (listingType === "neighborhood_sale") {
+        await base44.functions.invoke("syncNeighborhoodDeadlineJobs", {
+          data: { id, ownerUserId, title, listingType, startDateTime, endDateTime, event_state, status, statusReason: reason },
+          event: { type: "update", entity_id: id }
+        }).catch(console.error);
+      }
+
       let notifType = "listing_status_change";
       let notifTitle = "Listing Status Changed";
       let message = `Your listing "${title}" status changed to ${status}.`;
