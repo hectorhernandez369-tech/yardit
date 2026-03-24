@@ -1060,33 +1060,8 @@ export default function CreateListingPage() {
     }
 
     if (formData.listingType === "neighborhood_sale") {
-      if (isGlobalDemoMode) {
-        const demoSetupData = formData.organizer_stripe_payment_method_id
-          ? formData
-          : {
-              ...formData,
-              organizer_stripe_customer_id: `demo_cus_${Date.now()}`,
-              organizer_stripe_payment_method_id: `demo_pm_${Date.now()}`,
-              organizer_setup_session_id: `demo_session_${Date.now()}`,
-              organizer_setup_intent_id: `demo_setup_${Date.now()}`,
-              payment_setup_status: "saved",
-              payment_method_collected_at: new Date().toISOString(),
-            };
-
-        if (!formData.organizer_stripe_payment_method_id) {
-          setFormData(demoSetupData);
-        }
-
-        executeSubmit(undefined, demoSetupData);
-        return;
-      }
-
-      if (!formData.organizer_stripe_payment_method_id || !formData.organizer_stripe_customer_id) {
-        await startNeighborhoodSaleSetup();
-        return;
-      }
-
-      executeSubmit();
+      setPaymentError("");
+      setStep(4);
       return;
     }
 
