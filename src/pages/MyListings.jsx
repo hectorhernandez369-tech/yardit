@@ -120,6 +120,8 @@ export default function MyListingsPage() {
 
   const canCancelListingDirectly = (listing) => {
     return [
+      "active",
+      "activated_locked",
       "payment_pending",
       "scheduled",
       "ready_for_payment",
