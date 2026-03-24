@@ -398,7 +398,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
             lng: data[0].center[0],
           }));
           toast.success("Address located!");
-          return true;
+          return { lat: data[0].center[1], lng: data[0].center[0] };
         }
 
         confirmedAddressKeyRef.current = "";
