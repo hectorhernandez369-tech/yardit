@@ -51,7 +51,8 @@ export function deriveNeighborhoodEventState(listing, nowInput = new Date()) {
   if (explicit === "downgraded" || status === "downgraded") return "downgraded";
   if (end && !Number.isNaN(end.getTime()) && now > end) return "expired";
 
-  if (status === "collecting_participants" || status === "ready_for_payment" || status === "payment_pending") {
+  if (status === "ready_for_payment") return "committed";
+  if (status === "collecting_participants" || status === "payment_pending") {
     return "pending_activation";
   }
 
