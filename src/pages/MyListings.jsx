@@ -170,29 +170,68 @@ export default function MyListingsPage() {
     setEditingListing(listing);
     setEditDescription(listing?.description || "");
     setEditCategories(listing?.categories?.length > 0 ? listing.categories : (listing?.category ? [listing.category] : []));
+    if (listing?.listingType === "neighborhood_sale") {
+      setEditStartDate(listing.selectedRangeStartDate || (listing.startDateTime ? new Date(listing.startDateTime).toISOString().split("T")[0] : ""));
+    } else {
+      setEditStartDate("");
+    }
   };
 
   const closeEditDescription = () => {
     setEditingListing(null);
     setEditDescription("");
     setEditCategories([]);
+    setEditStartDate("");
   };
 
   const saveDescription = async () => {
     if (!editingListing) return;
 
-    if (editCategories.length === 0) {
+    if (editingListing.listingType !== "neighborhood_sale" && editCategories.length === 0) {
       toast.error("Please select at least 1 category");
       return;
     }
 
+    let dateChanged = false;
+    const updateData = {
+      description: editDescription,
+      categories: editCategories,
+      category: editCategories[0] || "",
+    };
+
+    if (editingListing.listingType === "neighborhood_sale" && editStartDate) {
+      const oldStartStr = editingListing.selectedRangeStartDate || (editingListing.startDateTime ? new Date(editingListing.startDateTime).toISOString().split("T")[0] : "");
+      if (oldStartStr !== editStartDate) {
+        const leadTimeError = getNeighborhoodCreationLeadTimeError(editStartDate);
+        if (leadTimeError) {
+          toast.error(leadTimeError);
+          return;
+        }
+
+        const newStart = new Date(editStartDate + "T00:00:00Z").toISOString();
+        updateData.startDateTime = newStart;
+        updateData.selectedRangeStartDate = editStartDate;
+
+        // Ensure end date is not before start date
+        if (editingListing.endDateTime && new Date(editingListing.endDateTime) < new Date(newStart)) {
+          updateData.endDateTime = new Date(editStartDate + "T23:59:59Z").toISOString();
+          updateData.selectedRangeEndDate = editStartDate;
+        }
+
+        dateChanged = true;
+      }
+    }
+
     setIsSaving(true);
     try {
-      await base44.entities.Listing.update(editingListing.id, {
-        description: editDescription,
-        categories: editCategories,
-        category: editCategories[0] || "",
-      });
+      await base44.entities.Listing.update(editingListing.id, updateData);
+
+      if (dateChanged) {
+        await base44.functions.invoke("syncNeighborhoodDeadlineJobs", {
+          data: { ...editingListing, ...updateData },
+          event: { type: "update", entity_id: editingListing.id }
+        }).catch(console.error);
+      }
 
       toast.success("Listing updated");
       closeEditDescription();
