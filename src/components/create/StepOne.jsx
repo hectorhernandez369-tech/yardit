@@ -165,20 +165,31 @@ export default function StepOne({ formData, setFormData }) {
 
       {listingType === "neighborhood_sale" && (
         <div className="space-y-3 rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex flex-col gap-2">
             <div>
-              <p className="font-semibold text-[#2C4F4E]">Neighborhood Sale pricing</p>
-              <p className="text-sm text-[#1F2937] opacity-80">Maximum 25 homes within a 500-foot radius.</p>
+              <p className="font-semibold text-[#2C4F4E]">Neighborhood Sale Pricing & Rules</p>
+              <div className="text-sm text-[#1F2937] opacity-90 mt-2 space-y-2">
+                <p><strong>Neighborhood Sales work best when planned ahead with your neighbors.</strong></p>
+                <p>Your final cost is calculated as <strong>$19.99 base plus $2 per participating home</strong>. Participants are never charged.</p>
+                <p>Once your sale reaches 5 participating homes, your event is considered committed and the organizer will be charged at the 24-hour mark.</p>
+                <p className="mb-1">After activation:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>No additional homes can be added</li>
+                  <li>The event is locked to provide a consistent experience for all participants</li>
+                </ul>
+                <p>We recommend inviting neighbors early to get the most out of your sale.</p>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate(createPageUrl("FAQ") + "#neighborhood-sale-pricing")}
-              className="text-sm font-semibold text-[#0F766E] underline underline-offset-4"
-            >
-              Click here for pricing info
-            </button>
+            <div className="pt-2 flex justify-start border-t border-[#2C4F4E]/20 mt-2">
+              <button
+                type="button"
+                onClick={() => navigate(createPageUrl("FAQ") + "#neighborhood-sale-pricing")}
+                className="text-sm font-semibold text-[#0F766E] underline underline-offset-4"
+              >
+                Read more in our FAQ
+              </button>
+            </div>
           </div>
-          <p className="text-sm text-[#2C4F4E]">Neighborhood Sale does not require categories or description during creation.</p>
         </div>
       )}
     </div>
