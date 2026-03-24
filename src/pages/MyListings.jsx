@@ -42,6 +42,7 @@ export default function MyListingsPage() {
   const [editingListing, setEditingListing] = useState(null);
   const [editDescription, setEditDescription] = useState("");
   const [editCategories, setEditCategories] = useState([]);
+  const [editStartDate, setEditStartDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
