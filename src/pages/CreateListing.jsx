@@ -13,6 +13,7 @@ import StepOne from "../components/create/StepOne";
 import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import ResidentialPaymentStep from "../components/payment/ResidentialPaymentStep";
+import NeighborhoodSetupStep from "../components/payment/NeighborhoodSetupStep";
 import FormScrollHelper from "../components/create/FormScrollHelper";
 import { useAppMode } from "../components/shared/DemoMode";
 import {
