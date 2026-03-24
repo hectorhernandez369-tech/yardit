@@ -74,7 +74,7 @@ export function isNeighborhoodVisibleOnMap(listing, nowInput = new Date()) {
 
 export function isNeighborhoodJoinAllowed(listing, nowInput = new Date()) {
   const eventState = deriveNeighborhoodEventState(listing, nowInput);
-  return eventState === "pending_activation";
+  return ["pending_activation", "activated", "coming_soon", "active"].includes(eventState);
 }
 
 export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
