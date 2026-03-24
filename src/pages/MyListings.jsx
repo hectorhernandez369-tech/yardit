@@ -126,6 +126,12 @@ export default function MyListingsPage() {
       for (const l of toUpdate) {
         try {
           await base44.entities.Listing.update(l.id, { status: "expired" });
+          if (l.listingType === "neighborhood_sale") {
+            await base44.functions.invoke("syncNeighborhoodDeadlineJobs", {
+              data: { ...l, status: "expired" },
+              event: { type: "update", entity_id: l.id }
+            }).catch(console.error);
+          }
           const notif = await base44.entities.Notification.create({
             user_id: user?.id,
             userId: user?.id,
