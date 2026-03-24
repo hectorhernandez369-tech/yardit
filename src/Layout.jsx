@@ -236,28 +236,23 @@ export default function Layout({ children }) {
     const fetchUser = async () => {
       try {
         const currentUser = await base44.auth.me();
-        let adminIsActive = false;
-        try {
-          const { accepted, adminProfile } = await syncAdminInvite(currentUser);
-          const profileUserId = relId(adminProfile?.user_id);
-
-          adminIsActive = !!adminProfile && adminProfile.is_active === true && profileUserId === currentUser.id;
-
-          if (adminIsActive) {
-            currentUser.isAdmin = true;
-            currentUser.role = adminProfile.role_label;
-          } else {
-            currentUser.isAdmin = false;
-          }
-        } catch {
-          currentUser.isAdmin = false;
-        }
-
-        try {
-          await base44.functions.invoke("syncNeighborhoodCoHostInvite", {});
-        } catch {}
-
         setUser(currentUser);
+
+        syncAdminInvite(currentUser).then(({ accepted, adminProfile }) => {
+          const profileUserId = relId(adminProfile?.user_id);
+          const adminIsActive = !!adminProfile && adminProfile.is_active === true && profileUserId === currentUser.id;
+          
+          if (adminIsActive) {
+            setUser(prev => prev ? { ...prev, isAdmin: true, role: adminProfile.role_label } : null);
+          } else {
+            setUser(prev => prev ? { ...prev, isAdmin: false } : null);
+          }
+        }).catch(() => {
+          setUser(prev => prev ? { ...prev, isAdmin: false } : null);
+        });
+
+        base44.functions.invoke("syncNeighborhoodCoHostInvite", {}).catch(() => {});
+
       } catch (error) {
         console.error("Error fetching user:", error);
       }
