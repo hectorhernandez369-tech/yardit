@@ -11,10 +11,9 @@ export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBa
           Payment Method Required
         </h3>
         <ul className="list-disc pl-5 space-y-3 text-amber-900 text-[15px]">
-          <li><strong>Neighborhood Sales require a payment method on file.</strong></li>
-          <li>You will <strong>not be charged at creation.</strong></li>
-          <li>Once your sale reaches 5 participants, your event is considered committed.</li>
-          <li>Your payment will be charged at the 24-hour mark before the event, or immediately if you cancel after commitment.</li>
+          <li><strong>Payment method required:</strong> A card must be saved on file to create a Neighborhood Sale.</li>
+          <li><strong>No charge at creation:</strong> Your card will not be charged when you create the sale.</li>
+          <li><strong>Card will be charged later</strong> based on the Neighborhood Sale rules (e.g., when the minimum of 5 homes is reached and the 24-hour mark approaches, or if canceled after commitment).</li>
           <li>After activation, no additional homes can be added.</li>
         </ul>
       </div>
