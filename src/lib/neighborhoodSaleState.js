@@ -1,5 +1,6 @@
 export const NEIGHBORHOOD_EVENT_STATES = [
   "pending_activation",
+  "committed",
   "activated",
   "activated_locked",
   "coming_soon",
