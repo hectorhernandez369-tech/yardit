@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
                 ? (approvedHomes >= NEIGHBORHOOD_MIN_HOMES ? 'ready_for_payment' : 'collecting_participants')
                 : listing.status;
 
+      let didUpdate = false;
       if (listing.event_state !== nextEventState || listing.homeCount !== approvedHomes || listing.status !== nextStatus) {
         await base44.asServiceRole.entities.Listing.update(listing.id, {
           event_state: nextEventState,
@@ -74,6 +75,30 @@ Deno.serve(async (req) => {
           status: nextStatus,
         });
         updates.push({ id: listing.id, event_state: nextEventState, homeCount: approvedHomes, status: nextStatus });
+        didUpdate = true;
+        
+        await base44.asServiceRole.functions.invoke('syncNeighborhoodDeadlineJobs', {
+          data: { ...listing, event_state: nextEventState, homeCount: approvedHomes, status: nextStatus },
+          event: { type: 'update', entity_id: listing.id }
+        }).catch(console.error);
+      }
+
+      // Safe guardrail: automatically invoke sync if a future path updated startDateTime without syncing
+      if (!didUpdate && listing.startDateTime && !['canceled', 'downgraded', 'expired', 'closed'].includes(nextEventState)) {
+        const start = new Date(listing.startDateTime);
+        const expected48 = new Date(start.getTime() - 48 * 60 * 60 * 1000).toISOString();
+        const expected24 = new Date(start.getTime() - 24 * 60 * 60 * 1000).toISOString();
+        
+        const existingJobs = await base44.asServiceRole.entities.NeighborhoodDeadlineJob.filter({ sale_listing_id: listing.id, status: 'pending' });
+        const has48 = existingJobs.some(j => j.checkpoint_type === 'warning_48h' && j.run_at === expected48);
+        const has24 = existingJobs.some(j => j.checkpoint_type === 'charge_24h' && j.run_at === expected24);
+        
+        if (!has48 || !has24) {
+          await base44.asServiceRole.functions.invoke('syncNeighborhoodDeadlineJobs', {
+            data: listing,
+            event: { type: 'update', entity_id: listing.id }
+          }).catch(console.error);
+        }
       }
     }
 
