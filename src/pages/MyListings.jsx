@@ -312,9 +312,14 @@ export default function MyListingsPage() {
     }
 
     const isActive = listing.status === "active" || listing.status === "activated_locked";
-    const message = listing.pricePaid > 0
-      ? `Cancel this ${isActive ? 'active ' : ''}listing? Any eligible refund will be handled through the normal process.`
-      : `Cancel this ${isActive ? 'active ' : ''}listing?`;
+    const isCommittedNeighborhoodSale = listing.listingType === "neighborhood_sale" && (listing.homeCount >= 5) && !listing.pricePaid;
+
+    let message = `Cancel this ${isActive ? 'active ' : ''}listing?`;
+    if (listing.pricePaid > 0) {
+      message = `Cancel this ${isActive ? 'active ' : ''}listing? Any eligible refund will be handled through the normal process.`;
+    } else if (isCommittedNeighborhoodSale) {
+      message = `WARNING: Your Neighborhood Sale is COMMITTED (5+ homes). Cancelling now will trigger an immediate non-refundable charge for the event. Are you sure you want to cancel?`;
+    }
       
     const ok = window.confirm(message);
     if (!ok) return;
