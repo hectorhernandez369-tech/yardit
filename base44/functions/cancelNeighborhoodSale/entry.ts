@@ -25,6 +25,71 @@ function createToken() {
   return crypto.randomUUID().replaceAll('-', '');
 }
 
+function roundAmount(amount) {
+  return Math.round(Number(amount || 0) * 100) / 100;
+}
+
+function getNeighborhoodChargeAmount(approvedHomes) {
+  return roundAmount(Math.min(NEIGHBORHOOD_PRICE_CAP, NEIGHBORHOOD_BASE_PRICE + (approvedHomes * NEIGHBORHOOD_PRICE_PER_HOME)));
+}
+
+function toCents(amount) {
+  return Math.round(roundAmount(amount) * 100);
+}
+
+function getDurationDays(sale) {
+  const start = sale?.startDateTime ? new Date(sale.startDateTime) : null;
+  const end = sale?.endDateTime ? new Date(sale.endDateTime) : null;
+  if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 1;
+  return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+}
+
+async function getLatestPayment(base44, relatedEntityId, type) {
+  const payments = await base44.asServiceRole.entities.Payment.filter({ related_entity_id: relatedEntityId, type });
+  return [...payments].sort((a, b) => new Date(b.created_date || b.created_at || 0).getTime() - new Date(a.created_date || a.created_at || 0).getTime())[0] || null;
+}
+
+async function chargeSavedMethod({ sale, paymentRecord, amount, purpose }) {
+  if (sale?.is_demo_listing) {
+    return {
+      success: true,
+      paymentIntentId: `demo_${purpose}_${Date.now()}`,
+      method: 'demo_card',
+    };
+  }
+
+  if (!paymentRecord?.stripe_customer_id || !paymentRecord?.stripe_payment_method_id) {
+    return { success: false, error: 'No saved payment method was found for the organizer.' };
+  }
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: toCents(amount),
+      currency: 'usd',
+      customer: paymentRecord.stripe_customer_id,
+      payment_method: paymentRecord.stripe_payment_method_id,
+      off_session: true,
+      confirm: true,
+      metadata: {
+        base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
+        purpose,
+        sale_listing_id: sale.id,
+        owner_user_id: sale.ownerUserId,
+      },
+    });
+
+    return {
+      success: paymentIntent.status === 'succeeded',
+      paymentIntentId: paymentIntent.id,
+      method: paymentIntent.payment_method ? 'saved_card' : 'card',
+      error: paymentIntent.status === 'succeeded' ? null : `Stripe status: ${paymentIntent.status}`,
+    };
+  } catch (error) {
+    console.error('Neighborhood Stripe charge failed:', error?.message || error);
+    return { success: false, error: error?.message || 'Stripe charge failed' };
+  }
+}
+
 function getFallbackRescuePayload(sale, participantListing) {
   return {
     title: participantListing?.title || 'My Yard Sale',
