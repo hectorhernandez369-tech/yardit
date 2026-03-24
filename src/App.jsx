@@ -35,7 +35,6 @@ const AuthenticatedApp = () => {
     queryKey: ["appSettings"],
     queryFn: () => base44.entities.AppSetting.list(),
     initialData: [],
-    enabled: !isLoadingPublicSettings && !isLoadingAuth && !authError,
   });
 
   // Show loading spinner while checking app public settings or auth
