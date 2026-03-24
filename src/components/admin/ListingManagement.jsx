@@ -195,6 +195,10 @@ export default function ListingManagement() {
                           status: value,
                           reason: `Admin changed status to ${value}`,
                           title: listing.title || "Untitled",
+                          listingType: listing.listingType,
+                          startDateTime: listing.startDateTime,
+                          endDateTime: listing.endDateTime,
+                          event_state: listing.event_state
                         })
                       }
                     >
