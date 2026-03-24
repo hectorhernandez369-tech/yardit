@@ -194,6 +194,9 @@ export default function CreateListingPage() {
 
     const now = new Date();
     const nearby = (sales || []).filter((sale) => {
+      const eventState = deriveNeighborhoodEventState(sale, now);
+      console.log(`[JOIN_DEBUG] Event State Check -> ID: ${sale.id} | state: ${eventState}`);
+
       if (!sale.startDateTime || !sale.endDateTime) {
         console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: missing dates`);
         return false;
@@ -206,7 +209,13 @@ export default function CreateListingPage() {
       
       const isAllowed = isNeighborhoodJoinAllowed(sale, now);
       if (!isAllowed) {
-        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: join not allowed (state: ${sale.event_state || sale.status})`);
+        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: join not allowed (state: ${eventState})`);
+        return false;
+      }
+
+      const homeCount = getSaleConfirmedCount(sale);
+      if (homeCount >= 25) {
+        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: full (homes: ${homeCount})`);
         return false;
       }
 
@@ -214,15 +223,12 @@ export default function CreateListingPage() {
       const cLng = sale.event_center_lng ?? sale.lng;
       const dist = getDistanceFeet(sourceLocation.lat, sourceLocation.lng, cLat, cLng);
       
-      console.log(`[JOIN_DEBUG] Sale ${sale.id} distance check:`, {
-        dist,
-        threshold: 500,
-        isWithin: dist <= 500
-      });
+      console.log(`[JOIN_DEBUG] RADIUS CHECK -> Listing: ${sourceLocation.lat}, ${sourceLocation.lng} | Event: ${cLat}, ${cLng} | Distance: ${dist} | Within 500ft: ${dist <= 500}`);
 
       if (dist > 500) return false;
+      
       if (sale.ownerUserId === user.id) {
-        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: current user is owner`);
+        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: current user is organizer`);
         return false;
       }
 
@@ -231,7 +237,7 @@ export default function CreateListingPage() {
       );
       
       if (alreadyRequested) {
-        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: already requested`);
+        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: user already requested`);
       }
       
       return !alreadyRequested;
