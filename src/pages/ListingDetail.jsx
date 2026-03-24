@@ -411,7 +411,7 @@ export default function ListingDetailPage() {
                         <p className="font-semibold text-emerald-950">${Number(listing.pricePaid || 0).toFixed(2)}</p>
                       </div>
                       <div className="rounded-md border border-emerald-200 bg-white p-3">
-                        <p className="text-xs uppercase tracking-wide text-emerald-700">Activation Price</p>
+                        <p className="text-xs uppercase tracking-wide text-emerald-700">Calculated Cost</p>
                         <p className="font-semibold text-emerald-950">${Number(calculateNeighborhoodSalePrice(salePricing.totalApprovedHomes) || 0).toFixed(2)}</p>
                       </div>
                       <div className="rounded-md border border-emerald-200 bg-white p-3">
