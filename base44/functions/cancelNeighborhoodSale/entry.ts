@@ -141,6 +141,52 @@ Deno.serve(async (req) => {
     let typeADeleted = 0;
     let typeBDetached = 0;
     let rescueCount = 0;
+    let chargeAmount = 0;
+
+    const isCommitted = approvedHomes >= NEIGHBORHOOD_MIN_HOMES;
+    const existingPayment = await getLatestPayment(base44, sale.id, 'neighborhood_event');
+    const alreadyCharged = sale?.status === 'activated_locked' || sale?.payment_intent_status === 'captured' || existingPayment?.status === 'succeeded' || existingPayment?.status === 'completed';
+
+    if (isCommitted && !alreadyCharged) {
+      chargeAmount = getNeighborhoodChargeAmount(approvedHomes);
+      
+      const paymentRecord = existingPayment?.id ? existingPayment : await base44.asServiceRole.entities.Payment.create({
+        location_id: sale.id,
+        amount: chargeAmount,
+        plan: 'neighborhood_sale_initial',
+        duration_days: getDurationDays(sale),
+        status: 'pending',
+        payment_method: sale.is_demo_listing ? 'demo_saved_card' : 'saved_card',
+        user_id: sale.ownerUserId,
+        type: 'neighborhood_event',
+        related_entity_id: sale.id,
+        stripe_customer_id: existingPayment?.stripe_customer_id || sale.organizer_stripe_customer_id || '',
+        stripe_payment_method_id: existingPayment?.stripe_payment_method_id || sale.organizer_stripe_payment_method_id || '',
+        created_at: nowIso,
+      });
+
+      const charge = await chargeSavedMethod({
+        sale,
+        paymentRecord,
+        amount: chargeAmount,
+        purpose: 'neighborhood_sale_cancellation_charge',
+      });
+
+      await base44.asServiceRole.entities.Payment.update(paymentRecord.id, {
+        amount: chargeAmount,
+        status: charge.success ? 'succeeded' : 'failed',
+        payment_method: charge.method || paymentRecord.payment_method || 'saved_card',
+        transaction_id: charge.paymentIntentId || paymentRecord.transaction_id || '',
+        stripe_payment_intent_id: charge.paymentIntentId || paymentRecord.stripe_payment_intent_id || '',
+      });
+
+      if (charge.success) {
+        await base44.asServiceRole.entities.Listing.update(sale.id, {
+          pricePaid: chargeAmount,
+          payment_intent_status: 'captured',
+        });
+      }
+    }
 
     for (const request of requests) {
       const participantListings = request.listingId
