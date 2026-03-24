@@ -87,7 +87,29 @@ export default function MyListingsPage() {
   };
 
   const isPastListing = (listing) => {
-    if (["expired", "completed", "cancelled"].includes(listing?.status)) return true;
+    const status = listing?.status || "";
+    
+    if (
+      status === "expired" ||
+      status === "completed" ||
+      status === "closed" ||
+      status.includes("cancel")
+    ) {
+      return true;
+    }
+    
+    if (
+      status === "active" ||
+      status === "activated_locked" ||
+      status === "scheduled" ||
+      status.includes("pending") ||
+      status === "ready_for_payment" ||
+      status === "under_review" ||
+      status === "collecting_participants"
+    ) {
+      return false;
+    }
+
     if (!listing?.endDateTime) return false;
     const endMs = new Date(listing.endDateTime).getTime();
     if (Number.isNaN(endMs)) return false;
