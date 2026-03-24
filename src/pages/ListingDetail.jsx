@@ -18,7 +18,6 @@ import {
   getNeighborhoodPricingSummary,
   NEIGHBORHOOD_MAX_HOMES,
   NEIGHBORHOOD_MIN_HOMES,
-  NEIGHBORHOOD_PRICE_CAP,
 } from "@/lib/neighborhoodSalePricing";
 import { getListingNumber, getOwnerDisplayName } from "@/components/listing/listingDisplay";
 import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
