@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 
+const DEFAULT_MODAL_PROPS = {
+  title: "Create a Free Account",
+  description: "Create a free account to continue your hunt.",
+  detail: "Sign up to post listings, join neighborhood sales, save your hunt, and more.",
+  buttonText: "Log In / Sign Up",
+};
+
 /**
  * Reusable hook for guest-restricted actions.
  *
@@ -12,20 +19,36 @@ import { useAuth } from "@/lib/AuthContext";
  */
 export function useGuestGuard() {
   const [showModal, setShowModal] = useState(false);
+  const [modalProps, setModalProps] = useState(DEFAULT_MODAL_PROPS);
   const { isAuthenticated, isGuest } = useAuth();
 
-  const guardAction = (fn) => {
+  const closeModal = () => {
+    setShowModal(false);
+    setModalProps(DEFAULT_MODAL_PROPS);
+  };
+
+  const guardAction = (fn, options = {}) => {
+    const { allowGuest = false, modal = DEFAULT_MODAL_PROPS } = options;
+
+    if (isGuest && allowGuest) {
+      if (fn) fn();
+      return;
+    }
+
     if (isGuest || !isAuthenticated) {
+      setModalProps({ ...DEFAULT_MODAL_PROPS, ...modal });
       setShowModal(true);
       return;
     }
+
     if (fn) fn();
   };
 
   return {
     showModal,
-    setShowModal,
+    setShowModal: closeModal,
     guardAction,
     isGuest,
+    modalProps,
   };
 }

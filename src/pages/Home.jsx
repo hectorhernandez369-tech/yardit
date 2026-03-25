@@ -357,7 +357,7 @@ export default function HomePage() {
   };
   const { huntStops, addToHunt, updateStopStatus, gpsLocation, huntMode: isHuntActive } = huntContext;
 
-  const { guardAction, showModal, setShowModal } = useGuestGuard();
+  const { guardAction, showModal, setShowModal, isGuest, modalProps } = useGuestGuard();
 
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
@@ -1108,7 +1108,14 @@ const stats = useMemo(() => {
                                     variant="outline"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      guardAction(() => addToHunt(listing));
+                                      guardAction(() => addToHunt(listing), {
+                                        allowGuest: isGuest && huntStops.length < 2,
+                                        modal: {
+                                          title: "Create a Free Account to Save More Stops",
+                                          description: "Guests can preview up to 2 Hunt stops.",
+                                          detail: "Create a free account to save more stops and continue your hunt.",
+                                        }
+                                      });
                                     }}
                                     className="gap-1 h-6 text-[11px] px-1.5 py-0"
                                   >
@@ -1344,7 +1351,7 @@ const stats = useMemo(() => {
         />
       )}
 
-      <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} />
+      <GuestAuthModal open={showModal} onClose={setShowModal} {...modalProps} />
 
       {/* Filter Modal */}
       <Dialog open={showFilterModal} onOpenChange={setShowFilterModal}>
