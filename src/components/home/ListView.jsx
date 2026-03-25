@@ -27,7 +27,7 @@ export default function ListView({ listings, userLocation }) {
   const { huntStops, addToHunt } = useHunt() || { huntStops: [], addToHunt: () => {} };
 
   const sortedListings = useMemo(() => {
-    if (!userLocation) return listings;
+    if (!userLocation) return listings.slice(0, 10);
 
     // Add distance to each listing
     const withDistance = listings.map(listing => ({
@@ -40,33 +40,42 @@ export default function ListView({ listings, userLocation }) {
       )
     }));
 
-    // Filter by 1 mile radius
-    const within1Mile = withDistance.filter(l => l.distance <= 1);
+    const expansionSteps = [1, 2, 3, 5, 10, Infinity];
+    let selectedListings = [];
 
-    // Separate paid and free
-    const paid = within1Mile.filter(l => l.tier !== "free");
-    const free = within1Mile.filter(l => l.tier === "free");
+    for (const radius of expansionSteps) {
+      const inRadius = withDistance.filter(l => l.distance <= radius);
 
-    // Sort paid: Premium > Featured > Neighborhood, then by distance
-    paid.sort((a, b) => {
-      const tierOrder = { premium: 1, featured: 2, neighborhood_tier: 3 };
-      if (tierOrder[a.tier] !== tierOrder[b.tier]) {
-        return tierOrder[a.tier] - tierOrder[b.tier];
+      if (inRadius.length > 0) {
+        const sorted = [...inRadius].sort((a, b) => {
+          const aPriorityZone = a.distance <= 3;
+          const bPriorityZone = b.distance <= 3;
+
+          // Paid priority only applies if BOTH listings are inside the 3-mile zone
+          if (aPriorityZone && bPriorityZone) {
+            const tierOrder = { premium: 1, featured: 2, neighborhood_tier: 3, free: 4 };
+            const tierA = tierOrder[a.tier] || 4;
+            const tierB = tierOrder[b.tier] || 4;
+            
+            if (tierA !== tierB) {
+              return tierA - tierB;
+            }
+          }
+          
+          // Outside 3 miles (or within the same tier inside 3 miles), sort by closest distance only
+          return a.distance - b.distance;
+        });
+
+        if (sorted.length >= 10 || radius === Infinity) {
+          selectedListings = sorted.slice(0, 10);
+          break;
+        } else {
+          selectedListings = sorted;
+        }
       }
-      return a.distance - b.distance;
-    });
+    }
 
-    // Sort free by distance
-    free.sort((a, b) => a.distance - b.distance);
-
-    // Take up to 7 paid
-    const topPaid = paid.slice(0, 7);
-    
-    // Fill remaining slots with free (up to 3, or more if gap-fill)
-    const remainingSlots = 10 - topPaid.length;
-    const topFree = free.slice(0, Math.max(3, remainingSlots));
-
-    return [...topPaid, ...topFree];
+    return selectedListings;
   }, [listings, userLocation]);
 
   const filteredListings = sortedListings.filter(listing =>
