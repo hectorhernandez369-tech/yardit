@@ -46,7 +46,8 @@ export default function ListView({ listings, userLocation }) {
     for (const radius of expansionSteps) {
       const inRadius = withDistance.filter(l => l.distance <= radius);
 
-      if (inRadius.length > 0) {
+      if (inRadius.length >= 10 || radius === Infinity) {
+        // Only stop and sort once we have at least 10 listings (or hit Infinity)
         const sorted = [...inRadius].sort((a, b) => {
           const aPriorityZone = a.distance <= 3;
           const bPriorityZone = b.distance <= 3;
@@ -66,12 +67,8 @@ export default function ListView({ listings, userLocation }) {
           return a.distance - b.distance;
         });
 
-        if (sorted.length >= 10 || radius === Infinity) {
-          selectedListings = sorted.slice(0, 10);
-          break;
-        } else {
-          selectedListings = sorted;
-        }
+        selectedListings = sorted.slice(0, 10);
+        break;
       }
     }
 
