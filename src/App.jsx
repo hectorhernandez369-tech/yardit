@@ -1,5 +1,4 @@
 import './App.css'
-import { useEffect } from 'react'
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -13,7 +12,7 @@ import PageNotFound from './lib/PageNotFound';
 import ComingSoon from './pages/ComingSoon';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import GuestLoginScreen from '@/components/guest/GuestLoginScreen';
+import GuestEntryModal from '@/components/guest/GuestEntryModal';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -25,12 +24,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isGuest, enterGuestMode } = useAuth();
-
-  useEffect(() => {
-    if (authError?.type === 'auth_required' && !isGuest) {
-      navigateToLogin();
-    }
-  }, [authError, navigateToLogin, isGuest]);
+  const showGuestEntry = authError?.type === 'auth_required' && !isGuest;
 
   const { data: appSettings = [], isLoading: isLoadingAppSettings } = useQuery({
     queryKey: ["appSettings"],
@@ -48,12 +42,8 @@ const AuthenticatedApp = () => {
   }
 
   // Handle authentication errors
-  if (authError && !isGuest) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      return <GuestLoginScreen onGuestEnter={enterGuestMode} />;
-    }
+  if (authError && !isGuest && authError.type === 'user_not_registered') {
+    return <UserNotRegisteredError />;
   }
 
   const isComingSoonMode = isComingSoonModeEnabled(appSettings);
@@ -69,45 +59,51 @@ const AuthenticatedApp = () => {
 
   if (isComingSoonMode) {
     return (
-      <Routes>
-        {AdminPage && (
-          <Route
-            path="/AdminLite"
-            element={
-              <LayoutWrapper currentPageName="AdminLite">
-                <AdminPage />
-              </LayoutWrapper>
-            }
-          />
-        )}
-        <Route path="/ComingSoon" element={<ComingSoon />} />
-        <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
-      </Routes>
+      <>
+        <Routes>
+          {AdminPage && (
+            <Route
+              path="/AdminLite"
+              element={
+                <LayoutWrapper currentPageName="AdminLite">
+                  <AdminPage />
+                </LayoutWrapper>
+              }
+            />
+          )}
+          <Route path="/ComingSoon" element={<ComingSoon />} />
+          <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
+        </Routes>
+        <GuestEntryModal open={showGuestEntry} onLogin={navigateToLogin} onGuestEnter={enterGuestMode} />
+      </>
     );
   }
 
   // Render the main app
   return (
-    <Routes>
-      <Route path="/" element={
-        <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
-        </LayoutWrapper>
-      } />
-      {Object.entries(Pages).map(([path, Page]) => (
-        <Route
-          key={path}
-          path={`/${path}`}
-          element={
-            <LayoutWrapper currentPageName={path}>
-              <Page />
-            </LayoutWrapper>
-          }
-        />
-      ))}
-      <Route path="/ComingSoon" element={<ComingSoon />} />
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={
+          <LayoutWrapper currentPageName={mainPageKey}>
+            <MainPage />
+          </LayoutWrapper>
+        } />
+        {Object.entries(Pages).map(([path, Page]) => (
+          <Route
+            key={path}
+            path={`/${path}`}
+            element={
+              <LayoutWrapper currentPageName={path}>
+                <Page />
+              </LayoutWrapper>
+            }
+          />
+        ))}
+        <Route path="/ComingSoon" element={<ComingSoon />} />
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+      <GuestEntryModal open={showGuestEntry} onLogin={navigateToLogin} onGuestEnter={enterGuestMode} />
+    </>
   );
 };
 

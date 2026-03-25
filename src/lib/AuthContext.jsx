@@ -170,10 +170,13 @@ export const AuthProvider = ({ children }) => {
         userId: currentUser?.id,
         email: currentUser?.email,
       });
+      clearGuestMode();
+      setIsGuest(false);
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       restoreAuthReturnTo();
+      setAuthError(null);
     } catch (error) {
       console.error('User auth check failed:', error);
       console.log('AUTH_DEBUG base44.auth.me:error', {
@@ -224,17 +227,10 @@ export const AuthProvider = ({ children }) => {
       isGuest
     });
 
-    if (isGuest) {
-        console.log('AUTH_DEBUG navigateToLogin:skipped (guest mode active)');
-        return;
-    }
-
-    // Only save return URL if we are actually redirecting
-    // saveAuthReturnTo(window.location.href);
-    // base44.auth.redirectToLogin(window.location.href);
-    
-    // Instead of redirecting immediately, we rely on the App.jsx to show the GuestLoginScreen
-    // if auth is required and user is not a guest.
+    clearGuestMode();
+    setIsGuest(false);
+    saveAuthReturnTo(window.location.href);
+    base44.auth.redirectToLogin(window.location.href);
   };
 
   return (

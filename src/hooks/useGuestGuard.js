@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { isGuestMode } from "@/lib/guestMode";
+import { useAuth } from "@/lib/AuthContext";
 
 /**
  * Reusable hook for guest-restricted actions.
@@ -12,9 +12,10 @@ import { isGuestMode } from "@/lib/guestMode";
  */
 export function useGuestGuard() {
   const [showModal, setShowModal] = useState(false);
+  const { isAuthenticated, isGuest } = useAuth();
 
   const guardAction = (fn) => {
-    if (isGuestMode()) {
+    if (isGuest || !isAuthenticated) {
       setShowModal(true);
       return;
     }
@@ -25,6 +26,6 @@ export function useGuestGuard() {
     showModal,
     setShowModal,
     guardAction,
-    isGuest: isGuestMode(),
+    isGuest,
   };
 }
