@@ -245,7 +245,8 @@ export const AuthProvider = ({ children }) => {
       navigateToLogin,
       checkAppState,
       isGuest,
-      enterGuestMode
+      enterGuestMode,
+      isAuthenticated
     }}>
       {children}
     </AuthContext.Provider>

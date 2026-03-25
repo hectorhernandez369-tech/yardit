@@ -23,8 +23,8 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isGuest, enterGuestMode } = useAuth();
-  const showGuestEntry = authError?.type === 'auth_required' && !isGuest;
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isGuest, enterGuestMode, isAuthenticated } = useAuth();
+  const showGuestEntry = !isLoadingAuth && !isLoadingPublicSettings && !isAuthenticated && !isGuest && (!authError || authError.type === 'auth_required');
 
   const { data: appSettings = [], isLoading: isLoadingAppSettings } = useQuery({
     queryKey: ["appSettings"],
