@@ -40,39 +40,45 @@ export default function ListView({ listings, userLocation }) {
       )
     }));
 
-    const expansionSteps = [1, 2, 3, 5, 10, Infinity];
-    let selectedListings = [];
+    // 1. Collect ALL listings within 3 miles first
+    const within3Miles = withDistance.filter(l => l.distance <= 3);
+    
+    // 2. Sort the 3-mile pool: Paid priority, then closest distance
+    within3Miles.sort((a, b) => {
+      const tierOrder = { premium: 1, featured: 2, neighborhood_tier: 3, free: 4 };
+      const tierA = tierOrder[a.tier] || 4;
+      const tierB = tierOrder[b.tier] || 4;
+      
+      if (tierA !== tierB) {
+        return tierA - tierB;
+      }
+      return a.distance - b.distance;
+    });
 
-    for (const radius of expansionSteps) {
-      const inRadius = withDistance.filter(l => l.distance <= radius);
+    let selectedListings = [...within3Miles];
 
-      if (inRadius.length >= 10 || radius === Infinity) {
-        // Only stop and sort once we have at least 10 listings (or hit Infinity)
-        const sorted = [...inRadius].sort((a, b) => {
-          const aPriorityZone = a.distance <= 3;
-          const bPriorityZone = b.distance <= 3;
+    // 3. If fewer than 10 listings exist after processing the 3-mile pool, expand outward
+    if (selectedListings.length < 10) {
+      const expansionSteps = [5, 10, Infinity];
+      let previousRadius = 3;
 
-          // Paid priority only applies if BOTH listings are inside the 3-mile zone
-          if (aPriorityZone && bPriorityZone) {
-            const tierOrder = { premium: 1, featured: 2, neighborhood_tier: 3, free: 4 };
-            const tierA = tierOrder[a.tier] || 4;
-            const tierB = tierOrder[b.tier] || 4;
-            
-            if (tierA !== tierB) {
-              return tierA - tierB;
-            }
-          }
-          
-          // Outside 3 miles (or within the same tier inside 3 miles), sort by closest distance only
-          return a.distance - b.distance;
-        });
+      for (const radius of expansionSteps) {
+        const inBand = withDistance.filter(l => l.distance > previousRadius && l.distance <= radius);
+        
+        // 4. Sort beyond 3 miles strictly by closest distance (no paid priority)
+        inBand.sort((a, b) => a.distance - b.distance);
+        
+        selectedListings = [...selectedListings, ...inBand];
+        previousRadius = radius;
 
-        selectedListings = sorted.slice(0, 10);
-        break;
+        if (selectedListings.length >= 10) {
+          break;
+        }
       }
     }
 
-    return selectedListings;
+    // 5. Combine results and return top 10
+    return selectedListings.slice(0, 10);
   }, [listings, userLocation]);
 
   const filteredListings = sortedListings.filter(listing =>
