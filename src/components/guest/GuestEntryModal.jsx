@@ -3,14 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export default function GuestEntryModal({ open, onLogin, onGuestEnter }) {
-  const [dismissed, setDismissed] = useState(false);
   const [tosChecked, setTosChecked] = useState(false);
   const [showTosError, setShowTosError] = useState(false);
   const [showTosModal, setShowTosModal] = useState(false);
 
   useEffect(() => {
     if (!open) {
-      setDismissed(false);
       setTosChecked(false);
       setShowTosError(false);
     }
@@ -22,13 +20,12 @@ export default function GuestEntryModal({ open, onLogin, onGuestEnter }) {
       return;
     }
     onGuestEnter?.();
-    setDismissed(true);
   };
 
   return (
     <>
-      <Dialog open={open && !dismissed} onOpenChange={(nextOpen) => !nextOpen && setDismissed(true)}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={open} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md [&>button]:hidden">
           <DialogHeader>
             <DialogTitle>Welcome to Yardit</DialogTitle>
             <DialogDescription>
