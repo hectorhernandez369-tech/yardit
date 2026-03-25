@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import { isGuestMode, setGuestMode, clearGuestMode } from './guestMode';
 
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
@@ -58,6 +59,7 @@ const restoreAuthReturnTo = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isGuest, setIsGuest] = useState(isGuestMode());
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
@@ -194,8 +196,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = (shouldRedirect = true) => {
     clearAuthReturnTo();
+    clearGuestMode();
     setUser(null);
     setIsAuthenticated(false);
+    setIsGuest(false);
     
     if (shouldRedirect) {
       // Use the SDK's logout method which handles token cleanup and redirect
@@ -206,14 +210,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const enterGuestMode = () => {
+    setGuestMode();
+    setIsGuest(true);
+    setAuthError(null);
+  };
+
   const navigateToLogin = () => {
     console.log('AUTH_DEBUG navigateToLogin', {
       hasToken: !!appParams.token,
       currentUrl: window.location.href,
       authError,
+      isGuest
     });
-    saveAuthReturnTo(window.location.href);
-    base44.auth.redirectToLogin(window.location.href);
+
+    if (isGuest) {
+        console.log('AUTH_DEBUG navigateToLogin:skipped (guest mode active)');
+        return;
+    }
+
+    // Only save return URL if we are actually redirecting
+    // saveAuthReturnTo(window.location.href);
+    // base44.auth.redirectToLogin(window.location.href);
+    
+    // Instead of redirecting immediately, we rely on the App.jsx to show the GuestLoginScreen
+    // if auth is required and user is not a guest.
   };
 
   return (
@@ -226,7 +247,9 @@ export const AuthProvider = ({ children }) => {
       appPublicSettings,
       logout,
       navigateToLogin,
-      checkAppState
+      checkAppState,
+      isGuest,
+      enterGuestMode
     }}>
       {children}
     </AuthContext.Provider>

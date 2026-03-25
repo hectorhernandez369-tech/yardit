@@ -13,6 +13,7 @@ import PageNotFound from './lib/PageNotFound';
 import ComingSoon from './pages/ComingSoon';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import GuestLoginScreen from '@/components/guest/GuestLoginScreen';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -23,13 +24,13 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isGuest, enterGuestMode } = useAuth();
 
   useEffect(() => {
-    if (authError?.type === 'auth_required') {
+    if (authError?.type === 'auth_required' && !isGuest) {
       navigateToLogin();
     }
-  }, [authError, navigateToLogin]);
+  }, [authError, navigateToLogin, isGuest]);
 
   const { data: appSettings = [], isLoading: isLoadingAppSettings } = useQuery({
     queryKey: ["appSettings"],
@@ -47,11 +48,11 @@ const AuthenticatedApp = () => {
   }
 
   // Handle authentication errors
-  if (authError) {
+  if (authError && !isGuest) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      return null;
+      return <GuestLoginScreen onGuestEnter={enterGuestMode} />;
     }
   }
 

@@ -39,6 +39,8 @@ import MapTierDebugBox from "../components/map/MapTierDebugBox";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import HuntMapLayers from "@/components/hunt/HuntMapLayers";
 import { calculateTotalDistance } from "@/components/hunt/huntUtils";
+import { useGuestGuard } from "@/hooks/useGuestGuard";
+import GuestAuthModal from "@/components/guest/GuestAuthModal";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -354,6 +356,8 @@ export default function HomePage() {
     huntMode: false 
   };
   const { huntStops, addToHunt, updateStopStatus, gpsLocation, huntMode: isHuntActive } = huntContext;
+
+  const { guardAction, showModal, setShowModal } = useGuestGuard();
 
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
@@ -1087,7 +1091,7 @@ const stats = useMemo(() => {
                             variant="outline"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setReportListingId(listing.id);
+                              guardAction(() => setReportListingId(listing.id));
                             }}
                             className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50"
                           >
@@ -1104,7 +1108,7 @@ const stats = useMemo(() => {
                                     variant="outline"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      addToHunt(listing);
+                                      guardAction(() => addToHunt(listing));
                                     }}
                                     className="gap-1 h-6 text-[11px] px-1.5 py-0"
                                   >
@@ -1339,6 +1343,8 @@ const stats = useMemo(() => {
           onClose={() => setReportListingId(null)}
         />
       )}
+
+      <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} />
 
       {/* Filter Modal */}
       <Dialog open={showFilterModal} onOpenChange={setShowFilterModal}>

@@ -8,6 +8,8 @@ import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
+import { useGuestGuard } from "@/hooks/useGuestGuard";
+import GuestAuthModal from "@/components/guest/GuestAuthModal";
 
 // Calculate distance in feet
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -25,6 +27,7 @@ export default function ListView({ listings, userLocation }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = React.useState("");
   const { huntStops, addToHunt } = useHunt() || { huntStops: [], addToHunt: () => {} };
+  const { guardAction, showModal, setShowModal } = useGuestGuard();
 
   const sortedListings = useMemo(() => {
     if (!userLocation) return listings.slice(0, 10);
@@ -162,7 +165,7 @@ export default function ListView({ listings, userLocation }) {
                     <Button
                       variant="outline"
                       className="flex-1 border-amber-600 text-amber-700 hover:bg-amber-50"
-                      onClick={() => addToHunt(listing)}
+                      onClick={() => guardAction(() => addToHunt(listing))}
                       disabled={huntStops.some(s => s.id === listing.id)}
                     >
                       {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add Stop to Hunt"}
@@ -174,6 +177,8 @@ export default function ListView({ listings, userLocation }) {
           ))}
         </div>
       )}
+      
+      <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} />
     </div>
   );
 }

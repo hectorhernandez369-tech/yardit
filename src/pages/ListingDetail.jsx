@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import ReportModal from "../components/ReportModal";
 import PromotionModal from "../components/admin/promotions/PromotionModal";
 import { useAppMode } from "../components/shared/DemoMode";
+import { useGuestGuard } from "@/hooks/useGuestGuard";
+import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import {
   calculateNeighborhoodSalePrice,
   getNeighborhoodPricingSummary,
@@ -31,6 +33,8 @@ export default function ListingDetailPage() {
   const [showReport, setShowReport] = useState(false);
   const [reportContext, setReportContext] = useState(null);
   const [showPromoModal, setShowPromoModal] = useState(false);
+  
+  const { guardAction, showModal, setShowModal, isGuest } = useGuestGuard();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -316,11 +320,11 @@ export default function ListingDetailPage() {
               <Badge className={tierColors[listing.tier]}>
                 {listing.tier === "neighborhood_tier" ? "Neighborhood Sale" : listing.tier.toUpperCase()}
               </Badge>
-              {user && user.id !== listing.ownerUserId && (
+              {(user || isGuest) && user?.id !== listing.ownerUserId && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowReport(true)}
+                  onClick={() => guardAction(() => setShowReport(true))}
                   className="gap-2"
                 >
                   <AlertTriangle className="w-4 h-4" />
@@ -701,6 +705,8 @@ export default function ListingDetailPage() {
           listing={listing}
         />
       )}
+
+      <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} />
     </div>
   );
 }

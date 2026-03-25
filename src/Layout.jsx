@@ -20,6 +20,9 @@ import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { useAppMode } from "./components/shared/DemoMode";
 import { syncAdminInvite } from "./components/admin/adminInviteSync";
+import { useAuth } from "@/lib/AuthContext";
+import { useGuestGuard } from "@/hooks/useGuestGuard";
+import GuestAuthModal from "./components/guest/GuestAuthModal";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -33,6 +36,7 @@ function LayoutContent({ children, user, setUser }) {
   const [hasAdminProfile, setHasAdminProfile] = useState(false);
   const [adminActivatedBanner, setAdminActivatedBanner] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const { isGuest, enterGuestMode } = useAuth() || {};
 
   useEffect(() => {
     const hasSeenGuide = localStorage.getItem("yardit_has_seen_startup_guide");
@@ -50,6 +54,8 @@ function LayoutContent({ children, user, setUser }) {
     setShowWelcomePopup(false);
     navigate(createPageUrl("StartupGuide"));
   };
+
+  const { guardAction, showModal, setShowModal, isGuest: guestHookIsGuest } = useGuestGuard();
 
   useEffect(() => {
       if (user?.isAdmin) {
@@ -98,19 +104,18 @@ function LayoutContent({ children, user, setUser }) {
                 </Button>
               </Link>
               
-              {user && (
+              {(user || isGuest) && (
                 <>
-                  <NotificationBell />
+                  {!isGuest && <NotificationBell />}
                   
-                  <Link to={createPageUrl("CreateListing")}>
-                    <Button
-                      size="sm"
-                      className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span className="hidden sm:inline">Post Sale</span>
-                    </Button>
-                  </Link>
+                  <Button
+                    size="sm"
+                    onClick={() => guardAction(() => navigate(createPageUrl("CreateListing")))}
+                    className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Post Sale</span>
+                  </Button>
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -119,15 +124,20 @@ function LayoutContent({ children, user, setUser }) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 bg-[#E7D7B8] border-2 border-[#2C4F4E] z-[99999] relative">
-                      <DropdownMenuItem onClick={() => navigate(createPageUrl("MyListings"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
-                        <User className="w-4 h-4 mr-2" />
-                        My Listings
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate(createPageUrl("Settings"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
-                        <Settings className="w-4 h-4 mr-2" />
-                        Settings
-                      </DropdownMenuItem>
-                      {hasAdminProfile && (
+                      {!isGuest && (
+                        <>
+                          <DropdownMenuItem onClick={() => navigate(createPageUrl("MyListings"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
+                            <User className="w-4 h-4 mr-2" />
+                            My Listings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(createPageUrl("Settings"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
+                            <Settings className="w-4 h-4 mr-2" />
+                            Settings
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      
+                      {hasAdminProfile && !isGuest && (
                         <DropdownMenuItem
                           onClick={() => {
                             const session = getAdminSession();
@@ -147,9 +157,18 @@ function LayoutContent({ children, user, setUser }) {
                         <HelpCircle className="w-4 h-4 mr-2" />
                         FAQ
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => base44.auth.logout()} className="cursor-pointer text-red-600 focus:bg-red-100 font-medium">
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Logout
+                      <DropdownMenuItem onClick={() => isGuest ? base44.auth.redirectToLogin(window.location.href) : base44.auth.logout()} className="cursor-pointer text-[#2C4F4E] focus:bg-white font-medium">
+                        {isGuest ? (
+                           <>
+                             <User className="w-4 h-4 mr-2" />
+                             Log In / Sign Up
+                           </>
+                        ) : (
+                           <>
+                             <LogOut className="w-4 h-4 mr-2 text-red-600" />
+                             <span className="text-red-600">Logout</span>
+                           </>
+                        )}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -177,6 +196,8 @@ function LayoutContent({ children, user, setUser }) {
       <main className="flex-1 w-full min-w-0 flex flex-col">
         {children}
       </main>
+      
+      <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} />
 
       <AdminLoginModal
         open={showAdminLogin}
