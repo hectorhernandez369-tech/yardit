@@ -41,6 +41,8 @@ import HuntMapLayers from "@/components/hunt/HuntMapLayers";
 import { calculateTotalDistance } from "@/components/hunt/huntUtils";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
+import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
+import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -115,6 +117,10 @@ function getChestIcon(size, count = 0, isSelected = false) {
 const createIcon = (type, tier, isSelected, location) => {
   const preAct = isPreActivated(location);
   const opacity = preAct ? 0.6 : 1.0;
+
+  if (type === "event") {
+    return getEventMarkerIcon(location, isSelected);
+  }
 
   if (type === "neighborhood_sale") {
     let scale = 1.0;
@@ -708,7 +714,7 @@ export default function HomePage() {
         const start = new Date(listing.startDateTime);
         const end = new Date(listing.endDateTime);
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-        if (!demo && (start > now || end < now)) return false;
+        if (!demo && listing.listingType !== "event" && (start > now || end < now)) return false;
       }
 
       const matchesFilter = filter === "all" || listing.listingType === filter;
@@ -719,9 +725,11 @@ export default function HomePage() {
     });
 
     const strictMatches = baseListings.filter(l => listingMatchesQuery(l, searchQuery, false));
-    if (strictMatches.length > 0 || !searchQuery) return strictMatches;
+    if (strictMatches.length > 0 || !searchQuery) {
+      return strictMatches.sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
+    }
 
-    return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true));
+    return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
   }, [listings, filter, searchQuery, selectedCategories, demoOn]);
 
   const listViewListings = useMemo(() => {
@@ -747,7 +755,7 @@ export default function HomePage() {
       const start = new Date(l.startDateTime);
       const end = new Date(l.endDateTime);
       if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-      if (!demo && (start > now || end < now)) return false;
+      if (!demo && l.listingType !== "event" && (start > now || end < now)) return false;
 
       return true;
     }).filter(l => {
@@ -757,9 +765,11 @@ export default function HomePage() {
     });
 
     const strictMatches = baseListings.filter(l => listingMatchesQuery(l, searchQuery, false));
-    if (strictMatches.length > 0 || !searchQuery) return strictMatches;
+    if (strictMatches.length > 0 || !searchQuery) {
+      return strictMatches.sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
+    }
 
-    return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true));
+    return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
   }, [listings, searchQuery, selectedCategories, demoOn]);
 
 const stats = useMemo(() => {
@@ -767,11 +777,12 @@ const stats = useMemo(() => {
     total: eligibleListings.length,
     yard_sale: eligibleListings.filter((l) => l.listingType === "yard_sale").length,
     neighborhood_sale: eligibleListings.filter((l) => l.listingType === "neighborhood_sale").length,
+    event: eligibleListings.filter((l) => l.listingType === "event").length,
   };
 }, [eligibleListings]);
 
   useEffect(() => {
-    if (filter !== "all" && filter !== "yard_sale" && filter !== "neighborhood_sale") {
+    if (filter !== "all" && filter !== "yard_sale" && filter !== "neighborhood_sale" && filter !== "event") {
       setFilter("all");
     }
   }, [filter]);
@@ -822,7 +833,7 @@ const stats = useMemo(() => {
         return;
       }
 
-      const shouldRevealPin = isShowingAllListings || shouldShowAsPin(currentZoom, listing.tier);
+      const shouldRevealPin = isShowingAllListings || shouldShowAsPin(currentZoom, listing);
       if (shouldRevealPin) {
         pins.push(listing);
       } else {
@@ -1048,20 +1059,20 @@ const stats = useMemo(() => {
                       <div className="flex flex-col" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
                         <div className="p-1 overflow-y-auto flex-1 min-h-0">
                           <div className="flex items-center gap-1 flex-wrap mb-1">
-                            <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : "bg-orange-500"}`}>
-                              {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : "🏡 Yard Sale"}
+                            <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
+                              {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : listing.listingType === "event" ? "🎉 Event" : "🏡 Yard Sale"}
                             </Badge>
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{listing.tier}</Badge>
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier}</Badge>
                             {isHuntStop && (
                               <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
                             )}
                           </div>
 
-                          <h3 className="font-bold text-sm leading-none mb-1">{listing.title}</h3>
-                          <p className="text-[11px] leading-tight text-gray-600 mb-1">{listing.addressText}</p>
+                          <h3 className="font-bold text-sm leading-none mb-1">{listing.event_name || listing.title}</h3>
+                          <p className="text-[11px] leading-tight text-gray-600 mb-1">{listing.address_text || listing.addressText}</p>
 
-                          {listing.description && (
-                            <p className="text-[11px] leading-tight text-gray-500 mb-1.5 line-clamp-3">{listing.description}</p>
+                          {(listing.event_description || listing.description) && (
+                            <p className="text-[11px] leading-tight text-gray-500 mb-1.5 line-clamp-3">{listing.event_description || listing.description}</p>
                           )}
 
                           <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-0.5">
@@ -1098,7 +1109,7 @@ const stats = useMemo(() => {
                             Report
                           </Button>
                           <div className="ml-auto flex gap-1">
-                            {HUNT_ENABLED && (() => {
+                            {listing.listingType !== "event" && HUNT_ENABLED && (() => {
                               const huntStop = huntStops.find(s => s.id === listing.id);
                               
                               if (!huntStop) {
@@ -1363,7 +1374,7 @@ const stats = useMemo(() => {
             <div className="space-y-2">
               <label className="text-sm font-medium">Listing Type</label>
               <Tabs value={filter} onValueChange={setFilter}>
-                <TabsList className="grid grid-cols-3">
+                <TabsList className="grid grid-cols-4">
                   <TabsTrigger value="all" className="gap-1 text-xs px-2">
                     <MapPin className="w-3 h-3 hidden sm:inline" />
                     All ({stats.total})
@@ -1375,6 +1386,10 @@ const stats = useMemo(() => {
                   <TabsTrigger value="neighborhood_sale" className="gap-1 text-xs px-2">
                     <Users className="w-3 h-3 hidden sm:inline" />
                     Hood ({stats.neighborhood_sale})
+                  </TabsTrigger>
+                  <TabsTrigger value="event" className="gap-1 text-xs px-2">
+                    <Calendar className="w-3 h-3 hidden sm:inline" />
+                    Events ({stats.event})
                   </TabsTrigger>
                 </TabsList>
               </Tabs>

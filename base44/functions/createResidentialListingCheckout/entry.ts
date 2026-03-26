@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import Stripe from 'npm:stripe@18.5.0';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
@@ -7,13 +7,7 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 
 Deno.serve(async (req) => {
   try {
-    const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    createClientFromRequest(req);
     const payload = await req.json().catch(() => ({}));
 
     if (payload.action === 'verify') {
@@ -44,14 +38,18 @@ Deno.serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
-      customer_email: user.email,
+      customer_email: payload.customer_email || undefined,
       line_items: [
         {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: payload.tier === 'premium' ? 'Yardit Premium Listing' : 'Yardit Featured Listing',
-              description: 'Residential paid listing checkout',
+              name: payload.listing_kind === 'event'
+                ? `Yardit ${String(payload.tier || 'basic').replace(/^./, (char) => char.toUpperCase())} Event`
+                : payload.tier === 'premium'
+                ? 'Yardit Premium Listing'
+                : 'Yardit Featured Listing',
+              description: payload.listing_kind === 'event' ? 'Event listing checkout' : 'Residential paid listing checkout',
             },
             unit_amount: Number(payload.amount_cents),
           },
@@ -62,9 +60,9 @@ Deno.serve(async (req) => {
       cancel_url: cancelUrl,
       metadata: {
         base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
-        purpose: 'residential_paid_listing',
+        purpose: payload.listing_kind === 'event' ? 'event_paid_listing' : 'residential_paid_listing',
         tier: String(payload.tier),
-        user_id: user.id,
+        listing_kind: String(payload.listing_kind || 'residential'),
       },
     });
 

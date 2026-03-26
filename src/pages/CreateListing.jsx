@@ -15,6 +15,11 @@ import StepThree from "../components/create/StepThree";
 import ResidentialPaymentStep from "../components/payment/ResidentialPaymentStep";
 import NeighborhoodSetupStep from "../components/payment/NeighborhoodSetupStep";
 import FormScrollHelper from "../components/create/FormScrollHelper";
+import EventDetailsStep from "../components/create/event/EventDetailsStep";
+import EventLocationStep from "../components/create/event/EventLocationStep";
+import EventScheduleStep from "../components/create/event/EventScheduleStep";
+import EventTierStep from "../components/create/event/EventTierStep";
+import EventIconStep from "../components/create/event/EventIconStep";
 import { useAppMode } from "../components/shared/DemoMode";
 import {
   deriveNeighborhoodEventState,
@@ -29,6 +34,7 @@ import {
   computePremiumDates,
   enforcePhotoLimit
 } from "../components/shared/listingTierEngine";
+import { EVENT_TIER_PRICES } from "@/lib/eventListingConfig";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 const PAID_LISTING_CHECKOUT_KEY = "yardit_paid_listing_checkout_v1";
@@ -251,6 +257,15 @@ export default function CreateListingPage() {
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
     tier: "free",
+    event_tier: "basic",
+    event_name: "",
+    event_description: "",
+    event_category: "",
+    event_icon: "calendar",
+    event_photos: [],
+    address_text: "",
+    start_datetime: "",
+    end_datetime: "",
 
     title: "",
     description: "",
@@ -435,6 +450,10 @@ export default function CreateListingPage() {
 
   // Sale in area check is done on submit
 
+  const isEventFlow = formData.listingType === "event";
+  const paymentStepNumber = isEventFlow ? 6 : 4;
+  const entryStepNumber = isEventFlow ? 5 : 3;
+
   const hasActiveResidentialListing = () => {
     if (isGlobalDemoMode) return false;
     if (isDevBypassUser(user)) return false; 
@@ -456,7 +475,9 @@ export default function CreateListingPage() {
       return;
     }
 
-    const amountCents = RESIDENTIAL_TIER_PRICES[formData.tier];
+    const amountCents = formData.listingType === "event"
+      ? EVENT_TIER_PRICES[formData.event_tier || formData.tier]
+      : RESIDENTIAL_TIER_PRICES[formData.tier];
     if (!amountCents) {
       toast.error("Unsupported paid tier.");
       return;
@@ -470,7 +491,9 @@ export default function CreateListingPage() {
       const returnUrl = `${window.location.origin}${createPageUrl("CreateListing")}`;
       const response = await base44.functions.invoke("createResidentialListingCheckout", {
         amount_cents: amountCents,
-        tier: formData.tier,
+        tier: formData.listingType === "event" ? (formData.event_tier || formData.tier) : formData.tier,
+        listing_kind: formData.listingType === "event" ? "event" : "residential",
+        customer_email: user?.email,
         return_url: returnUrl,
       });
 
@@ -557,7 +580,7 @@ export default function CreateListingPage() {
   const createListingMutation = useMutation({
     mutationFn: async (data) => {
       // ✅ Enforce 1 active listing per account (residential Phase 1)
-      if (data.listingType !== "neighborhood_sale" && hasActiveResidentialListing()) {
+      if (data.listingType === "yard_sale" && hasActiveResidentialListing()) {
         throw new Error("You already have an active listing. End it before creating another.");
       }
 
@@ -721,6 +744,15 @@ export default function CreateListingPage() {
 
   const handleNext = async () => {
     if (step === 1) {
+      if (formData.listingType === "event") {
+        if (!formData.event_name || !formData.event_category) {
+          toast.error("Please fill in all required event fields");
+          return;
+        }
+        setStep(2);
+        return;
+      }
+
       if (!formData.title) {
         toast.error("Please fill in all required fields");
         return;
@@ -740,6 +772,15 @@ export default function CreateListingPage() {
     }
 
     if (step === 2) {
+      if (formData.listingType === "event") {
+        if (typeof formData.lat !== "number" || typeof formData.lng !== "number" || !(formData.address_text || formData.addressText)) {
+          toast.error("Please choose the event location on the map");
+          return;
+        }
+        setStep(3);
+        return;
+      }
+
       if (formData.listingType === "neighborhood_sale") {
         if (!formData.event_center_lat || !formData.event_center_lng) {
           toast.error("Please provide a location for the event center");
@@ -867,12 +908,54 @@ export default function CreateListingPage() {
       setStep(3);
       return;
     }
+
+    if (step === 3 && formData.listingType === "event") {
+      if (!formData.start_datetime || !formData.end_datetime) {
+        toast.error("Please set the event start and end date/time");
+        return;
+      }
+      if (new Date(formData.end_datetime) <= new Date(formData.start_datetime)) {
+        toast.error("End date and time must be after the start date and time");
+        return;
+      }
+      setStep(4);
+      return;
+    }
+
+    if (step === 4 && formData.listingType === "event") {
+      if (!formData.event_tier) {
+        toast.error("Please choose an event tier");
+        return;
+      }
+      setStep(5);
+      return;
+    }
   };
 
   const executeSubmit = (actionStr = joinAction, sourceFormData = formData) => {
     let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId || FALLBACK_TZ };
 
-    if (payload.listingType !== "neighborhood_sale" && !isGlobalDemoMode) {
+    if (payload.listingType === "event") {
+      payload = {
+        ...payload,
+        title: payload.event_name,
+        description: payload.event_description || "",
+        category: payload.event_category,
+        tier: payload.event_tier || payload.tier || "basic",
+        event_tier: payload.event_tier || payload.tier || "basic",
+        photoUrls: payload.event_photos || payload.photoUrls || [],
+        addressText: payload.address_text || payload.addressText,
+        address_text: payload.address_text || payload.addressText,
+        startDateTime: payload.start_datetime ? new Date(payload.start_datetime).toISOString() : payload.startDateTime,
+        endDateTime: payload.end_datetime ? new Date(payload.end_datetime).toISOString() : payload.endDateTime,
+        start_datetime: payload.start_datetime ? new Date(payload.start_datetime).toISOString() : payload.startDateTime,
+        end_datetime: payload.end_datetime ? new Date(payload.end_datetime).toISOString() : payload.endDateTime,
+        status: "active",
+        pricePaid: Number(EVENT_TIER_PRICES[payload.event_tier || payload.tier] || 0) / 100,
+      };
+    }
+
+    if (payload.listingType === "yard_sale" && !isGlobalDemoMode) {
       payload = {
         ...payload,
         addressText: user?.street_address || payload.addressText,
@@ -948,7 +1031,7 @@ export default function CreateListingPage() {
       };
     }
 
-    if (sourceFormData.tier === "featured") {
+    if (sourceFormData.tier === "featured" && payload.listingType !== "event") {
       const startLocal = new Date(`${sourceFormData.selectedRangeStartDate}T00:00:00`);
       let activeDates = [];
       const pad = (n) => String(n).padStart(2, "0");
@@ -968,7 +1051,7 @@ export default function CreateListingPage() {
       };
     }
 
-    if (sourceFormData.tier === "premium") {
+    if (sourceFormData.tier === "premium" && payload.listingType !== "event") {
       const earlyDays = Math.max(0, Math.min(3, Number(sourceFormData.earlyVisibilityDays || 0)));
       const startLocal = new Date(`${sourceFormData.selectedRangeStartDate}T00:00:00`);
       const endLocal = new Date(`${sourceFormData.selectedRangeEndDate}T00:00:00`);
@@ -1024,7 +1107,12 @@ export default function CreateListingPage() {
       payload.neighborhood_join_status = payload.neighborhood_join_status || "none";
     }
 
-    if (actionStr === "paid_success" && ["featured", "premium"].includes(payload.tier)) {
+    if (actionStr === "paid_success" && payload.listingType === "event") {
+      payload.status = "active";
+      payload.pricePaid = Number(EVENT_TIER_PRICES[payload.event_tier || payload.tier] || 0) / 100;
+    }
+
+    if (actionStr === "paid_success" && ["featured", "premium"].includes(payload.tier) && payload.listingType !== "event") {
       payload.status = "scheduled";
       payload.pricePaid = (RESIDENTIAL_TIER_PRICES[payload.tier] || 0) / 100;
     }
@@ -1088,8 +1176,18 @@ export default function CreateListingPage() {
   };
 
   const handleSubmit = async () => {
-    if (formData.listingType !== "neighborhood_sale" && hasActiveResidentialListing()) {
+    if (formData.listingType === "yard_sale" && hasActiveResidentialListing()) {
       toast.error("You already have an active listing. End it before creating another.");
+      return;
+    }
+
+    if (formData.listingType === "event") {
+      if (!formData.event_icon) {
+        toast.error("Please select an event icon");
+        return;
+      }
+      setPaymentError("");
+      setStep(6);
       return;
     }
 
@@ -1231,7 +1329,7 @@ export default function CreateListingPage() {
       const stored = JSON.parse(raw);
       if (stored?.formData) {
         setFormData(stored.formData);
-        setStep(4);
+        setStep(stored.formData?.listingType === "event" ? 6 : 4);
       }
 
       window.history.replaceState({}, "", createPageUrl("CreateListing"));
@@ -1283,8 +1381,8 @@ export default function CreateListingPage() {
       <div className="max-w-4xl mx-auto">
         {/* Progress */}
         <div className="mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            {[1, 2, 3, 4].map((s) => (
+          <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
+            {(isEventFlow ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4]).map((s) => (
               <React.Fragment key={s}>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
@@ -1297,7 +1395,7 @@ export default function CreateListingPage() {
                 >
                   {s < step ? "✓" : s}
                 </div>
-                {s < 4 && (
+                {s < (isEventFlow ? 6 : 4) && (
                   <div
                     key={`line-${s}`}
                     className={`w-12 h-1 ${s < step ? "bg-green-600" : "bg-slate-200"}`}
@@ -1306,17 +1404,19 @@ export default function CreateListingPage() {
               </React.Fragment>
             ))}
           </div>
-          <div className="flex justify-center gap-8 text-xs text-slate-600">
-            <span className={step === 1 ? "font-semibold" : ""}>Details</span>
-            <span className={step === 2 ? "font-semibold" : ""}>Location & Time</span>
-            <span className={step === 3 ? "font-semibold" : ""}>Tier & Review</span>
-            <span className={step === 4 ? "font-semibold" : ""}>Payment</span>
+          <div className="flex justify-center gap-4 md:gap-8 text-xs text-slate-600 flex-wrap">
+            {(isEventFlow
+              ? ["Details", "Location", "Date & Time", "Tier", "Icon", "Payment"]
+              : ["Details", "Location & Time", "Tier & Review", "Payment"]
+            ).map((label, index) => (
+              <span key={label} className={step === index + 1 ? "font-semibold" : ""}>{label}</span>
+            ))}
           </div>
         </div>
 
         <Card>
           <CardHeader className="bg-gradient-to-r from-amber-600 to-amber-800 text-white">
-            <CardTitle>Post Your Yard Sale</CardTitle>
+            <CardTitle>{formData.listingType === "event" ? "Create Event" : "Post Your Yard Sale"}</CardTitle>
           </CardHeader>
           <CardContent className="p-6" ref={formContainerRef}>
             <FormScrollHelper containerRef={formContainerRef} />
@@ -1327,12 +1427,16 @@ export default function CreateListingPage() {
               </div>
             )}
 
-            {step === 1 && <StepOne formData={formData} setFormData={setFormData} />}
+            {step === 1 && (formData.listingType === "event" ? <EventDetailsStep formData={formData} setFormData={setFormData} /> : <StepOne formData={formData} setFormData={setFormData} />)}
             {step === 2 && (
-              <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} />
+              formData.listingType === "event"
+                ? <EventLocationStep formData={formData} setFormData={setFormData} />
+                : <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} />
             )}
-            {step === 3 && <StepThree formData={formData} setFormData={setFormData} />}
-            {step === 4 && formData.listingType !== "neighborhood_sale" && (
+            {step === 3 && (formData.listingType === "event" ? <EventScheduleStep formData={formData} setFormData={setFormData} /> : <StepThree formData={formData} setFormData={setFormData} />)}
+            {step === 4 && formData.listingType === "event" && <EventTierStep formData={formData} setFormData={setFormData} />}
+            {step === 5 && formData.listingType === "event" && <EventIconStep formData={formData} setFormData={setFormData} />}
+            {step === 4 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (
               <ResidentialPaymentStep
                 tier={formData.tier}
                 amount={(RESIDENTIAL_TIER_PRICES[formData.tier] || 0) / 100}
@@ -1342,6 +1446,20 @@ export default function CreateListingPage() {
                 onBack={() => {
                   setPaymentError("");
                   setStep(3);
+                }}
+                onPay={handlePaymentStepSubmit}
+              />
+            )}
+            {step === 6 && formData.listingType === "event" && (
+              <ResidentialPaymentStep
+                tier={formData.event_tier}
+                amount={(EVENT_TIER_PRICES[formData.event_tier] || 0) / 100}
+                isDemoMode={isGlobalDemoMode}
+                isProcessing={isStartingPayment}
+                errorMessage={paymentError}
+                onBack={() => {
+                  setPaymentError("");
+                  setStep(5);
                 }}
                 onPay={handlePaymentStepSubmit}
               />
@@ -1358,16 +1476,16 @@ export default function CreateListingPage() {
               />
             )}
 
-            {step !== 4 && <div className="flex gap-3 mt-6">
+            {step !== paymentStepNumber && <div className="flex gap-3 mt-6">
               {step > 1 && (
                 <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
                   Back
                 </Button>
               )}
-              {step < 3 ? (
+              {step < entryStepNumber ? (
                 <Button
                   onClick={handleNext}
-                  disabled={step === 2 && formData.listingType !== "neighborhood_sale" && (isGlobalDemoMode ? (profileAddressMissing || regularAddressIncomplete) : profileAddressUnconfirmed)}
+                  disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (isGlobalDemoMode ? (profileAddressMissing || regularAddressIncomplete) : profileAddressUnconfirmed)}
                   className="flex-1 bg-amber-600 hover:bg-amber-700"
                 >
                   Continue
@@ -1384,6 +1502,8 @@ export default function CreateListingPage() {
                       : "Starting Payment..."
                     : createListingMutation.isPending
                     ? "Creating..."
+                    : formData.listingType === "event"
+                    ? "Continue to Payment"
                     : formData.listingType === "neighborhood_sale"
                     ? "Continue to Payment Setup"
                     : ["featured", "premium"].includes(formData.tier)

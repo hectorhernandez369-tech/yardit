@@ -36,6 +36,10 @@ export default function StepOne({ formData, setFormData }) {
               category: "Neighborhood Sale",
               description: "",
             } : {}),
+            ...(value === "event" ? {
+              tier: "basic",
+              event_tier: "basic",
+            } : {}),
           }))}
         >
           <div className="flex items-center space-x-2 p-4 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF] mb-2">
@@ -45,11 +49,18 @@ export default function StepOne({ formData, setFormData }) {
               <div className="text-sm text-[#1F2937] opacity-80">Individual residential sale</div>
             </Label>
           </div>
-          <div className="flex items-center space-x-2 p-4 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF]">
+          <div className="flex items-center space-x-2 p-4 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF] mb-2">
             <RadioGroupItem value="neighborhood_sale" id="neighborhood_sale" />
             <Label htmlFor="neighborhood_sale" className="flex-1 cursor-pointer">
               <div className="font-semibold text-[#2C4F4E]">Neighborhood Sale</div>
               <div className="text-sm text-[#1F2937] opacity-80">Up to 25 homes within a 500 ft radius</div>
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2 p-4 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF]">
+            <RadioGroupItem value="event" id="event" />
+            <Label htmlFor="event" className="flex-1 cursor-pointer">
+              <div className="font-semibold text-[#2C4F4E]">Event</div>
+              <div className="text-sm text-[#1F2937] opacity-80">Public awareness listing for events</div>
             </Label>
           </div>
         </RadioGroup>

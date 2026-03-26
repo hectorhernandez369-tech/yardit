@@ -10,6 +10,7 @@ import { createPageUrl } from "@/utils";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
+import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
 
 // Calculate distance in feet
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -30,7 +31,7 @@ export default function ListView({ listings, userLocation }) {
   const { guardAction, showModal, setShowModal, isGuest, modalProps } = useGuestGuard();
 
   const sortedListings = useMemo(() => {
-    if (!userLocation) return listings.slice(0, 10);
+    if (!userLocation) return [...listings].sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b)).slice(0, 10);
 
     // Add distance to each listing
     const withDistance = listings.map(listing => ({
@@ -48,13 +49,8 @@ export default function ListView({ listings, userLocation }) {
     
     // 2. Sort the 3-mile pool: Paid priority, then closest distance
     within3Miles.sort((a, b) => {
-      const tierOrder = { premium: 1, featured: 2, neighborhood_tier: 3, free: 4 };
-      const tierA = tierOrder[a.tier] || 4;
-      const tierB = tierOrder[b.tier] || 4;
-      
-      if (tierA !== tierB) {
-        return tierA - tierB;
-      }
+      const tierDelta = getListingSortPriority(a) - getListingSortPriority(b);
+      if (tierDelta !== 0) return tierDelta;
       return a.distance - b.distance;
     });
 
@@ -85,13 +81,15 @@ export default function ListView({ listings, userLocation }) {
   }, [listings, userLocation]);
 
   const filteredListings = sortedListings.filter(listing =>
-    listing.title.toLowerCase().includes(searchQuery.toLowerCase())
+    (listing.event_name || listing.title || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const tierColors = {
     free: "bg-slate-500",
+    basic: "bg-slate-700",
     featured: "bg-purple-600",
     premium: "bg-amber-600",
+    marquee: "bg-rose-600",
     neighborhood_tier: "bg-emerald-600"
   };
 
@@ -122,11 +120,12 @@ export default function ListView({ listings, userLocation }) {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold mb-2">{listing.title}</h3>
+                    <h3 className="text-xl font-semibold mb-2">{listing.event_name || listing.title}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge className={tierColors[listing.tier]}>
-                        {listing.tier === "neighborhood_tier" ? "Neighborhood" : listing.tier.toUpperCase()}
+                      <Badge className={tierColors[listing.event_tier || listing.tier] || "bg-slate-500"}>
+                        {listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier === "neighborhood_tier" ? "Neighborhood" : listing.tier.toUpperCase()}
                       </Badge>
+                      {listing.listingType === "event" && <Badge className="bg-slate-900 text-white">Event</Badge>}
                       {listing._expired && (
                         <Badge className="bg-red-500 text-white">Expired</Badge>
                       )}
@@ -140,12 +139,12 @@ export default function ListView({ listings, userLocation }) {
                   )}
                 </div>
 
-                <p className="text-slate-700 mb-4">{listing.description}</p>
+                <p className="text-slate-700 mb-4">{listing.event_description || listing.description}</p>
 
                 <div className="flex flex-col gap-2 text-sm text-slate-600 mb-4">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
-                    <span>{listing.addressText}, {listing.city}</span>
+                    <span>{listing.address_text || listing.addressText}, {listing.city}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
@@ -161,7 +160,7 @@ export default function ListView({ listings, userLocation }) {
                     View Details
                   </Button>
                   
-                  {HUNT_ENABLED && (
+                  {listing.listingType !== "event" && HUNT_ENABLED && (
                     <Button
                       variant="outline"
                       className="flex-1 border-amber-600 text-amber-700 hover:bg-amber-50"

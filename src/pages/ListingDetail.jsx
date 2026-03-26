@@ -23,6 +23,7 @@ import {
 } from "@/lib/neighborhoodSalePricing";
 import { getListingNumber, getOwnerDisplayName } from "@/components/listing/listingDisplay";
 import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
+import { formatEventTierLabel } from "@/lib/eventListingConfig";
 
 export default function ListingDetailPage() {
   const navigate = useNavigate();
@@ -93,7 +94,7 @@ export default function ListingDetailPage() {
   const approvedRequests = joinRequests?.filter(r => r.status === "approved" && r.removed_by_eo !== true) || [];
   const removedRequests = joinRequests?.filter(r => r.removed_by_eo === true) || [];
   const formatAddress = (item) => {
-    const base = [item.addressText || "Address unavailable", item.city, item.state].filter(Boolean).join(", ");
+    const base = [item.address_text || item.addressText || "Address unavailable", item.city, item.state].filter(Boolean).join(", ");
     return item.zip ? `${base} ${item.zip}` : base;
   };
   const salePricing = useMemo(() => {
@@ -257,8 +258,10 @@ export default function ListingDetailPage() {
 
   const tierColors = {
     free: "bg-slate-500",
+    basic: "bg-slate-700",
     featured: "bg-purple-600",
     premium: "bg-amber-600",
+    marquee: "bg-rose-600",
     neighborhood_tier: "bg-emerald-600"
   };
 
@@ -286,11 +289,11 @@ export default function ListingDetailPage() {
         <div className="sticky top-[73px] z-40 bg-white border-b border-slate-200 shadow-sm px-3 sm:px-4 md:px-6 py-3">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 break-words">{listing.title}</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 break-words">{listing.event_name || listing.title}</h1>
               <div className="flex items-center gap-1.5 text-slate-600 text-sm mt-0.5">
                 <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="break-words">
-                  {listing.addressText || "Address unavailable"}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}{listing.zip ? ` ${listing.zip}` : ""}
+                  {listing.address_text || listing.addressText || "Address unavailable"}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}{listing.zip ? ` ${listing.zip}` : ""}
                 </span>
               </div>
               <div className="mt-1 space-y-1 text-xs text-slate-500">
@@ -317,8 +320,8 @@ export default function ListingDetailPage() {
                   PROMOTIONAL
                 </Button>
               )}
-              <Badge className={tierColors[listing.tier]}>
-                {listing.tier === "neighborhood_tier" ? "Neighborhood Sale" : listing.tier.toUpperCase()}
+              <Badge className={tierColors[listing.event_tier || listing.tier] || "bg-slate-500"}>
+                {listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier === "neighborhood_tier" ? "Neighborhood Sale" : listing.tier.toUpperCase()}
               </Badge>
               {(user || isGuest) && user?.id !== listing.ownerUserId && (
                 <Button
@@ -338,9 +341,9 @@ export default function ListingDetailPage() {
         <div className="p-4 md:p-8">
         <Card>
           <CardContent className="space-y-6 pt-6">
-            {listing.photoUrls && listing.photoUrls.length > 0 && (
+            {(listing.event_photos || listing.photoUrls) && (listing.event_photos || listing.photoUrls).length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {listing.photoUrls.map((url, idx) => (
+                {(listing.event_photos || listing.photoUrls).map((url, idx) => (
                   <img
                     key={idx}
                     src={url}
@@ -353,14 +356,14 @@ export default function ListingDetailPage() {
 
             <div>
               <h3 className="font-semibold mb-2">Description</h3>
-              <p className="text-slate-700 whitespace-pre-wrap">{listing.description}</p>
+              <p className="text-slate-700 whitespace-pre-wrap">{listing.event_description || listing.description}</p>
             </div>
 
-            {(listing.categories?.length > 0 || listing.category) && (
+            {((listing.categories?.length > 0 || listing.category) || listing.event_category) && (
               <div>
                 <h3 className="font-semibold mb-2">Categories</h3>
                 <div className="flex flex-wrap gap-2">
-                  {(listing.categories?.length > 0 ? listing.categories : [listing.category]).filter(Boolean).map((cat, idx) => (
+                  {(listing.categories?.length > 0 ? listing.categories : [listing.event_category || listing.category]).filter(Boolean).map((cat, idx) => (
                     <Badge key={idx} variant="outline" className="border-[#2C4F4E] text-[#2C4F4E] bg-[#E7D7B8] px-3 py-1">
                       {cat}
                     </Badge>
@@ -377,7 +380,7 @@ export default function ListingDetailPage() {
             <div className="flex items-start gap-2 text-slate-600">
               <MapPin className="w-5 h-5 mt-0.5" />
               <span>
-                {listing.addressText || "Address unavailable"}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}{listing.zip ? ` ${listing.zip}` : ""}
+                {listing.address_text || listing.addressText || "Address unavailable"}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}{listing.zip ? ` ${listing.zip}` : ""}
               </span>
             </div>
 

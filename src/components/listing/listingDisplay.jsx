@@ -3,8 +3,10 @@ import { deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
 
 export const tierColors = {
   free: "bg-slate-500",
+  basic: "bg-slate-700",
   featured: "bg-purple-600",
   premium: "bg-amber-600",
+  marquee: "bg-rose-600",
   neighborhood_tier: "bg-emerald-600",
 };
 
@@ -56,6 +58,8 @@ export function formatListingStatusLabel(status) {
 
 export function formatListingTierLabel(tier) {
   if (tier === "neighborhood_tier") return "Neighborhood";
+  if (tier === "basic") return "Basic";
+  if (tier === "marquee") return "Marquee";
   return String(tier || "free")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());

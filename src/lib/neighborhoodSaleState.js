@@ -87,6 +87,12 @@ export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
   }
 
   const now = nowInput instanceof Date ? nowInput : new Date(nowInput);
+
+  if (listing.listingType === "event") {
+    const end = listing.endDateTime ? new Date(listing.endDateTime) : null;
+    if (end && !Number.isNaN(end.getTime()) && now > end) return false;
+    return ["active", "scheduled"].includes(listing.status || "active");
+  }
   const start = listing.startDateTime ? new Date(listing.startDateTime) : null;
   const end = listing.endDateTime ? new Date(listing.endDateTime) : null;
 
