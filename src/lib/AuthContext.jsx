@@ -66,6 +66,43 @@ export const AuthProvider = ({ children }) => {
    const [authError, setAuthError] = useState(null);
    const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
+  const checkUserAuth = async () => {
+    try {
+      console.log('AUTH_DEBUG checkUserAuth:start', { hasToken: !!appParams.token });
+      // Now check if the user is authenticated
+      setIsLoadingAuth(true);
+      const currentUser = await base44.auth.me();
+      console.log('AUTH_DEBUG base44.auth.me:success', {
+        userId: currentUser?.id,
+        email: currentUser?.email,
+      });
+      clearGuestMode();
+      setIsGuest(false);
+      setUser(currentUser);
+      setIsAuthenticated(true);
+      setIsLoadingAuth(false);
+      restoreAuthReturnTo();
+      setAuthError(null);
+    } catch (error) {
+      console.error('User auth check failed:', error);
+      console.log('AUTH_DEBUG base44.auth.me:error', {
+        status: error?.status,
+        data: error?.data,
+        message: error?.message,
+      });
+      setIsLoadingAuth(false);
+      setIsAuthenticated(false);
+      
+      // If user auth fails, it might be an expired token
+      if (error.status === 401 || error.status === 403) {
+        setAuthError({
+          type: 'auth_required',
+          message: 'Authentication required'
+        });
+      }
+    }
+  };
+
   const checkAppState = async () => {
     try {
       console.log('AUTH_DEBUG checkAppState:start', {
@@ -190,43 +227,6 @@ export const AuthProvider = ({ children }) => {
       });
     }).catch(() => null);
   }, [isAuthenticated, user]);
-
-  const checkUserAuth = async () => {
-    try {
-      console.log('AUTH_DEBUG checkUserAuth:start', { hasToken: !!appParams.token });
-      // Now check if the user is authenticated
-      setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
-      console.log('AUTH_DEBUG base44.auth.me:success', {
-        userId: currentUser?.id,
-        email: currentUser?.email,
-      });
-      clearGuestMode();
-      setIsGuest(false);
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      setIsLoadingAuth(false);
-      restoreAuthReturnTo();
-      setAuthError(null);
-    } catch (error) {
-      console.error('User auth check failed:', error);
-      console.log('AUTH_DEBUG base44.auth.me:error', {
-        status: error?.status,
-        data: error?.data,
-        message: error?.message,
-      });
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
-      }
-    }
-  };
 
   const logout = (redirectUrl) => {
     const currentUser = user;
