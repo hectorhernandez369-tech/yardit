@@ -877,22 +877,24 @@ const stats = useMemo(() => {
     return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
   }, [eligibleListings, currentZoom, isShowingAllListings]);
 
-  useEffect(() => {
-    if (currentZoom >= MARQUEE_OPEN_MIN_ZOOM) return;
-    // Zoom out: collapse all boards but keep spotlight (don't set false)
-    setOpenMarqueeIds({});
-  }, [currentZoom]);
+  // NO ZOOM-BASED STATE RESET - persist marquee state across zoom levels
 
   const marqueeOverlays = useMemo(() => {
     if (currentZoom < MARQUEE_OPEN_MIN_ZOOM) return [];
 
     return visiblePins.filter(
-      (listing) =>
-        (listing?.event_tier || listing?.tier) === "marquee" &&
-        openMarqueeIds[listing.id] !== false &&
-        openMarqueeIds[listing.id] !== undefined &&
-        typeof listing?.lat === "number" &&
-        typeof listing?.lng === "number"
+      (listing) => {
+        const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
+        if (!isMarquee) return false;
+        
+        const marqueeState = openMarqueeIds[listing.id];
+        // Show marquee if state is "collapsed" or "expanded" (but not false or undefined)
+        const shouldShow = marqueeState === "collapsed" || marqueeState === "expanded";
+        
+        return shouldShow &&
+          typeof listing?.lat === "number" &&
+          typeof listing?.lng === "number";
+      }
     );
   }, [visiblePins, openMarqueeIds, currentZoom]);
 
@@ -1077,12 +1079,13 @@ const stats = useMemo(() => {
               <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />
 
               {visiblePins.map((listing) => {
-                const isHuntStop = huntStops.some(loc => loc.id === listing.id);
-                const isMapSelected = selectedListingId === listing.id;
-                const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
-                const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
-                const marqueeState = openMarqueeIds[listing.id]; // "collapsed"|"expanded"|false|undefined
-                const marqueeOpen = isMarquee && currentZoom >= MARQUEE_OPEN_MIN_ZOOM && marqueeState !== false && marqueeState !== undefined;
+               const isHuntStop = huntStops.some(loc => loc.id === listing.id);
+               const isMapSelected = selectedListingId === listing.id;
+               const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
+               const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
+               const marqueeState = openMarqueeIds[listing.id]; // "collapsed"|"expanded"|false|undefined
+               // Marquee open if zoom is sufficient AND state is not explicitly "false" and state is not undefined
+               const marqueeOpen = isMarquee && currentZoom >= MARQUEE_OPEN_MIN_ZOOM && marqueeState !== false && marqueeState !== undefined;
                 
                 return (
                   <Marker
