@@ -43,7 +43,9 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
-import { getMarqueeBoardHtml, getMarqueeCollapsedHtml } from "@/components/map/MarqueeBoard";
+import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.js";
+
+const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -388,6 +390,7 @@ export default function HomePage() {
   const [focusListingId, setFocusListingId] = useState(null);
   const [activeFocusListing, setActiveFocusListing] = useState(null);
   const [selectedListingId, setSelectedListingId] = useState(null);
+  // marquee state per id: undefined = collapsed (board visible), "expanded" = expanded, false = hidden (spotlight only)
   const [openMarqueeIds, setOpenMarqueeIds] = useState({});
   const MARQUEE_OPEN_MIN_ZOOM = 11;
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
@@ -524,10 +527,12 @@ export default function HomePage() {
     if (lid) {
       setFocusListingId(lid);
     }
-    // Restore expanded marquee state when returning from ListingDetail
-    const marqueeId = params.get("marqueeId");
-    if (marqueeId) {
-      setOpenMarqueeIds((prev) => ({ ...prev, [marqueeId]: "expanded" }));
+
+    // Restore expanded marquee after back-navigation from ListingDetail
+    const restoredId = sessionStorage.getItem(MARQUEE_RESTORED_KEY);
+    if (restoredId) {
+      sessionStorage.removeItem(MARQUEE_RESTORED_KEY);
+      setOpenMarqueeIds((prev) => ({ ...prev, [restoredId]: "expanded" }));
     }
   }, []);
 
@@ -807,10 +812,11 @@ const stats = useMemo(() => {
   const handlePinClick = (listing) => {
     if ((listing?.event_tier || listing?.tier) === "marquee") {
       if (currentZoom >= MARQUEE_OPEN_MIN_ZOOM) {
-        // Toggle: if already showing collapsed or expanded, keep collapsed on first tap; if closed show collapsed
+        // Show collapsed board on first tap (unless already open)
         setOpenMarqueeIds((prev) => {
           const cur = prev[listing.id];
-          return { ...prev, [listing.id]: cur ? cur : "collapsed" };
+          if (cur === false || cur === undefined) return { ...prev, [listing.id]: "collapsed" };
+          return prev; // already collapsed or expanded, don't change
         });
       } else {
         setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }));
@@ -873,19 +879,18 @@ const stats = useMemo(() => {
 
   useEffect(() => {
     if (currentZoom >= MARQUEE_OPEN_MIN_ZOOM) return;
-    setOpenMarqueeIds((prev) => {
-      const next = {};
-      Object.keys(prev || {}).forEach((id) => { next[id] = false; });
-      return next;
-    });
+    // Zoom out: collapse all boards but keep spotlight (don't set false)
+    setOpenMarqueeIds({});
   }, [currentZoom]);
 
   const marqueeOverlays = useMemo(() => {
     if (currentZoom < MARQUEE_OPEN_MIN_ZOOM) return [];
+
     return visiblePins.filter(
       (listing) =>
         (listing?.event_tier || listing?.tier) === "marquee" &&
-        !!openMarqueeIds[listing.id] &&
+        openMarqueeIds[listing.id] !== false &&
+        openMarqueeIds[listing.id] !== undefined &&
         typeof listing?.lat === "number" &&
         typeof listing?.lng === "number"
     );
@@ -1076,9 +1081,8 @@ const stats = useMemo(() => {
                 const isMapSelected = selectedListingId === listing.id;
                 const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
                 const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
-                const marqueeOpen = isMarquee && currentZoom >= MARQUEE_OPEN_MIN_ZOOM && !!openMarqueeIds[listing.id]
-                  ? openMarqueeIds[listing.id]
-                  : false;
+                const marqueeState = openMarqueeIds[listing.id]; // "collapsed"|"expanded"|false|undefined
+                const marqueeOpen = isMarquee && currentZoom >= MARQUEE_OPEN_MIN_ZOOM && marqueeState !== false && marqueeState !== undefined;
                 
                 return (
                   <Marker
@@ -1308,22 +1312,22 @@ const stats = useMemo(() => {
               ))}
 
               {marqueeOverlays.map((listing) => {
-                const marqueeState = openMarqueeIds[listing.id]; // "collapsed" | "expanded"
-                const marqueeHtml = marqueeState === "expanded"
-                  ? getMarqueeBoardHtml(listing)
-                  : getMarqueeCollapsedHtml(listing);
+                const isExpanded = openMarqueeIds[listing.id] === "expanded";
+                const boardHtml = isExpanded
+                  ? getMarqueeBoardExpandedHtml(listing)
+                  : getMarqueeBoardCollapsedHtml(listing);
                 return (
                   <Marker
-                    key={`marquee-board-${listing.id}-${marqueeState}`}
+                    key={`marquee-board-${listing.id}-${isExpanded ? "exp" : "col"}`}
                     position={[listing.lat, listing.lng]}
-                    icon={getEventMarkerIcon(listing, selectedListingId === listing.id, marqueeState, marqueeHtml)}
+                    icon={getEventMarkerIcon(listing, selectedListingId === listing.id, true, boardHtml)}
                     eventHandlers={{
                       add: (event) => {
                         const element = event.target?.getElement?.();
                         if (!element) return;
 
-                        const closeBtn = element.querySelector('[data-marquee-close="true"]');
                         const expandBtn = element.querySelector('[data-marquee-expand="true"]');
+                        const collapseBtn = element.querySelector('[data-marquee-collapse="true"]');
                         const detailsBtn = element.querySelector('[data-marquee-details="true"]');
 
                         if (expandBtn) {
@@ -1332,8 +1336,8 @@ const stats = useMemo(() => {
                             setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: "expanded" }));
                           };
                         }
-                        if (closeBtn) {
-                          closeBtn.onclick = (e) => {
+                        if (collapseBtn) {
+                          collapseBtn.onclick = (e) => {
                             e.preventDefault(); e.stopPropagation();
                             setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }));
                           };
@@ -1341,7 +1345,8 @@ const stats = useMemo(() => {
                         if (detailsBtn) {
                           detailsBtn.onclick = (e) => {
                             e.preventDefault(); e.stopPropagation();
-                            navigate(createPageUrl("ListingDetail") + `?id=${listing.id}&marqueeId=${listing.id}`);
+                            sessionStorage.setItem(MARQUEE_RESTORED_KEY, listing.id);
+                            navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
                           };
                         }
                       },

@@ -1,6 +1,9 @@
 import L from "leaflet";
 import { getEventIconEmoji } from "@/lib/eventListingConfig";
-import { MARQUEE_BOARD_WIDTH, MARQUEE_COLLAPSED_WIDTH } from "@/components/map/MarqueeBoard";
+import { MARQUEE_BOARD_WIDTH } from "@/components/map/MarqueeBoard.js";
+
+// iconAnchor Y=0: wrapper is 0-height, tail tip = coordinate
+const MARQUEE_ANCHOR_Y = 0;
 
 const cache = {};
 
@@ -24,16 +27,14 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
 
   if (tier === "marquee") {
     if (marqueeOpen && marqueeHtml) {
-      // marqueeOpen is "collapsed" or "expanded"
-      const w = marqueeOpen === "collapsed" ? MARQUEE_COLLAPSED_WIDTH : MARQUEE_BOARD_WIDTH;
-      const half = Math.round(w / 2);
+      const half = Math.round(MARQUEE_BOARD_WIDTH / 2);
       return makeDivIcon(
-        `event_marquee_${marqueeOpen}_${listing?.id}`,
+        `event_marquee_board_${listing?.id}_${marqueeHtml.length}`,
         marqueeHtml,
-        w,
+        MARQUEE_BOARD_WIDTH,
         0,
         half,
-        0
+        MARQUEE_ANCHOR_Y
       );
     }
 
