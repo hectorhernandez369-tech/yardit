@@ -43,7 +43,6 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
-import MarqueeBoard from "../components/map/MarqueeBoard";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -1303,15 +1302,33 @@ const stats = useMemo(() => {
                 <Marker
                   key={`marquee-board-${listing.id}`}
                   position={[listing.lat, listing.lng]}
-                  icon={getEventMarkerIcon(listing, selectedListingId === listing.id, true)}
-                  interactive={false}
-                >
-                  <MarqueeBoard
-                    listing={listing}
-                    onClose={() => setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }))}
-                    onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-                  />
-                </Marker>
+                  icon={getEventMarkerIcon(listing, selectedListingId === listing.id, true, getMarqueeBoardHtml(listing))}
+                  eventHandlers={{
+                    add: (event) => {
+                      const element = event.target?.getElement?.();
+                      if (!element) return;
+
+                      const closeButton = element.querySelector('[data-marquee-close="true"]');
+                      const detailsButton = element.querySelector('[data-marquee-details="true"]');
+
+                      if (closeButton) {
+                        closeButton.onclick = (clickEvent) => {
+                          clickEvent.preventDefault();
+                          clickEvent.stopPropagation();
+                          setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }));
+                        };
+                      }
+
+                      if (detailsButton) {
+                        detailsButton.onclick = (clickEvent) => {
+                          clickEvent.preventDefault();
+                          clickEvent.stopPropagation();
+                          navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
+                        };
+                      }
+                    },
+                  }}
+                />
               ))}
             </MapContainer>
 

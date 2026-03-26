@@ -1,70 +1,57 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { getVisibleMarqueeSlots, formatMarqueeSlotTime } from "@/lib/marqueeSchedule";
-
-export default function MarqueeBoard({ listing, onClose, onViewDetails }) {
-  if (!listing) return null;
+export function getMarqueeBoardHtml(listing) {
+  if (!listing) return "";
 
   const title = listing?.event_name || listing?.title || "Event";
   const safeSlots = (() => {
     try {
-      const slots = getVisibleMarqueeSlots(listing);
+      const slots = listing?.marquee_schedule_slots;
       return Array.isArray(slots) ? slots.slice(0, 4) : [];
     } catch {
       return [];
     }
   })();
 
-  return (
-    <div className="pointer-events-auto" style={{ transform: "translate(-50%, calc(-100% - 18px))" }}>
-      <div className="relative w-[230px] min-h-[140px] rounded-lg border border-[#f4a849] bg-gradient-to-b from-[#7c2d12] to-[#3f1d0b] px-3 pb-3 pt-2 text-white shadow-[0_8px_18px_rgba(0,0,0,0.3)]">
-        <div className="pointer-events-none absolute left-1.5 right-1.5 top-[-3px] flex justify-between">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <span key={`top-bulb-${index}`} className="h-1.5 w-1.5 rounded-full bg-[#FFF3B0] shadow-[0_0_4px_rgba(255,230,128,0.9)]" />
-          ))}
-        </div>
-        <div className="pointer-events-none absolute bottom-0.5 left-[-3px] top-0.5 flex flex-col justify-between">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <span key={`left-bulb-${index}`} className="h-1.5 w-1.5 rounded-full bg-[#FFE08A] shadow-[0_0_4px_rgba(255,220,120,0.8)]" />
-          ))}
-        </div>
-        <div className="pointer-events-none absolute bottom-0.5 right-[-3px] top-0.5 flex flex-col justify-between">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <span key={`right-bulb-${index}`} className="h-1.5 w-1.5 rounded-full bg-[#FFE08A] shadow-[0_0_4px_rgba(255,220,120,0.8)]" />
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-2 top-2 rounded-full bg-black/25 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-black/40"
-        >
-          X
-        </button>
+  const escapeHtml = (value) => String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
-        <div className="pr-8 text-center text-[12px] font-black uppercase leading-tight tracking-[0.03em] break-words">
-          {title}
-        </div>
+  const formatSlotTime = (slot) => {
+    try {
+      if (!slot) return "Time TBD";
+      const start = slot.start_time ? new Date(slot.start_time) : null;
+      const end = slot.end_time ? new Date(slot.end_time) : null;
+      if (!start || Number.isNaN(start.getTime())) return "Time TBD";
 
-        {safeSlots.length > 0 && (
-          <div className="mt-3 grid gap-1">
-            {safeSlots.map((slot) => (
-              <div key={slot.id || slot.label} className="flex min-h-[22px] items-center justify-between gap-2 rounded-sm bg-white/10 px-2 py-1 text-[10px] leading-tight">
-                <span className="min-w-0 truncate font-bold">{slot.label || "Schedule"}</span>
-                <span className="shrink-0 whitespace-nowrap text-[#FDE68A]">{formatMarqueeSlotTime(slot) || "Time TBD"}</span>
-              </div>
-            ))}
-          </div>
-        )}
+      const startText = start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      if (!end || Number.isNaN(end.getTime())) return startText;
+      const endText = end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      return `${startText} - ${endText}`;
+    } catch {
+      return "Time TBD";
+    }
+  };
 
-        <Button
-          size="sm"
-          onClick={onViewDetails}
-          className="mt-3 h-8 w-full bg-amber-600 px-2 py-0 text-[10px] hover:bg-amber-700"
-        >
-          View More Details
-        </Button>
+  const slotRows = safeSlots.length > 0
+    ? safeSlots.map((slot) => `
+      <div style="display:flex;min-height:22px;align-items:center;justify-content:space-between;gap:8px;border-radius:2px;background:rgba(255,255,255,0.1);padding:4px 8px;font-size:10px;line-height:1.2;">
+        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;">${escapeHtml(slot?.label || "Schedule")}</span>
+        <span style="flex-shrink:0;white-space:nowrap;color:#FDE68A;">${escapeHtml(formatSlotTime(slot))}</span>
       </div>
-      <div className="mx-auto h-0 w-0 border-l-[6px] border-r-[6px] border-t-[7px] border-l-transparent border-r-transparent border-t-[#3f1d0b] drop-shadow-[0_2px_2px_rgba(0,0,0,0.28)]" />
+    `).join("")
+    : "";
+
+  return `
+    <div style="position:relative;width:230px;min-height:140px;transform:translate(-50%, calc(-100% - 18px));pointer-events:auto;">
+      <div style="position:relative;width:230px;min-height:140px;border-radius:8px;border:1px solid #f4a849;background:linear-gradient(to bottom, #7c2d12, #3f1d0b);padding:8px 12px 12px;color:#fff;box-shadow:0 8px 18px rgba(0,0,0,0.3);box-sizing:border-box;">
+        <button data-marquee-close="true" style="position:absolute;right:8px;top:8px;border:none;border-radius:9999px;background:rgba(0,0,0,0.25);padding:2px 6px;font-size:10px;font-weight:700;color:#fff;cursor:pointer;">X</button>
+        <div style="padding-right:28px;text-align:center;font-size:12px;font-weight:900;text-transform:uppercase;line-height:1.2;letter-spacing:0.03em;word-break:break-word;">${escapeHtml(title)}</div>
+        ${slotRows ? `<div style="margin-top:12px;display:grid;gap:4px;">${slotRows}</div>` : ""}
+        <button data-marquee-details="true" style="margin-top:12px;height:32px;width:100%;border:none;border-radius:6px;background:#d97706;padding:0 8px;font-size:10px;font-weight:700;color:#fff;cursor:pointer;">View More Details</button>
+      </div>
+      <div style="margin:0 auto;height:0;width:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid #3f1d0b;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.28));"></div>
     </div>
-  );
+  `;
 }
