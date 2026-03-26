@@ -1359,6 +1359,7 @@ const stats = useMemo(() => {
               if (!map) return null;
               const point = map.latLngToContainerPoint([listing.lat, listing.lng]);
               const marqueeSlots = getVisibleMarqueeSlots(listing).slice(0, 4);
+              const marqueeHasMore = hasMoreMarqueeSlots(listing);
 
               return (
                 <div
