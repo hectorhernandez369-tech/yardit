@@ -393,6 +393,7 @@ export default function HomePage() {
   const [focusListingId, setFocusListingId] = useState(null);
   const [activeFocusListing, setActiveFocusListing] = useState(null);
   const [selectedListingId, setSelectedListingId] = useState(null);
+  const [openMarqueeIds, setOpenMarqueeIds] = useState({});
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
@@ -803,6 +804,9 @@ const stats = useMemo(() => {
   }, [showControls]);
 
   const handlePinClick = (listing) => {
+    if ((listing?.event_tier || listing?.tier) === "marquee") {
+      setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: true }));
+    }
     setSelectedListingId(listing.id);
     setActiveFocusListing({ listing, fromUrl: false });
   };
@@ -1042,13 +1046,15 @@ const stats = useMemo(() => {
                 const isHuntStop = huntStops.some(loc => loc.id === listing.id);
                 const isMapSelected = selectedListingId === listing.id;
                 const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
+                const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
+                const marqueeOpen = isMarquee ? openMarqueeIds[listing.id] !== false : false;
                 
                 return (
                   <Marker
                     key={listing.id}
                     ref={(ref) => { if (ref) markerRefsMap.current[listing.id] = ref; }}
                     position={[listing.lat, listing.lng]}
-                    icon={createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
+                    icon={listing.listingType === "event" ? getEventMarkerIcon(listing, isMapSelected, marqueeOpen) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
                     eventHandlers={{
                       click: () => { handlePinClick(listing); },
                       popupopen: () => setSelectedListingId(listing.id),
@@ -1087,6 +1093,19 @@ const stats = useMemo(() => {
                         </div>
 
                         <div className="flex items-center gap-1 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
+                          {isMarquee && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: !marqueeOpen }));
+                              }}
+                              className="h-6 text-[11px] px-2 py-0"
+                            >
+                              {marqueeOpen ? "Close Marquee" : "Open Marquee"}
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             onClick={(e) => {

@@ -19,6 +19,7 @@ import EventDetailsStep from "../components/create/event/EventDetailsStep";
 import EventLocationStep from "../components/create/event/EventLocationStep";
 import EventScheduleStep from "../components/create/event/EventScheduleStep";
 import EventTierStep from "../components/create/event/EventTierStep";
+import MarqueeSlotsEditor from "../components/create/event/MarqueeSlotsEditor";
 import { useAppMode } from "../components/shared/DemoMode";
 import {
   deriveNeighborhoodEventState,
@@ -271,6 +272,7 @@ export default function CreateListingPage() {
     event_end_time: "",
     start_datetime: "",
     end_datetime: "",
+    marquee_schedule_slots: [],
 
     title: "",
     description: "",
@@ -1190,7 +1192,7 @@ export default function CreateListingPage() {
         return;
       }
       setPaymentError("");
-      setStep(6);
+      setStep(5);
       return;
     }
 
@@ -1332,7 +1334,7 @@ export default function CreateListingPage() {
       const stored = JSON.parse(raw);
       if (stored?.formData) {
         setFormData(stored.formData);
-        setStep(stored.formData?.listingType === "event" ? 6 : 4);
+        setStep(stored.formData?.listingType === "event" ? 5 : 4);
       }
 
       window.history.replaceState({}, "", createPageUrl("CreateListing"));
@@ -1437,7 +1439,19 @@ export default function CreateListingPage() {
                 : <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} />
             )}
             {step === 3 && (formData.listingType === "event" ? <EventScheduleStep formData={formData} setFormData={setFormData} /> : <StepThree formData={formData} setFormData={setFormData} />)}
-            {step === 4 && formData.listingType === "event" && <EventTierStep formData={formData} setFormData={setFormData} />}
+            {step === 4 && formData.listingType === "event" && (
+              <div className="space-y-6">
+                <EventTierStep formData={formData} setFormData={setFormData} />
+                {(formData.event_tier || formData.tier) === "marquee" && (
+                  <MarqueeSlotsEditor
+                    value={formData.marquee_schedule_slots || []}
+                    onChange={(slots) => setFormData((prev) => ({ ...prev, marquee_schedule_slots: slots }))}
+                    eventStartDate={formData.event_start_date}
+                    eventEndDate={formData.event_end_date}
+                  />
+                )}
+              </div>
+            )}
             {step === 4 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (
               <ResidentialPaymentStep
                 tier={formData.tier}

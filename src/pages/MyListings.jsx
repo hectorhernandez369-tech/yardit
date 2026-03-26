@@ -27,6 +27,7 @@ import {
 import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
 import { Input } from "@/components/ui/input";
 import EventIconManager from "@/components/events/EventIconManager";
+import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
 import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
@@ -47,6 +48,7 @@ export default function MyListingsPage() {
   const [editStartDate, setEditStartDate] = useState("");
   const [editEventIcon, setEditEventIcon] = useState("");
   const [editEventLogoUrl, setEditEventLogoUrl] = useState("");
+  const [editMarqueeSlots, setEditMarqueeSlots] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -200,6 +202,7 @@ export default function MyListingsPage() {
     setEditCategories(listing?.categories?.length > 0 ? listing.categories : (listing?.category ? [listing.category] : []));
     setEditEventIcon(listing?.event_icon || getDefaultEventIconForCategory(listing?.event_category || listing?.category));
     setEditEventLogoUrl(listing?.event_logo_url || "");
+    setEditMarqueeSlots(Array.isArray(listing?.marquee_schedule_slots) ? listing.marquee_schedule_slots : []);
     if (listing?.listingType === "neighborhood_sale") {
       setEditStartDate(listing.selectedRangeStartDate || (listing.startDateTime ? new Date(listing.startDateTime).toISOString().split("T")[0] : ""));
     } else {
@@ -214,6 +217,7 @@ export default function MyListingsPage() {
     setEditStartDate("");
     setEditEventIcon("");
     setEditEventLogoUrl("");
+    setEditMarqueeSlots([]);
   };
 
   const saveDescription = async () => {
@@ -249,6 +253,9 @@ export default function MyListingsPage() {
     if (editingListing.listingType === "event") {
       updateData.event_icon = editEventIcon || getDefaultEventIconForCategory(editingListing.event_category || editingListing.category);
       updateData.event_logo_url = editEventLogoUrl || "";
+      if ((editingListing.event_tier || editingListing.tier) === "marquee") {
+        updateData.marquee_schedule_slots = editMarqueeSlots;
+      }
     }
 
     if (editingListing.listingType === "neighborhood_sale" && editStartDate) {
@@ -720,13 +727,24 @@ export default function MyListingsPage() {
             )}
 
             {editingListing?.listingType === "event" && (
-              <EventIconManager
-                tier={editingListing?.event_tier || editingListing?.tier || "basic"}
-                selectedIcon={editEventIcon}
-                setSelectedIcon={setEditEventIcon}
-                uploadedImageUrl={editEventLogoUrl}
-                setUploadedImageUrl={setEditEventLogoUrl}
-              />
+              <div className="space-y-4">
+                <EventIconManager
+                  tier={editingListing?.event_tier || editingListing?.tier || "basic"}
+                  selectedIcon={editEventIcon}
+                  setSelectedIcon={setEditEventIcon}
+                  uploadedImageUrl={editEventLogoUrl}
+                  setUploadedImageUrl={setEditEventLogoUrl}
+                />
+
+                {(editingListing?.event_tier || editingListing?.tier) === "marquee" && (
+                  <MarqueeSlotsEditor
+                    value={editMarqueeSlots}
+                    onChange={setEditMarqueeSlots}
+                    eventStartDate={editingListing?.event_start_date || editingListing?.startDateTime?.slice(0, 10)}
+                    eventEndDate={editingListing?.event_end_date || editingListing?.endDateTime?.slice(0, 10)}
+                  />
+                )}
+              </div>
             )}
 
             <div>
