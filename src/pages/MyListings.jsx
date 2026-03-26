@@ -28,6 +28,7 @@ import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError }
 import { Input } from "@/components/ui/input";
 import EventIconManager from "@/components/events/EventIconManager";
 import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
+import ImageCropEditor from "@/components/admin/ImageCropEditor";
 import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
@@ -58,6 +59,8 @@ export default function MyListingsPage() {
   const [editMarqueeBackgroundUrl, setEditMarqueeBackgroundUrl] = useState("");
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
   const [isUploadingBackground, setIsUploadingBackground] = useState(false);
+  const [cropEditorOpen, setCropEditorOpen] = useState(false);
+  const [backgroundImageForCrop, setBackgroundImageForCrop] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -923,7 +926,8 @@ export default function MyListingsPage() {
                               setIsUploadingBackground(true);
                               try {
                                 const result = await base44.integrations.Core.UploadFile({ file });
-                                setEditMarqueeBackgroundUrl(result.file_url);
+                                setBackgroundImageForCrop(result.file_url);
+                                setCropEditorOpen(true);
                               } catch (error) {
                                 toast.error("Failed to upload background");
                               } finally {
@@ -942,6 +946,16 @@ export default function MyListingsPage() {
                             {isUploadingBackground ? "Uploading..." : "Upload Background"}
                           </Button>
                           <p className="text-xs text-slate-500 mt-2">16:9 aspect ratio recommended (1920x1080 or larger)</p>
+                          {backgroundImageForCrop && (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className="w-full mt-2"
+                              onClick={() => setCropEditorOpen(true)}
+                            >
+                              Crop & Zoom Image
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -982,6 +996,23 @@ export default function MyListingsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image Crop Editor */}
+      <ImageCropEditor
+        imageUrl={backgroundImageForCrop}
+        open={cropEditorOpen}
+        onClose={() => setCropEditorOpen(false)}
+        onApply={async (blob) => {
+          try {
+            const result = await base44.integrations.Core.UploadFile({ file: blob });
+            setEditMarqueeBackgroundUrl(result.file_url);
+            toast.success("Background image cropped and saved");
+          } catch (error) {
+            toast.error("Failed to save cropped image");
+          }
+        }}
+        aspectRatio={16 / 9}
+      />
     </div>
   );
 }
