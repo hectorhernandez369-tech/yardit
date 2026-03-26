@@ -43,7 +43,6 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
-import { getVisibleMarqueeSlots } from "@/lib/marqueeSchedule";
 import MarqueeBoard from "../components/map/MarqueeBoard";
 
 // Fix Leaflet default marker icons
@@ -180,12 +179,6 @@ const createIcon = (type, tier, isSelected, location) => {
 
   return getCachedIcon(key, buildPinSvg(fill, stroke, finalStrokeWidth, finalSize, opacity), finalSize);
 };
-
-function isNeighborhoodParticipantListing(listing) {
-  return listing?.listingType !== "neighborhood_sale" &&
-    !!listing?.neighborhood_sale_id &&
-    normalizeNeighborhoodJoinStatus(listing?.neighborhood_join_status) === "approved";
-}
 
 function MapController({ center, zoom, onUserMove, onZoomChange, onMapReady }) {
   const map = useMap();
@@ -1363,6 +1356,8 @@ const stats = useMemo(() => {
               } catch {
                 return null;
               }
+
+              console.log("MarqueeBoard render", listing.id);
 
               return (
                 <MarqueeBoard
