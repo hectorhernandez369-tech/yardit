@@ -58,47 +58,13 @@ const restoreAuthReturnTo = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isGuest, setIsGuest] = useState(isGuestMode());
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
-  const [authError, setAuthError] = useState(null);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
-
-  useEffect(() => {
-    checkAppState();
-  }, []);
-
-  useEffect(() => {
-    if (!isAuthenticated || !user?.id) return;
-
-    logUserActivityOncePerSession(`yardit_login_${user.id}`, {
-      user_id: user.id,
-      event_type: "login",
-      event_label: "Logged In",
-      target_type: "account",
-      target_id: user.id,
-      source_page: window.location.pathname,
-    }).catch(() => null);
-
-    const createdAt = new Date(user.created_date || 0).getTime();
-    const wasJustCreated = createdAt && Date.now() - createdAt <= 15 * 60 * 1000;
-
-    if (!wasJustCreated) return;
-
-    base44.entities.UserActivityLog.filter({ user_id: user.id, event_type: "account_created" }).then((existing) => {
-      if (existing.length > 0) return;
-      return logUserActivity({
-        user_id: user.id,
-        event_type: "account_created",
-        event_label: "Account Created",
-        target_type: "account",
-        target_id: user.id,
-        source_page: window.location.pathname,
-      });
-    }).catch(() => null);
-  }, [isAuthenticated, user]);
+   const [user, setUser] = useState(null);
+   const [isAuthenticated, setIsAuthenticated] = useState(false);
+   const [isGuest, setIsGuest] = useState(isGuestMode());
+   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
+   const [authError, setAuthError] = useState(null);
+   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
   const checkAppState = async () => {
     try {
@@ -109,7 +75,7 @@ export const AuthProvider = ({ children }) => {
       });
       setIsLoadingPublicSettings(true);
       setAuthError(null);
-      
+
       // First, check app public settings (with token if available)
       // This will tell us if auth is required, user not registered, etc.
       const appClient = createAxiosClient({
@@ -120,7 +86,7 @@ export const AuthProvider = ({ children }) => {
         token: appParams.token, // Include token if available
         interceptResponses: true
       });
-      
+
       try {
         console.log('AUTH_DEBUG checkAppState:publicSettings:request', {
           url: `${appParams.serverUrl}/api/apps/public/prod/public-settings/by-id/${appParams.appId}`,
@@ -132,7 +98,7 @@ export const AuthProvider = ({ children }) => {
           hasData: !!publicSettings,
         });
         setAppPublicSettings(publicSettings);
-        
+
         // If we got the app public settings successfully, check if user is authenticated
         if (appParams.token) {
           console.log('AUTH_DEBUG checkAppState:tokenPresent -> checkUserAuth');
@@ -151,7 +117,7 @@ export const AuthProvider = ({ children }) => {
           message: appError?.message,
           reason: appError?.data?.extra_data?.reason,
         });
-        
+
         // Handle app-level errors
         if (appError.status === 403 && appError.data?.extra_data?.reason) {
           const reason = appError.data.extra_data.reason;
@@ -190,6 +156,40 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
     }
   };
+
+  useEffect(() => {
+    checkAppState();
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+
+    logUserActivityOncePerSession(`yardit_login_${user.id}`, {
+      user_id: user.id,
+      event_type: "login",
+      event_label: "Logged In",
+      target_type: "account",
+      target_id: user.id,
+      source_page: window.location.pathname,
+    }).catch(() => null);
+
+    const createdAt = new Date(user.created_date || 0).getTime();
+    const wasJustCreated = createdAt && Date.now() - createdAt <= 15 * 60 * 1000;
+
+    if (!wasJustCreated) return;
+
+    base44.entities.UserActivityLog.filter({ user_id: user.id, event_type: "account_created" }).then((existing) => {
+      if (existing.length > 0) return;
+      return logUserActivity({
+        user_id: user.id,
+        event_type: "account_created",
+        event_label: "Account Created",
+        target_type: "account",
+        target_id: user.id,
+        source_page: window.location.pathname,
+      });
+    }).catch(() => null);
+  }, [isAuthenticated, user]);
 
   const checkUserAuth = async () => {
     try {
