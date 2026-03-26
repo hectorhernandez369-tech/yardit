@@ -1,5 +1,6 @@
 import L from "leaflet";
 import { getEventIconEmoji } from "@/lib/eventListingConfig";
+import { MARQUEE_BOARD_WIDTH } from "@/components/map/MarqueeBoard";
 
 const cache = {};
 
@@ -23,14 +24,15 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
 
   if (tier === "marquee") {
     if (marqueeOpen && marqueeHtml) {
-      // iconAnchor [115, 165]: center-bottom of the board so the tail tip points to the coordinate
+      const half = Math.round(MARQUEE_BOARD_WIDTH / 2);
+      // iconAnchor Y=0: the wrapper is 0-height, tail tip sits at origin → lands on coordinate
       return makeDivIcon(
         `event_marquee_open_${listing?.id}_${isSelected}`,
         marqueeHtml,
-        205,
-        165,
-        102,
-        165
+        MARQUEE_BOARD_WIDTH,
+        0,
+        half,
+        0
       );
     }
 

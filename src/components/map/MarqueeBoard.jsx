@@ -1,3 +1,6 @@
+// Board dimensions — single source of truth used by both HTML and iconAnchor
+export const MARQUEE_BOARD_WIDTH = 205;
+
 export function getMarqueeBoardHtml(listing) {
   if (!listing) return "";
 
@@ -62,9 +65,21 @@ export function getMarqueeBoardHtml(listing) {
     `).join("")
     : "";
 
+  const w = MARQUEE_BOARD_WIDTH;
+  const tailH = 6;
+
+  // The outer wrapper is 0-height so Leaflet's iconAnchor [w/2, 0] places the
+  // coordinate exactly at the wrapper's top-left origin point.
+  // Everything is positioned ABOVE that origin via bottom offsets,
+  // so the tail tip (bottom of tail = 0px from origin) lands on the coordinate.
   return `
-    <div style="position:relative;width:205px;pointer-events:auto;">
-      <div style="position:relative;width:205px;border-radius:7px;border:1px solid #f4a849;background:linear-gradient(to bottom,#7c2d12,#3f1d0b);padding:7px 10px 9px;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,0.32);box-sizing:border-box;">
+    <div style="position:relative;width:${w}px;height:0;pointer-events:none;">
+
+      <!-- Tail tip sits at origin (the map coordinate), pointing downward -->
+      <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:0;width:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:${tailH}px solid #3f1d0b;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.18));"></div>
+
+      <!-- Card sits above the tail -->
+      <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;border-radius:7px;border:1px solid #f4a849;background:linear-gradient(to bottom,#7c2d12,#3f1d0b);padding:7px 10px 9px;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,0.32);box-sizing:border-box;pointer-events:auto;">
 
         <button data-marquee-close="true" style="position:absolute;right:6px;top:6px;border:none;border-radius:9999px;background:rgba(0,0,0,0.28);padding:1px 5px;font-size:9px;font-weight:700;color:#fff;cursor:pointer;line-height:1.4;">✕</button>
 
@@ -76,7 +91,6 @@ export function getMarqueeBoardHtml(listing) {
 
         <button data-marquee-details="true" style="margin-top:7px;height:24px;width:100%;border:none;border-radius:4px;background:#d97706;padding:0 6px;font-size:9px;font-weight:700;color:#fff;cursor:pointer;letter-spacing:0.02em;">View More Details</button>
       </div>
-      <div style="margin:0 auto;height:0;width:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #3f1d0b;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.28));"></div>
     </div>
   `;
 }
