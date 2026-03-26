@@ -44,7 +44,7 @@ export function getMarqueeBoardHtml(listing) {
     : "";
 
   return `
-    <div style="position:relative;width:230px;min-height:140px;transform:translate(-50%, calc(-100% - 18px));pointer-events:auto;">
+    <div style="position:relative;width:230px;min-height:140px;pointer-events:auto;">
       <div style="position:relative;width:230px;min-height:140px;border-radius:8px;border:1px solid #f4a849;background:linear-gradient(to bottom, #7c2d12, #3f1d0b);padding:8px 12px 12px;color:#fff;box-shadow:0 8px 18px rgba(0,0,0,0.3);box-sizing:border-box;">
         <button data-marquee-close="true" style="position:absolute;right:8px;top:8px;border:none;border-radius:9999px;background:rgba(0,0,0,0.25);padding:2px 6px;font-size:10px;font-weight:700;color:#fff;cursor:pointer;">X</button>
         <div style="padding-right:28px;text-align:center;font-size:12px;font-weight:900;text-transform:uppercase;line-height:1.2;letter-spacing:0.03em;word-break:break-word;">${escapeHtml(title)}</div>

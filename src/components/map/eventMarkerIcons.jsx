@@ -23,13 +23,14 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
 
   if (tier === "marquee") {
     if (marqueeOpen && marqueeHtml) {
+      // iconAnchor [115, 165]: center-bottom of the board so the tail tip points to the coordinate
       return makeDivIcon(
         `event_marquee_open_${listing?.id}_${isSelected}`,
         marqueeHtml,
         230,
-        158,
+        165,
         115,
-        158
+        165
       );
     }
 
