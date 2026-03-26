@@ -1313,6 +1313,7 @@ const stats = useMemo(() => {
 
               {marqueeOverlays.map((listing) => {
                 const isExpanded = openMarqueeIds[listing.id] === "expanded";
+                console.log("DEBUG: rendering marquee board for:", listing.id, "backgroundUrl:", listing?.marquee_background_url);
                 const boardHtml = isExpanded
                   ? getMarqueeBoardExpandedHtml(listing)
                   : getMarqueeBoardCollapsedHtml(listing);

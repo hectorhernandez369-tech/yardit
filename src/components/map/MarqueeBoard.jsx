@@ -51,9 +51,13 @@ export function getMarqueeBoardCollapsedHtml(listing) {
   const dateStr = formatEventDate(listing);
   const w = MARQUEE_BOARD_WIDTH;
   const tailH = 6;
+  const bgUrl = listing?.marquee_background_url;
+  const bgStyle = bgUrl 
+    ? `background:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)),url('${bgUrl}');background-size:cover;background-position:center;background-attachment:fixed;`
+    : `background:linear-gradient(to bottom,#7c2d12,#3f1d0b);`;
 
   const card = `
-    <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;border-radius:6px;border:1px solid #f4a849;background:linear-gradient(to bottom,#7c2d12,#3f1d0b);padding:6px 10px 7px;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,0.3);box-sizing:border-box;pointer-events:auto;">
+    <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:6px 10px 7px;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,0.3);box-sizing:border-box;pointer-events:auto;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:10.5px;font-weight:900;text-transform:uppercase;line-height:1.2;letter-spacing:0.04em;word-break:break-word;">${escapeHtml(title)}</div>
@@ -74,6 +78,10 @@ export function getMarqueeBoardExpandedHtml(listing) {
   const dateStr = formatEventDate(listing);
   const w = MARQUEE_BOARD_WIDTH;
   const tailH = 6;
+  const bgUrl = listing?.marquee_background_url;
+  const bgStyle = bgUrl 
+    ? `background:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)),url('${bgUrl}');background-size:cover;background-position:center;background-attachment:fixed;`
+    : `background:linear-gradient(to bottom,#7c2d12,#3f1d0b);`;
 
   const safeSlots = (() => {
     try {
@@ -94,7 +102,7 @@ export function getMarqueeBoardExpandedHtml(listing) {
     : "";
 
   const card = `
-    <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;border-radius:6px;border:1px solid #f4a849;background:linear-gradient(to bottom,#7c2d12,#3f1d0b);padding:6px 10px 8px;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,0.32);box-sizing:border-box;pointer-events:auto;">
+    <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:6px 10px 8px;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,0.32);box-sizing:border-box;pointer-events:auto;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:${slotRows ? "5px" : "0"};">
         <div style="flex:1;min-width:0;">
           <div style="font-size:10.5px;font-weight:900;text-transform:uppercase;line-height:1.2;letter-spacing:0.04em;word-break:break-word;">${escapeHtml(title)}</div>

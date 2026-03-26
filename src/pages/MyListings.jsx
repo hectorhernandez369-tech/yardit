@@ -209,15 +209,17 @@ export default function MyListingsPage() {
   const shownListings = tab === "past" ? pastListings : activeListings;
 
   const openEditDescription = (listing) => {
-    setEditingListing(listing);
-    setEditTitle(listing?.title || listing?.event_name || "");
-    setEditDescription(listing?.description || listing?.event_description || "");
-    setEditCategories(listing?.categories?.length > 0 ? listing.categories : (listing?.category ? [listing.category] : []));
-    setEditEventIcon(listing?.event_icon || getDefaultEventIconForCategory(listing?.event_category || listing?.category));
-    setEditEventLogoUrl(listing?.event_logo_url || "");
-    setEditMarqueeSlots(Array.isArray(listing?.marquee_schedule_slots) ? listing.marquee_schedule_slots : []);
-    setEditMarqueeFlyerUrl(listing?.marquee_flyer_url || "");
-    setEditMarqueeBackgroundUrl(listing?.marquee_background_url || "");
+   setEditingListing(listing);
+   setEditTitle(listing?.title || listing?.event_name || "");
+   setEditDescription(listing?.description || listing?.event_description || "");
+   setEditCategories(listing?.categories?.length > 0 ? listing.categories : (listing?.category ? [listing.category] : []));
+   setEditEventIcon(listing?.event_icon || getDefaultEventIconForCategory(listing?.event_category || listing?.category));
+   setEditEventLogoUrl(listing?.event_logo_url || "");
+   setEditMarqueeSlots(Array.isArray(listing?.marquee_schedule_slots) ? listing.marquee_schedule_slots : []);
+   setEditMarqueeFlyerUrl(listing?.marquee_flyer_url || "");
+   const bgUrl = listing?.marquee_background_url || "";
+   setEditMarqueeBackgroundUrl(bgUrl);
+   console.log("DEBUG: openEditDescription - marquee_background_url:", bgUrl);
 
     // Marquee date/time prefill
     if (listing?.listingType === "event" && (listing?.event_tier || listing?.tier) === "marquee") {
@@ -1017,14 +1019,19 @@ export default function MyListingsPage() {
         onClose={() => setCropEditorOpen(false)}
         onApply={async (file) => {
           try {
+            console.log("DEBUG: onApply - uploading file...");
             const result = await base44.integrations.Core.UploadFile({ file });
+            console.log("DEBUG: onApply - upload result:", result.file_url);
+            
             setEditMarqueeBackgroundUrl(result.file_url);
             
             // Auto-save the background URL to the listing
             if (editingListing?.id) {
+              console.log("DEBUG: onApply - saving to listing:", editingListing.id, result.file_url);
               await base44.entities.Listing.update(editingListing.id, {
                 marquee_background_url: result.file_url
               });
+              console.log("DEBUG: onApply - update complete, invalidating queries");
               await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
             }
             
