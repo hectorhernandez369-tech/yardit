@@ -35,6 +35,7 @@ import {
   enforcePhotoLimit
 } from "../components/shared/listingTierEngine";
 import { EVENT_TIER_PRICES } from "@/lib/eventListingConfig";
+import { getEventScheduleValidation } from "@/lib/eventSchedule";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 const PAID_LISTING_CHECKOUT_KEY = "yardit_paid_listing_checkout_v1";
@@ -264,6 +265,11 @@ export default function CreateListingPage() {
     event_icon: "calendar",
     event_photos: [],
     address_text: "",
+    coming_soon_start_date: "",
+    event_start_date: "",
+    event_end_date: "",
+    event_start_time: "",
+    event_end_time: "",
     start_datetime: "",
     end_datetime: "",
 
@@ -910,12 +916,13 @@ export default function CreateListingPage() {
     }
 
     if (step === 3 && formData.listingType === "event") {
-      if (!formData.start_datetime || !formData.end_datetime) {
-        toast.error("Please set the event start and end date/time");
+      const scheduleValidation = getEventScheduleValidation(formData);
+      if (!scheduleValidation.hasRequiredFields) {
+        toast.error("Please complete the event start/end dates and times");
         return;
       }
-      if (new Date(formData.end_datetime) <= new Date(formData.start_datetime)) {
-        toast.error("End date and time must be after the start date and time");
+      if (scheduleValidation.errors.length > 0) {
+        toast.error(scheduleValidation.errors[0]);
         return;
       }
       setStep(4);
@@ -1184,6 +1191,15 @@ export default function CreateListingPage() {
     if (formData.listingType === "event") {
       if (!formData.event_icon) {
         toast.error("Please select an event icon");
+        return;
+      }
+      const scheduleValidation = getEventScheduleValidation(formData);
+      if (!scheduleValidation.hasRequiredFields) {
+        toast.error("Please complete the event start/end dates and times");
+        return;
+      }
+      if (scheduleValidation.errors.length > 0) {
+        toast.error(scheduleValidation.errors[0]);
         return;
       }
       setPaymentError("");
