@@ -64,6 +64,14 @@
       },
       "description": "Photos for event listings"
     },
+    "marquee_flyer_url": {
+      "type": "string",
+      "description": "Flyer image URL for marquee events (shown in listing details)"
+    },
+    "marquee_background_url": {
+      "type": "string",
+      "description": "Background image URL for marquee board on live map"
+    },
     "marquee_schedule_slots": {
       "type": "array",
       "description": "Manual marquee schedule slots shown on the live map board",
