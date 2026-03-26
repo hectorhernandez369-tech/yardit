@@ -27,18 +27,12 @@ export default function MarqueeBoard({ listing, point, onClose, onViewDetails })
         </div>
 
         <div className="mt-3 grid gap-2">
-          {slots.length > 0 ? (
-            slots.map((slot) => (
-              <div key={slot.id} className="flex items-center justify-between gap-2 rounded-md bg-white/10 px-2 py-1.5 text-[10px] leading-tight">
-                <span className="min-w-0 truncate font-bold">{slot.label || "Schedule"}</span>
-                <span className="shrink-0 whitespace-nowrap text-[#FDE68A]">{formatMarqueeSlotTime(slot) || "Time TBD"}</span>
-              </div>
-            ))
-          ) : (
-            <div className="rounded-md bg-white/10 px-2 py-2 text-center text-[10px] text-[#FDE68A]">
-              View More Details
+          {slots.map((slot) => (
+            <div key={slot.id} className="flex items-center justify-between gap-2 rounded-md bg-white/10 px-2 py-1.5 text-[10px] leading-tight">
+              <span className="min-w-0 truncate font-bold">{slot.label || "Schedule"}</span>
+              <span className="shrink-0 whitespace-nowrap text-[#FDE68A]">{formatMarqueeSlotTime(slot) || "Time TBD"}</span>
             </div>
-          )}
+          ))}
         </div>
 
         <Button

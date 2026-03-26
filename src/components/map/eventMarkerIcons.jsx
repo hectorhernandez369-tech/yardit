@@ -1,6 +1,5 @@
 import L from "leaflet";
 import { getEventIconEmoji } from "@/lib/eventListingConfig";
-import { formatMarqueeSlotTime, getVisibleMarqueeSlots } from "@/lib/marqueeSchedule";
 
 const cache = {};
 
@@ -23,19 +22,11 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = tr
   const image = listing?.event_logo_url || listing?.event_photos?.[0] || listing?.photoUrls?.[0];
 
   if (tier === "marquee") {
-    if (!marqueeOpen) {
-      const size = 28;
-      const html = `<div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:flex-end;justify-content:center;"><div style="position:absolute;left:2px;bottom:6px;width:10px;height:18px;background:linear-gradient(180deg, rgba(255,245,157,0.95), rgba(255,214,10,0));clip-path:polygon(50% 0%, 100% 100%, 0% 100%);transform:rotate(-16deg);"></div><div style="position:absolute;right:2px;bottom:6px;width:10px;height:18px;background:linear-gradient(180deg, rgba(255,245,157,0.95), rgba(255,214,10,0));clip-path:polygon(50% 0%, 100% 100%, 0% 100%);transform:rotate(16deg);"></div><div style="position:relative;width:18px;height:18px;border-radius:9999px;background:#111827;border:2px solid #f4a849;box-shadow:0 0 10px rgba(255,214,10,0.75), 0 4px 10px rgba(0,0,0,0.28);"></div></div>`;
-      return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, size, size);
-    }
-
-    const visibleSlots = getVisibleMarqueeSlots(listing);
-    const slotsHtml = visibleSlots.slice(0, 4).map((slot) => `<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 6px;border-radius:8px;background:rgba(255,255,255,0.08);font-size:10px;line-height:1.2;"><span style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:96px;">${slot.label}</span><span style="white-space:nowrap;color:#FDE68A;">${formatMarqueeSlotTime(slot)}</span></div>`).join("");
-    const title = listing?.event_name || listing?.title || "Event";
-    const width = 220;
-    const height = 168;
-    const html = `<div style="position:relative;width:${width}px;"><div style="position:relative;background:linear-gradient(180deg,#7c2d12 0%,#3f1d0b 100%);border:4px solid #f4a849;border-radius:14px;padding:10px 10px 8px;box-shadow:0 0 0 2px #2b1609 inset, 0 0 18px rgba(255,214,10,0.75), 0 10px 22px rgba(0,0,0,0.32);color:#fff;"><div style="position:absolute;inset:6px;border-radius:10px;border:2px dashed rgba(255,245,157,0.85);pointer-events:none;"></div><div style="display:grid;grid-template-columns:repeat(10,1fr);gap:5px;position:absolute;top:-7px;left:10px;right:10px;pointer-events:none;">${Array.from({ length: 10 }).map(() => `<span style="width:7px;height:7px;border-radius:9999px;background:#fff3b0;box-shadow:0 0 8px rgba(255,230,128,0.95);"></span>`).join("")}</div><div style="display:grid;grid-template-columns:repeat(10,1fr);gap:5px;position:absolute;bottom:-7px;left:10px;right:10px;pointer-events:none;">${Array.from({ length: 10 }).map(() => `<span style="width:7px;height:7px;border-radius:9999px;background:#fff3b0;box-shadow:0 0 8px rgba(255,230,128,0.95);"></span>`).join("")}</div><div style="font-size:13px;font-weight:900;line-height:1.1;letter-spacing:0.03em;text-transform:uppercase;text-align:center;margin-bottom:8px;padding:0 8px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${title}</div><div style="display:grid;gap:5px;min-height:78px;">${slotsHtml || `<div style="padding:10px 8px;border-radius:10px;background:rgba(255,255,255,0.08);font-size:10px;text-align:center;color:#FDE68A;">See details</div>`}</div></div><div style="position:absolute;left:50%;transform:translateX(-50%);bottom:-14px;width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:16px solid #3f1d0b;filter:drop-shadow(0 4px 4px rgba(0,0,0,0.28));"></div></div>`;
-    return makeDivIcon(`event_marquee_open_${listing?.id}_${visibleSlots.map((slot) => slot.id).join('_')}_${isSelected}`, html, width, height);
+    const size = 28;
+    const glowOpacity = marqueeOpen ? 0.95 : 0.75;
+    const ringScale = marqueeOpen ? 1.05 : 1;
+    const html = `<div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:flex-end;justify-content:center;"><div style="position:absolute;left:2px;bottom:6px;width:10px;height:18px;background:linear-gradient(180deg, rgba(255,245,157,${glowOpacity}), rgba(255,214,10,0));clip-path:polygon(50% 0%, 100% 100%, 0% 100%);transform:rotate(-16deg);"></div><div style="position:absolute;right:2px;bottom:6px;width:10px;height:18px;background:linear-gradient(180deg, rgba(255,245,157,${glowOpacity}), rgba(255,214,10,0));clip-path:polygon(50% 0%, 100% 100%, 0% 100%);transform:rotate(16deg);"></div><div style="position:relative;width:${18 * ringScale}px;height:${18 * ringScale}px;border-radius:9999px;background:#111827;border:2px solid #f4a849;box-shadow:0 0 10px rgba(255,214,10,0.75), 0 4px 10px rgba(0,0,0,0.28);"></div></div>`;
+    return makeDivIcon(`event_marquee_marker_${listing?.id}_${marqueeOpen}_${isSelected}`, html, size, size);
   }
 
   if (tier === "premium") {
