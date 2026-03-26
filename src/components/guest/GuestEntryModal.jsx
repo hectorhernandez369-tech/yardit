@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { logUserActivity, logUserActivityOncePerSession } from "@/lib/logUserActivity";
 
 export default function GuestEntryModal({ open, onLogin, onGuestEnter }) {
   const [tosChecked, setTosChecked] = useState(false);
@@ -11,14 +12,43 @@ export default function GuestEntryModal({ open, onLogin, onGuestEnter }) {
     if (!open) {
       setTosChecked(false);
       setShowTosError(false);
+      return;
     }
+
+    logUserActivityOncePerSession(`yardit_guest_entry_started_${window.location.pathname}`, {
+      event_type: "guest_entry_started",
+      event_label: "Guest Entry Started",
+      target_type: "guest_session",
+      source_page: window.location.pathname,
+    }).catch(() => null);
   }, [open]);
+
+  useEffect(() => {
+    if (!showTosModal) return;
+
+    logUserActivity({
+      event_type: "terms_viewed",
+      event_label: "Terms Viewed",
+      target_type: "terms",
+      source_page: window.location.pathname,
+      details_json: { context: "guest_entry" },
+    }).catch(() => null);
+  }, [showTosModal]);
 
   const handleGuestContinue = () => {
     if (!tosChecked) {
       setShowTosError(true);
       return;
     }
+
+    logUserActivity({
+      event_type: "guest_terms_accepted",
+      event_label: "Guest Terms Accepted",
+      target_type: "terms",
+      source_page: window.location.pathname,
+      details_json: { context: "guest_entry" },
+    }).catch(() => null);
+
     onGuestEnter?.();
   };
 

@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { logUserActivity, logUserActivityOncePerSession } from "@/lib/logUserActivity";
 import { Button } from "@/components/ui/button";
 import { MapPin, Search, Plus, Map as MapIcon, Target, Users, Settings, LogOut, Navigation, CheckCircle2, ShoppingBag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +9,22 @@ import { createPageUrl } from "@/utils";
 export default function StartupGuidePage() {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    logUserActivityOncePerSession("yardit_startup_guide_viewed", {
+      event_type: "startup_guide_viewed",
+      event_label: "Startup Guide Viewed",
+      target_type: "startup_guide",
+      source_page: window.location.pathname,
+    }).catch(() => null);
+  }, []);
+
   const handleUnderstand = () => {
+    logUserActivity({
+      event_type: "startup_guide_completed",
+      event_label: "Startup Guide Completed",
+      target_type: "startup_guide",
+      source_page: window.location.pathname,
+    }).catch(() => null);
     localStorage.setItem("yardit_has_seen_startup_guide", "true");
     navigate(createPageUrl("Home"));
   };

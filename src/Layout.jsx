@@ -36,7 +36,7 @@ function LayoutContent({ children, user, setUser }) {
   const [hasAdminProfile, setHasAdminProfile] = useState(false);
   const [adminActivatedBanner, setAdminActivatedBanner] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
-  const { isGuest, isAuthenticated } = useAuth() || {};
+  const { isGuest, isAuthenticated, logout } = useAuth() || {};
 
   useEffect(() => {
     if (!isGuest && !isAuthenticated) {
@@ -162,7 +162,7 @@ function LayoutContent({ children, user, setUser }) {
                         <HelpCircle className="w-4 h-4 mr-2" />
                         FAQ
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => isGuest ? base44.auth.redirectToLogin(window.location.href) : base44.auth.logout()} className="cursor-pointer text-[#2C4F4E] focus:bg-white font-medium">
+                      <DropdownMenuItem onClick={() => isGuest ? base44.auth.redirectToLogin(window.location.href) : logout()} className="cursor-pointer text-[#2C4F4E] focus:bg-white font-medium">
                         {isGuest ? (
                            <>
                              <User className="w-4 h-4 mr-2" />

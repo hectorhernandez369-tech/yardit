@@ -10,9 +10,11 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { clearAdminSession } from "../components/admin/AdminLoginModal";
 import UserInfoSection from "@/components/profile/UserInfoSection";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -54,7 +56,7 @@ export default function SettingsPage() {
 
   const handleLogout = () => {
     clearAdminSession();
-    base44.auth.logout(createPageUrl("Home"));
+    logout(createPageUrl("Home"));
   };
 
   if (!user) {

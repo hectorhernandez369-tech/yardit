@@ -7,6 +7,7 @@ import UserReportHistory from "./UserReportHistory";
 import UserAccountNotes from "./UserAccountNotes";
 import UserSendMessage from "./UserSendMessage";
 import UserPromotionHistory from "./UserPromotionHistory";
+import UserActivityLogTab from "./UserActivityLogTab";
 
 export default function UserDetailDrawer({ user, adminUser, open, onClose, onUserUpdated }) {
   const [tab, setTab] = useState("info");
@@ -27,6 +28,7 @@ export default function UserDetailDrawer({ user, adminUser, open, onClose, onUse
             <TabsTrigger value="reports" className="flex-1 text-xs">Reports</TabsTrigger>
             <TabsTrigger value="notes" className="flex-1 text-xs">Notes</TabsTrigger>
             <TabsTrigger value="promotions" className="flex-1 text-xs">Promotions</TabsTrigger>
+            <TabsTrigger value="activity" className="flex-1 text-xs">Activity Log</TabsTrigger>
             <TabsTrigger value="message" className="flex-1 text-xs">Message</TabsTrigger>
           </TabsList>
 
@@ -44,6 +46,9 @@ export default function UserDetailDrawer({ user, adminUser, open, onClose, onUse
           </TabsContent>
           <TabsContent value="promotions" className="mt-4">
             <UserPromotionHistory user={user} />
+          </TabsContent>
+          <TabsContent value="activity" className="mt-4">
+            <UserActivityLogTab user={user} />
           </TabsContent>
           <TabsContent value="message" className="mt-4">
             <UserSendMessage user={user} />

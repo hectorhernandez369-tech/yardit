@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { isGuestMode, setGuestMode, clearGuestMode } from './guestMode';
+import { logUserActivity, logUserActivityOncePerSession } from './logUserActivity';
 
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
@@ -68,6 +69,36 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     checkAppState();
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+
+    logUserActivityOncePerSession(`yardit_login_${user.id}`, {
+      user_id: user.id,
+      event_type: "login",
+      event_label: "Logged In",
+      target_type: "account",
+      target_id: user.id,
+      source_page: window.location.pathname,
+    }).catch(() => null);
+
+    const createdAt = new Date(user.created_date || 0).getTime();
+    const wasJustCreated = createdAt && Date.now() - createdAt <= 15 * 60 * 1000;
+
+    if (!wasJustCreated) return;
+
+    base44.entities.UserActivityLog.filter({ user_id: user.id, event_type: "account_created" }).then((existing) => {
+      if (existing.length > 0) return;
+      return logUserActivity({
+        user_id: user.id,
+        event_type: "account_created",
+        event_label: "Account Created",
+        target_type: "account",
+        target_id: user.id,
+        source_page: window.location.pathname,
+      });
+    }).catch(() => null);
+  }, [isAuthenticated, user]);
 
   const checkAppState = async () => {
     try {
@@ -197,20 +228,47 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = (shouldRedirect = true) => {
+  const logout = (redirectUrl) => {
+    const currentUser = user;
+    const finishLogout = () => {
+      if (redirectUrl) {
+        base44.auth.logout(redirectUrl);
+      } else {
+        base44.auth.logout();
+      }
+    };
+
     clearAuthReturnTo();
     clearGuestMode();
     setUser(null);
     setIsAuthenticated(false);
     setIsGuest(false);
-    
-    if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
-    } else {
-      // Just remove the token without redirect
-      base44.auth.logout();
+
+    if (!currentUser?.id) {
+      finishLogout();
+      return;
     }
+
+    let didFinish = false;
+    const safeFinish = () => {
+      if (didFinish) return;
+      didFinish = true;
+      finishLogout();
+    };
+
+    const timeoutId = window.setTimeout(safeFinish, 400);
+
+    logUserActivity({
+      user_id: currentUser.id,
+      event_type: "logout",
+      event_label: "Logged Out",
+      target_type: "account",
+      target_id: currentUser.id,
+      source_page: window.location.pathname,
+    }).finally(() => {
+      window.clearTimeout(timeoutId);
+      safeFinish();
+    });
   };
 
   const enterGuestMode = () => {
