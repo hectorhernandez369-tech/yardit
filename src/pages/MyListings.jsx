@@ -1019,6 +1019,15 @@ export default function MyListingsPage() {
           try {
             const result = await base44.integrations.Core.UploadFile({ file });
             setEditMarqueeBackgroundUrl(result.file_url);
+            
+            // Auto-save the background URL to the listing
+            if (editingListing?.id) {
+              await base44.entities.Listing.update(editingListing.id, {
+                marquee_background_url: result.file_url
+              });
+              await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+            }
+            
             toast.success("Background image cropped and saved");
           } catch (error) {
             console.error("Upload error:", error);
