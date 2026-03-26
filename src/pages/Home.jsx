@@ -1314,6 +1314,16 @@ const stats = useMemo(() => {
                   </Popup>
                 </Marker>
               ))}
+
+              {marqueeOverlays.map(({ listing, point }) => (
+                <MarqueeBoard
+                  key={`marquee-board-${listing.id}`}
+                  listing={listing}
+                  point={point}
+                  onClose={() => setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }))}
+                  onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+                />
+              ))}
             </MapContainer>
 
             {/* Temporary Proximity Debug Overlay */}
@@ -1386,16 +1396,6 @@ const stats = useMemo(() => {
               />
             )}
 
-
-            {marqueeOverlays.map(({ listing, point }) => (
-              <MarqueeBoard
-                key={`marquee-board-${listing.id}`}
-                listing={listing}
-                point={point}
-                onClose={() => setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }))}
-                onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-              />
-            ))}
 
             {locationError && (
               <div className="absolute bottom-24 left-4 right-4 z-[1000] sm:left-auto sm:right-4 sm:w-80">
