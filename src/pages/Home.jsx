@@ -1066,55 +1066,6 @@ const stats = useMemo(() => {
                   >
                     {!isMarquee && (
                       <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]}>
-                        <div className="flex flex-col gap-3" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1 flex-wrap">
-                              <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-slate-900">🎉 Event</Badge>
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{formatEventTierLabel(listing.event_tier || listing.tier)}</Badge>
-                            </div>
-                            <h3 className="font-bold text-sm leading-tight">{listing.event_name || listing.title}</h3>
-                            <p className="text-[11px] leading-tight text-gray-600">{listing.address_text || listing.addressText}</p>
-                          </div>
-
-                          <div className="space-y-2">
-                            {marqueeSlots.length > 0 ? marqueeSlots.map((slot) => (
-                              <div key={slot.id} className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-2">
-                                <div className="text-[11px] font-semibold text-slate-900">{slot.label}</div>
-                                <div className="text-[10px] text-amber-700">{formatMarqueeSlotTime(slot)}</div>
-                              </div>
-                            )) : (
-                              <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-[11px] text-slate-600">
-                                Schedule available in details.
-                              </div>
-                            )}
-                            {marqueeHasMore && <p className="text-[10px] text-slate-500">More schedule slots in details.</p>}
-                          </div>
-
-                          <div className="flex items-center gap-1 pt-1.5 border-t border-gray-100 flex-wrap">
-                            <Button
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
-                              }}
-                              className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700"
-                            >
-                              View More Details
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                guardAction(() => setReportListingId(listing.id));
-                              }}
-                              className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50"
-                            >
-                              Report
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
                         <div className="flex flex-col" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
                           <div className="p-1 overflow-y-auto flex-1 min-h-0">
                             <div className="flex items-center gap-1 flex-wrap mb-1">
