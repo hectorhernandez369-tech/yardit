@@ -43,7 +43,6 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
-import MarqueeBoard from "../components/map/MarqueeBoard";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -1342,34 +1341,6 @@ const stats = useMemo(() => {
               />
             )}
 
-            {visiblePins.map((listing) => {
-              const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
-              const marqueeOpen = isMarquee ? openMarqueeIds[listing.id] !== false : false;
-              if (!isMarquee || !marqueeOpen) return null;
-
-              const markerRef = markerRefsMap.current[listing.id];
-              const markerElement = markerRef?.getElement?.();
-              if (!markerElement) return null;
-
-              const markerRect = markerElement.getBoundingClientRect();
-              const containerRect = mapAreaRef.current?.getBoundingClientRect?.();
-              if (!containerRect) return null;
-
-              const point = {
-                x: markerRect.left - containerRect.left + (markerRect.width / 2),
-                y: markerRect.top - containerRect.top,
-              };
-
-              return (
-                <MarqueeBoard
-                  key={`marquee-board-${listing.id}`}
-                  listing={listing}
-                  point={point}
-                  onClose={() => setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }))}
-                  onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-                />
-              );
-            })}
 
             {locationError && (
               <div className="absolute bottom-24 left-4 right-4 z-[1000] sm:left-auto sm:right-4 sm:w-80">
