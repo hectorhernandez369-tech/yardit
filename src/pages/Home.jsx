@@ -805,6 +805,9 @@ const stats = useMemo(() => {
   }, [showControls]);
 
   const handlePinClick = (listing) => {
+    if ((listing?.event_tier || listing?.tier) === "marquee") {
+      setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: true }));
+    }
     setSelectedListingId(listing.id);
     setActiveFocusListing({ listing, fromUrl: false });
   };
@@ -1045,23 +1048,24 @@ const stats = useMemo(() => {
                 const isMapSelected = selectedListingId === listing.id;
                 const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
                 const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
-                const marqueeSlots = isMarquee ? getVisibleMarqueeSlots(listing) : [];
-                const marqueeHasMore = isMarquee ? hasMoreMarqueeSlots(listing) : false;
+                const marqueeOpen = isMarquee ? openMarqueeIds[listing.id] !== false : false;
+                const marqueeSlots = isMarquee && marqueeOpen ? getVisibleMarqueeSlots(listing) : [];
+                const marqueeHasMore = isMarquee && marqueeOpen ? hasMoreMarqueeSlots(listing) : false;
                 
                 return (
                   <Marker
                     key={listing.id}
                     ref={(ref) => { if (ref) markerRefsMap.current[listing.id] = ref; }}
                     position={[listing.lat, listing.lng]}
-                    icon={listing.listingType === "event" ? getEventMarkerIcon(listing, isMapSelected, true) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
+                    icon={listing.listingType === "event" ? getEventMarkerIcon(listing, isMapSelected, marqueeOpen) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
                     eventHandlers={{
                       click: () => { handlePinClick(listing); },
                       popupopen: () => setSelectedListingId(listing.id),
                       popupclose: () => setSelectedListingId((current) => current === listing.id ? null : current),
                     }}
                   >
-                    <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]}>
-                      {isMarquee ? (
+                    {!isMarquee && (
+                      <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]}>
                         <div className="flex flex-col gap-3" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
                           <div className="space-y-2">
                             <div className="flex items-center gap-1 flex-wrap">
@@ -1285,8 +1289,8 @@ const stats = useMemo(() => {
                             </div>
                           </div>
                         </div>
-                      )}
-                    </Popup>
+                      </Popup>
+                    )}
                   </Marker>
                 );
               })}
@@ -1394,6 +1398,69 @@ const stats = useMemo(() => {
                 showListingsActive={isShowingAllListings}
               />
             )}
+
+            {visiblePins.map((listing) => {
+              const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
+              const marqueeOpen = isMarquee ? openMarqueeIds[listing.id] !== false : false;
+              if (!isMarquee || !marqueeOpen) return null;
+
+              const map = mapRef.current;
+              if (!map) return null;
+              const point = map.latLngToContainerPoint([listing.lat, listing.lng]);
+              const marqueeSlots = getVisibleMarqueeSlots(listing).slice(0, 4);
+
+              return (
+                <div
+                  key={`marquee-board-${listing.id}`}
+                  className="absolute z-[1000] pointer-events-auto"
+                  style={{ left: point.x, top: point.y, transform: "translate(-50%, calc(-100% - 18px))" }}
+                >
+                  <div className="relative w-[220px] rounded-[14px] border-4 border-[#f4a849] bg-gradient-to-b from-[#7c2d12] to-[#3f1d0b] p-2.5 text-white shadow-[0_0_0_2px_#2b1609_inset,0_0_18px_rgba(255,214,10,0.75),0_10px_22px_rgba(0,0,0,0.32)]">
+                    <div className="pointer-events-none absolute inset-[6px] rounded-[10px] border-2 border-dashed border-[#fff59dd9]" />
+                    <div className="pointer-events-none absolute -top-[7px] left-[10px] right-[10px] grid grid-cols-10 gap-[5px]">
+                      {Array.from({ length: 10 }).map((_, index) => <span key={`top-${listing.id}-${index}`} className="h-[7px] w-[7px] rounded-full bg-[#fff3b0] shadow-[0_0_8px_rgba(255,230,128,0.95)]" />)}
+                    </div>
+                    <div className="pointer-events-none absolute -bottom-[7px] left-[10px] right-[10px] grid grid-cols-10 gap-[5px]">
+                      {Array.from({ length: 10 }).map((_, index) => <span key={`bottom-${listing.id}-${index}`} className="h-[7px] w-[7px] rounded-full bg-[#fff3b0] shadow-[0_0_8px_rgba(255,230,128,0.95)]" />)}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }))}
+                      className="absolute right-2 top-2 z-10 rounded-full bg-black/20 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-black/35"
+                    >
+                      X
+                    </button>
+
+                    <div className="mb-2 px-6 text-center text-[13px] font-black uppercase leading-tight tracking-[0.03em]">
+                      {listing.event_name || listing.title || "Event"}
+                    </div>
+
+                    <div className="grid gap-[5px] min-h-[78px]">
+                      {marqueeSlots.length > 0 ? marqueeSlots.map((slot) => (
+                        <div key={slot.id} className="flex items-center justify-between gap-2 rounded-lg bg-white/10 px-2 py-1 text-[10px] leading-tight">
+                          <span className="max-w-[96px] truncate font-bold">{slot.label}</span>
+                          <span className="whitespace-nowrap text-[#FDE68A]">{formatMarqueeSlotTime(slot)}</span>
+                        </div>
+                      )) : (
+                        <div className="rounded-[10px] bg-white/10 px-2 py-2 text-center text-[10px] text-[#FDE68A]">See details</div>
+                      )}
+                    </div>
+
+                    {marqueeHasMore && <p className="mt-1 text-[10px] text-[#FDE68A]">More schedule slots in details.</p>}
+
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+                      className="mt-2 h-7 w-full bg-amber-600 px-2 py-0 text-[11px] hover:bg-amber-700"
+                    >
+                      View More Details
+                    </Button>
+                  </div>
+                  <div className="mx-auto h-0 w-0 border-l-[14px] border-r-[14px] border-t-[16px] border-l-transparent border-r-transparent border-t-[#3f1d0b] drop-shadow-[0_4px_4px_rgba(0,0,0,0.28)]" />
+                </div>
+              );
+            })}
 
             {locationError && (
               <div className="absolute bottom-24 left-4 right-4 z-[1000] sm:left-auto sm:right-4 sm:w-80">
