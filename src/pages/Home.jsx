@@ -1346,27 +1346,36 @@ const stats = useMemo(() => {
               const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
               const marqueeOpen = isMarquee ? openMarqueeIds[listing.id] !== false : false;
               if (!isMarquee || !marqueeOpen) return null;
-
-              const map = mapRef.current;
-              if (!map || typeof listing?.lat !== "number" || typeof listing?.lng !== "number") return null;
-
-              let point = null;
-              try {
-                point = map.latLngToContainerPoint([listing.lat, listing.lng]);
-              } catch {
-                return null;
-              }
-
-              console.log("MarqueeBoard render", listing.id);
+              if (typeof listing?.lat !== "number" || typeof listing?.lng !== "number") return null;
 
               return (
-                <MarqueeBoard
+                <Marker
                   key={`marquee-board-${listing.id}`}
-                  listing={listing}
-                  point={point}
-                  onClose={() => setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }))}
-                  onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-                />
+                  position={[listing.lat, listing.lng]}
+                  icon={L.divIcon({
+                    className: "marquee-board-marker",
+                    html: "",
+                    iconSize: [0, 0],
+                    iconAnchor: [0, 0],
+                  })}
+                  interactive={false}
+                  keyboard={false}
+                  zIndexOffset={1000}
+                >
+                  <Popup
+                    closeButton={false}
+                    autoClose={false}
+                    closeOnClick={false}
+                    className="marquee-board-popup"
+                    offset={[0, -18]}
+                  >
+                    <MarqueeBoard
+                      listing={listing}
+                      onClose={() => setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }))}
+                      onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+                    />
+                  </Popup>
+                </Marker>
               );
             })}
 
