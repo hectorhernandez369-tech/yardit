@@ -148,7 +148,9 @@ export default function ImageCropEditor({ imageUrl, open, onClose, onApply, aspe
       // Convert to blob
       outputCanvas.toBlob((blob) => {
         if (blob) {
-          onApply(blob);
+          // Convert blob to File for upload
+          const file = new File([blob], "cropped-background.jpg", { type: "image/jpeg" });
+          onApply(file);
           onClose();
         } else {
           console.error("Failed to create blob from canvas");

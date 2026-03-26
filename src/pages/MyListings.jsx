@@ -1015,12 +1015,13 @@ export default function MyListingsPage() {
         imageUrl={backgroundImageForCrop}
         open={cropEditorOpen}
         onClose={() => setCropEditorOpen(false)}
-        onApply={async (blob) => {
+        onApply={async (file) => {
           try {
-            const result = await base44.integrations.Core.UploadFile({ file: blob });
+            const result = await base44.integrations.Core.UploadFile({ file });
             setEditMarqueeBackgroundUrl(result.file_url);
             toast.success("Background image cropped and saved");
           } catch (error) {
+            console.error("Upload error:", error);
             toast.error("Failed to save cropped image");
           }
         }}
