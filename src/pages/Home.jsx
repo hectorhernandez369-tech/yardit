@@ -43,7 +43,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
-import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.js";
+import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.jsx";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 

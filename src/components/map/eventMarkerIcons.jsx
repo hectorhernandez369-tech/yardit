@@ -1,6 +1,6 @@
 import L from "leaflet";
 import { getEventIconEmoji } from "@/lib/eventListingConfig";
-import { MARQUEE_BOARD_WIDTH } from "@/components/map/MarqueeBoard.js";
+import { MARQUEE_BOARD_WIDTH } from "@/components/map/MarqueeBoard.jsx";
 
 // iconAnchor Y=0: wrapper is 0-height, tail tip = coordinate
 const MARQUEE_ANCHOR_Y = 0;
