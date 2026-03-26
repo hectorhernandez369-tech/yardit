@@ -278,7 +278,7 @@ export default function ListingDetailPage() {
   ].filter(Boolean).join("\n");
 
   const marqueeSchedule = normalizeMarqueeSlots(listing?.marquee_schedule_slots || []);
-  const flyerImages = listing?.event_photos || listing?.photoUrls || [];
+  const flyerImages = (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(listing?.event_photos || listing?.photoUrls || []);
 
   const handleCopyInvite = () => {
     navigator.clipboard.writeText(inviteText).then(() => {

@@ -216,7 +216,9 @@ export default function MyListingsPage() {
    setEditEventIcon(listing?.event_icon || getDefaultEventIconForCategory(listing?.event_category || listing?.category));
    setEditEventLogoUrl(listing?.event_logo_url || "");
    setEditMarqueeSlots(Array.isArray(listing?.marquee_schedule_slots) ? listing.marquee_schedule_slots : []);
-   setEditMarqueeFlyerUrl(listing?.marquee_flyer_url || "");
+   const flyerUrl = listing?.marquee_flyer_url || "";
+   setEditMarqueeFlyerUrl(flyerUrl);
+   console.log("DEBUG: openEditDescription - marquee_flyer_url:", flyerUrl);
    const bgUrl = listing?.marquee_background_url || "";
    setEditMarqueeBackgroundUrl(bgUrl);
    console.log("DEBUG: openEditDescription - marquee_background_url:", bgUrl);
@@ -876,13 +878,15 @@ export default function MyListingsPage() {
                               if (!file) return;
                               setIsUploadingFlyer(true);
                               try {
-                                const result = await base44.integrations.Core.UploadFile({ file });
-                                setEditMarqueeFlyerUrl(result.file_url);
-                              } catch (error) {
-                                toast.error("Failed to upload flyer");
-                              } finally {
-                                setIsUploadingFlyer(false);
-                              }
+                                 const result = await base44.integrations.Core.UploadFile({ file });
+                                 setEditMarqueeFlyerUrl(result.file_url);
+                                 toast.success("Flyer uploaded - click Save to persist");
+                               } catch (error) {
+                                 console.error("Upload error:", error);
+                                 toast.error("Failed to upload flyer");
+                               } finally {
+                                 setIsUploadingFlyer(false);
+                               }
                             }}
                             className="hidden"
                           />
