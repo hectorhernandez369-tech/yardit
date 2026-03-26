@@ -43,6 +43,7 @@ export default function MyListingsPage() {
 
   // (Edit Listing modal state)
   const [editingListing, setEditingListing] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editCategories, setEditCategories] = useState([]);
   const [editStartDate, setEditStartDate] = useState("");
@@ -53,6 +54,8 @@ export default function MyListingsPage() {
   const [editEventEndDate, setEditEventEndDate] = useState("");
   const [editEventStartTime, setEditEventStartTime] = useState("");
   const [editEventEndTime, setEditEventEndTime] = useState("");
+  const [editMarqueeFlyerUrl, setEditMarqueeFlyerUrl] = useState("");
+  const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -202,11 +205,13 @@ export default function MyListingsPage() {
 
   const openEditDescription = (listing) => {
     setEditingListing(listing);
-    setEditDescription(listing?.description || "");
+    setEditTitle(listing?.title || listing?.event_name || "");
+    setEditDescription(listing?.description || listing?.event_description || "");
     setEditCategories(listing?.categories?.length > 0 ? listing.categories : (listing?.category ? [listing.category] : []));
     setEditEventIcon(listing?.event_icon || getDefaultEventIconForCategory(listing?.event_category || listing?.category));
     setEditEventLogoUrl(listing?.event_logo_url || "");
     setEditMarqueeSlots(Array.isArray(listing?.marquee_schedule_slots) ? listing.marquee_schedule_slots : []);
+    setEditMarqueeFlyerUrl(listing?.marquee_flyer_url || "");
 
     // Marquee date/time prefill
     if (listing?.listingType === "event" && (listing?.event_tier || listing?.tier) === "marquee") {
@@ -232,6 +237,7 @@ export default function MyListingsPage() {
 
   const closeEditDescription = () => {
     setEditingListing(null);
+    setEditTitle("");
     setEditDescription("");
     setEditCategories([]);
     setEditStartDate("");
@@ -242,6 +248,7 @@ export default function MyListingsPage() {
     setEditEventEndDate("");
     setEditEventStartTime("");
     setEditEventEndTime("");
+    setEditMarqueeFlyerUrl("");
   };
 
   const saveDescription = async () => {
@@ -266,8 +273,14 @@ export default function MyListingsPage() {
 
     let dateChanged = false;
     const updateData = {
+      title: editTitle,
       description: editDescription,
     };
+
+    if (editingListing.listingType === "event") {
+      updateData.event_name = editTitle;
+      updateData.event_description = editDescription;
+    }
 
     if (editingListing.listingType === "yard_sale") {
       updateData.categories = editCategories;
@@ -279,6 +292,7 @@ export default function MyListingsPage() {
       updateData.event_logo_url = editEventLogoUrl || "";
       if ((editingListing.event_tier || editingListing.tier) === "marquee") {
         updateData.marquee_schedule_slots = editMarqueeSlots;
+        updateData.marquee_flyer_url = editMarqueeFlyerUrl;
 
         // Update start/end datetimes if provided
         if (editEventStartDate && editEventStartTime) {
@@ -762,6 +776,16 @@ export default function MyListingsPage() {
 
             {editingListing?.listingType === "event" && (
               <div className="space-y-4">
+                <div>
+                  <Label className="text-[#2C4F4E] mb-2 block">Event Title *</Label>
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Event title..."
+                    className="bg-[#F3E6CF] border-[#2C4F4E]"
+                  />
+                </div>
+
                 <EventIconManager
                   tier={editingListing?.event_tier || editingListing?.tier || "basic"}
                   selectedIcon={editEventIcon}
@@ -813,6 +837,58 @@ export default function MyListingsPage() {
                           />
                         </div>
                       </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-[#2C4F4E] font-semibold block mb-2">Flyer</Label>
+                      {editMarqueeFlyerUrl ? (
+                        <div className="space-y-2">
+                          <div className="w-full max-w-xs border-2 border-[#2C4F4E] rounded-lg overflow-hidden">
+                            <img src={editMarqueeFlyerUrl} alt="Flyer preview" className="w-full h-auto" />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setEditMarqueeFlyerUrl("")}
+                          >
+                            Delete Flyer
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed border-[#2C4F4E] rounded-lg p-4 text-center">
+                          <input
+                            type="file"
+                            id="flyer-upload"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setIsUploadingFlyer(true);
+                              try {
+                                const result = await base44.integrations.Core.UploadFile({ file });
+                                setEditMarqueeFlyerUrl(result.file_url);
+                              } catch (error) {
+                                toast.error("Failed to upload flyer");
+                              } finally {
+                                setIsUploadingFlyer(false);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <label htmlFor="flyer-upload" className="cursor-pointer">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-[#2C4F4E]"
+                              disabled={isUploadingFlyer}
+                            >
+                              {isUploadingFlyer ? "Uploading..." : "Upload Flyer"}
+                            </Button>
+                          </label>
+                          <p className="text-xs text-slate-500 mt-2">JPG, PNG (shown in listing details)</p>
+                        </div>
+                      )}
                     </div>
 
                     <MarqueeSlotsEditor
