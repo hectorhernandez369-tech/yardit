@@ -22,11 +22,15 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = tr
   const image = listing?.event_logo_url || listing?.event_photos?.[0] || listing?.photoUrls?.[0];
 
   if (tier === "marquee") {
+    if (marqueeOpen) {
+      const size = 2;
+      const html = `<div style="width:${size}px;height:${size}px;opacity:0;pointer-events:none;"></div>`;
+      return makeDivIcon(`event_marquee_open_anchor_${listing?.id}`, html, size, size);
+    }
+
     const size = 28;
-    const glowOpacity = marqueeOpen ? 0.95 : 0.75;
-    const ringScale = marqueeOpen ? 1.05 : 1;
-    const html = `<div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:flex-end;justify-content:center;"><div style="position:absolute;left:2px;bottom:6px;width:10px;height:18px;background:linear-gradient(180deg, rgba(255,245,157,${glowOpacity}), rgba(255,214,10,0));clip-path:polygon(50% 0%, 100% 100%, 0% 100%);transform:rotate(-16deg);"></div><div style="position:absolute;right:2px;bottom:6px;width:10px;height:18px;background:linear-gradient(180deg, rgba(255,245,157,${glowOpacity}), rgba(255,214,10,0));clip-path:polygon(50% 0%, 100% 100%, 0% 100%);transform:rotate(16deg);"></div><div style="position:relative;width:${18 * ringScale}px;height:${18 * ringScale}px;border-radius:9999px;background:#111827;border:2px solid #f4a849;box-shadow:0 0 10px rgba(255,214,10,0.75), 0 4px 10px rgba(0,0,0,0.28);"></div></div>`;
-    return makeDivIcon(`event_marquee_marker_${listing?.id}_${marqueeOpen}_${isSelected}`, html, size, size);
+    const html = `<div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:flex-end;justify-content:center;"><div style="position:absolute;left:2px;bottom:6px;width:10px;height:18px;background:linear-gradient(180deg, rgba(255,245,157,0.75), rgba(255,214,10,0));clip-path:polygon(50% 0%, 100% 100%, 0% 100%);transform:rotate(-16deg);"></div><div style="position:absolute;right:2px;bottom:6px;width:10px;height:18px;background:linear-gradient(180deg, rgba(255,245,157,0.75), rgba(255,214,10,0));clip-path:polygon(50% 0%, 100% 100%, 0% 100%);transform:rotate(16deg);"></div><div style="position:relative;width:18px;height:18px;border-radius:9999px;background:#111827;border:2px solid #f4a849;box-shadow:0 0 10px rgba(255,214,10,0.75), 0 4px 10px rgba(0,0,0,0.28);"></div></div>`;
+    return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, size, size);
   }
 
   if (tier === "premium") {
