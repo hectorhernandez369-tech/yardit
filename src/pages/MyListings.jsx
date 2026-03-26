@@ -881,16 +881,15 @@ export default function MyListingsPage() {
                             }}
                             className="hidden"
                           />
-                          <label htmlFor="flyer-upload" className="cursor-pointer">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="border-[#2C4F4E]"
-                              disabled={isUploadingFlyer}
-                            >
-                              {isUploadingFlyer ? "Uploading..." : "Upload Flyer"}
-                            </Button>
-                          </label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-[#2C4F4E]"
+                            disabled={isUploadingFlyer}
+                            onClick={() => document.getElementById("flyer-upload")?.click()}
+                          >
+                            {isUploadingFlyer ? "Uploading..." : "Upload Flyer"}
+                          </Button>
                           <p className="text-xs text-slate-500 mt-2">JPG, PNG (shown in listing details)</p>
                         </div>
                       )}
@@ -933,16 +932,15 @@ export default function MyListingsPage() {
                             }}
                             className="hidden"
                           />
-                          <label htmlFor="background-upload" className="cursor-pointer">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="border-[#2C4F4E]"
-                              disabled={isUploadingBackground}
-                            >
-                              {isUploadingBackground ? "Uploading..." : "Upload Background"}
-                            </Button>
-                          </label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-[#2C4F4E]"
+                            disabled={isUploadingBackground}
+                            onClick={() => document.getElementById("background-upload")?.click()}
+                          >
+                            {isUploadingBackground ? "Uploading..." : "Upload Background"}
+                          </Button>
                           <p className="text-xs text-slate-500 mt-2">16:9 aspect ratio recommended (1920x1080 or larger)</p>
                         </div>
                       )}
