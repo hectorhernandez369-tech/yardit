@@ -23,12 +23,16 @@ export default function ImageCropEditor({ imageUrl, open, onClose, onApply, aspe
     if (!imageUrl || !open) return;
 
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       imageRef.current = img;
       // Reset position on new image
       setZoom(1);
       setOffsetX(0);
       setOffsetY(0);
+    };
+    img.onerror = () => {
+      console.error("Failed to load image for cropping");
     };
     img.src = imageUrl;
   }, [imageUrl, open]);
@@ -111,40 +115,48 @@ export default function ImageCropEditor({ imageUrl, open, onClose, onApply, aspe
     const canvas = canvasRef.current;
     if (!canvas || !imageRef.current) return;
 
-    const ctx = canvas.getContext("2d");
-    const img = imageRef.current;
+    try {
+      const ctx = canvas.getContext("2d");
+      const img = imageRef.current;
 
-    // Create output canvas (1920x1080 for 16:9)
-    const outputCanvas = document.createElement("canvas");
-    outputCanvas.width = 1920;
-    outputCanvas.height = 1080;
-    const outputCtx = outputCanvas.getContext("2d");
+      // Create output canvas (1920x1080 for 16:9)
+      const outputCanvas = document.createElement("canvas");
+      outputCanvas.width = 1920;
+      outputCanvas.height = 1080;
+      const outputCtx = outputCanvas.getContext("2d");
 
-    // Calculate scaling to fit output resolution
-    const scale = 1920 / previewWidth;
+      // Calculate scaling to fit output resolution
+      const scale = 1920 / previewWidth;
 
-    // Draw cropped image to output
-    outputCtx.fillStyle = "#ffffff";
-    outputCtx.fillRect(0, 0, 1920, 1080);
+      // Draw cropped image to output
+      outputCtx.fillStyle = "#ffffff";
+      outputCtx.fillRect(0, 0, 1920, 1080);
 
-    outputCtx.save();
-    outputCtx.translate(960, 540);
-    const scaledWidth = (img.width * zoom * scale) / 2;
-    const scaledHeight = (img.height * zoom * scale) / 2;
-    outputCtx.drawImage(
-      img,
-      offsetX * scale - scaledWidth,
-      offsetY * scale - scaledHeight,
-      img.width * zoom * scale,
-      img.height * zoom * scale
-    );
-    outputCtx.restore();
+      outputCtx.save();
+      outputCtx.translate(960, 540);
+      const scaledWidth = (img.width * zoom * scale) / 2;
+      const scaledHeight = (img.height * zoom * scale) / 2;
+      outputCtx.drawImage(
+        img,
+        offsetX * scale - scaledWidth,
+        offsetY * scale - scaledHeight,
+        img.width * zoom * scale,
+        img.height * zoom * scale
+      );
+      outputCtx.restore();
 
-    // Convert to blob
-    outputCanvas.toBlob((blob) => {
-      onApply(blob);
-      onClose();
-    }, "image/jpeg", 0.92);
+      // Convert to blob
+      outputCanvas.toBlob((blob) => {
+        if (blob) {
+          onApply(blob);
+          onClose();
+        } else {
+          console.error("Failed to create blob from canvas");
+        }
+      }, "image/jpeg", 0.92);
+    } catch (error) {
+      console.error("Error during crop/zoom:", error);
+    }
   };
 
   return (
