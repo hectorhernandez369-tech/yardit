@@ -55,7 +55,9 @@ export default function MyListingsPage() {
   const [editEventStartTime, setEditEventStartTime] = useState("");
   const [editEventEndTime, setEditEventEndTime] = useState("");
   const [editMarqueeFlyerUrl, setEditMarqueeFlyerUrl] = useState("");
+  const [editMarqueeBackgroundUrl, setEditMarqueeBackgroundUrl] = useState("");
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
+  const [isUploadingBackground, setIsUploadingBackground] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -212,6 +214,7 @@ export default function MyListingsPage() {
     setEditEventLogoUrl(listing?.event_logo_url || "");
     setEditMarqueeSlots(Array.isArray(listing?.marquee_schedule_slots) ? listing.marquee_schedule_slots : []);
     setEditMarqueeFlyerUrl(listing?.marquee_flyer_url || "");
+    setEditMarqueeBackgroundUrl(listing?.marquee_background_url || "");
 
     // Marquee date/time prefill
     if (listing?.listingType === "event" && (listing?.event_tier || listing?.tier) === "marquee") {
@@ -249,6 +252,7 @@ export default function MyListingsPage() {
     setEditEventStartTime("");
     setEditEventEndTime("");
     setEditMarqueeFlyerUrl("");
+    setEditMarqueeBackgroundUrl("");
   };
 
   const saveDescription = async () => {
@@ -293,6 +297,7 @@ export default function MyListingsPage() {
       if ((editingListing.event_tier || editingListing.tier) === "marquee") {
         updateData.marquee_schedule_slots = editMarqueeSlots;
         updateData.marquee_flyer_url = editMarqueeFlyerUrl;
+        updateData.marquee_background_url = editMarqueeBackgroundUrl;
 
         // Update start/end datetimes if provided
         if (editEventStartDate && editEventStartTime) {
@@ -887,6 +892,58 @@ export default function MyListingsPage() {
                             </Button>
                           </label>
                           <p className="text-xs text-slate-500 mt-2">JPG, PNG (shown in listing details)</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label className="text-[#2C4F4E] font-semibold block mb-2">Background Image</Label>
+                      {editMarqueeBackgroundUrl ? (
+                        <div className="space-y-2">
+                          <div className="w-full max-w-xs border-2 border-[#2C4F4E] rounded-lg overflow-hidden aspect-video">
+                            <img src={editMarqueeBackgroundUrl} alt="Background preview" className="w-full h-full object-cover" />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setEditMarqueeBackgroundUrl("")}
+                          >
+                            Delete Background
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed border-[#2C4F4E] rounded-lg p-4 text-center">
+                          <input
+                            type="file"
+                            id="background-upload"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setIsUploadingBackground(true);
+                              try {
+                                const result = await base44.integrations.Core.UploadFile({ file });
+                                setEditMarqueeBackgroundUrl(result.file_url);
+                              } catch (error) {
+                                toast.error("Failed to upload background");
+                              } finally {
+                                setIsUploadingBackground(false);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <label htmlFor="background-upload" className="cursor-pointer">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-[#2C4F4E]"
+                              disabled={isUploadingBackground}
+                            >
+                              {isUploadingBackground ? "Uploading..." : "Upload Background"}
+                            </Button>
+                          </label>
+                          <p className="text-xs text-slate-500 mt-2">16:9 aspect ratio recommended (1920x1080 or larger)</p>
                         </div>
                       )}
                     </div>
