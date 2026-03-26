@@ -2,14 +2,17 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { getVisibleMarqueeSlots, formatMarqueeSlotTime } from "@/lib/marqueeSchedule";
 
-export default function MarqueeBoard({ listing, onClose, onViewDetails }) {
-  if (!listing) return null;
+export default function MarqueeBoard({ listing, point, onClose, onViewDetails }) {
+  if (!listing || !point || typeof point.x !== "number" || typeof point.y !== "number") return null;
 
   const title = listing.event_name || listing.title || "Event";
   const slots = getVisibleMarqueeSlots(listing).slice(0, 4);
 
   return (
-    <div className="pointer-events-auto">
+    <div
+      className="absolute z-[1000] pointer-events-auto"
+      style={{ left: point.x, top: point.y, transform: "translate(-50%, calc(-100% - 18px))" }}
+    >
       <div className="relative w-[114px] rounded-lg border border-[#f4a849] bg-gradient-to-b from-[#7c2d12] to-[#3f1d0b] px-1.5 pb-0.5 pt-0.5 text-white shadow-[0_6px_14px_rgba(0,0,0,0.28)]">
         <div className="pointer-events-none absolute left-1.5 right-1.5 top-[-3px] flex justify-between">
           {Array.from({ length: 10 }).map((_, index) => (
@@ -55,6 +58,7 @@ export default function MarqueeBoard({ listing, onClose, onViewDetails }) {
           View More Details
         </Button>
       </div>
+      <div className="mx-auto h-0 w-0 border-l-[6px] border-r-[6px] border-t-[7px] border-l-transparent border-r-transparent border-t-[#3f1d0b] drop-shadow-[0_2px_2px_rgba(0,0,0,0.28)]" />
     </div>
   );
 }
