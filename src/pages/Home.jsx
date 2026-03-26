@@ -43,6 +43,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
+import { formatMarqueeSlotTime, getVisibleMarqueeSlots, hasMoreMarqueeSlots } from "@/lib/marqueeSchedule";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -804,9 +805,6 @@ const stats = useMemo(() => {
   }, [showControls]);
 
   const handlePinClick = (listing) => {
-    if ((listing?.event_tier || listing?.tier) === "marquee") {
-      setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: true }));
-    }
     setSelectedListingId(listing.id);
     setActiveFocusListing({ listing, fromUrl: false });
   };
@@ -1047,14 +1045,15 @@ const stats = useMemo(() => {
                 const isMapSelected = selectedListingId === listing.id;
                 const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
                 const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
-                const marqueeOpen = isMarquee ? openMarqueeIds[listing.id] !== false : false;
+                const marqueeSlots = isMarquee ? getVisibleMarqueeSlots(listing) : [];
+                const marqueeHasMore = isMarquee ? hasMoreMarqueeSlots(listing) : false;
                 
                 return (
                   <Marker
                     key={listing.id}
                     ref={(ref) => { if (ref) markerRefsMap.current[listing.id] = ref; }}
                     position={[listing.lat, listing.lng]}
-                    icon={listing.listingType === "event" ? getEventMarkerIcon(listing, isMapSelected, marqueeOpen) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
+                    icon={listing.listingType === "event" ? getEventMarkerIcon(listing, isMapSelected, true) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
                     eventHandlers={{
                       click: () => { handlePinClick(listing); },
                       popupopen: () => setSelectedListingId(listing.id),
@@ -1062,193 +1061,231 @@ const stats = useMemo(() => {
                     }}
                   >
                     <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]}>
-                      <div className="flex flex-col" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
-                        <div className="p-1 overflow-y-auto flex-1 min-h-0">
-                          <div className="flex items-center gap-1 flex-wrap mb-1">
-                            <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
-                              {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : listing.listingType === "event" ? "🎉 Event" : "🏡 Yard Sale"}
-                            </Badge>
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier}</Badge>
-                            {isHuntStop && (
-                              <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
+                      {isMarquee ? (
+                        <div className="flex flex-col gap-3" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-slate-900">🎉 Event</Badge>
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{formatEventTierLabel(listing.event_tier || listing.tier)}</Badge>
+                            </div>
+                            <h3 className="font-bold text-sm leading-tight">{listing.event_name || listing.title}</h3>
+                            <p className="text-[11px] leading-tight text-gray-600">{listing.address_text || listing.addressText}</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            {marqueeSlots.length > 0 ? marqueeSlots.map((slot) => (
+                              <div key={slot.id} className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-2">
+                                <div className="text-[11px] font-semibold text-slate-900">{slot.label}</div>
+                                <div className="text-[10px] text-amber-700">{formatMarqueeSlotTime(slot)}</div>
+                              </div>
+                            )) : (
+                              <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-[11px] text-slate-600">
+                                Schedule available in details.
+                              </div>
                             )}
+                            {marqueeHasMore && <p className="text-[10px] text-slate-500">More schedule slots in details.</p>}
                           </div>
 
-                          <h3 className="font-bold text-sm leading-none mb-1">{listing.event_name || listing.title}</h3>
-                          <p className="text-[11px] leading-tight text-gray-600 mb-1">{listing.address_text || listing.addressText}</p>
-
-                          {(listing.event_description || listing.description) && (
-                            <p className="text-[11px] leading-tight text-gray-500 mb-1.5 line-clamp-3">{listing.event_description || listing.description}</p>
-                          )}
-
-                          <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-0.5">
-                            <Calendar className="w-3 h-3 shrink-0" />
-                            {format(new Date(listing.startDateTime), "MMM d, h:mm a")} — {format(new Date(listing.endDateTime), "MMM d, h:mm a")}
-                          </div>
-
-                          <div className="flex items-center gap-1 text-[10px] text-gray-400 mb-1">
-                            <User className="w-3 h-3" />
-                            {listing.created_by?.split("@")[0] || "Anonymous"}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
-                          {isMarquee && (
+                          <div className="flex items-center gap-1 pt-1.5 border-t border-gray-100 flex-wrap">
+                            <Button
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
+                              }}
+                              className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700"
+                            >
+                              View More Details
+                            </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: !marqueeOpen }));
+                                guardAction(() => setReportListingId(listing.id));
                               }}
-                              className="h-6 text-[11px] px-2 py-0"
+                              className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50"
                             >
-                              {marqueeOpen ? "Close Marquee" : "Open Marquee"}
+                              Report
                             </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
-                            }}
-                            className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700"
-                          >
-                            View Details
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              guardAction(() => setReportListingId(listing.id));
-                            }}
-                            className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50"
-                          >
-                            Report
-                          </Button>
-                          <div className="ml-auto flex gap-1">
-                            {listing.listingType !== "event" && HUNT_ENABLED && (() => {
-                              const huntStop = huntStops.find(s => s.id === listing.id);
-                              
-                              if (!huntStop) {
-                                return (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      guardAction(() => addToHunt(listing), {
-                                        allowGuest: isGuest && huntStops.length < 2,
-                                        modal: {
-                                          title: "Create a Free Account to Save More Stops",
-                                          description: "Guests can preview up to 2 Hunt stops.",
-                                          detail: "Create a free account to save more stops and continue your hunt.",
-                                        }
-                                      });
-                                    }}
-                                    className="gap-1 h-6 text-[11px] px-1.5 py-0"
-                                  >
-                                    <Plus className="w-3 h-3" /> Add Stop
-                                  </Button>
-                                );
-                              }
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
+                          <div className="p-1 overflow-y-auto flex-1 min-h-0">
+                            <div className="flex items-center gap-1 flex-wrap mb-1">
+                              <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
+                                {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : listing.listingType === "event" ? "🎉 Event" : "🏡 Yard Sale"}
+                              </Badge>
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier}</Badge>
+                              {isHuntStop && (
+                                <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
+                              )}
+                            </div>
 
-                              const status = huntStop.huntStatus || "not_started";
-                              
-                              if (status === "completed") {
-                                return (
-                                  <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0">
-                                    Completed ✅
-                                  </Badge>
-                                );
-                              }
-                              
-                              if (status === "skipped") {
-                                return (
-                                  <div className="flex gap-1">
-                                    <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0">
-                                      Skipped
-                                    </Badge>
+                            <h3 className="font-bold text-sm leading-none mb-1">{listing.event_name || listing.title}</h3>
+                            <p className="text-[11px] leading-tight text-gray-600 mb-1">{listing.address_text || listing.addressText}</p>
+
+                            {(listing.event_description || listing.description) && (
+                              <p className="text-[11px] leading-tight text-gray-500 mb-1.5 line-clamp-3">{listing.event_description || listing.description}</p>
+                            )}
+
+                            <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-0.5">
+                              <Calendar className="w-3 h-3 shrink-0" />
+                              {format(new Date(listing.startDateTime), "MMM d, h:mm a")} — {format(new Date(listing.endDateTime), "MMM d, h:mm a")}
+                            </div>
+
+                            <div className="flex items-center gap-1 text-[10px] text-gray-400 mb-1">
+                              <User className="w-3 h-3" />
+                              {listing.created_by?.split("@")[0] || "Anonymous"}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
+                            <Button
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
+                              }}
+                              className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700"
+                            >
+                              View Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                guardAction(() => setReportListingId(listing.id));
+                              }}
+                              className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              Report
+                            </Button>
+                            <div className="ml-auto flex gap-1">
+                              {listing.listingType !== "event" && HUNT_ENABLED && (() => {
+                                const huntStop = huntStops.find(s => s.id === listing.id);
+                                
+                                if (!huntStop) {
+                                  return (
                                     <Button
                                       size="sm"
                                       variant="outline"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        updateStopStatus(listing.id, "not_started");
+                                        guardAction(() => addToHunt(listing), {
+                                          allowGuest: isGuest && huntStops.length < 2,
+                                          modal: {
+                                            title: "Create a Free Account to Save More Stops",
+                                            description: "Guests can preview up to 2 Hunt stops.",
+                                            detail: "Create a free account to save more stops and continue your hunt.",
+                                          }
+                                        });
                                       }}
-                                      className="h-6 text-[11px] px-1.5 py-0 text-blue-600 border-blue-300 hover:bg-blue-50"
+                                      className="gap-1 h-6 text-[11px] px-1.5 py-0"
                                     >
-                                      Reset
+                                      <Plus className="w-3 h-3" /> Add Stop
                                     </Button>
+                                  );
+                                }
+
+                                const status = huntStop.huntStatus || "not_started";
+                                
+                                if (status === "completed") {
+                                  return (
+                                    <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0">
+                                      Completed ✅
+                                    </Badge>
+                                  );
+                                }
+                                
+                                if (status === "skipped") {
+                                  return (
+                                    <div className="flex gap-1">
+                                      <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0">
+                                        Skipped
+                                      </Badge>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          updateStopStatus(listing.id, "not_started");
+                                        }}
+                                        className="h-6 text-[11px] px-1.5 py-0 text-blue-600 border-blue-300 hover:bg-blue-50"
+                                      >
+                                        Reset
+                                      </Button>
+                                    </div>
+                                  );
+                                }
+                                
+                                if (status === "arrived") {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        updateStopStatus(listing.id, "completed");
+                                      }}
+                                      className="h-6 text-[11px] px-1.5 py-0 bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                      Complete
+                                    </Button>
+                                  );
+                                }
+
+                                const uLat = gpsLocation ? Number(gpsLocation.lat) : null;
+                                const uLng = gpsLocation ? Number(gpsLocation.lng) : null;
+                                const lLat = Number(listing.lat);
+                                const lLng = Number(listing.lng);
+
+                                let distanceFeet = Infinity;
+
+                                if (uLat !== null && uLng !== null && !isNaN(lLat) && !isNaN(lLng)) {
+                                  const distanceMeters = calculateDistanceMeters(uLat, uLng, lLat, lLng);
+                                  distanceFeet = distanceMeters * 3.28084;
+                                }
+
+                                const isWithinDistance = demoOn || distanceFeet <= 50;
+
+                                if (isWithinDistance) {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        updateStopStatus(listing.id, "arrived");
+                                      }}
+                                      variant="outline"
+                                      className="h-6 text-[11px] px-1.5 py-0 border-green-600 text-green-700 hover:bg-green-50 bg-white/50"
+                                    >
+                                      Check In
+                                    </Button>
+                                  );
+                                }
+
+                                return (
+                                  <div className="flex flex-col items-end">
+                                    <Button
+                                      size="sm"
+                                      disabled
+                                      variant="outline"
+                                      className="h-6 text-[11px] px-1.5 py-0 border-gray-400 text-gray-500 bg-gray-100 opacity-60"
+                                    >
+                                      Check In
+                                    </Button>
+                                    <span className="text-[9px] text-gray-500 mt-0.5 leading-tight text-right">
+                                      {distanceFeet !== Infinity ? `Move within 50ft (${distanceFeet.toFixed(0)}ft)` : `Move within 50ft`}
+                                    </span>
                                   </div>
                                 );
-                              }
-                              
-                              if (status === "arrived") {
-                                return (
-                                  <Button
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      updateStopStatus(listing.id, "completed");
-                                    }}
-                                    className="h-6 text-[11px] px-1.5 py-0 bg-green-600 hover:bg-green-700 text-white"
-                                  >
-                                    Complete
-                                  </Button>
-                                );
-                              }
-
-                              const uLat = gpsLocation ? Number(gpsLocation.lat) : null;
-                              const uLng = gpsLocation ? Number(gpsLocation.lng) : null;
-                              const lLat = Number(listing.lat);
-                              const lLng = Number(listing.lng);
-
-                              let distanceFeet = Infinity;
-
-                              if (uLat !== null && uLng !== null && !isNaN(lLat) && !isNaN(lLng)) {
-                                const distanceMeters = calculateDistanceMeters(uLat, uLng, lLat, lLng);
-                                distanceFeet = distanceMeters * 3.28084;
-                              }
-
-                              const isWithinDistance = demoOn || distanceFeet <= 50;
-
-                              if (isWithinDistance) {
-                                return (
-                                  <Button
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      updateStopStatus(listing.id, "arrived");
-                                    }}
-                                    variant="outline"
-                                    className="h-6 text-[11px] px-1.5 py-0 border-green-600 text-green-700 hover:bg-green-50 bg-white/50"
-                                  >
-                                    Check In
-                                  </Button>
-                                );
-                              }
-
-                              return (
-                                <div className="flex flex-col items-end">
-                                  <Button
-                                    size="sm"
-                                    disabled
-                                    variant="outline"
-                                    className="h-6 text-[11px] px-1.5 py-0 border-gray-400 text-gray-500 bg-gray-100 opacity-60"
-                                  >
-                                    Check In
-                                  </Button>
-                                  <span className="text-[9px] text-gray-500 mt-0.5 leading-tight text-right">
-                                    {distanceFeet !== Infinity ? `Move within 50ft (${distanceFeet.toFixed(0)}ft)` : `Move within 50ft`}
-                                  </span>
-                                </div>
-                              );
-                            })()}
+                              })()}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </Popup>
                   </Marker>
                 );

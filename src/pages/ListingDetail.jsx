@@ -24,6 +24,7 @@ import {
 import { getListingNumber, getOwnerDisplayName } from "@/components/listing/listingDisplay";
 import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 import { formatEventTierLabel } from "@/lib/eventListingConfig";
+import { formatMarqueeSlotTime, normalizeMarqueeSlots } from "@/lib/marqueeSchedule";
 
 export default function ListingDetailPage() {
   const navigate = useNavigate();
@@ -276,6 +277,9 @@ export default function ListingDetailPage() {
     inviteLink || null,
   ].filter(Boolean).join("\n");
 
+  const marqueeSchedule = normalizeMarqueeSlots(listing?.marquee_schedule_slots || []);
+  const flyerImages = listing?.event_photos || listing?.photoUrls || [];
+
   const handleCopyInvite = () => {
     navigator.clipboard.writeText(inviteText).then(() => {
       toast.success("Invite copied");
@@ -341,16 +345,19 @@ export default function ListingDetailPage() {
         <div className="p-4 md:p-8">
         <Card>
           <CardContent className="space-y-6 pt-6">
-            {(listing.event_photos || listing.photoUrls) && (listing.event_photos || listing.photoUrls).length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {(listing.event_photos || listing.photoUrls).map((url, idx) => (
-                  <img
-                    key={idx}
-                    src={url}
-                    alt={`Photo ${idx + 1}`}
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                ))}
+            {flyerImages.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold">Flyer / Images</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {flyerImages.map((url, idx) => (
+                    <img
+                      key={idx}
+                      src={url}
+                      alt={`Flyer ${idx + 1}`}
+                      className="w-full h-48 object-cover rounded-lg border border-slate-200"
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
@@ -391,6 +398,23 @@ export default function ListingDetailPage() {
                 <p>End: {format(new Date(listing.endDateTime), "PPp")}</p>
               </div>
             </div>
+
+            {marqueeSchedule.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-3">Schedule</h3>
+                <div className="space-y-2">
+                  {marqueeSchedule.map((slot) => (
+                    <div key={slot.id} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-slate-900">{slot.label}</p>
+                        <p className="text-xs text-slate-500">{format(slot.startDate, "PPP")}</p>
+                      </div>
+                      <p className="text-sm font-medium text-amber-700 whitespace-nowrap">{formatMarqueeSlotTime(slot)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {listing.listingType === "neighborhood_sale" && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-4">
