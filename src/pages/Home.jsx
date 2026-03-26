@@ -43,6 +43,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
+import MarqueeBoard from "../components/map/MarqueeBoard";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -388,6 +389,7 @@ export default function HomePage() {
   const [activeFocusListing, setActiveFocusListing] = useState(null);
   const [selectedListingId, setSelectedListingId] = useState(null);
   const [openMarqueeIds, setOpenMarqueeIds] = useState({});
+  const MARQUEE_OPEN_MIN_ZOOM = 11;
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
@@ -799,7 +801,11 @@ const stats = useMemo(() => {
 
   const handlePinClick = (listing) => {
     if ((listing?.event_tier || listing?.tier) === "marquee") {
-      setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: true }));
+      if (currentZoom >= MARQUEE_OPEN_MIN_ZOOM) {
+        setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: true }));
+      } else {
+        setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }));
+      }
     }
     setSelectedListingId(listing.id);
     setActiveFocusListing({ listing, fromUrl: false });
@@ -855,6 +861,45 @@ const stats = useMemo(() => {
 
     return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
   }, [eligibleListings, currentZoom, isShowingAllListings]);
+
+  useEffect(() => {
+    if (currentZoom >= MARQUEE_OPEN_MIN_ZOOM) return;
+    setOpenMarqueeIds((prev) => {
+      const next = {};
+      Object.keys(prev || {}).forEach((id) => {
+        next[id] = false;
+      });
+      return next;
+    });
+  }, [currentZoom]);
+
+  const marqueeOverlays = useMemo(() => {
+    if (currentZoom < MARQUEE_OPEN_MIN_ZOOM) return [];
+
+    return visiblePins
+      .filter((listing) => (listing?.event_tier || listing?.tier) === "marquee" && openMarqueeIds[listing.id] !== false)
+      .map((listing) => {
+        try {
+          if (typeof listing?.lat !== "number" || typeof listing?.lng !== "number") return null;
+          const markerRef = markerRefsMap.current[listing.id];
+          const markerElement = markerRef?.getElement?.();
+          const containerRect = mapAreaRef.current?.getBoundingClientRect?.();
+          if (!markerElement || !containerRect) return null;
+
+          const markerRect = markerElement.getBoundingClientRect();
+          return {
+            listing,
+            point: {
+              x: markerRect.left - containerRect.left + (markerRect.width / 2),
+              y: markerRect.top - containerRect.top,
+            },
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+  }, [visiblePins, openMarqueeIds, currentZoom]);
 
   const neighborhoodParticipantPins = useMemo(() => {
     if (currentZoom < 18 || !allJoinRequests?.length) return [];
@@ -1041,7 +1086,7 @@ const stats = useMemo(() => {
                 const isMapSelected = selectedListingId === listing.id;
                 const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
                 const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
-                const marqueeOpen = isMarquee ? openMarqueeIds[listing.id] !== false : false;
+                const marqueeOpen = isMarquee ? currentZoom >= MARQUEE_OPEN_MIN_ZOOM && openMarqueeIds[listing.id] !== false : false;
                 
                 return (
                   <Marker
@@ -1341,6 +1386,16 @@ const stats = useMemo(() => {
               />
             )}
 
+
+            {marqueeOverlays.map(({ listing, point }) => (
+              <MarqueeBoard
+                key={`marquee-board-${listing.id}`}
+                listing={listing}
+                point={point}
+                onClose={() => setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }))}
+                onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+              />
+            ))}
 
             {locationError && (
               <div className="absolute bottom-24 left-4 right-4 z-[1000] sm:left-auto sm:right-4 sm:w-80">

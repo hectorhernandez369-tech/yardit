@@ -5,15 +5,22 @@ import { getVisibleMarqueeSlots, formatMarqueeSlotTime } from "@/lib/marqueeSche
 export default function MarqueeBoard({ listing, point, onClose, onViewDetails }) {
   if (!listing || !point || typeof point.x !== "number" || typeof point.y !== "number") return null;
 
-  const title = listing.event_name || listing.title || "Event";
-  const slots = getVisibleMarqueeSlots(listing).slice(0, 4);
+  const title = listing?.event_name || listing?.title || "Event";
+  const safeSlots = (() => {
+    try {
+      const slots = getVisibleMarqueeSlots(listing);
+      return Array.isArray(slots) ? slots.slice(0, 4) : [];
+    } catch {
+      return [];
+    }
+  })();
 
   return (
     <div
       className="absolute z-[1000] pointer-events-auto"
       style={{ left: point.x, top: point.y, transform: "translate(-50%, calc(-100% - 18px))" }}
     >
-      <div className="relative w-[114px] rounded-lg border border-[#f4a849] bg-gradient-to-b from-[#7c2d12] to-[#3f1d0b] px-1.5 pb-0.5 pt-0.5 text-white shadow-[0_6px_14px_rgba(0,0,0,0.28)]">
+      <div className="relative w-[232px] rounded-lg border border-[#f4a849] bg-gradient-to-b from-[#7c2d12] to-[#3f1d0b] px-3 pb-2 pt-2 text-white shadow-[0_6px_14px_rgba(0,0,0,0.28)]">
         <div className="pointer-events-none absolute left-1.5 right-1.5 top-[-3px] flex justify-between">
           {Array.from({ length: 10 }).map((_, index) => (
             <span key={`top-bulb-${index}`} className="h-1.5 w-1.5 rounded-full bg-[#FFF3B0] shadow-[0_0_4px_rgba(255,230,128,0.9)]" />
@@ -32,28 +39,30 @@ export default function MarqueeBoard({ listing, point, onClose, onViewDetails })
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-1 top-0.5 rounded-full bg-black/25 px-1 py-0 text-[8px] font-bold text-white hover:bg-black/40"
+          className="absolute right-2 top-2 rounded-full bg-black/25 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-black/40"
         >
           X
         </button>
 
-        <div className="pr-4 pt-0 text-center text-[7px] font-black uppercase leading-tight tracking-[0.03em] break-words">
+        <div className="pr-8 text-center text-[11px] font-black uppercase leading-tight tracking-[0.03em] break-words">
           {title}
         </div>
 
-        <div className="mt-0.5 grid gap-0.5">
-          {slots.map((slot) => (
-            <div key={slot.id} className="flex items-center justify-between gap-1 rounded-sm bg-white/10 px-1 py-[1px] text-[6px] leading-tight">
-              <span className="min-w-0 truncate font-bold">{slot.label || "Schedule"}</span>
-              <span className="shrink-0 whitespace-nowrap text-[#FDE68A]">{formatMarqueeSlotTime(slot) || "Time TBD"}</span>
-            </div>
-          ))}
-        </div>
+        {safeSlots.length > 0 && (
+          <div className="mt-2 grid gap-1">
+            {safeSlots.map((slot) => (
+              <div key={slot.id || slot.label} className="flex items-center justify-between gap-2 rounded-sm bg-white/10 px-2 py-1 text-[10px] leading-tight">
+                <span className="min-w-0 truncate font-bold">{slot.label || "Schedule"}</span>
+                <span className="shrink-0 whitespace-nowrap text-[#FDE68A]">{formatMarqueeSlotTime(slot) || "Time TBD"}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <Button
           size="sm"
           onClick={onViewDetails}
-          className="mt-0.5 h-4 w-full bg-amber-600 px-1 py-0 text-[7px] hover:bg-amber-700"
+          className="mt-2 h-7 w-full bg-amber-600 px-2 py-0 text-[10px] hover:bg-amber-700"
         >
           View More Details
         </Button>
