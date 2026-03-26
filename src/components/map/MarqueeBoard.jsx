@@ -16,7 +16,17 @@ export default function MarqueeBoard({ listing, point, onClose, onViewDetails })
       <div className="relative w-[228px] rounded-xl border-2 border-[#f4a849] bg-gradient-to-b from-[#7c2d12] to-[#3f1d0b] p-3 text-white shadow-[0_10px_22px_rgba(0,0,0,0.32)]">
         <div className="pointer-events-none absolute left-3 right-3 top-[-6px] flex justify-between">
           {Array.from({ length: 10 }).map((_, index) => (
-            <span key={`top-bulb-${index}`} className="h-2.5 w-2.5 rounded-full bg-[#fff1a8] shadow-[0_0_8px_rgba(255,241,168,0.95),0_0_14px_rgba(255,200,87,0.7)]" />
+            <span key={`top-bulb-${index}`} className="h-2.5 w-2.5 rounded-full bg-[#FFF3B0] shadow-[0_0_8px_rgba(255,230,128,0.95)]" />
+          ))}
+        </div>
+        <div className="pointer-events-none absolute bottom-3 left-[-6px] top-3 flex flex-col justify-between">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <span key={`left-bulb-${index}`} className="h-2.5 w-2.5 rounded-full bg-[#FFE08A] shadow-[0_0_8px_rgba(255,220,120,0.85)]" />
+          ))}
+        </div>
+        <div className="pointer-events-none absolute bottom-3 right-[-6px] top-3 flex flex-col justify-between">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <span key={`right-bulb-${index}`} className="h-2.5 w-2.5 rounded-full bg-[#FFE08A] shadow-[0_0_8px_rgba(255,220,120,0.85)]" />
           ))}
         </div>
         <button
@@ -27,7 +37,7 @@ export default function MarqueeBoard({ listing, point, onClose, onViewDetails })
           X
         </button>
 
-        <div className="pr-6 text-center text-[13px] font-black uppercase leading-tight tracking-[0.03em] break-words">
+        <div className="pr-6 pt-2 text-center text-[13px] font-black uppercase leading-tight tracking-[0.03em] break-words">
           {title}
         </div>
 
@@ -47,11 +57,6 @@ export default function MarqueeBoard({ listing, point, onClose, onViewDetails })
         >
           View More Details
         </Button>
-        <div className="pointer-events-none absolute bottom-[-6px] left-3 right-3 flex justify-between">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <span key={`bottom-bulb-${index}`} className="h-2.5 w-2.5 rounded-full bg-[#fff1a8] shadow-[0_0_8px_rgba(255,241,168,0.95),0_0_14px_rgba(255,200,87,0.7)]" />
-          ))}
-        </div>
       </div>
       <div className="mx-auto h-0 w-0 border-l-[12px] border-r-[12px] border-t-[14px] border-l-transparent border-r-transparent border-t-[#3f1d0b] drop-shadow-[0_4px_4px_rgba(0,0,0,0.28)]" />
     </div>

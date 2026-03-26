@@ -23,9 +23,12 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = tr
 
   if (tier === "marquee") {
     if (marqueeOpen) {
-      const size = 2;
-      const html = `<div style="width:${size}px;height:${size}px;opacity:0;pointer-events:none;"></div>`;
-      return makeDivIcon(`event_marquee_open_anchor_${listing?.id}`, html, size, size);
+      return makeDivIcon(
+        `event_marquee_anchor_${listing?.id}_${isSelected}`,
+        '<div style="width:1px;height:1px;opacity:0;pointer-events:none;"></div>',
+        1,
+        1,
+      );
     }
 
     const size = 28;
