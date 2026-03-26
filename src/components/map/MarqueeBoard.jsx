@@ -57,9 +57,10 @@ export function getMarqueeBoardCollapsedHtml(listing) {
     ? `background:linear-gradient(rgba(0,0,0,0.65),rgba(0,0,0,0.65)),url('${bgUrl}');background-size:cover;background-position:center;background-attachment:fixed;`
     : `background:linear-gradient(to bottom,#7c2d12,#3f1d0b);`;
 
-  // Theater lights: 7 bulbs evenly spaced
+  // Theater lights: bulbs with 3D glass effect
+  const bulbStyle = "width:4px;height:4px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #FFD54A, #FFB300);box-shadow:0 0 4px rgba(255,213,74,0.6),inset -0.5px -0.5px 1px rgba(0,0,0,0.2);position:relative;";
   const bulbHtml = Array.from({length:7}, (_, i) => 
-    `<div style="width:3px;height:3px;border-radius:50%;background:#f4a849;box-shadow:0 0 2px #fbbf24;flex:1;"></div>`
+    `<div style="${bulbStyle}"><div style="position:absolute;top:0.5px;left:0.5px;width:1px;height:1px;background:rgba(255,255,255,0.8);border-radius:50%;"></div></div>`
   ).join("");
 
   const card = `
