@@ -19,7 +19,6 @@ import EventDetailsStep from "../components/create/event/EventDetailsStep";
 import EventLocationStep from "../components/create/event/EventLocationStep";
 import EventScheduleStep from "../components/create/event/EventScheduleStep";
 import EventTierStep from "../components/create/event/EventTierStep";
-import EventIconStep from "../components/create/event/EventIconStep";
 import { useAppMode } from "../components/shared/DemoMode";
 import {
   deriveNeighborhoodEventState,
@@ -457,8 +456,8 @@ export default function CreateListingPage() {
   // Sale in area check is done on submit
 
   const isEventFlow = formData.listingType === "event";
-  const paymentStepNumber = isEventFlow ? 6 : 4;
-  const entryStepNumber = isEventFlow ? 5 : 3;
+  const paymentStepNumber = isEventFlow ? 5 : 4;
+  const entryStepNumber = isEventFlow ? 4 : 3;
 
   const hasActiveResidentialListing = () => {
     if (isGlobalDemoMode) return false;
@@ -929,14 +928,6 @@ export default function CreateListingPage() {
       return;
     }
 
-    if (step === 4 && formData.listingType === "event") {
-      if (!formData.event_tier) {
-        toast.error("Please choose an event tier");
-        return;
-      }
-      setStep(5);
-      return;
-    }
   };
 
   const executeSubmit = (actionStr = joinAction, sourceFormData = formData) => {
@@ -1189,10 +1180,6 @@ export default function CreateListingPage() {
     }
 
     if (formData.listingType === "event") {
-      if (!formData.event_icon) {
-        toast.error("Please select an event icon");
-        return;
-      }
       const scheduleValidation = getEventScheduleValidation(formData);
       if (!scheduleValidation.hasRequiredFields) {
         toast.error("Please complete the event start/end dates and times");
@@ -1398,7 +1385,7 @@ export default function CreateListingPage() {
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
-            {(isEventFlow ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4]).map((s) => (
+            {(isEventFlow ? [1, 2, 3, 4, 5] : [1, 2, 3, 4]).map((s) => (
               <React.Fragment key={s}>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
@@ -1411,7 +1398,7 @@ export default function CreateListingPage() {
                 >
                   {s < step ? "✓" : s}
                 </div>
-                {s < (isEventFlow ? 6 : 4) && (
+                {s < (isEventFlow ? 5 : 4) && (
                   <div
                     key={`line-${s}`}
                     className={`w-12 h-1 ${s < step ? "bg-green-600" : "bg-slate-200"}`}
@@ -1422,7 +1409,7 @@ export default function CreateListingPage() {
           </div>
           <div className="flex justify-center gap-4 md:gap-8 text-xs text-slate-600 flex-wrap">
             {(isEventFlow
-              ? ["Details", "Location", "Date & Time", "Tier", "Icon", "Payment"]
+              ? ["Details", "Location", "Date & Time", "Tier", "Payment"]
               : ["Details", "Location & Time", "Tier & Review", "Payment"]
             ).map((label, index) => (
               <span key={label} className={step === index + 1 ? "font-semibold" : ""}>{label}</span>
@@ -1451,7 +1438,6 @@ export default function CreateListingPage() {
             )}
             {step === 3 && (formData.listingType === "event" ? <EventScheduleStep formData={formData} setFormData={setFormData} /> : <StepThree formData={formData} setFormData={setFormData} />)}
             {step === 4 && formData.listingType === "event" && <EventTierStep formData={formData} setFormData={setFormData} />}
-            {step === 5 && formData.listingType === "event" && <EventIconStep formData={formData} setFormData={setFormData} />}
             {step === 4 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (
               <ResidentialPaymentStep
                 tier={formData.tier}
@@ -1466,7 +1452,7 @@ export default function CreateListingPage() {
                 onPay={handlePaymentStepSubmit}
               />
             )}
-            {step === 6 && formData.listingType === "event" && (
+            {step === 5 && formData.listingType === "event" && (
               <ResidentialPaymentStep
                 tier={formData.event_tier}
                 amount={(EVENT_TIER_PRICES[formData.event_tier] || 0) / 100}
@@ -1475,7 +1461,7 @@ export default function CreateListingPage() {
                 errorMessage={paymentError}
                 onBack={() => {
                   setPaymentError("");
-                  setStep(5);
+                  setStep(4);
                 }}
                 onPay={handlePaymentStepSubmit}
               />

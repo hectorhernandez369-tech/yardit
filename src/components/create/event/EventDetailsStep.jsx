@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EVENT_CATEGORIES } from "@/lib/eventListingConfig";
+import { EVENT_CATEGORIES, getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
 import EventPhotoUpload from "./EventPhotoUpload";
 
 export default function EventDetailsStep({ formData, setFormData }) {
@@ -70,7 +70,12 @@ export default function EventDetailsStep({ formData, setFormData }) {
         <Label className="text-[#2C4F4E]">Event Category *</Label>
         <Select
           value={formData.event_category || ""}
-          onValueChange={(value) => setFormData((prev) => ({ ...prev, event_category: value, category: value }))}
+          onValueChange={(value) => setFormData((prev) => ({
+            ...prev,
+            event_category: value,
+            category: value,
+            event_icon: getDefaultEventIconForCategory(value),
+          }))}
         >
           <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-2">
             <SelectValue placeholder="Select category" />
@@ -81,6 +86,10 @@ export default function EventDetailsStep({ formData, setFormData }) {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="rounded-lg border border-[#2C4F4E]/20 bg-white/70 p-3 text-sm text-[#2C4F4E]">
+        Your event icon is automatically selected from the chosen category. You can manage it later from My Listings based on your event tier.
       </div>
 
       <EventPhotoUpload

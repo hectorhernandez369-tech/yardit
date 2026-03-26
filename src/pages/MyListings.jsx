@@ -26,6 +26,8 @@ import {
 } from "@/components/listing/listingDisplay";
 import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
 import { Input } from "@/components/ui/input";
+import EventIconManager from "@/components/events/EventIconManager";
+import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
@@ -43,6 +45,8 @@ export default function MyListingsPage() {
   const [editDescription, setEditDescription] = useState("");
   const [editCategories, setEditCategories] = useState([]);
   const [editStartDate, setEditStartDate] = useState("");
+  const [editEventIcon, setEditEventIcon] = useState("");
+  const [editEventLogoUrl, setEditEventLogoUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -194,6 +198,8 @@ export default function MyListingsPage() {
     setEditingListing(listing);
     setEditDescription(listing?.description || "");
     setEditCategories(listing?.categories?.length > 0 ? listing.categories : (listing?.category ? [listing.category] : []));
+    setEditEventIcon(listing?.event_icon || getDefaultEventIconForCategory(listing?.event_category || listing?.category));
+    setEditEventLogoUrl(listing?.event_logo_url || "");
     if (listing?.listingType === "neighborhood_sale") {
       setEditStartDate(listing.selectedRangeStartDate || (listing.startDateTime ? new Date(listing.startDateTime).toISOString().split("T")[0] : ""));
     } else {
@@ -206,22 +212,44 @@ export default function MyListingsPage() {
     setEditDescription("");
     setEditCategories([]);
     setEditStartDate("");
+    setEditEventIcon("");
+    setEditEventLogoUrl("");
   };
 
   const saveDescription = async () => {
     if (!editingListing) return;
 
-    if (editingListing.listingType !== "neighborhood_sale" && editCategories.length === 0) {
+    if (editingListing.listingType === "yard_sale" && editCategories.length === 0) {
       toast.error("Please select at least 1 category");
       return;
+    }
+
+    if (editingListing.listingType === "event") {
+      const tier = editingListing.event_tier || editingListing.tier || "basic";
+      if (["basic", "featured"].includes(tier) && !editEventIcon) {
+        toast.error("Please choose an event icon");
+        return;
+      }
+      if (tier === "premium" && !editEventIcon && !editEventLogoUrl) {
+        toast.error("Please choose an event icon or upload a logo/image");
+        return;
+      }
     }
 
     let dateChanged = false;
     const updateData = {
       description: editDescription,
-      categories: editCategories,
-      category: editCategories[0] || "",
     };
+
+    if (editingListing.listingType === "yard_sale") {
+      updateData.categories = editCategories;
+      updateData.category = editCategories[0] || "";
+    }
+
+    if (editingListing.listingType === "event") {
+      updateData.event_icon = editEventIcon || getDefaultEventIconForCategory(editingListing.event_category || editingListing.category);
+      updateData.event_logo_url = editEventLogoUrl || "";
+    }
 
     if (editingListing.listingType === "neighborhood_sale" && editStartDate) {
       const oldStartStr = editingListing.selectedRangeStartDate || (editingListing.startDateTime ? new Date(editingListing.startDateTime).toISOString().split("T")[0] : "");
@@ -651,7 +679,7 @@ export default function MyListingsPage() {
               </div>
             )}
 
-            {editingListing?.listingType !== "neighborhood_sale" && (
+            {editingListing?.listingType === "yard_sale" && (
               <div>
                 <Label className="text-[#2C4F4E]">Categories (Up to 10) *</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -689,6 +717,16 @@ export default function MyListingsPage() {
                 </Select>
               )}
             </div>
+            )}
+
+            {editingListing?.listingType === "event" && (
+              <EventIconManager
+                tier={editingListing?.event_tier || editingListing?.tier || "basic"}
+                selectedIcon={editEventIcon}
+                setSelectedIcon={setEditEventIcon}
+                uploadedImageUrl={editEventLogoUrl}
+                setUploadedImageUrl={setEditEventLogoUrl}
+              />
             )}
 
             <div>
