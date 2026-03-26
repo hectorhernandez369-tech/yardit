@@ -45,25 +45,26 @@ function wrapBoard(w, tailH, cardHtml) {
 }
 
 // COLLAPSED: compact teaser — title + date + expand button
+// Locked footprint: 160px width max, ~52px height max
 export function getMarqueeBoardCollapsedHtml(listing) {
   if (!listing) return "";
   const title = listing?.event_name || listing?.title || "Event";
   const dateStr = formatEventDate(listing);
-  const w = MARQUEE_BOARD_WIDTH;
+  const w = 160; // locked max width: 160px (middle of 155-165px range)
   const tailH = 6;
   const bgUrl = listing?.marquee_background_url;
   const bgStyle = bgUrl 
-    ? `background:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)),url('${bgUrl}');background-size:cover;background-position:center;background-attachment:fixed;`
+    ? `background:linear-gradient(rgba(0,0,0,0.65),rgba(0,0,0,0.65)),url('${bgUrl}');background-size:cover;background-position:center;background-attachment:fixed;`
     : `background:linear-gradient(to bottom,#7c2d12,#3f1d0b);`;
 
   const card = `
-    <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:6px 10px 7px;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,0.3);box-sizing:border-box;pointer-events:auto;">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;">
+    <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;max-height:52px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:5px 8px;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,0.3);box-sizing:border-box;pointer-events:auto;overflow:hidden;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:5px;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:10.5px;font-weight:900;text-transform:uppercase;line-height:1.2;letter-spacing:0.04em;word-break:break-word;">${escapeHtml(title)}</div>
-          ${dateStr ? `<div style="margin-top:2px;font-size:8px;color:rgba(255,255,255,0.6);line-height:1.3;">${escapeHtml(dateStr)}</div>` : ""}
+          <div style="font-size:10px;font-weight:900;text-transform:uppercase;line-height:1.1;letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;">${escapeHtml(title)}</div>
+          ${dateStr ? `<div style="margin-top:1px;font-size:7.5px;color:rgba(255,255,255,0.55);line-height:1.2;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;">${escapeHtml(dateStr)}</div>` : ""}
         </div>
-        <button data-marquee-expand="true" style="flex-shrink:0;border:1px solid rgba(244,168,73,0.6);border-radius:4px;background:rgba(244,168,73,0.18);padding:2px 6px;font-size:9px;font-weight:700;color:#f4a849;cursor:pointer;line-height:1.4;white-space:nowrap;">▼ More</button>
+        <button data-marquee-expand="true" style="flex-shrink:0;border:1px solid rgba(244,168,73,0.6);border-radius:3px;background:rgba(244,168,73,0.18);padding:1px 5px;font-size:8px;font-weight:700;color:#f4a849;cursor:pointer;line-height:1.3;white-space:nowrap;">▼</button>
       </div>
     </div>
   `;
