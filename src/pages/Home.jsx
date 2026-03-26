@@ -43,7 +43,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
-import { getMarqueeBoardHtml } from "@/components/map/MarqueeBoard";
+import { getMarqueeBoardHtml, getMarqueeCollapsedHtml } from "@/components/map/MarqueeBoard";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -524,6 +524,11 @@ export default function HomePage() {
     if (lid) {
       setFocusListingId(lid);
     }
+    // Restore expanded marquee state when returning from ListingDetail
+    const marqueeId = params.get("marqueeId");
+    if (marqueeId) {
+      setOpenMarqueeIds((prev) => ({ ...prev, [marqueeId]: "expanded" }));
+    }
   }, []);
 
   const { isDemoMode: demoOn } = useAppMode();
@@ -802,7 +807,11 @@ const stats = useMemo(() => {
   const handlePinClick = (listing) => {
     if ((listing?.event_tier || listing?.tier) === "marquee") {
       if (currentZoom >= MARQUEE_OPEN_MIN_ZOOM) {
-        setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: true }));
+        // Toggle: if already showing collapsed or expanded, keep collapsed on first tap; if closed show collapsed
+        setOpenMarqueeIds((prev) => {
+          const cur = prev[listing.id];
+          return { ...prev, [listing.id]: cur ? cur : "collapsed" };
+        });
       } else {
         setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }));
       }
@@ -866,20 +875,17 @@ const stats = useMemo(() => {
     if (currentZoom >= MARQUEE_OPEN_MIN_ZOOM) return;
     setOpenMarqueeIds((prev) => {
       const next = {};
-      Object.keys(prev || {}).forEach((id) => {
-        next[id] = false;
-      });
+      Object.keys(prev || {}).forEach((id) => { next[id] = false; });
       return next;
     });
   }, [currentZoom]);
 
   const marqueeOverlays = useMemo(() => {
     if (currentZoom < MARQUEE_OPEN_MIN_ZOOM) return [];
-
     return visiblePins.filter(
       (listing) =>
         (listing?.event_tier || listing?.tier) === "marquee" &&
-        openMarqueeIds[listing.id] !== false &&
+        !!openMarqueeIds[listing.id] &&
         typeof listing?.lat === "number" &&
         typeof listing?.lng === "number"
     );
@@ -1070,7 +1076,9 @@ const stats = useMemo(() => {
                 const isMapSelected = selectedListingId === listing.id;
                 const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
                 const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
-                const marqueeOpen = isMarquee ? currentZoom >= MARQUEE_OPEN_MIN_ZOOM && openMarqueeIds[listing.id] !== false : false;
+                const marqueeOpen = isMarquee && currentZoom >= MARQUEE_OPEN_MIN_ZOOM && !!openMarqueeIds[listing.id]
+                  ? openMarqueeIds[listing.id]
+                  : false;
                 
                 return (
                   <Marker
@@ -1299,38 +1307,48 @@ const stats = useMemo(() => {
                 </Marker>
               ))}
 
-              {marqueeOverlays.map((listing) => (
-                <Marker
-                  key={`marquee-board-${listing.id}`}
-                  position={[listing.lat, listing.lng]}
-                  icon={getEventMarkerIcon(listing, selectedListingId === listing.id, true, getMarqueeBoardHtml(listing))}
-                  eventHandlers={{
-                    add: (event) => {
-                      const element = event.target?.getElement?.();
-                      if (!element) return;
+              {marqueeOverlays.map((listing) => {
+                const marqueeState = openMarqueeIds[listing.id]; // "collapsed" | "expanded"
+                const marqueeHtml = marqueeState === "expanded"
+                  ? getMarqueeBoardHtml(listing)
+                  : getMarqueeCollapsedHtml(listing);
+                return (
+                  <Marker
+                    key={`marquee-board-${listing.id}-${marqueeState}`}
+                    position={[listing.lat, listing.lng]}
+                    icon={getEventMarkerIcon(listing, selectedListingId === listing.id, marqueeState, marqueeHtml)}
+                    eventHandlers={{
+                      add: (event) => {
+                        const element = event.target?.getElement?.();
+                        if (!element) return;
 
-                      const closeButton = element.querySelector('[data-marquee-close="true"]');
-                      const detailsButton = element.querySelector('[data-marquee-details="true"]');
+                        const closeBtn = element.querySelector('[data-marquee-close="true"]');
+                        const expandBtn = element.querySelector('[data-marquee-expand="true"]');
+                        const detailsBtn = element.querySelector('[data-marquee-details="true"]');
 
-                      if (closeButton) {
-                        closeButton.onclick = (clickEvent) => {
-                          clickEvent.preventDefault();
-                          clickEvent.stopPropagation();
-                          setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }));
-                        };
-                      }
-
-                      if (detailsButton) {
-                        detailsButton.onclick = (clickEvent) => {
-                          clickEvent.preventDefault();
-                          clickEvent.stopPropagation();
-                          navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
-                        };
-                      }
-                    },
-                  }}
-                />
-              ))}
+                        if (expandBtn) {
+                          expandBtn.onclick = (e) => {
+                            e.preventDefault(); e.stopPropagation();
+                            setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: "expanded" }));
+                          };
+                        }
+                        if (closeBtn) {
+                          closeBtn.onclick = (e) => {
+                            e.preventDefault(); e.stopPropagation();
+                            setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }));
+                          };
+                        }
+                        if (detailsBtn) {
+                          detailsBtn.onclick = (e) => {
+                            e.preventDefault(); e.stopPropagation();
+                            navigate(createPageUrl("ListingDetail") + `?id=${listing.id}&marqueeId=${listing.id}`);
+                          };
+                        }
+                      },
+                    }}
+                  />
+                );
+              })}
             </MapContainer>
 
             {/* Temporary Proximity Debug Overlay */}
