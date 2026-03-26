@@ -876,29 +876,13 @@ const stats = useMemo(() => {
   const marqueeOverlays = useMemo(() => {
     if (currentZoom < MARQUEE_OPEN_MIN_ZOOM) return [];
 
-    return visiblePins
-      .filter((listing) => (listing?.event_tier || listing?.tier) === "marquee" && openMarqueeIds[listing.id] !== false)
-      .map((listing) => {
-        try {
-          if (typeof listing?.lat !== "number" || typeof listing?.lng !== "number") return null;
-          const markerRef = markerRefsMap.current[listing.id];
-          const markerElement = markerRef?.getElement?.();
-          const containerRect = mapAreaRef.current?.getBoundingClientRect?.();
-          if (!markerElement || !containerRect) return null;
-
-          const markerRect = markerElement.getBoundingClientRect();
-          return {
-            listing,
-            point: {
-              x: markerRect.left - containerRect.left + (markerRect.width / 2),
-              y: markerRect.top - containerRect.top,
-            },
-          };
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
+    return visiblePins.filter(
+      (listing) =>
+        (listing?.event_tier || listing?.tier) === "marquee" &&
+        openMarqueeIds[listing.id] !== false &&
+        typeof listing?.lat === "number" &&
+        typeof listing?.lng === "number"
+    );
   }, [visiblePins, openMarqueeIds, currentZoom]);
 
   const neighborhoodParticipantPins = useMemo(() => {
@@ -1315,14 +1299,19 @@ const stats = useMemo(() => {
                 </Marker>
               ))}
 
-              {marqueeOverlays.map(({ listing, point }) => (
-                <MarqueeBoard
+              {marqueeOverlays.map((listing) => (
+                <Marker
                   key={`marquee-board-${listing.id}`}
-                  listing={listing}
-                  point={point}
-                  onClose={() => setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }))}
-                  onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-                />
+                  position={[listing.lat, listing.lng]}
+                  icon={getEventMarkerIcon(listing, selectedListingId === listing.id, true)}
+                  interactive={false}
+                >
+                  <MarqueeBoard
+                    listing={listing}
+                    onClose={() => setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }))}
+                    onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+                  />
+                </Marker>
               ))}
             </MapContainer>
 
