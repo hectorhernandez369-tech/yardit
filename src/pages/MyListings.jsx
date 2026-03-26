@@ -905,14 +905,27 @@ export default function MyListingsPage() {
                           <div className="w-full max-w-xs border-2 border-[#2C4F4E] rounded-lg overflow-hidden aspect-video">
                             <img src={editMarqueeBackgroundUrl} alt="Background preview" className="w-full h-full object-cover" />
                           </div>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setEditMarqueeBackgroundUrl("")}
-                          >
-                            Delete Background
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                setBackgroundImageForCrop(editMarqueeBackgroundUrl);
+                                setCropEditorOpen(true);
+                              }}
+                            >
+                              Crop & Zoom
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setEditMarqueeBackgroundUrl("")}
+                            >
+                              Delete Background
+                            </Button>
+                          </div>
                         </div>
                       ) : (
                         <div className="border-2 border-dashed border-[#2C4F4E] rounded-lg p-4 text-center">
