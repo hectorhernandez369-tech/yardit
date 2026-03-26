@@ -49,6 +49,10 @@ export default function MyListingsPage() {
   const [editEventIcon, setEditEventIcon] = useState("");
   const [editEventLogoUrl, setEditEventLogoUrl] = useState("");
   const [editMarqueeSlots, setEditMarqueeSlots] = useState([]);
+  const [editEventStartDate, setEditEventStartDate] = useState("");
+  const [editEventEndDate, setEditEventEndDate] = useState("");
+  const [editEventStartTime, setEditEventStartTime] = useState("");
+  const [editEventEndTime, setEditEventEndTime] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -203,6 +207,22 @@ export default function MyListingsPage() {
     setEditEventIcon(listing?.event_icon || getDefaultEventIconForCategory(listing?.event_category || listing?.category));
     setEditEventLogoUrl(listing?.event_logo_url || "");
     setEditMarqueeSlots(Array.isArray(listing?.marquee_schedule_slots) ? listing.marquee_schedule_slots : []);
+
+    // Marquee date/time prefill
+    if (listing?.listingType === "event" && (listing?.event_tier || listing?.tier) === "marquee") {
+      const start = listing.startDateTime ? new Date(listing.startDateTime) : null;
+      const end = listing.endDateTime ? new Date(listing.endDateTime) : null;
+      setEditEventStartDate(start ? start.toISOString().slice(0, 10) : "");
+      setEditEventEndDate(end ? end.toISOString().slice(0, 10) : "");
+      setEditEventStartTime(start ? start.toTimeString().slice(0, 5) : "");
+      setEditEventEndTime(end ? end.toTimeString().slice(0, 5) : "");
+    } else {
+      setEditEventStartDate("");
+      setEditEventEndDate("");
+      setEditEventStartTime("");
+      setEditEventEndTime("");
+    }
+
     if (listing?.listingType === "neighborhood_sale") {
       setEditStartDate(listing.selectedRangeStartDate || (listing.startDateTime ? new Date(listing.startDateTime).toISOString().split("T")[0] : ""));
     } else {
@@ -218,6 +238,10 @@ export default function MyListingsPage() {
     setEditEventIcon("");
     setEditEventLogoUrl("");
     setEditMarqueeSlots([]);
+    setEditEventStartDate("");
+    setEditEventEndDate("");
+    setEditEventStartTime("");
+    setEditEventEndTime("");
   };
 
   const saveDescription = async () => {
@@ -255,6 +279,16 @@ export default function MyListingsPage() {
       updateData.event_logo_url = editEventLogoUrl || "";
       if ((editingListing.event_tier || editingListing.tier) === "marquee") {
         updateData.marquee_schedule_slots = editMarqueeSlots;
+
+        // Update start/end datetimes if provided
+        if (editEventStartDate && editEventStartTime) {
+          updateData.startDateTime = new Date(`${editEventStartDate}T${editEventStartTime}`).toISOString();
+          updateData.start_datetime = updateData.startDateTime;
+        }
+        if (editEventEndDate && editEventEndTime) {
+          updateData.endDateTime = new Date(`${editEventEndDate}T${editEventEndTime}`).toISOString();
+          updateData.end_datetime = updateData.endDateTime;
+        }
       }
     }
 
@@ -737,12 +771,57 @@ export default function MyListingsPage() {
                 />
 
                 {(editingListing?.event_tier || editingListing?.tier) === "marquee" && (
-                  <MarqueeSlotsEditor
-                    value={editMarqueeSlots}
-                    onChange={setEditMarqueeSlots}
-                    eventStartDate={editingListing?.event_start_date || editingListing?.startDateTime?.slice(0, 10)}
-                    eventEndDate={editingListing?.event_end_date || editingListing?.endDateTime?.slice(0, 10)}
-                  />
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-[#2C4F4E] font-semibold block mb-2">Event Date &amp; Time</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs text-slate-500 mb-1 block">Start Date</Label>
+                          <Input
+                            type="date"
+                            value={editEventStartDate}
+                            onChange={(e) => setEditEventStartDate(e.target.value)}
+                            className="bg-[#F3E6CF] border-[#2C4F4E]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-500 mb-1 block">Start Time</Label>
+                          <Input
+                            type="time"
+                            value={editEventStartTime}
+                            onChange={(e) => setEditEventStartTime(e.target.value)}
+                            className="bg-[#F3E6CF] border-[#2C4F4E]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-500 mb-1 block">End Date</Label>
+                          <Input
+                            type="date"
+                            value={editEventEndDate}
+                            min={editEventStartDate || undefined}
+                            onChange={(e) => setEditEventEndDate(e.target.value)}
+                            className="bg-[#F3E6CF] border-[#2C4F4E]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-500 mb-1 block">End Time</Label>
+                          <Input
+                            type="time"
+                            value={editEventEndTime}
+                            onChange={(e) => setEditEventEndTime(e.target.value)}
+                            className="bg-[#F3E6CF] border-[#2C4F4E]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <MarqueeSlotsEditor
+                      value={editMarqueeSlots}
+                      onChange={setEditMarqueeSlots}
+                      eventStartDate={editEventStartDate || editingListing?.startDateTime?.slice(0, 10)}
+                      eventEndDate={editEventEndDate || editingListing?.endDateTime?.slice(0, 10)}
+                    />
+                  </div>
                 )}
               </div>
             )}
