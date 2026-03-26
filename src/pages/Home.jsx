@@ -43,6 +43,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
+import { getMarqueeBoardHtml } from "@/components/map/MarqueeBoard";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
