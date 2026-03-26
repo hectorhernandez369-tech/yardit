@@ -27,9 +27,9 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       return makeDivIcon(
         `event_marquee_open_${listing?.id}_${isSelected}`,
         marqueeHtml,
-        230,
+        205,
         165,
-        115,
+        102,
         165
       );
     }
