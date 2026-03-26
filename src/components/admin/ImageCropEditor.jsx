@@ -12,8 +12,11 @@ export default function ImageCropEditor({ imageUrl, open, onClose, onApply, aspe
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
+  const containerRef = useRef(null);
 
-  const previewWidth = 600;
+  // Responsive width: mobile 100% - 16px, desktop 600px
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const previewWidth = isMobile ? (typeof window !== 'undefined' ? Math.max(280, window.innerWidth - 32) : 280) : 600;
   const previewHeight = Math.round(previewWidth / aspectRatio);
 
   useEffect(() => {
@@ -30,31 +33,37 @@ export default function ImageCropEditor({ imageUrl, open, onClose, onApply, aspe
     img.src = imageUrl;
   }, [imageUrl, open]);
 
-  const handleMouseDown = (e) => {
+  const handlePointerDown = (e) => {
     setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    setDragStart({ x: e.clientX || e.touches?.[0]?.clientX, y: e.clientY || e.touches?.[0]?.clientY });
   };
 
-  const handleMouseMove = (e) => {
+  const handlePointerMove = (e) => {
     if (!isDragging) return;
-    const deltaX = e.clientX - dragStart.x;
-    const deltaY = e.clientY - dragStart.y;
+    const x = e.clientX || e.touches?.[0]?.clientX;
+    const y = e.clientY || e.touches?.[0]?.clientY;
+    const deltaX = x - dragStart.x;
+    const deltaY = y - dragStart.y;
     setOffsetX((prev) => prev + deltaX);
     setOffsetY((prev) => prev + deltaY);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    setDragStart({ x, y });
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = () => {
     setIsDragging(false);
   };
 
   useEffect(() => {
     if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+      window.addEventListener("touchmove", handlePointerMove, { passive: false });
+      window.addEventListener("touchend", handlePointerUp);
       return () => {
-        window.removeEventListener("mousemove", handleMouseMove);
-        window.removeEventListener("mouseup", handleMouseUp);
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
+        window.removeEventListener("touchmove", handlePointerMove);
+        window.removeEventListener("touchend", handlePointerUp);
       };
     }
   }, [isDragging, dragStart]);
@@ -140,37 +149,39 @@ export default function ImageCropEditor({ imageUrl, open, onClose, onApply, aspe
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="w-full max-w-2xl max-h-[95vh] overflow-y-auto p-4 md:p-6">
         <DialogHeader>
-          <DialogTitle>Crop & Zoom Background (16:9)</DialogTitle>
+          <DialogTitle className="text-lg md:text-xl">Crop & Zoom Background (16:9)</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div ref={containerRef} className="space-y-4">
           {/* Preview Canvas */}
-          <div className="flex justify-center">
+          <div className="flex justify-center bg-gray-50 rounded-lg p-2 md:p-4">
             <canvas
               ref={canvasRef}
               width={previewWidth}
               height={previewHeight}
-              onMouseDown={handleMouseDown}
-              className="border-2 border-[#2C4F4E] rounded-lg cursor-grab active:cursor-grabbing bg-gray-100"
+              onPointerDown={handlePointerDown}
+              className="border-2 border-[#2C4F4E] rounded-lg cursor-grab active:cursor-grabbing bg-gray-100 w-full max-w-full"
+              style={{ maxWidth: '100%', height: 'auto', aspectRatio: `${aspectRatio}` }}
+              touch-action="none"
             />
           </div>
 
           {/* Zoom Controls */}
           <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <ZoomOut className="w-4 h-4 text-slate-600" />
+            <div className="flex items-center gap-2 md:gap-3">
+              <ZoomOut className="w-4 h-4 text-slate-600 flex-shrink-0" />
               <Slider
                 value={[zoom]}
                 onValueChange={(val) => setZoom(val[0])}
-                min={0.5}
-                max={3}
+                min={0.1}
+                max={4}
                 step={0.1}
                 className="flex-1"
               />
-              <ZoomIn className="w-4 h-4 text-slate-600" />
-              <span className="text-sm text-slate-600 w-10 text-right">{(zoom * 100).toFixed(0)}%</span>
+              <ZoomIn className="w-4 h-4 text-slate-600 flex-shrink-0" />
+              <span className="text-sm text-slate-600 w-12 text-right flex-shrink-0">{(zoom * 100).toFixed(0)}%</span>
             </div>
 
             <Button
@@ -182,24 +193,24 @@ export default function ImageCropEditor({ imageUrl, open, onClose, onApply, aspe
                 setOffsetX(0);
                 setOffsetY(0);
               }}
-              className="w-full"
+              className="w-full text-sm"
             >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
+              <RotateCcw className="w-3 h-3 mr-2" />
+              Reset Position
             </Button>
           </div>
 
           {/* Info */}
           <p className="text-xs text-slate-500 text-center">
-            Drag to reposition • Output: 1920x1080px
+            {isMobile ? 'Drag to move • Zoom 10–400%' : 'Drag to reposition • Zoom 10–400% • Output: 1920x1080px'}
           </p>
 
           {/* Actions */}
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={onClose}>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="text-sm">
               Cancel
             </Button>
-            <Button type="button" className="bg-[#5DADA5] hover:bg-[#4A9B93]" onClick={handleApply}>
+            <Button type="button" className="bg-[#5DADA5] hover:bg-[#4A9B93] text-sm" onClick={handleApply}>
               Apply Crop
             </Button>
           </div>
