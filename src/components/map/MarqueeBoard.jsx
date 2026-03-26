@@ -44,28 +44,34 @@ function wrapBoard(w, tailH, cardHtml) {
   `;
 }
 
-// COLLAPSED: compact teaser — title + date + expand button
-// Locked footprint: 160px width max, ~52px height max
+// COLLAPSED: compact theater-style card — title + date + expand button + lights
+// Locked footprint: 160px width, ~52px height
 export function getMarqueeBoardCollapsedHtml(listing) {
   if (!listing) return "";
   const title = listing?.event_name || listing?.title || "Event";
   const dateStr = formatEventDate(listing);
-  const w = 160; // locked max width: 160px (middle of 155-165px range)
+  const w = 160;
   const tailH = 6;
   const bgUrl = listing?.marquee_background_url;
   const bgStyle = bgUrl 
     ? `background:linear-gradient(rgba(0,0,0,0.65),rgba(0,0,0,0.65)),url('${bgUrl}');background-size:cover;background-position:center;background-attachment:fixed;`
     : `background:linear-gradient(to bottom,#7c2d12,#3f1d0b);`;
 
+  // Theater lights: 7 bulbs evenly spaced
+  const bulbHtml = Array.from({length:7}, (_, i) => 
+    `<div style="width:3px;height:3px;border-radius:50%;background:#f4a849;box-shadow:0 0 2px #fbbf24;flex:1;"></div>`
+  ).join("");
+
   const card = `
-    <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;max-height:52px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:5px 8px;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,0.3);box-sizing:border-box;pointer-events:auto;overflow:hidden;">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:5px;">
+    <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:5px 8px;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,0.3);box-sizing:border-box;pointer-events:auto;overflow:hidden;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:5px;margin-bottom:3px;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:10px;font-weight:900;text-transform:uppercase;line-height:1.1;letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;">${escapeHtml(title)}</div>
-          ${dateStr ? `<div style="margin-top:1px;font-size:7.5px;color:rgba(255,255,255,0.55);line-height:1.2;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;">${escapeHtml(dateStr)}</div>` : ""}
+          <div style="font-size:9.5px;font-weight:900;text-transform:uppercase;line-height:1.15;letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${escapeHtml(title)}</div>
+          ${dateStr ? `<div style="margin-top:1px;font-size:7px;color:rgba(255,255,255,0.55);line-height:1.2;">${escapeHtml(dateStr)}</div>` : ""}
         </div>
         <button data-marquee-expand="true" style="flex-shrink:0;border:1px solid rgba(244,168,73,0.6);border-radius:3px;background:rgba(244,168,73,0.18);padding:1px 5px;font-size:8px;font-weight:700;color:#f4a849;cursor:pointer;line-height:1.3;white-space:nowrap;">▼</button>
       </div>
+      <div style="display:flex;gap:1px;align-items:center;justify-content:space-between;padding:0 2px;">${bulbHtml}</div>
     </div>
   `;
 
