@@ -303,8 +303,7 @@ export const AuthProvider = ({ children }) => {
       navigateToLogin,
       checkAppState,
       isGuest,
-      enterGuestMode,
-      isAuthenticated
+      enterGuestMode
     }}>
       {children}
     </AuthContext.Provider>
