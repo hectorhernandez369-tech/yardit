@@ -1,6 +1,6 @@
 // Board dimensions — single source of truth
 export const MARQUEE_BOARD_WIDTH = 130;
-export const MARQUEE_BOARD_COLLAPSED_WIDTH = 70;
+export const MARQUEE_BOARD_COLLAPSED_WIDTH = 130;
 
 const escapeHtml = (value) => String(value ?? "")
   .replace(/&/g, "&amp;")
@@ -82,7 +82,7 @@ export function getMarqueeBoardCollapsedHtml(listing) {
   const title = listing?.event_name || listing?.title || "Event";
   const dateStr = formatEventDate(listing);
   const w = 130;
-  const h = 52;
+  const h = 42;
   const tailH = 6;
   const bgUrl = listing?.marquee_background_url;
   const bgStyle = bgUrl
