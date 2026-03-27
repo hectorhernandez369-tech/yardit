@@ -24,7 +24,7 @@ import {
   statusColors,
   tierColors,
 } from "@/components/listing/listingDisplay";
-import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
+import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError, shouldShowListingOnMainMap, isNeighborhoodVisibleOnMap } from "@/lib/neighborhoodSaleState";
 import { Input } from "@/components/ui/input";
 import EventIconManager from "@/components/events/EventIconManager";
 import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
@@ -104,48 +104,36 @@ export default function MyListingsPage() {
     return `${st}${zp}-${idSuffix}`;
   };
 
+  // RULE 1: Past = terminated, regardless of dates
   const isPastListing = (listing) => {
     const status = listing?.status || "";
-    
-    if (
+    return (
       status === "expired" ||
       status === "completed" ||
       status === "closed" ||
-      status.includes("cancel")
-    ) {
-      return true;
-    }
-    
-    if (
-      status === "active" ||
-      status === "activated_locked" ||
-      status === "scheduled" ||
-      status.includes("pending") ||
-      status === "ready_for_payment" ||
-      status === "under_review" ||
-      status === "collecting_participants"
-    ) {
-      return false;
-    }
-
-    if (!listing?.endDateTime) return false;
-    const endMs = new Date(listing.endDateTime).getTime();
-    if (Number.isNaN(endMs)) return false;
-    return endMs < Date.now();
+      status === "cancelled" ||
+      status === "canceled" ||
+      status === "removed" ||
+      status === "denied" ||
+      status === "rejected" ||
+      status === "suspended"
+    );
   };
 
-  const isActiveListing = (listing) => ["active", "activated_locked"].includes(listing?.status);
-
-  const isPendingListing = (listing) => {
+  // RULE 2: Active = currently visible on the map (reuses map logic)
+  const isActiveListing = (listing) => {
     if (isPastListing(listing)) return false;
-    const status = listing?.status || "";
-    return (
-      status === "scheduled" ||
-      status.includes("pending") ||
-      status === "ready_for_payment" ||
-      status === "under_review" ||
-      status === "collecting_participants"
-    );
+    const now = new Date();
+    if (listing?.listingType === "neighborhood_sale") {
+      return isNeighborhoodVisibleOnMap(listing, now);
+    }
+    // For yard sales and events, reuse the exact same map visibility check
+    return shouldShowListingOnMainMap(listing, now);
+  };
+
+  // RULE 3: Pending = not past, not active yet
+  const isPendingListing = (listing) => {
+    return !isPastListing(listing) && !isActiveListing(listing);
   };
 
 
