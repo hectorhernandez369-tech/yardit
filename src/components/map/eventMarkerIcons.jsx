@@ -26,7 +26,7 @@ export function getCollapsedMarqueeScale(zoom) {
   if (zoom >= 14) return 1.0;
   if (zoom === 13) return 0.85;
   if (zoom === 12) return 0.75;
-  return 0.65; // zoom 11 and below
+  return 0.45; // zoom 11 and below
 }
 
 export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = false, marqueeHtml = "", zoom = 13) {
