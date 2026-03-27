@@ -1,6 +1,6 @@
 // Board dimensions — single source of truth
 export const MARQUEE_BOARD_WIDTH = 130;
-export const MARQUEE_BOARD_COLLAPSED_WIDTH = 100;
+export const MARQUEE_BOARD_COLLAPSED_WIDTH = 70;
 
 const escapeHtml = (value) => String(value ?? "")
   .replace(/&/g, "&amp;")
