@@ -20,22 +20,40 @@ function makeDivIcon(key, html, width, height, anchorX = width / 2, anchorY = he
   return cache[key];
 }
 
-export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = false, marqueeHtml = "") {
+// Returns a scale factor (0..1) for collapsed marquee based on zoom level.
+// zoom 13+ = 1.0, zoom 12 = 0.85, zoom 11 = 0.70, below 11 = 0.70 (clustering takes over anyway)
+export function getCollapsedMarqueeScale(zoom) {
+  if (zoom >= 13) return 1.0;
+  if (zoom === 12) return 0.85;
+  return 0.70; // zoom 11 and below
+}
+
+export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = false, marqueeHtml = "", zoom = 13) {
   const tier = listing?.event_tier || listing?.tier || "basic";
   const emoji = getEventIconEmoji(listing?.event_icon);
   const image = listing?.event_logo_url || listing?.event_photos?.[0] || listing?.photoUrls?.[0];
 
   if (tier === "marquee") {
     if (marqueeOpen && marqueeHtml) {
-      // Detect width from the HTML: collapsed uses 160px, expanded uses MARQUEE_BOARD_WIDTH
-      const boardWidth = marqueeHtml.includes(`width:${MARQUEE_BOARD_COLLAPSED_WIDTH}px`) ? MARQUEE_BOARD_COLLAPSED_WIDTH : MARQUEE_BOARD_WIDTH;
+      const isCollapsed = marqueeHtml.includes(`width:${MARQUEE_BOARD_COLLAPSED_WIDTH}px`);
+      const boardWidth = isCollapsed ? MARQUEE_BOARD_COLLAPSED_WIDTH : MARQUEE_BOARD_WIDTH;
       const half = Math.round(boardWidth / 2);
-      // Use trailing slice to bust cache when content changes
-      const cacheKey = `event_marquee_board_${listing?.id}_${boardWidth}_${marqueeHtml.slice(-48)}`;
+
+      // Apply zoom-based scale ONLY to collapsed marquee
+      const scale = isCollapsed ? getCollapsedMarqueeScale(zoom) : 1.0;
+      const scaledHtml = scale !== 1.0
+        ? marqueeHtml.replace(
+            '<div style="position:relative;',
+            `<div style="position:relative;transform:scale(${scale});transform-origin:bottom center;`
+          )
+        : marqueeHtml;
+
+      // Cache key includes zoom (for collapsed) and content hash
+      const cacheKey = `event_marquee_board_${listing?.id}_${boardWidth}_z${isCollapsed ? zoom : 0}_${marqueeHtml.slice(-48)}`;
       if (!cache[cacheKey]) {
         cache[cacheKey] = L.divIcon({
           className: "event-marker",
-          html: marqueeHtml,
+          html: scaledHtml,
           iconSize: [boardWidth, 0],
           iconAnchor: [half, MARQUEE_ANCHOR_Y],
           popupAnchor: [0, 4],

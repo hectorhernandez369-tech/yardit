@@ -1322,9 +1322,9 @@ const stats = useMemo(() => {
                   : getMarqueeBoardCollapsedHtml(listing);
                 return (
                   <Marker
-                    key={`marquee-board-${listing.id}-${isExpanded ? "exp" : "col"}`}
+                    key={`marquee-board-${listing.id}-${isExpanded ? "exp" : "col"}-z${isExpanded ? 0 : currentZoom}`}
                     position={[listing.lat, listing.lng]}
-                    icon={getEventMarkerIcon(listing, selectedListingId === listing.id, true, boardHtml)}
+                    icon={getEventMarkerIcon(listing, selectedListingId === listing.id, true, boardHtml, currentZoom)}
                     eventHandlers={{
                       add: (event) => {
                         const element = event.target?.getElement?.();
