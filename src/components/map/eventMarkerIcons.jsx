@@ -28,14 +28,18 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
   if (tier === "marquee") {
     if (marqueeOpen && marqueeHtml) {
       const half = Math.round(MARQUEE_BOARD_WIDTH / 2);
-      return makeDivIcon(
-        `event_marquee_board_${listing?.id}_${marqueeHtml.length}`,
-        marqueeHtml,
-        MARQUEE_BOARD_WIDTH,
-        0,
-        half,
-        MARQUEE_ANCHOR_Y
-      );
+      // Use a hash of the html to bust cache when content changes
+      const cacheKey = `event_marquee_board_${listing?.id}_${marqueeHtml.length}_${marqueeHtml.slice(-32)}`;
+      if (!cache[cacheKey]) {
+        cache[cacheKey] = L.divIcon({
+          className: "event-marker",
+          html: marqueeHtml,
+          iconSize: [MARQUEE_BOARD_WIDTH, 0],
+          iconAnchor: [half, MARQUEE_ANCHOR_Y],
+          popupAnchor: [0, 4],
+        });
+      }
+      return cache[cacheKey];
     }
 
     const size = 28;
