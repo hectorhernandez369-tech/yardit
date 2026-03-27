@@ -1,6 +1,6 @@
 import L from "leaflet";
 import { getEventIconEmoji } from "@/lib/eventListingConfig";
-import { MARQUEE_BOARD_WIDTH } from "@/components/map/MarqueeBoard.jsx";
+import { MARQUEE_BOARD_WIDTH, MARQUEE_BOARD_COLLAPSED_WIDTH } from "@/components/map/MarqueeBoard.jsx";
 
 // iconAnchor Y=0: wrapper is 0-height, tail tip = coordinate
 const MARQUEE_ANCHOR_Y = 0;
@@ -27,14 +27,16 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
 
   if (tier === "marquee") {
     if (marqueeOpen && marqueeHtml) {
-      const half = Math.round(MARQUEE_BOARD_WIDTH / 2);
-      // Use a hash of the html to bust cache when content changes
-      const cacheKey = `event_marquee_board_${listing?.id}_${marqueeHtml.length}_${marqueeHtml.slice(-32)}`;
+      // Detect width from the HTML: collapsed uses 160px, expanded uses MARQUEE_BOARD_WIDTH
+      const boardWidth = marqueeHtml.includes(`width:${MARQUEE_BOARD_COLLAPSED_WIDTH}px`) ? MARQUEE_BOARD_COLLAPSED_WIDTH : MARQUEE_BOARD_WIDTH;
+      const half = Math.round(boardWidth / 2);
+      // Use trailing slice to bust cache when content changes
+      const cacheKey = `event_marquee_board_${listing?.id}_${boardWidth}_${marqueeHtml.slice(-48)}`;
       if (!cache[cacheKey]) {
         cache[cacheKey] = L.divIcon({
           className: "event-marker",
           html: marqueeHtml,
-          iconSize: [MARQUEE_BOARD_WIDTH, 0],
+          iconSize: [boardWidth, 0],
           iconAnchor: [half, MARQUEE_ANCHOR_Y],
           popupAnchor: [0, 4],
         });
