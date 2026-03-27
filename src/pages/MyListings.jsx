@@ -39,7 +39,7 @@ export default function MyListingsPage() {
 
   const [user, setUser] = useState(null);
 
-  // (Tabs) "active" | "past" | "billing" | "hunt"
+  // (Tabs) "active" | "pending" | "past" | "billing" | "hunt"
   const [tab, setTab] = useState("active");
 
   // (Edit Listing modal state)
@@ -136,6 +136,19 @@ export default function MyListingsPage() {
 
   const isActiveListing = (listing) => ["active", "activated_locked"].includes(listing?.status);
 
+  const isPendingListing = (listing) => {
+    if (isPastListing(listing)) return false;
+    const status = listing?.status || "";
+    return (
+      status === "scheduled" ||
+      status.includes("pending") ||
+      status === "ready_for_payment" ||
+      status === "under_review" ||
+      status === "collecting_participants"
+    );
+  };
+
+
   const canCancelListingDirectly = (listing) => {
     return [
       "active",
@@ -156,7 +169,8 @@ export default function MyListingsPage() {
     }));
   }, [listings]);
 
-  const activeListings = useMemo(() => normalizedListings.filter((l) => !isPastListing(l)), [normalizedListings]);
+  const activeListings = useMemo(() => normalizedListings.filter((l) => isActiveListing(l)), [normalizedListings]);
+  const pendingListings = useMemo(() => normalizedListings.filter((l) => isPendingListing(l)), [normalizedListings]);
   const pastListings = useMemo(() => normalizedListings.filter((l) => isPastListing(l)), [normalizedListings]);
 
   useEffect(() => {
@@ -206,7 +220,7 @@ export default function MyListingsPage() {
     cleanup();
   }, [listings, user, queryClient]);
 
-  const shownListings = tab === "past" ? pastListings : activeListings;
+  const shownListings = tab === "past" ? pastListings : tab === "pending" ? pendingListings : activeListings;
 
   const openEditDescription = (listing) => {
    setEditingListing(listing);
@@ -516,6 +530,14 @@ export default function MyListingsPage() {
           </Button>
 
           <Button
+            variant={tab === "pending" ? "default" : "outline"}
+            onClick={() => setTab("pending")}
+            className={tab !== "pending" ? "border-yellow-400 text-yellow-700 hover:bg-yellow-50" : ""}
+          >
+            Pending ({pendingListings.length})
+          </Button>
+
+          <Button
             variant={tab === "past" ? "default" : "outline"}
             onClick={() => setTab("past")}
           >
@@ -574,6 +596,8 @@ export default function MyListingsPage() {
               <p className="text-slate-500 mb-4">
                 {tab === "past"
                   ? "No past listings yet"
+                  : tab === "pending"
+                  ? "No pending or scheduled listings"
                   : "You don't have any active listings right now"}
               </p>
 
