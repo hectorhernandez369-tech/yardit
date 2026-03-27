@@ -81,8 +81,8 @@ export function getMarqueeBoardCollapsedHtml(listing) {
   if (!listing) return "";
   const title = listing?.event_name || listing?.title || "Event";
   const dateStr = formatEventDate(listing);
-  const w = 130;
-  const h = 42;
+  const w = 150;
+  const h = 52;
   const tailH = 6;
   const bgUrl = listing?.marquee_background_url;
   const bgStyle = bgUrl
