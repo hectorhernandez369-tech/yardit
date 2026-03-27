@@ -1,0 +1,143 @@
+{
+  "name": "SupportTicket",
+  "type": "object",
+  "properties": {
+    "ticket_number": {
+      "type": "string",
+      "description": "Unique ticket number like ST-00001"
+    },
+    "name": {
+      "type": "string",
+      "description": "User's name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "User's phone number"
+    },
+    "email": {
+      "type": "string",
+      "description": "User's email address"
+    },
+    "address": {
+      "type": "string",
+      "description": "User's physical address"
+    },
+    "description": {
+      "type": "string",
+      "description": "Issue description"
+    },
+    "photo_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of uploaded photo URLs"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "in_review",
+        "waiting_for_user",
+        "supervisor_review",
+        "master_review",
+        "resolved",
+        "closed"
+      ],
+      "default": "open",
+      "description": "Ticket status"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "high",
+        "urgent"
+      ],
+      "default": "normal"
+    },
+    "assigned_admin": {
+      "type": "string",
+      "description": "ID of the assigned admin"
+    },
+    "internal_notes": {
+      "type": "string"
+    },
+    "disposition": {
+      "type": "string",
+      "enum": [
+        "no_action_needed",
+        "user_education",
+        "listing_adjustment",
+        "refund_approved",
+        "promo_issued",
+        "policy_violation",
+        "account_warning",
+        "other"
+      ]
+    },
+    "disposition_notes": {
+      "type": "string"
+    },
+    "refund_requested": {
+      "type": "boolean",
+      "default": false
+    },
+    "refund_amount": {
+      "type": "number"
+    },
+    "refund_reason": {
+      "type": "string"
+    },
+    "promo_requested": {
+      "type": "boolean",
+      "default": false
+    },
+    "promo_type": {
+      "type": "string",
+      "enum": [
+        "free_featured_upgrade",
+        "free_premium_upgrade",
+        "coupon_code",
+        "other"
+      ]
+    },
+    "promo_value": {
+      "type": "string"
+    },
+    "promo_reason": {
+      "type": "string"
+    },
+    "supervisor_approved": {
+      "type": "boolean",
+      "default": false
+    },
+    "supervisor_approved_by": {
+      "type": "string"
+    },
+    "supervisor_approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "master_approved": {
+      "type": "boolean",
+      "default": false
+    },
+    "master_approved_by": {
+      "type": "string"
+    },
+    "master_approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "ticket_number",
+    "email",
+    "description"
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "name": "NeighborhoodDeadlineJob",
+  "type": "object",
+  "properties": {
+    "sale_listing_id": {
+      "type": "string",
+      "description": "Neighborhood Sale listing ID"
+    },
+    "checkpoint_type": {
+      "type": "string",
+      "enum": [
+        "warning_48h",
+        "cancel_24h",
+        "payment_retry_6h"
+      ],
+      "description": "Which checkpoint this job represents"
+    },
+    "run_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the checkpoint should run"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "cancelled"
+      ],
+      "default": "pending",
+      "description": "Current job status"
+    },
+    "processed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the job was processed"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Last processing error, if any"
+    }
+  },
+  "required": [
+    "sale_listing_id",
+    "checkpoint_type",
+    "run_at"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "CheckIn",
+  "type": "object",
+  "properties": {
+    "location_id": {
+      "type": "string",
+      "description": "ID of the location checked into"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user who checked in"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes about the visit"
+    }
+  },
+  "required": [
+    "location_id",
+    "user_email"
+  ]
+}

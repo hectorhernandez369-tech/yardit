@@ -1,0 +1,23 @@
+{
+  "name": "TrackedListing",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user tracking the listing"
+    },
+    "location_id": {
+      "type": "string",
+      "description": "ID of the location being tracked"
+    },
+    "notified_expiring": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user has been notified about expiration"
+    }
+  },
+  "required": [
+    "user_email",
+    "location_id"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "UserAdminNote",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user this note is about"
+    },
+    "admin_user_id": {
+      "type": "string",
+      "description": "User ID of the admin who created this note"
+    },
+    "admin_employee_id": {
+      "type": "string",
+      "description": "Employee ID of the admin for display"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note text"
+    }
+  },
+  "required": [
+    "user_id",
+    "admin_user_id",
+    "note"
+  ]
+}

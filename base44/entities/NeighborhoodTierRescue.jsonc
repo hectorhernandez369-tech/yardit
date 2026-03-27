@@ -1,0 +1,105 @@
+{
+  "name": "NeighborhoodTierRescue",
+  "type": "object",
+  "properties": {
+    "token": {
+      "type": "string",
+      "description": "Unique rescue token used in the CTA link"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User who can use this rescue flow"
+    },
+    "listing_id": {
+      "type": "string",
+      "description": "Original invite-created listing ID"
+    },
+    "sale_listing_id": {
+      "type": "string",
+      "description": "Neighborhood Sale that was cancelled"
+    },
+    "title": {
+      "type": "string",
+      "description": "Prefill title for the fallback listing"
+    },
+    "description": {
+      "type": "string",
+      "description": "Prefill description for the fallback listing"
+    },
+    "category": {
+      "type": "string",
+      "description": "Prefill category"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Prefill categories"
+    },
+    "collectible_type": {
+      "type": "string",
+      "description": "Prefill collectible type"
+    },
+    "addressText": {
+      "type": "string",
+      "description": "Confirmed street address for prefill"
+    },
+    "city": {
+      "type": "string",
+      "description": "Confirmed city for prefill"
+    },
+    "state": {
+      "type": "string",
+      "description": "Confirmed state for prefill"
+    },
+    "zip": {
+      "type": "string",
+      "description": "Confirmed ZIP for prefill"
+    },
+    "lat": {
+      "type": "number",
+      "description": "Confirmed latitude for prefill"
+    },
+    "lng": {
+      "type": "number",
+      "description": "Confirmed longitude for prefill"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "used",
+        "expired"
+      ],
+      "default": "pending",
+      "description": "Rescue record status"
+    },
+    "used_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the rescue flow was completed"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the rescue link expires"
+    },
+    "rescue_output_listing_id": {
+      "type": "string",
+      "description": "Listing created from the rescue flow"
+    }
+  },
+  "required": [
+    "token",
+    "user_id",
+    "sale_listing_id",
+    "addressText",
+    "city",
+    "state",
+    "zip",
+    "lat",
+    "lng"
+  ]
+}

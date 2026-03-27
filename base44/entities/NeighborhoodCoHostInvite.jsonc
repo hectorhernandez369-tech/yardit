@@ -1,0 +1,91 @@
+{
+  "name": "NeighborhoodCoHostInvite",
+  "type": "object",
+  "properties": {
+    "organizer_user_id": {
+      "type": "string",
+      "description": "Organizer user ID"
+    },
+    "organizer_email": {
+      "type": "string",
+      "description": "Organizer email"
+    },
+    "organizer_name": {
+      "type": "string",
+      "description": "Organizer display name"
+    },
+    "event_title": {
+      "type": "string",
+      "description": "Neighborhood Sale title"
+    },
+    "address_key": {
+      "type": "string",
+      "description": "Normalized host address key"
+    },
+    "street_address": {
+      "type": "string",
+      "description": "Host street address"
+    },
+    "city": {
+      "type": "string",
+      "description": "Host city"
+    },
+    "state": {
+      "type": "string",
+      "description": "Host state"
+    },
+    "zip_code": {
+      "type": "string",
+      "description": "Host ZIP code"
+    },
+    "address_lat": {
+      "type": "number",
+      "description": "Confirmed host latitude"
+    },
+    "address_lng": {
+      "type": "number",
+      "description": "Confirmed host longitude"
+    },
+    "host_user_id": {
+      "type": "string",
+      "description": "Matched co-host user ID"
+    },
+    "host_email": {
+      "type": "string",
+      "description": "Matched co-host email"
+    },
+    "host_name": {
+      "type": "string",
+      "description": "Matched co-host name"
+    },
+    "host_notification_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the co-host notification was sent"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined"
+      ],
+      "default": "pending",
+      "description": "Invite status"
+    },
+    "responded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the co-host responded"
+    }
+  },
+  "required": [
+    "organizer_user_id",
+    "address_key",
+    "street_address",
+    "city",
+    "state",
+    "zip_code",
+    "status"
+  ]
+}

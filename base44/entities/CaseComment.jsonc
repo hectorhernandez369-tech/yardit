@@ -1,0 +1,33 @@
+{
+  "name": "CaseComment",
+  "type": "object",
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "description": "ID of the related Case"
+    },
+    "admin_id": {
+      "type": "string",
+      "description": "User ID of the admin who wrote the comment"
+    },
+    "comment_text": {
+      "type": "string",
+      "description": "Full comment text"
+    },
+    "comment_type": {
+      "type": "string",
+      "enum": [
+        "admin_note",
+        "supervisor_note",
+        "system_note"
+      ],
+      "description": "Type of comment"
+    }
+  },
+  "required": [
+    "case_id",
+    "admin_id",
+    "comment_text",
+    "comment_type"
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "name": "Case",
+  "type": "object",
+  "properties": {
+    "listing_id": {
+      "type": "string",
+      "description": "ID of the related Listing"
+    },
+    "account_number": {
+      "type": "string",
+      "description": "Account number for the case"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "in_queue",
+        "assigned",
+        "open",
+        "submitted",
+        "submitted_for_review",
+        "escalated_to_supervisor",
+        "escalated_to_master",
+        "closed"
+      ],
+      "default": "in_queue",
+      "description": "Current case status"
+    },
+    "assigned_admin_id": {
+      "type": "string",
+      "description": "User ID of the assigned admin (nullable)"
+    },
+    "originating_admin_id": {
+      "type": "string",
+      "description": "User ID of the first admin assigned from in_queue. Set once, never modified afterward."
+    },
+    "case_priority": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "default": "medium",
+      "description": "Priority level"
+    },
+    "safety_flag": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this case involves a safety concern"
+    },
+    "disposition": {
+      "type": "string",
+      "enum": [
+        "sustained",
+        "unconfirmed",
+        "disproven"
+      ],
+      "description": "Final disposition (nullable)"
+    },
+    "disposition_locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the disposition is locked from further changes"
+    }
+  },
+  "required": [
+    "listing_id",
+    "account_number"
+  ]
+}

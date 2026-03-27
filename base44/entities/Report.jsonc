@@ -1,0 +1,82 @@
+{
+  "name": "Report",
+  "type": "object",
+  "properties": {
+    "listingId": {
+      "type": "string",
+      "description": "ID of the reported listing"
+    },
+    "reporterUserId": {
+      "type": "string",
+      "description": "ID of user reporting"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Legacy reason field for backward compatibility"
+    },
+    "reason_code": {
+      "type": "string",
+      "enum": [
+        "SAFETY_WEAPONS",
+        "SAFETY_DRUGS",
+        "SAFETY_STOLEN_GOODS",
+        "SAFETY_THREAT",
+        "SAFETY_HARASSMENT_HATE",
+        "FRAUD_SCAM",
+        "FRAUD_FAKE_LISTING",
+        "FRAUD_MISLEADING",
+        "FRAUD_WRONG_LOCATION",
+        "FRAUD_PRICING_DECEPTION",
+        "CONTENT_ADULT",
+        "CONTENT_OFFENSIVE",
+        "QUALITY_DUPLICATE",
+        "QUALITY_WRONG_CATEGORY",
+        "QUALITY_NOT_YARD_SALE",
+        "ABUSE_SPAM",
+        "ABUSE_REPEAT_OFFENDER",
+        "ABUSE_TIER_CIRCUMVENT",
+        "OTHER"
+      ],
+      "description": "Machine-friendly reason code"
+    },
+    "reason_label": {
+      "type": "string",
+      "description": "Human-friendly reason label"
+    },
+    "details": {
+      "type": "string",
+      "description": "Additional details"
+    },
+    "other_details": {
+      "type": "string",
+      "description": "Required details when reason is OTHER"
+    },
+    "photo_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs of uploaded report photos"
+    },
+    "resolved": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether report is resolved"
+    },
+    "resolvedByUserId": {
+      "type": "string",
+      "description": "Admin who resolved"
+    },
+    "resolvedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Resolution timestamp"
+    }
+  },
+  "required": [
+    "listingId",
+    "reporterUserId",
+    "reason_code",
+    "reason_label"
+  ]
+}

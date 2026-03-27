@@ -1,0 +1,43 @@
+{
+  "name": "AdminAction",
+  "type": "object",
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "description": "ID of the related Case (nullable)"
+    },
+    "listing_id": {
+      "type": "string",
+      "description": "ID of the related Listing (nullable)"
+    },
+    "admin_id": {
+      "type": "string",
+      "description": "User ID of the admin who performed the action"
+    },
+    "action_type": {
+      "type": "string",
+      "description": "Type of action taken"
+    },
+    "old_value": {
+      "type": "string",
+      "description": "Previous value as JSON string (nullable)"
+    },
+    "new_value": {
+      "type": "string",
+      "description": "New value as JSON string (nullable)"
+    },
+    "comment": {
+      "type": "string",
+      "description": "Optional comment about the action"
+    },
+    "page": {
+      "type": "string",
+      "description": "Page where the action was performed"
+    }
+  },
+  "required": [
+    "admin_id",
+    "action_type",
+    "page"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "Review",
+  "type": "object",
+  "properties": {
+    "location_id": {
+      "type": "string",
+      "description": "ID of the location being reviewed"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the reviewer"
+    },
+    "rating": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Star rating from 1 to 5"
+    },
+    "comment": {
+      "type": "string",
+      "description": "Review comment"
+    }
+  },
+  "required": [
+    "location_id",
+    "user_email",
+    "rating"
+  ]
+}

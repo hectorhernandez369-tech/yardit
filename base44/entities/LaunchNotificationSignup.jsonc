@@ -1,0 +1,18 @@
+{
+  "name": "LaunchNotificationSignup",
+  "type": "object",
+  "properties": {
+    "phone_number": {
+      "type": "string",
+      "description": "Phone number for launch notifications"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email address for launch notifications"
+    }
+  },
+  "required": [
+    "phone_number",
+    "email"
+  ]
+}

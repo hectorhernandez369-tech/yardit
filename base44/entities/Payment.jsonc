@@ -1,0 +1,88 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "location_id": {
+      "type": "string",
+      "description": "ID of the location being paid for"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Payment amount"
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "5_day",
+        "monthly",
+        "neighborhood_sale_initial",
+        "neighborhood_sale_adjustment",
+        "fallback_listing"
+      ],
+      "description": "Selected plan"
+    },
+    "duration_days": {
+      "type": "number",
+      "description": "Number of days the listing is active"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "succeeded",
+        "failed",
+        "cancelled"
+      ],
+      "default": "pending",
+      "description": "Payment status"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Payment method used"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "External payment transaction ID"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User who owns the payment record"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "neighborhood_event",
+        "fallback_listing"
+      ],
+      "description": "Payment type"
+    },
+    "related_entity_id": {
+      "type": "string",
+      "description": "Related listing or entity ID"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string",
+      "description": "Stripe payment intent ID"
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "Stripe customer ID"
+    },
+    "stripe_payment_method_id": {
+      "type": "string",
+      "description": "Stripe payment method ID"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Created timestamp"
+    }
+  },
+  "required": [
+    "location_id",
+    "amount",
+    "plan",
+    "duration_days"
+  ]
+}

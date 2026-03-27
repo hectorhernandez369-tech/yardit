@@ -1,0 +1,30 @@
+{
+  "name": "LightRating",
+  "type": "object",
+  "properties": {
+    "listing_id": {
+      "type": "string",
+      "description": "ID of the holiday lights location"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user rating"
+    },
+    "rating_value": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 10,
+      "description": "Rating from 5-10"
+    },
+    "season_year": {
+      "type": "integer",
+      "description": "Year of the holiday season"
+    }
+  },
+  "required": [
+    "listing_id",
+    "user_email",
+    "rating_value",
+    "season_year"
+  ]
+}

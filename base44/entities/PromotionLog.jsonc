@@ -1,0 +1,51 @@
+{
+  "name": "PromotionLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "listing_id": {
+      "type": "string"
+    },
+    "promotion_type": {
+      "type": "string"
+    },
+    "promotion_value": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "account",
+        "listing"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "admin_notes": {
+      "type": "string"
+    },
+    "admin_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "completed",
+        "revoked"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "user_id",
+    "promotion_type",
+    "scope",
+    "reason",
+    "admin_id"
+  ]
+}

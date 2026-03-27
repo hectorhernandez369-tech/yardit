@@ -44,7 +44,6 @@ import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
 import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.jsx";
-import MarqueeBoostEffect from "@/components/map/MarqueeBoostEffect";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 
@@ -1054,13 +1053,6 @@ const stats = useMemo(() => {
               <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
               <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
               <HuntMapLayers />
-              <MarqueeBoostEffect
-                marqueeListings={marqueeOverlays}
-                openMarqueeIds={openMarqueeIds}
-                visiblePins={visiblePins}
-                markerRefsMap={markerRefsMap}
-                currentZoom={currentZoom}
-              />
               <TileLayer
                 attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA"

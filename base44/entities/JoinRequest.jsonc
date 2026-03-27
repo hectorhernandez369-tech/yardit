@@ -1,0 +1,69 @@
+{
+  "name": "JoinRequest",
+  "type": "object",
+  "properties": {
+    "listingId": {
+      "type": "string",
+      "description": "ID of the created listing (requester's listing)"
+    },
+    "saleListingId": {
+      "type": "string",
+      "description": "ID of the Neighborhood Sale event listing"
+    },
+    "ownerUserId": {
+      "type": "string",
+      "description": "ID of the EO (Event Organizer)"
+    },
+    "requesterUserId": {
+      "type": "string",
+      "description": "ID of the user requesting to join"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "denied"
+      ],
+      "default": "pending"
+    },
+    "removed_by_eo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the participant was removed from the sale"
+    },
+    "removed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the participant was removed"
+    },
+    "removal_reason": {
+      "type": "string",
+      "description": "Reason the participant was removed or denied"
+    },
+    "participant_origin_snapshot": {
+      "type": "string",
+      "enum": [
+        "neighborhood_invite",
+        "standalone"
+      ],
+      "description": "Origin snapshot captured when the join request was created"
+    },
+    "warning_48h_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the 48-hour warning was sent to this participant"
+    },
+    "cancellation_24h_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the 24-hour cancellation message was sent to this participant"
+    }
+  },
+  "required": [
+    "listingId",
+    "saleListingId",
+    "ownerUserId",
+    "requesterUserId"
+  ]
+}

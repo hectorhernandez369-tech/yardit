@@ -1,0 +1,33 @@
+{
+  "name": "SavedNeighborhood",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user"
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of the saved area"
+    },
+    "center_lat": {
+      "type": "number",
+      "description": "Center latitude"
+    },
+    "center_lng": {
+      "type": "number",
+      "description": "Center longitude"
+    },
+    "radius_km": {
+      "type": "number",
+      "default": 5,
+      "description": "Radius in kilometers to watch for new listings"
+    }
+  },
+  "required": [
+    "user_email",
+    "name",
+    "center_lat",
+    "center_lng"
+  ]
+}

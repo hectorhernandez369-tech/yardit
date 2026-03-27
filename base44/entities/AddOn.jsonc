@@ -1,0 +1,43 @@
+{
+  "name": "AddOn",
+  "type": "object",
+  "properties": {
+    "location_id": {
+      "type": "string",
+      "description": "ID of the location this add-on is for"
+    },
+    "addon_type": {
+      "type": "string",
+      "enum": [
+        "boost",
+        "add_day",
+        "extra_photos"
+      ],
+      "description": "Type of add-on purchased"
+    },
+    "amount_paid": {
+      "type": "number",
+      "description": "Amount paid for the add-on"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this add-on expires"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "completed"
+      ],
+      "default": "active",
+      "description": "Status of the add-on"
+    }
+  },
+  "required": [
+    "location_id",
+    "addon_type",
+    "amount_paid"
+  ]
+}

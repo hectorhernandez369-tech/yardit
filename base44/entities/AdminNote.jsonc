@@ -1,0 +1,32 @@
+{
+  "name": "AdminNote",
+  "type": "object",
+  "properties": {
+    "entityType": {
+      "type": "string",
+      "enum": [
+        "user",
+        "listing"
+      ],
+      "description": "Type of entity"
+    },
+    "entityId": {
+      "type": "string",
+      "description": "ID of user or listing"
+    },
+    "noteText": {
+      "type": "string",
+      "description": "Note content"
+    },
+    "createdByUserId": {
+      "type": "string",
+      "description": "Admin who created note"
+    }
+  },
+  "required": [
+    "entityType",
+    "entityId",
+    "noteText",
+    "createdByUserId"
+  ]
+}

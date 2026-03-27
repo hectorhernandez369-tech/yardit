@@ -1,0 +1,52 @@
+{
+  "name": "Notification",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "description": "User receiving notification"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User receiving notification (alias)"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string",
+      "description": "Notification title"
+    },
+    "message": {
+      "type": "string",
+      "description": "Notification message"
+    },
+    "read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether notification has been read"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether notification has been read (alias)"
+    },
+    "type": {
+      "type": "string",
+      "description": "Type of notification"
+    },
+    "related_entity_type": {
+      "type": "string",
+      "description": "Related entity type"
+    },
+    "related_entity_id": {
+      "type": "string",
+      "description": "Related entity ID"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional context data for the notification"
+    }
+  },
+  "required": []
+}

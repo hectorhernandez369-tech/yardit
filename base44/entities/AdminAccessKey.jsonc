@@ -1,0 +1,37 @@
+{
+  "name": "AdminAccessKey",
+  "type": "object",
+  "properties": {
+    "employee_id": {
+      "type": "string",
+      "description": "Employee ID (unique)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "The Yardit User ID of the admin"
+    },
+    "pin_hash": {
+      "type": "string",
+      "description": "Bcrypt hash of the admin PIN"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this access key is active"
+    },
+    "failed_attempts": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of consecutive failed PIN attempts"
+    },
+    "locked_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Lockout expiration timestamp"
+    }
+  },
+  "required": [
+    "employee_id",
+    "pin_hash"
+  ]
+}

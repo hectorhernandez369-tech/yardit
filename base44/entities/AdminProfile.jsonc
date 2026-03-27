@@ -1,0 +1,83 @@
+{
+  "name": "AdminProfile",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The Base44 User ID of the admin (unique)"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email address of the admin"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "Employee ID (unique)"
+    },
+    "role_label": {
+      "type": "string",
+      "enum": [
+        "basic",
+        "supervisor",
+        "master"
+      ],
+      "description": "Assigned role for the admin"
+    },
+    "first_name": {
+      "type": "string",
+      "description": "First name of the admin"
+    },
+    "last_name": {
+      "type": "string",
+      "description": "Last name of the admin"
+    },
+    "dob": {
+      "type": "string",
+      "description": "Date of birth"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number"
+    },
+    "address": {
+      "type": "string",
+      "description": "Address (optional)"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of capabilities granted"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the admin account is active"
+    },
+    "last_login_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of the admin's last login"
+    },
+    "supervisor_user_id": {
+      "type": "string",
+      "description": "User ID of the assigned supervisor (optional, for basic role)"
+    },
+    "supervisor_employee_id": {
+      "type": "string",
+      "description": "Employee ID of the assigned supervisor for display (optional)"
+    }
+  },
+  "required": [
+    "user_id",
+    "email",
+    "employee_id",
+    "role_label",
+    "first_name",
+    "last_name",
+    "dob",
+    "phone",
+    "capabilities"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "AdminEvent",
+  "type": "object",
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "description": "ID of the related Case (nullable)"
+    },
+    "admin_id": {
+      "type": "string",
+      "description": "User ID of the admin"
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Type of event logged"
+    },
+    "event_payload": {
+      "type": "string",
+      "description": "Event data as JSON string (nullable)"
+    },
+    "page": {
+      "type": "string",
+      "description": "Page where the event occurred"
+    }
+  },
+  "required": [
+    "admin_id",
+    "event_type",
+    "page"
+  ]
+}

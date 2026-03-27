@@ -1,0 +1,63 @@
+{
+  "name": "UserActivityLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Authenticated user ID for the activity event"
+    },
+    "guest_session_id": {
+      "type": "string",
+      "description": "Guest session identifier when no user account is present"
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Machine-friendly event key such as login or listing_created"
+    },
+    "event_label": {
+      "type": "string",
+      "description": "Human-readable event label"
+    },
+    "target_type": {
+      "type": "string",
+      "description": "Related entity type such as listing, payment, profile, or terms"
+    },
+    "target_id": {
+      "type": "string",
+      "description": "Related entity ID when applicable"
+    },
+    "source_page": {
+      "type": "string",
+      "description": "Page or route where the action happened"
+    },
+    "details_json": {
+      "type": "object",
+      "description": "Flexible extra context for the event"
+    },
+    "before_value": {
+      "type": "string",
+      "description": "Important previous value for audit events"
+    },
+    "after_value": {
+      "type": "string",
+      "description": "Important new value for audit events"
+    },
+    "lat": {
+      "type": "number",
+      "description": "Latitude for important location-based user actions"
+    },
+    "lng": {
+      "type": "number",
+      "description": "Longitude for important location-based user actions"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp for when the activity row was created"
+    }
+  },
+  "required": [
+    "event_type",
+    "event_label"
+  ]
+}

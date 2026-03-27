@@ -1,0 +1,39 @@
+{
+  "name": "AdminAuditLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Yardit User ID of the admin (if known)"
+    },
+    "admin_employee_id": {
+      "type": "string",
+      "description": "Employee ID entered"
+    },
+    "action_type": {
+      "type": "string",
+      "description": "Type of action: admin_pin_success, admin_pin_fail, admin_pin_locked, etc."
+    },
+    "target_type": {
+      "type": "string",
+      "description": "Target entity type: user, listing, report, case, admin, system"
+    },
+    "target_id": {
+      "type": "string",
+      "description": "ID of the target entity"
+    },
+    "success": {
+      "type": "boolean",
+      "description": "Whether the action succeeded"
+    },
+    "metadata": {
+      "type": "string",
+      "description": "JSON string with additional details"
+    }
+  },
+  "required": [
+    "admin_employee_id",
+    "action_type",
+    "success"
+  ]
+}

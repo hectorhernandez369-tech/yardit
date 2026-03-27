@@ -1,0 +1,90 @@
+{
+  "name": "AdminInviteProfile",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Email address the invite was sent to"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "Employee ID"
+    },
+    "role_label": {
+      "type": "string",
+      "enum": [
+        "basic",
+        "supervisor",
+        "master"
+      ],
+      "description": "Intended role for the invited admin"
+    },
+    "first_name": {
+      "type": "string",
+      "description": "First name of the invited admin"
+    },
+    "last_name": {
+      "type": "string",
+      "description": "Last name of the invited admin"
+    },
+    "dob": {
+      "type": "string",
+      "description": "Date of birth"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number"
+    },
+    "address": {
+      "type": "string",
+      "description": "Address (optional)"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of capabilities granted"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the invite is active"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "canceled"
+      ],
+      "default": "pending",
+      "description": "Invitation status"
+    },
+    "invited_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the invite was sent"
+    },
+    "supervisor_user_id": {
+      "type": "string",
+      "description": "User ID of the assigned supervisor (optional, for basic role)"
+    },
+    "supervisor_employee_id": {
+      "type": "string",
+      "description": "Employee ID of the assigned supervisor for display (optional)"
+    }
+  },
+  "required": [
+    "email",
+    "employee_id",
+    "role_label",
+    "first_name",
+    "last_name",
+    "dob",
+    "phone",
+    "capabilities",
+    "status",
+    "invited_at"
+  ]
+}

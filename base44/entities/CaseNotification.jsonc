@@ -1,0 +1,28 @@
+{
+  "name": "CaseNotification",
+  "type": "object",
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "description": "ID of the related Case"
+    },
+    "admin_id": {
+      "type": "string",
+      "description": "User ID of the admin to notify"
+    },
+    "message": {
+      "type": "string",
+      "description": "Notification message text"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the notification has been read"
+    }
+  },
+  "required": [
+    "case_id",
+    "admin_id",
+    "message"
+  ]
+}

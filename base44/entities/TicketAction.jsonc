@@ -1,0 +1,22 @@
+{
+  "name": "TicketAction",
+  "type": "object",
+  "properties": {
+    "ticket_id": {
+      "type": "string"
+    },
+    "admin_id": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "details": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "ticket_id",
+    "action"
+  ]
+}
