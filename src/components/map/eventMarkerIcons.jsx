@@ -39,12 +39,14 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       const boardWidth = isCollapsed ? MARQUEE_BOARD_COLLAPSED_WIDTH : MARQUEE_BOARD_WIDTH;
       const half = Math.round(boardWidth / 2);
 
-      // Apply zoom-based scale ONLY to collapsed marquee
+      // Apply zoom-based scale ONLY to collapsed marquee.
+      // We scale the inner card div (position:absolute;bottom:...) using transform-origin:bottom center
+      // so it shrinks upward from the tail tip, keeping the anchor stable.
       const scale = isCollapsed ? getCollapsedMarqueeScale(zoom) : 1.0;
-      const scaledHtml = scale !== 1.0
+      const scaledHtml = (scale !== 1.0 && isCollapsed)
         ? marqueeHtml.replace(
-            '<div style="position:relative;',
-            `<div style="position:relative;transform:scale(${scale});transform-origin:bottom center;`
+            'position:absolute;bottom:',
+            `transform:scale(${scale});transform-origin:bottom center;position:absolute;bottom:`
           )
         : marqueeHtml;
 
