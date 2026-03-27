@@ -1092,7 +1092,14 @@ const stats = useMemo(() => {
                     key={listing.id}
                     ref={(ref) => { if (ref) markerRefsMap.current[listing.id] = ref; }}
                     position={[listing.lat, listing.lng]}
-                    icon={listing.listingType === "event" ? getEventMarkerIcon(listing, isMapSelected, marqueeOpen) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
+                    icon={listing.listingType === "event" ? (() => {
+                 if (isMarquee && marqueeOpen) {
+                   const isExpanded = marqueeState === "expanded";
+                   const boardHtml = isExpanded ? getMarqueeBoardExpandedHtml(listing) : getMarqueeBoardCollapsedHtml(listing);
+                   return getEventMarkerIcon(listing, isMapSelected, true, boardHtml, currentZoom);
+                 }
+                 return getEventMarkerIcon(listing, isMapSelected, marqueeOpen);
+               })() : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
                     eventHandlers={{
                       click: () => { handlePinClick(listing); },
                       popupopen: () => setSelectedListingId(listing.id),

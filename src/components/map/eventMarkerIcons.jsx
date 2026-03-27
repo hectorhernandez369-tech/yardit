@@ -23,10 +23,9 @@ function makeDivIcon(key, html, width, height, anchorX = width / 2, anchorY = he
 // Returns a scale factor (0..1) for collapsed marquee based on zoom level.
 // zoom 13+ = 1.0, zoom 12 = 0.85, zoom 11 = 0.70, below 11 = 0.70 (clustering takes over anyway)
 export function getCollapsedMarqueeScale(zoom) {
-  if (zoom >= 14) return 1.0;
-  if (zoom === 13) return 0.85;
-  if (zoom === 12) return 0.75;
-  return 0.45; // zoom 11 and below
+  if (zoom >= 13) return 1.0;
+  if (zoom === 12) return 0.85;
+  return 0.70; // zoom 11 and below
 }
 
 export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = false, marqueeHtml = "", zoom = 13) {
