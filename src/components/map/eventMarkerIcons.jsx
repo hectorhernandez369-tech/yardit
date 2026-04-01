@@ -54,48 +54,32 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       return cache[cacheKey];
     }
 
-    // ── CLOSED-STATE: Mini Marquee Pill (matches collapsed/expanded design system) ──
-    // Colors match MarqueeBoard exactly: bg #7c2d12→#3f1d0b, border #f4a849, bulbs #FFF4A3→#FFD54A→#FFB300
-    const styleId = "mqpill-v2";
-    if (typeof document !== "undefined" && !document.getElementById(styleId)) {
-      const style = document.createElement("style");
-      style.id = styleId;
-      style.textContent = `
-        @keyframes mqp2-on  { 0%,100%{opacity:1;  } 50%{opacity:0.25;} }
-        @keyframes mqp2-off { 0%,100%{opacity:0.25;} 50%{opacity:1;  } }
-        .mqp2-a { animation: mqp2-on  2.2s ease-in-out infinite; }
-        .mqp2-b { animation: mqp2-off 2.2s ease-in-out infinite; }
-      `;
-      document.head.appendChild(style);
-    }
-
-    // Dimensions: ~46px wide, 24px tall — matches proportions of collapsed card
+    // ── CLOSED-STATE: Mini Marquee — mirrors collapsed/expanded design system ──
+    // Colors, border, bulb style all match MarqueeBoard exactly.
     const W = 46, H = 24;
-    // Bulb spec: exactly matches MarqueeBoard bulb style (5px, same gradient + glow)
-    const bulbD = 5;
-    const bulbOff = -2.5; // centers 5px bulb on border edge, same as MarqueeBoard
-    const bulbStyle = `position:absolute;width:${bulbD}px;height:${bulbD}px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#FFF4A3,#FFD54A 50%,#FFB300);box-shadow:0 0 4px rgba(255,213,74,0.8);z-index:3;`;
+    // Same bulb spec as MarqueeBoard's B constant
+    const bulbSize = 5;
+    const bulbOff = -2.5; // centers 5px bulb on the 1px border
+    const bulbSp = 10;    // spacing; fits ~4 bulbs across 46px at 8px inset
+    const B = `width:${bulbSize}px;height:${bulbSize}px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#FFF4A3,#FFD54A 50%,#FFB300);box-shadow:0 0 6px rgba(255,213,74,0.85);position:absolute;z-index:3;`;
 
-    // Evenly space bulbs on top & bottom edges (matching MarqueeBoard sp=16, inset=8)
     const topBulbs = [];
     const botBulbs = [];
-    const inset = 6, sp = 11; // tighter spacing for small pill width
-    for (let x = inset; x <= W - inset - bulbD; x += sp) {
-      const cls = topBulbs.length % 2 === 0 ? "mqp2-a" : "mqp2-b";
-      topBulbs.push(`<div class="${cls}" style="${bulbStyle}left:${x}px;top:${bulbOff}px;"></div>`);
-      botBulbs.push(`<div class="${cls}" style="${bulbStyle}left:${x}px;bottom:${bulbOff}px;"></div>`);
+    // 8px inset from each side — same as MarqueeBoard bulbFrame top/bottom edges
+    for (let x = 8; x <= W - 8; x += bulbSp) {
+      const lx = (x - bulbSize / 2).toFixed(1);
+      topBulbs.push(`<div style="${B}top:${bulbOff}px;left:${lx}px;"></div>`);
+      botBulbs.push(`<div style="${B}bottom:${bulbOff}px;left:${lx}px;"></div>`);
     }
 
-    const html = `
-      <div style="position:relative;width:${W}px;height:${H}px;overflow:visible;">
-        <!-- card body: exact same colors as collapsed marquee board -->
-        <div style="position:absolute;inset:0;border-radius:6px;border:1px solid #f4a849;background:linear-gradient(to bottom,#7c2d12,#3f1d0b);box-shadow:0 3px 8px rgba(0,0,0,0.35);overflow:visible;box-sizing:border-box;">
-          <!-- icon centered, white for legibility on dark bg -->
-          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;">${emoji}</div>
-        </div>
-        ${topBulbs.join("")}
-        ${botBulbs.join("")}
-      </div>`;
+    // Same bg gradient and border as collapsed marquee card
+    const html = `<div style="position:relative;width:${W}px;height:${H}px;overflow:visible;">
+  <div style="position:absolute;inset:0;border-radius:6px;border:1px solid #f4a849;background:linear-gradient(to bottom,#7c2d12,#3f1d0b);box-shadow:0 5px 14px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;overflow:visible;">
+    <span style="font-size:11px;line-height:1;color:#fff;">${emoji}</span>
+  </div>
+  ${topBulbs.join("")}
+  ${botBulbs.join("")}
+</div>`;
 
     return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, W, H, W / 2, H / 2);
   }
