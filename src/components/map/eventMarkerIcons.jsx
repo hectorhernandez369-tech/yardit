@@ -96,9 +96,11 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
   }
 
   if (tier === "featured") {
-    const size = isSelected ? 38 : 34;
-    const html = `<div style="width:${size}px;height:${size}px;border-radius:9999px;border:3px solid #2C4F4E;background:#5DADA5;color:white;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 6px 14px rgba(0,0,0,0.28);">${emoji}</div>`;
-    return makeDivIcon(`event_featured_${emoji}_${isSelected}`, html, size, size, size / 2, size);
+    const fontSize = isSelected ? 32 : 28;
+    // Wrapper sized to font so anchor centers on the coordinate
+    const size = fontSize;
+    const html = `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45));">${emoji}</div>`;
+    return makeDivIcon(`event_featured_${emoji}_${isSelected}`, html, size, size, size / 2, size / 2);
   }
 
   const size = isSelected ? 32 : 28;
