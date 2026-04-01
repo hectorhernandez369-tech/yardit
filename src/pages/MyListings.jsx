@@ -365,35 +365,80 @@ export default function MyListingsPage() {
   };
 
   const relist = (listing) => {
-    // ✅ Build prefill payload using CreateListing's real keys
-    const payload = {
+    const isEvent = listing.listingType === "event";
+
+    const basePayload = {
       relistFromId: listing.id,
-      startAtStep: 3,
-      relistPrefill: {
-        // Step 1
+      listingType: listing.listingType || "yard_sale",
+    };
+
+    if (isEvent) {
+      // Event relist: prefill all event fields across steps 1, 2, 3
+      basePayload.relistPrefill = {
+        listingType: "event",
+
+        // Step 1 — Event Details
+        event_name: listing.event_name || listing.title || "",
+        event_description: listing.event_description || listing.description || "",
+        event_category: listing.event_category || listing.category || "",
+        event_icon: listing.event_icon || "",
+        event_photos: listing.event_photos || listing.photoUrls || [],
+
+        // Step 2 — Event Location
+        address_text: listing.address_text || listing.addressText || "",
+        addressText: listing.address_text || listing.addressText || "",
+        city: listing.city || "",
+        state: listing.state || "",
+        zip: listing.zip || "",
+        lat: listing.lat ?? null,
+        lng: listing.lng ?? null,
+
+        // Step 3 — Schedule (cleared so user picks new dates)
+        event_start_date: "",
+        event_end_date: "",
+        event_start_time: "",
+        event_end_time: "",
+        start_datetime: "",
+        end_datetime: "",
+        startDateTime: "",
+        endDateTime: "",
+
+        // Step 4 — Tier: preselect original tier (marquee stays marquee)
+        event_tier: listing.event_tier || listing.tier || "basic",
+
+        // Marquee extras
+        marquee_schedule_slots: listing.marquee_schedule_slots || [],
+        marquee_flyer_url: listing.marquee_flyer_url || "",
+        marquee_background_url: listing.marquee_background_url || "",
+        event_logo_url: listing.event_logo_url || "",
+      };
+    } else {
+      // Yard sale / neighborhood sale relist (unchanged)
+      basePayload.relistPrefill = {
+        listingType: listing.listingType || "yard_sale",
         title: listing.title || "",
         description: listing.description || "",
-
-        // Step 2 (must match CreateListing formData keys)
         addressText: listing.addressText || listing.street_address || listing.street || "",
         city: listing.city || "",
         state: listing.state || "",
         zip: listing.zip || listing.zip_code || "",
-
-        // Location
         lat: listing.lat ?? listing.latitude ?? null,
         lng: listing.lng ?? listing.longitude ?? null,
-      },
-    };
+      };
+    }
 
     try {
-      localStorage.setItem(RELIST_STORAGE_KEY, JSON.stringify(payload));
+      localStorage.setItem(RELIST_STORAGE_KEY, JSON.stringify(basePayload));
     } catch (e) {
       // ignore
     }
 
-    // ✅ navigate to CreateListing which now reads relist + jumps to step 3
-    navigate(createPageUrl("CreateListing") + "?relist=1&step=3");
+    if (isEvent) {
+      // Event relist: go to step 1 so the user flows through event steps naturally
+      navigate(createPageUrl("CreateListing") + "?relist=1&eventRelist=1");
+    } else {
+      navigate(createPageUrl("CreateListing") + "?relist=1");
+    }
   };
 
   const cancelListing = async (listing) => {

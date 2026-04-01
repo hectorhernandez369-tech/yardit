@@ -327,7 +327,7 @@ export default function CreateListingPage() {
     }
   }, [location.search]);
 
-  // ✅ Relist loader: reads localStorage + maps keys + jumps to Step 3
+  // ✅ Relist loader: reads localStorage + maps keys + routes by listing type
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const isRelist = params.get("relist") === "1";
@@ -339,33 +339,85 @@ export default function CreateListingPage() {
     try {
       const payload = JSON.parse(raw);
       const pre = payload?.relistPrefill || {};
+      const isEventRelist = pre.listingType === "event" || payload.listingType === "event";
 
-      setFormData((prev) => ({
-        ...prev,
-        ...pre,
+      if (isEventRelist) {
+        // Event relist: restore all event fields, start at step 1
+        setFormData((prev) => ({
+          ...prev,
+          listingType: "event",
 
-        addressText: pre.addressText || pre.street || "",
-        city: pre.city || "",
-        state: pre.state || "",
-        zip: pre.zip || pre.zip_code || "",
-        lat: pre.lat ?? null,
-        lng: pre.lng ?? null,
-        event_center_lat: pre.lat ?? null,
-        event_center_lng: pre.lng ?? null,
+          // Step 1 — Details
+          event_name: pre.event_name || "",
+          event_description: pre.event_description || "",
+          event_category: pre.event_category || "",
+          event_icon: pre.event_icon || "",
+          event_photos: pre.event_photos || [],
 
-        tier: "",
-        startDateTime: "",
-        endDateTime: "",
-        selectedRangeStartDate: "",
-        selectedRangeEndDate: "",
-        earlyVisibilityDays: 0,
-        earlyVisibilityDates: [],
-        activeDates: []
-      }));
+          // Step 2 — Location
+          address_text: pre.address_text || pre.addressText || "",
+          addressText: pre.addressText || pre.address_text || "",
+          city: pre.city || "",
+          state: pre.state || "",
+          zip: pre.zip || "",
+          lat: pre.lat ?? null,
+          lng: pre.lng ?? null,
+          event_center_lat: pre.lat ?? null,
+          event_center_lng: pre.lng ?? null,
 
-      setStep(3);
-      localStorage.removeItem(RELIST_STORAGE_KEY);
-      toast.success("Relist loaded — pick a tier and schedule");
+          // Step 3 — Schedule cleared (user picks new dates)
+          event_start_date: "",
+          event_end_date: "",
+          event_start_time: "",
+          event_end_time: "",
+          start_datetime: "",
+          end_datetime: "",
+          startDateTime: "",
+          endDateTime: "",
+
+          // Step 4 — Tier: preserve original (marquee stays marquee)
+          event_tier: pre.event_tier || "basic",
+          tier: pre.event_tier || "basic",
+
+          // Marquee extras
+          marquee_schedule_slots: pre.marquee_schedule_slots || [],
+          marquee_flyer_url: pre.marquee_flyer_url || "",
+          marquee_background_url: pre.marquee_background_url || "",
+          event_logo_url: pre.event_logo_url || "",
+        }));
+
+        setStep(1);
+        localStorage.removeItem(RELIST_STORAGE_KEY);
+        toast.success("Event relist loaded — review your details and continue");
+      } else {
+        // Yard sale / neighborhood sale relist: jump straight to step 3
+        setFormData((prev) => ({
+          ...prev,
+          ...pre,
+
+          addressText: pre.addressText || pre.street || "",
+          city: pre.city || "",
+          state: pre.state || "",
+          zip: pre.zip || pre.zip_code || "",
+          lat: pre.lat ?? null,
+          lng: pre.lng ?? null,
+          event_center_lat: pre.lat ?? null,
+          event_center_lng: pre.lng ?? null,
+
+          tier: "",
+          startDateTime: "",
+          endDateTime: "",
+          selectedRangeStartDate: "",
+          selectedRangeEndDate: "",
+          earlyVisibilityDays: 0,
+          earlyVisibilityDates: [],
+          activeDates: []
+        }));
+
+        setStep(3);
+        localStorage.removeItem(RELIST_STORAGE_KEY);
+        toast.success("Relist loaded — pick a tier and schedule");
+      }
     } catch {
       // ignore parse errors
     }
