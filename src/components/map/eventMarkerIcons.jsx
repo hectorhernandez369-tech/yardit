@@ -85,12 +85,20 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
     }
 
     const size = 48;
+    // NOTE: clip-path cuts off filter:blur, so we wrap each beam:
+    //   outer div  → animation + transform-origin (no clip)
+    //   inner div  → clip-path shape + gradient (no filter)
+    //   Then a separate sibling div carries the blur glow behind the beam
     const html = `
       <div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:flex-end;justify-content:center;">
-        <!-- left beam -->
-        <div class="mq-beam-left" style="position:absolute;bottom:10px;left:0px;width:16px;height:30px;background:linear-gradient(180deg,#ffe082 0%,rgba(255,224,82,0.0) 100%);clip-path:polygon(50% 0%,100% 100%,0% 100%);transform-origin:bottom center;filter:blur(2px);"></div>
-        <!-- right beam -->
-        <div class="mq-beam-right" style="position:absolute;bottom:10px;right:0px;width:16px;height:30px;background:linear-gradient(180deg,#ffe082 0%,rgba(255,224,82,0.0) 100%);clip-path:polygon(50% 0%,100% 100%,0% 100%);transform-origin:bottom center;filter:blur(2px);"></div>
+        <!-- left beam glow (blurred, no clip) -->
+        <div class="mq-beam-left" style="position:absolute;bottom:8px;left:-1px;width:18px;height:32px;background:linear-gradient(180deg,rgba(255,224,82,0.7) 0%,rgba(255,224,82,0.0) 100%);transform-origin:bottom center;filter:blur(4px);border-radius:6px 6px 0 0;"></div>
+        <!-- left beam sharp shape -->
+        <div class="mq-beam-left" style="position:absolute;bottom:8px;left:-1px;width:18px;height:32px;background:linear-gradient(180deg,rgba(255,236,120,0.95) 0%,rgba(255,224,82,0.0) 100%);clip-path:polygon(50% 0%,100% 100%,0% 100%);transform-origin:bottom center;"></div>
+        <!-- right beam glow (blurred, no clip) -->
+        <div class="mq-beam-right" style="position:absolute;bottom:8px;right:-1px;width:18px;height:32px;background:linear-gradient(180deg,rgba(255,224,82,0.7) 0%,rgba(255,224,82,0.0) 100%);transform-origin:bottom center;filter:blur(4px);border-radius:6px 6px 0 0;"></div>
+        <!-- right beam sharp shape -->
+        <div class="mq-beam-right" style="position:absolute;bottom:8px;right:-1px;width:18px;height:32px;background:linear-gradient(180deg,rgba(255,236,120,0.95) 0%,rgba(255,224,82,0.0) 100%);clip-path:polygon(50% 0%,100% 100%,0% 100%);transform-origin:bottom center;"></div>
         <!-- base circle -->
         <div style="position:relative;z-index:1;width:20px;height:20px;border-radius:9999px;background:radial-gradient(circle at 40% 35%,#4a3800,#1a1000);border:2px solid #f4a849;box-shadow:0 0 12px rgba(255,214,10,0.6),0 3px 8px rgba(0,0,0,0.3);"></div>
       </div>`;
