@@ -72,11 +72,14 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       botBulbs.push(`<div style="${B}bottom:${bulbOff}px;left:${lx}px;"></div>`);
     }
 
-    // Same bg gradient and border as collapsed marquee card
+    // Background: use marquee_background_url with dark overlay (same as collapsed/expanded board)
+    const bgUrl = listing?.marquee_background_url;
+    const bgStyle = bgUrl
+      ? `background:linear-gradient(rgba(0,0,0,0.65),rgba(0,0,0,0.65)),url('${bgUrl}');background-size:cover;background-position:center;`
+      : `background:linear-gradient(to bottom,#7c2d12,#3f1d0b);`;
+
     const html = `<div style="position:relative;width:${W}px;height:${H}px;overflow:visible;">
-  <div style="position:absolute;inset:0;border-radius:6px;border:1px solid #f4a849;background:linear-gradient(to bottom,#7c2d12,#3f1d0b);box-shadow:0 5px 14px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;overflow:visible;">
-    <span style="font-size:11px;line-height:1;color:#fff;">${emoji}</span>
-  </div>
+  <div style="position:absolute;inset:0;border-radius:6px;border:1px solid #f4a849;${bgStyle}box-shadow:0 5px 14px rgba(0,0,0,0.3);overflow:hidden;"></div>
   ${topBulbs.join("")}
   ${botBulbs.join("")}
 </div>`;
