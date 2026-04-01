@@ -2,9 +2,7 @@ import L from "leaflet";
 import { getEventIconEmoji } from "@/lib/eventListingConfig";
 import { MARQUEE_BOARD_WIDTH, MARQUEE_BOARD_COLLAPSED_WIDTH } from "@/components/map/MarqueeBoard.jsx";
 
-// iconAnchor Y=0: wrapper is 0-height, tail tip = coordinate
 const MARQUEE_ANCHOR_Y = 0;
-
 const cache = {};
 
 function makeDivIcon(key, html, width, height, anchorX = width / 2, anchorY = height) {
@@ -20,12 +18,10 @@ function makeDivIcon(key, html, width, height, anchorX = width / 2, anchorY = he
   return cache[key];
 }
 
-// Returns a scale factor (0..1) for collapsed marquee based on zoom level.
-// zoom 13+ = 1.0, zoom 12 = 0.85, zoom 11 = 0.70, below 11 = 0.70 (clustering takes over anyway)
 export function getCollapsedMarqueeScale(zoom) {
   if (zoom >= 13) return 1.0;
   if (zoom === 12) return 0.85;
-  return 0.70; // zoom 11 and below
+  return 0.70;
 }
 
 export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = false, marqueeHtml = "", zoom = 13) {
@@ -38,7 +34,6 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       const isCollapsed = marqueeHtml.includes(`width:${MARQUEE_BOARD_COLLAPSED_WIDTH}px`);
       const boardWidth = isCollapsed ? MARQUEE_BOARD_COLLAPSED_WIDTH : MARQUEE_BOARD_WIDTH;
       const half = Math.round(boardWidth / 2);
-
       const scale = isCollapsed ? getCollapsedMarqueeScale(zoom) : 1.0;
       const scaledHtml = (scale !== 1.0 && isCollapsed)
         ? marqueeHtml.replace(
@@ -46,7 +41,6 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
             `transform:scale(${scale});transform-origin:bottom center;position:absolute;bottom:`
           )
         : marqueeHtml;
-
       const cacheKey = `event_marquee_board_${listing?.id}_${boardWidth}_z${isCollapsed ? zoom : 0}_${marqueeHtml.slice(-48)}`;
       if (!cache[cacheKey]) {
         cache[cacheKey] = L.divIcon({
@@ -60,46 +54,46 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       return cache[cacheKey];
     }
 
-    // ── CLOSED-STATE MARQUEE MARKER ──────────────────────────────────────────
-    // 40×40 polished "Marquee Bulb Ring": 12 tiny round bulbs, alternating glow, no box background.
-    const styleId = "marquee-bulb-ring-style";
+    // ── CLOSED-STATE: Marquee Bulb Ring ───────────────────────────────────────
+    const styleId = "marquee-bulb-ring-v3";
     if (typeof document !== "undefined" && !document.getElementById(styleId)) {
       const style = document.createElement("style");
       style.id = styleId;
       style.textContent = `
         @keyframes mqb-on {
-          0%,100% { opacity:1;   filter:drop-shadow(0 0 2.5px rgba(255,210,60,0.95)); }
-          50%      { opacity:0.3; filter:drop-shadow(0 0 0px   rgba(255,210,60,0.1));  }
+          0%,100% { opacity:1;   filter:drop-shadow(0 0 2px rgba(255,200,50,1)); }
+          50%      { opacity:0.25;filter:drop-shadow(0 0 0   rgba(255,200,50,0)); }
         }
         @keyframes mqb-off {
-          0%,100% { opacity:0.3; filter:drop-shadow(0 0 0px   rgba(255,210,60,0.1));  }
-          50%      { opacity:1;   filter:drop-shadow(0 0 2.5px rgba(255,210,60,0.95)); }
+          0%,100% { opacity:0.25;filter:drop-shadow(0 0 0   rgba(255,200,50,0)); }
+          50%      { opacity:1;   filter:drop-shadow(0 0 2px rgba(255,200,50,1)); }
         }
-        .mqb-a { animation: mqb-on  2.2s ease-in-out infinite; }
-        .mqb-b { animation: mqb-off 2.2s ease-in-out infinite; }
+        .mqb-a { animation: mqb-on  2.4s ease-in-out infinite; }
+        .mqb-b { animation: mqb-off 2.4s ease-in-out infinite; }
       `;
       document.head.appendChild(style);
     }
 
     const size = 40;
-    const CX = 20;
-    const CY = 20;
-    const R = 16;       // radius — bulbs sit near the edge of the 40px circle
-    const bulbSize = 3; // small, round, ~30-40% smaller than before
+    const CX = 20, CY = 20;
+    const R = 16;         // ring radius — keeps bulbs inside the 40px boundary
+    const bulbD = 3;      // bulb diameter: ~3px = small & round
     const count = 12;
 
     const bulbsHtml = Array.from({ length: count }, (_, i) => {
-      const deg = (360 / count) * i;
-      const rad = (deg * Math.PI) / 180;
-      const x = CX + R * Math.sin(rad) - bulbSize / 2;
-      const y = CY - R * Math.cos(rad) - bulbSize / 2;
+      const rad = (2 * Math.PI * i) / count;
+      const x = (CX + R * Math.sin(rad) - bulbD / 2).toFixed(2);
+      const y = (CY - R * Math.cos(rad) - bulbD / 2).toFixed(2);
       const cls = i % 2 === 0 ? "mqb-a" : "mqb-b";
-      return `<div class="${cls}" style="position:absolute;left:${x.toFixed(2)}px;top:${y.toFixed(2)}px;width:${bulbSize}px;height:${bulbSize}px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFF9C4,#FFD740 60%,#FFA000);"></div>`;
+      // width & height explicit + border-radius:50% ensures perfect circle
+      return `<div class="${cls}" style="position:absolute;left:${x}px;top:${y}px;width:${bulbD}px;height:${bulbD}px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFFDE7,#FFD740 55%,#FF9800);flex-shrink:0;"></div>`;
     }).join("");
 
-    const html = `<div style="position:relative;width:${size}px;height:${size}px;">
-      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle,rgba(255,210,60,0.18) 0%,rgba(255,210,60,0) 70%);pointer-events:none;"></div>
-      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(255,200,60,0.15) 0%,#2a1a00 60%,#1a0e00 100%);box-shadow:inset 0 0 6px rgba(255,200,60,0.2);border:1px solid rgba(255,180,40,0.4);"></div>
+    const html = `<div style="position:relative;width:${size}px;height:${size}px;background:transparent;">
+      <!-- soft outer radial glow — no box, no border -->
+      <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(255,200,50,0.22) 30%,rgba(255,200,50,0) 75%);pointer-events:none;"></div>
+      <!-- polished dark center with inner glow -->
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 40% 38%,rgba(255,190,40,0.18) 0%,#251500 45%,#120900 100%);box-shadow:inset 0 0 5px rgba(255,190,40,0.25);border:1px solid rgba(255,170,30,0.35);"></div>
       ${bulbsHtml}
     </div>`;
 
