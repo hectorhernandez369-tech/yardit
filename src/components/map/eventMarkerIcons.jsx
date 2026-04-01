@@ -64,45 +64,53 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       return cache[cacheKey];
     }
 
-    // Closed marquee: Hollywood spotlight animation (CSS keyframes injected once)
-    const styleId = "marquee-spotlight-style";
+    // ── CLOSED-STATE MARQUEE MARKER ──────────────────────────────────────────
+    // 40×40 "Marquee Bulb Ring": dark center, 8 warm-gold bulbs, alternating glow.
+    const styleId = "marquee-bulb-ring-style";
     if (typeof document !== "undefined" && !document.getElementById(styleId)) {
       const style = document.createElement("style");
       style.id = styleId;
       style.textContent = `
-        @keyframes mq-left {
-          0%, 100% { transform: translateX(-50%) rotate(-14deg); }
-          50%       { transform: translateX(-50%) rotate(-5deg);  }
+        @keyframes mqb-bright {
+          0%,100% { opacity:1;   filter:drop-shadow(0 0 3px rgba(255,213,74,0.95)); }
+          50%      { opacity:0.4; filter:drop-shadow(0 0 1px rgba(255,213,74,0.3));  }
         }
-        @keyframes mq-right {
-          0%, 100% { transform: translateX(-50%) rotate(14deg); }
-          50%       { transform: translateX(-50%) rotate(5deg);  }
+        @keyframes mqb-dim {
+          0%,100% { opacity:0.4; filter:drop-shadow(0 0 1px rgba(255,213,74,0.3));  }
+          50%      { opacity:1;   filter:drop-shadow(0 0 3px rgba(255,213,74,0.95)); }
         }
-        .mq-bl { animation: mq-left  2s ease-in-out infinite; }
-        .mq-br { animation: mq-right 2s ease-in-out infinite; }
+        .mqb-a { animation: mqb-bright 1.6s ease-in-out infinite; }
+        .mqb-b { animation: mqb-dim    1.6s ease-in-out infinite; }
       `;
       document.head.appendChild(style);
     }
 
-    const size = 48;
-    // Both beams are positioned with left:50% so they originate from the horizontal center.
-    // transform: translateX(-50%) keeps them centered, then rotate() swings them left/right.
-    // transform-origin is bottom center (default for this layout), pivoting from the base.
+    // 8 bulbs evenly spaced around a 17px radius circle (fits in 40px container)
+    const R = 17; // radius from center to bulb center
+    const CX = 20; // center x
+    const CY = 20; // center y
+    const bulbSize = 5;
+    const angles = [0, 45, 90, 135, 180, 225, 270, 315];
+    const bulbsHtml = angles.map((deg, i) => {
+      const rad = (deg * Math.PI) / 180;
+      const x = CX + R * Math.sin(rad) - bulbSize / 2;
+      const y = CY - R * Math.cos(rad) - bulbSize / 2;
+      const cls = i % 2 === 0 ? "mqb-a" : "mqb-b";
+      return `<div class="${cls}" style="position:absolute;left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;width:${bulbSize}px;height:${bulbSize}px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFF4A3,#FFD54A 55%,#FFB300);"></div>`;
+    }).join("");
+
+    const size = 40;
     const html = `
       <div style="position:relative;width:${size}px;height:${size}px;">
-        <!-- left beam -->
-        <div class="mq-bl" style="position:absolute;bottom:12px;left:50%;width:12px;height:28px;transform-origin:bottom center;filter:drop-shadow(0 0 1px rgba(255,213,79,0.9));">
-          <div style="width:100%;height:100%;background:linear-gradient(to top,rgba(255,213,79,1) 0%,rgba(255,236,150,0.7) 55%,rgba(255,255,220,0.0) 100%);clip-path:polygon(50% 100%,0% 0%,100% 0%);"></div>
-        </div>
-        <!-- right beam -->
-        <div class="mq-br" style="position:absolute;bottom:12px;left:50%;width:12px;height:28px;transform-origin:bottom center;filter:drop-shadow(0 0 1px rgba(255,213,79,0.9));">
-          <div style="width:100%;height:100%;background:linear-gradient(to top,rgba(255,213,79,1) 0%,rgba(255,236,150,0.7) 55%,rgba(255,255,220,0.0) 100%);clip-path:polygon(50% 100%,0% 0%,100% 0%);"></div>
-        </div>
-        <!-- base circle -->
-        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);z-index:2;width:22px;height:22px;border-radius:9999px;background:radial-gradient(circle at 40% 35%,#5c4200,#2a1e00);border:2px solid #f4a849;box-shadow:0 0 8px rgba(255,213,79,0.55),0 2px 6px rgba(0,0,0,0.45);"></div>
+        <!-- outer glow ring -->
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${size}px;height:${size}px;border-radius:50%;box-shadow:0 0 10px 3px rgba(255,213,74,0.35);pointer-events:none;"></div>
+        <!-- dark center -->
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#3d2a00,#1a1000);border:1.5px solid rgba(244,168,73,0.6);"></div>
+        <!-- bulbs -->
+        ${bulbsHtml}
       </div>`;
 
-    return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, size, size, size / 2, size);
+    return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, size, size, size / 2, size / 2);
   }
 
   if (tier === "premium") {
