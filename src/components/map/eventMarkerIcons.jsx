@@ -70,37 +70,38 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       const style = document.createElement("style");
       style.id = styleId;
       style.textContent = `
-        @keyframes marquee-beam-left {
-          0%, 100% { opacity: 0.85; transform: rotate(-22deg) scaleX(1);   }
-          50%       { opacity: 0.3;  transform: rotate(-18deg) scaleX(0.9); }
+        @keyframes mq-left {
+          0%, 100% { transform: rotate(-12deg); }
+          50%       { transform: rotate(-4deg);  }
         }
-        @keyframes marquee-beam-right {
-          0%, 100% { opacity: 0.3;  transform: rotate(18deg) scaleX(0.9);  }
-          50%       { opacity: 0.85; transform: rotate(22deg) scaleX(1);    }
+        @keyframes mq-right {
+          0%, 100% { transform: rotate(12deg); }
+          50%       { transform: rotate(4deg);  }
         }
-        .mq-beam-left  { animation: marquee-beam-left  2s ease-in-out infinite; }
-        .mq-beam-right { animation: marquee-beam-right 2s ease-in-out infinite; }
+        .mq-bl { animation: mq-left  2s ease-in-out infinite; transform-origin: bottom center; }
+        .mq-br { animation: mq-right 2s ease-in-out infinite; transform-origin: bottom center; }
       `;
       document.head.appendChild(style);
     }
 
     const size = 48;
-    // NOTE: clip-path cuts off filter:blur, so we wrap each beam:
-    //   outer div  → animation + transform-origin (no clip)
-    //   inner div  → clip-path shape + gradient (no filter)
-    //   Then a separate sibling div carries the blur glow behind the beam
+    // Beams sit above the base circle. transform-origin:bottom center pivots from the marker center.
+    // Each beam: narrow at base (triangle tip), wide at top — polygon(50% 100%, 0% 0%, 100% 0%)
+    // A very light blur wrapper adds glow without destroying shape.
+    const beamStyle = (side) => {
+      const pos = side === "left" ? "right:50%;margin-right:-2px;" : "left:50%;margin-left:-2px;";
+      const cls = side === "left" ? "mq-bl" : "mq-br";
+      return `
+        <div class="${cls}" style="position:absolute;bottom:10px;${pos}width:14px;height:30px;filter:drop-shadow(0 0 2px rgba(255,213,79,0.8));">
+          <div style="width:100%;height:100%;background:linear-gradient(to top,rgba(255,213,79,0.95) 0%,rgba(255,245,180,0.6) 60%,rgba(255,255,200,0.0) 100%);clip-path:polygon(50% 100%,0% 0%,100% 0%);"></div>
+        </div>`;
+    };
+
     const html = `
       <div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:flex-end;justify-content:center;">
-        <!-- left beam glow (blurred, no clip) -->
-        <div class="mq-beam-left" style="position:absolute;bottom:8px;left:-1px;width:18px;height:32px;background:linear-gradient(180deg,rgba(255,224,82,0.7) 0%,rgba(255,224,82,0.0) 100%);transform-origin:bottom center;filter:blur(4px);border-radius:6px 6px 0 0;"></div>
-        <!-- left beam sharp shape -->
-        <div class="mq-beam-left" style="position:absolute;bottom:8px;left:-1px;width:18px;height:32px;background:linear-gradient(180deg,rgba(255,236,120,0.95) 0%,rgba(255,224,82,0.0) 100%);clip-path:polygon(50% 0%,100% 100%,0% 100%);transform-origin:bottom center;"></div>
-        <!-- right beam glow (blurred, no clip) -->
-        <div class="mq-beam-right" style="position:absolute;bottom:8px;right:-1px;width:18px;height:32px;background:linear-gradient(180deg,rgba(255,224,82,0.7) 0%,rgba(255,224,82,0.0) 100%);transform-origin:bottom center;filter:blur(4px);border-radius:6px 6px 0 0;"></div>
-        <!-- right beam sharp shape -->
-        <div class="mq-beam-right" style="position:absolute;bottom:8px;right:-1px;width:18px;height:32px;background:linear-gradient(180deg,rgba(255,236,120,0.95) 0%,rgba(255,224,82,0.0) 100%);clip-path:polygon(50% 0%,100% 100%,0% 100%);transform-origin:bottom center;"></div>
-        <!-- base circle -->
-        <div style="position:relative;z-index:1;width:20px;height:20px;border-radius:9999px;background:radial-gradient(circle at 40% 35%,#4a3800,#1a1000);border:2px solid #f4a849;box-shadow:0 0 12px rgba(255,214,10,0.6),0 3px 8px rgba(0,0,0,0.3);"></div>
+        ${beamStyle("left")}
+        ${beamStyle("right")}
+        <div style="position:relative;z-index:2;width:22px;height:22px;border-radius:9999px;background:radial-gradient(circle at 40% 35%,#3d2e00,#1a1400);border:2px solid #f4a849;box-shadow:0 0 8px rgba(255,213,79,0.5),0 2px 6px rgba(0,0,0,0.4);"></div>
       </div>`;
 
     return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, size, size, size / 2, size);
