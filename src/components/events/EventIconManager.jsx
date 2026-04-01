@@ -5,42 +5,33 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
   Loader2, Upload, X, Search,
-  // Sports
-  CircleDot, Circle, Globe, CircleOff, Dribbble, Flag, Swords, Timer, Sparkles, Trophy,
-  // Food
+  Dribbble, Flag, Swords, Timer, Sparkles, Trophy,
   Sandwich, UtensilsCrossed, Flame, GlassWater, Coffee,
-  // Events
   Calendar, Ticket, Mic, Music, Clapperboard,
-  // Shopping
   ShoppingBag, Store, ShoppingCart,
-  // Auto
   Car, Truck, Wrench,
-  // Home
   House, KeyRound, DoorOpen,
-  // Collectibles
-  Layers, BookOpen, Package, Dices,
-  // Party
+  BookOpen, Package, Dices,
   PartyPopper, Gift, Cake,
-  // Community
   School, Church, Heart, HeartHandshake,
 } from "lucide-react";
 import { getEventIconEmoji, getEventIconOptionsForTier, EVENT_BASIC_ICON_LIBRARY } from "@/lib/eventListingConfig";
 
 const LUCIDE_MAP = {
-  CircleDot, Circle, Globe, CircleOff, Dribbble, Flag, Swords, Timer, Sparkles, Trophy,
+  Dribbble, Flag, Swords, Timer, Sparkles, Trophy,
   Sandwich, UtensilsCrossed, Flame, GlassWater, Coffee,
   Calendar, Ticket, Mic, Music, Clapperboard,
   ShoppingBag, Store, ShoppingCart,
   Car, Truck, Wrench,
   House, KeyRound, DoorOpen,
-  Layers, BookOpen, Package, Dices,
+  BookOpen, Package, Dices,
   PartyPopper, Gift, Cake,
   School, Church, Heart, HeartHandshake,
 };
 
 function LucideIcon({ name, className }) {
   const Icon = LUCIDE_MAP[name];
-  if (!Icon) return <Circle className={className} />;
+  if (!Icon) return <Flag className={className} />;
   return <Icon className={className} />;
 }
 
@@ -110,7 +101,6 @@ export default function EventIconManager({ tier = "basic", selectedIcon, setSele
   const handleUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     setIsUploading(true);
     try {
       const result = await base44.integrations.Core.UploadFile({ file });
