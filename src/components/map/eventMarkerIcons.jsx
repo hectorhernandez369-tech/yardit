@@ -64,8 +64,37 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       return cache[cacheKey];
     }
 
-    const size = 28;
-    const html = `<div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:flex-end;justify-content:center;"><div style="position:absolute;left:2px;bottom:6px;width:10px;height:18px;background:linear-gradient(180deg, rgba(255,245,157,0.75), rgba(255,214,10,0));clip-path:polygon(50% 0%, 100% 100%, 0% 100%);transform:rotate(-16deg);"></div><div style="position:absolute;right:2px;bottom:6px;width:10px;height:18px;background:linear-gradient(180deg, rgba(255,245,157,0.75), rgba(255,214,10,0));clip-path:polygon(50% 0%, 100% 100%, 0% 100%);transform:rotate(16deg);"></div><div style="position:relative;width:18px;height:18px;border-radius:9999px;background:#111827;border:2px solid #f4a849;box-shadow:0 0 10px rgba(255,214,10,0.75), 0 4px 10px rgba(0,0,0,0.28);"></div></div>`;
+    // Closed marquee: Hollywood spotlight animation (CSS keyframes injected once)
+    const styleId = "marquee-spotlight-style";
+    if (typeof document !== "undefined" && !document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        @keyframes marquee-beam-left {
+          0%, 100% { opacity: 0.85; }
+          50%       { opacity: 0.25; }
+        }
+        @keyframes marquee-beam-right {
+          0%, 100% { opacity: 0.25; }
+          50%       { opacity: 0.85; }
+        }
+        .mq-beam-left  { animation: marquee-beam-left  2s ease-in-out infinite; }
+        .mq-beam-right { animation: marquee-beam-right 2s ease-in-out infinite; }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const size = 48;
+    const html = `
+      <div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:flex-end;justify-content:center;">
+        <!-- left beam -->
+        <div class="mq-beam-left" style="position:absolute;bottom:10px;left:1px;width:14px;height:28px;background:linear-gradient(180deg,rgba(255,236,100,0.9) 0%,rgba(255,214,10,0.0) 100%);clip-path:polygon(50% 0%,100% 100%,0% 100%);transform:rotate(-22deg);transform-origin:bottom center;"></div>
+        <!-- right beam -->
+        <div class="mq-beam-right" style="position:absolute;bottom:10px;right:1px;width:14px;height:28px;background:linear-gradient(180deg,rgba(255,236,100,0.9) 0%,rgba(255,214,10,0.0) 100%);clip-path:polygon(50% 0%,100% 100%,0% 100%);transform:rotate(22deg);transform-origin:bottom center;"></div>
+        <!-- base circle -->
+        <div style="position:relative;z-index:1;width:20px;height:20px;border-radius:9999px;background:#111827;border:2px solid #f4a849;box-shadow:0 0 8px rgba(255,214,10,0.7),0 3px 8px rgba(0,0,0,0.35);"></div>
+      </div>`;
+
     return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, size, size, size / 2, size);
   }
 
