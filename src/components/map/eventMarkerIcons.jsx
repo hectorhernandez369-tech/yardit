@@ -71,37 +71,35 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       style.id = styleId;
       style.textContent = `
         @keyframes mq-left {
-          0%, 100% { transform: rotate(-12deg); }
-          50%       { transform: rotate(-4deg);  }
+          0%, 100% { transform: translateX(-50%) rotate(-14deg); }
+          50%       { transform: translateX(-50%) rotate(-5deg);  }
         }
         @keyframes mq-right {
-          0%, 100% { transform: rotate(12deg); }
-          50%       { transform: rotate(4deg);  }
+          0%, 100% { transform: translateX(-50%) rotate(14deg); }
+          50%       { transform: translateX(-50%) rotate(5deg);  }
         }
-        .mq-bl { animation: mq-left  2s ease-in-out infinite; transform-origin: bottom center; }
-        .mq-br { animation: mq-right 2s ease-in-out infinite; transform-origin: bottom center; }
+        .mq-bl { animation: mq-left  2s ease-in-out infinite; }
+        .mq-br { animation: mq-right 2s ease-in-out infinite; }
       `;
       document.head.appendChild(style);
     }
 
     const size = 48;
-    // Beams sit above the base circle. transform-origin:bottom center pivots from the marker center.
-    // Each beam: narrow at base (triangle tip), wide at top — polygon(50% 100%, 0% 0%, 100% 0%)
-    // A very light blur wrapper adds glow without destroying shape.
-    const beamStyle = (side) => {
-      const pos = side === "left" ? "right:50%;margin-right:-2px;" : "left:50%;margin-left:-2px;";
-      const cls = side === "left" ? "mq-bl" : "mq-br";
-      return `
-        <div class="${cls}" style="position:absolute;bottom:10px;${pos}width:14px;height:30px;filter:drop-shadow(0 0 2px rgba(255,213,79,0.8));">
-          <div style="width:100%;height:100%;background:linear-gradient(to top,rgba(255,213,79,0.95) 0%,rgba(255,245,180,0.6) 60%,rgba(255,255,200,0.0) 100%);clip-path:polygon(50% 100%,0% 0%,100% 0%);"></div>
-        </div>`;
-    };
-
+    // Both beams are positioned with left:50% so they originate from the horizontal center.
+    // transform: translateX(-50%) keeps them centered, then rotate() swings them left/right.
+    // transform-origin is bottom center (default for this layout), pivoting from the base.
     const html = `
-      <div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:flex-end;justify-content:center;">
-        ${beamStyle("left")}
-        ${beamStyle("right")}
-        <div style="position:relative;z-index:2;width:22px;height:22px;border-radius:9999px;background:radial-gradient(circle at 40% 35%,#3d2e00,#1a1400);border:2px solid #f4a849;box-shadow:0 0 8px rgba(255,213,79,0.5),0 2px 6px rgba(0,0,0,0.4);"></div>
+      <div style="position:relative;width:${size}px;height:${size}px;">
+        <!-- left beam -->
+        <div class="mq-bl" style="position:absolute;bottom:12px;left:50%;width:12px;height:28px;transform-origin:bottom center;filter:drop-shadow(0 0 1px rgba(255,213,79,0.9));">
+          <div style="width:100%;height:100%;background:linear-gradient(to top,rgba(255,213,79,1) 0%,rgba(255,236,150,0.7) 55%,rgba(255,255,220,0.0) 100%);clip-path:polygon(50% 100%,0% 0%,100% 0%);"></div>
+        </div>
+        <!-- right beam -->
+        <div class="mq-br" style="position:absolute;bottom:12px;left:50%;width:12px;height:28px;transform-origin:bottom center;filter:drop-shadow(0 0 1px rgba(255,213,79,0.9));">
+          <div style="width:100%;height:100%;background:linear-gradient(to top,rgba(255,213,79,1) 0%,rgba(255,236,150,0.7) 55%,rgba(255,255,220,0.0) 100%);clip-path:polygon(50% 100%,0% 0%,100% 0%);"></div>
+        </div>
+        <!-- base circle -->
+        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);z-index:2;width:22px;height:22px;border-radius:9999px;background:radial-gradient(circle at 40% 35%,#5c4200,#2a1e00);border:2px solid #f4a849;box-shadow:0 0 8px rgba(255,213,79,0.55),0 2px 6px rgba(0,0,0,0.45);"></div>
       </div>`;
 
     return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, size, size, size / 2, size);
