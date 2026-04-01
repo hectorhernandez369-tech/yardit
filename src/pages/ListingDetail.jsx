@@ -350,12 +350,13 @@ export default function ListingDetailPage() {
                 <h3 className="font-semibold">Flyer / Images</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {flyerImages.map((url, idx) => (
-                    <img
-                      key={idx}
-                      src={url}
-                      alt={`Flyer ${idx + 1}`}
-                      className="w-full h-48 object-cover rounded-lg border border-slate-200"
-                    />
+                    <div key={idx} className="rounded-lg border border-slate-200 bg-black overflow-hidden">
+                      <img
+                        src={url}
+                        alt={`Flyer ${idx + 1}`}
+                        className="w-full h-auto object-contain"
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
