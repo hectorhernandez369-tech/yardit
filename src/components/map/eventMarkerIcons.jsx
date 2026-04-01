@@ -54,53 +54,46 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       return cache[cacheKey];
     }
 
-    // ── CLOSED-STATE: Mini Marquee Pill ──────────────────────────────────────
-    const styleId = "mqpill-v1";
+    // ── CLOSED-STATE: Mini Marquee Pill (matches collapsed/expanded design system) ──
+    // Colors match MarqueeBoard exactly: bg #7c2d12→#3f1d0b, border #f4a849, bulbs #FFF4A3→#FFD54A→#FFB300
+    const styleId = "mqpill-v2";
     if (typeof document !== "undefined" && !document.getElementById(styleId)) {
       const style = document.createElement("style");
       style.id = styleId;
       style.textContent = `
-        @keyframes mqp-on  { 0%,100%{opacity:1;  } 50%{opacity:0.2;} }
-        @keyframes mqp-off { 0%,100%{opacity:0.2;} 50%{opacity:1;  } }
-        .mqp-a { animation: mqp-on  2.6s ease-in-out infinite; }
-        .mqp-b { animation: mqp-off 2.6s ease-in-out infinite; }
+        @keyframes mqp2-on  { 0%,100%{opacity:1;  } 50%{opacity:0.25;} }
+        @keyframes mqp2-off { 0%,100%{opacity:0.25;} 50%{opacity:1;  } }
+        .mqp2-a { animation: mqp2-on  2.2s ease-in-out infinite; }
+        .mqp2-b { animation: mqp2-off 2.2s ease-in-out infinite; }
       `;
       document.head.appendChild(style);
     }
 
-    const W = 46, H = 22;
-    const bulbD = 3;
-    const pad = 5;          // left/right inset before first bulb
-    const gap = 7;          // spacing between bulbs
-    const bulbY_top = -1.5; // centered on top edge
-    const bulbY_bot = H - bulbD + 1.5;
+    // Dimensions: ~46px wide, 24px tall — matches proportions of collapsed card
+    const W = 46, H = 24;
+    // Bulb spec: exactly matches MarqueeBoard bulb style (5px, same gradient + glow)
+    const bulbD = 5;
+    const bulbOff = -2.5; // centers 5px bulb on border edge, same as MarqueeBoard
+    const bulbStyle = `position:absolute;width:${bulbD}px;height:${bulbD}px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#FFF4A3,#FFD54A 50%,#FFB300);box-shadow:0 0 4px rgba(255,213,74,0.8);z-index:3;`;
 
-    // generate top + bottom bulbs
+    // Evenly space bulbs on top & bottom edges (matching MarqueeBoard sp=16, inset=8)
     const topBulbs = [];
     const botBulbs = [];
-    for (let x = pad; x <= W - pad - bulbD; x += gap) {
-      const cls = topBulbs.length % 2 === 0 ? "mqp-a" : "mqp-b";
-      const bulbStyle = `position:absolute;width:${bulbD}px;height:${bulbD}px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFFDE7,#FFD740 55%,#CC8800);z-index:3;`;
-      topBulbs.push(`<div class="${cls}" style="${bulbStyle}left:${x}px;top:${bulbY_top.toFixed(1)}px;"></div>`);
-      botBulbs.push(`<div class="${cls}" style="${bulbStyle}left:${x}px;top:${bulbY_bot.toFixed(1)}px;"></div>`);
+    const inset = 6, sp = 11; // tighter spacing for small pill width
+    for (let x = inset; x <= W - inset - bulbD; x += sp) {
+      const cls = topBulbs.length % 2 === 0 ? "mqp2-a" : "mqp2-b";
+      topBulbs.push(`<div class="${cls}" style="${bulbStyle}left:${x}px;top:${bulbOff}px;"></div>`);
+      botBulbs.push(`<div class="${cls}" style="${bulbStyle}left:${x}px;bottom:${bulbOff}px;"></div>`);
     }
 
-    const eventEmoji = getEventIconEmoji(listing?.event_icon);
-
     const html = `
-      <div style="position:relative;width:${W}px;height:${H}px;">
-        <!-- glow -->
-        <div style="position:absolute;inset:-3px;border-radius:14px;background:radial-gradient(ellipse,rgba(255,200,50,0.15) 30%,transparent 75%);pointer-events:none;"></div>
-        <!-- pill body: gold border + dark center -->
-        <div style="position:absolute;inset:0;border-radius:11px;border:1.5px solid rgba(244,168,73,0.75);background:linear-gradient(180deg,#1c1200 0%,#0e0a00 100%);box-shadow:0 2px 6px rgba(0,0,0,0.55);overflow:hidden;">
-          <!-- subtle inner warm sheen -->
-          <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(255,180,30,0.08) 0%,transparent 70%);"></div>
-          <!-- icon -->
-          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1;">${eventEmoji}</div>
+      <div style="position:relative;width:${W}px;height:${H}px;overflow:visible;">
+        <!-- card body: exact same colors as collapsed marquee board -->
+        <div style="position:absolute;inset:0;border-radius:6px;border:1px solid #f4a849;background:linear-gradient(to bottom,#7c2d12,#3f1d0b);box-shadow:0 3px 8px rgba(0,0,0,0.35);overflow:visible;box-sizing:border-box;">
+          <!-- icon centered, white for legibility on dark bg -->
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;">${emoji}</div>
         </div>
-        <!-- top bulbs -->
         ${topBulbs.join("")}
-        <!-- bottom bulbs -->
         ${botBulbs.join("")}
       </div>`;
 
