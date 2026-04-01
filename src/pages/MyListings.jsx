@@ -7,7 +7,7 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Map, Trash2, X } from "lucide-react";
+import { Calendar, MapPin, Map, Trash2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import EventIconManager from "@/components/events/EventIconManager";
 import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
 import ImageCropEditor from "@/components/admin/ImageCropEditor";
-import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
+import { getDefaultEventIconForCategory, EVENT_BASIC_ICON_LIBRARY, getEventIconEmoji } from "@/lib/eventListingConfig";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
@@ -62,6 +62,7 @@ export default function MyListingsPage() {
   const [cropEditorOpen, setCropEditorOpen] = useState(false);
   const [backgroundImageForCrop, setBackgroundImageForCrop] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -211,6 +212,7 @@ export default function MyListingsPage() {
   const shownListings = tab === "past" ? pastListings : tab === "pending" ? pendingListings : activeListings;
 
   const openEditDescription = (listing) => {
+   setIconPickerOpen(false);
    setEditingListing(listing);
    setEditTitle(listing?.title || listing?.event_name || "");
    setEditDescription(listing?.description || listing?.event_description || "");
@@ -855,13 +857,62 @@ export default function MyListingsPage() {
                   />
                 </div>
 
-                <EventIconManager
-                  tier={editingListing?.event_tier || editingListing?.tier || "basic"}
-                  selectedIcon={editEventIcon}
-                  setSelectedIcon={setEditEventIcon}
-                  uploadedImageUrl={editEventLogoUrl}
-                  setUploadedImageUrl={setEditEventLogoUrl}
-                />
+                {/* Collapsible Event Icon Section */}
+                {(() => {
+                  const tier = editingListing?.event_tier || editingListing?.tier || "basic";
+                  const isBasic = tier === "basic";
+                  const iconLabel = isBasic
+                    ? (EVENT_BASIC_ICON_LIBRARY.find(i => i.key === editEventIcon)?.label || editEventIcon || "None selected")
+                    : (editEventIcon ? editEventIcon.replace(/_/g, " ") : "None selected");
+                  const iconEmoji = isBasic ? null : getEventIconEmoji(editEventIcon);
+                  const previewImage = editEventLogoUrl;
+
+                  return (
+                    <div className="border border-[#2C4F4E]/20 rounded-xl overflow-hidden">
+                      {/* Collapsed header row — always visible */}
+                      <button
+                        type="button"
+                        onClick={() => setIconPickerOpen(o => !o)}
+                        className="w-full flex items-center justify-between px-4 py-3 bg-[#F3E6CF] hover:bg-[#EDD9B5] transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-[#2C4F4E]">Event Icon</span>
+                          <div className="flex items-center gap-2">
+                            {previewImage ? (
+                              <img src={previewImage} alt="icon" className="w-6 h-6 rounded-full object-cover border border-[#2C4F4E]/30" />
+                            ) : iconEmoji ? (
+                              <span className="text-lg leading-none">{iconEmoji}</span>
+                            ) : editEventIcon ? (
+                              <span className="w-5 h-5 flex items-center justify-center text-[#2C4F4E] opacity-70">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke="#2C4F4E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none">
+                                  <rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
+                                </svg>
+                              </span>
+                            ) : null}
+                            <span className="text-xs text-slate-500 capitalize">{iconLabel}</span>
+                          </div>
+                        </div>
+                        {iconPickerOpen
+                          ? <ChevronUp className="w-4 h-4 text-[#2C4F4E]" />
+                          : <ChevronDown className="w-4 h-4 text-[#2C4F4E]" />
+                        }
+                      </button>
+
+                      {/* Expanded picker */}
+                      {iconPickerOpen && (
+                        <div className="p-4 border-t border-[#2C4F4E]/10 bg-white">
+                          <EventIconManager
+                            tier={tier}
+                            selectedIcon={editEventIcon}
+                            setSelectedIcon={setEditEventIcon}
+                            uploadedImageUrl={editEventLogoUrl}
+                            setUploadedImageUrl={setEditEventLogoUrl}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {(editingListing?.event_tier || editingListing?.tier) === "marquee" && (
                   <div className="space-y-4">
