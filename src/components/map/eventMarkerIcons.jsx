@@ -1,5 +1,5 @@
 import L from "leaflet";
-import { getEventIconEmoji } from "@/lib/eventListingConfig";
+import { getEventIconEmoji, getBasicEventIconSvg } from "@/lib/eventListingConfig";
 import { MARQUEE_BOARD_WIDTH, MARQUEE_BOARD_COLLAPSED_WIDTH } from "@/components/map/MarqueeBoard.jsx";
 
 const MARQUEE_ANCHOR_Y = 0;
@@ -102,6 +102,10 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
   }
 
   const size = isSelected ? 32 : 28;
-  const html = `<div style="width:${size}px;height:${size}px;border-radius:9999px;border:2px solid #111827;background:white;color:#111827;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 10px rgba(0,0,0,0.22);">${emoji}</div>`;
-  return makeDivIcon(`event_basic_${emoji}_${isSelected}`, html, size, size, size / 2, size);
+  const iconKey = listing?.event_icon;
+  const svgContent = getBasicEventIconSvg(iconKey, size * 0.55, "#111827");
+  const html = svgContent
+    ? `<div style="width:${size}px;height:${size}px;border-radius:9999px;border:2px solid #111827;background:white;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(0,0,0,0.22);">${svgContent}</div>`
+    : `<div style="width:${size}px;height:${size}px;border-radius:9999px;border:2px solid #111827;background:white;color:#111827;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 10px rgba(0,0,0,0.22);">${emoji}</div>`;
+  return makeDivIcon(`event_basic_${iconKey || emoji}_${isSelected}`, html, size, size, size / 2, size);
 }
