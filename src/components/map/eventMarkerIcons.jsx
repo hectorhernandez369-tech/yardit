@@ -39,9 +39,6 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       const boardWidth = isCollapsed ? MARQUEE_BOARD_COLLAPSED_WIDTH : MARQUEE_BOARD_WIDTH;
       const half = Math.round(boardWidth / 2);
 
-      // Apply zoom-based scale ONLY to collapsed marquee.
-      // We scale the inner card div (position:absolute;bottom:...) using transform-origin:bottom center
-      // so it shrinks upward from the tail tip, keeping the anchor stable.
       const scale = isCollapsed ? getCollapsedMarqueeScale(zoom) : 1.0;
       const scaledHtml = (scale !== 1.0 && isCollapsed)
         ? marqueeHtml.replace(
@@ -50,7 +47,6 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
           )
         : marqueeHtml;
 
-      // Cache key includes zoom (for collapsed) and content hash
       const cacheKey = `event_marquee_board_${listing?.id}_${boardWidth}_z${isCollapsed ? zoom : 0}_${marqueeHtml.slice(-48)}`;
       if (!cache[cacheKey]) {
         cache[cacheKey] = L.divIcon({
@@ -65,50 +61,47 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
     }
 
     // ── CLOSED-STATE MARQUEE MARKER ──────────────────────────────────────────
-    // 40×40 "Marquee Bulb Ring": dark center, 8 warm-gold bulbs, alternating glow.
+    // 40×40 polished "Marquee Bulb Ring": 12 tiny round bulbs, alternating glow, no box background.
     const styleId = "marquee-bulb-ring-style";
     if (typeof document !== "undefined" && !document.getElementById(styleId)) {
       const style = document.createElement("style");
       style.id = styleId;
       style.textContent = `
-        @keyframes mqb-bright {
-          0%,100% { opacity:1;   filter:drop-shadow(0 0 3px rgba(255,213,74,0.95)); }
-          50%      { opacity:0.4; filter:drop-shadow(0 0 1px rgba(255,213,74,0.3));  }
+        @keyframes mqb-on {
+          0%,100% { opacity:1;   filter:drop-shadow(0 0 2.5px rgba(255,210,60,0.95)); }
+          50%      { opacity:0.3; filter:drop-shadow(0 0 0px   rgba(255,210,60,0.1));  }
         }
-        @keyframes mqb-dim {
-          0%,100% { opacity:0.4; filter:drop-shadow(0 0 1px rgba(255,213,74,0.3));  }
-          50%      { opacity:1;   filter:drop-shadow(0 0 3px rgba(255,213,74,0.95)); }
+        @keyframes mqb-off {
+          0%,100% { opacity:0.3; filter:drop-shadow(0 0 0px   rgba(255,210,60,0.1));  }
+          50%      { opacity:1;   filter:drop-shadow(0 0 2.5px rgba(255,210,60,0.95)); }
         }
-        .mqb-a { animation: mqb-bright 1.6s ease-in-out infinite; }
-        .mqb-b { animation: mqb-dim    1.6s ease-in-out infinite; }
+        .mqb-a { animation: mqb-on  2.2s ease-in-out infinite; }
+        .mqb-b { animation: mqb-off 2.2s ease-in-out infinite; }
       `;
       document.head.appendChild(style);
     }
 
-    // 8 bulbs evenly spaced around a 17px radius circle (fits in 40px container)
-    const R = 17; // radius from center to bulb center
-    const CX = 20; // center x
-    const CY = 20; // center y
-    const bulbSize = 5;
-    const angles = [0, 45, 90, 135, 180, 225, 270, 315];
-    const bulbsHtml = angles.map((deg, i) => {
+    const size = 40;
+    const CX = 20;
+    const CY = 20;
+    const R = 16;       // radius — bulbs sit near the edge of the 40px circle
+    const bulbSize = 3; // small, round, ~30-40% smaller than before
+    const count = 12;
+
+    const bulbsHtml = Array.from({ length: count }, (_, i) => {
+      const deg = (360 / count) * i;
       const rad = (deg * Math.PI) / 180;
       const x = CX + R * Math.sin(rad) - bulbSize / 2;
       const y = CY - R * Math.cos(rad) - bulbSize / 2;
       const cls = i % 2 === 0 ? "mqb-a" : "mqb-b";
-      return `<div class="${cls}" style="position:absolute;left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;width:${bulbSize}px;height:${bulbSize}px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFF4A3,#FFD54A 55%,#FFB300);"></div>`;
+      return `<div class="${cls}" style="position:absolute;left:${x.toFixed(2)}px;top:${y.toFixed(2)}px;width:${bulbSize}px;height:${bulbSize}px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFF9C4,#FFD740 60%,#FFA000);"></div>`;
     }).join("");
 
-    const size = 40;
-    const html = `
-      <div style="position:relative;width:${size}px;height:${size}px;">
-        <!-- outer glow ring -->
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${size}px;height:${size}px;border-radius:50%;box-shadow:0 0 10px 3px rgba(255,213,74,0.35);pointer-events:none;"></div>
-        <!-- dark center -->
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#3d2a00,#1a1000);border:1.5px solid rgba(244,168,73,0.6);"></div>
-        <!-- bulbs -->
-        ${bulbsHtml}
-      </div>`;
+    const html = `<div style="position:relative;width:${size}px;height:${size}px;">
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle,rgba(255,210,60,0.18) 0%,rgba(255,210,60,0) 70%);pointer-events:none;"></div>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(255,200,60,0.15) 0%,#2a1a00 60%,#1a0e00 100%);box-shadow:inset 0 0 6px rgba(255,200,60,0.2);border:1px solid rgba(255,180,40,0.4);"></div>
+      ${bulbsHtml}
+    </div>`;
 
     return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, size, size, size / 2, size / 2);
   }
