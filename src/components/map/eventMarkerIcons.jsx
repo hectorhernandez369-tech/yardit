@@ -54,53 +54,55 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       return cache[cacheKey];
     }
 
-    // ── CLOSED-STATE: Theater Marquee Ring ───────────────────────────────────
-    // Resembles: deep red ring + warm gold bulbs around inner edge + light center
-    const styleId = "marquee-theater-ring-v1";
+    // ── CLOSED-STATE: Theater Marquee Circle (matches reference image) ────────
+    // Layers: dark chrome outer ring → thick red band → warm bulbs on red → cream center panel
+    const styleId = "mqring-v4";
     if (typeof document !== "undefined" && !document.getElementById(styleId)) {
       const style = document.createElement("style");
       style.id = styleId;
       style.textContent = `
-        @keyframes mqt-on {
-          0%,100% { opacity:1;   filter:drop-shadow(0 0 3px rgba(255,220,80,1)); }
-          50%      { opacity:0.3; filter:drop-shadow(0 0 0   rgba(255,220,80,0)); }
+        @keyframes mq-on {
+          0%,100% { opacity:1;   box-shadow:0 0 4px 1px rgba(255,230,100,0.9); }
+          50%      { opacity:0.28;box-shadow:none; }
         }
-        @keyframes mqt-off {
-          0%,100% { opacity:0.3; filter:drop-shadow(0 0 0   rgba(255,220,80,0)); }
-          50%      { opacity:1;   filter:drop-shadow(0 0 3px rgba(255,220,80,1)); }
+        @keyframes mq-off {
+          0%,100% { opacity:0.28;box-shadow:none; }
+          50%      { opacity:1;   box-shadow:0 0 4px 1px rgba(255,230,100,0.9); }
         }
-        .mqt-a { animation: mqt-on  2.2s ease-in-out infinite; }
-        .mqt-b { animation: mqt-off 2.2s ease-in-out infinite; }
+        .mq-a { animation: mq-on  1.1s ease-in-out infinite; }
+        .mq-b { animation: mq-off 1.1s ease-in-out infinite; }
       `;
       document.head.appendChild(style);
     }
 
     const size = 40;
     const CX = 20, CY = 20;
-    // Bulbs sit on the inner edge of the red ring, at radius ~15px from center
-    const R = 15;
-    const bulbD = 4;
-    const count = 14;
+    // Bulbs sit right on the inner edge of the red ring
+    const R = 14.5;
+    const bulbD = 5;      // larger bulbs like the reference
+    const count = 16;     // more bulbs, dense like the reference
 
     const bulbsHtml = Array.from({ length: count }, (_, i) => {
       const rad = (2 * Math.PI * i) / count;
       const x = (CX + R * Math.sin(rad) - bulbD / 2).toFixed(2);
       const y = (CY - R * Math.cos(rad) - bulbD / 2).toFixed(2);
-      const cls = i % 2 === 0 ? "mqt-a" : "mqt-b";
-      return `<div class="${cls}" style="position:absolute;left:${x}px;top:${y}px;width:${bulbD}px;height:${bulbD}px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFFDE7,#FFE033 50%,#FF9800);flex-shrink:0;"></div>`;
+      const cls = i % 2 === 0 ? "mq-a" : "mq-b";
+      // warm white-gold bulb, slightly convex highlight at top-left
+      return `<div class="${cls}" style="position:absolute;left:${x}px;top:${y}px;width:${bulbD}px;height:${bulbD}px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFFFF0,#FFE566 45%,#FFA500);flex-shrink:0;z-index:3;"></div>`;
     }).join("");
 
-    // Outer gold chrome ring → deep red band → inner light panel center
-    const html = `<div style="position:relative;width:${size}px;height:${size}px;background:transparent;">
-      <!-- outer chrome/gold ring -->
-      <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 38% 32%,#c8a04a,#7a5a18 55%,#3d2900);box-shadow:0 2px 6px rgba(0,0,0,0.55),0 0 8px rgba(255,200,60,0.3);"></div>
-      <!-- red ring band -->
-      <div style="position:absolute;inset:3px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#c0392b,#8b1a1a 60%,#5c0e0e);"></div>
-      <!-- inner light center panel -->
-      <div style="position:absolute;inset:9px;border-radius:50%;background:radial-gradient(circle at 45% 40%,#fff9e6,#f5e8c0 60%,#e8d49a);box-shadow:inset 0 1px 3px rgba(0,0,0,0.15);"></div>
-      <!-- bulbs on top of red ring -->
-      ${bulbsHtml}
-    </div>`;
+    // marker: outer dark chrome → red ring → cream rounded-rect center → bulbs on top
+    const html = `
+      <div style="position:relative;width:${size}px;height:${size}px;">
+        <!-- dark outer chrome border -->
+        <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 38% 30%,#6b4c1e,#2a1a00 60%,#0d0800);box-shadow:0 3px 8px rgba(0,0,0,0.7),0 0 6px rgba(255,180,30,0.25);"></div>
+        <!-- thick deep-red ring -->
+        <div style="position:absolute;inset:2.5px;border-radius:50%;background:radial-gradient(circle at 42% 36%,#d63030,#9b0e0e 55%,#600000);"></div>
+        <!-- cream/white center panel (rounded rect, not circle — matches reference) -->
+        <div style="position:absolute;inset:9px;border-radius:5px;background:linear-gradient(180deg,#fffef5 0%,#f7efcc 100%);box-shadow:inset 0 1px 4px rgba(0,0,0,0.18);"></div>
+        <!-- bulbs rendered on top of red ring -->
+        ${bulbsHtml}
+      </div>`;
 
     return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, size, size, size / 2, size / 2);
   }
