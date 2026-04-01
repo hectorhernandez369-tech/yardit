@@ -88,11 +88,15 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
   }
 
   if (tier === "premium") {
-    const size = isSelected ? 48 : 42;
-    const html = image
-      ? `<div style="width:${size}px;height:${size}px;border-radius:9999px;overflow:hidden;border:3px solid #F4A849;background:#fff;box-shadow:0 8px 16px rgba(0,0,0,0.3);"><img src="${image}" alt="Event" style="width:100%;height:100%;object-fit:cover;" /></div>`
-      : `<div style="width:${size}px;height:${size}px;border-radius:9999px;border:3px solid #F4A849;background:#2C4F4E;color:white;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 8px 16px rgba(0,0,0,0.3);">${emoji}</div>`;
-    return makeDivIcon(`event_premium_${image || emoji}_${isSelected}`, html, size, size, size / 2, size);
+    if (image) {
+      const size = isSelected ? 34 : 30;
+      const html = `<img src="${image}" alt="Event" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:4px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45));" />`;
+      return makeDivIcon(`event_premium_img_${image}_${isSelected}`, html, size, size, size / 2, size / 2);
+    }
+    const fontSize = isSelected ? 32 : 28;
+    const size = fontSize;
+    const html = `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45));">${emoji}</div>`;
+    return makeDivIcon(`event_premium_icon_${emoji}_${isSelected}`, html, size, size, size / 2, size / 2);
   }
 
   if (tier === "featured") {
