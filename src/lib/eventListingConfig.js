@@ -117,9 +117,112 @@ export const EVENT_BASIC_ICON_LIBRARY = [
 ];
 
 export const EVENT_BASIC_ICON_OPTIONS = EVENT_BASIC_ICON_LIBRARY.map((i) => i.key);
-export const EVENT_COLORED_ICON_OPTIONS = ["football", "baseball", "soccer", "basketball", "market", "food", "car", "house", "party", "ticket", "calendar", "collectibles"];
+
+// Featured tier: large emoji-based icon library with search metadata
+export const EVENT_FEATURED_ICON_LIBRARY = [
+  // Sports
+  { key: "football",      emoji: "🏈", label: "Football",         keywords: ["sports", "football", "nfl", "game", "tailgate"] },
+  { key: "baseball",      emoji: "⚾", label: "Baseball",         keywords: ["sports", "baseball", "mlb", "game", "diamond"] },
+  { key: "soccer",        emoji: "⚽", label: "Soccer",           keywords: ["sports", "soccer", "futbol", "football", "game"] },
+  { key: "basketball",    emoji: "🏀", label: "Basketball",       keywords: ["sports", "basketball", "nba", "hoops", "game"] },
+  { key: "volleyball",    emoji: "🏐", label: "Volleyball",       keywords: ["sports", "volleyball", "beach", "net", "game"] },
+  { key: "tennis_ball",   emoji: "🎾", label: "Tennis",           keywords: ["sports", "tennis", "racket", "court", "match"] },
+  { key: "golf_flag",     emoji: "⛳", label: "Golf",             keywords: ["sports", "golf", "course", "hole", "club"] },
+  { key: "bowling",       emoji: "🎳", label: "Bowling",          keywords: ["sports", "bowling", "lanes", "strike", "pins"] },
+  { key: "boxing_glove",  emoji: "🥊", label: "Boxing / MMA",    keywords: ["sports", "boxing", "mma", "fighting", "combat"] },
+  { key: "swimming",      emoji: "🏊", label: "Swimming",         keywords: ["sports", "swimming", "pool", "water", "race"] },
+  { key: "cycling",       emoji: "🚴", label: "Cycling",          keywords: ["sports", "cycling", "bike", "race", "ride"] },
+  { key: "running_shoe",  emoji: "👟", label: "Race / Run",       keywords: ["sports", "running", "5k", "marathon", "race", "track"] },
+  { key: "trophy",        emoji: "🏆", label: "Tournament",       keywords: ["sports", "trophy", "tournament", "award", "championship"] },
+  { key: "medal",         emoji: "🥇", label: "Competition",      keywords: ["sports", "medal", "competition", "award", "winner"] },
+  { key: "hockey",        emoji: "🏒", label: "Hockey",           keywords: ["sports", "hockey", "ice", "puck", "rink"] },
+  { key: "lacrosse",      emoji: "🥍", label: "Lacrosse",         keywords: ["sports", "lacrosse", "stick", "field"] },
+  { key: "skiing",        emoji: "⛷️", label: "Skiing",           keywords: ["sports", "skiing", "snow", "winter", "mountain"] },
+  // Food & Drink
+  { key: "food",          emoji: "🍔", label: "Food Event",       keywords: ["food", "burger", "eat", "meal", "lunch", "dinner"] },
+  { key: "pizza",         emoji: "🍕", label: "Pizza",            keywords: ["food", "pizza", "pie", "italian", "dinner"] },
+  { key: "taco",          emoji: "🌮", label: "Tacos / Mexican",  keywords: ["food", "taco", "mexican", "fiesta", "lunch"] },
+  { key: "bbq_food",      emoji: "🍖", label: "BBQ / Cookout",    keywords: ["food", "bbq", "grill", "cookout", "ribs", "outdoor"] },
+  { key: "hot_dog",       emoji: "🌭", label: "Hot Dogs",         keywords: ["food", "hot dog", "frank", "ballpark", "grill"] },
+  { key: "sushi",         emoji: "🍣", label: "Sushi / Japanese", keywords: ["food", "sushi", "japanese", "fish", "roll"] },
+  { key: "ice_cream",     emoji: "🍦", label: "Ice Cream",        keywords: ["food", "ice cream", "dessert", "sweet", "summer"] },
+  { key: "cake_food",     emoji: "🎂", label: "Cake / Bakery",    keywords: ["food", "cake", "bakery", "dessert", "sweet", "birthday"] },
+  { key: "donut",         emoji: "🍩", label: "Donuts",           keywords: ["food", "donut", "pastry", "bakery", "sweet"] },
+  { key: "corn",          emoji: "🌽", label: "Farmers Market",   keywords: ["food", "corn", "farmer", "market", "fresh", "produce", "vendor"] },
+  { key: "coffee_cup",    emoji: "☕", label: "Coffee / Café",    keywords: ["food", "coffee", "cafe", "espresso", "brunch", "morning"] },
+  { key: "wine",          emoji: "🍷", label: "Wine / Tasting",   keywords: ["food", "wine", "tasting", "vineyard", "drink", "bar"] },
+  { key: "beer",          emoji: "🍺", label: "Beer / Brew",      keywords: ["food", "beer", "brewery", "brew", "bar", "drink"] },
+  { key: "cocktail",      emoji: "🍸", label: "Cocktails",        keywords: ["food", "cocktail", "bar", "drink", "happy hour"] },
+  { key: "food_truck",    emoji: "🚚", label: "Food Truck",       keywords: ["food", "truck", "mobile", "street food", "vendor"] },
+  // Music & Entertainment
+  { key: "ticket",        emoji: "🎟️", label: "Ticketed Event",  keywords: ["event", "ticket", "show", "admission", "entry"] },
+  { key: "microphone",    emoji: "🎤", label: "Live Show",        keywords: ["event", "microphone", "performance", "concert", "show"] },
+  { key: "music_note",    emoji: "🎵", label: "Music",            keywords: ["event", "music", "concert", "band", "live", "notes"] },
+  { key: "guitar",        emoji: "🎸", label: "Guitar / Rock",    keywords: ["event", "guitar", "rock", "band", "music", "concert"] },
+  { key: "piano",         emoji: "🎹", label: "Piano / Classical",keywords: ["event", "piano", "classical", "recital", "music"] },
+  { key: "drum",          emoji: "🥁", label: "Drums / Percussion",keywords: ["event", "drum", "percussion", "band", "music"] },
+  { key: "trumpet",       emoji: "🎺", label: "Brass / Jazz",     keywords: ["event", "trumpet", "jazz", "brass", "music"] },
+  { key: "violin",        emoji: "🎻", label: "Violin / Orchestra",keywords: ["event", "violin", "orchestra", "classical", "music"] },
+  { key: "dj",            emoji: "🎧", label: "DJ / Headphones",  keywords: ["event", "dj", "headphones", "electronic", "music", "dance"] },
+  { key: "movie",         emoji: "🎬", label: "Film / Cinema",    keywords: ["event", "movie", "film", "cinema", "screening", "show"] },
+  { key: "theater",       emoji: "🎭", label: "Theater / Drama",  keywords: ["event", "theater", "drama", "play", "performance", "arts"] },
+  { key: "circus",        emoji: "🎪", label: "Circus / Festival",keywords: ["event", "circus", "festival", "fair", "carnival"] },
+  { key: "video_game",    emoji: "🎮", label: "Gaming / Esports", keywords: ["event", "gaming", "esports", "video game", "tournament"] },
+  { key: "dance",         emoji: "💃", label: "Dance / Show",     keywords: ["event", "dance", "show", "performance", "ballet", "recital"] },
+  // Party & Celebration
+  { key: "party",         emoji: "🎉", label: "Party",            keywords: ["party", "celebration", "confetti", "popper", "event"] },
+  { key: "balloon",       emoji: "🎈", label: "Balloons",         keywords: ["party", "balloon", "birthday", "celebration"] },
+  { key: "birthday",      emoji: "🎂", label: "Birthday",         keywords: ["party", "birthday", "cake", "celebration"] },
+  { key: "fireworks",     emoji: "🎆", label: "Fireworks",        keywords: ["party", "fireworks", "4th of july", "celebration", "holiday"] },
+  { key: "sparkler",      emoji: "✨", label: "Celebration",      keywords: ["party", "sparkle", "celebration", "special", "festive"] },
+  { key: "champagne",     emoji: "🥂", label: "Toast / Gala",     keywords: ["party", "champagne", "gala", "toast", "celebration", "fancy"] },
+  { key: "clapper",       emoji: "🎊", label: "Confetti",         keywords: ["party", "confetti", "celebration", "festive"] },
+  // Market / Vendor / Shopping
+  { key: "market",        emoji: "🛍️", label: "Market / Sale",   keywords: ["shopping", "market", "bag", "pop_up", "sale", "vendor"] },
+  { key: "store",         emoji: "🏪", label: "Store / Shop",     keywords: ["shopping", "store", "shop", "vendor", "boutique"] },
+  { key: "art_market",    emoji: "🖼️", label: "Art / Gallery",   keywords: ["shopping", "art", "gallery", "craft", "vendor", "market"] },
+  { key: "craft",         emoji: "✂️", label: "Craft Fair",       keywords: ["shopping", "craft", "fair", "handmade", "market", "vendor"] },
+  { key: "gem",           emoji: "💎", label: "Jewelry / Gems",   keywords: ["shopping", "jewelry", "gems", "accessories", "vendor"] },
+  { key: "camera",        emoji: "📷", label: "Photography",      keywords: ["shopping", "photography", "camera", "show", "event"] },
+  { key: "swap",          emoji: "🔄", label: "Swap / Trade",     keywords: ["shopping", "swap", "trade", "exchange", "market"] },
+  // Auto
+  { key: "car",           emoji: "🚗", label: "Car Show",         keywords: ["auto", "car", "vehicle", "show", "cars"] },
+  { key: "race_car",      emoji: "🏎️", label: "Racing",          keywords: ["auto", "race", "car", "speed", "motorsport"] },
+  { key: "motorcycle",    emoji: "🏍️", label: "Motorcycle",      keywords: ["auto", "motorcycle", "bike", "moto", "rally"] },
+  { key: "truck_big",     emoji: "🚛", label: "Truck Show",       keywords: ["auto", "truck", "big rig", "show", "vehicle"] },
+  { key: "classic_car",   emoji: "🚙", label: "Classic Cars",     keywords: ["auto", "classic", "vintage", "car", "show"] },
+  { key: "electric_car",  emoji: "⚡", label: "EV / Electric",    keywords: ["auto", "electric", "ev", "tesla", "car"] },
+  // Home / Real Estate
+  { key: "house",         emoji: "🏠", label: "House",            keywords: ["home", "house", "real_estate", "property", "neighborhood"] },
+  { key: "building",      emoji: "🏢", label: "Commercial",       keywords: ["home", "building", "office", "commercial", "real_estate"] },
+  { key: "open_house",    emoji: "🔑", label: "Open House",       keywords: ["home", "open house", "key", "real_estate", "showing"] },
+  { key: "neighborhood",  emoji: "🏘️", label: "Neighborhood",    keywords: ["home", "neighborhood", "community", "houses", "area"] },
+  { key: "construction",  emoji: "🏗️", label: "Construction",    keywords: ["home", "construction", "build", "new home", "development"] },
+  // Community / Church / School
+  { key: "calendar",      emoji: "📅", label: "General Event",    keywords: ["event", "calendar", "date", "general", "other"] },
+  { key: "school",        emoji: "🏫", label: "School",           keywords: ["community", "school", "education", "graduation", "learning"] },
+  { key: "graduation",    emoji: "🎓", label: "Graduation",       keywords: ["community", "graduation", "school", "diploma", "ceremony"] },
+  { key: "church_emoji",  emoji: "⛪", label: "Church / Faith",   keywords: ["community", "church", "religious", "worship", "faith"] },
+  { key: "prayer",        emoji: "🙏", label: "Prayer / Worship", keywords: ["community", "prayer", "religious", "worship", "faith"] },
+  { key: "charity_emoji", emoji: "❤️", label: "Charity / Cause", keywords: ["community", "charity", "donate", "fundraiser", "nonprofit"] },
+  { key: "volunteer",     emoji: "🤝", label: "Volunteer",        keywords: ["community", "volunteer", "nonprofit", "give back", "help"] },
+  { key: "flag",          emoji: "🚩", label: "Community Event",  keywords: ["community", "local", "neighborhood", "event", "together"] },
+  { key: "park",          emoji: "🌳", label: "Outdoor / Park",   keywords: ["community", "park", "outdoor", "nature", "event"] },
+  // Collectibles / Hobby
+  { key: "collectibles",  emoji: "🧸", label: "Collectibles",     keywords: ["collectibles", "toys", "hobby", "items", "sell"] },
+  { key: "comic_book",    emoji: "📚", label: "Books / Comics",   keywords: ["collectibles", "comic", "book", "reading", "hobby"] },
+  { key: "vinyl",         emoji: "💿", label: "Records / Vinyl",  keywords: ["collectibles", "vinyl", "record", "music", "hobby"] },
+  { key: "stamp",         emoji: "📮", label: "Stamps / Coins",   keywords: ["collectibles", "stamp", "coins", "hobby", "antique"] },
+  { key: "puzzle",        emoji: "🧩", label: "Puzzles / Games",  keywords: ["collectibles", "puzzle", "games", "hobby", "tabletop"] },
+  { key: "dice_emoji",    emoji: "🎲", label: "Tabletop / RPG",   keywords: ["collectibles", "dice", "tabletop", "rpg", "board game"] },
+  { key: "robot",         emoji: "🤖", label: "Sci-Fi / Tech",    keywords: ["collectibles", "robot", "sci-fi", "tech", "hobby"] },
+  { key: "palette",       emoji: "🎨", label: "Art / Craft",      keywords: ["collectibles", "art", "craft", "paint", "hobby", "creative"] },
+];
+
+export const EVENT_COLORED_ICON_OPTIONS = EVENT_FEATURED_ICON_LIBRARY.map((i) => i.key);
 
 export const EVENT_ICON_EMOJIS = {
+  // Legacy keys (kept for backward compat)
   football: "🏈",
   baseball: "⚾",
   soccer: "⚽",
@@ -132,6 +235,8 @@ export const EVENT_ICON_EMOJIS = {
   ticket: "🎟️",
   calendar: "📅",
   collectibles: "🧸",
+  // Extended from featured library
+  ...Object.fromEntries(EVENT_FEATURED_ICON_LIBRARY.map((i) => [i.key, i.emoji])),
 };
 
 export const EVENT_ICONS = Object.keys(EVENT_ICON_EMOJIS);

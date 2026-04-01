@@ -15,7 +15,7 @@ import {
   PartyPopper, Gift, Cake,
   School, Church, Heart, HeartHandshake,
 } from "lucide-react";
-import { getEventIconEmoji, getEventIconOptionsForTier, EVENT_BASIC_ICON_LIBRARY } from "@/lib/eventListingConfig";
+import { getEventIconEmoji, getEventIconOptionsForTier, EVENT_BASIC_ICON_LIBRARY, EVENT_FEATURED_ICON_LIBRARY } from "@/lib/eventListingConfig";
 
 const LUCIDE_MAP = {
   Dribbble, Flag, Swords, Timer, Sparkles, Trophy,
@@ -92,6 +92,60 @@ function BasicIconPicker({ selectedIcon, setSelectedIcon }) {
   );
 }
 
+function FeaturedIconPicker({ selectedIcon, setSelectedIcon }) {
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return EVENT_FEATURED_ICON_LIBRARY;
+    return EVENT_FEATURED_ICON_LIBRARY.filter(
+      (item) =>
+        item.label.toLowerCase().includes(q) ||
+        item.key.toLowerCase().includes(q) ||
+        item.keywords.some((kw) => kw.toLowerCase().includes(q))
+    );
+  }, [search]);
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search icons (e.g. soccer, pizza, jazz...)"
+          className="pl-9 bg-[#F3E6CF] border-[#2C4F4E]"
+        />
+      </div>
+
+      {filtered.length === 0 && (
+        <p className="text-sm text-slate-500 text-center py-4">No icons match "{search}"</p>
+      )}
+
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-72 overflow-y-auto pr-1">
+        {filtered.map((item) => {
+          const selected = selectedIcon === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setSelectedIcon(item.key)}
+              className={`rounded-xl border p-3 flex flex-col items-center gap-1.5 transition-all text-center ${
+                selected
+                  ? "border-[#F4A849] bg-white shadow-md"
+                  : "border-[#2C4F4E]/20 bg-[#F3E6CF] hover:border-[#2C4F4E]/40"
+              }`}
+            >
+              <span className="text-2xl leading-none">{item.emoji}</span>
+              <span className="text-[10px] font-medium text-[#2C4F4E] leading-tight">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function EventIconManager({ tier = "basic", selectedIcon, setSelectedIcon, uploadedImageUrl, setUploadedImageUrl }) {
   const [isUploading, setIsUploading] = useState(false);
   const iconOptions = getEventIconOptionsForTier(tier);
@@ -134,8 +188,10 @@ export default function EventIconManager({ tier = "basic", selectedIcon, setSele
 
       {tier === "basic" ? (
         <BasicIconPicker selectedIcon={selectedIcon} setSelectedIcon={setSelectedIcon} />
+      ) : tier === "featured" ? (
+        <FeaturedIconPicker selectedIcon={selectedIcon} setSelectedIcon={setSelectedIcon} />
       ) : (
-        /* Featured / Premium: unchanged emoji grid */
+        /* Premium: small emoji grid (unchanged) */
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {iconOptions.map((icon) => {
             const selected = selectedIcon === icon && !uploadedImageUrl;
