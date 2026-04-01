@@ -3,69 +3,66 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Upload, X, Search,
-  Trophy, Medal, Dumbbell, Bike, Footprints, Target, Activity, Flag,
-  Utensils, Coffee, Pizza, IceCream, Cookie, Beer, Wine, Sandwich,
+import {
+  Loader2, Upload, X, Search,
+  Trophy, Medal, Dumbbell, Bike, PersonStanding, Target, Activity, Flag,
+  UtensilsCrossed, Coffee, Pizza, Cookie, Beer, Wine, Utensils,
   Store, ShoppingBag, Tag, Package, Archive, Gem, BookOpen,
-  Car, CarFront, Truck, Wrench, Fuel,
-  Home, Building, Building2, Sofa, Lamp, Hammer,
-  Music, Music2, Mic, Headphones, Ticket, Film, Tv, Drama,
+  Car, Truck, Wrench,
+  Home, Building, Building2, Armchair, Lightbulb, Hammer,
+  Music, Music2, Mic, Headphones, Ticket, Film, Tv,
   PartyPopper, Cake, Baby, Heart, Gift, Users,
-  Box, Star, Bookmark, Camera, Gamepad, Puzzle,
-  School, GraduationCap, Book, Church, HandHeart, Megaphone, Vote,
-  Calendar, MapPin, Zap, Info, Sparkles, Sun, Tent, Leaf
+  Box, Star, Bookmark, Camera, Gamepad2, LayoutGrid,
+  School, GraduationCap, BookMarked, Church, HeartHandshake, Megaphone,
+  CalendarDays, MapPin, Zap, Info, Sparkle, Sun, Tent, Leaf,
 } from "lucide-react";
-import { getEventIconOptionsForTier, EVENT_ICON_REGISTRY } from "@/lib/eventListingConfig";
+import { EVENT_ICON_REGISTRY } from "@/lib/eventListingConfig";
 
-const LUCIDE_MAP = {
+// Map registry keys → Lucide components
+const ICON_COMPONENT_MAP = {
   trophy: Trophy, medal: Medal, dumbbell: Dumbbell, bike: Bike,
-  footprints: Footprints, target: Target, activity: Activity, flag: Flag,
-  utensils: Utensils, coffee: Coffee, pizza: Pizza, "ice-cream": IceCream,
-  cookie: Cookie, beer: Beer, wine: Wine, sandwich: Sandwich,
+  footprints: PersonStanding, target: Target, activity: Activity, flag: Flag,
+  utensils: UtensilsCrossed, coffee: Coffee, pizza: Pizza, "ice-cream": Cookie,
+  cookie: Cookie, beer: Beer, wine: Wine, sandwich: Utensils,
   store: Store, "shopping-bag": ShoppingBag, tag: Tag, package: Package,
   archive: Archive, gem: Gem, "book-open": BookOpen,
-  car: Car, "car-front": CarFront, truck: Truck, wrench: Wrench, fuel: Fuel,
-  home: Home, building: Building, "building-2": Building2, sofa: Sofa,
-  lamp: Lamp, hammer: Hammer,
+  car: Car, "car-front": Car, truck: Truck, wrench: Wrench, fuel: Wrench,
+  home: Home, building: Building, "building-2": Building2, sofa: Armchair, lamp: Lightbulb, hammer: Hammer,
   music: Music, "music-2": Music2, mic: Mic, headphones: Headphones,
-  ticket: Ticket, film: Film, tv: Tv, drama: Drama,
+  ticket: Ticket, film: Film, tv: Tv, drama: Music,
   party: PartyPopper, cake: Cake, baby: Baby, heart: Heart, gift: Gift, users: Users,
-  box: Box, star: Star, bookmark: Bookmark, camera: Camera,
-  gamepad: Gamepad, puzzle: Puzzle,
-  school: School, "graduation-cap": GraduationCap, book: Book, church: Church,
-  "hand-heart": HandHeart, megaphone: Megaphone, vote: Vote,
-  calendar: Calendar, "map-pin": MapPin, zap: Zap, info: Info,
-  sparkles: Sparkles, sun: Sun, tent: Tent, leaf: Leaf,
+  box: Box, star: Star, bookmark: Bookmark, camera: Camera, gamepad: Gamepad2, puzzle: LayoutGrid,
+  school: School, "graduation-cap": GraduationCap, book: BookMarked, church: Church,
+  "hand-heart": HeartHandshake, megaphone: Megaphone, vote: Megaphone,
+  calendar: CalendarDays, "map-pin": MapPin, zap: Zap, info: Info,
+  sparkles: Sparkle, sun: Sun, tent: Tent, leaf: Leaf,
 };
 
-function LucideIcon({ name, className }) {
-  const Icon = LUCIDE_MAP[name];
-  if (!Icon) return <span className={className}>•</span>;
-  return <Icon className={className} strokeWidth={1.5} />;
+function IconRenderer({ iconKey, size = 20 }) {
+  const LucideIcon = ICON_COMPONENT_MAP[iconKey];
+  if (LucideIcon) return <LucideIcon size={size} strokeWidth={1.5} />;
+  return <span className="text-base font-bold">{(iconKey || "?").charAt(0).toUpperCase()}</span>;
 }
 
+const CATEGORY_LABELS = {
+  sports: "Sports",
+  food: "Food & Drink",
+  market: "Market & Shopping",
+  auto: "Auto",
+  real_estate: "Home & Real Estate",
+  entertainment: "Music & Entertainment",
+  party: "Party & Family",
+  collectibles: "Collectibles",
+  community: "Community / School / Church",
+  general: "General & Pop-Up",
+};
+
 export default function EventIconManager({ tier = "basic", selectedIcon, setSelectedIcon, uploadedImageUrl, setUploadedImageUrl }) {
-  const [search, setSearch] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [search, setSearch] = useState("");
 
   const isPremium = tier === "premium";
   const isMarquee = tier === "marquee";
-  const iconOptions = getEventIconOptionsForTier(tier);
-
-  const filteredIcons = useMemo(() => {
-    if (!search.trim()) return iconOptions;
-    const q = search.toLowerCase().trim();
-    return iconOptions.filter((key) => {
-      const meta = EVENT_ICON_REGISTRY[key];
-      if (!meta) return key.includes(q);
-      return (
-        meta.label.toLowerCase().includes(q) ||
-        meta.category.toLowerCase().includes(q) ||
-        (meta.tags || []).some((t) => t.includes(q)) ||
-        key.includes(q)
-      );
-    });
-  }, [search, iconOptions]);
 
   const handleUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -79,6 +76,31 @@ export default function EventIconManager({ tier = "basic", selectedIcon, setSele
       event.target.value = "";
     }
   };
+
+  const filteredKeys = useMemo(() => {
+    const allKeys = Object.keys(EVENT_ICON_REGISTRY);
+    if (!search.trim()) return allKeys;
+    const q = search.toLowerCase().trim();
+    return allKeys.filter((key) => {
+      const meta = EVENT_ICON_REGISTRY[key];
+      return (
+        key.includes(q) ||
+        meta.label.toLowerCase().includes(q) ||
+        meta.category.toLowerCase().includes(q) ||
+        meta.tags.some((t) => t.toLowerCase().includes(q))
+      );
+    });
+  }, [search]);
+
+  const grouped = useMemo(() => {
+    const groups = {};
+    filteredKeys.forEach((key) => {
+      const cat = EVENT_ICON_REGISTRY[key].category;
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(key);
+    });
+    return groups;
+  }, [filteredKeys]);
 
   if (isMarquee) {
     return (
@@ -101,7 +123,7 @@ export default function EventIconManager({ tier = "basic", selectedIcon, setSele
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#2C4F4E]/50 pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -110,38 +132,43 @@ export default function EventIconManager({ tier = "basic", selectedIcon, setSele
         />
       </div>
 
-      {/* Icon grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-72 overflow-y-auto pr-1">
-        {filteredIcons.length === 0 && (
-          <p className="col-span-full text-sm text-slate-500 text-center py-6">No icons match "{search}"</p>
+      {/* Grouped icon grid */}
+      <div className="max-h-[420px] overflow-y-auto space-y-5 pr-1">
+        {Object.keys(grouped).length === 0 && (
+          <p className="text-sm text-slate-500 py-4 text-center">No icons match your search.</p>
         )}
-        {filteredIcons.map((icon) => {
-          const meta = EVENT_ICON_REGISTRY[icon];
-          const selected = selectedIcon === icon && !uploadedImageUrl;
-          return (
-            <button
-              key={icon}
-              type="button"
-              onClick={() => {
-                setSelectedIcon(icon);
-                if (isPremium) setUploadedImageUrl("");
-              }}
-              className={`rounded-xl border p-3 flex flex-col items-center gap-1.5 text-center transition-all ${
-                selected
-                  ? "border-[#F4A849] bg-white shadow-md"
-                  : "border-[#2C4F4E]/20 bg-[#F3E6CF] hover:border-[#2C4F4E]/50 hover:bg-white/60"
-              }`}
-            >
-              <LucideIcon
-                name={icon}
-                className={`w-6 h-6 ${selected ? "text-[#2C4F4E]" : "text-[#2C4F4E]/70"}`}
-              />
-              <span className="text-[10px] leading-tight font-medium text-[#2C4F4E] line-clamp-2">
-                {meta?.label || icon.replace(/-/g, " ")}
-              </span>
-            </button>
-          );
-        })}
+        {Object.entries(grouped).map(([cat, keys]) => (
+          <div key={cat}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#2C4F4E]/60 mb-2">
+              {CATEGORY_LABELS[cat] || cat}
+            </p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+              {keys.map((iconKey) => {
+                const meta = EVENT_ICON_REGISTRY[iconKey];
+                const selected = selectedIcon === iconKey && !uploadedImageUrl;
+                return (
+                  <button
+                    key={iconKey}
+                    type="button"
+                    onClick={() => {
+                      setSelectedIcon(iconKey);
+                      if (isPremium) setUploadedImageUrl("");
+                    }}
+                    title={meta.label}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all text-center ${
+                      selected
+                        ? "border-[#F4A849] bg-white shadow-md text-[#2C4F4E]"
+                        : "border-[#2C4F4E]/20 bg-[#F3E6CF] hover:border-[#2C4F4E]/50 hover:bg-white text-[#2C4F4E]/70 hover:text-[#2C4F4E]"
+                    }`}
+                  >
+                    <IconRenderer iconKey={iconKey} size={20} />
+                    <span className="text-[10px] leading-tight font-medium line-clamp-2">{meta.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Premium upload */}
@@ -160,6 +187,7 @@ export default function EventIconManager({ tier = "basic", selectedIcon, setSele
               </span>
             </label>
           </div>
+
           {uploadedImageUrl && (
             <div className="relative w-24 h-24 rounded-full overflow-hidden border border-[#2C4F4E]/20 bg-white">
               <img src={uploadedImageUrl} alt="Uploaded event logo" className="w-full h-full object-cover" />
