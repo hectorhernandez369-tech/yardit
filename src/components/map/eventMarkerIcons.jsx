@@ -54,53 +54,57 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       return cache[cacheKey];
     }
 
-    // ── CLOSED-STATE: Minimal Gold Marquee Ring ─────────────────────────────
-    const styleId = "mqring-v5";
+    // ── CLOSED-STATE: Mini Marquee Pill ──────────────────────────────────────
+    const styleId = "mqpill-v1";
     if (typeof document !== "undefined" && !document.getElementById(styleId)) {
       const style = document.createElement("style");
       style.id = styleId;
       style.textContent = `
-        @keyframes mq5-on {
-          0%,100% { opacity:1;   filter:drop-shadow(0 0 2px rgba(255,210,60,0.85)); }
-          50%      { opacity:0.25;filter:drop-shadow(0 0 0   rgba(255,210,60,0));   }
-        }
-        @keyframes mq5-off {
-          0%,100% { opacity:0.25;filter:drop-shadow(0 0 0   rgba(255,210,60,0));   }
-          50%      { opacity:1;   filter:drop-shadow(0 0 2px rgba(255,210,60,0.85)); }
-        }
-        .mq5-a { animation: mq5-on  2.4s ease-in-out infinite; }
-        .mq5-b { animation: mq5-off 2.4s ease-in-out infinite; }
+        @keyframes mqp-on  { 0%,100%{opacity:1;  } 50%{opacity:0.2;} }
+        @keyframes mqp-off { 0%,100%{opacity:0.2;} 50%{opacity:1;  } }
+        .mqp-a { animation: mqp-on  2.6s ease-in-out infinite; }
+        .mqp-b { animation: mqp-off 2.6s ease-in-out infinite; }
       `;
       document.head.appendChild(style);
     }
 
-    const size = 40;
-    const CX = 20, CY = 20;
-    const R = 16;          // bulb ring radius
-    const bulbD = 3;       // small, clean bulbs
-    const count = 18;      // smooth, dense ring
+    const W = 46, H = 22;
+    const bulbD = 3;
+    const pad = 5;          // left/right inset before first bulb
+    const gap = 7;          // spacing between bulbs
+    const bulbY_top = -1.5; // centered on top edge
+    const bulbY_bot = H - bulbD + 1.5;
 
-    const bulbsHtml = Array.from({ length: count }, (_, i) => {
-      const rad = (2 * Math.PI * i) / count;
-      const x = (CX + R * Math.sin(rad) - bulbD / 2).toFixed(2);
-      const y = (CY - R * Math.cos(rad) - bulbD / 2).toFixed(2);
-      const cls = i % 2 === 0 ? "mq5-a" : "mq5-b";
-      return `<div class="${cls}" style="position:absolute;left:${x}px;top:${y}px;width:${bulbD}px;height:${bulbD}px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFFDE7,#FFD740 55%,#E6A800);flex-shrink:0;z-index:3;"></div>`;
-    }).join("");
+    // generate top + bottom bulbs
+    const topBulbs = [];
+    const botBulbs = [];
+    for (let x = pad; x <= W - pad - bulbD; x += gap) {
+      const cls = topBulbs.length % 2 === 0 ? "mqp-a" : "mqp-b";
+      const bulbStyle = `position:absolute;width:${bulbD}px;height:${bulbD}px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFFDE7,#FFD740 55%,#CC8800);z-index:3;`;
+      topBulbs.push(`<div class="${cls}" style="${bulbStyle}left:${x}px;top:${bulbY_top.toFixed(1)}px;"></div>`);
+      botBulbs.push(`<div class="${cls}" style="${bulbStyle}left:${x}px;top:${bulbY_bot.toFixed(1)}px;"></div>`);
+    }
+
+    const eventEmoji = getEventIconEmoji(listing?.event_icon);
 
     const html = `
-      <div style="position:relative;width:${size}px;height:${size}px;background:transparent;">
-        <!-- subtle warm glow behind marker -->
-        <div style="position:absolute;inset:-2px;border-radius:50%;background:radial-gradient(circle,rgba(255,200,50,0.18) 40%,transparent 75%);pointer-events:none;"></div>
-        <!-- thin gold ring -->
-        <div style="position:absolute;inset:1px;border-radius:50%;border:1.5px solid rgba(244,168,73,0.7);background:transparent;"></div>
-        <!-- dark gold-black center -->
-        <div style="position:absolute;inset:4px;border-radius:50%;background:radial-gradient(circle at 42% 38%,rgba(200,160,50,0.15) 0%,#1a1000 50%,#0c0700 100%);box-shadow:inset 0 0 4px rgba(255,190,40,0.12);"></div>
-        <!-- bulbs -->
-        ${bulbsHtml}
+      <div style="position:relative;width:${W}px;height:${H}px;">
+        <!-- glow -->
+        <div style="position:absolute;inset:-3px;border-radius:14px;background:radial-gradient(ellipse,rgba(255,200,50,0.15) 30%,transparent 75%);pointer-events:none;"></div>
+        <!-- pill body: gold border + dark center -->
+        <div style="position:absolute;inset:0;border-radius:11px;border:1.5px solid rgba(244,168,73,0.75);background:linear-gradient(180deg,#1c1200 0%,#0e0a00 100%);box-shadow:0 2px 6px rgba(0,0,0,0.55);overflow:hidden;">
+          <!-- subtle inner warm sheen -->
+          <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(255,180,30,0.08) 0%,transparent 70%);"></div>
+          <!-- icon -->
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1;">${eventEmoji}</div>
+        </div>
+        <!-- top bulbs -->
+        ${topBulbs.join("")}
+        <!-- bottom bulbs -->
+        ${botBulbs.join("")}
       </div>`;
 
-    return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, size, size, size / 2, size / 2);
+    return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, W, H, W / 2, H / 2);
   }
 
   if (tier === "premium") {
