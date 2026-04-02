@@ -27,7 +27,7 @@ export default function ComingSoon() {
       <TesterLoginModal
         open={showTesterModal}
         onClose={() => setShowTesterModal(false)}
-        onSuccess={() => { setShowTesterModal(false); navigate("/"); }}
+        onSuccess={() => { setShowTesterModal(false); }}
       />
 
       <AdminLoginModal

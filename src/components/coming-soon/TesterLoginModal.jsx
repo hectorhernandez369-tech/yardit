@@ -23,6 +23,7 @@ export default function TesterLoginModal({ open, onClose, onSuccess }) {
         toast.success("Early access granted! Welcome to Yardit.");
         setCode("");
         onSuccess();
+        window.location.href = "/";
       } else {
         toast.error("Invalid access code. Please try again.");
       }
