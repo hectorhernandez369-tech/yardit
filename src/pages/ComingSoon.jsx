@@ -1,15 +1,21 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { Shield } from "lucide-react";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Shield, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LaunchNotificationForm from "@/components/coming-soon/LaunchNotificationForm";
 import ComingSoonPreviewCard from "@/components/coming-soon/ComingSoonPreviewCard";
+import TesterLoginModal from "@/components/coming-soon/TesterLoginModal";
+import AdminLoginModal, { getAdminSession } from "@/components/admin/AdminLoginModal";
 
 const logoUrl = "https://media.base44.com/images/public/690f554506edf795e5d84121/418a5e7a0_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
 const shipWatermarkUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0ba1ba06_file_00000000fce071fd9ff100a6a9cf19951.png";
 const mapScreenshotUrl = "https://media.base44.com/images/public/690f554506edf795e5d84121/3b0113ec3_Screenshot_20260318_085622_Base44.jpg";
 
 export default function ComingSoon() {
+  const navigate = useNavigate();
+  const [showTesterModal, setShowTesterModal] = useState(false);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#F3E6CF] px-4 py-6 text-[#2C4F4E] sm:px-6 lg:px-8">
       <img
@@ -18,14 +24,39 @@ export default function ComingSoon() {
         className="pointer-events-none absolute left-1/2 top-20 z-0 w-[320px] max-w-none -translate-x-1/2 opacity-10 sm:w-[420px] lg:left-auto lg:right-10 lg:top-24 lg:w-[520px] lg:translate-x-0"
       />
 
+      <TesterLoginModal
+        open={showTesterModal}
+        onClose={() => setShowTesterModal(false)}
+        onSuccess={() => { setShowTesterModal(false); navigate("/"); }}
+      />
+
+      <AdminLoginModal
+        open={showAdminModal}
+        onClose={() => setShowAdminModal(false)}
+        onSuccess={() => { setShowAdminModal(false); navigate("/AdminLite"); }}
+      />
+
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-8">
-        <div className="flex justify-end">
-          <Link to="/AdminLite">
-            <Button className="gap-2 border-2 border-[#2C4F4E] bg-[#5DADA5] text-white hover:bg-[#4A9B93]">
-              <Shield className="h-4 w-4" />
-              Admin
-            </Button>
-          </Link>
+        <div className="flex justify-end gap-2">
+          <Button
+            onClick={() => setShowTesterModal(true)}
+            variant="outline"
+            className="gap-2 border-2 border-[#2C4F4E]/40 bg-transparent text-[#2C4F4E] hover:bg-[#E7D7B8]"
+          >
+            <Unlock className="h-4 w-4" />
+            Early Access
+          </Button>
+          <Button
+            onClick={() => {
+              const session = getAdminSession();
+              if (session) navigate("/AdminLite");
+              else setShowAdminModal(true);
+            }}
+            className="gap-2 border-2 border-[#2C4F4E] bg-[#5DADA5] text-white hover:bg-[#4A9B93]"
+          >
+            <Shield className="h-4 w-4" />
+            Admin
+          </Button>
         </div>
 
         <div className="flex flex-col items-center gap-3 text-center">

@@ -7,7 +7,7 @@ import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import { base44 } from "@/api/base44Client";
-import { isComingSoonModeEnabled } from '@/lib/comingSoonMode';
+import { isComingSoonModeEnabled, getTesterBypass } from '@/lib/comingSoonMode';
 import PageNotFound from './lib/PageNotFound';
 import ComingSoon from './pages/ComingSoon';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -46,7 +46,7 @@ const AuthenticatedApp = () => {
     return <UserNotRegisteredError />;
   }
 
-  const isComingSoonMode = isComingSoonModeEnabled(appSettings);
+  const isComingSoonMode = isComingSoonModeEnabled(appSettings) && !getTesterBypass();
   const AdminPage = Pages.AdminLite;
 
   if (isLoadingAppSettings) {
