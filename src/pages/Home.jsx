@@ -366,7 +366,14 @@ export default function HomePage() {
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [mapCenter, setMapCenter] = useState([37.7749, -122.4194]);
+  const getSavedLocation = () => {
+    try {
+      const saved = localStorage.getItem("yardit_last_map_center");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [37.7749, -122.4194];
+  };
+  const [mapCenter, setMapCenter] = useState(getSavedLocation);
   const [mapZoom, setMapZoom] = useState(13);
   const [showControls, setShowControls] = useState(false);
   const controlsPanelRef = useRef(null);
@@ -635,6 +642,7 @@ export default function HomePage() {
           setMapCenter([newLoc.lat, newLoc.lng]);
           hasCenteredOnUser.current = true;
         }
+        try { localStorage.setItem("yardit_last_map_center", JSON.stringify([newLoc.lat, newLoc.lng])); } catch(e) {}
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
