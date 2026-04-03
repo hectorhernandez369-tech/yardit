@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
-import { format } from "date-fns";
+import { formatYarditDateTime } from "@/lib/dateTime";
 
 function LogEntry({ log }) {
   const [expanded, setExpanded] = useState(false);
@@ -20,7 +20,7 @@ function LogEntry({ log }) {
             </Badge>
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
-            {log.created_at || log.created_date ? format(new Date(log.created_at || log.created_date), "MMM d, yyyy h:mm:ss a") : "—"}
+            {formatYarditDateTime(log.created_at || log.created_date, { includeSeconds: true })}
           </p>
           {(log.target_type || log.target_id) && (
             <p className="text-xs text-gray-600 mt-1">

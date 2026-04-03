@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { addCaseComment } from "../index";
 import { toast } from "sonner";
+import { formatYarditDateTime } from "@/lib/dateTime";
 
 export default function CaseCommentsTimeline({ comments, user, caseData, allAdminUsers, onRefresh, isClosed }) {
   const [newComment, setNewComment] = useState("");
@@ -47,7 +48,7 @@ export default function CaseCommentsTimeline({ comments, user, caseData, allAdmi
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <span className="text-sm font-medium break-all">{admin?.full_name || admin?.email || c.admin_id}</span>
                 <Badge className={typeColors[c.comment_type] || "bg-gray-100"}>{c.comment_type}</Badge>
-                <span className="text-xs text-gray-400 sm:ml-auto">{new Date(c.created_date).toLocaleString()}</span>
+                <span className="text-xs text-gray-400 sm:ml-auto">{formatYarditDateTime(c.created_at || c.created_date)}</span>
               </div>
               <p className="text-sm">{c.comment_text}</p>
             </div>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronRight, User, Clock } from "lucide-react";
+import { formatYarditDateTime } from "@/lib/dateTime";
 
 const FRIENDLY_LABELS = {
   assign_self: "Assigned to Self",
@@ -141,7 +142,7 @@ export default function CaseAuditTimeline({ actions, allAdminUsers }) {
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {new Date(a.created_date).toLocaleString()}
+                        {formatYarditDateTime(a.created_at || a.created_date)}
                       </span>
                     </div>
                     <DiffBullets oldVal={oldVal} newVal={newVal} adminMap={adminMap} />

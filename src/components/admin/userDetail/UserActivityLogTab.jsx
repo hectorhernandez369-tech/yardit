@@ -1,7 +1,8 @@
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { format, subMonths } from "date-fns";
+import { subMonths } from "date-fns";
+import { formatYarditDateTime } from "@/lib/dateTime";
 import { Loader2 } from "lucide-react";
 import UserTrustSafetySummary from "./UserTrustSafetySummary";
 
@@ -76,7 +77,7 @@ export default function UserActivityLogTab({ user }) {
               <tbody>
                 {logs.map((log) => (
                   <tr key={log.id} className="border-b align-top">
-                    <td className="py-2 px-3 whitespace-nowrap">{format(new Date(log.created_at || log.created_date), "MMM d, yyyy h:mm a")}</td>
+                    <td className="py-2 px-3 whitespace-nowrap">{formatYarditDateTime(log.created_at || log.created_date)}</td>
                     <td className="py-2 px-3 font-medium">{log.event_label || log.event_type}</td>
                     <td className="py-2 px-3">{formatTarget(log)}</td>
                     <td className="py-2 px-3 text-gray-600 break-words">{formatDetails(log)}</td>

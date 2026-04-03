@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search } from "lucide-react";
+import { formatYarditDateTime } from "@/lib/dateTime";
 
 export default function AdminLogsTab() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,7 +61,7 @@ export default function AdminLogsTab() {
                     {log._kind === "event" ? log.event_type : log.action_type}
                   </Badge>
                   <span className="text-xs text-gray-500">
-                    {new Date(log.created_at || log.created_date).toLocaleString()}
+                    {formatYarditDateTime(log.created_at || log.created_date)}
                   </span>
                   {log.page && <span className="text-xs text-gray-400">Page: {log.page}</span>}
                 </div>
