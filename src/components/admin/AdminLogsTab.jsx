@@ -23,7 +23,7 @@ export default function AdminLogsTab() {
   const allLogs = [
     ...events.map(e => ({ ...e, _kind: "event" })),
     ...actions.map(a => ({ ...a, _kind: "action" })),
-  ].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+  ].sort((a, b) => new Date(b.created_at || b.created_date) - new Date(a.created_at || a.created_date));
 
   const filtered = searchQuery.trim()
     ? allLogs.filter(l =>
@@ -59,7 +59,7 @@ export default function AdminLogsTab() {
                     {log._kind === "event" ? log.event_type : log.action_type}
                   </Badge>
                   <span className="text-xs text-gray-500">
-                    {new Date(log.created_date).toLocaleString()}
+                    {new Date(log.created_at || log.created_date).toLocaleString()}
                   </span>
                   {log.page && <span className="text-xs text-gray-400">Page: {log.page}</span>}
                 </div>

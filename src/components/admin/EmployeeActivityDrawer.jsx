@@ -20,7 +20,7 @@ function LogEntry({ log }) {
             </Badge>
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
-            {log.created_date ? format(new Date(log.created_date), "MMM d, yyyy h:mm:ss a") : "—"}
+            {log.created_at || log.created_date ? format(new Date(log.created_at || log.created_date), "MMM d, yyyy h:mm:ss a") : "—"}
           </p>
           {(log.target_type || log.target_id) && (
             <p className="text-xs text-gray-600 mt-1">
@@ -65,7 +65,9 @@ export default function EmployeeActivityDrawer({ open, onClose, admin }) {
       // Merge and deduplicate by id, newest first
       const map = new Map();
       [...byUser, ...byEmpId].forEach(l => map.set(l.id, l));
-      const merged = Array.from(map.values()).sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+      const merged = Array.from(map.values()).sort(
+        (a, b) => new Date(b.created_at || b.created_date) - new Date(a.created_at || a.created_date)
+      );
       setLogs(merged);
       setLoading(false);
     };
