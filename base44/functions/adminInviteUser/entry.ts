@@ -14,7 +14,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'email and role are required' }, { status: 400 });
     }
 
-    await base44.auth.inviteUser(email, role);
+    // Always invite as "user" — Base44 restricts non-default roles to admin callers.
+    // Internal role elevation is handled by AdminInviteProfile + syncAdminInvite on login.
+    await base44.auth.inviteUser(email, "user");
 
     return Response.json({ success: true });
   } catch (error) {
