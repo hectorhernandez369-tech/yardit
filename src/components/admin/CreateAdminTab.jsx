@@ -46,10 +46,12 @@ const EMPLOYEE_ID_RULES = {
   master: { regex: /^(Master|Darth)[a-zA-Z0-9]{4}$/, example: "MasterAB12 or Darth9X8Y" },
 };
 
+// All invites use "user" as the Base44 platform role.
+// Internal admin role is tracked via AdminInviteProfile / AdminProfile (role_label).
 const ROLE_TO_INVITE_ROLE = {
-  basic: "admin",
-  supervisor: "admin",
-  master: "admin",
+  basic: "user",
+  supervisor: "user",
+  master: "user",
 };
 
 export default function CreateAdminTab() {

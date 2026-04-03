@@ -5,8 +5,16 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     const user = await base44.auth.me();
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    if (!user) {
+      return Response.json({ error: 'Forbidden: Not authenticated' }, { status: 403 });
+    }
+
+    // Authorization is managed by our custom AdminProfile system, not Base44 roles.
+    // Verify the caller has an active AdminProfile before allowing invites.
+    const profiles = await base44.asServiceRole.entities.AdminProfile.filter({ user_id: user.id });
+    const callerProfile = profiles.find(p => p.is_active === true);
+    if (!callerProfile) {
+      return Response.json({ error: 'Forbidden: No active admin profile' }, { status: 403 });
     }
 
     const { email, role } = await req.json();
