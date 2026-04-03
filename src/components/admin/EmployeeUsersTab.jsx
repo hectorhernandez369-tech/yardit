@@ -193,7 +193,8 @@ export default function EmployeeUsersTab({ currentUser }) {
   const handleResend = async (inv) => {
     setActing(inv.id);
     try {
-      await base44.users.inviteUser(inv.email, "admin");
+      // Keep Base44 platform role as "user" and preserve internal admin permissions in AdminInviteProfile.
+      await base44.users.inviteUser(inv.email, "user");
       if (currentUser?.id) {
         await logUserActivity({
           user_id: currentUser.id,
@@ -202,7 +203,12 @@ export default function EmployeeUsersTab({ currentUser }) {
           target_type: "admin_invite",
           target_id: inv.employee_id,
           source_page: window.location.pathname,
-          details_json: { email: inv.email, employee_id: inv.employee_id },
+          details_json: {
+            email: inv.email,
+            employee_id: inv.employee_id,
+            role_label: inv.role_label,
+            metadata_preserved: true,
+          },
         }).catch(() => null);
       }
       toast.success(`Invite resent to ${inv.email}`);
