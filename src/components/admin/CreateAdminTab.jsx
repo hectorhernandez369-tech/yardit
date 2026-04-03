@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -55,6 +56,8 @@ const ROLE_TO_INVITE_ROLE = {
 };
 
 export default function CreateAdminTab() {
+  const { isAuthenticated, isLoadingAuth, navigateToLogin } = useAuth();
+  const [authCheckedUser, setAuthCheckedUser] = useState(null);
   const [employeeId, setEmployeeId] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -81,6 +84,26 @@ export default function CreateAdminTab() {
     () => Object.entries(caps).filter(([, v]) => v).map(([k]) => k),
     [caps]
   );
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (isLoadingAuth || !isAuthenticated) {
+        setAuthCheckedUser(null);
+        return;
+      }
+
+      try {
+        const me = await base44.auth.me();
+        console.log("Auth ready for admin invite:", me);
+        setAuthCheckedUser(me || null);
+      } catch (e) {
+        console.error("Auth readiness check failed:", e);
+        setAuthCheckedUser(null);
+      }
+    };
+
+    checkAuth();
+  }, [isAuthenticated, isLoadingAuth]);
 
   // Load active supervisors properly
   useEffect(() => {
@@ -134,6 +157,25 @@ export default function CreateAdminTab() {
   };
 
   const handleInvite = async () => {
+    if (isLoadingAuth) {
+      toast.error("Authentication is still loading. Please wait a moment.");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast.error("You must be logged in to send admin invites.");
+      navigateToLogin();
+      return;
+    }
+
+    const me = await base44.auth.me();
+    console.log("Auth before invite:", me);
+
+    if (!me?.id) {
+      toast.error("No active authenticated session was found. Please log in again.");
+      return;
+    }
+
     const err = validate();
     if (err) return toast.error(err);
 
@@ -165,8 +207,16 @@ export default function CreateAdminTab() {
     // ✉️ INVITE STEP — must run on the authenticated frontend session
     let userAlreadyExisted = false;
     try {
-      await base44.auth.inviteUser(inviteEmail.trim(), "user");
+      await base44.users.inviteUser(inviteEmail.trim(), "user");
     } catch (e) {
+      console.error("base44.users.inviteUser failed:", e);
+      console.error("Invite error details:", {
+        message: e?.message,
+        status: e?.status,
+        data: e?.data,
+        error: e,
+      });
+
       const msg = (e?.message || e?.toString() || "").toLowerCase();
       const isExistingUser = msg.includes("already") || msg.includes("exist") || msg.includes("duplicate");
 
@@ -174,7 +224,6 @@ export default function CreateAdminTab() {
         userAlreadyExisted = true;
       } else {
         const detail = e?.message || e?.toString() || "Unknown error";
-        console.error("inviteUser failed:", e);
         toast.error(`Invite email failed: ${detail}`);
         setSaving(false);
         return;
@@ -187,8 +236,6 @@ export default function CreateAdminTab() {
         role === "basic"
           ? supervisors.find((s) => s.user_id === supervisorId)
           : null;
-
-      const currentUser = await base44.auth.me();
 
       await base44.entities.AdminInviteProfile.create({
         email: inviteEmail.trim().toLowerCase(),
@@ -203,7 +250,7 @@ export default function CreateAdminTab() {
         is_active: true,
         status: "pending",
         invited_at: new Date().toISOString(),
-        invited_by: currentUser?.id || null,
+        invited_by: me.id,
         supervisor_user_id: selectedSupervisor?.user_id || null,
         supervisor_employee_id: selectedSupervisor?.employee_id || null,
       });
@@ -327,9 +374,9 @@ export default function CreateAdminTab() {
             </Select>
           )}
 
-          <Button onClick={handleInvite} disabled={saving} className="w-full">
-            {saving ? <Loader2 className="animate-spin mr-2 w-4 h-4" /> : <UserPlus className="mr-2 w-4 h-4" />}
-            Send Email Invite
+          <Button onClick={handleInvite} disabled={saving || isLoadingAuth || !authCheckedUser?.id} className="w-full">
+            {saving || isLoadingAuth ? <Loader2 className="animate-spin mr-2 w-4 h-4" /> : <UserPlus className="mr-2 w-4 h-4" />}
+            {isLoadingAuth ? "Checking Session..." : !authCheckedUser?.id ? "Login Required to Invite" : "Send Email Invite"}
           </Button>
         </CardContent>
       </Card>
