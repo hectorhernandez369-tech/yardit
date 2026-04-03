@@ -162,35 +162,16 @@ export default function CreateAdminTab() {
       return;
     }
 
-    // ✉️ INVITE STEP — handle existing users gracefully
+    // ✉️ INVITE STEP — must run on the authenticated frontend session
     let userAlreadyExisted = false;
     try {
-      const inviteResp = await base44.functions.invoke("adminInviteUser", {
-        email: inviteEmail.trim(),
-        role: ROLE_TO_INVITE_ROLE[role],
-      });
-      if (inviteResp.data?.error) throw new Error(inviteResp.data.error);
+      await base44.auth.inviteUser(inviteEmail.trim(), "user");
     } catch (e) {
       const msg = (e?.message || e?.toString() || "").toLowerCase();
       const isExistingUser = msg.includes("already") || msg.includes("exist") || msg.includes("duplicate");
 
       if (isExistingUser) {
-        // User exists — update their role instead
-        try {
-          const allUsers = await base44.entities.User.list();
-          const existingUser = allUsers.find(
-            (u) => u.email?.toLowerCase() === inviteEmail.trim().toLowerCase()
-          );
-          if (existingUser) {
-            await base44.entities.User.update(existingUser.id, { role: ROLE_TO_INVITE_ROLE[role] });
-          }
-          userAlreadyExisted = true;
-        } catch (updateErr) {
-          console.error("Role update for existing user failed:", updateErr);
-          toast.error("User exists but role update failed.");
-          setSaving(false);
-          return;
-        }
+        userAlreadyExisted = true;
       } else {
         const detail = e?.message || e?.toString() || "Unknown error";
         console.error("inviteUser failed:", e);
@@ -207,6 +188,8 @@ export default function CreateAdminTab() {
           ? supervisors.find((s) => s.user_id === supervisorId)
           : null;
 
+      const currentUser = await base44.auth.me();
+
       await base44.entities.AdminInviteProfile.create({
         email: inviteEmail.trim().toLowerCase(),
         employee_id: employeeId.trim(),
@@ -220,6 +203,7 @@ export default function CreateAdminTab() {
         is_active: true,
         status: "pending",
         invited_at: new Date().toISOString(),
+        invited_by: currentUser?.id || null,
         supervisor_user_id: selectedSupervisor?.user_id || null,
         supervisor_employee_id: selectedSupervisor?.employee_id || null,
       });
