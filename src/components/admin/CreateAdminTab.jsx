@@ -186,8 +186,9 @@ export default function CreateAdminTab() {
           return;
         }
       } else {
+        const detail = e?.message || e?.toString() || "Unknown error";
         console.error("inviteUser failed:", e);
-        toast.error("Invite email failed.");
+        toast.error(`Invite email failed: ${detail}`);
         setSaving(false);
         return;
       }
