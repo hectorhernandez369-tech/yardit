@@ -1,4 +1,6 @@
 import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import {
   Accordion,
   AccordionContent,
@@ -6,9 +8,12 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { MapPin, ShoppingBag, Target, Users, Settings, AlertTriangle, HelpCircle, Star } from "lucide-react";
 
 export default function FAQPage() {
+  const navigate = useNavigate();
+
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
     if (!hash) return;
@@ -189,9 +194,41 @@ export default function FAQPage() {
           </Card>
         ))}
 
-        <div className="mt-12 text-center text-sm text-slate-500">
-          <p>Still need help? Please reach out to our support team.</p>
-        </div>
+        <Card className="border-2 border-[#2C4F4E] bg-[#E7D7B8] overflow-hidden shadow-sm">
+          <CardHeader className="bg-[#5DADA5]/10 border-b border-[#2C4F4E]/10 py-4">
+            <CardTitle className="text-xl text-[#2C4F4E]">Help & Support</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 p-4 md:p-6">
+            <Button
+              onClick={() => navigate(createPageUrl("StartupGuide"))}
+              variant="outline"
+              className="w-full justify-start text-left font-normal"
+            >
+              View Startup Guide
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl("FAQ"))}
+              variant="outline"
+              className="w-full justify-start text-left font-normal"
+            >
+              FAQ Section
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl("ContactSupport"))}
+              variant="outline"
+              className="w-full justify-start text-left font-normal"
+            >
+              Contact Support
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl("MySupportTickets"))}
+              variant="outline"
+              className="w-full justify-start text-left font-normal"
+            >
+              My Support Tickets
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
