@@ -34,8 +34,18 @@ export default function UserActivityLogTab({ user }) {
   const { data: logs, isLoading } = useQuery({
     queryKey: ["userActivityLogs", user.id],
     queryFn: async () => {
-      const activityLogs = await base44.entities.UserActivityLog.filter({ user_id: user.id }, "-created_date", 1000);
-      return activityLogs.filter((log) => new Date(log.created_at || log.created_date).toISOString() >= twelveMonthsAgo);
+      const [userLogs, guestLogs] = await Promise.all([
+        base44.entities.UserActivityLog.filter({ user_id: user.id }, "-created_date", 1000),
+        user.email ? base44.entities.UserActivityLog.filter({ details_json: { email: user.email } }, "-created_date", 1000).catch(() => []) : Promise.resolve([]),
+      ]);
+
+      const mergedLogs = [...userLogs, ...guestLogs].filter(
+        (log, index, arr) => arr.findIndex((item) => item.id === log.id) === index
+      );
+
+      return mergedLogs
+        .filter((log) => new Date(log.created_at || log.created_date).toISOString() >= twelveMonthsAgo)
+        .sort((a, b) => new Date(b.created_at || b.created_date) - new Date(a.created_at || a.created_date));
     },
     initialData: [],
   });

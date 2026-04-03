@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { base44 } from "@/api/base44Client";
 import { logUserActivity, logUserActivityOncePerSession } from "@/lib/logUserActivity";
 import { Button } from "@/components/ui/button";
 import { MapPin, Search, Plus, Map as MapIcon, Target, Users, Settings, LogOut, Navigation, CheckCircle2, ShoppingBag } from "lucide-react";
@@ -8,18 +9,24 @@ import { createPageUrl } from "@/utils";
 
 export default function StartupGuidePage() {
   const navigate = useNavigate();
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   useEffect(() => {
-    logUserActivityOncePerSession("yardit_startup_guide_viewed", {
-      event_type: "startup_guide_viewed",
-      event_label: "Startup Guide Viewed",
-      target_type: "startup_guide",
-      source_page: window.location.pathname,
+    base44.auth.me().then((user) => {
+      setCurrentUserId(user?.id || null);
+      return logUserActivityOncePerSession("yardit_startup_guide_viewed", {
+        user_id: user?.id,
+        event_type: "startup_guide_viewed",
+        event_label: "Startup Guide Viewed",
+        target_type: "startup_guide",
+        source_page: window.location.pathname,
+      });
     }).catch(() => null);
   }, []);
 
   const handleUnderstand = () => {
     logUserActivity({
+      user_id: currentUserId,
       event_type: "startup_guide_completed",
       event_label: "Startup Guide Completed",
       target_type: "startup_guide",
