@@ -29,7 +29,8 @@ export default function AdminLogsTab() {
     ? allLogs.filter(l =>
         (l.event_type || l.action_type || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (l.admin_id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (l.case_id || "").toLowerCase().includes(searchQuery.toLowerCase())
+        (l.case_id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (l.comment || "").toLowerCase().includes(searchQuery.toLowerCase())
       )
     : allLogs;
 
@@ -67,6 +68,9 @@ export default function AdminLogsTab() {
                   Admin: {log.admin_id?.slice(0, 12)}...
                   {log.case_id && <> · Case: {log.case_id.slice(0, 12)}...</>}
                 </div>
+                {log._kind === "action" && (log.old_value || log.new_value) && (
+                  <p className="mt-1 text-xs text-gray-700">{log.old_value || "—"} → {log.new_value || "—"}</p>
+                )}
                 {log.comment && <p className="mt-1 text-xs text-gray-700">{log.comment}</p>}
               </CardContent>
             </Card>

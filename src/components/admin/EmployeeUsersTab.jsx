@@ -236,7 +236,17 @@ export default function EmployeeUsersTab({ currentUser }) {
     setActing(adm.id);
     const newVal = !adm.is_active;
     await base44.entities.AdminProfile.update(adm.id, { is_active: newVal });
+
     if (currentUser?.id) {
+      await base44.entities.AdminAction.create({
+        admin_id: currentUser.id,
+        action_type: newVal ? "admin_reactivated" : "admin_deactivated",
+        old_value: String(adm.is_active),
+        new_value: String(newVal),
+        comment: `${adm.first_name} ${adm.last_name} (${adm.employee_id}) ${newVal ? "reactivated" : "deactivated"}`,
+        page: window.location.pathname,
+      }).catch(() => null);
+
       await logUserActivity({
         user_id: currentUser.id,
         event_type: newVal ? "admin_reactivated" : "admin_deactivated",
