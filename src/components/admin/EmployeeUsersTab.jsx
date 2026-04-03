@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, RefreshCw, XCircle, Send, ToggleLeft, ToggleRight, Users, Activity, Pencil } from "lucide-react";
+import { logUserActivity } from "@/lib/logUserActivity";
 import EmployeeActivityDrawer from "./EmployeeActivityDrawer";
 import EditEmployeeDrawer from "./EditEmployeeDrawer";
 import { format } from "date-fns";
@@ -193,6 +194,17 @@ export default function EmployeeUsersTab({ currentUser }) {
     setActing(inv.id);
     try {
       await base44.users.inviteUser(inv.email, "admin");
+      if (currentUser?.id) {
+        await logUserActivity({
+          user_id: currentUser.id,
+          event_type: "admin_invite_resent",
+          event_label: "Admin Invite Resent",
+          target_type: "admin_invite",
+          target_id: inv.employee_id,
+          source_page: window.location.pathname,
+          details_json: { email: inv.email, employee_id: inv.employee_id },
+        }).catch(() => null);
+      }
       toast.success(`Invite resent to ${inv.email}`);
     } catch (e) {
       console.error("Resend failed:", e);
@@ -204,6 +216,17 @@ export default function EmployeeUsersTab({ currentUser }) {
   const handleCancel = async (inv) => {
     setActing(inv.id);
     await base44.entities.AdminInviteProfile.update(inv.id, { status: "canceled" });
+    if (currentUser?.id) {
+      await logUserActivity({
+        user_id: currentUser.id,
+        event_type: "admin_invite_canceled",
+        event_label: "Admin Invite Canceled",
+        target_type: "admin_invite",
+        target_id: inv.employee_id,
+        source_page: window.location.pathname,
+        details_json: { email: inv.email, employee_id: inv.employee_id },
+      }).catch(() => null);
+    }
     toast.success(`Invite for ${inv.email} canceled.`);
     setInvites((prev) => prev.filter((i) => i.id !== inv.id));
     setActing(null);
@@ -213,6 +236,19 @@ export default function EmployeeUsersTab({ currentUser }) {
     setActing(adm.id);
     const newVal = !adm.is_active;
     await base44.entities.AdminProfile.update(adm.id, { is_active: newVal });
+    if (currentUser?.id) {
+      await logUserActivity({
+        user_id: currentUser.id,
+        event_type: newVal ? "admin_reactivated" : "admin_deactivated",
+        event_label: newVal ? "Admin Reactivated" : "Admin Deactivated",
+        target_type: "admin_profile",
+        target_id: adm.employee_id,
+        source_page: window.location.pathname,
+        before_value: String(adm.is_active),
+        after_value: String(newVal),
+        details_json: { email: adm.email, employee_id: adm.employee_id },
+      }).catch(() => null);
+    }
     toast.success(`${adm.first_name} ${adm.last_name} ${newVal ? "reactivated" : "deactivated"}.`);
     setAdmins((prev) => prev.map((a) => (a.id === adm.id ? { ...a, is_active: newVal } : a)));
     setActing(null);

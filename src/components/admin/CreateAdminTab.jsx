@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2, UserPlus, Shield } from "lucide-react";
+import { logUserActivity } from "@/lib/logUserActivity";
 
 const CAPABILITIES = [
   { key: "cases.view", label: "View Cases" },
@@ -285,6 +286,22 @@ export default function CreateAdminTab() {
       console.error("AdminAccessKey creation failed:", e);
       toast.error("Admin created but PIN setup failed. Set PIN manually later.");
     }
+
+    await logUserActivity({
+      user_id: me.id,
+      event_type: "admin_created",
+      event_label: "Admin Created",
+      target_type: "admin_invite",
+      target_id: employeeId.trim(),
+      source_page: window.location.pathname,
+      details_json: {
+        employee_id: employeeId.trim(),
+        email: inviteEmail.trim().toLowerCase(),
+        role_label: role,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+      },
+    }).catch(() => null);
 
     toast.success(
       userAlreadyExisted

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { logUserActivity } from "@/lib/logUserActivity";
 
 export default function EditEmployeeDrawer({ open, onClose, admin, currentUserProfile, onSaved }) {
   const [form, setForm] = useState({});
@@ -64,6 +65,17 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
         current_admin_employee_id: currentUserProfile?.employee_id || ""
       });
       if (response.data.ok) {
+        if (currentUserProfile?.user_id) {
+          await logUserActivity({
+            user_id: currentUserProfile.user_id,
+            event_type: "admin_pin_updated",
+            event_label: "Admin PIN Updated",
+            target_type: "admin_profile",
+            target_id: admin.employee_id,
+            source_page: window.location.pathname,
+            details_json: { employee_id: admin.employee_id, email: admin.email },
+          }).catch(() => null);
+        }
         toast.success("PIN updated successfully.");
         setPinForm({ new_pin: "", confirm_pin: "" });
       } else {
@@ -174,6 +186,22 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
       success: true,
       metadata: JSON.stringify({ before, after, edited_admin_id: admin.id }),
     });
+
+    if (currentUserProfile?.user_id) {
+      await logUserActivity({
+        user_id: currentUserProfile.user_id,
+        event_type: "admin_employee_updated",
+        event_label: "Admin Employee Updated",
+        target_type: "admin_profile",
+        target_id: update.employee_id || admin.employee_id,
+        source_page: window.location.pathname,
+        details_json: {
+          edited_admin_id: admin.id,
+          before,
+          after,
+        },
+      }).catch(() => null);
+    }
 
     toast.success(`${form.first_name} ${form.last_name} updated.`);
     setSaving(false);
