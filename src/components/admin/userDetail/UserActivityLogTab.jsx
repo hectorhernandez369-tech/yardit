@@ -1,7 +1,7 @@
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, subMonths } from "date-fns";
 import { Loader2 } from "lucide-react";
 import UserTrustSafetySummary from "./UserTrustSafetySummary";
 
@@ -29,9 +29,14 @@ function formatDetails(log) {
 }
 
 export default function UserActivityLogTab({ user }) {
+  const twelveMonthsAgo = subMonths(new Date(), 12).toISOString();
+
   const { data: logs, isLoading } = useQuery({
     queryKey: ["userActivityLogs", user.id],
-    queryFn: () => base44.entities.UserActivityLog.filter({ user_id: user.id }, "-created_date"),
+    queryFn: async () => {
+      const activityLogs = await base44.entities.UserActivityLog.filter({ user_id: user.id }, "-created_date", 1000);
+      return activityLogs.filter((log) => new Date(log.created_at || log.created_date).toISOString() >= twelveMonthsAgo);
+    },
     initialData: [],
   });
 
