@@ -70,9 +70,12 @@ export default function PromotionModal({ open, onClose, user, listing, adminUser
       if (!reason) throw new Error("Please select a reason");
 
       let finalValue = promoValue;
-      if (scope === "account" && promoType === "Discounted Listing") {
+      if (scope === "account" && ["Discounted Listing", "Discounted Event"].includes(promoType)) {
         const tiers = Object.entries(targetTiers).filter(([_, v]) => v).map(([k]) => k).join(", ");
         finalValue = `${discountType === "percentage" ? promoValue + "%" : "$" + promoValue} off [${tiers}] limit: ${durationValue} ${durationType}`;
+      }
+      if (scope === "account" && ["Free Listings", "Free Event"].includes(promoType)) {
+        finalValue = `free [${durationValue} ${durationType}]`;
       }
 
       await base44.entities.PromotionLog.create({
@@ -151,7 +154,7 @@ export default function PromotionModal({ open, onClose, user, listing, adminUser
             </Select>
           </div>
 
-          {scope === "account" && promoType === "Discounted Listing" && (
+          {scope === "account" && ["Discounted Listing", "Discounted Event"].includes(promoType) && (
             <div className="bg-white p-3 rounded border border-slate-200 space-y-4">
               <div className="flex gap-4">
                 <div className="flex-1">
@@ -208,6 +211,33 @@ export default function PromotionModal({ open, onClose, user, listing, adminUser
                     type={durationType === "date" ? "date" : "number"}
                     value={durationValue} 
                     onChange={e => setDurationValue(e.target.value)} 
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {scope === "account" && ["Free Listings", "Free Event"].includes(promoType) && (
+            <div className="bg-white p-3 rounded border border-slate-200 space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-1 block">Limit Type</label>
+                  <Select value={durationType} onValueChange={setDurationType}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="count">Count Limit</SelectItem>
+                      <SelectItem value="date">Expiration Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-1 block">
+                    {durationType === "count" ? "Count (e.g. 3)" : "Date (e.g. 2026-12-31)"}
+                  </label>
+                  <Input
+                    type={durationType === "date" ? "date" : "number"}
+                    value={durationValue}
+                    onChange={e => setDurationValue(e.target.value)}
                   />
                 </div>
               </div>
