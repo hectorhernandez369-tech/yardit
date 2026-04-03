@@ -163,7 +163,11 @@ export default function CreateAdminTab() {
     // ✉️ INVITE STEP — handle existing users gracefully
     let userAlreadyExisted = false;
     try {
-      await base44.users.inviteUser(inviteEmail.trim(), ROLE_TO_INVITE_ROLE[role]);
+      const inviteResp = await base44.functions.invoke("adminInviteUser", {
+        email: inviteEmail.trim(),
+        role: ROLE_TO_INVITE_ROLE[role],
+      });
+      if (inviteResp.data?.error) throw new Error(inviteResp.data.error);
     } catch (e) {
       const msg = (e?.message || e?.toString() || "").toLowerCase();
       const isExistingUser = msg.includes("already") || msg.includes("exist") || msg.includes("duplicate");
