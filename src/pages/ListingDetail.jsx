@@ -41,6 +41,7 @@ export default function ListingDetailPage() {
   const [showReport, setShowReport] = useState(false);
   const [reportContext, setReportContext] = useState(null);
   const [showPromoModal, setShowPromoModal] = useState(false);
+  const [shareFallbackOpen, setShareFallbackOpen] = useState(false);
   
   const { guardAction, showModal, setShowModal, isGuest } = useGuestGuard();
 
@@ -293,8 +294,6 @@ export default function ListingDetailPage() {
     await navigator.clipboard.writeText(listingUrl);
     toast.success("Link copied");
   };
-
-  const [shareFallbackOpen, setShareFallbackOpen] = useState(false);
 
   const handleShare = async () => {
     if (!navigator.share) {
