@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import EventIconManager from "@/components/events/EventIconManager";
 import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
 import ImageCropEditor from "@/components/admin/ImageCropEditor";
+import EditListingPhotos from "@/components/listing/EditListingPhotos";
 import { getDefaultEventIconForCategory, EVENT_BASIC_ICON_LIBRARY, getEventIconEmoji } from "@/lib/eventListingConfig";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
@@ -50,6 +51,7 @@ export default function MyListingsPage() {
   const [editStartDate, setEditStartDate] = useState("");
   const [editEventIcon, setEditEventIcon] = useState("");
   const [editEventLogoUrl, setEditEventLogoUrl] = useState("");
+  const [editPhotoUrls, setEditPhotoUrls] = useState([]);
   const [editMarqueeSlots, setEditMarqueeSlots] = useState([]);
   const [editEventStartDate, setEditEventStartDate] = useState("");
   const [editEventEndDate, setEditEventEndDate] = useState("");
@@ -219,6 +221,7 @@ export default function MyListingsPage() {
    setEditCategories(listing?.categories?.length > 0 ? listing.categories : (listing?.category ? [listing.category] : []));
    setEditEventIcon(listing?.event_icon || getDefaultEventIconForCategory(listing?.event_category || listing?.category));
    setEditEventLogoUrl(listing?.event_logo_url || "");
+   setEditPhotoUrls(listing?.listingType === "event" ? (listing?.event_photos || listing?.photoUrls || []) : (listing?.photoUrls || []));
    setEditMarqueeSlots(Array.isArray(listing?.marquee_schedule_slots) ? listing.marquee_schedule_slots : []);
    const flyerUrl = listing?.marquee_flyer_url || "";
    setEditMarqueeFlyerUrl(flyerUrl);
@@ -257,6 +260,7 @@ export default function MyListingsPage() {
     setEditStartDate("");
     setEditEventIcon("");
     setEditEventLogoUrl("");
+    setEditPhotoUrls([]);
     setEditMarqueeSlots([]);
     setEditEventStartDate("");
     setEditEventEndDate("");
@@ -300,9 +304,13 @@ export default function MyListingsPage() {
     if (editingListing.listingType === "yard_sale") {
       updateData.categories = editCategories;
       updateData.category = editCategories[0] || "";
+      updateData.photoUrls = editPhotoUrls;
     }
 
     if (editingListing.listingType === "event") {
+      updateData.photoUrls = editPhotoUrls;
+      updateData.event_photos = editPhotoUrls;
+
       updateData.event_icon = editEventIcon || getDefaultEventIconForCategory(editingListing.event_category || editingListing.category);
       updateData.event_logo_url = editEventLogoUrl || "";
       if ((editingListing.event_tier || editingListing.tier) === "marquee") {
@@ -1096,6 +1104,24 @@ export default function MyListingsPage() {
                   </div>
                 )}
               </div>
+            )}
+
+            {editingListing?.listingType === "yard_sale" && (
+              <EditListingPhotos
+                label="Listing Photos"
+                value={editPhotoUrls}
+                onChange={setEditPhotoUrls}
+                maxPhotos={3}
+              />
+            )}
+
+            {editingListing?.listingType === "event" && ["featured", "premium", "marquee"].includes(editingListing?.event_tier || editingListing?.tier) && (
+              <EditListingPhotos
+                label="Event Photos"
+                value={editPhotoUrls}
+                onChange={setEditPhotoUrls}
+                maxPhotos={3}
+              />
             )}
 
             <div>
