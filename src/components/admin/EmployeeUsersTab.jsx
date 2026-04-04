@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, XCircle, Send, ToggleLeft, ToggleRight, Users, Activity, Pencil } from "lucide-react";
+import { Loader2, RefreshCw, XCircle, Send, ToggleLeft, ToggleRight, Users, Activity, Pencil, Trash2 } from "lucide-react";
 import { logUserActivity } from "@/lib/logUserActivity";
 import EmployeeActivityDrawer from "./EmployeeActivityDrawer";
 import EditEmployeeDrawer from "./EditEmployeeDrawer";
@@ -76,7 +76,7 @@ function PendingInvitesTable({ invites, onResend, onCancel, acting }) {
   );
 }
 
-function ActiveAdminsTable({ admins, onToggleActive, acting, onViewActivity, onEditUser, isMaster }) {
+function ActiveAdminsTable({ admins, onToggleActive, onDeleteAdmin, acting, onViewActivity, onEditUser, isMaster }) {
   if (admins.length === 0) {
     return <p className="text-sm text-gray-500 py-4 text-center">No admin profiles found.</p>;
   }
@@ -143,15 +143,27 @@ function ActiveAdminsTable({ admins, onToggleActive, acting, onViewActivity, onE
                   Activity
                 </Button>
                 {isMaster && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
-                    onClick={() => onEditUser(adm)}
-                  >
-                    <Pencil className="w-3 h-3" />
-                    Edit
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                      onClick={() => onEditUser(adm)}
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                      disabled={acting === `delete-${adm.id}`}
+                      onClick={() => onDeleteAdmin(adm)}
+                    >
+                      {acting === `delete-${adm.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      Delete
+                    </Button>
+                  </>
                 )}
               </td>
             </tr>
@@ -270,6 +282,52 @@ export default function EmployeeUsersTab({ currentUser }) {
     setActing(null);
   };
 
+  const handleDeleteAdmin = async (adm) => {
+    const confirmed = window.confirm(`Delete ${adm.first_name} ${adm.last_name}? This will fully remove their admin access records.`);
+    if (!confirmed) return;
+
+    setActing(`delete-${adm.id}`);
+
+    const normalizedEmail = adm.email?.toLowerCase?.() || "";
+    const userId = adm.user_id && typeof adm.user_id === "object" ? adm.user_id.id : adm.user_id;
+
+    const [matchingInvites, matchingAccessKeys] = await Promise.all([
+      normalizedEmail ? base44.entities.AdminInviteProfile.filter({ email: normalizedEmail }) : Promise.resolve([]),
+      adm.employee_id ? base44.entities.AdminAccessKey.filter({ employee_id: adm.employee_id }) : Promise.resolve([]),
+    ]);
+
+    await Promise.all([
+      ...matchingInvites.map((invite) => base44.entities.AdminInviteProfile.delete(invite.id)),
+      ...matchingAccessKeys.map((key) => base44.entities.AdminAccessKey.delete(key.id)),
+      base44.entities.AdminProfile.delete(adm.id),
+    ]);
+
+    if (currentUser?.id) {
+      await base44.entities.AdminAction.create({
+        admin_id: currentUser.id,
+        action_type: "admin_deleted",
+        old_value: JSON.stringify({ email: adm.email, employee_id: adm.employee_id, user_id: userId || "" }),
+        new_value: "",
+        comment: `${adm.first_name} ${adm.last_name} (${adm.employee_id}) deleted`,
+        page: window.location.pathname,
+      }).catch(() => null);
+
+      await logUserActivity({
+        user_id: currentUser.id,
+        event_type: "admin_deleted",
+        event_label: "Admin Deleted",
+        target_type: "admin_profile",
+        target_id: adm.employee_id,
+        source_page: window.location.pathname,
+        details_json: { email: adm.email, employee_id: adm.employee_id, deleted_user_id: userId || "" },
+      }).catch(() => null);
+    }
+
+    toast.success(`${adm.first_name} ${adm.last_name} was deleted.`);
+    setAdmins((prev) => prev.filter((a) => a.id !== adm.id));
+    setActing(null);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -303,7 +361,7 @@ export default function EmployeeUsersTab({ currentUser }) {
           <CardTitle className="text-base">Active Admins ({admins.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <ActiveAdminsTable admins={admins} onToggleActive={handleToggleActive} acting={acting} onViewActivity={setActivityAdmin} onEditUser={setEditAdmin} isMaster={isMaster} />
+          <ActiveAdminsTable admins={admins} onToggleActive={handleToggleActive} onDeleteAdmin={handleDeleteAdmin} acting={acting} onViewActivity={setActivityAdmin} onEditUser={setEditAdmin} isMaster={isMaster} />
         </CardContent>
       </Card>
 

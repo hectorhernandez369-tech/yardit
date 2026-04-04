@@ -189,12 +189,13 @@ export default function CreateAdminTab() {
         base44.entities.AdminProfile.list(),
       ]);
 
+      const activeInvites = invites.filter((r) => r.status !== "canceled");
       const exists =
-        invites.some((r) => r.employee_id?.toLowerCase() === employeeId.trim().toLowerCase()) ||
+        activeInvites.some((r) => r.employee_id?.toLowerCase() === employeeId.trim().toLowerCase()) ||
         profiles.some((r) => r.employee_id?.toLowerCase() === employeeId.trim().toLowerCase());
 
       if (exists) {
-        toast.error("Employee ID already exists. Delete old record before reuse.");
+        toast.error("Employee ID already exists.");
         setSaving(false);
         return;
       }
