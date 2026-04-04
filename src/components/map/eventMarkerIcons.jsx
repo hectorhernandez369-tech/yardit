@@ -27,7 +27,7 @@ export function getCollapsedMarqueeScale(zoom) {
 export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = false, marqueeHtml = "", zoom = 13) {
   const tier = listing?.event_tier || listing?.tier || "basic";
   const emoji = getEventIconEmoji(listing?.event_icon);
-  const image = listing?.event_logo_url || listing?.event_photos?.[0] || listing?.photoUrls?.[0];
+  const image = listing?.event_logo_url;
 
   if (tier === "marquee") {
     if (marqueeOpen && marqueeHtml) {
@@ -100,11 +100,21 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
   }
 
   if (tier === "featured") {
+    if (image) {
+      const size = isSelected ? 34 : 30;
+      const html = `<img src="${image}" alt="Event" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:4px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45));" />`;
+      return makeDivIcon(`event_featured_img_${image}_${isSelected}`, html, size, size, size / 2, size / 2);
+    }
     const fontSize = isSelected ? 32 : 28;
-    // Wrapper sized to font so anchor centers on the coordinate
     const size = fontSize;
     const html = `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45));">${emoji}</div>`;
     return makeDivIcon(`event_featured_${emoji}_${isSelected}`, html, size, size, size / 2, size / 2);
+  }
+
+  if (image) {
+    const size = isSelected ? 34 : 30;
+    const html = `<img src="${image}" alt="Event" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:4px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45));" />`;
+    return makeDivIcon(`event_basic_img_${image}_${isSelected}`, html, size, size, size / 2, size / 2);
   }
 
   const size = isSelected ? 32 : 28;
