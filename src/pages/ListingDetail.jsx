@@ -7,7 +7,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Calendar, AlertTriangle, Map, Copy, Loader2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MapPin, Calendar, AlertTriangle, Map, Copy, Loader2, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ReportModal from "../components/ReportModal";
@@ -279,6 +285,30 @@ export default function ListingDetailPage() {
 
   const marqueeSchedule = normalizeMarqueeSlots(listing?.marquee_schedule_slots || []);
   const flyerImages = (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(listing?.event_photos || listing?.photoUrls || []);
+  const listingUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing.id}`;
+  const shareTitle = listing.event_name || listing.title;
+  const shareText = [shareTitle, listing.event_description || listing.description, listingUrl].filter(Boolean).join("\n\n");
+
+  const handleCopyLink = async () => {
+    await navigator.clipboard.writeText(listingUrl);
+    toast.success("Link copied");
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      await navigator.share({
+        title: shareTitle,
+        text: listing.event_description || listing.description || undefined,
+        url: listingUrl,
+      });
+      return;
+    }
+  };
+
+  const handleCopyForApp = async (appName) => {
+    await navigator.clipboard.writeText(shareText);
+    toast.success(`${appName} text copied`);
+  };
 
   const handleCopyInvite = () => {
     navigator.clipboard.writeText(inviteText).then(() => {
@@ -702,6 +732,32 @@ export default function ListingDetailPage() {
                 <Map className="w-4 h-4" />
                 Show on Map
               </Button>
+              {navigator.share ? (
+                <Button
+                  onClick={handleShare}
+                  variant="outline"
+                  className="flex-1 gap-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share Listing
+                </Button>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="flex-1 gap-2">
+                      <Share2 className="w-4 h-4" />
+                      Share Listing
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center" className="w-56">
+                    <DropdownMenuItem onClick={handleCopyLink}>Copy Link</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(listingUrl)}`, "_blank")}>Share to Facebook</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { handleCopyForApp("Instagram"); toast.success("Copied for Instagram — paste it into your story or bio"); }}>Share to Instagram</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.open(`https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(listingUrl)}`, "_blank")}>Share to Snapchat</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { handleCopyForApp("TikTok"); toast.success("Copied for TikTok — paste it into your caption or bio"); }}>Share to TikTok</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <Button
                 onClick={() => safeBack(navigate, createPageUrl("Home"), returnTarget !== "default" ? createPageUrl(returnTarget) : null)}
                 variant="outline"
