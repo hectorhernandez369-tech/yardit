@@ -40,3 +40,12 @@ export function setTesterBypass() {
 export function clearTesterBypass() {
   localStorage.removeItem(TESTER_BYPASS_KEY);
 }
+
+export function shouldBypassComingSoonForCurrentUrl() {
+  if (typeof window === "undefined") return false;
+
+  const url = new URL(window.location.href);
+  const inviteParams = ["invite", "invite_id", "invitation", "invitation_id", "token", "signup", "sign_up", "auth"];
+
+  return inviteParams.some((key) => url.searchParams.has(key));
+}
