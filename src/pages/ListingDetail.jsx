@@ -345,23 +345,6 @@ export default function ListingDetailPage() {
         <div className="p-4 md:p-8">
         <Card>
           <CardContent className="space-y-6 pt-6">
-            {flyerImages.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="font-semibold">Flyer / Images</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {flyerImages.map((url, idx) => (
-                    <div key={idx} className="rounded-lg border border-slate-200 bg-black overflow-hidden">
-                      <img
-                        src={url}
-                        alt={`Flyer ${idx + 1}`}
-                        className="w-full h-auto object-contain"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <div>
               <h3 className="font-semibold mb-2">Description</h3>
               <p className="text-slate-700 whitespace-pre-wrap">{listing.event_description || listing.description}</p>
@@ -399,6 +382,23 @@ export default function ListingDetailPage() {
                 <p>End: {format(new Date(listing.endDateTime), "PPp")}</p>
               </div>
             </div>
+
+            {flyerImages.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold">Flyer / Images</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {flyerImages.map((url, idx) => (
+                    <div key={idx} className="rounded-lg border border-slate-200 bg-black overflow-hidden">
+                      <img
+                        src={url}
+                        alt={`Flyer ${idx + 1}`}
+                        className="w-full h-auto object-contain"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {marqueeSchedule.length > 0 && (
               <div>
