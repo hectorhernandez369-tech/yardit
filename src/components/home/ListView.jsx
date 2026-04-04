@@ -93,6 +93,50 @@ export default function ListView({ listings, userLocation }) {
     neighborhood_tier: "bg-emerald-600"
   };
 
+  const getPaidListingTone = (listing) => {
+    const tier = listing.event_tier || listing.tier;
+    const isEvent = listing.listingType === "event";
+    const isPaid = ["featured", "premium", "marquee"].includes(tier) || isEvent;
+
+    if (!isPaid) {
+      return {
+        isPaid: false,
+        label: null,
+        socialProof: null,
+        activity: null,
+        cta: "View Listing"
+      };
+    }
+
+    if (isEvent) {
+      return {
+        isPaid: true,
+        label: "🎉 Local Event",
+        socialProof: "📣 Shared by others nearby",
+        activity: "📅 This weekend",
+        cta: "See What's Here"
+      };
+    }
+
+    if (tier === "premium" || tier === "marquee") {
+      return {
+        isPaid: true,
+        label: "⭐ Promoted Listing",
+        socialProof: "🔥 Getting attention in your area",
+        activity: "🟢 Active now",
+        cta: "See What's Here"
+      };
+    }
+
+    return {
+      isPaid: true,
+      label: "📍 Featured in your area",
+      socialProof: "👀 Seen by local shoppers",
+      activity: "⏳ Happening soon",
+      cta: "View Details"
+    };
+  };
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <div className="mb-6">
@@ -115,13 +159,15 @@ export default function ListView({ listings, userLocation }) {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredListings.map((listing) => (
-            <Card key={listing.id} className={`hover:shadow-lg transition-shadow ${listing._expired ? "opacity-60" : ""}`}>
+          {filteredListings.map((listing) => {
+            const paidTone = getPaidListingTone(listing);
+
+            return (
+            <Card key={listing.id} className={`${paidTone.isPaid ? "shadow-md shadow-slate-300/60 hover:shadow-xl hover:shadow-slate-300/70 hover:scale-[1.02]" : "hover:shadow-lg"} transition-all duration-200 ${listing._expired ? "opacity-60" : ""}`}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold mb-2">{listing.event_name || listing.title}</h3>
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap mb-2">
                       <Badge className={tierColors[listing.event_tier || listing.tier] || "bg-slate-500"}>
                         {listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier === "neighborhood_tier" ? "Neighborhood" : listing.tier.toUpperCase()}
                       </Badge>
@@ -130,6 +176,10 @@ export default function ListView({ listings, userLocation }) {
                         <Badge className="bg-red-500 text-white">Expired</Badge>
                       )}
                     </div>
+                    <h3 className="text-xl font-semibold mb-1 text-slate-900">{listing.event_name || listing.title}</h3>
+                    {paidTone.label && <p className="text-xs font-medium text-slate-700 mb-1">{paidTone.label}</p>}
+                    {paidTone.socialProof && <p className="text-xs text-slate-500 mb-1">{paidTone.socialProof}</p>}
+                    {paidTone.activity && <p className="text-xs text-slate-500">{paidTone.activity}</p>}
                   </div>
                   {listing.distance && (
                     <div className="text-right text-sm text-slate-600">
@@ -157,7 +207,7 @@ export default function ListView({ listings, userLocation }) {
                     onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
                     className="flex-1 bg-amber-600 hover:bg-amber-700"
                   >
-                    View Details
+                    {paidTone.cta}
                   </Button>
                   
                   {listing.listingType !== "event" && HUNT_ENABLED && (
@@ -180,7 +230,7 @@ export default function ListView({ listings, userLocation }) {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )})}
         </div>
       )}
       
