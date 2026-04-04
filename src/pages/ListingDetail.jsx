@@ -42,6 +42,7 @@ export default function ListingDetailPage() {
   const [reportContext, setReportContext] = useState(null);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [shareFallbackOpen, setShareFallbackOpen] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
   const { guardAction, showModal, setShowModal, isGuest } = useGuestGuard();
 
@@ -286,6 +287,7 @@ export default function ListingDetailPage() {
 
   const marqueeSchedule = normalizeMarqueeSlots(listing?.marquee_schedule_slots || []);
   const flyerImages = (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(listing?.event_photos || listing?.photoUrls || []);
+  const mainImage = flyerImages[selectedImageIndex] || flyerImages[0];
   const listingUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing.id}`;
   const shareTitle = listing.event_name || listing.title;
   const shareText = [shareTitle, listing.event_description || listing.description, listingUrl].filter(Boolean).join("\n\n");
@@ -390,21 +392,26 @@ export default function ListingDetailPage() {
               <div className="space-y-4">
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-md">
                   <img
-                    src={flyerImages[0]}
+                    src={mainImage}
                     alt={shareTitle}
                     className="w-full max-h-[460px] object-cover"
                   />
                 </div>
                 {flyerImages.length > 1 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {flyerImages.slice(1, 5).map((url, idx) => (
-                      <div key={idx} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {flyerImages.map((url, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedImageIndex(idx)}
+                        className={`overflow-hidden rounded-xl border bg-slate-100 shadow-sm transition-all ${selectedImageIndex === idx ? "border-slate-900 ring-2 ring-slate-300" : "border-slate-200 hover:border-slate-300"}`}
+                      >
                         <img
                           src={url}
-                          alt={`Listing image ${idx + 2}`}
+                          alt={`Listing image ${idx + 1}`}
                           className="h-24 sm:h-28 w-full object-cover"
                         />
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
