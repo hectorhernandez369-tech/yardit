@@ -294,14 +294,26 @@ export default function ListingDetailPage() {
     toast.success("Link copied");
   };
 
+  const [shareFallbackOpen, setShareFallbackOpen] = useState(false);
+
   const handleShare = async () => {
-    if (navigator.share) {
+    if (!navigator.share) {
+      setShareFallbackOpen(true);
+      return;
+    }
+
+    try {
       await navigator.share({
         title: shareTitle,
         text: listing.event_description || listing.description || undefined,
         url: listingUrl,
       });
-      return;
+    } catch (error) {
+      if (error?.name === "NotAllowedError" || error?.name === "AbortError") {
+        setShareFallbackOpen(true);
+        return;
+      }
+      throw error;
     }
   };
 
@@ -732,32 +744,25 @@ export default function ListingDetailPage() {
                 <Map className="w-4 h-4" />
                 Show on Map
               </Button>
-              {navigator.share ? (
-                <Button
-                  onClick={handleShare}
-                  variant="outline"
-                  className="flex-1 gap-2"
-                >
-                  <Share2 className="w-4 h-4" />
-                  Share Listing
-                </Button>
-              ) : (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="flex-1 gap-2">
-                      <Share2 className="w-4 h-4" />
-                      Share Listing
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center" className="w-56">
-                    <DropdownMenuItem onClick={handleCopyLink}>Copy Link</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(listingUrl)}`, "_blank")}>Share to Facebook</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { handleCopyForApp("Instagram"); toast.success("Copied for Instagram — paste it into your story or bio"); }}>Share to Instagram</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => window.open(`https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(listingUrl)}`, "_blank")}>Share to Snapchat</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { handleCopyForApp("TikTok"); toast.success("Copied for TikTok — paste it into your caption or bio"); }}>Share to TikTok</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+              <DropdownMenu open={shareFallbackOpen} onOpenChange={setShareFallbackOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    onClick={handleShare}
+                    variant="outline"
+                    className="flex-1 gap-2"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Share Listing
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" className="w-56">
+                  <DropdownMenuItem onClick={handleCopyLink}>Copy Link</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(listingUrl)}`, "_blank")}>Share to Facebook</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { handleCopyForApp("Instagram"); toast.success("Copied for Instagram — paste it into your story or bio"); }}>Share to Instagram</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.open(`https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(listingUrl)}`, "_blank")}>Share to Snapchat</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { handleCopyForApp("TikTok"); toast.success("Copied for TikTok — paste it into your caption or bio"); }}>Share to TikTok</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 onClick={() => safeBack(navigate, createPageUrl("Home"), returnTarget !== "default" ? createPageUrl(returnTarget) : null)}
                 variant="outline"
