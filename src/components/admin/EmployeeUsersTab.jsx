@@ -291,12 +291,24 @@ export default function EmployeeUsersTab({ currentUser }) {
     const normalizedEmail = adm.email?.toLowerCase?.() || "";
     const userId = adm.user_id && typeof adm.user_id === "object" ? adm.user_id.id : adm.user_id;
 
-    const [matchingInvites, matchingAccessKeys] = await Promise.all([
+    const [matchingInvites, matchingAccessKeys, allAdmins] = await Promise.all([
       normalizedEmail ? base44.entities.AdminInviteProfile.filter({ email: normalizedEmail }) : Promise.resolve([]),
       adm.employee_id ? base44.entities.AdminAccessKey.filter({ employee_id: adm.employee_id }) : Promise.resolve([]),
+      base44.entities.AdminProfile.list(),
     ]);
 
+    const dependentAdmins = allAdmins.filter((profile) => {
+      const supervisorUserId = profile.supervisor_user_id && typeof profile.supervisor_user_id === "object" ? profile.supervisor_user_id.id : profile.supervisor_user_id;
+      return profile.id !== adm.id && (supervisorUserId === userId || profile.supervisor_employee_id === adm.employee_id);
+    });
+
     await Promise.all([
+      ...dependentAdmins.map((profile) =>
+        base44.entities.AdminProfile.update(profile.id, {
+          supervisor_user_id: "",
+          supervisor_employee_id: "",
+        })
+      ),
       ...matchingInvites.map((invite) => base44.entities.AdminInviteProfile.delete(invite.id)),
       ...matchingAccessKeys.map((key) => base44.entities.AdminAccessKey.delete(key.id)),
       base44.entities.AdminProfile.delete(adm.id),
@@ -319,12 +331,25 @@ export default function EmployeeUsersTab({ currentUser }) {
         target_type: "admin_profile",
         target_id: adm.employee_id,
         source_page: window.location.pathname,
-        details_json: { email: adm.email, employee_id: adm.employee_id, deleted_user_id: userId || "" },
+        details_json: {
+          email: adm.email,
+          employee_id: adm.employee_id,
+          deleted_user_id: userId || "",
+          cleared_supervisor_assignments: dependentAdmins.map((profile) => profile.employee_id),
+        },
       }).catch(() => null);
     }
 
     toast.success(`${adm.first_name} ${adm.last_name} was deleted.`);
-    setAdmins((prev) => prev.filter((a) => a.id !== adm.id));
+    setAdmins((prev) => prev
+      .filter((a) => a.id !== adm.id)
+      .map((a) => {
+        const supervisorUserId = a.supervisor_user_id && typeof a.supervisor_user_id === "object" ? a.supervisor_user_id.id : a.supervisor_user_id;
+        if (supervisorUserId === userId || a.supervisor_employee_id === adm.employee_id) {
+          return { ...a, supervisor_user_id: "", supervisor_employee_id: "" };
+        }
+        return a;
+      }));
     setActing(null);
   };
 
