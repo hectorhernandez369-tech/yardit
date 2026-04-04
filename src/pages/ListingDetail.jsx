@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Calendar, AlertTriangle, Map, Copy, Loader2, Share2 } from "lucide-react";
+import { MapPin, Calendar, AlertTriangle, Map, Copy, Share2, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ReportModal from "../components/ReportModal";
@@ -331,49 +331,49 @@ export default function ListingDetailPage() {
     <div className="min-h-[calc(100vh-140px)] bg-slate-50">
       <div className="max-w-4xl mx-auto">
         {/* Sticky title + address header */}
-        <div className="sticky top-[73px] z-40 bg-white border-b border-slate-200 shadow-sm px-3 sm:px-4 md:px-6 py-3">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-            <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 break-words">{listing.event_name || listing.title}</h1>
-              <div className="flex items-center gap-1.5 text-slate-600 text-sm mt-0.5">
+        <div className="sticky top-[73px] z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur px-3 sm:px-4 md:px-6 py-3 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge className={`${tierColors[listing.event_tier || listing.tier] || "bg-slate-500"} rounded-full px-3 py-1 text-[11px] font-semibold shadow-sm border border-white/30`}>
+                  {listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier === "neighborhood_tier" ? "Neighborhood Sale" : listing.tier.toUpperCase()}
+                </Badge>
+                <span className="text-xs text-slate-500">Listing #{getListingNumber(listing)}</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 break-words leading-tight">{listing.event_name || listing.title}</h1>
+              <div className="flex items-center gap-1.5 text-slate-600 text-sm">
                 <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="break-words">
                   {listing.address_text || listing.addressText || "Address unavailable"}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}{listing.zip ? ` ${listing.zip}` : ""}
                 </span>
               </div>
-              <div className="mt-1 space-y-1 text-xs text-slate-500">
-                <p>Listing #: {getListingNumber(listing)}</p>
-                <p>
-                  Owner:{" "}
-                  <button
-                    type="button"
-                    onClick={() => navigate(createPageUrl("AdminLite") + `?tab=lite&liteTab=users&openUserId=${listing.ownerUserId}`)}
-                    className="font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2"
-                  >
-                    {getOwnerDisplayName(ownerUser, listing)}
-                  </button>
-                </p>
-              </div>
+              <p className="text-xs text-slate-500">
+                Owner:{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate(createPageUrl("AdminLite") + `?tab=lite&liteTab=users&openUserId=${listing.ownerUserId}`)}
+                  className="font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                >
+                  {getOwnerDisplayName(ownerUser, listing)}
+                </button>
+              </p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+            <div className="flex items-center gap-2 flex-shrink-0 flex-wrap self-start">
               {user?.isAdmin && (
                 <Button 
                   size="sm" 
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                  className="rounded-full bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-sm"
                   onClick={() => setShowPromoModal(true)}
                 >
                   PROMOTIONAL
                 </Button>
               )}
-              <Badge className={tierColors[listing.event_tier || listing.tier] || "bg-slate-500"}>
-                {listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier === "neighborhood_tier" ? "Neighborhood Sale" : listing.tier.toUpperCase()}
-              </Badge>
               {(user || isGuest) && user?.id !== listing.ownerUserId && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => guardAction(() => setShowReport(true))}
-                  className="gap-2"
+                  className="gap-2 rounded-full"
                 >
                   <AlertTriangle className="w-4 h-4" />
                   Report
@@ -384,62 +384,132 @@ export default function ListingDetailPage() {
         </div>
 
         <div className="p-4 md:p-8">
-        <Card>
-          <CardContent className="space-y-6 pt-6">
-            <div>
-              <h3 className="font-semibold mb-2">Description</h3>
-              <p className="text-slate-700 whitespace-pre-wrap">{listing.event_description || listing.description}</p>
-            </div>
-
-            {((listing.categories?.length > 0 || listing.category) || listing.event_category) && (
-              <div>
-                <h3 className="font-semibold mb-2">Categories</h3>
-                <div className="flex flex-wrap gap-2">
-                  {(listing.categories?.length > 0 ? listing.categories : [listing.event_category || listing.category]).filter(Boolean).map((cat, idx) => (
-                    <Badge key={idx} variant="outline" className="border-[#2C4F4E] text-[#2C4F4E] bg-[#E7D7B8] px-3 py-1">
-                      {cat}
-                    </Badge>
-                  ))}
-                  {listing.collectible_type && (
-                    <Badge variant="outline" className="border-[#2C4F4E] text-[#2C4F4E] bg-[#E7D7B8] px-3 py-1">
-                      {listing.collectible_type}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-start gap-2 text-slate-600">
-              <MapPin className="w-5 h-5 mt-0.5" />
-              <span>
-                {listing.address_text || listing.addressText || "Address unavailable"}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}{listing.zip ? ` ${listing.zip}` : ""}
-              </span>
-            </div>
-
-            <div className="flex items-start gap-2 text-slate-600">
-              <Calendar className="w-5 h-5 mt-0.5" />
-              <div>
-                <p>Start: {format(new Date(listing.startDateTime), "PPp")}</p>
-                <p>End: {format(new Date(listing.endDateTime), "PPp")}</p>
-              </div>
-            </div>
-
+        <Card className="overflow-hidden rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-200/50">
+          <CardContent className="space-y-8 p-4 sm:p-6 md:p-8">
             {flyerImages.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="font-semibold">Flyer / Images</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {flyerImages.map((url, idx) => (
-                    <div key={idx} className="rounded-lg border border-slate-200 bg-black overflow-hidden">
-                      <img
-                        src={url}
-                        alt={`Flyer ${idx + 1}`}
-                        className="w-full h-auto object-contain"
-                      />
-                    </div>
-                  ))}
+              <div className="space-y-4">
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-md">
+                  <img
+                    src={flyerImages[0]}
+                    alt={shareTitle}
+                    className="w-full max-h-[460px] object-cover"
+                  />
                 </div>
+                {flyerImages.length > 1 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {flyerImages.slice(1, 5).map((url, idx) => (
+                      <div key={idx} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm">
+                        <img
+                          src={url}
+                          alt={`Listing image ${idx + 2}`}
+                          className="h-24 sm:h-28 w-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
+
+            <div className="space-y-5">
+              <div className="space-y-3">
+                {(listing.event_description || listing.description) && (
+                  <p className="text-base sm:text-lg text-slate-700 leading-relaxed">
+                    {listing.event_description || listing.description}
+                  </p>
+                )}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <DropdownMenu open={shareFallbackOpen} onOpenChange={setShareFallbackOpen}>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        onClick={handleShare}
+                        className="flex-1 gap-2 rounded-full bg-slate-900 text-white hover:bg-slate-800 h-11 shadow-md"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        Share Listing
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center" className="w-56 rounded-xl">
+                      <DropdownMenuItem onClick={handleCopyLink}>Copy Link</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(listingUrl)}`, "_blank")}>Facebook</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { handleCopyForApp("Instagram"); toast.success("Link copied for Instagram"); }}>Instagram</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { handleCopyForApp("Snapchat"); toast.success("Link copied for Snapchat"); }}>Snapchat</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { handleCopyForApp("TikTok"); toast.success("Link copied for TikTok"); }}>TikTok</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button
+                    onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
+                    disabled={!listing.lat || !listing.lng}
+                    variant="outline"
+                    className="flex-1 gap-2 rounded-full h-11 border-slate-300 bg-white shadow-sm"
+                  >
+                    <Map className="w-4 h-4" />
+                    Show on Map
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                  <div className="flex items-start gap-3 text-slate-700">
+                    <Calendar className="w-5 h-5 mt-0.5 text-slate-500" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Date</p>
+                      <p className="text-sm font-medium text-slate-900">{format(new Date(listing.startDateTime), "PPp")}</p>
+                      <p className="text-sm text-slate-600">Ends {format(new Date(listing.endDateTime), "PPp")}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                  <div className="flex items-start gap-3 text-slate-700">
+                    <Tag className="w-5 h-5 mt-0.5 text-slate-500" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Category</p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {(listing.categories?.length > 0 ? listing.categories : [listing.event_category || listing.category]).filter(Boolean).map((cat, idx) => (
+                          <Badge key={idx} variant="outline" className="rounded-full border-slate-300 bg-white px-3 py-1 text-slate-700">
+                            {cat}
+                          </Badge>
+                        ))}
+                        {listing.collectible_type && (
+                          <Badge variant="outline" className="rounded-full border-slate-300 bg-white px-3 py-1 text-slate-700">
+                            {listing.collectible_type}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm sm:col-span-2 lg:col-span-1">
+                  <div className="flex items-start gap-3 text-slate-700">
+                    <MapPin className="w-5 h-5 mt-0.5 text-slate-500" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location</p>
+                      <p className="text-sm font-medium text-slate-900">{listing.city}{listing.state ? `, ${listing.state}` : ""}</p>
+                      <p className="text-sm text-slate-600 break-words">{listing.address_text || listing.addressText || "Address unavailable"}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-slate-900">Details</h3>
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Full Address</p>
+                  <p className="text-sm text-slate-700 break-words">{eventAddress}</p>
+                </div>
+                {(listing.event_description || listing.description) && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Description</p>
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{listing.event_description || listing.description}</p>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {marqueeSchedule.length > 0 && (
               <div>
@@ -733,39 +803,11 @@ export default function ListingDetailPage() {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
-                disabled={!listing.lat || !listing.lng}
-                className="flex-1 gap-2"
-                style={{ backgroundColor: '#0F766E' }}
-              >
-                <Map className="w-4 h-4" />
-                Show on Map
-              </Button>
-              <DropdownMenu open={shareFallbackOpen} onOpenChange={setShareFallbackOpen}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    onClick={handleShare}
-                    variant="outline"
-                    className="flex-1 gap-2"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Share Listing
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="center" className="w-56">
-                  <DropdownMenuItem onClick={handleCopyLink}>Copy Link</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(listingUrl)}`, "_blank")}>Share to Facebook</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { handleCopyForApp("Instagram"); toast.success("Copied for Instagram — paste it into your story or bio"); }}>Share to Instagram</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.open(`https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(listingUrl)}`, "_blank")}>Share to Snapchat</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { handleCopyForApp("TikTok"); toast.success("Copied for TikTok — paste it into your caption or bio"); }}>Share to TikTok</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button
                 onClick={() => safeBack(navigate, createPageUrl("Home"), returnTarget !== "default" ? createPageUrl(returnTarget) : null)}
                 variant="outline"
-                className="flex-1"
+                className="flex-1 rounded-full"
               >
                 Back
               </Button>
