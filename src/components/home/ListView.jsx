@@ -9,7 +9,7 @@ import { createPageUrl } from "@/utils";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
-import { getListingSortPriority } from "@/lib/eventListingConfig";
+import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
 
 // Calculate distance in feet
 function calculateDistance(lat1, lng1, lat2, lng2) {

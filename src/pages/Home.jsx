@@ -1122,27 +1122,22 @@ const stats = useMemo(() => {
                               <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
                                 {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : listing.listingType === "event" ? "🎉 Event" : "🏡 Yard Sale"}
                               </Badge>
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier}</Badge>
                               {isHuntStop && (
                                 <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
                               )}
                             </div>
 
-                            <h3 className="font-bold text-sm leading-none mb-1">{listing.event_name || listing.title}</h3>
-                            <p className="text-[11px] leading-tight text-gray-600 mb-1">{listing.address_text || listing.addressText}</p>
+                            <h3 className="font-bold text-sm leading-none mb-2">{listing.event_name || listing.title}</h3>
 
-                            {(listing.event_description || listing.description) && (
-                              <p className="text-[11px] leading-tight text-gray-500 mb-1.5 line-clamp-3">{listing.event_description || listing.description}</p>
-                            )}
-
-                            <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-0.5">
-                              <Calendar className="w-3 h-3 shrink-0" />
-                              {format(new Date(listing.startDateTime), "MMM d, h:mm a")} — {format(new Date(listing.endDateTime), "MMM d, h:mm a")}
-                            </div>
-
-                            <div className="flex items-center gap-1 text-[10px] text-gray-400 mb-1">
-                              <User className="w-3 h-3" />
-                              {listing.created_by?.split("@")[0] || "Anonymous"}
+                            <div className="flex flex-wrap gap-1">
+                              {(listing.listingType === "event"
+                                ? [listing.event_category || formatEventTierLabel(listing.event_tier || listing.tier)].filter(Boolean)
+                                : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean)
+                              ).slice(0, 3).map((item, index) => (
+                                <Badge key={`${item}-${index}`} variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 text-slate-600 border-slate-300 bg-slate-50">
+                                  {item}
+                                </Badge>
+                              ))}
                             </div>
                           </div>
 
@@ -1155,7 +1150,7 @@ const stats = useMemo(() => {
                               }}
                               className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700"
                             >
-                              View Details
+                              View Listing
                             </Button>
                             <Button
                               size="sm"
