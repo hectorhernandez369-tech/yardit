@@ -3,14 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, Calendar, Search } from "lucide-react";
-import { format } from "date-fns";
+import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
-import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
+import { getListingSortPriority } from "@/lib/eventListingConfig";
 
 // Calculate distance in feet
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -84,58 +83,6 @@ export default function ListView({ listings, userLocation }) {
     (listing.event_name || listing.title || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const tierColors = {
-    free: "bg-slate-500",
-    basic: "bg-slate-700",
-    featured: "bg-purple-600",
-    premium: "bg-amber-600",
-    marquee: "bg-rose-600",
-    neighborhood_tier: "bg-emerald-600"
-  };
-
-  const getPaidListingTone = (listing) => {
-    const tier = listing.event_tier || listing.tier;
-    const isEvent = listing.listingType === "event";
-    const isPaid = ["featured", "premium", "marquee"].includes(tier) || isEvent;
-
-    if (!isPaid) {
-      return {
-        isPaid: false,
-        label: null,
-        socialProof: null,
-        activity: null,
-        cta: "View Listing"
-      };
-    }
-
-    if (isEvent) {
-      return {
-        isPaid: true,
-        label: "🎉 Local Event",
-        socialProof: "📣 Shared by others nearby",
-        activity: "📅 This weekend",
-        cta: "See What's Here"
-      };
-    }
-
-    if (tier === "premium" || tier === "marquee") {
-      return {
-        isPaid: true,
-        label: "⭐ Promoted Listing",
-        socialProof: "🔥 Getting attention in your area",
-        activity: "🟢 Active now",
-        cta: "See What's Here"
-      };
-    }
-
-    return {
-      isPaid: true,
-      label: "📍 Featured in your area",
-      socialProof: "👀 Seen by local shoppers",
-      activity: "⏳ Happening soon",
-      cta: "View Details"
-    };
-  };
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
@@ -160,57 +107,54 @@ export default function ListView({ listings, userLocation }) {
       ) : (
         <div className="space-y-4">
           {filteredListings.map((listing) => {
-            const paidTone = getPaidListingTone(listing);
+            const isEvent = listing.listingType === "event";
+            const categories = isEvent
+              ? [listing.event_category].filter(Boolean)
+              : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean);
 
             return (
-            <Card key={listing.id} className={`${paidTone.isPaid ? "shadow-md shadow-slate-300/60 hover:shadow-xl hover:shadow-slate-300/70 hover:scale-[1.02]" : "hover:shadow-lg"} transition-all duration-200 ${listing._expired ? "opacity-60" : ""}`}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <Badge className={tierColors[listing.event_tier || listing.tier] || "bg-slate-500"}>
-                        {listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier === "neighborhood_tier" ? "Neighborhood" : listing.tier.toUpperCase()}
-                      </Badge>
-                      {listing.listingType === "event" && <Badge className="bg-slate-900 text-white">Event</Badge>}
-                      {listing._expired && (
-                        <Badge className="bg-red-500 text-white">Expired</Badge>
-                      )}
+            <Card key={listing.id} className={`transition-all duration-200 hover:shadow-lg ${listing._expired ? "opacity-60" : ""}`}>
+              <CardContent className="p-4">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        {isEvent ? (
+                          <Badge variant="outline" className="text-[11px] text-slate-600 border-slate-300 bg-slate-50">
+                            Event
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[11px] text-slate-600 border-slate-300 bg-slate-50">
+                            {listing.tier === "neighborhood_tier" ? "Neighborhood" : listing.tier?.toUpperCase()}
+                          </Badge>
+                        )}
+                        {listing._expired && (
+                          <Badge className="bg-red-500 text-white">Expired</Badge>
+                        )}
+                      </div>
+                      <h3 className="text-lg font-semibold text-slate-900 leading-tight">{listing.event_name || listing.title}</h3>
                     </div>
-                    <h3 className="text-xl font-semibold mb-1 text-slate-900">{listing.event_name || listing.title}</h3>
-                    {paidTone.label && <p className="text-xs font-medium text-slate-700 mb-1">{paidTone.label}</p>}
-                    {paidTone.socialProof && <p className="text-xs text-slate-500 mb-1">{paidTone.socialProof}</p>}
-                    {paidTone.activity && <p className="text-xs text-slate-500">{paidTone.activity}</p>}
                   </div>
-                  {listing.distance && (
-                    <div className="text-right text-sm text-slate-600">
-                      <p>{listing.distance.toFixed(1)} mi</p>
-                      <p className="text-xs">away</p>
+
+                  {categories.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((item, index) => (
+                        <Badge key={`${item}-${index}`} variant="outline" className="text-xs border-slate-200 text-slate-700 bg-white">
+                          {item}
+                        </Badge>
+                      ))}
                     </div>
                   )}
-                </div>
 
-                <p className="text-slate-700 mb-4">{listing.event_description || listing.description}</p>
-
-                <div className="flex flex-col gap-2 text-sm text-slate-600 mb-4">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    <span>{listing.address_text || listing.addressText}, {listing.city}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>{format(new Date(listing.startDateTime), "PPp")}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-                    className="flex-1 bg-amber-600 hover:bg-amber-700"
-                  >
-                    {paidTone.cta}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+                      className="flex-1 bg-amber-600 hover:bg-amber-700"
+                    >
+                      View Listing
+                    </Button>
                   
-                  {listing.listingType !== "event" && HUNT_ENABLED && (
+                  {!isEvent && HUNT_ENABLED && (
                     <Button
                       variant="outline"
                       className="flex-1 border-amber-600 text-amber-700 hover:bg-amber-50"
@@ -227,6 +171,7 @@ export default function ListView({ listings, userLocation }) {
                       {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add Stop to Hunt"}
                     </Button>
                   )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
