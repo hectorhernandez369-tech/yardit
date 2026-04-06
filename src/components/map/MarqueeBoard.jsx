@@ -36,7 +36,12 @@ const formatEventDate = (listing) => {
 };
 
 // Bulb: sits on the border (transform centers it on the edge)
-const B = "width:5px;height:5px;border-radius:50%;background:radial-gradient(circle at 38% 38%, #FFF4A3, #FFD54A 50%, #FFB300);box-shadow:0 0 6px rgba(255,213,74,0.85);position:absolute;z-index:10;";
+const B = "width:5px;height:5px;border-radius:50%;background:radial-gradient(circle at 38% 38%, #FFF4A3, #FFD54A 50%, #FFB300);box-shadow:0 0 6px rgba(255,213,74,0.85);position:absolute;z-index:10;animation:marqueeBlink 1s steps(1,end) infinite;";
+const B_ALT = `${B}animation-delay:0.5s;`;
+
+function getMarqueeLightStyles() {
+  return `<style>@keyframes marqueeBlink{0%,49%{opacity:1;filter:brightness(1.15)}50%,100%{opacity:0.28;filter:brightness(0.7)}}</style>`;
+}
 
 // Generate bulbs inside the card (card must have overflow:visible, position:relative)
 // Bulbs are centered ON the border edge via negative offsets
@@ -44,22 +49,31 @@ function bulbFrame(w, h) {
   const sp = 16;
   const off = -2.5; // centers a 5px bulb on a 1px border
   const parts = [];
+  let index = 0;
 
   // Top edge
   for (let x = 8; x <= w - 8; x += sp) {
-    parts.push(`<div style="${B}top:${off}px;left:${x - 2.5}px;"></div>`);
+    const bulbStyle = index % 2 === 0 ? B : B_ALT;
+    parts.push(`<div style="${bulbStyle}top:${off}px;left:${x - 2.5}px;"></div>`);
+    index += 1;
   }
   // Bottom edge
   for (let x = 8; x <= w - 8; x += sp) {
-    parts.push(`<div style="${B}bottom:${off}px;left:${x - 2.5}px;"></div>`);
+    const bulbStyle = index % 2 === 0 ? B : B_ALT;
+    parts.push(`<div style="${bulbStyle}bottom:${off}px;left:${x - 2.5}px;"></div>`);
+    index += 1;
   }
   // Left edge (skip corners already covered)
   for (let y = 14; y <= h - 14; y += sp) {
-    parts.push(`<div style="${B}left:${off}px;top:${y - 2.5}px;"></div>`);
+    const bulbStyle = index % 2 === 0 ? B : B_ALT;
+    parts.push(`<div style="${bulbStyle}left:${off}px;top:${y - 2.5}px;"></div>`);
+    index += 1;
   }
   // Right edge
   for (let y = 14; y <= h - 14; y += sp) {
-    parts.push(`<div style="${B}right:${off}px;top:${y - 2.5}px;"></div>`);
+    const bulbStyle = index % 2 === 0 ? B : B_ALT;
+    parts.push(`<div style="${bulbStyle}right:${off}px;top:${y - 2.5}px;"></div>`);
+    index += 1;
   }
 
   return parts.join("");
@@ -69,6 +83,7 @@ function bulbFrame(w, h) {
 function wrapBoard(w, tailH, cardHtml) {
   return `
     <div style="position:relative;width:${w}px;height:0;pointer-events:none;">
+      ${getMarqueeLightStyles()}
       <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:0;width:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:${tailH}px solid #3f1d0b;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.18));"></div>
       ${cardHtml}
     </div>

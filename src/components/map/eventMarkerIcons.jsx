@@ -61,15 +61,22 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
     const bulbSize = 5;
     const bulbOff = -2.5; // centers 5px bulb on the 1px border
     const bulbSp = 10;    // spacing; fits ~4 bulbs across 46px at 8px inset
-    const B = `width:${bulbSize}px;height:${bulbSize}px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#FFF4A3,#FFD54A 50%,#FFB300);box-shadow:0 0 6px rgba(255,213,74,0.85);position:absolute;z-index:3;`;
+    const blinkStyle = `<style>@keyframes marqueeBlink{0%,49%{opacity:1;filter:brightness(1.15)}50%,100%{opacity:0.28;filter:brightness(0.7)}}</style>`;
+    const B = `width:${bulbSize}px;height:${bulbSize}px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#FFF4A3,#FFD54A 50%,#FFB300);box-shadow:0 0 6px rgba(255,213,74,0.85);position:absolute;z-index:3;animation:marqueeBlink 1s steps(1,end) infinite;`;
+    const B_ALT = `${B}animation-delay:0.5s;`;
 
     const topBulbs = [];
     const botBulbs = [];
+    let bulbIndex = 0;
     // 8px inset from each side — same as MarqueeBoard bulbFrame top/bottom edges
     for (let x = 8; x <= W - 8; x += bulbSp) {
       const lx = (x - bulbSize / 2).toFixed(1);
-      topBulbs.push(`<div style="${B}top:${bulbOff}px;left:${lx}px;"></div>`);
-      botBulbs.push(`<div style="${B}bottom:${bulbOff}px;left:${lx}px;"></div>`);
+      const topStyle = bulbIndex % 2 === 0 ? B : B_ALT;
+      topBulbs.push(`<div style="${topStyle}top:${bulbOff}px;left:${lx}px;"></div>`);
+      bulbIndex += 1;
+      const bottomStyle = bulbIndex % 2 === 0 ? B : B_ALT;
+      botBulbs.push(`<div style="${bottomStyle}bottom:${bulbOff}px;left:${lx}px;"></div>`);
+      bulbIndex += 1;
     }
 
     // Background: use marquee_background_url with dark overlay (same as collapsed/expanded board)
@@ -79,6 +86,7 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       : `background:linear-gradient(to bottom,#7c2d12,#3f1d0b);`;
 
     const html = `<div style="position:relative;width:${W}px;height:${H}px;overflow:visible;">
+  ${blinkStyle}
   <div style="position:absolute;inset:0;border-radius:6px;border:1px solid #f4a849;${bgStyle}box-shadow:0 5px 14px rgba(0,0,0,0.3);overflow:hidden;"></div>
   ${topBulbs.join("")}
   ${botBulbs.join("")}
