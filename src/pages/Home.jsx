@@ -1122,6 +1122,7 @@ const stats = useMemo(() => {
                               <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
                                 {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : listing.listingType === "event" ? "🎉 Event" : "🏡 Yard Sale"}
                               </Badge>
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier}</Badge>
                               {isHuntStop && (
                                 <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
                               )}
