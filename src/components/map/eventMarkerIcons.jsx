@@ -67,29 +67,33 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
 
     const bulbs = [];
     let bulbIndex = 0;
-    const density = 10;
-    const getEdgeCount = (length) => {
+    const horizontalDensity = 10;
+    const sideTopInset = 8;
+    const sideBottomInset = 8;
+    const sideCount = 1;
+    const getHorizontalCount = (length) => {
       const usable = Math.max(length - bulbInset * 2, 0);
-      return Math.max(2, Math.round(usable / density) + 1);
+      return Math.max(2, Math.round(usable / horizontalDensity) + 1);
     };
 
-    const distributeAlongEdge = (length, count, includeCorners) => {
-      const usable = Math.max(length - bulbInset * 2, 0);
-
-      if (includeCorners) {
-        if (count <= 1) return [bulbInset + usable / 2];
-        const gap = usable / (count - 1);
-        return Array.from({ length: count }, (_, i) => bulbInset + gap * i);
-      }
-
-      const gap = usable / (count + 1);
-      return Array.from({ length: count }, (_, i) => bulbInset + gap * (i + 1));
+    const distributeWithCorners = (length, count, inset) => {
+      const usable = Math.max(length - inset * 2, 0);
+      if (count <= 1) return [inset + usable / 2];
+      const gap = usable / (count - 1);
+      return Array.from({ length: count }, (_, i) => bulbInset + gap * i);
     };
 
-    const horizontalCount = getEdgeCount(W);
-    const verticalCount = Math.max(1, getEdgeCount(H) - 2);
-    const horizontalPositions = distributeAlongEdge(W, horizontalCount, true);
-    const verticalPositions = distributeAlongEdge(H, verticalCount, false);
+    const distributeSides = (length, count, topInset, bottomInset) => {
+      const usable = Math.max(length - topInset - bottomInset, 0);
+      if (count <= 0) return [];
+      if (count === 1) return [topInset + usable / 2];
+      const gap = usable / (count - 1);
+      return Array.from({ length: count }, (_, i) => topInset + gap * i);
+    };
+
+    const horizontalCount = getHorizontalCount(W);
+    const horizontalPositions = distributeWithCorners(W, horizontalCount, bulbInset);
+    const sidePositions = distributeSides(H, sideCount, sideTopInset, sideBottomInset);
 
     horizontalPositions.forEach((x) => {
       const bulbStyleTop = bulbIndex % 2 === 0 ? B : B_ALT;
@@ -100,7 +104,7 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       bulbIndex += 1;
     });
 
-    verticalPositions.forEach((y) => {
+    sidePositions.forEach((y) => {
       const bulbStyleLeft = bulbIndex % 2 === 0 ? B_ALT : B;
       bulbs.push(`<div style="${bulbStyleLeft}left:${bulbOff}px;top:${(y - bulbRadius).toFixed(1)}px;"></div>`);
       bulbIndex += 1;

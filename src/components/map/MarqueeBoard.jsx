@@ -45,36 +45,40 @@ function getMarqueeLightStyles() {
 
 // Generate bulbs inside the card (card must have overflow:visible, position:relative)
 // Bulbs are centered ON the border edge via negative offsets
-function bulbFrame(w, h) {
+function bulbFrame(w, h, options = {}) {
   const parts = [];
   const off = -2.5;
   const bulbRadius = 2.5;
-  const inset = 8;
-  const density = 15;
+  const horizontalInset = options.horizontalInset ?? 8;
+  const sideTopInset = options.sideTopInset ?? 10;
+  const sideBottomInset = options.sideBottomInset ?? 10;
+  const horizontalDensity = options.horizontalDensity ?? 15;
   let index = 0;
 
-  const getEdgeCount = (length) => {
-    const usable = Math.max(length - inset * 2, 0);
-    return Math.max(2, Math.round(usable / density) + 1);
+  const getHorizontalCount = (length) => {
+    const usable = Math.max(length - horizontalInset * 2, 0);
+    return Math.max(2, Math.round(usable / horizontalDensity) + 1);
   };
 
-  const distributeAlongEdge = (length, count, includeCorners) => {
+  const distributeWithCorners = (length, count, inset) => {
     const usable = Math.max(length - inset * 2, 0);
-
-    if (includeCorners) {
-      if (count <= 1) return [inset + usable / 2];
-      const gap = usable / (count - 1);
-      return Array.from({ length: count }, (_, i) => inset + gap * i);
-    }
-
-    const gap = usable / (count + 1);
-    return Array.from({ length: count }, (_, i) => inset + gap * (i + 1));
+    if (count <= 1) return [inset + usable / 2];
+    const gap = usable / (count - 1);
+    return Array.from({ length: count }, (_, i) => inset + gap * i);
   };
 
-  const horizontalCount = getEdgeCount(w);
-  const verticalCount = Math.max(1, getEdgeCount(h) - 2);
-  const horizontalPositions = distributeAlongEdge(w, horizontalCount, true);
-  const verticalPositions = distributeAlongEdge(h, verticalCount, false);
+  const distributeSides = (length, count, topInset, bottomInset) => {
+    const usable = Math.max(length - topInset - bottomInset, 0);
+    if (count <= 0) return [];
+    if (count === 1) return [topInset + usable / 2];
+    const gap = usable / (count - 1);
+    return Array.from({ length: count }, (_, i) => topInset + gap * i);
+  };
+
+  const horizontalCount = getHorizontalCount(w);
+  const sideCount = options.sideCount ?? 2;
+  const horizontalPositions = distributeWithCorners(w, horizontalCount, horizontalInset);
+  const sidePositions = distributeSides(h, sideCount, sideTopInset, sideBottomInset);
 
   horizontalPositions.forEach((x) => {
     const bulbStyleTop = index % 2 === 0 ? B : B_ALT;
@@ -85,7 +89,7 @@ function bulbFrame(w, h) {
     index += 1;
   });
 
-  verticalPositions.forEach((y) => {
+  sidePositions.forEach((y) => {
     const bulbStyleLeft = index % 2 === 0 ? B_ALT : B;
     parts.push(`<div style="${bulbStyleLeft}left:${off}px;top:${(y - bulbRadius).toFixed(1)}px;"></div>`);
     index += 1;
@@ -124,7 +128,7 @@ export function getMarqueeBoardCollapsedHtml(listing) {
 
   const card = `
     <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;height:${h}px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:7px 9px;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,0.3);box-sizing:border-box;pointer-events:auto;overflow:visible;">
-      ${bulbFrame(w, h)}
+      ${bulbFrame(w, h, { sideCount: 2, sideTopInset: 13, sideBottomInset: 13, horizontalDensity: 15 })}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:5px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:9.5px;font-weight:900;text-transform:uppercase;line-height:1.15;letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${escapeHtml(title)}</div>
@@ -173,7 +177,7 @@ export function getMarqueeBoardExpandedHtml(listing) {
 
   const card = `
     <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:7px 10px 9px;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,0.32);box-sizing:border-box;pointer-events:auto;overflow:visible;">
-      ${bulbFrame(w, h)}
+      ${bulbFrame(w, h, { sideCount: 4, sideTopInset: 14, sideBottomInset: 14, horizontalDensity: 15 })}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:${slotRows ? "5px" : "0"};">
         <div style="flex:1;min-width:0;">
           <div style="font-size:10.5px;font-weight:900;text-transform:uppercase;line-height:1.2;letter-spacing:0.04em;word-break:break-word;">${escapeHtml(title)}</div>
