@@ -61,42 +61,46 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
     const bulbOff = -2.5;
     const bulbInset = 8;
     const bulbRadius = bulbSize / 2;
-    const blinkStyle = `<style>@keyframes marqueePulse{0%,100%{opacity:.42;transform:scale(.96);box-shadow:0 0 4px rgba(255,224,130,0.26),0 0 8px rgba(255,196,77,0.14),0 0 12px rgba(245,158,11,0.06)}50%{opacity:.94;transform:scale(1.06);box-shadow:0 0 6px rgba(255,224,130,0.38),0 0 10px rgba(255,196,77,0.18),0 0 16px rgba(245,158,11,0.08)}}</style>`;
-    const B = `width:${bulbSize}px;height:${bulbSize}px;border-radius:50%;background:radial-gradient(circle at 38% 38%, rgba(255,251,224,0.98) 0%, rgba(255,226,130,0.96) 40%, rgba(255,201,74,0.92) 70%, rgba(245,158,11,0.86) 100%);box-shadow:0 0 4px rgba(255,224,130,0.34),0 0 8px rgba(255,196,77,0.18),0 0 12px rgba(245,158,11,0.08);position:absolute;z-index:3;will-change:opacity,transform,box-shadow;animation:marqueePulse 3.4s ease-in-out infinite;`;
-    const B_ALT = `${B}animation-delay:1.7s;`;
+    const blinkStyle = `<style>@keyframes marqueePulse{0%,100%{opacity:.48;transform:scale(.97);box-shadow:0 0 4px rgba(255,224,130,0.26),0 0 8px rgba(255,196,77,0.14),0 0 12px rgba(245,158,11,0.06)}50%{opacity:.98;transform:scale(1.08);box-shadow:0 0 6px rgba(255,224,130,0.4),0 0 10px rgba(255,196,77,0.2),0 0 16px rgba(245,158,11,0.08)}}</style>`;
+    const B = `width:${bulbSize}px;height:${bulbSize}px;border-radius:50%;background:radial-gradient(circle at 38% 38%, rgba(255,251,224,0.98) 0%, rgba(255,226,130,0.96) 40%, rgba(255,201,74,0.92) 70%, rgba(245,158,11,0.86) 100%);box-shadow:0 0 4px rgba(255,224,130,0.34),0 0 8px rgba(255,196,77,0.18),0 0 12px rgba(245,158,11,0.08);position:absolute;z-index:3;will-change:opacity,transform,box-shadow;animation:marqueePulse 2.6s ease-in-out infinite;`;
+    const B_ALT = `${B}animation-delay:1.3s;`;
 
     const bulbs = [];
     let bulbIndex = 0;
-    const placeHorizontalBulbs = (length, side) => {
+    const targetGap = 10;
+    const distribute = (length, includeCorners = true) => {
       const usable = Math.max(length - bulbInset * 2, 0);
-      const count = Math.max(2, Math.floor(usable / 15) + 1);
-      const gap = count > 1 ? usable / (count - 1) : 0;
+      const count = Math.max(includeCorners ? 2 : 1, Math.round(usable / targetGap) + (includeCorners ? 1 : 0));
 
-      for (let i = 0; i < count; i += 1) {
-        const pos = bulbInset + gap * i;
-        const bulbStyle = bulbIndex % 2 === 0 ? B : B_ALT;
-        bulbs.push(`<div style="${bulbStyle}${side}:${bulbOff}px;left:${(pos - bulbRadius).toFixed(1)}px;"></div>`);
-        bulbIndex += 1;
+      if (includeCorners) {
+        const gap = count > 1 ? usable / (count - 1) : 0;
+        return Array.from({ length: count }, (_, i) => bulbInset + gap * i);
       }
-    };
 
-    const placeVerticalBulbs = (length, side) => {
-      const usable = Math.max(length - bulbInset * 2, 0);
-      const count = Math.max(1, Math.floor(usable / 15));
       const gap = usable / (count + 1);
-
-      for (let i = 1; i <= count; i += 1) {
-        const pos = bulbInset + gap * i;
-        const bulbStyle = bulbIndex % 2 === 0 ? B_ALT : B;
-        bulbs.push(`<div style="${bulbStyle}${side}:${bulbOff}px;top:${(pos - bulbRadius).toFixed(1)}px;"></div>`);
-        bulbIndex += 1;
-      }
+      return Array.from({ length: count }, (_, i) => bulbInset + gap * (i + 1));
     };
 
-    placeHorizontalBulbs(W, "top");
-    placeHorizontalBulbs(W, "bottom");
-    placeVerticalBulbs(H, "left");
-    placeVerticalBulbs(H, "right");
+    const horizontalPositions = distribute(W, true);
+    const verticalPositions = distribute(H, false);
+
+    horizontalPositions.forEach((x) => {
+      const bulbStyleTop = bulbIndex % 2 === 0 ? B : B_ALT;
+      bulbs.push(`<div style="${bulbStyleTop}top:${bulbOff}px;left:${(x - bulbRadius).toFixed(1)}px;"></div>`);
+      bulbIndex += 1;
+      const bulbStyleBottom = bulbIndex % 2 === 0 ? B : B_ALT;
+      bulbs.push(`<div style="${bulbStyleBottom}bottom:${bulbOff}px;left:${(x - bulbRadius).toFixed(1)}px;"></div>`);
+      bulbIndex += 1;
+    });
+
+    verticalPositions.forEach((y) => {
+      const bulbStyleLeft = bulbIndex % 2 === 0 ? B_ALT : B;
+      bulbs.push(`<div style="${bulbStyleLeft}left:${bulbOff}px;top:${(y - bulbRadius).toFixed(1)}px;"></div>`);
+      bulbIndex += 1;
+      const bulbStyleRight = bulbIndex % 2 === 0 ? B_ALT : B;
+      bulbs.push(`<div style="${bulbStyleRight}right:${bulbOff}px;top:${(y - bulbRadius).toFixed(1)}px;"></div>`);
+      bulbIndex += 1;
+    });
 
     // Background: use marquee_background_url with dark overlay (same as collapsed/expanded board)
     const bgUrl = listing?.marquee_background_url;
