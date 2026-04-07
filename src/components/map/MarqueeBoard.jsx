@@ -35,46 +35,40 @@ const formatEventDate = (listing) => {
   }
 };
 
-// Bulb: sits on the border (transform centers it on the edge)
-const B = "width:5px;height:5px;border-radius:50%;background:radial-gradient(circle at 38% 38%, #FFF4A3, #FFD54A 50%, #FFB300);box-shadow:0 0 6px rgba(255,213,74,0.85);position:absolute;z-index:10;animation:marqueeBlink 1s steps(1,end) infinite;";
-const B_ALT = `${B}animation-delay:0.5s;`;
+// Bulb: soft premium glow, slow alternating pulse
+const B = "width:5px;height:5px;border-radius:50%;background:radial-gradient(circle at 38% 38%, rgba(255,250,198,0.98) 0%, rgba(255,221,102,0.95) 42%, rgba(255,184,28,0.92) 72%, rgba(201,117,0,0.88) 100%);box-shadow:0 0 4px rgba(255,214,92,0.48),0 0 8px rgba(255,196,58,0.24);position:absolute;z-index:10;will-change:opacity,filter,box-shadow;animation:marqueePulse 2.8s ease-in-out infinite;";
+const B_ALT = `${B}animation-delay:1.4s;`;
 
 function getMarqueeLightStyles() {
-  return `<style>@keyframes marqueeBlink{0%,49%{opacity:1;filter:brightness(1.15)}50%,100%{opacity:0.28;filter:brightness(0.7)}}</style>`;
+  return `<style>@keyframes marqueePulse{0%,100%{opacity:0.42;filter:brightness(0.96);box-shadow:0 0 4px rgba(255,214,92,0.38),0 0 8px rgba(255,196,58,0.18)}50%{opacity:1;filter:brightness(1.08);box-shadow:0 0 6px rgba(255,221,120,0.52),0 0 12px rgba(255,196,58,0.26)}}</style>`;
 }
 
 // Generate bulbs inside the card (card must have overflow:visible, position:relative)
 // Bulbs are centered ON the border edge via negative offsets
 function bulbFrame(w, h) {
-  const sp = 16;
-  const off = -2.5; // centers a 5px bulb on a 1px border
   const parts = [];
+  const off = -2.5;
+  const bulbRadius = 2.5;
   let index = 0;
 
-  // Top edge
-  for (let x = 8; x <= w - 8; x += sp) {
-    const bulbStyle = index % 2 === 0 ? B : B_ALT;
-    parts.push(`<div style="${bulbStyle}top:${off}px;left:${x - 2.5}px;"></div>`);
-    index += 1;
-  }
-  // Bottom edge
-  for (let x = 8; x <= w - 8; x += sp) {
-    const bulbStyle = index % 2 === 0 ? B : B_ALT;
-    parts.push(`<div style="${bulbStyle}bottom:${off}px;left:${x - 2.5}px;"></div>`);
-    index += 1;
-  }
-  // Left edge (skip corners already covered)
-  for (let y = 14; y <= h - 14; y += sp) {
-    const bulbStyle = index % 2 === 0 ? B : B_ALT;
-    parts.push(`<div style="${bulbStyle}left:${off}px;top:${y - 2.5}px;"></div>`);
-    index += 1;
-  }
-  // Right edge
-  for (let y = 14; y <= h - 14; y += sp) {
-    const bulbStyle = index % 2 === 0 ? B : B_ALT;
-    parts.push(`<div style="${bulbStyle}right:${off}px;top:${y - 2.5}px;"></div>`);
-    index += 1;
-  }
+  const placeEdgeBulbs = (length, inset, side, crossProp) => {
+    const usable = Math.max(length - inset * 2, 0);
+    const count = Math.max(2, Math.floor(usable / 15) + 1);
+    const gap = count > 1 ? usable / (count - 1) : 0;
+
+    for (let i = 0; i < count; i += 1) {
+      const pos = inset + gap * i;
+      const bulbStyle = index % 2 === 0 ? B : B_ALT;
+      const mainProp = side === "top" || side === "bottom" ? "left" : "top";
+      parts.push(`<div style="${bulbStyle}${side}:${off}px;${mainProp}:${(pos - bulbRadius).toFixed(1)}px;${crossProp}"></div>`);
+      index += 1;
+    }
+  };
+
+  placeEdgeBulbs(w, 8, "top", "");
+  placeEdgeBulbs(w, 8, "bottom", "");
+  placeEdgeBulbs(h, 8, "left", "");
+  placeEdgeBulbs(h, 8, "right", "");
 
   return parts.join("");
 }

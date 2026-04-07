@@ -57,27 +57,34 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
     // ── CLOSED-STATE: Mini Marquee — mirrors collapsed/expanded design system ──
     // Colors, border, bulb style all match MarqueeBoard exactly.
     const W = 46, H = 24;
-    // Same bulb spec as MarqueeBoard's B constant
     const bulbSize = 5;
-    const bulbOff = -2.5; // centers 5px bulb on the 1px border
-    const bulbSp = 10;    // spacing; fits ~4 bulbs across 46px at 8px inset
-    const blinkStyle = `<style>@keyframes marqueeBlink{0%,49%{opacity:1;filter:brightness(1.15)}50%,100%{opacity:0.28;filter:brightness(0.7)}}</style>`;
-    const B = `width:${bulbSize}px;height:${bulbSize}px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#FFF4A3,#FFD54A 50%,#FFB300);box-shadow:0 0 6px rgba(255,213,74,0.85);position:absolute;z-index:3;animation:marqueeBlink 1s steps(1,end) infinite;`;
-    const B_ALT = `${B}animation-delay:0.5s;`;
+    const bulbOff = -2.5;
+    const bulbInset = 8;
+    const bulbRadius = bulbSize / 2;
+    const blinkStyle = `<style>@keyframes marqueePulse{0%,100%{opacity:0.42;filter:brightness(0.96);box-shadow:0 0 4px rgba(255,214,92,0.38),0 0 8px rgba(255,196,58,0.18)}50%{opacity:1;filter:brightness(1.08);box-shadow:0 0 6px rgba(255,221,120,0.52),0 0 12px rgba(255,196,58,0.26)}}</style>`;
+    const B = `width:${bulbSize}px;height:${bulbSize}px;border-radius:50%;background:radial-gradient(circle at 38% 38%, rgba(255,250,198,0.98) 0%, rgba(255,221,102,0.95) 42%, rgba(255,184,28,0.92) 72%, rgba(201,117,0,0.88) 100%);box-shadow:0 0 4px rgba(255,214,92,0.48),0 0 8px rgba(255,196,58,0.24);position:absolute;z-index:3;will-change:opacity,filter,box-shadow;animation:marqueePulse 2.8s ease-in-out infinite;`;
+    const B_ALT = `${B}animation-delay:1.4s;`;
 
-    const topBulbs = [];
-    const botBulbs = [];
+    const bulbs = [];
     let bulbIndex = 0;
-    // 8px inset from each side — same as MarqueeBoard bulbFrame top/bottom edges
-    for (let x = 8; x <= W - 8; x += bulbSp) {
-      const lx = (x - bulbSize / 2).toFixed(1);
-      const topStyle = bulbIndex % 2 === 0 ? B : B_ALT;
-      topBulbs.push(`<div style="${topStyle}top:${bulbOff}px;left:${lx}px;"></div>`);
-      bulbIndex += 1;
-      const bottomStyle = bulbIndex % 2 === 0 ? B : B_ALT;
-      botBulbs.push(`<div style="${bottomStyle}bottom:${bulbOff}px;left:${lx}px;"></div>`);
-      bulbIndex += 1;
-    }
+    const placeEdgeBulbs = (length, side) => {
+      const usable = Math.max(length - bulbInset * 2, 0);
+      const count = Math.max(2, Math.floor(usable / 15) + 1);
+      const gap = count > 1 ? usable / (count - 1) : 0;
+      const axisProp = side === "top" || side === "bottom" ? "left" : "top";
+
+      for (let i = 0; i < count; i += 1) {
+        const pos = bulbInset + gap * i;
+        const bulbStyle = bulbIndex % 2 === 0 ? B : B_ALT;
+        bulbs.push(`<div style="${bulbStyle}${side}:${bulbOff}px;${axisProp}:${(pos - bulbRadius).toFixed(1)}px;"></div>`);
+        bulbIndex += 1;
+      }
+    };
+
+    placeEdgeBulbs(W, "top");
+    placeEdgeBulbs(W, "bottom");
+    placeEdgeBulbs(H, "left");
+    placeEdgeBulbs(H, "right");
 
     // Background: use marquee_background_url with dark overlay (same as collapsed/expanded board)
     const bgUrl = listing?.marquee_background_url;
@@ -87,9 +94,8 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
 
     const html = `<div style="position:relative;width:${W}px;height:${H}px;overflow:visible;">
   ${blinkStyle}
-  <div style="position:absolute;inset:0;border-radius:6px;border:1px solid #f4a849;${bgStyle}box-shadow:0 5px 14px rgba(0,0,0,0.3);overflow:hidden;"></div>
-  ${topBulbs.join("")}
-  ${botBulbs.join("")}
+  <div style="position:absolute;inset:0;border-radius:6px;border:1px solid #f4a849;${bgStyle}box-shadow:0 5px 14px rgba(0,0,0,0.3);overflow:visible;"></div>
+  ${bulbs.join("")}
 </div>`;
 
     return makeDivIcon(`event_marquee_closed_${listing?.id}_${isSelected}`, html, W, H, W / 2, H / 2);
