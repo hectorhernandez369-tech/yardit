@@ -670,6 +670,9 @@ export default function MyListingsPage() {
                       </div>
 
                       <div className="flex gap-2 flex-wrap">
+                        <Badge variant="outline" className="bg-white text-slate-700 border-slate-300">
+                          {listing.listingType === "event" ? "Event" : listing.listingType === "yard_sale" ? "Yard Sale" : listing.listingType === "neighborhood_sale" ? "Neighborhood Sale" : "Listing"}
+                        </Badge>
                         {/* (plain english) Requester listing badges for neighborhood join status */}
                         {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && (
                           <Badge className="bg-yellow-500 text-yellow-950 hover:bg-yellow-600 border-none">Pending Neighborhood Approval</Badge>
