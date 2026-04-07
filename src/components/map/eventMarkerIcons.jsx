@@ -97,11 +97,11 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
 
   if (tier === "premium") {
     if (image) {
-      const size = isSelected ? 34 : 30;
+      const size = isSelected ? 31 : 27;
       const html = `<img src="${image}" alt="Event" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:4px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45));" />`;
       return makeDivIcon(`event_premium_img_${image}_${isSelected}`, html, size, size, size / 2, size / 2);
     }
-    const fontSize = isSelected ? 32 : 28;
+    const fontSize = isSelected ? 29 : 25;
     const size = fontSize;
     const html = `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:${fontSize}px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45));">${emoji}</div>`;
     return makeDivIcon(`event_premium_icon_${emoji}_${isSelected}`, html, size, size, size / 2, size / 2);
