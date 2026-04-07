@@ -50,15 +50,20 @@ function bulbFrame(w, h) {
   const off = -2.5;
   const bulbRadius = 2.5;
   const inset = 8;
-  const targetGap = 15;
+  const density = 15;
   let index = 0;
 
-  const distribute = (length, includeCorners = true) => {
+  const getEdgeCount = (length) => {
     const usable = Math.max(length - inset * 2, 0);
-    const count = Math.max(includeCorners ? 2 : 1, Math.round(usable / targetGap) + (includeCorners ? 1 : 0));
+    return Math.max(2, Math.round(usable / density) + 1);
+  };
+
+  const distributeAlongEdge = (length, count, includeCorners) => {
+    const usable = Math.max(length - inset * 2, 0);
 
     if (includeCorners) {
-      const gap = count > 1 ? usable / (count - 1) : 0;
+      if (count <= 1) return [inset + usable / 2];
+      const gap = usable / (count - 1);
       return Array.from({ length: count }, (_, i) => inset + gap * i);
     }
 
@@ -66,8 +71,10 @@ function bulbFrame(w, h) {
     return Array.from({ length: count }, (_, i) => inset + gap * (i + 1));
   };
 
-  const horizontalPositions = distribute(w, true);
-  const verticalPositions = distribute(h, false);
+  const horizontalCount = getEdgeCount(w);
+  const verticalCount = Math.max(1, getEdgeCount(h) - 2);
+  const horizontalPositions = distributeAlongEdge(w, horizontalCount, true);
+  const verticalPositions = distributeAlongEdge(h, verticalCount, false);
 
   horizontalPositions.forEach((x) => {
     const bulbStyleTop = index % 2 === 0 ? B : B_ALT;

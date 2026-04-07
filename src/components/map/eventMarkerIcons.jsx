@@ -67,13 +67,18 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
 
     const bulbs = [];
     let bulbIndex = 0;
-    const targetGap = 10;
-    const distribute = (length, includeCorners = true) => {
+    const density = 10;
+    const getEdgeCount = (length) => {
       const usable = Math.max(length - bulbInset * 2, 0);
-      const count = Math.max(includeCorners ? 2 : 1, Math.round(usable / targetGap) + (includeCorners ? 1 : 0));
+      return Math.max(2, Math.round(usable / density) + 1);
+    };
+
+    const distributeAlongEdge = (length, count, includeCorners) => {
+      const usable = Math.max(length - bulbInset * 2, 0);
 
       if (includeCorners) {
-        const gap = count > 1 ? usable / (count - 1) : 0;
+        if (count <= 1) return [bulbInset + usable / 2];
+        const gap = usable / (count - 1);
         return Array.from({ length: count }, (_, i) => bulbInset + gap * i);
       }
 
@@ -81,8 +86,10 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
       return Array.from({ length: count }, (_, i) => bulbInset + gap * (i + 1));
     };
 
-    const horizontalPositions = distribute(W, true);
-    const verticalPositions = distribute(H, false);
+    const horizontalCount = getEdgeCount(W);
+    const verticalCount = Math.max(1, getEdgeCount(H) - 2);
+    const horizontalPositions = distributeAlongEdge(W, horizontalCount, true);
+    const verticalPositions = distributeAlongEdge(H, verticalCount, false);
 
     horizontalPositions.forEach((x) => {
       const bulbStyleTop = bulbIndex % 2 === 0 ? B : B_ALT;
