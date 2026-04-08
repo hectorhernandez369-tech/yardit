@@ -30,6 +30,7 @@ import EventIconManager from "@/components/events/EventIconManager";
 import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
 import ImageCropEditor from "@/components/admin/ImageCropEditor";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
+import MyCoinsPanel from "@/components/jth/MyCoinsPanel";
 import { getDefaultEventIconForCategory, EVENT_BASIC_ICON_LIBRARY, getEventIconEmoji } from "@/lib/eventListingConfig";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
@@ -83,6 +84,22 @@ export default function MyListingsPage() {
     queryKey: ["myListings", user?.id],
     queryFn: () => base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date"),
     enabled: !!user,
+    initialData: [],
+  });
+
+  const { data: myCoinStats = null } = useQuery({
+    queryKey: ["myListingsJthCoinStats", user?.id],
+    queryFn: async () => {
+      const rows = await base44.entities.JTHUserCoinStats.filter({ user_id: user.id });
+      return rows[0] || null;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: myCoinHistory = [] } = useQuery({
+    queryKey: ["myListingsJthCoinHistory", user?.id],
+    queryFn: () => base44.entities.JTHCoinEvent.filter({ collected_by_user_id: user.id }, "-collected_timestamp"),
+    enabled: !!user?.id,
     initialData: [],
   });
 
@@ -601,6 +618,14 @@ export default function MyListingsPage() {
           >
             My Hunt
           </Button>
+
+          <Button
+            variant={tab === "coins" ? "default" : "outline"}
+            onClick={() => setTab("coins")}
+            className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+          >
+            My Coins
+          </Button>
         </div>
 
         {/* Tabs Content */}
@@ -627,6 +652,8 @@ export default function MyListingsPage() {
               </div>
             </CardContent>
           </Card>
+        ) : tab === "coins" ? (
+          <MyCoinsPanel stats={myCoinStats} history={myCoinHistory} />
         ) : isLoading ? (
           <Card>
             <CardContent className="p-12 text-center">

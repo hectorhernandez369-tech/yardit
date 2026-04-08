@@ -1,0 +1,50 @@
+{
+  "name": "JTHPromotion",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "scope_type": {
+      "type": "string",
+      "enum": ["city", "county", "state", "all"]
+    },
+    "scope_value": {
+      "type": "string"
+    },
+    "start_date_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "override_probability_bands": {
+      "type": "object"
+    },
+    "override_coin_value_mix": {
+      "type": "object"
+    },
+    "all_eligible_listings_get_coins": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string"
+    },
+    "draft_state": {
+      "type": "string",
+      "enum": ["draft", "published"],
+      "default": "draft"
+    },
+    "published_group_id": {
+      "type": "string"
+    }
+  },
+  "required": ["name", "scope_type"]
+}

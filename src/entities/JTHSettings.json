@@ -1,0 +1,53 @@
+{
+  "name": "JTHSettings",
+  "type": "object",
+  "properties": {
+    "draft_master_toggle": {
+      "type": "boolean",
+      "default": false,
+      "description": "Draft Join the Hunt master toggle"
+    },
+    "published_master_toggle": {
+      "type": "boolean",
+      "default": false,
+      "description": "Published Join the Hunt master toggle"
+    },
+    "draft_global_defaults": {
+      "type": "object",
+      "description": "Draft global JTH settings"
+    },
+    "published_global_defaults": {
+      "type": "object",
+      "description": "Published global JTH settings"
+    },
+    "draft_version": {
+      "type": "number",
+      "default": 1,
+      "description": "Draft version number"
+    },
+    "published_version": {
+      "type": "number",
+      "default": 0,
+      "description": "Published version number"
+    },
+    "last_published_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When JTH was last published"
+    },
+    "last_published_by": {
+      "type": "string",
+      "description": "User id or email who last published"
+    },
+    "last_draft_saved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When draft was last saved"
+    },
+    "last_draft_saved_by": {
+      "type": "string",
+      "description": "User id or email who last saved draft"
+    }
+  },
+  "required": []
+}

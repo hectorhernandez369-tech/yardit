@@ -1,0 +1,61 @@
+{
+  "name": "JTHLocationOverride",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["active", "inactive"],
+      "default": "active"
+    },
+    "location_type": {
+      "type": "string",
+      "enum": ["city", "county", "state"]
+    },
+    "location_value": {
+      "type": "string",
+      "description": "Selected city, county, or state value"
+    },
+    "priority": {
+      "type": "number",
+      "description": "Override priority for display and precedence"
+    },
+    "start_date_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "probability_bands": {
+      "type": "object",
+      "description": "Probability bands by active listing count"
+    },
+    "coin_value_mix": {
+      "type": "object",
+      "description": "Coin value distribution mix"
+    },
+    "minimum_coin_floor": {
+      "type": "number"
+    },
+    "maximum_coin_cap": {
+      "type": "number"
+    },
+    "cooldown_override_days": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "draft_state": {
+      "type": "string",
+      "enum": ["draft", "published"],
+      "default": "draft"
+    },
+    "published_group_id": {
+      "type": "string",
+      "description": "Shared id used to relate draft and published copies"
+    }
+  },
+  "required": ["location_type", "location_value"]
+}

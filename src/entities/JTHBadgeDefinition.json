@@ -1,0 +1,37 @@
+{
+  "name": "JTHBadgeDefinition",
+  "type": "object",
+  "properties": {
+    "rank_name": {
+      "type": "string"
+    },
+    "badge_asset": {
+      "type": "string"
+    },
+    "sort_order": {
+      "type": "number"
+    },
+    "lifetime_unlock_total": {
+      "type": "number"
+    },
+    "maintenance_60_day_total": {
+      "type": "number"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "draft_state": {
+      "type": "string",
+      "enum": ["draft", "published"],
+      "default": "draft"
+    },
+    "published_group_id": {
+      "type": "string"
+    }
+  },
+  "required": ["rank_name", "sort_order", "lifetime_unlock_total", "maintenance_60_day_total"]
+}

@@ -3,11 +3,13 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { User, MapPin, CreditCard, Loader2 } from "lucide-react";
 
 import UserInfoSection from "../components/profile/UserInfoSection";
 import LocationsHistory from "../components/profile/LocationsHistory";
 import PaymentHistory from "../components/profile/PaymentHistory";
+import MyCoinsPanel from "../components/jth/MyCoinsPanel";
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
@@ -42,6 +44,22 @@ export default function ProfilePage() {
       return allPayments.filter(payment => userLocationIds.includes(payment.location_id));
     },
     enabled: !!user?.email && userLocations.length > 0,
+    initialData: [],
+  });
+
+  const { data: myCoinStats = null } = useQuery({
+    queryKey: ["myJthCoinStats", user?.id],
+    queryFn: async () => {
+      const rows = await base44.entities.JTHUserCoinStats.filter({ user_id: user.id });
+      return rows[0] || null;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: myCoinHistory = [] } = useQuery({
+    queryKey: ["myJthCoinHistory", user?.id],
+    queryFn: () => base44.entities.JTHCoinEvent.filter({ collected_by_user_id: user.id }, "-collected_timestamp"),
+    enabled: !!user?.id,
     initialData: [],
   });
 
@@ -94,7 +112,7 @@ export default function ProfilePage() {
 
         {/* Tabs */}
         <Tabs defaultValue="info" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
             <TabsTrigger value="info" className="gap-2">
               <User className="w-4 h-4" />
               <span className="hidden sm:inline">Info</span>
@@ -112,6 +130,10 @@ export default function ProfilePage() {
               <span className="ml-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs">
                 {payments.length}
               </span>
+            </TabsTrigger>
+            <TabsTrigger value="coins" className="gap-2">
+              <span>🪙</span>
+              <span className="hidden sm:inline">My Coins</span>
             </TabsTrigger>
           </TabsList>
 
@@ -132,6 +154,10 @@ export default function ProfilePage() {
               locations={userLocations}
               isLoading={isLoadingPayments}
             />
+          </TabsContent>
+
+          <TabsContent value="coins">
+            <MyCoinsPanel stats={myCoinStats} history={myCoinHistory} />
           </TabsContent>
         </Tabs>
       </div>

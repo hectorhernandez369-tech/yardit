@@ -1,0 +1,44 @@
+{
+  "name": "JTHCoinEvent",
+  "type": "object",
+  "properties": {
+    "listing_id": {
+      "type": "string"
+    },
+    "seller_user_id": {
+      "type": "string"
+    },
+    "coin_value": {
+      "type": "number"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": ["random", "promotion", "override"]
+    },
+    "assigned_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "active_start": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "active_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "collected_by_user_id": {
+      "type": "string"
+    },
+    "collected_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["assigned", "active", "collected", "expired", "cancelled"],
+      "default": "assigned"
+    }
+  },
+  "required": ["listing_id", "coin_value", "source_type"]
+}

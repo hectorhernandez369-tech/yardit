@@ -1,0 +1,31 @@
+{
+  "name": "JTHUserCoinStats",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "lifetime_coins": {
+      "type": "number",
+      "default": 0
+    },
+    "rolling_60_day_coins": {
+      "type": "number",
+      "default": 0
+    },
+    "current_rank": {
+      "type": "string"
+    },
+    "highest_rank_achieved": {
+      "type": "string"
+    },
+    "last_rank_update_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["user_id"]
+}
