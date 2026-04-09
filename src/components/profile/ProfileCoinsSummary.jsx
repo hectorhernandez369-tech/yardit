@@ -64,7 +64,10 @@ export default function ProfileCoinsSummary({ stats }) {
             </div>
           </div>
 
-          <div className="pt-1 text-center">
+          <div className="space-y-2 pt-1 text-center">
+            <p className="text-sm font-semibold tracking-wide text-[#2C4F4E]">
+              Join the Hunt <span className="text-[#5DADA5]">COMING SOON</span>
+            </p>
             <button
               type="button"
               onClick={() => setShowRules(true)}
