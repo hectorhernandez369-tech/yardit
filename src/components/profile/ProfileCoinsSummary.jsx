@@ -20,7 +20,12 @@ export default function ProfileCoinsSummary({ stats }) {
   return (
     <>
       <Card className="mb-6 overflow-hidden border-2 border-[#2C4F4E] bg-gradient-to-br from-[#F8E8C9] to-white shadow-lg">
-        <CardHeader className="pb-3">
+        <CardHeader className="space-y-3 pb-3">
+          <div className="rounded-2xl border-2 border-[#2C4F4E] bg-[#F4A849] px-4 py-3 text-center shadow-sm">
+            <p className="text-lg font-black uppercase tracking-[0.18em] text-[#2C4F4E] sm:text-2xl">
+              Join the Hunt Coming Soon
+            </p>
+          </div>
           <CardTitle className="text-xl text-[#2C4F4E]">My Hunt Rank</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-0">
@@ -64,10 +69,7 @@ export default function ProfileCoinsSummary({ stats }) {
             </div>
           </div>
 
-          <div className="space-y-2 pt-1 text-center">
-            <p className="text-sm font-semibold tracking-wide text-[#2C4F4E]">
-              Join the Hunt <span className="text-[#5DADA5]">COMING SOON</span>
-            </p>
+          <div className="pt-1 text-center">
             <button
               type="button"
               onClick={() => setShowRules(true)}
