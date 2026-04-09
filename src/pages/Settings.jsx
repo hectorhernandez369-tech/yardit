@@ -66,7 +66,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Settings</h1>
+        <h1 className="text-3xl font-bold mb-6">My Profile</h1>
 
         <Card className="mb-6">
           <CardHeader>
