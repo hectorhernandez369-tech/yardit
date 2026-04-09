@@ -137,7 +137,7 @@ function LayoutContent({ children, user, setUser }) {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate(createPageUrl("Settings"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
                             <Settings className="w-4 h-4 mr-2" />
-                            Settings
+                            My Profile
                           </DropdownMenuItem>
                         </>
                       )}
