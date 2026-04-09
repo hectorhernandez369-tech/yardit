@@ -76,28 +76,83 @@ export default function ProfileCoinsSummary({ stats }) {
       </Card>
 
       <Dialog open={showRules} onOpenChange={setShowRules}>
-        <DialogContent className="border-2 border-[#2C4F4E] bg-[#F3E6CF] sm:max-w-lg">
+        <DialogContent className="border-2 border-[#2C4F4E] bg-[#F3E6CF] sm:max-w-2xl max-h-[85vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="text-[#2C4F4E]">Hunt Rules</DialogTitle>
             <DialogDescription className="text-slate-700">
-              Here’s how your Hunt rank and maintenance progress work.
+              Learn how coins, ranks, badges, and 60-day maintenance work in the Hunt.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 text-sm text-[#2C4F4E]">
-            <div className="rounded-xl bg-white/70 p-3">
-              1. Collect coins by participating in the hunt and checking in where eligible.
+
+          <div className="max-h-[65vh] space-y-4 overflow-y-auto pr-2 text-sm text-[#2C4F4E]">
+            <div className="rounded-xl bg-white/70 p-4">
+              <p className="font-semibold mb-1">1. How you collect coins</p>
+              <p>
+                Coins are earned by successfully participating in Hunt activity where coins are available. When you complete an eligible Hunt action, the coins you earn are added to your account history.
+              </p>
             </div>
-            <div className="rounded-xl bg-white/70 p-3">
-              2. Your total coins help show your overall hunt history and rank progress.
+
+            <div className="rounded-xl bg-white/70 p-4">
+              <p className="font-semibold mb-1">2. Total coins</p>
+              <p>
+                Total coins show your full Hunt history across all time. This number reflects everything you have collected overall and helps represent your long-term activity in the Hunt.
+              </p>
             </div>
-            <div className="rounded-xl bg-white/70 p-3">
-              3. Your 60-day coins track recent activity needed to maintain your current rank.
+
+            <div className="rounded-xl bg-white/70 p-4">
+              <p className="font-semibold mb-1">3. Current rank</p>
+              <p>
+                Your current rank represents your present Hunt standing. As you collect more coins and keep up your Hunt activity, your rank can improve based on the Hunt system requirements.
+              </p>
             </div>
-            <div className="rounded-xl bg-white/70 p-3">
-              4. If you reach the required 60-day coin goal, your rank maintenance is complete.
+
+            <div className="rounded-xl bg-white/70 p-4">
+              <p className="font-semibold mb-1">4. Rank badge</p>
+              <p>
+                The badge shown on your profile matches your current Hunt rank. Each rank has its own badge so you can quickly see your standing and progress level.
+              </p>
             </div>
-            <div className="rounded-xl bg-white/70 p-3">
-              5. The badge shown here matches your current active hunt rank.
+
+            <div className="rounded-xl bg-white/70 p-4">
+              <p className="font-semibold mb-1">5. 60-day maintenance coins</p>
+              <p>
+                Your 60-day coins track how many coins you have collected during the most recent 60-day window. This is used to determine whether you are maintaining your current Hunt rank.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-white/70 p-4">
+              <p className="font-semibold mb-1">6. Maintenance progress bar</p>
+              <p>
+                The progress bar shows how close you are to meeting your current 60-day maintenance goal. It compares the number of coins you have collected recently against the required amount for successful completion.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-white/70 p-4">
+              <p className="font-semibold mb-1">7. Coins collected vs. coins remaining</p>
+              <p>
+                The collected number shows how many maintenance coins you already have in the current 60-day period. The remaining number shows how many more are needed to fully complete the maintenance requirement.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-white/70 p-4">
+              <p className="font-semibold mb-1">8. Successful 60-day completion</p>
+              <p>
+                When your progress reaches the full requirement, you have successfully completed the 60-day maintenance target for that rank. Reaching the goal means your current activity level is strong enough for maintenance.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-white/70 p-4">
+              <p className="font-semibold mb-1">9. Ongoing maintenance</p>
+              <p>
+                Because the system uses a rolling 60-day window, maintenance is ongoing. Older coins can eventually fall outside the 60-day period, so continued Hunt activity may be needed to stay on track.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-white/70 p-4">
+              <p className="font-semibold mb-1">10. Best way to stay on track</p>
+              <p>
+                Check your profile regularly, watch your 60-day progress, and continue collecting coins consistently. That is the easiest way to maintain your rank and keep moving forward in the Hunt.
+              </p>
             </div>
           </div>
         </DialogContent>
