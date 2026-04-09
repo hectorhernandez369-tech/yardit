@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { DEFAULT_JTH_BADGES } from "@/components/jth/jthDefaults";
 import { getJthBadgeAssetByRank } from "@/components/jth/jthBadgeAssets";
 
@@ -121,38 +122,56 @@ export default function ProfileCoinsSummary({ stats }) {
             </div>
 
             <div className="rounded-xl bg-white/70 p-4">
-              <p className="font-semibold mb-1">6. Maintenance progress bar</p>
-              <p>
-                The progress bar shows how close you are to meeting your current 60-day maintenance goal. It compares the number of coins you have collected recently against the required amount for successful completion.
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-white/70 p-4">
-              <p className="font-semibold mb-1">7. Coins collected vs. coins remaining</p>
-              <p>
-                The collected number shows how many maintenance coins you already have in the current 60-day period. The remaining number shows how many more are needed to fully complete the maintenance requirement.
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-white/70 p-4">
-              <p className="font-semibold mb-1">8. Successful 60-day completion</p>
+              <p className="font-semibold mb-1">6. Successful 60-day completion</p>
               <p>
                 When your progress reaches the full requirement, you have successfully completed the 60-day maintenance target for that rank. Reaching the goal means your current activity level is strong enough for maintenance.
               </p>
             </div>
 
             <div className="rounded-xl bg-white/70 p-4">
-              <p className="font-semibold mb-1">9. Ongoing maintenance</p>
+              <p className="font-semibold mb-1">7. Ongoing maintenance and possible demotion</p>
+              <p className="mb-2">
+                Maintenance is ongoing because the system uses a rolling 60-day window. That means only coins earned in your most recent 60 days count toward maintenance. As time passes, older coins can drop out of that window.
+              </p>
+              <p className="mb-2">
+                If enough older coins fall out and you do not replace them with new coin collections, your 60-day total can drop below the maintenance requirement for your current rank.
+              </p>
               <p>
-                Because the system uses a rolling 60-day window, maintenance is ongoing. Older coins can eventually fall outside the 60-day period, so continued Hunt activity may be needed to stay on track.
+                When that happens, you may no longer qualify to hold that rank and could be demoted to a lower rank whose maintenance requirement you still meet. To avoid demotion, keep collecting coins consistently instead of waiting until the last minute.
               </p>
             </div>
 
             <div className="rounded-xl bg-white/70 p-4">
-              <p className="font-semibold mb-1">10. Best way to stay on track</p>
+              <p className="font-semibold mb-1">8. Best way to stay on track</p>
               <p>
                 Check your profile regularly, watch your 60-day progress, and continue collecting coins consistently. That is the easiest way to maintain your rank and keep moving forward in the Hunt.
               </p>
+            </div>
+
+            <div className="rounded-xl bg-white/70 p-4">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="rank-requirements" className="border-b-0">
+                  <AccordionTrigger className="py-0 text-left font-semibold hover:no-underline">
+                    Show all ranks, required coins, and maintenance
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <div className="space-y-2">
+                      {DEFAULT_JTH_BADGES.map((badge) => (
+                        <div key={badge.rank_name} className="rounded-xl border border-[#2C4F4E]/15 bg-white p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="font-semibold text-[#2C4F4E]">{badge.rank_name}</p>
+                            <p className="text-xs text-slate-500">Rank {badge.sort_order}</p>
+                          </div>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2 text-xs sm:text-sm text-slate-700">
+                            <p>Lifetime coins required: <span className="font-semibold text-[#2C4F4E]">{badge.lifetime_unlock_total}</span></p>
+                            <p>60-day maintenance: <span className="font-semibold text-[#2C4F4E]">{badge.maintenance_60_day_total}</span></p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
           </div>
         </DialogContent>
