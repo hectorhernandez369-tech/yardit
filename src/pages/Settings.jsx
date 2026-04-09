@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { clearAdminSession } from "../components/admin/AdminLoginModal";
 import UserInfoSection from "@/components/profile/UserInfoSection";
+import ProfileCoinsSummary from "@/components/profile/ProfileCoinsSummary";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function SettingsPage() {
@@ -20,6 +21,17 @@ export default function SettingsPage() {
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
+  });
+
+  const { data: coinStats } = useQuery({
+    queryKey: ["jthUserCoinStats", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const records = await base44.entities.JTHUserCoinStats.filter({ user_id: user.id });
+      return records?.[0] || null;
+    },
+    enabled: !!user?.id,
+    initialData: null,
   });
 
   useEffect(() => {
@@ -67,6 +79,8 @@ export default function SettingsPage() {
     <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">My Profile</h1>
+
+        <ProfileCoinsSummary stats={coinStats} />
 
         <Card className="mb-6">
           <CardHeader>
