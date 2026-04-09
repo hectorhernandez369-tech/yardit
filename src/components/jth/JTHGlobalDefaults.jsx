@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import JTHPercentField from "@/components/jth/JTHPercentField";
+import JTHCoinIconPicker from "@/components/jth/JTHCoinIconPicker";
 
 function NumberField({ label, value, onChange, help }) {
   return (
@@ -44,12 +46,21 @@ export default function JTHGlobalDefaults({ draftToggle, values, setValues, mixE
         <div>
           <h3 className="font-semibold mb-3">Default probability bands by active listing count</h3>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <NumberField label="1–5 listings" value={values.probability_bands.band_1_5} onChange={(v) => updateBand("band_1_5", v)} />
-            <NumberField label="6–25 listings" value={values.probability_bands.band_6_25} onChange={(v) => updateBand("band_6_25", v)} />
-            <NumberField label="26–150 listings" value={values.probability_bands.band_26_150} onChange={(v) => updateBand("band_26_150", v)} />
-            <NumberField label="150+ listings" value={values.probability_bands.band_150_plus} onChange={(v) => updateBand("band_150_plus", v)} />
+            <JTHPercentField label="1–5 listings" value={values.probability_bands.band_1_5} onChange={(v) => updateBand("band_1_5", v)} />
+            <JTHPercentField label="6–25 listings" value={values.probability_bands.band_6_25} onChange={(v) => updateBand("band_6_25", v)} />
+            <JTHPercentField label="26–150 listings" value={values.probability_bands.band_26_150} onChange={(v) => updateBand("band_26_150", v)} />
+            <JTHPercentField label="150+ listings" value={values.probability_bands.band_150_plus} onChange={(v) => updateBand("band_150_plus", v)} />
           </div>
         </div>
+
+        <JTHCoinIconPicker
+          title="Global default coin icon"
+          helperText="This is the default JTH coin icon used unless a location override provides its own icon."
+          iconKey={values.global_coin_icon_key}
+          imageUrl={values.global_coin_icon_url}
+          onIconChange={(key) => setValues((prev) => ({ ...prev, global_coin_icon_key: key, global_coin_icon_url: "" }))}
+          onImageChange={(url) => setValues((prev) => ({ ...prev, global_coin_icon_url: url }))}
+        />
 
         <div>
           <h3 className="font-semibold mb-3">Default coin value mix</h3>

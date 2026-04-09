@@ -8,6 +8,7 @@ import JTHLocationOverrides from "@/components/jth/JTHLocationOverrides";
 import JTHBadgeSystem from "@/components/jth/JTHBadgeSystem";
 import JTHPromotions from "@/components/jth/JTHPromotions";
 import JTHPreviewSummary from "@/components/jth/JTHPreviewSummary";
+import JTHSectionCard from "@/components/jth/JTHSectionCard";
 import { DEFAULT_JTH_BADGES, DEFAULT_JTH_GLOBALS, isMixValid } from "@/components/jth/jthDefaults";
 
 function clone(value) {
@@ -28,6 +29,8 @@ function createOverrideTemplate() {
     maximum_coin_cap: 5,
     cooldown_override_days: null,
     notes: "",
+    coin_icon_key: "",
+    coin_icon_url: "",
     draft_state: "draft",
     published_group_id: crypto.randomUUID(),
   };
@@ -64,6 +67,14 @@ export default function JTHTab({ user }) {
   const [draftOverrides, setDraftOverrides] = useState(() => overrideRows.filter((row) => row.draft_state !== "published"));
   const [draftPromotions, setDraftPromotions] = useState(() => promotionRows.filter((row) => row.draft_state !== "published"));
   const [draftBadges, setDraftBadges] = useState(() => badgeRows.filter((row) => row.draft_state !== "published"));
+  const [sections, setSections] = useState({
+    master: true,
+    globals: true,
+    overrides: true,
+    badges: false,
+    promotions: false,
+    summary: true,
+  });
 
   useEffect(() => { setDraftToggle(settings?.draft_master_toggle ?? settings?.published_master_toggle ?? false); }, [settings?.draft_master_toggle, settings?.published_master_toggle]);
   useEffect(() => { setDraftGlobals(settings?.draft_global_defaults || clone(DEFAULT_JTH_GLOBALS)); }, [settings?.draft_global_defaults]);
@@ -84,8 +95,8 @@ export default function JTHTab({ user }) {
         await base44.entities.JTHSettings.create({
           draft_master_toggle: false,
           published_master_toggle: false,
-          draft_global_defaults: clone(DEFAULT_JTH_GLOBALS),
-          published_global_defaults: clone(DEFAULT_JTH_GLOBALS),
+          draft_global_defaults: { ...clone(DEFAULT_JTH_GLOBALS), global_coin_icon_key: "coins", global_coin_icon_url: "" },
+          published_global_defaults: { ...clone(DEFAULT_JTH_GLOBALS), global_coin_icon_key: "coins", global_coin_icon_url: "" },
           draft_version: 1,
           published_version: 0,
           last_draft_saved_at: new Date().toISOString(),
@@ -215,29 +226,47 @@ export default function JTHTab({ user }) {
   });
 
   const mixError = !isMixValid(draftGlobals.coin_value_mix);
+  const toggleSection = (key) => setSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <div className="mt-6 space-y-6">
-      <JTHMasterControls
-        settings={settings}
-        hasPendingChanges={hasPendingChanges}
-        draftToggle={draftToggle}
-        setDraftToggle={setDraftToggle}
-        onSaveDraft={() => saveDraftMutation.mutate()}
-        onPublish={() => {
-          if (mixError) {
-            toast.error("Please fix the coin value mix before publishing.");
-            return;
-          }
-          publishMutation.mutate();
-        }}
-        onDiscard={() => discardMutation.mutate()}
-      />
-      <JTHGlobalDefaults draftToggle={draftToggle} values={draftGlobals} setValues={setDraftGlobals} mixError={mixError} />
-      <JTHLocationOverrides overrides={draftOverrides} setOverrides={setDraftOverrides} template={createOverrideTemplate} />
-      <JTHBadgeSystem badges={draftBadges.length ? draftBadges : DEFAULT_JTH_BADGES.map((badge) => ({ ...badge, badge_asset: "", draft_state: "draft", published_group_id: crypto.randomUUID() }))} setBadges={setDraftBadges} />
-      <JTHPromotions promotions={draftPromotions} setPromotions={setDraftPromotions} template={createPromotionTemplate} />
-      <JTHPreviewSummary settings={settings} draftGlobals={draftGlobals} overrides={draftOverrides} promotions={draftPromotions} badges={draftBadges} hasPendingChanges={hasPendingChanges} />
+      <JTHSectionCard title="Master Controls" open={sections.master} onToggle={() => toggleSection("master")}>
+        <JTHMasterControls
+          settings={settings}
+          hasPendingChanges={hasPendingChanges}
+          draftToggle={draftToggle}
+          setDraftToggle={setDraftToggle}
+          onSaveDraft={() => saveDraftMutation.mutate()}
+          onPublish={() => {
+            if (mixError) {
+              toast.error("Please fix the coin value mix before publishing.");
+              return;
+            }
+            publishMutation.mutate();
+          }}
+          onDiscard={() => discardMutation.mutate()}
+        />
+      </JTHSectionCard>
+
+      <JTHSectionCard title="Global Defaults" open={sections.globals} onToggle={() => toggleSection("globals")}>
+        <JTHGlobalDefaults draftToggle={draftToggle} values={draftGlobals} setValues={setDraftGlobals} mixError={mixError} />
+      </JTHSectionCard>
+
+      <JTHSectionCard title="Location Overrides" open={sections.overrides} onToggle={() => toggleSection("overrides")}>
+        <JTHLocationOverrides overrides={draftOverrides} setOverrides={setDraftOverrides} template={createOverrideTemplate} />
+      </JTHSectionCard>
+
+      <JTHSectionCard title="Badge / Rank System" open={sections.badges} onToggle={() => toggleSection("badges")}>
+        <JTHBadgeSystem badges={draftBadges.length ? draftBadges : DEFAULT_JTH_BADGES.map((badge) => ({ ...badge, badge_asset: "", draft_state: "draft", published_group_id: crypto.randomUUID() }))} setBadges={setDraftBadges} />
+      </JTHSectionCard>
+
+      <JTHSectionCard title="Promotions" open={sections.promotions} onToggle={() => toggleSection("promotions")}>
+        <JTHPromotions promotions={draftPromotions} setPromotions={setDraftPromotions} template={createPromotionTemplate} />
+      </JTHSectionCard>
+
+      <JTHSectionCard title="Preview / Publish Summary" open={sections.summary} onToggle={() => toggleSection("summary")}>
+        <JTHPreviewSummary settings={settings} draftGlobals={draftGlobals} overrides={draftOverrides} promotions={draftPromotions} badges={draftBadges} hasPendingChanges={hasPendingChanges} />
+      </JTHSectionCard>
     </div>
   );
 }

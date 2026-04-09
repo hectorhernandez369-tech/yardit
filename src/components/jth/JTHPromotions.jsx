@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import JTHPercentField from "@/components/jth/JTHPercentField";
 
 function PromotionCard({ item, index, onChange, onDelete }) {
   const setField = (key, value) => onChange(index, { ...item, [key]: value });
@@ -49,10 +50,10 @@ function PromotionCard({ item, index, onChange, onDelete }) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="space-y-2"><Label>1–5 listings</Label><Input type="number" value={item.override_probability_bands.band_1_5} onChange={(e) => setBand("band_1_5", e.target.value)} /></div>
-        <div className="space-y-2"><Label>6–25 listings</Label><Input type="number" value={item.override_probability_bands.band_6_25} onChange={(e) => setBand("band_6_25", e.target.value)} /></div>
-        <div className="space-y-2"><Label>26–150 listings</Label><Input type="number" value={item.override_probability_bands.band_26_150} onChange={(e) => setBand("band_26_150", e.target.value)} /></div>
-        <div className="space-y-2"><Label>150+ listings</Label><Input type="number" value={item.override_probability_bands.band_150_plus} onChange={(e) => setBand("band_150_plus", e.target.value)} /></div>
+        <JTHPercentField label="1–5 listings" value={item.override_probability_bands.band_1_5} onChange={(v) => setBand("band_1_5", v)} />
+        <JTHPercentField label="6–25 listings" value={item.override_probability_bands.band_6_25} onChange={(v) => setBand("band_6_25", v)} />
+        <JTHPercentField label="26–150 listings" value={item.override_probability_bands.band_26_150} onChange={(v) => setBand("band_26_150", v)} />
+        <JTHPercentField label="150+ listings" value={item.override_probability_bands.band_150_plus} onChange={(v) => setBand("band_150_plus", v)} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
