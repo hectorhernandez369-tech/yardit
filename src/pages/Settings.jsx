@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { clearAdminSession } from "../components/admin/AdminLoginModal";
 import UserInfoSection from "@/components/profile/UserInfoSection";
-import ProfileCoinsSummary from "@/components/profile/ProfileCoinsSummary";
+import ProfileCoinsSummary from "../components/profile/ProfileCoinsSummary";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function SettingsPage() {
