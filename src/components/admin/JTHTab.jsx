@@ -106,7 +106,7 @@ export default function JTHTab({ user }) {
       const badges = await base44.entities.JTHBadgeDefinition.list();
       if (badges.length === 0) {
         for (const badge of DEFAULT_JTH_BADGES) {
-          await base44.entities.JTHBadgeDefinition.create({ ...badge, badge_asset: "", draft_state: "draft", published_group_id: crypto.randomUUID() });
+          await base44.entities.JTHBadgeDefinition.create({ ...badge, draft_state: "draft", published_group_id: crypto.randomUUID() });
         }
       }
     },
@@ -257,7 +257,7 @@ export default function JTHTab({ user }) {
       </JTHSectionCard>
 
       <JTHSectionCard title="Badge / Rank System" open={sections.badges} onToggle={() => toggleSection("badges")}>
-        <JTHBadgeSystem badges={draftBadges.length ? draftBadges : DEFAULT_JTH_BADGES.map((badge) => ({ ...badge, badge_asset: "", draft_state: "draft", published_group_id: crypto.randomUUID() }))} setBadges={setDraftBadges} />
+        <JTHBadgeSystem badges={draftBadges.length ? draftBadges : DEFAULT_JTH_BADGES.map((badge) => ({ ...badge, draft_state: "draft", published_group_id: crypto.randomUUID() }))} setBadges={setDraftBadges} />
       </JTHSectionCard>
 
       <JTHSectionCard title="Promotions" open={sections.promotions} onToggle={() => toggleSection("promotions")}>

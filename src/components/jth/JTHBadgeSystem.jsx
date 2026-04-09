@@ -17,9 +17,18 @@ export default function JTHBadgeSystem({ badges, setBadges }) {
         {badges.map((badge, index) => (
           <div key={badge.published_group_id || badge.rank_name || index} className="rounded-xl border p-4 bg-slate-50 space-y-4">
             <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="font-semibold">{badge.rank_name}</p>
-                <p className="text-xs text-slate-500">Lifetime coins unlock this rank permanently. Rolling 60-day coins maintain it.</p>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-14 h-14 rounded-lg border bg-white overflow-hidden shrink-0 flex items-center justify-center">
+                  {badge.badge_asset ? (
+                    <img src={badge.badge_asset} alt={badge.rank_name} className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="text-[10px] text-slate-400 px-1 text-center">No badge</div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold">{badge.rank_name}</p>
+                  <p className="text-xs text-slate-500">Lifetime coins unlock this rank permanently. Rolling 60-day coins maintain it.</p>
+                </div>
               </div>
               <Switch checked={badge.active} onCheckedChange={(checked) => updateBadge(index, { active: checked })} />
             </div>
