@@ -872,6 +872,7 @@ export default function CreateListingPage() {
           zip: user.zip_code,
           lat: user.address_lat,
           lng: user.address_lng,
+          timeZoneId: formData.timeZoneId,
           locationMethod: "profile"
         };
         setFormData(nextData);
@@ -1024,7 +1025,7 @@ export default function CreateListingPage() {
 
     if (payload.tier === "free" && actionStr !== "requested") {
       if (!payload.timeZoneId) {
-        throw new Error("Listing timezone is missing. Please re-confirm the listing location.");
+        throw new Error("We couldn't determine the listing's local timezone from the confirmed location. Please go back to Step 2 and confirm the address again.");
       }
 
       const freeWindow = computeFreeWindow(new Date(), payload.timeZoneId);

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,12 @@ L.Icon.Default.mergeOptions({
 });
 
 const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
+
+async function fetchTimeZoneId(lat, lng) {
+  const response = await fetch(`https://api.bigdatacloud.net/data/timezone-by-location?latitude=${lat}&longitude=${lng}`);
+  const data = await response.json();
+  return data?.ianaTimeZone || "";
+}
 
 function getDistanceFeet(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
@@ -274,10 +280,13 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
 
+        const timeZoneId = await fetchTimeZoneId(lat, lng);
+
         setFormData((prev) => ({
           ...prev,
           lat,
           lng,
+          timeZoneId,
         }));
 
         try {
@@ -392,13 +401,18 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
           setAddressConfirmed(true);
           setAddressSelectionMessage("");
           setAddressSuggestions([]);
+          const lat = data[0].center[1];
+          const lng = data[0].center[0];
+          const timeZoneId = await fetchTimeZoneId(lat, lng);
+
           setFormData((prev) => ({
             ...prev,
-            lat: data[0].center[1],
-            lng: data[0].center[0],
+            lat,
+            lng,
+            timeZoneId,
           }));
           toast.success("Address located!");
-          return { lat: data[0].center[1], lng: data[0].center[0] };
+          return { lat, lng, timeZoneId };
         }
 
         confirmedAddressKeyRef.current = "";
@@ -715,12 +729,14 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                     if (c.id.startsWith("postcode")) zip = c.text;
                   });
                 }
+                const timeZoneId = await fetchTimeZoneId(lat, lng);
                 setFormData((prev) => ({
                   ...prev,
                   event_center_lat: lat,
                   event_center_lng: lng,
                   lat,
                   lng,
+                  timeZoneId,
                   addressText: feature ? (feature.address ? `${feature.address} ${feature.text}` : feature.text) : "Map Location",
                   city,
                   state,
@@ -728,12 +744,14 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                 }));
                 toast.success("Center location saved!");
               } catch {
+                const timeZoneId = await fetchTimeZoneId(lat, lng);
                 setFormData((prev) => ({
                   ...prev,
                   event_center_lat: lat,
                   event_center_lng: lng,
                   lat,
                   lng,
+                  timeZoneId,
                   addressText: "Map Location",
                   city: "Unknown",
                   state: "XX",
@@ -776,15 +794,18 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
             addressConfirmedRef.current = true;
             setAddressConfirmed(true);
             setAddressSelectionMessage("");
-            setFormData((prev) => ({
-              ...prev,
-              addressText: nextAddressText,
-              city,
-              state,
-              zip,
-              lat: suggestion.center[1],
-              lng: suggestion.center[0],
-            }));
+            fetchTimeZoneId(suggestion.center[1], suggestion.center[0]).then((timeZoneId) => {
+              setFormData((prev) => ({
+                ...prev,
+                addressText: nextAddressText,
+                city,
+                state,
+                zip,
+                lat: suggestion.center[1],
+                lng: suggestion.center[0],
+                timeZoneId,
+              }));
+            });
             setAddressSuggestions([]);
             toast.success("Address selected");
           }}
