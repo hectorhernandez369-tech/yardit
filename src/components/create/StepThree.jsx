@@ -23,10 +23,26 @@ function addDays(dateStr, delta) {
 export default function StepThree({ formData, setFormData }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
+
+  const freeTierDateRange = useMemo(() => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysUntilFriday = dayOfWeek <= 5 ? 5 - dayOfWeek : 6;
+    const friday = new Date(today);
+    friday.setHours(0, 0, 0, 0);
+    friday.setDate(today.getDate() + daysUntilFriday);
+
+    const sunday = new Date(friday);
+    sunday.setDate(friday.getDate() + 2);
+
+    const formatDate = (date) => `${date.getMonth() + 1}/${date.getDate()}/${String(date.getFullYear()).slice(-2)}`;
+    return `Fri ${formatDate(friday)} - Sun ${formatDate(sunday)}`;
+  }, []);
+
   const tierDetails = {
     free: [
       "List view only",
-      "Runs next weekend (Fri–Sun)",
+      `Runs ${freeTierDateRange}`,
     ],
     featured: [
       "Strong visibility on map",
@@ -341,7 +357,7 @@ export default function StepThree({ formData, setFormData }) {
               {isNeighborhoodSale ? (
                 `${formData.selectedRangeStartDate || "?"} to ${formData.selectedRangeEndDate || "?"}`
               ) : formData.tier === "free" ? (
-                "Next weekend (Fri–Sun)"
+                freeTierDateRange
               ) : formData.tier === "featured" ? (
                 `${formData.selectedRangeStartDate || "?"} to ${formData.selectedRangeEndDate || "?"} (3 days)`
               ) : (
