@@ -30,6 +30,7 @@ import {
 
 // Tier Engine (shared business logic)
 import {
+  computeFreeWindow,
   computeFeaturedDates,
   computePremiumDates,
   enforcePhotoLimit
@@ -44,9 +45,6 @@ const RESIDENTIAL_TIER_PRICES = {
   featured: 499,
   premium: 799,
 };
-
-// (plain english) fallback timezone until we auto-detect timezone from lat/lng later
-const FALLBACK_TZ = "America/Los_Angeles";
 
 function getRequestedStep(search) {
   const params = new URLSearchParams(search);
@@ -79,51 +77,6 @@ const DEV_BYPASS_USER_IDS = ["PUT_YOUR_USER_ID_HERE"];
 
 function isDevBypassUser(user) {
   return !!user?.id && DEV_BYPASS_USER_IDS.includes(user.id);
-}
-
-/**
- * (plain english) Next weekend rule for Free tier:
- * Auto schedule to next Friday 12:00am through Sunday 11:59pm (America/Los_Angeles)
- */
-function getNextWeekendLAISO() {
-  const now = new Date();
-  const laString = now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
-  const laNow = new Date(laString);
-
-  let daysToFriday = 5 - laNow.getDay();
-  if (daysToFriday <= 0) daysToFriday += 7;
-
-  const fri = new Date(laNow);
-  fri.setDate(laNow.getDate() + daysToFriday);
-  const sun = new Date(laNow);
-  sun.setDate(laNow.getDate() + daysToFriday + 2);
-
-  const pad = (n) => n.toString().padStart(2, "0");
-  const friDateStr = `${fri.getFullYear()}-${pad(fri.getMonth() + 1)}-${pad(fri.getDate())}`;
-  const sunDateStr = `${sun.getFullYear()}-${pad(sun.getMonth() + 1)}-${pad(sun.getDate())}`;
-
-  const getOffset = (dateStr) => {
-    const d7 = new Date(`${dateStr}T00:00:00-07:00`);
-    const h7 = parseInt(
-      new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Los_Angeles",
-        hour: "numeric",
-        hour12: false
-      }).format(d7),
-      10
-    );
-    return h7 === 0 || h7 === 24 ? 7 : 8;
-  };
-
-  const friOffset = getOffset(friDateStr);
-  const sunOffset = getOffset(sunDateStr);
-
-  return {
-    start: new Date(`${friDateStr}T00:00:00-0${friOffset}:00`).toISOString(),
-    end: new Date(`${sunDateStr}T23:59:59-0${sunOffset}:00`).toISOString(),
-    startDateStr: friDateStr,
-    endDateStr: sunDateStr
-  };
 }
 
 function getSaleConfirmedCount(sale) {
@@ -287,8 +240,8 @@ export default function CreateListingPage() {
     event_center_lat: null,
     event_center_lng: null,
 
-    // (plain english) listing-local timezone; we’ll derive later from lat/lng
-    timeZoneId: FALLBACK_TZ,
+    // listing-local timezone from the chosen address/location
+    timeZoneId: "",
 
     // Stored as ISO strings
     startDateTime: "",
@@ -985,7 +938,7 @@ export default function CreateListingPage() {
   };
 
   const executeSubmit = (actionStr = joinAction, sourceFormData = formData) => {
-    let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId || FALLBACK_TZ };
+    let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId };
 
     if (payload.listingType === "event") {
       payload = {
@@ -1070,13 +1023,17 @@ export default function CreateListingPage() {
     }
 
     if (payload.tier === "free" && actionStr !== "requested") {
-      const nextWeekend = getNextWeekendLAISO();
+      if (!payload.timeZoneId) {
+        throw new Error("Listing timezone is missing. Please re-confirm the listing location.");
+      }
+
+      const freeWindow = computeFreeWindow(new Date(), payload.timeZoneId);
       payload = {
         ...payload,
-        startDateTime: nextWeekend.start,
-        endDateTime: nextWeekend.end,
-        selectedRangeStartDate: nextWeekend.startDateStr,
-        selectedRangeEndDate: nextWeekend.endDateStr,
+        startDateTime: freeWindow.startDateTime.toISOString(),
+        endDateTime: freeWindow.endDateTime.toISOString(),
+        selectedRangeStartDate: freeWindow.startDateStr,
+        selectedRangeEndDate: freeWindow.endDateStr,
         earlyVisibilityDays: 0,
         earlyVisibilityDates: [],
         activeDates: []
