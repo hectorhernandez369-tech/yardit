@@ -470,17 +470,21 @@ export default function CreateListingPage() {
   const paymentStepNumber = isEventFlow ? 5 : 4;
   const entryStepNumber = isEventFlow ? 4 : 3;
 
-  const hasActiveResidentialListing = () => {
-    if (isGlobalDemoMode) return false;
-    if (isDevBypassUser(user)) return false; 
-    
+  const getActiveResidentialListing = () => {
+    if (isGlobalDemoMode) return null;
+    if (isDevBypassUser(user)) return null;
+
     const now = Date.now();
-    return (userListings || []).some((l) => {
+    return (userListings || []).find((l) => {
       if (l.status === "completed" || l.status === "suspended" || l.status === "expired") return false;
       if (l.endDateTime && new Date(l.endDateTime).getTime() < now) return false;
-      
+
       return l.status === "active" || l.status === "under_review";
-    });
+    }) || null;
+  };
+
+  const hasActiveResidentialListing = () => {
+    return !!getActiveResidentialListing();
   };
 
   const startPaidListingCheckout = async () => {
@@ -597,7 +601,9 @@ export default function CreateListingPage() {
     mutationFn: async (data) => {
       // ✅ Enforce 1 active listing per account (residential Phase 1)
       if (data.listingType === "yard_sale" && hasActiveResidentialListing()) {
-        throw new Error("You already have an active listing. End it before creating another.");
+        const activeListing = getActiveResidentialListing();
+        const listingLabel = activeListing ? ` Active listing: ${activeListing.title || "Untitled"} (#${activeListing.id}).` : "";
+        throw new Error(`You already have an active listing. End it before creating another.${listingLabel}`);
       }
 
       const demoPrefix = isGlobalDemoMode ? "Demo listing: " : "";
@@ -870,6 +876,13 @@ export default function CreateListingPage() {
       }
 
       if (!isGlobalDemoMode) {
+        if (formData.listingType === "yard_sale" && hasActiveResidentialListing()) {
+          const activeListing = getActiveResidentialListing();
+          const listingLabel = activeListing ? `${activeListing.title || "Untitled"} (#${activeListing.id})` : "your existing active listing";
+          toast.error(`You already have an active listing: ${listingLabel}`);
+          return;
+        }
+
         if (profileAddressUnconfirmed) {
           toast.error("Your address must be confirmed in Settings before you can complete account setup or create a live listing.");
           navigate(createPageUrl("Settings"));
