@@ -597,6 +597,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       city: prev.event_center_lat && prev.event_center_lng ? prev.city : user.city,
       state: prev.event_center_lat && prev.event_center_lng ? prev.state : user.state,
       zip: prev.event_center_lat && prev.event_center_lng ? prev.zip : user.zip_code,
+      timeZoneId: user.timeZoneId || prev.timeZoneId || "",
       host_mode: "self",
       host_addressText: user.street_address,
       host_city: user.city,
@@ -668,14 +669,14 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
         })
         .catch(() => {});
     } else if (!user.timeZoneId && typeof user.address_lat === "number" && typeof user.address_lng === "number") {
-      ensureUserProfileTimeZone(user)
+      ensureUserProfileTimeZone()
         .then((resolvedTimeZoneId) => {
           if (!resolvedTimeZoneId) return;
           setFormData((prev) => ({ ...prev, timeZoneId: resolvedTimeZoneId }));
         })
         .catch(() => {});
     }
-  }, [isNeighborhood, setFormData, user]);
+  }, [ensureUserProfileTimeZone, isNeighborhood, setFormData, user]);
 
   return (
     <div className="space-y-6">
