@@ -29,12 +29,17 @@ const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym5
 async function resolveTimeZoneId(lat, lng) {
   if (typeof lat !== "number" || typeof lng !== "number") return "";
 
+  console.log("[StepTwo] timezone lookup coords", { lat, lng });
+
   const response = await fetch(
     `https://api.mapbox.com/search/searchbox/v1/reverse?longitude=${lng}&latitude=${lat}&access_token=${MAPBOX_TOKEN}`
   );
   const data = await response.json();
+  const timeZoneId = data?.features?.[0]?.properties?.context?.timezone?.name || "";
 
-  return data?.features?.[0]?.properties?.context?.timezone?.name || "";
+  console.log("[StepTwo] timezone lookup result", { lat, lng, timeZoneId });
+
+  return timeZoneId;
 }
 
 function getDistanceFeet(lat1, lon1, lat2, lon2) {
@@ -287,12 +292,20 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
         const resolvedTimeZoneId = await resolveTimeZoneId(lat, lng);
 
-        setFormData((prev) => ({
-          ...prev,
-          lat,
-          lng,
-          timeZoneId: resolvedTimeZoneId || "",
-        }));
+        setFormData((prev) => {
+          const nextValue = {
+            ...prev,
+            lat,
+            lng,
+            timeZoneId: resolvedTimeZoneId || "",
+          };
+          console.log("[StepTwo] saved timeZoneId", {
+            lat: nextValue.lat,
+            lng: nextValue.lng,
+            timeZoneId: nextValue.timeZoneId,
+          });
+          return nextValue;
+        });
 
         try {
           const response = await fetch(
@@ -358,7 +371,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       typeof fd.lat === "number" &&
       typeof fd.lng === "number"
     ) {
-      return { lat: fd.lat, lng: fd.lng };
+      return { lat: fd.lat, lng: fd.lng, timeZoneId: fd.timeZoneId || "" };
     }
 
     addressConfirmedRef.current = false;
@@ -407,12 +420,20 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
           setAddressSelectionMessage("");
           setAddressSuggestions([]);
           const resolvedTimeZoneId = await resolveTimeZoneId(data[0].center[1], data[0].center[0]);
-          setFormData((prev) => ({
-            ...prev,
-            lat: data[0].center[1],
-            lng: data[0].center[0],
-            timeZoneId: resolvedTimeZoneId || "",
-          }));
+          setFormData((prev) => {
+            const nextValue = {
+              ...prev,
+              lat: data[0].center[1],
+              lng: data[0].center[0],
+              timeZoneId: resolvedTimeZoneId || "",
+            };
+            console.log("[StepTwo] saved timeZoneId", {
+              lat: nextValue.lat,
+              lng: nextValue.lng,
+              timeZoneId: nextValue.timeZoneId,
+            });
+            return nextValue;
+          });
           toast.success("Address located!");
           return { lat: data[0].center[1], lng: data[0].center[0], timeZoneId: resolvedTimeZoneId || "" };
         }
@@ -732,18 +753,30 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                   });
                 }
                 const resolvedTimeZoneId = await resolveTimeZoneId(lat, lng);
-                setFormData((prev) => ({
-                  ...prev,
-                  event_center_lat: lat,
-                  event_center_lng: lng,
-                  lat,
-                  lng,
-                  timeZoneId: resolvedTimeZoneId || "",
-                  addressText: feature ? (feature.address ? `${feature.address} ${feature.text}` : feature.text) : "Map Location",
-                  city,
-                  state,
-                  zip,
-                }));
+                if (typeof lat === "number" && typeof lng === "number" && !resolvedTimeZoneId) {
+                  toast.error("Timezone could not be determined for this location. Please try another map point.");
+                  return;
+                }
+                setFormData((prev) => {
+                  const nextValue = {
+                    ...prev,
+                    event_center_lat: lat,
+                    event_center_lng: lng,
+                    lat,
+                    lng,
+                    timeZoneId: resolvedTimeZoneId || "",
+                    addressText: feature ? (feature.address ? `${feature.address} ${feature.text}` : feature.text) : "Map Location",
+                    city,
+                    state,
+                    zip,
+                  };
+                  console.log("[StepTwo] saved timeZoneId", {
+                    lat: nextValue.lat,
+                    lng: nextValue.lng,
+                    timeZoneId: nextValue.timeZoneId,
+                  });
+                  return nextValue;
+                });
                 toast.success("Center location saved!");
               } catch {
                 setFormData((prev) => ({
@@ -795,16 +828,24 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
             setAddressConfirmed(true);
             setAddressSelectionMessage("");
             resolveTimeZoneId(suggestion.center[1], suggestion.center[0]).then((resolvedTimeZoneId) => {
-              setFormData((prev) => ({
-                ...prev,
-                addressText: nextAddressText,
-                city,
-                state,
-                zip,
-                lat: suggestion.center[1],
-                lng: suggestion.center[0],
-                timeZoneId: resolvedTimeZoneId || "",
-              }));
+              setFormData((prev) => {
+                const nextValue = {
+                  ...prev,
+                  addressText: nextAddressText,
+                  city,
+                  state,
+                  zip,
+                  lat: suggestion.center[1],
+                  lng: suggestion.center[0],
+                  timeZoneId: resolvedTimeZoneId || "",
+                };
+                console.log("[StepTwo] saved timeZoneId", {
+                  lat: nextValue.lat,
+                  lng: nextValue.lng,
+                  timeZoneId: nextValue.timeZoneId,
+                });
+                return nextValue;
+              });
             });
             setAddressSuggestions([]);
             toast.success("Address selected");
