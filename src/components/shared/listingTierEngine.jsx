@@ -10,7 +10,8 @@
  * computeFreeWindow(now, timeZoneId)
  * Returns start/end for Free weekend logic:
  * - Friday 12:00am to Sunday 11:59:59pm in the listing's local timezone
- * - If posted during the weekend, activate immediately but still expire Sunday 11:59pm
+ * - If posted before Sunday 6:00pm local during that weekend, activate immediately
+ * - If posted after Sunday 6:00pm local, roll forward to next weekend
  */
 export function computeFreeWindow(now, timeZoneId) {
   const local = getZonedParts(now, timeZoneId); // listing-local parts
@@ -23,20 +24,27 @@ export function computeFreeWindow(now, timeZoneId) {
   // Days since Friday (Fri=0, Sat=1, Sun=2, Mon=3, Tue=4, Wed=5, Thu=6)
   const daysSinceFriday = dow >= 5 ? dow - 5 : dow + 2;
 
-  const fridayYMD = addDaysYMD(localYMD, -daysSinceFriday);
-  const sundayYMD = addDaysYMD(fridayYMD, 2);
+  const currentFridayYMD = addDaysYMD(localYMD, -daysSinceFriday);
+  const currentSundayYMD = addDaysYMD(currentFridayYMD, 2);
 
-  // Convert listing-local wall-clock boundaries -> real Date objects
-  const fridayStart = zonedDateTimeToUtcDate(fridayYMD, "00:00:00", timeZoneId);
-  const sundayEnd = zonedDateTimeToUtcDate(sundayYMD, "23:59:59", timeZoneId);
+  const currentFridayStart = zonedDateTimeToUtcDate(currentFridayYMD, "00:00:00", timeZoneId);
+  const currentSundayEnd = zonedDateTimeToUtcDate(currentSundayYMD, "23:59:59", timeZoneId);
+  const sundayCutoff = zonedDateTimeToUtcDate(currentSundayYMD, "18:00:00", timeZoneId);
 
-  const isCurrentlyWeekend = now >= fridayStart && now <= sundayEnd;
+  const isBeforeSundayCutoffWeekend = now >= currentFridayStart && now < sundayCutoff;
+  const shouldRollToNextWeekend = now >= sundayCutoff;
+
+  const targetFridayYMD = shouldRollToNextWeekend ? addDaysYMD(currentFridayYMD, 7) : currentFridayYMD;
+  const targetSundayYMD = addDaysYMD(targetFridayYMD, 2);
+
+  const fridayStart = zonedDateTimeToUtcDate(targetFridayYMD, "00:00:00", timeZoneId);
+  const sundayEnd = zonedDateTimeToUtcDate(targetSundayYMD, "23:59:59", timeZoneId);
 
   return {
     startDateTime: fridayStart,
     endDateTime: sundayEnd,
-    isCurrentlyWeekend,
-    effectiveStart: isCurrentlyWeekend ? now : fridayStart,
+    isCurrentlyWeekend: isBeforeSundayCutoffWeekend,
+    effectiveStart: isBeforeSundayCutoffWeekend ? now : fridayStart,
     effectiveEnd: sundayEnd
   };
 }
