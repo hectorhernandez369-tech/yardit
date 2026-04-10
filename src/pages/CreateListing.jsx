@@ -970,6 +970,7 @@ export default function CreateListingPage() {
         zip: user?.zip_code || payload.zip,
         lat: user?.address_lat ?? payload.lat,
         lng: user?.address_lng ?? payload.lng,
+        timeZoneId: payload.timeZoneId || formData.timeZoneId,
       };
     }
 

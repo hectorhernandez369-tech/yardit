@@ -28,8 +28,9 @@ const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym5
 
 async function fetchTimeZoneId(lat, lng) {
   const response = await fetch(`https://api.bigdatacloud.net/data/timezone-by-location?latitude=${lat}&longitude=${lng}`);
+  if (!response.ok) return "";
   const data = await response.json();
-  return data?.ianaTimeZone || "";
+  return data?.ianaTimeZone || data?.localityInfo?.informative?.find((item) => item.description === "timezone")?.name || "";
 }
 
 function getDistanceFeet(lat1, lon1, lat2, lon2) {
@@ -590,32 +591,59 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
     if (isNeighborhood || !user || didPrefillProfileRef.current) return;
 
     didPrefillProfileRef.current = true;
-    setFormData((prev) => ({
-      ...prev,
-      addressText: user.street_address || "",
-      city: user.city || "",
-      state: (user.state || "").toUpperCase().slice(0, 2),
-      zip: user.zip_code || "",
-      lat: user.address_lat ?? prev.lat ?? null,
-      lng: user.address_lng ?? prev.lng ?? null,
-      locationMethod: "profile",
-    }));
 
-    if (user.street_address && user.city && user.state && user.zip_code && (!user.address_lat || !user.address_lng)) {
-      const query = `${user.street_address}, ${user.city}, ${user.state}, ${user.zip_code}`;
-      fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?limit=1&access_token=${MAPBOX_TOKEN}`)
-        .then((response) => response.json())
-        .then((data) => {
-          const feature = data?.features?.[0];
-          if (!feature) return;
-          setFormData((prev) => ({
-            ...prev,
-            lat: feature.center[1],
-            lng: feature.center[0],
-          }));
-        })
-        .catch(() => {});
-    }
+    const hydrateProfileLocation = async () => {
+      const baseAddress = {
+        addressText: user.street_address || "",
+        city: user.city || "",
+        state: (user.state || "").toUpperCase().slice(0, 2),
+        zip: user.zip_code || "",
+        locationMethod: "profile",
+      };
+
+      if (user.address_lat && user.address_lng) {
+        const timeZoneId = await fetchTimeZoneId(user.address_lat, user.address_lng);
+        setFormData((prev) => ({
+          ...prev,
+          ...baseAddress,
+          lat: user.address_lat,
+          lng: user.address_lng,
+          timeZoneId,
+        }));
+        return;
+      }
+
+      if (user.street_address && user.city && user.state && user.zip_code) {
+        const query = `${user.street_address}, ${user.city}, ${user.state}, ${user.zip_code}`;
+        fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?limit=1&access_token=${MAPBOX_TOKEN}`)
+          .then((response) => response.json())
+          .then(async (data) => {
+            const feature = data?.features?.[0];
+            if (!feature) {
+              setFormData((prev) => ({ ...prev, ...baseAddress }));
+              return;
+            }
+            const lat = feature.center[1];
+            const lng = feature.center[0];
+            const timeZoneId = await fetchTimeZoneId(lat, lng);
+            setFormData((prev) => ({
+              ...prev,
+              ...baseAddress,
+              lat,
+              lng,
+              timeZoneId,
+            }));
+          })
+          .catch(() => {
+            setFormData((prev) => ({ ...prev, ...baseAddress }));
+          });
+        return;
+      }
+
+      setFormData((prev) => ({ ...prev, ...baseAddress }));
+    };
+
+    hydrateProfileLocation();
   }, [isNeighborhood, setFormData, user]);
 
   return (
@@ -805,9 +833,9 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                 lng: suggestion.center[0],
                 timeZoneId,
               }));
+              setAddressSuggestions([]);
+              toast.success(timeZoneId ? "Address selected" : "Address selected, but timezone could not be determined.");
             });
-            setAddressSuggestions([]);
-            toast.success("Address selected");
           }}
         />
       )}
