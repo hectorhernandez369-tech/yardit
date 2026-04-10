@@ -990,7 +990,7 @@ const stats = useMemo(() => {
                 onClick={handleShowAllListings}
                 className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-3"
               >
-                Show Listings
+                Show All Map Listings
               </Button>
               <Button 
                 variant="outline" 
