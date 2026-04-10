@@ -153,8 +153,7 @@ export default function MyListingsPage() {
 
   // RULE 3: Pending = not past, not active yet
   const isPendingListing = (listing) => {
-    if ((listing?.status || "") === "expired") return false;
-    return !isPastListing(listing) && !isActiveListing(listing);
+    return !isEffectivelyPastListing(listing) && !isActiveListing(listing);
   };
 
 
@@ -178,9 +177,13 @@ export default function MyListingsPage() {
     }));
   }, [listings]);
 
+  const isEffectivelyPastListing = (listing) => {
+    return isPastListing(listing) || listing?.displayStatus === "expired";
+  };
+
   const activeListings = useMemo(() => normalizedListings.filter((l) => isActiveListing(l)), [normalizedListings]);
   const pendingListings = useMemo(() => normalizedListings.filter((l) => isPendingListing(l)), [normalizedListings]);
-  const pastListings = useMemo(() => normalizedListings.filter((l) => isPastListing(l)), [normalizedListings]);
+  const pastListings = useMemo(() => normalizedListings.filter((l) => isEffectivelyPastListing(l)), [normalizedListings]);
 
   useEffect(() => {
     const cleanup = async () => {
@@ -776,7 +779,7 @@ export default function MyListingsPage() {
                         >
                           Need Help? Contact Support
                         </Button>
-                      ) : isPastListing(listing) ? (
+                      ) : isEffectivelyPastListing(listing) ? (
                         <Button
                           size="sm"
                           variant="destructive"
