@@ -602,8 +602,9 @@ export default function CreateListingPage() {
       // ✅ Enforce 1 active listing per account (residential Phase 1)
       if (data.listingType === "yard_sale" && hasActiveResidentialListing()) {
         const activeListing = getActiveResidentialListing();
-        const listingLabel = activeListing ? ` Active listing: ${activeListing.title || "Untitled"} (#${activeListing.id}).` : "";
-        throw new Error(`You already have an active listing. End it before creating another.${listingLabel}`);
+        const listingTitle = activeListing?.title || "Untitled";
+        const listingId = activeListing?.listingNumber || activeListing?.id || "Unknown ID";
+        throw new Error(`You already have an active listing. End it before creating another. Active listing: ${listingTitle} (${listingId}).`);
       }
 
       const demoPrefix = isGlobalDemoMode ? "Demo listing: " : "";
@@ -878,8 +879,9 @@ export default function CreateListingPage() {
       if (!isGlobalDemoMode) {
         if (formData.listingType === "yard_sale" && hasActiveResidentialListing()) {
           const activeListing = getActiveResidentialListing();
-          const listingLabel = activeListing ? `${activeListing.title || "Untitled"} (#${activeListing.id})` : "your existing active listing";
-          toast.error(`You already have an active listing: ${listingLabel}`);
+          const listingTitle = activeListing?.title || "Untitled";
+          const listingId = activeListing?.listingNumber || activeListing?.id || "Unknown ID";
+          toast.error(`You already have an active listing: ${listingTitle} (${listingId})`);
           return;
         }
 
