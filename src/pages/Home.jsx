@@ -988,7 +988,7 @@ const stats = useMemo(() => {
                 variant="outline"
                 size="sm"
                 onClick={handleShowAllListings}
-                className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-3"
+                className="h-8 shrink-0 border-slate-200 text-[11px] sm:text-xs text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-2 sm:px-3 max-w-[140px] sm:max-w-none whitespace-normal text-center leading-tight"
               >
                 Show All Map Listings
               </Button>
