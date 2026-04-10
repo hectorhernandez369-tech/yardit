@@ -983,7 +983,7 @@ const stats = useMemo(() => {
           </Tabs>
 
           {view === "map" && (
-            <div className="absolute left-1/2 ml-20 flex items-center gap-2">
+            <div className="absolute right-3 flex items-center gap-2 max-w-[calc(100vw-170px)] sm:max-w-none">
               <Button 
                 variant="outline"
                 size="sm"
