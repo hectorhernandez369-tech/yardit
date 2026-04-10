@@ -59,6 +59,16 @@ export function computeFreeWindow(now, timeZoneId) {
  * Validates exactly 3 consecutive days and returns activeDates.
  * startDate/endDate are "YYYY-MM-DD" strings.
  */
+export async function resolveTimeZoneId(lat, lng) {
+  if (typeof lat !== "number" || typeof lng !== "number") return "";
+
+  const response = await fetch(`https://api.bigdatacloud.net/data/timezone-by-location?latitude=${lat}&longitude=${lng}`);
+  if (!response.ok) return "";
+
+  const data = await response.json();
+  return data?.ianaTimeZone || data?.localityInfo?.informative?.find((item) => item.description === "timezone")?.name || "";
+}
+
 export function computeFeaturedDates(startDate, endDate) {
   const dates = getConsecutiveDates(startDate, endDate);
 

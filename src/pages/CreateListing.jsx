@@ -33,7 +33,8 @@ import {
   computeFreeWindow,
   computeFeaturedDates,
   computePremiumDates,
-  enforcePhotoLimit
+  enforcePhotoLimit,
+  resolveTimeZoneId
 } from "../components/shared/listingTierEngine";
 import { EVENT_TIER_PRICES } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
@@ -938,7 +939,7 @@ export default function CreateListingPage() {
 
   };
 
-  const executeSubmit = (actionStr = joinAction, sourceFormData = formData) => {
+  const executeSubmit = async (actionStr = joinAction, sourceFormData = formData) => {
     let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId };
 
     if (payload.listingType === "event") {
@@ -1025,6 +1026,10 @@ export default function CreateListingPage() {
     }
 
     if (payload.tier === "free" && actionStr !== "requested") {
+      if (!payload.timeZoneId) {
+        payload.timeZoneId = await resolveTimeZoneId(payload.lat, payload.lng);
+      }
+
       if (!payload.timeZoneId) {
         throw new Error("We couldn't determine the listing's local timezone from the confirmed location. Please go back to Step 2 and confirm the address again.");
       }
@@ -1143,7 +1148,7 @@ export default function CreateListingPage() {
       await new Promise((resolve) => setTimeout(resolve, 800));
       setIsStartingPayment(false);
       toast.success("Demo payment successful.");
-      executeSubmit("paid_success");
+      await executeSubmit("paid_success");
       return;
     }
 
@@ -1174,7 +1179,7 @@ export default function CreateListingPage() {
 
       setIsStartingPayment(false);
       toast.success("Demo payment method saved.");
-      executeSubmit(undefined, demoSetupData);
+      await executeSubmit(undefined, demoSetupData);
       return;
     }
 
@@ -1183,7 +1188,7 @@ export default function CreateListingPage() {
       return;
     }
 
-    executeSubmit();
+    await executeSubmit();
   };
 
   const handleSubmit = async () => {
@@ -1264,7 +1269,7 @@ export default function CreateListingPage() {
       return;
     }
 
-    executeSubmit();
+    await executeSubmit();
   };
 
   useEffect(() => {
@@ -1300,7 +1305,7 @@ export default function CreateListingPage() {
         base44.functions.invoke("neighborhoodSaleSetupCheckout", {
           action: "verify",
           session_id: sessionId,
-        }).then((response) => {
+        }).then(async (response) => {
           if (response?.data?.saved && response?.data?.customerId && response?.data?.paymentMethodId) {
             localStorage.removeItem(NEIGHBORHOOD_SETUP_KEY);
             const updatedFormData = {
@@ -1315,7 +1320,7 @@ export default function CreateListingPage() {
             setFormData(updatedFormData);
             setPaymentError("");
             toast.success("Payment method saved for your Neighborhood Sale.");
-            executeSubmit(undefined, updatedFormData);
+            await executeSubmit(undefined, updatedFormData);
           } else {
             setIsStartingPayment(false);
             setPaymentError("Payment method setup could not be confirmed. Neighborhood Sale was not created.");
@@ -1367,11 +1372,11 @@ export default function CreateListingPage() {
         base44.functions.invoke("createResidentialListingCheckout", {
           action: "verify",
           session_id: sessionId,
-        }).then((response) => {
+        }).then(async (response) => {
           if (response?.data?.paid) {
             setPaymentError("");
             toast.success("Payment successful.");
-            executeSubmit("paid_success", stored.formData);
+            await executeSubmit("paid_success", stored.formData);
           } else {
             setIsStartingPayment(false);
             setPaymentError("Payment could not be confirmed. No listing was created.");
