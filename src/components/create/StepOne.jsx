@@ -100,6 +100,30 @@ export default function StepOne({ formData, setFormData }) {
                  </Badge>
               ))}
             </div>
+            {(formData.category === "Collectibles" || formData.categories?.includes("Collectibles")) && (
+              <div className="mt-3">
+                <Label className="text-[#2C4F4E]">Collectible Type *</Label>
+                <Select
+                  value={formData.collectible_type || ""}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, collectible_type: value }))}
+                >
+                  <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-2">
+                    <SelectValue placeholder="Select collectible type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[
+                      "Funko Pops", "Sports Cards", "Pokémon Cards",
+                      "Trading Cards (Other)", "Star Wars Collectibles", "Comics",
+                      "Action Figures", "Die-cast Cars", "Video Game Collectibles",
+                      "Movie Memorabilia", "Other Collectible"
+                    ].map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {(!formData.categories || formData.categories.length < 10) && (
               <Select
                 value=""
@@ -131,30 +155,6 @@ export default function StepOne({ formData, setFormData }) {
               </Select>
             )}
           </div>
-
-          {(formData.category === "Collectibles" || formData.categories?.includes("Collectibles")) && (
-            <div>
-              <Label className="text-[#2C4F4E]">Collectible Type *</Label>
-              <Select
-                value={formData.collectible_type || ""}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, collectible_type: value }))}
-              >
-                <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-2">
-                  <SelectValue placeholder="Select collectible type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[
-                    "Funko Pops", "Sports Cards", "Pokémon Cards",
-                    "Trading Cards (Other)", "Star Wars Collectibles", "Comics",
-                    "Action Figures", "Die-cast Cars", "Video Game Collectibles",
-                    "Movie Memorabilia", "Other Collectible"
-                  ].map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           <div>
             <Label className="text-[#2C4F4E]" htmlFor="description">Description *</Label>
