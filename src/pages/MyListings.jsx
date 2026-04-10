@@ -153,6 +153,7 @@ export default function MyListingsPage() {
 
   // RULE 3: Pending = not past, not active yet
   const isPendingListing = (listing) => {
+    if ((listing?.status || "") === "expired") return false;
     return !isPastListing(listing) && !isActiveListing(listing);
   };
 
