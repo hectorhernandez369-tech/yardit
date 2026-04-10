@@ -401,6 +401,7 @@ export default function HomePage() {
   const [openMarqueeIds, setOpenMarqueeIds] = useState({});
   const MARQUEE_OPEN_MIN_ZOOM = 11;
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
+  const showAllListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
   const markerRefsMap = useRef({});
@@ -706,7 +707,24 @@ export default function HomePage() {
     setCurrentZoom(z);
   }, []);
 
+  const handleShowAllListings = useCallback(() => {
+    if (showAllListingsTimerRef.current) {
+      clearTimeout(showAllListingsTimerRef.current);
+    }
+    setIsShowingAllListings(true);
+    showAllListingsTimerRef.current = setTimeout(() => {
+      setIsShowingAllListings(false);
+      showAllListingsTimerRef.current = null;
+    }, 3000);
+  }, []);
 
+  useEffect(() => {
+    return () => {
+      if (showAllListingsTimerRef.current) {
+        clearTimeout(showAllListingsTimerRef.current);
+      }
+    };
+  }, []);
 
   const eligibleListings = useMemo(() => {
     const now = new Date();
@@ -969,12 +987,7 @@ const stats = useMemo(() => {
               <Button 
                 variant="outline"
                 size="sm"
-                onPointerDown={() => setIsShowingAllListings(true)}
-                onPointerUp={() => setIsShowingAllListings(false)}
-                onPointerLeave={() => setIsShowingAllListings(false)}
-                onPointerCancel={() => setIsShowingAllListings(false)}
-                onTouchStart={() => setIsShowingAllListings(true)}
-                onTouchEnd={() => setIsShowingAllListings(false)}
+                onClick={handleShowAllListings}
                 className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-3"
               >
                 Show Listings
