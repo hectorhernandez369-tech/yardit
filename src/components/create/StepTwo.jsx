@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import tzLookup from "tz-lookup";
 import { base44 } from "@/api/base44Client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -31,15 +32,11 @@ async function resolveTimeZoneId(lat, lng) {
 
   console.log("[StepTwo] timezone lookup coords", { lat, lng });
 
-  const response = await fetch(
-    `https://api.mapbox.com/search/searchbox/v1/reverse?longitude=${lng}&latitude=${lat}&access_token=${MAPBOX_TOKEN}`
-  );
-  const data = await response.json();
-  const timeZoneId = data?.features?.[0]?.properties?.context?.timezone?.name || "";
+  const timeZoneId = tzLookup(lat, lng);
 
   console.log("[StepTwo] timezone lookup result", { lat, lng, timeZoneId });
 
-  return timeZoneId;
+  return typeof timeZoneId === "string" ? timeZoneId : "";
 }
 
 function getDistanceFeet(lat1, lon1, lat2, lon2) {
