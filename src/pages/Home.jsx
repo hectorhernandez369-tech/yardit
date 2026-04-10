@@ -401,7 +401,6 @@ export default function HomePage() {
   const [openMarqueeIds, setOpenMarqueeIds] = useState({});
   const MARQUEE_OPEN_MIN_ZOOM = 11;
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
-  const showAllListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
   const markerRefsMap = useRef({});
@@ -707,24 +706,7 @@ export default function HomePage() {
     setCurrentZoom(z);
   }, []);
 
-  const handleShowAllListings = useCallback(() => {
-    if (showAllListingsTimerRef.current) {
-      clearTimeout(showAllListingsTimerRef.current);
-    }
-    setIsShowingAllListings(true);
-    showAllListingsTimerRef.current = setTimeout(() => {
-      setIsShowingAllListings(false);
-      showAllListingsTimerRef.current = null;
-    }, 3000);
-  }, []);
 
-  useEffect(() => {
-    return () => {
-      if (showAllListingsTimerRef.current) {
-        clearTimeout(showAllListingsTimerRef.current);
-      }
-    };
-  }, []);
 
   const eligibleListings = useMemo(() => {
     const now = new Date();
@@ -983,14 +965,19 @@ const stats = useMemo(() => {
           </Tabs>
 
           {view === "map" && (
-            <div className="absolute right-3 flex items-center gap-2 max-w-[calc(100vw-170px)] sm:max-w-none">
+            <div className="absolute left-1/2 ml-20 flex items-center gap-2">
               <Button 
                 variant="outline"
                 size="sm"
-                onClick={handleShowAllListings}
-                className="h-8 shrink-0 border-slate-200 text-[11px] sm:text-xs text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-2 sm:px-3 max-w-[140px] sm:max-w-none whitespace-normal text-center leading-tight"
+                onPointerDown={() => setIsShowingAllListings(true)}
+                onPointerUp={() => setIsShowingAllListings(false)}
+                onPointerLeave={() => setIsShowingAllListings(false)}
+                onPointerCancel={() => setIsShowingAllListings(false)}
+                onTouchStart={() => setIsShowingAllListings(true)}
+                onTouchEnd={() => setIsShowingAllListings(false)}
+                className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-3"
               >
-                Show All Map Listings
+                Show Listings
               </Button>
               <Button 
                 variant="outline" 
