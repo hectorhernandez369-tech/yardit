@@ -30,6 +30,7 @@ import {
 
 // Tier Engine (shared business logic)
 import {
+  computeFreeWindow,
   computeFeaturedDates,
   computePremiumDates,
   enforcePhotoLimit
@@ -45,8 +46,7 @@ const RESIDENTIAL_TIER_PRICES = {
   premium: 799,
 };
 
-// (plain english) fallback timezone until we auto-detect timezone from lat/lng later
-const FALLBACK_TZ = "America/Los_Angeles";
+const FALLBACK_TZ = "";
 
 function getRequestedStep(search) {
   const params = new URLSearchParams(search);
@@ -81,50 +81,6 @@ function isDevBypassUser(user) {
   return !!user?.id && DEV_BYPASS_USER_IDS.includes(user.id);
 }
 
-/**
- * (plain english) Next weekend rule for Free tier:
- * Auto schedule to next Friday 12:00am through Sunday 11:59pm (America/Los_Angeles)
- */
-function getNextWeekendLAISO() {
-  const now = new Date();
-  const laString = now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
-  const laNow = new Date(laString);
-
-  let daysToFriday = 5 - laNow.getDay();
-  if (daysToFriday <= 0) daysToFriday += 7;
-
-  const fri = new Date(laNow);
-  fri.setDate(laNow.getDate() + daysToFriday);
-  const sun = new Date(laNow);
-  sun.setDate(laNow.getDate() + daysToFriday + 2);
-
-  const pad = (n) => n.toString().padStart(2, "0");
-  const friDateStr = `${fri.getFullYear()}-${pad(fri.getMonth() + 1)}-${pad(fri.getDate())}`;
-  const sunDateStr = `${sun.getFullYear()}-${pad(sun.getMonth() + 1)}-${pad(sun.getDate())}`;
-
-  const getOffset = (dateStr) => {
-    const d7 = new Date(`${dateStr}T00:00:00-07:00`);
-    const h7 = parseInt(
-      new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Los_Angeles",
-        hour: "numeric",
-        hour12: false
-      }).format(d7),
-      10
-    );
-    return h7 === 0 || h7 === 24 ? 7 : 8;
-  };
-
-  const friOffset = getOffset(friDateStr);
-  const sunOffset = getOffset(sunDateStr);
-
-  return {
-    start: new Date(`${friDateStr}T00:00:00-0${friOffset}:00`).toISOString(),
-    end: new Date(`${sunDateStr}T23:59:59-0${sunOffset}:00`).toISOString(),
-    startDateStr: friDateStr,
-    endDateStr: sunDateStr
-  };
-}
 
 function getSaleConfirmedCount(sale) {
   // (plain english) tries multiple field names so we don't miss it
@@ -836,6 +792,10 @@ export default function CreateListingPage() {
           toast.error("Please choose the event location on the map");
           return;
         }
+        if (!formData.timeZoneId) {
+          toast.error("We couldn’t determine the listing timezone from this location. Please re-select the address or map location.");
+          return;
+        }
         setStep(3);
         return;
       }
@@ -843,6 +803,10 @@ export default function CreateListingPage() {
       if (formData.listingType === "neighborhood_sale") {
         if (!formData.event_center_lat || !formData.event_center_lng) {
           toast.error("Please provide a location for the event center");
+          return;
+        }
+        if (!formData.timeZoneId) {
+          toast.error("We couldn’t determine the listing timezone from this location. Please re-select the map location.");
           return;
         }
 
@@ -910,6 +874,10 @@ export default function CreateListingPage() {
           navigate(createPageUrl("Settings"));
           return;
         }
+        if (!formData.timeZoneId) {
+          toast.error("We couldn’t determine the listing timezone from this location. Please re-confirm your address.");
+          return;
+        }
 
         const nextData = {
           ...formData,
@@ -957,6 +925,11 @@ export default function CreateListingPage() {
       const overrideLocation = typeof geocodeResult === "object" ? geocodeResult : null;
       const nextData = overrideLocation ? { ...formData, ...overrideLocation } : formData;
 
+      if (!nextData.timeZoneId) {
+        toast.error("We couldn’t determine the listing timezone from this location. Please re-confirm the address.");
+        return;
+      }
+
       const nearbySale = await findNearbyNeighborhoodSale(nextData);
       if (nearbySale) {
         setMatchedSale(nearbySale);
@@ -985,7 +958,7 @@ export default function CreateListingPage() {
   };
 
   const executeSubmit = (actionStr = joinAction, sourceFormData = formData) => {
-    let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId || FALLBACK_TZ };
+    let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId || "" };
 
     if (payload.listingType === "event") {
       payload = {
@@ -1070,13 +1043,13 @@ export default function CreateListingPage() {
     }
 
     if (payload.tier === "free" && actionStr !== "requested") {
-      const nextWeekend = getNextWeekendLAISO();
+      const freeWindow = computeFreeWindow(new Date(), payload.timeZoneId);
       payload = {
         ...payload,
-        startDateTime: nextWeekend.start,
-        endDateTime: nextWeekend.end,
-        selectedRangeStartDate: nextWeekend.startDateStr,
-        selectedRangeEndDate: nextWeekend.endDateStr,
+        startDateTime: freeWindow.effectiveStart.toISOString(),
+        endDateTime: freeWindow.effectiveEnd.toISOString(),
+        selectedRangeStartDate: freeWindow.startDateTime.toLocaleDateString("en-CA", { timeZone: payload.timeZoneId }),
+        selectedRangeEndDate: freeWindow.endDateTime.toLocaleDateString("en-CA", { timeZone: payload.timeZoneId }),
         earlyVisibilityDays: 0,
         earlyVisibilityDates: [],
         activeDates: []
