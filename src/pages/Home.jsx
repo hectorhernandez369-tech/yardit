@@ -401,6 +401,7 @@ export default function HomePage() {
   const [openMarqueeIds, setOpenMarqueeIds] = useState({});
   const MARQUEE_OPEN_MIN_ZOOM = 11;
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
+  const showListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
   const markerRefsMap = useRef({});
@@ -511,12 +512,31 @@ export default function HomePage() {
     setShowControls((prev) => !prev);
   }, []);
 
+  const handleShowListingsClick = useCallback(() => {
+    setIsShowingAllListings(true);
+    if (showListingsTimerRef.current) {
+      clearTimeout(showListingsTimerRef.current);
+    }
+    showListingsTimerRef.current = setTimeout(() => {
+      setIsShowingAllListings(false);
+      showListingsTimerRef.current = null;
+    }, 3000);
+  }, []);
+
   useEffect(() => {
     if (debugPinned || debugForceOn) return;
     if (!debugVisible) return;
     debugTimerRef.current = setTimeout(() => setDebugVisible(false), 8000);
     return () => clearTimeout(debugTimerRef.current);
   }, [debugVisible, debugPinned, debugForceOn]);
+
+  useEffect(() => {
+    return () => {
+      if (showListingsTimerRef.current) {
+        clearTimeout(showListingsTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -969,12 +989,7 @@ const stats = useMemo(() => {
               <Button 
                 variant="outline"
                 size="sm"
-                onPointerDown={() => setIsShowingAllListings(true)}
-                onPointerUp={() => setIsShowingAllListings(false)}
-                onPointerLeave={() => setIsShowingAllListings(false)}
-                onPointerCancel={() => setIsShowingAllListings(false)}
-                onTouchStart={() => setIsShowingAllListings(true)}
-                onTouchEnd={() => setIsShowingAllListings(false)}
+                onClick={handleShowListingsClick}
                 className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-3"
               >
                 Show Listings
