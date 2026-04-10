@@ -39,6 +39,17 @@ async function resolveTimeZoneId(lat, lng) {
   return typeof timeZoneId === "string" ? timeZoneId : "";
 }
 
+async function ensureUserProfileTimeZone(user) {
+  if (user?.timeZoneId) return user.timeZoneId;
+  if (typeof user?.address_lat !== "number" || typeof user?.address_lng !== "number") return "";
+
+  const resolvedTimeZoneId = await resolveTimeZoneId(user.address_lat, user.address_lng);
+  if (!resolvedTimeZoneId) return "";
+
+  await base44.auth.updateMe({ timeZoneId: resolvedTimeZoneId });
+  return resolvedTimeZoneId;
+}
+
 function getDistanceFeet(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
   const R = 20902231;
@@ -557,6 +568,17 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
   const hasProfileAddress = !!(user?.street_address && user?.city && user?.state && user?.zip_code);
 
+  const ensureUserProfileTimeZone = React.useCallback(async () => {
+    if (!user?.address_lat || !user?.address_lng) return "";
+    if (user?.timeZoneId) return user.timeZoneId;
+
+    const resolvedTimeZoneId = await resolveTimeZoneId(user.address_lat, user.address_lng);
+    if (!resolvedTimeZoneId) return "";
+
+    await base44.auth.updateMe({ timeZoneId: resolvedTimeZoneId });
+    return resolvedTimeZoneId;
+  }, [user]);
+
   const handleUseConfirmedAddress = () => {
     if (!userHasConfirmedAddress) return;
 
@@ -618,6 +640,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       zip: user.zip_code || "",
       lat: user.address_lat ?? prev.lat ?? null,
       lng: user.address_lng ?? prev.lng ?? null,
+      timeZoneId: user.timeZoneId || prev.timeZoneId || "",
       locationMethod: "profile",
     }));
 
@@ -625,14 +648,30 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       const query = `${user.street_address}, ${user.city}, ${user.state}, ${user.zip_code}`;
       fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?limit=1&access_token=${MAPBOX_TOKEN}`)
         .then((response) => response.json())
-        .then((data) => {
+        .then(async (data) => {
           const feature = data?.features?.[0];
           if (!feature) return;
+          const resolvedTimeZoneId = await resolveTimeZoneId(feature.center[1], feature.center[0]);
           setFormData((prev) => ({
             ...prev,
             lat: feature.center[1],
             lng: feature.center[0],
+            timeZoneId: resolvedTimeZoneId || prev.timeZoneId || "",
           }));
+          if (resolvedTimeZoneId) {
+            await base44.auth.updateMe({
+              address_lat: feature.center[1],
+              address_lng: feature.center[0],
+              timeZoneId: resolvedTimeZoneId,
+            });
+          }
+        })
+        .catch(() => {});
+    } else if (!user.timeZoneId && typeof user.address_lat === "number" && typeof user.address_lng === "number") {
+      ensureUserProfileTimeZone(user)
+        .then((resolvedTimeZoneId) => {
+          if (!resolvedTimeZoneId) return;
+          setFormData((prev) => ({ ...prev, timeZoneId: resolvedTimeZoneId }));
         })
         .catch(() => {});
     }

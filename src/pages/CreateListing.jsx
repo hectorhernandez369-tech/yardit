@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import tzLookup from "tz-lookup";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -874,8 +875,22 @@ export default function CreateListingPage() {
           navigate(createPageUrl("Settings"));
           return;
         }
-        if (!formData.timeZoneId) {
-          toast.error("We couldn’t determine the listing timezone from this location. Please re-confirm your address.");
+
+        let resolvedProfileTimeZoneId = user?.timeZoneId || formData.timeZoneId || "";
+        if (!resolvedProfileTimeZoneId && typeof user?.address_lat === "number" && typeof user?.address_lng === "number") {
+          try {
+            resolvedProfileTimeZoneId = tzLookup(user.address_lat, user.address_lng) || "";
+            if (resolvedProfileTimeZoneId) {
+              await base44.auth.updateMe({ timeZoneId: resolvedProfileTimeZoneId });
+              setUser((prev) => prev ? { ...prev, timeZoneId: resolvedProfileTimeZoneId } : prev);
+            }
+          } catch {
+            resolvedProfileTimeZoneId = "";
+          }
+        }
+
+        if (!resolvedProfileTimeZoneId) {
+          toast.error("We couldn’t determine the listing timezone from your verified profile address.");
           return;
         }
 
@@ -887,6 +902,7 @@ export default function CreateListingPage() {
           zip: user.zip_code,
           lat: user.address_lat,
           lng: user.address_lng,
+          timeZoneId: resolvedProfileTimeZoneId,
           locationMethod: "profile"
         };
         setFormData(nextData);
@@ -981,15 +997,16 @@ export default function CreateListingPage() {
     }
 
     if (payload.listingType === "yard_sale" && !isGlobalDemoMode) {
-      payload = {
-        ...payload,
-        addressText: user?.street_address || payload.addressText,
-        city: user?.city || payload.city,
-        state: (user?.state || payload.state || "").toUpperCase().slice(0, 2),
-        zip: user?.zip_code || payload.zip,
-        lat: user?.address_lat ?? payload.lat,
-        lng: user?.address_lng ?? payload.lng,
-      };
+    payload = {
+      ...payload,
+      addressText: user?.street_address || payload.addressText,
+      city: user?.city || payload.city,
+      state: (user?.state || payload.state || "").toUpperCase().slice(0, 2),
+      zip: user?.zip_code || payload.zip,
+      lat: user?.address_lat ?? payload.lat,
+      lng: user?.address_lng ?? payload.lng,
+      timeZoneId: user?.timeZoneId || payload.timeZoneId || "",
+    };
     }
 
     if (payload.listingType === "neighborhood_sale") {
