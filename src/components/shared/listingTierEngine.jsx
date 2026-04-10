@@ -8,49 +8,36 @@
 
 /**
  * computeFreeWindow(now, timeZoneId)
- * Returns start/end for Free weekend logic in the listing's LOCAL timezone:
- * - Before Sunday 6:00 PM local: belongs to the current weekend
- *   - If already Fri/Sat/Sun before 6:00 PM, start immediately
- *   - Otherwise schedule current weekend Friday 12:00 AM local
- * - After Sunday 6:00 PM local: schedule next weekend
- * - Weekend always ends Sunday 6:00 PM local
+ * Returns start/end for Free weekend logic:
+ * - Friday 12:00am to Sunday 11:59:59pm in the listing's local timezone
+ * - If posted during the weekend, activate immediately but still expire Sunday 11:59pm
  */
 export function computeFreeWindow(now, timeZoneId) {
-  const local = getZonedParts(now, timeZoneId);
+  const local = getZonedParts(now, timeZoneId); // listing-local parts
   const localYMD = `${local.year}-${pad2(local.month)}-${pad2(local.day)}`;
+
+  // Weekday mapping from Intl "short" weekday
   const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   const dow = weekdayMap[local.weekday];
-  const localSeconds = (local.hour * 60 * 60) + (local.minute * 60) + local.second;
-  const sundayCutoffSeconds = 18 * 60 * 60;
-  const isSundayAfterCutoff = dow === 0 && localSeconds >= sundayCutoffSeconds;
-  const isInsideCurrentWeekendWindow =
-    dow === 5 ||
-    dow === 6 ||
-    (dow === 0 && localSeconds < sundayCutoffSeconds);
 
-  let fridayYMD;
-  if (isSundayAfterCutoff) {
-    fridayYMD = addDaysYMD(localYMD, 5);
-  } else {
-    const daysUntilFriday = dow <= 5 ? 5 - dow : 5;
-    fridayYMD = isInsideCurrentWeekendWindow
-      ? addDaysYMD(localYMD, dow === 0 ? -2 : 5 - dow === 0 ? 0 : -(dow - 5))
-      : addDaysYMD(localYMD, daysUntilFriday);
-  }
+  // Days since Friday (Fri=0, Sat=1, Sun=2, Mon=3, Tue=4, Wed=5, Thu=6)
+  const daysSinceFriday = dow >= 5 ? dow - 5 : dow + 2;
 
+  const fridayYMD = addDaysYMD(localYMD, -daysSinceFriday);
   const sundayYMD = addDaysYMD(fridayYMD, 2);
+
+  // Convert listing-local wall-clock boundaries -> real Date objects
   const fridayStart = zonedDateTimeToUtcDate(fridayYMD, "00:00:00", timeZoneId);
-  const sundayEnd = zonedDateTimeToUtcDate(sundayYMD, "18:00:00", timeZoneId);
-  const effectiveStart = isInsideCurrentWeekendWindow ? now : fridayStart;
+  const sundayEnd = zonedDateTimeToUtcDate(sundayYMD, "23:59:59", timeZoneId);
+
+  const isCurrentlyWeekend = now >= fridayStart && now <= sundayEnd;
 
   return {
-    startDateTime: effectiveStart,
+    startDateTime: fridayStart,
     endDateTime: sundayEnd,
-    isCurrentlyWeekend: isInsideCurrentWeekendWindow,
-    effectiveStart,
-    effectiveEnd: sundayEnd,
-    startDateStr: fridayYMD,
-    endDateStr: sundayYMD
+    isCurrentlyWeekend,
+    effectiveStart: isCurrentlyWeekend ? now : fridayStart,
+    effectiveEnd: sundayEnd
   };
 }
 
@@ -59,16 +46,6 @@ export function computeFreeWindow(now, timeZoneId) {
  * Validates exactly 3 consecutive days and returns activeDates.
  * startDate/endDate are "YYYY-MM-DD" strings.
  */
-export async function resolveTimeZoneId(lat, lng) {
-  if (typeof lat !== "number" || typeof lng !== "number") return "";
-
-  const response = await fetch(`https://api.bigdatacloud.net/data/timezone-by-location?latitude=${lat}&longitude=${lng}`);
-  if (!response.ok) return "";
-
-  const data = await response.json();
-  return data?.ianaTimeZone || data?.localityInfo?.informative?.find((item) => item.description === "timezone")?.name || "";
-}
-
 export function computeFeaturedDates(startDate, endDate) {
   const dates = getConsecutiveDates(startDate, endDate);
 

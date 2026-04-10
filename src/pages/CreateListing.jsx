@@ -30,11 +30,9 @@ import {
 
 // Tier Engine (shared business logic)
 import {
-  computeFreeWindow,
   computeFeaturedDates,
   computePremiumDates,
-  enforcePhotoLimit,
-  resolveTimeZoneId
+  enforcePhotoLimit
 } from "../components/shared/listingTierEngine";
 import { EVENT_TIER_PRICES } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
@@ -46,6 +44,9 @@ const RESIDENTIAL_TIER_PRICES = {
   featured: 499,
   premium: 799,
 };
+
+// (plain english) fallback timezone until we auto-detect timezone from lat/lng later
+const FALLBACK_TZ = "America/Los_Angeles";
 
 function getRequestedStep(search) {
   const params = new URLSearchParams(search);
@@ -78,6 +79,51 @@ const DEV_BYPASS_USER_IDS = ["PUT_YOUR_USER_ID_HERE"];
 
 function isDevBypassUser(user) {
   return !!user?.id && DEV_BYPASS_USER_IDS.includes(user.id);
+}
+
+/**
+ * (plain english) Next weekend rule for Free tier:
+ * Auto schedule to next Friday 12:00am through Sunday 11:59pm (America/Los_Angeles)
+ */
+function getNextWeekendLAISO() {
+  const now = new Date();
+  const laString = now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+  const laNow = new Date(laString);
+
+  let daysToFriday = 5 - laNow.getDay();
+  if (daysToFriday <= 0) daysToFriday += 7;
+
+  const fri = new Date(laNow);
+  fri.setDate(laNow.getDate() + daysToFriday);
+  const sun = new Date(laNow);
+  sun.setDate(laNow.getDate() + daysToFriday + 2);
+
+  const pad = (n) => n.toString().padStart(2, "0");
+  const friDateStr = `${fri.getFullYear()}-${pad(fri.getMonth() + 1)}-${pad(fri.getDate())}`;
+  const sunDateStr = `${sun.getFullYear()}-${pad(sun.getMonth() + 1)}-${pad(sun.getDate())}`;
+
+  const getOffset = (dateStr) => {
+    const d7 = new Date(`${dateStr}T00:00:00-07:00`);
+    const h7 = parseInt(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Los_Angeles",
+        hour: "numeric",
+        hour12: false
+      }).format(d7),
+      10
+    );
+    return h7 === 0 || h7 === 24 ? 7 : 8;
+  };
+
+  const friOffset = getOffset(friDateStr);
+  const sunOffset = getOffset(sunDateStr);
+
+  return {
+    start: new Date(`${friDateStr}T00:00:00-0${friOffset}:00`).toISOString(),
+    end: new Date(`${sunDateStr}T23:59:59-0${sunOffset}:00`).toISOString(),
+    startDateStr: friDateStr,
+    endDateStr: sunDateStr
+  };
 }
 
 function getSaleConfirmedCount(sale) {
@@ -241,8 +287,8 @@ export default function CreateListingPage() {
     event_center_lat: null,
     event_center_lng: null,
 
-    // listing-local timezone from the chosen address/location
-    timeZoneId: "",
+    // (plain english) listing-local timezone; we’ll derive later from lat/lng
+    timeZoneId: FALLBACK_TZ,
 
     // Stored as ISO strings
     startDateTime: "",
@@ -873,7 +919,6 @@ export default function CreateListingPage() {
           zip: user.zip_code,
           lat: user.address_lat,
           lng: user.address_lng,
-          timeZoneId: formData.timeZoneId,
           locationMethod: "profile"
         };
         setFormData(nextData);
@@ -939,8 +984,8 @@ export default function CreateListingPage() {
 
   };
 
-  const executeSubmit = async (actionStr = joinAction, sourceFormData = formData) => {
-    let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId };
+  const executeSubmit = (actionStr = joinAction, sourceFormData = formData) => {
+    let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId || FALLBACK_TZ };
 
     if (payload.listingType === "event") {
       payload = {
@@ -971,7 +1016,6 @@ export default function CreateListingPage() {
         zip: user?.zip_code || payload.zip,
         lat: user?.address_lat ?? payload.lat,
         lng: user?.address_lng ?? payload.lng,
-        timeZoneId: payload.timeZoneId || formData.timeZoneId,
       };
     }
 
@@ -1026,21 +1070,13 @@ export default function CreateListingPage() {
     }
 
     if (payload.tier === "free" && actionStr !== "requested") {
-      if (!payload.timeZoneId) {
-        payload.timeZoneId = await resolveTimeZoneId(payload.lat, payload.lng);
-      }
-
-      if (!payload.timeZoneId) {
-        throw new Error("We couldn't determine the listing's local timezone from the confirmed location. Please go back to Step 2 and confirm the address again.");
-      }
-
-      const freeWindow = computeFreeWindow(new Date(), payload.timeZoneId);
+      const nextWeekend = getNextWeekendLAISO();
       payload = {
         ...payload,
-        startDateTime: freeWindow.startDateTime.toISOString(),
-        endDateTime: freeWindow.endDateTime.toISOString(),
-        selectedRangeStartDate: freeWindow.startDateStr,
-        selectedRangeEndDate: freeWindow.endDateStr,
+        startDateTime: nextWeekend.start,
+        endDateTime: nextWeekend.end,
+        selectedRangeStartDate: nextWeekend.startDateStr,
+        selectedRangeEndDate: nextWeekend.endDateStr,
         earlyVisibilityDays: 0,
         earlyVisibilityDates: [],
         activeDates: []
@@ -1148,7 +1184,7 @@ export default function CreateListingPage() {
       await new Promise((resolve) => setTimeout(resolve, 800));
       setIsStartingPayment(false);
       toast.success("Demo payment successful.");
-      await executeSubmit("paid_success");
+      executeSubmit("paid_success");
       return;
     }
 
@@ -1179,7 +1215,7 @@ export default function CreateListingPage() {
 
       setIsStartingPayment(false);
       toast.success("Demo payment method saved.");
-      await executeSubmit(undefined, demoSetupData);
+      executeSubmit(undefined, demoSetupData);
       return;
     }
 
@@ -1188,7 +1224,7 @@ export default function CreateListingPage() {
       return;
     }
 
-    await executeSubmit();
+    executeSubmit();
   };
 
   const handleSubmit = async () => {
@@ -1269,7 +1305,7 @@ export default function CreateListingPage() {
       return;
     }
 
-    await executeSubmit();
+    executeSubmit();
   };
 
   useEffect(() => {
@@ -1305,7 +1341,7 @@ export default function CreateListingPage() {
         base44.functions.invoke("neighborhoodSaleSetupCheckout", {
           action: "verify",
           session_id: sessionId,
-        }).then(async (response) => {
+        }).then((response) => {
           if (response?.data?.saved && response?.data?.customerId && response?.data?.paymentMethodId) {
             localStorage.removeItem(NEIGHBORHOOD_SETUP_KEY);
             const updatedFormData = {
@@ -1320,7 +1356,7 @@ export default function CreateListingPage() {
             setFormData(updatedFormData);
             setPaymentError("");
             toast.success("Payment method saved for your Neighborhood Sale.");
-            await executeSubmit(undefined, updatedFormData);
+            executeSubmit(undefined, updatedFormData);
           } else {
             setIsStartingPayment(false);
             setPaymentError("Payment method setup could not be confirmed. Neighborhood Sale was not created.");
@@ -1372,11 +1408,11 @@ export default function CreateListingPage() {
         base44.functions.invoke("createResidentialListingCheckout", {
           action: "verify",
           session_id: sessionId,
-        }).then(async (response) => {
+        }).then((response) => {
           if (response?.data?.paid) {
             setPaymentError("");
             toast.success("Payment successful.");
-            await executeSubmit("paid_success", stored.formData);
+            executeSubmit("paid_success", stored.formData);
           } else {
             setIsStartingPayment(false);
             setPaymentError("Payment could not be confirmed. No listing was created.");
