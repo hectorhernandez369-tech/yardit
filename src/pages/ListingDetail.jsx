@@ -36,7 +36,6 @@ export default function ListingDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [listingId, setListingId] = useState(null);
-  const [returnTarget, setReturnTarget] = useState("default");
   const [user, setUser] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [reportContext, setReportContext] = useState(null);
@@ -49,7 +48,6 @@ export default function ListingDetailPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setListingId(params.get("id"));
-    setReturnTarget(params.get("from") || "default");
 
     const fetchUser = async () => {
       try {
@@ -835,7 +833,7 @@ export default function ListingDetailPage() {
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button
-                onClick={() => safeBack(navigate, createPageUrl("Home"), returnTarget !== "default" ? createPageUrl(returnTarget) : null)}
+                onClick={() => safeBack(navigate, createPageUrl("Home"))}
                 variant="outline"
                 className="flex-1 rounded-full"
               >
