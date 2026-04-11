@@ -4,33 +4,32 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { formatYarditDateTime } from "@/lib/dateTime";
+import { buildChangeSummary, formatPageArea, getFriendlyActionLabel } from "./adminLogsUtils";
 
-function LogEntry({ log }) {
+function LogEntry({ log, references }) {
   const [expanded, setExpanded] = useState(false);
   const meta = log.metadata ? (() => { try { return JSON.parse(log.metadata); } catch { return log.metadata; } })() : null;
+  const changes = buildChangeSummary(log, references);
 
   return (
     <div className="border-b py-3 last:border-b-0">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-xs font-semibold text-[#2C4F4E]">{log.action_type}</span>
-            <Badge className={log.success ? "bg-green-100 text-green-800 text-[10px]" : "bg-red-100 text-red-800 text-[10px]"}>
-              {log.success ? "Success" : "Failed"}
-            </Badge>
+            <span className="text-xs font-semibold text-[#2C4F4E]">{getFriendlyActionLabel(log)}</span>
+            <Badge className="bg-slate-100 text-slate-700 text-[10px]">Admin Log</Badge>
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
             {formatYarditDateTime(log.created_at || log.created_date, { includeSeconds: true })}
           </p>
-          {(log.target_type || log.target_id) && (
-            <p className="text-xs text-gray-600 mt-1">
-              {log.target_type && <span className="capitalize">{log.target_type}</span>}
-              {log.target_id && <span className="font-mono ml-1">#{log.target_id}</span>}
-            </p>
+          <p className="text-xs text-gray-600 mt-1">{formatPageArea(log.page)}</p>
+          {changes.length > 0 && (
+            <p className="text-xs text-gray-700 mt-1">{changes.map((change) => `${change.field}: ${change.before || "None"} → ${change.after || "None"}`).join(" • ")}</p>
           )}
+          {log.comment && <p className="text-xs text-gray-700 mt-1">{log.comment}</p>}
         </div>
       </div>
-      {meta && (
+      {(meta || log.old_value || log.new_value || log.event_payload) && (
         <div className="mt-1.5">
           <button
             onClick={() => setExpanded(!expanded)}
@@ -41,7 +40,7 @@ function LogEntry({ log }) {
           </button>
           {expanded && (
             <pre className="mt-1 p-2 bg-gray-50 rounded text-[11px] text-gray-700 overflow-x-auto whitespace-pre-wrap break-all">
-              {typeof meta === "string" ? meta : JSON.stringify(meta, null, 2)}
+              {JSON.stringify({ metadata: meta, old_value: log.old_value, new_value: log.new_value, event_payload: log.event_payload }, null, 2)}
             </pre>
           )}
         </div>
@@ -52,19 +51,31 @@ function LogEntry({ log }) {
 
 export default function EmployeeActivityDrawer({ open, onClose, admin }) {
   const [logs, setLogs] = useState([]);
+  const [references, setReferences] = useState({ admins: {}, users: {} });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!open || !admin) return;
     const load = async () => {
       setLoading(true);
-      const [byUser, byEmpId] = await Promise.all([
+      const [byUser, byEmpId, adminActions, adminEvents, adminProfiles] = await Promise.all([
         admin.user_id ? base44.entities.AdminAuditLog.filter({ user_id: admin.user_id }, "-created_date", 100) : Promise.resolve([]),
         base44.entities.AdminAuditLog.filter({ admin_employee_id: admin.employee_id }, "-created_date", 100),
+        admin.user_id ? base44.entities.AdminAction.filter({ admin_id: admin.user_id }, "-created_date", 200).catch(() => []) : Promise.resolve([]),
+        admin.user_id ? base44.entities.AdminEvent.filter({ admin_id: admin.user_id }, "-created_date", 200).catch(() => []) : Promise.resolve([]),
+        base44.entities.AdminProfile.list("-created_date", 200).catch(() => []),
       ]);
-      // Merge and deduplicate by id, newest first
+      const refs = {
+        admins: Object.fromEntries(adminProfiles.map((record) => {
+          const profile = record.data || record;
+          const label = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.email || "Unknown Admin";
+          return [profile.user_id, `${label} – ${profile.employee_id || "No Employee ID"}`];
+        })),
+        users: {},
+      };
+      setReferences(refs);
       const map = new Map();
-      [...byUser, ...byEmpId].forEach(l => map.set(l.id, l));
+      [...byUser, ...byEmpId, ...adminActions, ...adminEvents].forEach(l => map.set(`${l.entity_name || "log"}-${l.id}`, l));
       const merged = Array.from(map.values()).sort(
         (a, b) => new Date(b.created_at || b.created_date) - new Date(a.created_at || a.created_date)
       );
@@ -92,7 +103,7 @@ export default function EmployeeActivityDrawer({ open, onClose, admin }) {
             <p className="text-sm text-gray-500 text-center py-8">No activity found.</p>
           ) : (
             <div className="divide-y-0">
-              {logs.map((log) => <LogEntry key={log.id} log={log} />)}
+              {logs.map((log) => <LogEntry key={`${log.entity_name || 'log'}-${log.id}`} log={log} references={references} />)}
             </div>
           )}
         </div>
