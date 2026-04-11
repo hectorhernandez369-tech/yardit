@@ -38,6 +38,35 @@ function FilterBar({ activeFilter, onFilterChange, showNoise, onToggleNoise }) {
   );
 }
 
+function formatPlainEnglishLabel(key) {
+  const labels = {
+    old_value: "Previous information",
+    new_value: "Updated information",
+    event_payload: "Event details",
+    created_at: "Created at",
+    created_date: "Created on",
+    created_by: "Created by",
+    admin_id: "Admin",
+    admin_employee_id: "Employee ID",
+    action_type: "Action type",
+    event_type: "Event type",
+    case_id: "Case",
+    listing_id: "Listing",
+    target_id: "User",
+    page: "Location",
+    comment: "Comment",
+    metadata: "Extra details",
+  };
+  return labels[key] || String(key).replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatPlainEnglishValue(value) {
+  if (value === null || value === undefined || value === "") return "None";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "object") return JSON.stringify(value, null, 2);
+  return String(value);
+}
+
 function ActivityCard({ log, references }) {
   const [expanded, setExpanded] = React.useState(false);
   const [showTechnical, setShowTechnical] = React.useState(false);
@@ -123,8 +152,21 @@ function ActivityCard({ log, references }) {
                 {showTechnical ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               </button>
               {showTechnical && (
-                <div className="border-t border-slate-200 p-3">
-                  <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2">{JSON.stringify(rawData.raw_json, null, 2)}</pre>
+                <div className="border-t border-slate-200 p-3 space-y-3">
+                  <div className="rounded-lg bg-slate-50 p-3 space-y-2">
+                    {Object.entries(rawData)
+                      .filter(([, value]) => value !== null && value !== undefined)
+                      .map(([key, value]) => (
+                        <div key={key} className="break-words">
+                          <div className="font-medium text-slate-800">{formatPlainEnglishLabel(key)}</div>
+                          <div className="text-slate-600 whitespace-pre-wrap">{formatPlainEnglishValue(value)}</div>
+                        </div>
+                      ))}
+                  </div>
+                  <div>
+                    <div className="font-medium text-slate-800 mb-2">Raw system record</div>
+                    <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2">{JSON.stringify(rawData.raw_json, null, 2)}</pre>
+                  </div>
                 </div>
               )}
             </div>
