@@ -123,10 +123,10 @@ export function buildChangeSummary(log, lookups = {}) {
 
 export function getTargetSummary(log, references = {}) {
   const category = getLogCategory(log);
-  if (log.case_id && references.cases?.[log.case_id]) return `Case ${references.cases[log.case_id]}`;
-  if (log.listing_id && references.listings?.[log.listing_id]) return `Listing ${references.listings[log.listing_id]}`;
-  if (category === "user" && log.target_id && references.users?.[log.target_id]) return `User ${references.users[log.target_id]}`;
-  if (category === "admin" && log.admin_id && references.admins?.[log.admin_id]) return `Admin ${references.admins[log.admin_id]}`;
+  if (log.case_id && references.cases?.[log.case_id]) return `Case: ${references.cases[log.case_id]}`;
+  if (log.listing_id && references.listings?.[log.listing_id]) return `Listing: ${references.listings[log.listing_id]}`;
+  if (category === "user" && log.target_id && references.users?.[log.target_id]) return `User: ${references.users[log.target_id]}`;
+  if (category === "admin" && log.admin_id && references.admins?.[log.admin_id]) return `Admin: ${references.admins[log.admin_id]}`;
   return category === "security" ? "Security / Access" : startCase(category);
 }
 

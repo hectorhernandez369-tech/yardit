@@ -36,10 +36,57 @@ export function getReadableTitle(log) {
   return getFriendlyActionLabel(log);
 }
 
+function getCaseContext(log, references = {}) {
+  const payload = parseJsonSafe(log.event_payload);
+  const caseLabel = log.case_id && references.cases?.[log.case_id] ? `Case: ${references.cases[log.case_id]}` : null;
+  const listingTitle = payload?.listing_title || payload?.listingName || payload?.listing_title_snapshot || (log.listing_id && references.listings?.[log.listing_id]);
+  const listingOwner = payload?.listing_owner_email || payload?.listingOwnerEmail || payload?.owner_email || payload?.listing_owner_name || payload?.owner_name;
+  return [
+    caseLabel,
+    listingTitle ? `Listing: ${listingTitle}` : null,
+    listingOwner ? `Owner: ${listingOwner}` : null,
+  ].filter(Boolean).join(" • ");
+}
+
+function getNoteContext(log) {
+  const payload = parseJsonSafe(log.event_payload);
+  const noteType = payload?.comment_type || payload?.note_type || payload?.type;
+  const noteText = payload?.comment_text || payload?.note || payload?.text || log.comment;
+  const author = payload?.admin_name || payload?.admin_employee_id || payload?.added_by;
+  return [
+    noteType ? `Note Type: ${String(noteType).replaceAll("_", " ")}` : null,
+    noteText ? `Note: ${String(noteText).slice(0, 80)}` : null,
+    author ? `Added By: ${author}` : null,
+  ].filter(Boolean).join(" • ");
+}
+
+function getListingContext(log, references = {}) {
+  const payload = parseJsonSafe(log.event_payload);
+  const listingTitle = payload?.listing_title || payload?.title || (log.listing_id && references.listings?.[log.listing_id]);
+  const listingNumber = payload?.listing_number || payload?.listingNumber;
+  const listingOwner = payload?.listing_owner_email || payload?.owner_email || payload?.listing_owner_name || payload?.owner_name;
+  return [
+    listingTitle ? `Listing: ${listingTitle}` : null,
+    listingNumber ? `ID: ${listingNumber}` : null,
+    listingOwner ? `Owner: ${listingOwner}` : null,
+  ].filter(Boolean).join(" • ");
+}
+
 export function getPreviewText(log, references = {}) {
+  const category = getLogCategory(log);
   const changes = buildChangeSummary(log, references);
   if (changes.length > 0) {
     return changes.slice(0, 2).map((change) => `${change.field}: ${change.before || "—"} → ${change.after || "—"}`).join(" • ");
+  }
+
+  if (category === "case") {
+    const caseContext = getCaseContext(log, references);
+    const noteContext = getNoteContext(log);
+    return [caseContext, noteContext].filter(Boolean).join(" • ") || "Case activity recorded";
+  }
+
+  if (category === "listing") {
+    return getListingContext(log, references) || "Listing activity recorded";
   }
 
   if (log.comment) return log.comment;
@@ -95,10 +142,25 @@ export function groupLogsByDate(logs) {
 }
 
 export function getActivityCardData(log, references = {}) {
+  const payload = parseJsonSafe(log.event_payload);
+  const category = getLogCategory(log);
+
+  let target = getTargetSummary(log, references);
+  if (category === "case" && log.case_id && references.cases?.[log.case_id]) {
+    target = `Case: ${references.cases[log.case_id]}`;
+  }
+  if (category === "listing") {
+    const listingTitle = payload?.listing_title || payload?.title || (log.listing_id && references.listings?.[log.listing_id]);
+    if (listingTitle) target = `Listing: ${listingTitle}`;
+  }
+  if (category === "user" && log.target_id && references.users?.[log.target_id]) {
+    target = `User: ${references.users[log.target_id]}`;
+  }
+
   return {
     title: getReadableTitle(log),
     actor: getActorLabel(log, references),
-    target: getTargetSummary(log, references),
+    target,
     location: formatPageArea(log.page),
     preview: getPreviewText(log, references),
     tone: getBadgeTone(log),

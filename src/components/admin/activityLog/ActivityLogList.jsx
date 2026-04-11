@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { formatYarditDateTime } from "@/lib/dateTime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ function FilterBar({ activeFilter, onFilterChange, showNoise, onToggleNoise }) {
 
 function ActivityCard({ log, references }) {
   const [expanded, setExpanded] = React.useState(false);
+  const [showTechnical, setShowTechnical] = React.useState(false);
   const card = getActivityCardData(log, references);
   const changes = buildChangeSummary(log, references);
   const payload = parseJsonSafe(log.event_payload || log.metadata);
@@ -83,7 +84,7 @@ function ActivityCard({ log, references }) {
           <div className="mt-3 space-y-3 rounded-xl bg-white/70 p-3 text-xs text-slate-700">
             {changes.length > 0 && (
               <div>
-                <div className="font-semibold mb-1">Before / After</div>
+                <div className="font-semibold mb-1">What Changed</div>
                 <div className="space-y-1">
                   {changes.map((change, index) => (
                     <div key={`${change.field}-${index}`} className="rounded-lg bg-slate-50 px-2 py-1.5">
@@ -99,13 +100,33 @@ function ActivityCard({ log, references }) {
             {payload && (
               <div>
                 <div className="font-semibold mb-1">Metadata</div>
-                <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2">{JSON.stringify(payload, null, 2)}</pre>
+                <div className="rounded-lg bg-slate-50 p-2 space-y-1">
+                  {Object.entries(payload).slice(0, 6).map(([key, value]) => (
+                    <div key={key} className="break-words">
+                      <span className="font-medium">{String(key).replaceAll("_", " ")}:</span> {typeof value === "object" ? JSON.stringify(value) : String(value)}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            <div>
-              <div className="font-semibold mb-1">Raw JSON</div>
-              <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2">{JSON.stringify(rawData.raw_json, null, 2)}</pre>
+            <div className="rounded-lg border border-slate-200 bg-white">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setShowTechnical((value) => !value);
+                }}
+                className="flex w-full items-center justify-between px-3 py-2 text-left font-semibold text-slate-700"
+              >
+                <span>Technical Details</span>
+                {showTechnical ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </button>
+              {showTechnical && (
+                <div className="border-t border-slate-200 p-3">
+                  <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2">{JSON.stringify(rawData.raw_json, null, 2)}</pre>
+                </div>
+              )}
             </div>
           </div>
         )}
