@@ -1,65 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { subMonths } from "date-fns";
-import { formatYarditDateTime } from "@/lib/dateTime";
 import { Loader2 } from "lucide-react";
 import UserTrustSafetySummary from "./UserTrustSafetySummary";
-import {
-  buildChangeSummary,
-  formatPageArea,
-  getFriendlyActionLabel,
-  getTargetSummary,
-  parseJsonSafe,
-} from "../adminLogsUtils";
-
-function formatTarget(log, references = {}) {
-  if (log._source === "admin_log") {
-    return getTargetSummary(log, references);
-  }
-
-  if (!log.target_type) return "—";
-  if (!log.target_id) return log.target_type;
-  return `${log.target_type} • ${String(log.target_id).slice(0, 8)}`;
-}
-
-function formatDetails(log, references = {}) {
-  if (log._source === "admin_log") {
-    const changes = buildChangeSummary(log, references);
-    if (changes.length > 0) {
-      return changes.map((change) => `${change.field}: ${change.before || "—"} → ${change.after || "—"}`).join(" • ");
-    }
-
-    if (log.comment) return log.comment;
-
-    const payload = parseJsonSafe(log.event_payload);
-    if (!payload) return "—";
-    if (typeof payload === "string") return payload;
-
-    const preview = Object.entries(payload)
-      .filter(([, value]) => value !== null && value !== undefined && value !== "")
-      .slice(0, 3)
-      .map(([key, value]) => `${key}: ${typeof value === "object" ? JSON.stringify(value) : value}`)
-      .join(" • ");
-
-    return preview || "—";
-  }
-
-  if (log.before_value || log.after_value) {
-    return `${log.before_value || "—"} → ${log.after_value || "—"}`;
-  }
-
-  if (!log.details_json) return "—";
-  if (typeof log.details_json === "string") return log.details_json;
-
-  const preview = Object.entries(log.details_json)
-    .filter(([, value]) => value !== null && value !== undefined && value !== "")
-    .slice(0, 3)
-    .map(([key, value]) => `${key}: ${typeof value === "object" ? JSON.stringify(value) : value}`)
-    .join(" • ");
-
-  return preview || "—";
-}
+import ActivityLogList from "../activityLog/ActivityLogList";
 
 function matchesSelectedUser(log, user) {
   const normalizedEmail = user.email?.toLowerCase?.() || "";
@@ -80,6 +25,8 @@ function matchesSelectedUser(log, user) {
 
 export default function UserActivityLogTab({ user }) {
   const twelveMonthsAgo = subMonths(new Date(), 12).toISOString();
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [showNoise, setShowNoise] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["userActivityLogs", user.id],
@@ -143,39 +90,15 @@ export default function UserActivityLogTab({ user }) {
 
       <div>
         <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wide mb-2">Activity Log</h3>
-        {logs.length === 0 ? (
-          <div className="rounded-md border border-dashed p-6 text-sm text-gray-500">No activity has been logged for this user yet.</div>
-        ) : (
-          <div className="overflow-x-auto rounded-md border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-slate-50 text-left text-gray-600">
-                  <th className="py-2 px-3">Date/Time</th>
-                  <th className="py-2 px-3">Event</th>
-                  <th className="py-2 px-3">Target</th>
-                  <th className="py-2 px-3">Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={`${log._source || "user_log"}-${log.id}`} className="border-b align-top">
-                    <td className="py-2 px-3 whitespace-nowrap">
-                      <div>{formatYarditDateTime(log.created_at || log.created_date)}</div>
-                      {log._source === "admin_log" && (
-                        <div className="text-[11px] text-slate-500">{formatPageArea(log.page)}</div>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 font-medium">
-                      {log._source === "admin_log" ? getFriendlyActionLabel(log) : (log.event_label || log.event_type)}
-                    </td>
-                    <td className="py-2 px-3">{formatTarget(log, references)}</td>
-                    <td className="py-2 px-3 text-gray-600 break-words">{formatDetails(log, references)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <ActivityLogList
+          logs={logs}
+          references={references}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          showNoise={showNoise}
+          onToggleNoise={() => setShowNoise((value) => !value)}
+          emptyText="No activity has been logged for this user yet."
+        />
       </div>
     </div>
   );

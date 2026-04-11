@@ -1,57 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
-import { formatYarditDateTime } from "@/lib/dateTime";
-import { buildChangeSummary, formatPageArea, getFriendlyActionLabel } from "./adminLogsUtils";
-
-function LogEntry({ log, references }) {
-  const [expanded, setExpanded] = useState(false);
-  const meta = log.metadata ? (() => { try { return JSON.parse(log.metadata); } catch { return log.metadata; } })() : null;
-  const changes = buildChangeSummary(log, references);
-
-  return (
-    <div className="border-b py-3 last:border-b-0">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-[#2C4F4E]">{getFriendlyActionLabel(log)}</span>
-            <Badge className="bg-slate-100 text-slate-700 text-[10px]">Admin Log</Badge>
-          </div>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {formatYarditDateTime(log.created_at || log.created_date, { includeSeconds: true })}
-          </p>
-          <p className="text-xs text-gray-600 mt-1">{formatPageArea(log.page)}</p>
-          {changes.length > 0 && (
-            <p className="text-xs text-gray-700 mt-1">{changes.map((change) => `${change.field}: ${change.before || "None"} → ${change.after || "None"}`).join(" • ")}</p>
-          )}
-          {log.comment && <p className="text-xs text-gray-700 mt-1">{log.comment}</p>}
-        </div>
-      </div>
-      {(meta || log.old_value || log.new_value || log.event_payload) && (
-        <div className="mt-1.5">
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-xs text-[#5DADA5] hover:underline flex items-center gap-1"
-          >
-            {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-            View details
-          </button>
-          {expanded && (
-            <pre className="mt-1 p-2 bg-gray-50 rounded text-[11px] text-gray-700 overflow-x-auto whitespace-pre-wrap break-all">
-              {JSON.stringify({ metadata: meta, old_value: log.old_value, new_value: log.new_value, event_payload: log.event_payload }, null, 2)}
-            </pre>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+import { Loader2 } from "lucide-react";
+import ActivityLogList from "./activityLog/ActivityLogList";
 
 export default function EmployeeActivityDrawer({ open, onClose, admin }) {
   const [logs, setLogs] = useState([]);
   const [references, setReferences] = useState({ admins: {}, users: {} });
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [showNoise, setShowNoise] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -99,12 +56,16 @@ export default function EmployeeActivityDrawer({ open, onClose, admin }) {
             <div className="flex justify-center py-12">
               <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
             </div>
-          ) : logs.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-8">No activity found.</p>
           ) : (
-            <div className="divide-y-0">
-              {logs.map((log) => <LogEntry key={`${log.entity_name || 'log'}-${log.id}`} log={log} references={references} />)}
-            </div>
+            <ActivityLogList
+              logs={logs}
+              references={references}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+              showNoise={showNoise}
+              onToggleNoise={() => setShowNoise((value) => !value)}
+              emptyText="No activity found."
+            />
           )}
         </div>
       </SheetContent>

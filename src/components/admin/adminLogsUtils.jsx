@@ -3,7 +3,7 @@ export const LOW_PRIORITY_EVENT_TYPES = ["changed_tab"];
 const ACTION_LABELS = {
   clicked_assign_self: "Assigned Case to Self",
   assign_self: "Case Assigned",
-  changed_tab: "Viewed Admin Tab",
+  changed_tab: "Viewed Queue Tab",
   supervisor_comment: "Added Supervisor Note",
   deactivate_admin: "Deactivated Admin",
   reactivate_admin: "Reactivated Admin",
@@ -134,6 +134,7 @@ export function formatPageArea(page) {
   if (!page) return "Admin Hub";
   if (page === "AdminHub") return "Admin Hub";
   if (page === "case_management") return "Case Management";
+  if (page === "AdminLite") return "Admin Hub";
   return startCase(String(page).replaceAll("_", " "));
 }
 
