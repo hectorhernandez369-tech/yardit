@@ -95,19 +95,20 @@ const neighborhoodParticipantIcon = new L.DivIcon({
 
 const CHEST_ICON_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/1bb335014_file_00000000d7e871f58415b8d892f56c4b.png";
 const chestIconCache = {};
-function getChestIcon(size, count = 0, isSelected = false) {
+function getChestIcon(size, count = 0, isSelected = false, faded = false) {
   const iconSize = Math.min(isSelected ? 36 : 34, Math.max(isSelected ? 32 : 30, Math.round(size)));
   const countLabel = Number(count || 0) > 0 ? String(Math.round(Number(count))) : "";
-  const key = `chest_${iconSize}_${countLabel}_${isSelected ? "selected" : "default"}`;
+  const key = `chest_${iconSize}_${countLabel}_${isSelected ? "selected" : "default"}_${faded ? "faded" : "solid"}`;
   if (!chestIconCache[key]) {
     const badgeSize = Math.max(18, Math.round(iconSize * 0.34));
     const badgeFont = Math.max(10, Math.round(iconSize * 0.22));
     const chestFilter = isSelected
       ? "drop-shadow(0 0 0 rgba(244,168,73,0.75)) drop-shadow(0 4px 10px rgba(0,0,0,0.32))"
       : "drop-shadow(0 3px 6px rgba(0,0,0,0.28))";
+    const chestOpacity = faded ? 0.5 : 1;
     chestIconCache[key] = L.divIcon({
       className: "neighborhood-chest-marker",
-      html: `<div style="position:relative;width:${iconSize}px;height:${iconSize}px;"><img src="${CHEST_ICON_URL}" alt="Neighborhood Sale" style="width:${iconSize}px;height:${iconSize}px;display:block;filter:${chestFilter};" />${countLabel ? `<div style="position:absolute;top:-4px;right:-4px;min-width:${badgeSize}px;height:${badgeSize}px;padding:0 4px;border-radius:9999px;background:rgba(44,79,78,0.96);border:2px solid #F4A849;color:#ffffff;font-weight:700;font-size:${badgeFont}px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.28);">${countLabel}</div>` : ""}</div>`,
+      html: `<div style="position:relative;width:${iconSize}px;height:${iconSize}px;"><img src="${CHEST_ICON_URL}" alt="Neighborhood Sale" style="width:${iconSize}px;height:${iconSize}px;display:block;opacity:${chestOpacity};filter:${chestFilter};" />${countLabel ? `<div style="position:absolute;top:-4px;right:-4px;min-width:${badgeSize}px;height:${badgeSize}px;padding:0 4px;border-radius:9999px;background:rgba(44,79,78,0.96);border:2px solid #F4A849;color:#ffffff;font-weight:700;font-size:${badgeFont}px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.28);opacity:${faded ? 0.72 : 1};">${countLabel}</div>` : ""}</div>`,
       iconSize: [iconSize, iconSize],
       iconAnchor: [iconSize / 2, iconSize],
       popupAnchor: [0, -Math.round(iconSize * 0.86)],
@@ -120,6 +121,7 @@ function getChestIcon(size, count = 0, isSelected = false) {
 const createIcon = (type, tier, isSelected, location) => {
   const preAct = isPreActivated(location);
   const opacity = preAct ? 0.6 : 1.0;
+  const isOwnerPendingPreview = type === "neighborhood_sale" && location?.ownerPreviewPending === true;
 
   if (type === "event") {
     return getEventMarkerIcon(location, isSelected);
@@ -132,7 +134,7 @@ const createIcon = (type, tier, isSelected, location) => {
     else if (count >= 12) scale = 1.2;
     else if (count >= 5) scale = 1.05;
     const chestSize = 30 * scale + (isSelected ? 2 : 0);
-    return getChestIcon(chestSize, count, isSelected);
+    return getChestIcon(chestSize, count, isSelected, isOwnerPendingPreview);
   }
 
   let fill = "#6b7280";
@@ -737,8 +739,9 @@ export default function HomePage() {
       if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
 
       if (listing.listingType === "neighborhood_sale") {
+        const isOwnerPendingPreview = user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, now) === "pending_activation";
         const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
-        if (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now)) return false;
+        if (!isOwnerPendingPreview && (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now))) return false;
 
         const start = new Date(listing.startDateTime);
         const end = new Date(listing.endDateTime);
@@ -765,7 +768,7 @@ export default function HomePage() {
     }
 
     return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
-  }, [listings, filter, searchQuery, selectedCategories, demoOn]);
+  }, [listings, filter, searchQuery, selectedCategories, demoOn, user]);
 
   const listViewListings = useMemo(() => {
     const now = new Date();
@@ -1107,9 +1110,10 @@ const stats = useMemo(() => {
                const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
                const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
                const marqueeState = openMarqueeIds[listing.id]; // "collapsed"|"expanded"|false|undefined
+               const ownerPreviewPending = listing.listingType === "neighborhood_sale" && user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, new Date()) === "pending_activation";
                // Marquee open if zoom is sufficient AND state is not explicitly "false" and state is not undefined
                const marqueeOpen = isMarquee && currentZoom >= MARQUEE_OPEN_MIN_ZOOM && marqueeState !== false && marqueeState !== undefined;
-                
+
                 return (
                   <Marker
                     key={listing.id}
@@ -1129,6 +1133,13 @@ const stats = useMemo(() => {
                       popupclose: () => setSelectedListingId((current) => current === listing.id ? null : current),
                     }}
                   >
+                    {ownerPreviewPending && typeof listing.event_center_lat === "number" && typeof listing.event_center_lng === "number" && (
+                      <Circle
+                        center={[listing.event_center_lat, listing.event_center_lng]}
+                        radius={152.4}
+                        pathOptions={{ color: '#059669', weight: 2, fillColor: '#10b981', fillOpacity: 0.08 }}
+                      />
+                    )}
                     {!isMarquee && (
                       <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]}>
                         <div className="flex flex-col" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
