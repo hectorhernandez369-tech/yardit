@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { formatYarditDateTime } from "@/lib/dateTime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { ACTIVITY_FILTERS, getActivityCardData, groupLogsByDate, matchesFilter } from "./logUiUtils";
 import { buildChangeSummary, parseJsonSafe } from "../adminLogsUtils";
 
@@ -67,7 +67,7 @@ function formatPlainEnglishValue(value) {
   return String(value);
 }
 
-function ActivityCard({ log, references }) {
+function ActivityCard({ log, references, onViewCase }) {
   const [expanded, setExpanded] = React.useState(false);
   const [showTechnical, setShowTechnical] = React.useState(false);
   const card = getActivityCardData(log, references);
@@ -82,6 +82,7 @@ function ActivityCard({ log, references }) {
       event_payload: parseJsonSafe(log.event_payload),
     },
   };
+  const caseId = log.case_id || payload?.case_id || payload?.caseId || null;
 
   return (
     <button
@@ -139,6 +140,24 @@ function ActivityCard({ log, references }) {
               </div>
             )}
 
+            {caseId && onViewCase && (
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onViewCase(caseId);
+                  }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  View Case
+                </Button>
+              </div>
+            )}
+
             <div className="rounded-lg border border-slate-200 bg-white">
               <button
                 type="button"
@@ -177,7 +196,7 @@ function ActivityCard({ log, references }) {
   );
 }
 
-export default function ActivityLogList({ logs, references, activeFilter, onFilterChange, showNoise, onToggleNoise, emptyText = "No activity found." }) {
+export default function ActivityLogList({ logs, references, activeFilter, onFilterChange, showNoise, onToggleNoise, emptyText = "No activity found.", onViewCase }) {
   const visibleLogs = logs.filter((log) => matchesFilter(log, activeFilter)).filter((log) => showNoise || !getActivityCardData(log, references).isNoise);
   const groups = groupLogsByDate(visibleLogs);
 
@@ -201,7 +220,7 @@ export default function ActivityLogList({ logs, references, activeFilter, onFilt
               </div>
               <div className="space-y-3">
                 {group.logs.map((log) => (
-                  <ActivityCard key={`${log._source || "log"}-${log.id}`} log={log} references={references} />
+                  <ActivityCard key={`${log._source || "log"}-${log.id}`} log={log} references={references} onViewCase={onViewCase} />
                 ))}
               </div>
             </div>

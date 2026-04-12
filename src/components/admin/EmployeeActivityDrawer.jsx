@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import ActivityLogList from "./activityLog/ActivityLogList";
 
 export default function EmployeeActivityDrawer({ open, onClose, admin }) {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [references, setReferences] = useState({ admins: {}, users: {} });
   const [activeFilter, setActiveFilter] = useState("all");
@@ -65,6 +67,7 @@ export default function EmployeeActivityDrawer({ open, onClose, admin }) {
               showNoise={showNoise}
               onToggleNoise={() => setShowNoise((value) => !value)}
               emptyText="No activity found."
+              onViewCase={(caseId) => navigate(`/CaseManagement?caseId=${caseId}`)}
             />
           )}
         </div>
