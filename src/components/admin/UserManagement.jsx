@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Eye } from "lucide-react";
+import { Search, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import UserDetailDrawer from "./userDetail/UserDetailDrawer";
+import DeleteUserDialog from "./DeleteUserDialog";
 
 export default function UserManagement() {
   const location = useLocation();
@@ -17,12 +18,13 @@ export default function UserManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [adminUser, setAdminUser] = useState(null);
+  const [deletingUser, setDeletingUser] = useState(null);
 
   useEffect(() => {
     base44.auth.me().then(setAdminUser).catch(() => {});
   }, []);
 
-  const { data: users, isLoading } = useQuery({
+  const { data: users } = useQuery({
     queryKey: ["allUsers"],
     queryFn: () => base44.entities.User.list("-created_date"),
     initialData: [],
@@ -115,6 +117,14 @@ export default function UserManagement() {
                   >
                     <Eye className="w-3 h-3" /> View More Details
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={() => setDeletingUser(user)}
+                  >
+                    <Trash2 className="w-3 h-3" /> Delete User
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -129,6 +139,17 @@ export default function UserManagement() {
         onClose={() => setSelectedUser(null)}
         onUserUpdated={(updatedUser) => {
           setSelectedUser(updatedUser);
+          queryClient.invalidateQueries({ queryKey: ["allUsers"] });
+        }}
+      />
+
+      <DeleteUserDialog
+        open={!!deletingUser}
+        onClose={() => setDeletingUser(null)}
+        user={deletingUser}
+        adminUser={adminUser}
+        onDeleted={() => {
+          setDeletingUser(null);
           queryClient.invalidateQueries({ queryKey: ["allUsers"] });
         }}
       />

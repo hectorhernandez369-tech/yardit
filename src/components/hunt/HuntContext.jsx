@@ -4,18 +4,25 @@ import { toast } from "sonner";
 export const HUNT_ENABLED = true;
 export const MAPBOX_ROUTE_ENABLED = true;
 
-const HuntContext = createContext();
+const HuntContext = createContext(null);
+
+function calcDist(lat1, lon1, lat2, lon2) {
+  const R = 3959;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 export function useHunt() {
   return useContext(HuntContext);
 }
 
 export function HuntProvider({ children }) {
-  if (!HUNT_ENABLED) {
-    return <>{children}</>;
-  }
-
-  // Persisted state
   const [huntStops, setHuntStops] = useState(() => {
     try {
       const saved = localStorage.getItem('yardit_hunt_stops');
@@ -24,12 +31,7 @@ export function HuntProvider({ children }) {
       return [];
     }
   });
-
-  const [integrityAccepted, setIntegrityAccepted] = useState(() => {
-    return localStorage.getItem('yardit_hunt_integrity') === 'true';
-  });
-
-  // Session state
+  const [integrityAccepted, setIntegrityAccepted] = useState(() => localStorage.getItem('yardit_hunt_integrity') === 'true');
   const [huntMode, setHuntMode] = useState(false);
   const [yardsailActive, setYardsailActive] = useState(false);
   const [gpsLocation, setGpsLocation] = useState(null);
@@ -38,26 +40,27 @@ export function HuntProvider({ children }) {
   const [routeDirty, setRouteDirty] = useState(false);
   const watchIdRef = useRef(null);
 
-  // Persistence effects
   useEffect(() => {
+    if (!HUNT_ENABLED) return;
     localStorage.setItem('yardit_hunt_stops', JSON.stringify(huntStops));
   }, [huntStops]);
 
   useEffect(() => {
-    localStorage.setItem('yardit_hunt_integrity', integrityAccepted);
+    if (!HUNT_ENABLED) return;
+    localStorage.setItem('yardit_hunt_integrity', String(integrityAccepted));
   }, [integrityAccepted]);
 
-  // GPS Watcher
   useEffect(() => {
+    if (!HUNT_ENABLED) return undefined;
+
     if (huntMode && navigator.geolocation) {
-      console.log("Starting Hunt GPS Watcher");
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
           setGpsLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude,
             accuracy: position.coords.accuracy,
-            heading: position.coords.heading
+            heading: position.coords.heading,
           });
         },
         (error) => {
@@ -66,282 +69,221 @@ export function HuntProvider({ children }) {
         {
           enableHighAccuracy: true,
           maximumAge: 10000,
-          timeout: 5000
+          timeout: 5000,
         }
       );
     } else {
-      if (watchIdRef.current !== null) {
-        console.log("Stopping Hunt GPS Watcher");
+      if (watchIdRef.current !== null && navigator.geolocation) {
         navigator.geolocation.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
       }
+      watchIdRef.current = null;
       setGpsLocation(null);
     }
 
     return () => {
-      if (watchIdRef.current !== null) {
+      if (watchIdRef.current !== null && navigator.geolocation) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
+      watchIdRef.current = null;
     };
   }, [huntMode]);
 
-  // Actions
   const addToHunt = useCallback((listing) => {
+    if (!HUNT_ENABLED) return;
     setRouteDirty(true);
-    setHuntStops(prev => {
-      if (prev.some(s => s.id === listing.id)) {
+    setHuntStops((prev) => {
+      if (prev.some((stop) => stop.id === listing.id)) {
         toast.info("Already in your hunt!");
         return prev;
       }
-      // Store minimal data + status
-      const newStop = {
-        ...listing, // Keep full listing data for display
-        huntStatus: 'not_started', // not_started, arrived, completed
-        addedAt: new Date().toISOString()
-      };
       toast.success("Added to Hunt!");
-      return [...prev, newStop];
+      return [
+        ...prev,
+        {
+          ...listing,
+          huntStatus: 'not_started',
+          addedAt: new Date().toISOString(),
+        },
+      ];
     });
   }, []);
 
   const removeFromHunt = useCallback((listingId) => {
+    if (!HUNT_ENABLED) return;
     setRouteDirty(true);
-    setHuntStops(prev => prev.filter(s => s.id !== listingId));
+    setHuntStops((prev) => prev.filter((stop) => stop.id !== listingId));
     toast.success("Removed from Hunt");
   }, []);
 
   const updateStopStatus = useCallback((listingId, status) => {
+    if (!HUNT_ENABLED) return;
     setRouteDirty(true);
-    setHuntStops(prev => {
-      const updated = prev.map(s => 
-        s.id === listingId ? { ...s, huntStatus: status } : s
-      );
-      if (status === 'completed' && updated.length >= 3) {
-        // Recalculate order when marked completed
-        const unvisited = [...updated];
-        const start = unvisited.shift();
-        const optimized = [start];
-        while (unvisited.length > 0) {
-          const current = optimized[optimized.length - 1];
-          let nearestIdx = -1;
-          let minDist = Infinity;
-          for (let i = 0; i < unvisited.length; i++) {
-            const d = calcDist(current.lat, current.lng, unvisited[i].lat, unvisited[i].lng);
-            if (d < minDist) {
-              minDist = d;
-              nearestIdx = i;
-            }
-          }
-          optimized.push(unvisited[nearestIdx]);
-          unvisited.splice(nearestIdx, 1)[0];
-        }
-        return optimized;
-      }
-      return updated;
-    });
+    setHuntStops((prev) => prev.map((stop) => (
+      stop.id === listingId ? { ...stop, huntStatus: status } : stop
+    )));
   }, []);
 
   const acceptIntegrityNotice = useCallback(() => {
+    if (!HUNT_ENABLED) return;
     setIntegrityAccepted(true);
   }, []);
 
   const clearHunt = useCallback(() => {
-    if (confirm("Clear all stops from your hunt?")) {
-      setHuntStops([]);
-      setHuntMode(false);
-      setYardsailActive(false);
-      setRouteCoords(null);
-      setRouteMeta(null);
-      setRouteDirty(false);
-      toast.success("Hunt cleared");
-    }
+    if (!HUNT_ENABLED) return;
+    if (!window.confirm("Clear all stops from your hunt?")) return;
+    setHuntStops([]);
+    setHuntMode(false);
+    setYardsailActive(false);
+    setRouteCoords(null);
+    setRouteMeta(null);
+    setRouteDirty(false);
+    toast.success("Hunt cleared");
   }, []);
 
-  // Route calculation (Simple "as the crow flies" total distance)
-  // In a real app we might optimize order, but per requirements we only recalc on demand
   const getTotalDistance = useCallback(() => {
-    if (huntStops.length < 2) return 0;
+    if (!HUNT_ENABLED || huntStops.length < 2) return 0;
     let total = 0;
-    for (let i = 0; i < huntStops.length - 1; i++) {
-      // Using a simple haversine or similar helper
-      const dist = calcDist(
-        huntStops[i].lat, huntStops[i].lng,
-        huntStops[i+1].lat, huntStops[i+1].lng
+    for (let i = 0; i < huntStops.length - 1; i += 1) {
+      total += calcDist(
+        huntStops[i].lat,
+        huntStops[i].lng,
+        huntStops[i + 1].lat,
+        huntStops[i + 1].lng
       );
-      total += dist;
     }
-    return total; // in miles/km depending on calcDist
+    return total;
   }, [huntStops]);
 
-  // Simple distance calc (Haversine approx)
-  const calcDist = (lat1, lon1, lat2, lon2) => {
-    const R = 3959; // Radius of Earth in miles
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  };
-
   const reorderStops = useCallback((newOrder) => {
-      setRouteDirty(true);
-      setHuntStops(newOrder);
+    if (!HUNT_ENABLED) return;
+    setRouteDirty(true);
+    setHuntStops(newOrder);
   }, []);
 
   const fetchRoute = useCallback(async (origin, stops) => {
-    if (!MAPBOX_ROUTE_ENABLED) return;
+    if (!HUNT_ENABLED || !MAPBOX_ROUTE_ENABLED) return;
 
-    // Separate active and inactive stops
-    const activeStops = stops.filter(s => s.huntStatus !== "completed" && s.huntStatus !== "skipped");
-    const inactiveStops = stops.filter(s => s.huntStatus === "completed" || s.huntStatus === "skipped");
-
-    // Nearest Neighbor Ordering
+    const activeStops = stops.filter((stop) => stop.huntStatus !== 'completed' && stop.huntStatus !== 'skipped');
+    const inactiveStops = stops.filter((stop) => stop.huntStatus === 'completed' || stop.huntStatus === 'skipped');
     const unvisited = [...activeStops];
-    let currentPos = origin || (activeStops.length > 0 ? { lat: activeStops[0].lat, lng: activeStops[0].lng } : null);
+    let currentPos = origin || (activeStops[0] ? { lat: activeStops[0].lat, lng: activeStops[0].lng } : null);
     const orderedActive = [];
 
-    if (currentPos) {
-      while (unvisited.length > 0) {
-        let nearestIdx = -1;
-        let minDist = Infinity;
-
-        for (let i = 0; i < unvisited.length; i++) {
-          const d = calcDist(currentPos.lat, currentPos.lng, unvisited[i].lat, unvisited[i].lng);
-          if (d < minDist) {
-            minDist = d;
-            nearestIdx = i;
-          }
+    while (currentPos && unvisited.length > 0) {
+      let nearestIdx = 0;
+      let minDist = Infinity;
+      for (let i = 0; i < unvisited.length; i += 1) {
+        const dist = calcDist(currentPos.lat, currentPos.lng, unvisited[i].lat, unvisited[i].lng);
+        if (dist < minDist) {
+          minDist = dist;
+          nearestIdx = i;
         }
-        const nearest = unvisited.splice(nearestIdx, 1)[0];
-        orderedActive.push(nearest);
-        currentPos = nearest;
       }
+      const nearest = unvisited.splice(nearestIdx, 1)[0];
+      orderedActive.push(nearest);
+      currentPos = nearest;
     }
 
-    // Apply new order
     const newlyOrderedStops = [...orderedActive, ...inactiveStops];
     setHuntStops(newlyOrderedStops);
 
     if (orderedActive.length < 2) {
+      setRouteCoords(null);
+      return;
+    }
+
+    const MAX_WAYPOINTS = 10;
+    const targetStops = orderedActive.slice(0, MAX_WAYPOINTS);
+    const coords = [];
+    if (origin) coords.push([origin.lng, origin.lat]);
+    targetStops.forEach((stop) => coords.push([stop.lng, stop.lat]));
+    if (coords.length < 2) return;
+
+    const stopIds = targetStops.map((stop) => stop.id).join(',');
+    const originKey = origin ? `${origin.lat.toFixed(5)},${origin.lng.toFixed(5)}` : 'no-origin';
+    const cacheKey = `${originKey}|${stopIds}`;
+
+    if (routeMeta?.cacheKey === cacheKey && Date.now() - routeMeta.lastBuiltAt < 30000) {
       return;
     }
 
     const token = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
-    console.log("Mapbox token exists:", !!token);
-    if (!token) {
-      toast.error("Mapbox token missing — using fallback line");
-      return;
-    }
-    
-    // Waypoint Limit Guard: Route only first 10 active stops
-    const MAX_WAYPOINTS = 10;
-    const targetStops = orderedActive.slice(0, MAX_WAYPOINTS);
-    
-    if (targetStops.length === 0 && !origin) return;
+    if (!token) return;
 
-    // Construct coordinates: origin first, then stops
-    const coords = [];
-    if (origin) coords.push([origin.lng, origin.lat]);
-    targetStops.forEach(s => coords.push([s.lng, s.lat]));
-    
-    if (coords.length < 2) return;
-
-    // Cache Key Check (simple prevention of spamming same route)
-    const stopIds = targetStops.map(s => s.id).join(',');
-    const originKey = origin ? `${origin.lat.toFixed(5)},${origin.lng.toFixed(5)}` : 'no-origin';
-    const cacheKey = `${originKey}|${stopIds}`;
-    
-    if (routeMeta && routeMeta.cacheKey === cacheKey && (Date.now() - routeMeta.lastBuiltAt < 30000)) {
-        console.log("Using cached route");
-        return; 
-    }
-
-    const coordsString = coords.map(c => c.join(',')).join(';');
+    const coordsString = coords.map((coord) => coord.join(',')).join(';');
     const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsString}?geometries=geojson&overview=full&steps=false&access_token=${token}`;
 
     try {
-        console.log("Mapbox route request started");
-        const res = await fetch(url);
-        console.log("Mapbox response status:", res.status);
-        
-        if (!res.ok) {
-            const bodyText = await res.text();
-            console.error("Mapbox error response:", bodyText);
-            return;
-        }
-
-        const data = await res.json();
-        if (data.routes && data.routes.length > 0) {
-            const geo = data.routes[0].geometry;
-            if (geo && geo.coordinates) {
-                const routeCoordsNormalized = geo.coordinates.map(c => [c[1], c[0]]); // [lat, lng]
-                setRouteCoords(routeCoordsNormalized);
-                setRouteDirty(false);
-                console.log("Mapbox route success. Coordinates count:", routeCoordsNormalized.length);
-            }
-            setRouteMeta({
-                lastBuiltAt: Date.now(),
-                cacheKey,
-                stopIdsUsed: targetStops.map(s => s.id),
-                originUsed: origin
-            });
-        }
-    } catch (e) {
-        console.error("Mapbox Route Error", e);
-        // Graceful failure: routeCoords remains null/stale, fallback UI will show dashed line
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = await res.json();
+      const geometry = data.routes?.[0]?.geometry;
+      if (geometry?.coordinates) {
+        setRouteCoords(geometry.coordinates.map((coord) => [coord[1], coord[0]]));
+        setRouteDirty(false);
+        setRouteMeta({
+          lastBuiltAt: Date.now(),
+          cacheKey,
+          stopIdsUsed: targetStops.map((stop) => stop.id),
+          originUsed: origin,
+        });
+      }
+    } catch (error) {
+      console.error("Mapbox Route Error", error);
     }
   }, [routeMeta]);
 
-  return (
-    <HuntContext.Provider value={{
-      huntStops,
-      huntMode,
-      setHuntMode,
-      yardsailActive,
-      setYardsailActive,
-      gpsLocation,
-      integrityAccepted,
-      acceptIntegrityNotice,
-      addToHunt,
-      removeFromHunt,
-      updateStopStatus,
-      clearHunt,
-      getTotalDistance,
-      reorderStops,
-      routeCoords,
-      routeMeta,
-      routeDirty,
-      fetchRoute,
-      optimizeRoute: () => {
-        setRouteDirty(true);
-        if (huntStops.length < 3) return;
-        const unvisited = [...huntStops];
-        const start = unvisited.shift();
-        const optimized = [start];
+  const optimizeRoute = useCallback(() => {
+    if (!HUNT_ENABLED || huntStops.length < 3) return;
+    const unvisited = [...huntStops];
+    const start = unvisited.shift();
+    if (!start) return;
+    const optimized = [start];
 
-        while (unvisited.length > 0) {
-          const current = optimized[optimized.length - 1];
-          let nearestIdx = -1;
-          let minDist = Infinity;
-
-          for (let i = 0; i < unvisited.length; i++) {
-            const d = calcDist(current.lat, current.lng, unvisited[i].lat, unvisited[i].lng);
-            if (d < minDist) {
-              minDist = d;
-              nearestIdx = i;
-            }
-          }
-          optimized.push(unvisited[nearestIdx]);
-          unvisited.splice(nearestIdx, 1)[0];
+    while (unvisited.length > 0) {
+      const current = optimized[optimized.length - 1];
+      let nearestIdx = 0;
+      let minDist = Infinity;
+      for (let i = 0; i < unvisited.length; i += 1) {
+        const dist = calcDist(current.lat, current.lng, unvisited[i].lat, unvisited[i].lng);
+        if (dist < minDist) {
+          minDist = dist;
+          nearestIdx = i;
         }
-        setHuntStops(optimized);
-        toast.success("Route optimized!");
       }
-    }}>
-      {children}
-    </HuntContext.Provider>
-  );
+      optimized.push(unvisited.splice(nearestIdx, 1)[0]);
+    }
+
+    setRouteDirty(true);
+    setHuntStops(optimized);
+    toast.success("Route optimized!");
+  }, [huntStops]);
+
+  const value = {
+    huntStops,
+    huntMode,
+    setHuntMode,
+    yardsailActive,
+    setYardsailActive,
+    gpsLocation,
+    integrityAccepted,
+    acceptIntegrityNotice,
+    addToHunt,
+    removeFromHunt,
+    updateStopStatus,
+    clearHunt,
+    getTotalDistance,
+    reorderStops,
+    routeCoords,
+    routeMeta,
+    routeDirty,
+    fetchRoute,
+    optimizeRoute,
+  };
+
+  if (!HUNT_ENABLED) {
+    return <>{children}</>;
+  }
+
+  return <HuntContext.Provider value={value}>{children}</HuntContext.Provider>;
 }
