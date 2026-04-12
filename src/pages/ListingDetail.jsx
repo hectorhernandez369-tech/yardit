@@ -31,6 +31,7 @@ import { getListingNumber, getOwnerDisplayName } from "@/components/listing/list
 import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 import { formatEventTierLabel } from "@/lib/eventListingConfig";
 import { formatMarqueeSlotTime, normalizeMarqueeSlots } from "@/lib/marqueeSchedule";
+import NeighborhoodSalePreviewMap from "@/components/neighborhood/NeighborhoodSalePreviewMap";
 
 export default function ListingDetailPage() {
   const navigate = useNavigate();
@@ -100,6 +101,8 @@ export default function ListingDetailPage() {
   const pendingRequests = joinRequests?.filter(r => r.status === "pending") || [];
   const approvedRequests = joinRequests?.filter(r => r.status === "approved" && r.removed_by_eo !== true) || [];
   const removedRequests = joinRequests?.filter(r => r.removed_by_eo === true) || [];
+  const approvedHomesCount = 1 + approvedRequests.length;
+  const availableSpots = Math.max(0, 25 - approvedHomesCount);
   const formatAddress = (item) => {
     const base = [item.address_text || item.addressText || "Address unavailable", item.city, item.state].filter(Boolean).join(", ");
     return item.zip ? `${base} ${item.zip}` : base;
@@ -571,9 +574,18 @@ export default function ListingDetailPage() {
                   </Button>
                 </div>
 
-                <div className="bg-white/70 border border-emerald-200 rounded-lg p-3">
+                <div className="bg-white/70 border border-emerald-200 rounded-lg p-3 space-y-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Main Event Address</p>
                   <p className="text-sm text-emerald-950 font-medium">{eventAddress}</p>
+                  <NeighborhoodSalePreviewMap lat={listing.event_center_lat} lng={listing.event_center_lng} />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
+                      Homes Joined: {approvedHomesCount} / 25
+                    </div>
+                    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
+                      {availableSpots === 0 ? "Neighborhood Sale is full" : `Available Spots: ${availableSpots} left`}
+                    </div>
+                  </div>
                 </div>
 
                 {user && user.id === listing.ownerUserId && salePricing && (

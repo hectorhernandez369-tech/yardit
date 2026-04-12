@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
+import NeighborhoodSalePreviewMap from "@/components/neighborhood/NeighborhoodSalePreviewMap";
 
 function buildListingNumber(state = "XX", zip = "0000") {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -63,6 +64,16 @@ export default function JoinNeighborhoodSale() {
       return await base44.entities.Listing.filter({ ownerUserId: user.id });
     },
     enabled: !!user?.id,
+    initialData: [],
+  });
+
+  const { data: participantRequests = [] } = useQuery({
+    queryKey: ["neighborhood_participant_requests", sale?.id],
+    queryFn: async () => {
+      if (!sale?.id) return [];
+      return await base44.entities.JoinRequest.filter({ saleListingId: sale.id });
+    },
+    enabled: !!sale?.id,
     initialData: [],
   });
 
@@ -183,6 +194,9 @@ export default function JoinNeighborhoodSale() {
   const activeRequest = existingRequests.find((request) => ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status)));
   const missingConfirmedAddress = user && (!user.street_address || !user.city || !user.state || !user.zip_code || !user.address_lat || !user.address_lng);
   const hasBlockingResidentialListing = existingListings.some((listing) => listing.listingType !== "neighborhood_sale" && listing.status === "active" && !listing.neighborhood_sale_id && normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "none");
+  const approvedHomesCount = 1 + participantRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === "approved" && request.removed_by_eo !== true).length;
+  const availableSpots = Math.max(0, 25 - approvedHomesCount);
+  const isFull = availableSpots === 0;
 
   const handleSignIn = () => {
     const nextUrl = window.location.pathname + window.location.search;
@@ -218,6 +232,18 @@ export default function JoinNeighborhoodSale() {
           <div className="p-3 bg-white/60 border border-[#2C4F4E]/20 rounded-md text-sm text-[#2C4F4E]">
             Joining from this invite link creates a free Neighborhood participant listing using your confirmed address.
           </div>
+
+          <div className="space-y-3">
+            <NeighborhoodSalePreviewMap lat={sale.event_center_lat} lng={sale.event_center_lng} />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
+                Homes Joined: {approvedHomesCount} / 25
+              </div>
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
+                {isFull ? "Neighborhood Sale is full" : `Available Spots: ${availableSpots} left`}
+              </div>
+            </div>
+          </div>
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-900 text-sm font-medium">
             If this Neighborhood Sale is canceled or your participation is removed, you will need to create a normal listing to appear independently.
           </div>
@@ -248,10 +274,10 @@ export default function JoinNeighborhoodSale() {
           ) : (
             <Button
               onClick={handleRequest}
-              disabled={!!activeRequest || missingConfirmedAddress || hasBlockingResidentialListing || requestMutation.isPending || sale.ownerUserId === user.id}
+              disabled={isFull || !!activeRequest || missingConfirmedAddress || hasBlockingResidentialListing || requestMutation.isPending || sale.ownerUserId === user.id}
               className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-bold disabled:opacity-50"
             >
-              {requestMutation.isPending ? "Sending..." : activeRequest ? "Request sent" : "Join Neighborhood Sale"}
+              {requestMutation.isPending ? "Sending..." : isFull ? "Neighborhood Sale is full" : activeRequest ? "Request sent" : "Join Neighborhood Sale"}
             </Button>
           )}
         </CardFooter>
