@@ -348,6 +348,15 @@ export default function CreateListingPage() {
         toast.success("Event relist loaded — review your details and continue");
       } else {
         // Yard sale / neighborhood sale relist: jump straight to step 3
+        let relistTimeZoneId = pre.timeZoneId || "";
+        if (!relistTimeZoneId && typeof pre.lat === "number" && typeof pre.lng === "number") {
+          try {
+            relistTimeZoneId = tzLookup(pre.lat, pre.lng) || "";
+          } catch {
+            relistTimeZoneId = "";
+          }
+        }
+
         setFormData((prev) => ({
           ...prev,
           ...pre,
@@ -360,8 +369,9 @@ export default function CreateListingPage() {
           lng: pre.lng ?? null,
           event_center_lat: pre.lat ?? null,
           event_center_lng: pre.lng ?? null,
+          timeZoneId: relistTimeZoneId,
 
-          tier: "",
+          tier: pre.tier || "free",
           startDateTime: "",
           endDateTime: "",
           selectedRangeStartDate: "",
