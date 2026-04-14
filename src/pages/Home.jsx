@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ListView from "../components/home/ListView";
 import { useAppMode } from "../components/shared/DemoMode";
@@ -373,6 +373,7 @@ export default function HomePage() {
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const queryClient = useQueryClient();
   
   const huntContext = useHunt() || { 
     huntStops: [], 
@@ -597,6 +598,14 @@ export default function HomePage() {
     initialData: [],
   });
 
+  useEffect(() => {
+    const unsubscribe = base44.entities.Listing.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
+    });
+
+    return unsubscribe;
+  }, [queryClient]);
+
   // Map movement on city search
   useEffect(() => {
     if (!searchQuery) return;
@@ -760,6 +769,8 @@ export default function HomePage() {
 
     const baseListings = listings
       .map((listing) => {
+        if (listing.status !== "active") return null;
+        if (listing.status === "cancelled") return null;
         if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return null;
         if (!isFinite(listing.lat) || !isFinite(listing.lng)) return null;
 
@@ -806,6 +817,8 @@ export default function HomePage() {
     const demo = demoOn;
 
     const baseListings = listings.filter((l) => {
+      if (l.status !== "active") return false;
+      if (l.status === "cancelled") return false;
       if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
       if (!isFinite(l.lat) || !isFinite(l.lng)) return false;
 
