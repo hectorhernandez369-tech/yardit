@@ -768,7 +768,7 @@ export default function HomePage() {
         if (listing.listingType === "neighborhood_sale") {
           const isOwnerPendingPreview = user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, now) === "pending_activation";
           const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
-          if (!isOwnerPendingPreview && (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now))) return null;
+          if (!isOwnerPendingPreview && !ownerUpcomingPreview && (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now))) return null;
 
           const start = new Date(listing.startDateTime);
           const end = new Date(listing.endDateTime);
@@ -842,11 +842,12 @@ export default function HomePage() {
   }, [listings, searchQuery, selectedCategories, demoOn]);
 
 const stats = useMemo(() => {
+  const publicListings = eligibleListings.filter((l) => !l.ownerUpcomingPreview);
   return {
-    total: eligibleListings.length,
-    yard_sale: eligibleListings.filter((l) => l.listingType === "yard_sale").length,
-    neighborhood_sale: eligibleListings.filter((l) => l.listingType === "neighborhood_sale").length,
-    event: eligibleListings.filter((l) => l.listingType === "event").length,
+    total: publicListings.length,
+    yard_sale: publicListings.filter((l) => l.listingType === "yard_sale").length,
+    neighborhood_sale: publicListings.filter((l) => l.listingType === "neighborhood_sale").length,
+    event: publicListings.filter((l) => l.listingType === "event").length,
   };
 }, [eligibleListings]);
 
@@ -1242,7 +1243,7 @@ const stats = useMemo(() => {
                                   Report
                                 </Button>
                                 <div className="ml-auto flex gap-1">
-                                  {listing.listingType !== "event" && HUNT_ENABLED && (() => {
+                                  {!ownerUpcomingPreview && listing.listingType !== "event" && HUNT_ENABLED && (() => {
                                     const huntStop = huntStops.find(s => s.id === listing.id);
                                     
                                     if (!huntStop) {
