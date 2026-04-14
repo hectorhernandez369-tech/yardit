@@ -769,7 +769,6 @@ export default function HomePage() {
 
     const baseListings = listings
       .map((listing) => {
-        if (listing.status !== "active") return null;
         if (listing.status === "cancelled") return null;
         if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return null;
         if (!isFinite(listing.lat) || !isFinite(listing.lng)) return null;
@@ -778,6 +777,7 @@ export default function HomePage() {
 
         if (listing.listingType === "neighborhood_sale") {
           const isOwnerPendingPreview = user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, now) === "pending_activation";
+          if (!isOwnerPendingPreview && listing.status !== "active") return null;
           const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
           if (!isOwnerPendingPreview && !ownerUpcomingPreview && (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now))) return null;
 
