@@ -26,6 +26,8 @@ import {
   shouldShowListingInNeighborhoodParticipantView,
   shouldShowListingOnMainMap,
 } from "@/lib/neighborhoodSaleState";
+
+const UPCOMING_PREVIEW_LABEL = "COMING SOON";
 import CheckInButton from "../components/map/CheckInButton";
 import { toast } from "sonner";
 import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
@@ -253,6 +255,28 @@ function isWithinViewingHours(startTime, endTime) {
   }
   
   return currentMinutes >= startTotal && currentMinutes <= endTotal;
+}
+
+function isUpcomingOwnerPreview(listing, user, now = new Date()) {
+  if (!listing?.startDateTime || !user?.id) return false;
+  if (listing.ownerUserId !== user.id) return false;
+  const start = new Date(listing.startDateTime);
+  if (Number.isNaN(start.getTime())) return false;
+  return start > now;
+}
+
+function formatListingGoLive(listing) {
+  if (!listing?.startDateTime) return "Date unavailable";
+  const timeZone = listing.timeZoneId || "UTC";
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(new Date(listing.startDateTime));
 }
 
 const HUNT_BUTTON_STORAGE_KEY = "yardit_hunt_button_position_v1";
@@ -734,33 +758,40 @@ export default function HomePage() {
     const now = new Date();
     const demo = demoOn;
 
-    const baseListings = listings.filter((listing) => {
-      if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return false;
-      if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
+    const baseListings = listings
+      .map((listing) => {
+        if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return null;
+        if (!isFinite(listing.lat) || !isFinite(listing.lng)) return null;
 
-      if (listing.listingType === "neighborhood_sale") {
-        const isOwnerPendingPreview = user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, now) === "pending_activation";
-        const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
-        if (!isOwnerPendingPreview && (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now))) return false;
+        const ownerUpcomingPreview = isUpcomingOwnerPreview(listing, user, now);
 
-        const start = new Date(listing.startDateTime);
-        const end = new Date(listing.endDateTime);
-        if (isNaN(start.getTime()) || isNaN(end.getTime()) || now > end) return false;
-      } else {
-        if (!shouldShowListingOnMainMap(listing, now)) return false;
+        if (listing.listingType === "neighborhood_sale") {
+          const isOwnerPendingPreview = user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, now) === "pending_activation";
+          const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
+          if (!isOwnerPendingPreview && (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now))) return null;
 
-        const start = new Date(listing.startDateTime);
-        const end = new Date(listing.endDateTime);
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-        if (!demo && listing.listingType !== "event" && (start > now || end < now)) return false;
-      }
+          const start = new Date(listing.startDateTime);
+          const end = new Date(listing.endDateTime);
+          if (isNaN(start.getTime()) || isNaN(end.getTime()) || now > end) return null;
+        } else {
+          if (!ownerUpcomingPreview && !shouldShowListingOnMainMap(listing, now)) return null;
 
-      const matchesFilter = filter === "all" || listing.listingType === filter;
-      const matchesCategory = selectedCategories.length === 0 || 
-        selectedCategories.some(cat => (listing.categories || []).includes(cat) || listing.category === cat);
+          const start = new Date(listing.startDateTime);
+          const end = new Date(listing.endDateTime);
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+          if (!ownerUpcomingPreview && !demo && listing.listingType !== "event" && (start > now || end < now)) return null;
+          if (!ownerUpcomingPreview && demo && listing.listingType === "event" && end < now) return null;
+        }
 
-      return matchesFilter && matchesCategory;
-    });
+        const matchesFilter = filter === "all" || listing.listingType === filter;
+        const matchesCategory = selectedCategories.length === 0 || 
+          selectedCategories.some(cat => (listing.categories || []).includes(cat) || listing.category === cat);
+
+        if (!matchesFilter || !matchesCategory) return null;
+
+        return { ...listing, ownerUpcomingPreview };
+      })
+      .filter(Boolean);
 
     const strictMatches = baseListings.filter(l => listingMatchesQuery(l, searchQuery, false));
     if (strictMatches.length > 0 || !searchQuery) {
@@ -872,6 +903,11 @@ const stats = useMemo(() => {
     const pins = [];
     const cPoints = [];
     eligibleListings.forEach(listing => {
+      if (listing.ownerUpcomingPreview) {
+        pins.push(listing);
+        return;
+      }
+
       const isNeighborhoodEvent = listing.listingType === "neighborhood_sale";
 
       if (isNeighborhoodEvent) {
@@ -892,9 +928,10 @@ const stats = useMemo(() => {
     });
 
     let fallback = false;
-    if (!isShowingAllListings && pins.length === 0 && eligibleListings.length > 0 && currentZoom >= 11) {
+    if (!isShowingAllListings && pins.length === 0 && eligibleListings.some((listing) => !listing.ownerUpcomingPreview) && currentZoom >= 11) {
       fallback = true;
       eligibleListings.forEach(listing => {
+        if (listing.ownerUpcomingPreview) return;
         if (listing.listingType !== "neighborhood_sale" && listing.tier === "premium") {
           if (!pins.find(p => p.id === listing.id)) {
             pins.push(listing);
@@ -1045,7 +1082,7 @@ const stats = useMemo(() => {
           {/* Controls Panel */}
           <div
             ref={controlsPanelRef}
-            className="absolute top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1001] transition-all duration-[220ms] ease-out origin-top"
+            className="absolute top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1001] transition-all duration-200 ease-out origin-top"
             style={{
               opacity: showControls ? 1 : 0,
               transform: showControls ? "translateX(-50%) translateY(0) scaleY(1)" : "translateX(-50%) translateY(-12px) scaleY(0.95)",
@@ -1105,14 +1142,16 @@ const stats = useMemo(() => {
               <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />
 
               {visiblePins.map((listing) => {
-               const isHuntStop = huntStops.some(loc => loc.id === listing.id);
-               const isMapSelected = selectedListingId === listing.id;
-               const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
-               const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
-               const marqueeState = openMarqueeIds[listing.id]; // "collapsed"|"expanded"|false|undefined
-               const ownerPreviewPending = listing.listingType === "neighborhood_sale" && user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, new Date()) === "pending_activation";
-               // Marquee open if zoom is sufficient AND state is not explicitly "false" and state is not undefined
-               const marqueeOpen = isMarquee && currentZoom >= MARQUEE_OPEN_MIN_ZOOM && marqueeState !== false && marqueeState !== undefined;
+              const isHuntStop = huntStops.some(loc => loc.id === listing.id);
+              const isMapSelected = selectedListingId === listing.id;
+              const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
+              const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
+              const marqueeState = openMarqueeIds[listing.id]; // "collapsed"|"expanded"|false|undefined
+              const ownerPreviewPending = listing.listingType === "neighborhood_sale" && user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, new Date()) === "pending_activation";
+              const ownerUpcomingPreview = listing.ownerUpcomingPreview === true;
+              const goLiveLabel = formatListingGoLive(listing);
+              // Marquee open if zoom is sufficient AND state is not explicitly "false" and state is not undefined
+              const marqueeOpen = isMarquee && currentZoom >= MARQUEE_OPEN_MIN_ZOOM && marqueeState !== false && marqueeState !== undefined;
 
                 return (
                   <Marker
@@ -1143,29 +1182,39 @@ const stats = useMemo(() => {
                     {!isMarquee && (
                       <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]}>
                         <div className="flex flex-col" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
-                          <div className="p-1 overflow-y-auto flex-1 min-h-0">
+                          <div className="p-1 overflow-y-auto flex-1 min-h-0 space-y-2">
                             <div className="flex items-center gap-1 flex-wrap mb-1">
                               <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
                                 {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : listing.listingType === "event" ? "🎉 Event" : "🏡 Yard Sale"}
                               </Badge>
                               <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier}</Badge>
-                              {isHuntStop && (
+                              {ownerUpcomingPreview && (
+                                <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-amber-500 text-white">{UPCOMING_PREVIEW_LABEL}</Badge>
+                              )}
+                              {isHuntStop && !ownerUpcomingPreview && (
                                 <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
                               )}
                             </div>
 
-                            <h3 className="font-bold text-sm leading-none mb-2">{listing.event_name || listing.title}</h3>
+                            <h3 className="font-bold text-sm leading-none">{listing.event_name || listing.title}</h3>
 
-                            <div className="flex flex-wrap gap-1">
-                              {(listing.listingType === "event"
-                                ? [listing.event_category || formatEventTierLabel(listing.event_tier || listing.tier)].filter(Boolean)
-                                : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean)
-                              ).slice(0, 3).map((item, index) => (
-                                <Badge key={`${item}-${index}`} variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 text-slate-600 border-slate-300 bg-slate-50">
-                                  {item}
-                                </Badge>
-                              ))}
-                            </div>
+                            {ownerUpcomingPreview ? (
+                              <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2">
+                                <p className="text-[11px] font-semibold text-amber-800">Not Live Yet</p>
+                                <p className="text-[11px] text-amber-700 mt-1">Goes live: {goLiveLabel}</p>
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {(listing.listingType === "event"
+                                  ? [listing.event_category || formatEventTierLabel(listing.event_tier || listing.tier)].filter(Boolean)
+                                  : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean)
+                                ).slice(0, 3).map((item, index) => (
+                                  <Badge key={`${item}-${index}`} variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 text-slate-600 border-slate-300 bg-slate-50">
+                                    {item}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-1 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
@@ -1179,137 +1228,141 @@ const stats = useMemo(() => {
                             >
                               View Listing
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                guardAction(() => setReportListingId(listing.id));
-                              }}
-                              className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50"
-                            >
-                              Report
-                            </Button>
-                            <div className="ml-auto flex gap-1">
-                              {listing.listingType !== "event" && HUNT_ENABLED && (() => {
-                                const huntStop = huntStops.find(s => s.id === listing.id);
-                                
-                                if (!huntStop) {
-                                  return (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        guardAction(() => addToHunt(listing), {
-                                          allowGuest: isGuest && huntStops.length < 2,
-                                          modal: {
-                                            title: "Create a Free Account to Save More Stops",
-                                            description: "Guests can preview up to 2 Hunt stops.",
-                                            detail: "Create a free account to save more stops and continue your hunt.",
-                                          }
-                                        });
-                                      }}
-                                      className="gap-1 h-6 text-[11px] px-1.5 py-0"
-                                    >
-                                      <Plus className="w-3 h-3" /> Add Stop
-                                    </Button>
-                                  );
-                                }
+                            {!ownerUpcomingPreview && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    guardAction(() => setReportListingId(listing.id));
+                                  }}
+                                  className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50"
+                                >
+                                  Report
+                                </Button>
+                                <div className="ml-auto flex gap-1">
+                                  {listing.listingType !== "event" && HUNT_ENABLED && (() => {
+                                    const huntStop = huntStops.find(s => s.id === listing.id);
+                                    
+                                    if (!huntStop) {
+                                      return (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            guardAction(() => addToHunt(listing), {
+                                              allowGuest: isGuest && huntStops.length < 2,
+                                              modal: {
+                                                title: "Create a Free Account to Save More Stops",
+                                                description: "Guests can preview up to 2 Hunt stops.",
+                                                detail: "Create a free account to save more stops and continue your hunt.",
+                                              }
+                                            });
+                                          }}
+                                          className="gap-1 h-6 text-[11px] px-1.5 py-0"
+                                        >
+                                          <Plus className="w-3 h-3" /> Add Stop
+                                        </Button>
+                                      );
+                                    }
 
-                                const status = huntStop.huntStatus || "not_started";
-                                
-                                if (status === "completed") {
-                                  return (
-                                    <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0">
-                                      Completed ✅
-                                    </Badge>
-                                  );
-                                }
-                                
-                                if (status === "skipped") {
-                                  return (
-                                    <div className="flex gap-1">
-                                      <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0">
-                                        Skipped
-                                      </Badge>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          updateStopStatus(listing.id, "not_started");
-                                        }}
-                                        className="h-6 text-[11px] px-1.5 py-0 text-blue-600 border-blue-300 hover:bg-blue-50"
-                                      >
-                                        Reset
-                                      </Button>
-                                    </div>
-                                  );
-                                }
-                                
-                                if (status === "arrived") {
-                                  return (
-                                    <Button
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        updateStopStatus(listing.id, "completed");
-                                      }}
-                                      className="h-6 text-[11px] px-1.5 py-0 bg-green-600 hover:bg-green-700 text-white"
-                                    >
-                                      Complete
-                                    </Button>
-                                  );
-                                }
+                                    const status = huntStop.huntStatus || "not_started";
+                                    
+                                    if (status === "completed") {
+                                      return (
+                                        <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0">
+                                          Completed ✅
+                                        </Badge>
+                                      );
+                                    }
+                                    
+                                    if (status === "skipped") {
+                                      return (
+                                        <div className="flex gap-1">
+                                          <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0">
+                                            Skipped
+                                          </Badge>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              updateStopStatus(listing.id, "not_started");
+                                            }}
+                                            className="h-6 text-[11px] px-1.5 py-0 text-blue-600 border-blue-300 hover:bg-blue-50"
+                                          >
+                                            Reset
+                                          </Button>
+                                        </div>
+                                      );
+                                    }
+                                    
+                                    if (status === "arrived") {
+                                      return (
+                                        <Button
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            updateStopStatus(listing.id, "completed");
+                                          }}
+                                          className="h-6 text-[11px] px-1.5 py-0 bg-green-600 hover:bg-green-700 text-white"
+                                        >
+                                          Complete
+                                        </Button>
+                                      );
+                                    }
 
-                                const uLat = gpsLocation ? Number(gpsLocation.lat) : null;
-                                const uLng = gpsLocation ? Number(gpsLocation.lng) : null;
-                                const lLat = Number(listing.lat);
-                                const lLng = Number(listing.lng);
+                                    const uLat = gpsLocation ? Number(gpsLocation.lat) : null;
+                                    const uLng = gpsLocation ? Number(gpsLocation.lng) : null;
+                                    const lLat = Number(listing.lat);
+                                    const lLng = Number(listing.lng);
 
-                                let distanceFeet = Infinity;
+                                    let distanceFeet = Infinity;
 
-                                if (uLat !== null && uLng !== null && !isNaN(lLat) && !isNaN(lLng)) {
-                                  const distanceMeters = calculateDistanceMeters(uLat, uLng, lLat, lLng);
-                                  distanceFeet = distanceMeters * 3.28084;
-                                }
+                                    if (uLat !== null && uLng !== null && !isNaN(lLat) && !isNaN(lLng)) {
+                                      const distanceMeters = calculateDistanceMeters(uLat, uLng, lLat, lLng);
+                                      distanceFeet = distanceMeters * 3.28084;
+                                    }
 
-                                const isWithinDistance = demoOn || distanceFeet <= 50;
+                                    const isWithinDistance = demoOn || distanceFeet <= 50;
 
-                                if (isWithinDistance) {
-                                  return (
-                                    <Button
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        updateStopStatus(listing.id, "arrived");
-                                      }}
-                                      variant="outline"
-                                      className="h-6 text-[11px] px-1.5 py-0 border-green-600 text-green-700 hover:bg-green-50 bg-white/50"
-                                    >
-                                      Check In
-                                    </Button>
-                                  );
-                                }
+                                    if (isWithinDistance) {
+                                      return (
+                                        <Button
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            updateStopStatus(listing.id, "arrived");
+                                          }}
+                                          variant="outline"
+                                          className="h-6 text-[11px] px-1.5 py-0 border-green-600 text-green-700 hover:bg-green-50 bg-white/50"
+                                        >
+                                          Check In
+                                        </Button>
+                                      );
+                                    }
 
-                                return (
-                                  <div className="flex flex-col items-end">
-                                    <Button
-                                      size="sm"
-                                      disabled
-                                      variant="outline"
-                                      className="h-6 text-[11px] px-1.5 py-0 border-gray-400 text-gray-500 bg-gray-100 opacity-60"
-                                    >
-                                      Check In
-                                    </Button>
-                                    <span className="text-[9px] text-gray-500 mt-0.5 leading-tight text-right">
-                                      {distanceFeet !== Infinity ? `Move within 50ft (${distanceFeet.toFixed(0)}ft)` : `Move within 50ft`}
-                                    </span>
-                                  </div>
-                                );
-                              })()}
-                            </div>
+                                    return (
+                                      <div className="flex flex-col items-end">
+                                        <Button
+                                          size="sm"
+                                          disabled
+                                          variant="outline"
+                                          className="h-6 text-[11px] px-1.5 py-0 border-gray-400 text-gray-500 bg-gray-100 opacity-60"
+                                        >
+                                          Check In
+                                        </Button>
+                                        <span className="text-[9px] text-gray-500 mt-0.5 leading-tight text-right">
+                                          {distanceFeet !== Infinity ? `Move within 50ft (${distanceFeet.toFixed(0)}ft)` : `Move within 50ft`}
+                                        </span>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </>
+                            )}
                           </div>
                         </div>
                       </Popup>
