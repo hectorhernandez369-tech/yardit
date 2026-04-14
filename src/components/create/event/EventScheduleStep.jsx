@@ -21,8 +21,8 @@ export default function EventScheduleStep({ formData, setFormData }) {
       coming_soon_start_date: nextSchedule.comingSoonStartDate,
       start_datetime: nextSchedule.startLocal,
       end_datetime: nextSchedule.endLocal,
-      startDateTime: nextSchedule.startLocal ? new Date(nextSchedule.startLocal).toISOString() : "",
-      endDateTime: nextSchedule.endLocal ? new Date(nextSchedule.endLocal).toISOString() : "",
+      startDateTime: nextSchedule.startLocal,
+      endDateTime: nextSchedule.endLocal,
     }));
   };
 

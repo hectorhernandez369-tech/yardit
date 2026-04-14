@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import tzLookup from "tz-lookup";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -38,6 +37,7 @@ import {
 } from "../components/shared/listingTierEngine";
 import { EVENT_TIER_PRICES } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
+import { applyLocationTimezoneFallback, hasUsableListingLocation, resolveTimeZoneFromCoordinates } from "@/lib/listingLocation";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 const PAID_LISTING_CHECKOUT_KEY = "yardit_paid_listing_checkout_v1";
@@ -364,11 +364,7 @@ export default function CreateListingPage() {
         // Yard sale / neighborhood sale relist: jump straight to step 3
         let relistTimeZoneId = pre.timeZoneId || "";
         if (!relistTimeZoneId && typeof pre.lat === "number" && typeof pre.lng === "number") {
-          try {
-            relistTimeZoneId = tzLookup(pre.lat, pre.lng) || "";
-          } catch {
-            relistTimeZoneId = "";
-          }
+          relistTimeZoneId = resolveTimeZoneFromCoordinates(pre.lat, pre.lng) || "";
         }
 
         setFormData((prev) => ({
@@ -825,14 +821,11 @@ export default function CreateListingPage() {
 
     if (step === 2) {
       if (formData.listingType === "event") {
-        if (typeof formData.lat !== "number" || typeof formData.lng !== "number" || !(formData.address_text || formData.addressText)) {
-          toast.error("Please choose the event location on the map");
+        if (!hasUsableListingLocation(formData)) {
+          toast.error("Please choose a valid event location");
           return;
         }
-        if (!formData.timeZoneId) {
-          toast.error("We couldn’t determine the listing timezone from this location. Please re-select the address or map location.");
-          return;
-        }
+        setFormData((prev) => applyLocationTimezoneFallback(prev, prev.timeZoneId || ""));
         setStep(3);
         return;
       }
@@ -840,10 +833,6 @@ export default function CreateListingPage() {
       if (formData.listingType === "neighborhood_sale") {
         if (!formData.event_center_lat || !formData.event_center_lng) {
           toast.error("Please provide a location for the event center");
-          return;
-        }
-        if (!formData.timeZoneId) {
-          toast.error("We couldn’t determine the listing timezone from this location. Please re-select the map location.");
           return;
         }
 
@@ -922,23 +911,14 @@ export default function CreateListingPage() {
 
         let resolvedProfileTimeZoneId = user?.timeZoneId || formData.timeZoneId || "";
         if (!resolvedProfileTimeZoneId && typeof user?.address_lat === "number" && typeof user?.address_lng === "number") {
-          try {
-            resolvedProfileTimeZoneId = tzLookup(user.address_lat, user.address_lng) || "";
-            if (resolvedProfileTimeZoneId) {
-              await base44.auth.updateMe({ timeZoneId: resolvedProfileTimeZoneId });
-              setUser((prev) => prev ? { ...prev, timeZoneId: resolvedProfileTimeZoneId } : prev);
-            }
-          } catch {
-            resolvedProfileTimeZoneId = "";
+          resolvedProfileTimeZoneId = resolveTimeZoneFromCoordinates(user.address_lat, user.address_lng) || "";
+          if (resolvedProfileTimeZoneId) {
+            await base44.auth.updateMe({ timeZoneId: resolvedProfileTimeZoneId });
+            setUser((prev) => prev ? { ...prev, timeZoneId: resolvedProfileTimeZoneId } : prev);
           }
         }
 
-        if (!resolvedProfileTimeZoneId) {
-          toast.error("We couldn’t determine the listing timezone from your verified profile address.");
-          return;
-        }
-
-        const nextData = {
+        const nextData = applyLocationTimezoneFallback({
           ...formData,
           addressText: user.street_address,
           city: user.city,
@@ -948,10 +928,10 @@ export default function CreateListingPage() {
           lng: user.address_lng,
           timeZoneId: resolvedProfileTimeZoneId,
           locationMethod: "profile"
-        };
+        }, resolvedProfileTimeZoneId);
         setFormData(nextData);
 
-        const nearbySale = await findNearbyNeighborhoodSale(nextData);
+        const nearbySale = await findNearbyNeighborhoodSale(normalizedNextData);
         if (nearbySale) {
           setMatchedSale(nearbySale);
           setSaleModalStep(1);
@@ -985,10 +965,9 @@ export default function CreateListingPage() {
       const overrideLocation = typeof geocodeResult === "object" ? geocodeResult : null;
       const nextData = overrideLocation ? { ...formData, ...overrideLocation } : formData;
 
-      if (!nextData.timeZoneId) {
-        toast.error("We couldn’t determine the listing timezone from this location. Please re-confirm the address.");
-        return;
-      }
+      const normalizedNextData = applyLocationTimezoneFallback(nextData, nextData.timeZoneId || "");
+
+      setFormData(normalizedNextData);
 
       const nearbySale = await findNearbyNeighborhoodSale(nextData);
       if (nearbySale) {

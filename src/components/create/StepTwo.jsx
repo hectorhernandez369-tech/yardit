@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import tzLookup from "tz-lookup";
 import { base44 } from "@/api/base44Client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import { useAppMode } from "@/components/shared/DemoMode";
 import { MapPin, Navigation, Loader2, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import { getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
+import { applyLocationTimezoneFallback, resolveTimeZoneFromCoordinates } from "@/lib/listingLocation";
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -32,11 +32,11 @@ async function resolveTimeZoneId(lat, lng) {
 
   console.log("[StepTwo] timezone lookup coords", { lat, lng });
 
-  const timeZoneId = tzLookup(lat, lng);
+  const timeZoneId = resolveTimeZoneFromCoordinates(lat, lng);
 
   console.log("[StepTwo] timezone lookup result", { lat, lng, timeZoneId });
 
-  return typeof timeZoneId === "string" ? timeZoneId : "";
+  return timeZoneId;
 }
 
 async function ensureUserProfileTimeZone(user) {
@@ -789,24 +789,18 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                     if (c.id.startsWith("postcode")) zip = c.text;
                   });
                 }
-                const resolvedTimeZoneId = await resolveTimeZoneId(lat, lng);
-                if (typeof lat === "number" && typeof lng === "number" && !resolvedTimeZoneId) {
-                  toast.error("Timezone could not be determined for this location. Please try another map point.");
-                  return;
-                }
                 setFormData((prev) => {
-                  const nextValue = {
+                  const nextValue = applyLocationTimezoneFallback({
                     ...prev,
                     event_center_lat: lat,
                     event_center_lng: lng,
                     lat,
                     lng,
-                    timeZoneId: resolvedTimeZoneId || "",
                     addressText: feature ? (feature.address ? `${feature.address} ${feature.text}` : feature.text) : "Map Location",
                     city,
                     state,
                     zip,
-                  };
+                  }, prev.timeZoneId || "");
                   console.log("[StepTwo] saved timeZoneId", {
                     lat: nextValue.lat,
                     lng: nextValue.lng,
@@ -816,7 +810,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                 });
                 toast.success("Center location saved!");
               } catch {
-                setFormData((prev) => ({
+                setFormData((prev) => applyLocationTimezoneFallback({
                   ...prev,
                   event_center_lat: lat,
                   event_center_lng: lng,
@@ -826,7 +820,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                   city: "Unknown",
                   state: "XX",
                   zip: "00000",
-                }));
+                }, prev.timeZoneId || ""));
                 toast.success("Center location saved!");
               }
             }}
