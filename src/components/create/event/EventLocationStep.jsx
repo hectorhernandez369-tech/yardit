@@ -9,7 +9,7 @@ import iconUrl from "leaflet/dist/images/marker-icon.png";
 import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 import { MapPin, Navigation, Loader2, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
-import { applyLocationTimezoneFallback } from "@/lib/listingLocation";
+import { buildResolvedListingLocation } from "@/lib/listingLocation";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -206,7 +206,7 @@ export default function EventLocationStep({ formData, setFormData }) {
   }, [addressQuery]);
 
   const applyLocation = (location) => {
-    setFormData((prev) => applyLocationTimezoneFallback({
+    setFormData((prev) => buildResolvedListingLocation({
       ...prev,
       lat: location.lat,
       lng: location.lng,
@@ -215,7 +215,7 @@ export default function EventLocationStep({ formData, setFormData }) {
       city: location.city || prev.city,
       state: location.state || prev.state,
       zip: location.zip || prev.zip,
-    }, prev.timeZoneId || ""));
+    }));
   };
 
   const handleSelectSuggestion = (feature) => {

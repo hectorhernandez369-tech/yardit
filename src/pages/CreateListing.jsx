@@ -37,7 +37,7 @@ import {
 } from "../components/shared/listingTierEngine";
 import { EVENT_TIER_PRICES } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
-import { applyLocationTimezoneFallback, hasUsableListingLocation, resolveTimeZoneFromCoordinates } from "@/lib/listingLocation";
+import { buildResolvedListingLocation, isLocationReadyForSubmission, resolveTimeZoneFromCoordinates } from "@/lib/listingLocation";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 const PAID_LISTING_CHECKOUT_KEY = "yardit_paid_listing_checkout_v1";
@@ -821,11 +821,11 @@ export default function CreateListingPage() {
 
     if (step === 2) {
       if (formData.listingType === "event") {
-        if (!hasUsableListingLocation(formData)) {
+        if (!isLocationReadyForSubmission(formData)) {
           toast.error("Please choose a valid event location");
           return;
         }
-        setFormData((prev) => applyLocationTimezoneFallback(prev, prev.timeZoneId || ""));
+        setFormData((prev) => buildResolvedListingLocation(prev));
         setStep(3);
         return;
       }
@@ -918,7 +918,7 @@ export default function CreateListingPage() {
           }
         }
 
-        const nextData = applyLocationTimezoneFallback({
+        const nextData = buildResolvedListingLocation({
           ...formData,
           addressText: user.street_address,
           city: user.city,
@@ -928,10 +928,10 @@ export default function CreateListingPage() {
           lng: user.address_lng,
           timeZoneId: resolvedProfileTimeZoneId,
           locationMethod: "profile"
-        }, resolvedProfileTimeZoneId);
+        });
         setFormData(nextData);
 
-        const nearbySale = await findNearbyNeighborhoodSale(normalizedNextData);
+        const nearbySale = await findNearbyNeighborhoodSale(nextData);
         if (nearbySale) {
           setMatchedSale(nearbySale);
           setSaleModalStep(1);
@@ -965,11 +965,11 @@ export default function CreateListingPage() {
       const overrideLocation = typeof geocodeResult === "object" ? geocodeResult : null;
       const nextData = overrideLocation ? { ...formData, ...overrideLocation } : formData;
 
-      const normalizedNextData = applyLocationTimezoneFallback(nextData, nextData.timeZoneId || "");
+      const normalizedNextData = buildResolvedListingLocation(nextData);
 
       setFormData(normalizedNextData);
 
-      const nearbySale = await findNearbyNeighborhoodSale(nextData);
+      const nearbySale = await findNearbyNeighborhoodSale(normalizedNextData);
       if (nearbySale) {
         setMatchedSale(nearbySale);
         setSaleModalStep(1);
