@@ -49,6 +49,11 @@ const RESIDENTIAL_TIER_PRICES = {
 
 const FALLBACK_TZ = "";
 
+function normalizeResidentialRelistTier(value) {
+  if (["free", "featured", "premium"].includes(value)) return value;
+  return "";
+}
+
 function getRequestedStep(search) {
   const params = new URLSearchParams(search);
   if (params.get("relist") === "1" || params.get("rescueToken") || params.get("payment") || params.get("neighborhoodSetup")) {
@@ -296,7 +301,16 @@ export default function CreateListingPage() {
     try {
       const payload = JSON.parse(raw);
       const pre = payload?.relistPrefill || {};
+      const originalRelistTier = payload?.tier || pre?.tier || "";
+      const relistPrefillTier = normalizeResidentialRelistTier(pre?.tier || payload?.tier || "");
       const isEventRelist = pre.listingType === "event" || payload.listingType === "event";
+
+      console.log("[RELIST_DEBUG] relist payload tier info", {
+        originalListingTier: originalRelistTier,
+        relistPrefillTier,
+        payloadTier: payload?.tier,
+        preTier: pre?.tier,
+      });
 
       if (isEventRelist) {
         // Event relist: restore all event fields, start at step 1
@@ -371,7 +385,7 @@ export default function CreateListingPage() {
           event_center_lng: pre.lng ?? null,
           timeZoneId: relistTimeZoneId,
 
-          tier: pre.tier || prev.tier || "free",
+          tier: relistPrefillTier,
           startDateTime: "",
           endDateTime: "",
           selectedRangeStartDate: "",
@@ -380,6 +394,11 @@ export default function CreateListingPage() {
           earlyVisibilityDates: [],
           activeDates: []
         }));
+
+        console.log("[RELIST_DEBUG] applying residential relist tier", {
+          originalListingTier: originalRelistTier,
+          relistPrefillTier,
+        });
 
         setStep(3);
         localStorage.removeItem(RELIST_STORAGE_KEY);
@@ -1443,6 +1462,13 @@ export default function CreateListingPage() {
       localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
     }
   }, [location.search, user?.id]);
+
+  useEffect(() => {
+    if (step !== 3 || formData.listingType !== "yard_sale") return;
+    console.log("[RELIST_DEBUG] current formData tier before Tier & Review renders", {
+      currentFormDataTier: formData.tier,
+    });
+  }, [step, formData.listingType, formData.tier]);
 
   if (!user) {
     return <div className="p-8 text-center">Loading...</div>;
