@@ -444,7 +444,7 @@ export default function MyListingsPage() {
         event_logo_url: listing.event_logo_url || "",
       };
     } else {
-      // Yard sale / neighborhood sale relist (unchanged)
+      // Yard sale / neighborhood sale relist
       basePayload.relistPrefill = {
         listingType: listing.listingType || "yard_sale",
         title: listing.title || "",
@@ -455,6 +455,7 @@ export default function MyListingsPage() {
         zip: listing.zip || listing.zip_code || "",
         lat: listing.lat ?? listing.latitude ?? null,
         lng: listing.lng ?? listing.longitude ?? null,
+        tier: listing.tier || "free",
       };
     }
 
