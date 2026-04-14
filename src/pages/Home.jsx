@@ -1205,16 +1205,18 @@ const stats = useMemo(() => {
                                 <p className="text-[11px] text-amber-700 mt-1">Goes live: {goLiveLabel}</p>
                               </div>
                             ) : (
-                              <div className="flex flex-wrap gap-1">
-                                {(listing.listingType === "event"
-                                  ? [listing.event_category || formatEventTierLabel(listing.event_tier || listing.tier)].filter(Boolean)
-                                  : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean)
-                                ).slice(0, 3).map((item, index) => (
-                                  <Badge key={`${item}-${index}`} variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 text-slate-600 border-slate-300 bg-slate-50">
-                                    {item}
-                                  </Badge>
-                                ))}
-                              </div>
+                              <>
+                                <div className="flex flex-wrap gap-1">
+                                  {(listing.listingType === "event"
+                                    ? [listing.event_category || formatEventTierLabel(listing.event_tier || listing.tier)].filter(Boolean)
+                                    : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean)
+                                  ).slice(0, 3).map((item, index) => (
+                                    <Badge key={`${item}-${index}`} variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 text-slate-600 border-slate-300 bg-slate-50">
+                                      {item}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </>
                             )}
                           </div>
 
