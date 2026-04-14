@@ -371,7 +371,7 @@ export default function CreateListingPage() {
           event_center_lng: pre.lng ?? null,
           timeZoneId: relistTimeZoneId,
 
-          tier: pre.tier || "free",
+          tier: pre.tier || prev.tier || "free",
           startDateTime: "",
           endDateTime: "",
           selectedRangeStartDate: "",
