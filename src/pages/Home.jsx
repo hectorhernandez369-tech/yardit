@@ -1243,7 +1243,7 @@ const stats = useMemo(() => {
                     if (isMarquee && shouldShowCollapsedMarquee) {
                     const isExpanded = marqueeState === "expanded";
                     const boardHtml = isExpanded
-                    ? getMarqueeBoardExpandedHtml(listing)
+                    ? getMarqueeBoardExpandedHtml(listing, { isComingSoon: isComingSoonState, isActive: isActiveState, goLiveLabel })
                     : getMarqueeBoardCollapsedHtml(listing, { isComingSoon: isComingSoonState, isActive: isActiveState, goLiveLabel });
                     return getEventMarkerIcon(listing, isMapSelected, true, boardHtml, currentZoom);
                     }
@@ -1506,7 +1506,11 @@ const stats = useMemo(() => {
                 const isExpanded = openMarqueeIds[listing.id] === "expanded";
                 console.log("DEBUG: rendering marquee board for:", listing.id, "backgroundUrl:", listing?.marquee_background_url);
                 const boardHtml = isExpanded
-                  ? getMarqueeBoardExpandedHtml(listing)
+                  ? getMarqueeBoardExpandedHtml(listing, {
+                      isComingSoon: listing.mapState === "coming_soon",
+                      isActive: listing.mapState === "active",
+                      goLiveLabel: formatListingGoLive(listing),
+                    })
                   : getMarqueeBoardCollapsedHtml(listing, {
                       isComingSoon: listing.mapState === "coming_soon",
                       isActive: listing.mapState === "active",

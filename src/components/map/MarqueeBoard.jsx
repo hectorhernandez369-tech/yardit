@@ -117,11 +117,16 @@ function wrapBoard(w, tailH, cardHtml) {
 export function getMarqueeBoardCollapsedHtml(listing, options = {}) {
   if (!listing) return "";
   const title = listing?.event_name || listing?.title || "Event";
+  const stateLabel = options.isComingSoon
+    ? "COMING SOON"
+    : options.isActive
+      ? "ACTIVE"
+      : "EVENT";
   const dateStr = formatEventDate(listing);
-  const stateLabel = options.isComingSoon ? "COMING SOON" : options.isActive ? "ACTIVE" : "EVENT";
-  const detailText = options.isComingSoon
-    ? `Coming soon ${escapeHtml(options.goLiveLabel || dateStr || "")}`
-    : escapeHtml(listing?.event_description || listing?.description || dateStr || "");
+  const infoText = options.isComingSoon
+    ? `Active: ${escapeHtml(options.goLiveLabel || dateStr || "")}`
+    : escapeHtml(dateStr || listing?.event_description || listing?.description || "");
+  const detailText = infoText;
   const w = 165;
   const h = 66;
   const tailH = 6;
@@ -147,11 +152,19 @@ export function getMarqueeBoardCollapsedHtml(listing, options = {}) {
   return wrapBoard(w, tailH, card);
 }
 
-// EXPANDED: full board — title + date + slots + details button + collapse button + border lights
-export function getMarqueeBoardExpandedHtml(listing) {
+// EXPANDED: full board — same core content as collapsed + details button + collapse button
+export function getMarqueeBoardExpandedHtml(listing, options = {}) {
   if (!listing) return "";
   const title = listing?.event_name || listing?.title || "Event";
+  const stateLabel = options.isComingSoon
+    ? "COMING SOON"
+    : options.isActive
+      ? "ACTIVE"
+      : "EVENT";
   const dateStr = formatEventDate(listing);
+  const infoText = options.isComingSoon
+    ? `Active: ${escapeHtml(options.goLiveLabel || dateStr || "")}`
+    : escapeHtml(dateStr || listing?.event_description || listing?.description || "");
   const w = MARQUEE_BOARD_WIDTH;
   const tailH = 6;
   const bgUrl = listing?.marquee_background_url;
@@ -159,38 +172,32 @@ export function getMarqueeBoardExpandedHtml(listing) {
     ? `background:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)),url('${bgUrl}');background-size:cover;background-position:center;`
     : `background:linear-gradient(to bottom,#7c2d12,#3f1d0b);`;
 
-  const safeSlots = (() => {
-    try {
-      const slots = listing?.marquee_schedule_slots;
-      return Array.isArray(slots) ? slots.slice(0, 4) : [];
-    } catch {
-      return [];
-    }
-  })();
-
-  const slotRows = safeSlots.length > 0
-    ? safeSlots.map((slot) => `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:5px;border-radius:3px;background:rgba(255,255,255,0.1);padding:3px 6px;font-size:9px;line-height:1.3;">
-        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;">${escapeHtml(slot?.label || "Schedule")}</span>
-        <span style="flex-shrink:0;white-space:nowrap;color:#FDE68A;">${escapeHtml(formatSlotTime(slot))}</span>
-      </div>
-    `).join("")
-    : "";
-
-  // Approximate height: header (~32px) + slots (20px each) + button (28px) + padding
-  const h = 38 + safeSlots.length * 20 + 28;
+  const h = 74;
 
   const card = `
     <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:7px 10px 9px;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,0.32);box-sizing:border-box;pointer-events:auto;overflow:visible;">
       ${bulbFrame(w, h, { sideCount: 4, sideTopInset: 14, sideBottomInset: 14, horizontalDensity: 15 })}
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:${slotRows ? "5px" : "0"};">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;">
         <div style="flex:1;min-width:0;">
+          <div style="
+            display:inline-flex;
+            align-items:center;
+            border-radius:9999px;
+            padding:1px 6px;
+            font-size:7px;
+            font-weight:800;
+            letter-spacing:0.06em;
+            background:${options.isComingSoon ? "#f59e0b" : "#059669"};
+            color:#fff;
+            margin-bottom:4px;
+          ">
+            ${stateLabel}
+          </div>
           <div style="font-size:10.5px;font-weight:900;text-transform:uppercase;line-height:1.2;letter-spacing:0.04em;word-break:break-word;">${escapeHtml(title)}</div>
-          ${dateStr ? `<div style="margin-top:2px;font-size:8px;color:rgba(255,255,255,0.6);line-height:1.3;">${escapeHtml(dateStr)}</div>` : ""}
+          ${infoText ? `<div style="margin-top:2px;font-size:8px;color:rgba(255,255,255,0.85);line-height:1.3;">${infoText}</div>` : ""}
         </div>
         <button data-marquee-collapse="true" style="flex-shrink:0;border:none;border-radius:9999px;background:rgba(0,0,0,0.28);padding:1px 5px;font-size:9px;font-weight:700;color:#fff;cursor:pointer;line-height:1.4;">✕</button>
       </div>
-      ${slotRows ? `<div style="display:grid;gap:3px;">${slotRows}</div>` : ""}
       <button data-marquee-details="true" style="margin-top:6px;height:22px;width:100%;border:none;border-radius:4px;background:#d97706;padding:0 6px;font-size:9px;font-weight:700;color:#fff;cursor:pointer;letter-spacing:0.02em;">View More Details</button>
     </div>
   `;
