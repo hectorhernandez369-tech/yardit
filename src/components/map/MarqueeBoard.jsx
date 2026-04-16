@@ -156,7 +156,7 @@ export function getMarqueeBoardCollapsedHtml(listing, options = {}) {
   <div style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 6px;font-size:7px;font-weight:800;letter-spacing:0.06em;background:${derivedIsComingSoon ? "#f59e0b" : derivedIsActive ? "#059669" : "#475569"};color:#fff;">${stateLabel}</div>
 </div>
           <div style="font-size:9.5px;font-weight:900;text-transform:uppercase;line-height:1.15;letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${escapeHtml(title)}</div>
-          <div style="margin-top:3px;font-size:7px;color:rgba(255,255,255,0.82);line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${detailText}</div>
+          <div style="margin-top:3px;font-size:9px;color:rgba(255,255,255,0.82);line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${detailText}</div>
         </div>
         <button data-marquee-expand="true" style="flex-shrink:0;border:1px solid rgba(244,168,73,0.6);border-radius:3px;background:rgba(244,168,73,0.18);padding:1px 5px;font-size:8px;font-weight:700;color:#f4a849;cursor:pointer;line-height:1.3;white-space:nowrap;">▼</button>
       </div>
