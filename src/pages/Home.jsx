@@ -807,11 +807,11 @@ export default function HomePage() {
           const end = new Date(listing.endDateTime);
           if (isNaN(start.getTime()) || isNaN(end.getTime()) || now > end) return null;
 
+          const neighborhoodState = deriveNeighborhoodEventState(listing, now);
+
           return {
             ...listing,
-            mapState: deriveNeighborhoodEventState(listing, now) === "coming_soon"
-              ? "coming_soon"
-              : "active"
+            mapState: neighborhoodState === "coming_soon" ? "coming_soon" : neighborhoodState === "active" ? "active" : mapState
           };
         } else {
           if (mapState === "hidden") return null;
@@ -870,11 +870,11 @@ export default function HomePage() {
       return matchesCategory;
     }).map((l) => {
       if (l.listingType === "neighborhood_sale") {
+        const neighborhoodState = deriveNeighborhoodEventState(l, now);
+
         return {
           ...l,
-          mapState: deriveNeighborhoodEventState(l, now) === "coming_soon"
-            ? "coming_soon"
-            : "active"
+          mapState: neighborhoodState === "coming_soon" ? "coming_soon" : neighborhoodState === "active" ? "active" : getListingMapState(l, user, now)
         };
       }
 
@@ -1271,11 +1271,14 @@ const stats = useMemo(() => {
                                 {getListingTypeBadgeLabel(listing)}
                               </Badge>
                               <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{getListingSecondaryBadgeLabel(listing)}</Badge>
-                              {!isPreviewState && (
-                                <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${getListingStatusUi(listing).isComingSoon ? "bg-amber-500" : getListingStatusUi(listing).isActive ? "bg-green-600" : "bg-slate-500"} text-white`}>
-                                  {getListingStatusUi(listing).label}
-                                </Badge>
-                              )}
+                              {!isPreviewState && (() => {
+                                const statusUi = getListingStatusUi(listing);
+                                return (
+                                  <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${statusUi.isComingSoon ? "bg-amber-500" : statusUi.isActive ? "bg-green-600" : "bg-slate-500"} text-white`}>
+                                    {statusUi.label}
+                                  </Badge>
+                                );
+                              })()}
                               {isPreviewState && (
                                 <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-amber-500 text-white">Preview</Badge>
                               )}
