@@ -814,7 +814,7 @@ export default function HomePage() {
           if (mapState === "active" && !demo && listing.listingType !== "event" && (start > now || end < now)) return null;
           if (mapState === "active" && demo && listing.listingType === "event" && end < now) return null;
         }
-...
+
         return { ...listing, mapState };
       })
       .filter(Boolean);
