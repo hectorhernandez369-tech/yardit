@@ -86,10 +86,24 @@ export function formatListingDateRange(listing) {
 }
 
 export function getListingStatusUi(listing) {
-  const status = getListingDisplayStatus(listing);
-  const isComingSoon = status === "coming_soon" || status === "upcoming" || status === "activated" || status === "activated_locked";
+  const derivedStatus = getListingDisplayStatus(listing);
+  const status =
+    listing?.mapState === "coming_soon"
+      ? "coming_soon"
+      : listing?.mapState === "active"
+        ? "active"
+        : derivedStatus;
+  const isComingSoon =
+    status === "coming_soon" ||
+    status === "upcoming" ||
+    status === "activated" ||
+    status === "activated_locked";
   const isActive = status === "active";
-  const label = isComingSoon ? "Coming Soon" : isActive ? "Active" : formatListingStatusLabel(status);
+  const label = isComingSoon
+    ? "Coming Soon"
+    : isActive
+      ? "Active"
+      : formatListingStatusLabel(status);
 
   return {
     status,
@@ -124,7 +138,7 @@ export function getListingPrimaryText(listing) {
 export function getListingDescriptionText(listing) {
   const { isComingSoon } = getListingStatusUi(listing);
   if (isComingSoon) {
-    return `Starts: ${formatListingDateRange({ startDateTime: listing?.startDateTime })}`;
+    return `Active: ${formatListingDateRange({ startDateTime: listing?.startDateTime })}`;
   }
 
   return listing?.event_description || listing?.description || "";

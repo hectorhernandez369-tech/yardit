@@ -806,8 +806,15 @@ export default function HomePage() {
           const start = new Date(listing.startDateTime);
           const end = new Date(listing.endDateTime);
           if (isNaN(start.getTime()) || isNaN(end.getTime()) || now > end) return null;
+
+          return {
+            ...listing,
+            mapState: deriveNeighborhoodEventState(listing, now) === "coming_soon"
+              ? "coming_soon"
+              : "active"
+          };
         } else {
-          if (mapState === "hidden") return null;
+          if (mapState === "hidden" || mapState === "preview") return null;
           if (mapState === "active" && !shouldShowListingOnMainMap(listing, now)) return null;
 
           const start = new Date(listing.startDateTime);
@@ -833,31 +840,39 @@ export default function HomePage() {
     const now = new Date();
     const demo = demoOn;
 
-    const baseListings = listings.filter((l) => {
-      if (l.status !== "active") return false;
-      if (l.status === "cancelled") return false;
-      if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
-      if (!isFinite(l.lat) || !isFinite(l.lng)) return false;
+    const baseListings = listings.map((l) => {
+      if (l.status !== "active") return null;
+      if (l.status === "cancelled") return null;
+      if (typeof l.lat !== "number" || typeof l.lng !== "number") return null;
+      if (!isFinite(l.lat) || !isFinite(l.lng)) return null;
+
+      const mapState = getListingMapState(l, user, now);
 
       if (l.listingType === "neighborhood_sale") {
         const visibleHomes = Number(l.homeCount || l.confirmed_count || 0);
-        if (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(l, now)) return false;
+        if (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(l, now)) return null;
 
         const start = new Date(l.startDateTime);
         const end = new Date(l.endDateTime);
-        if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < now) return false;
-        return true;
+        if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < now) return null;
+        return {
+          ...l,
+          mapState: deriveNeighborhoodEventState(l, now) === "coming_soon"
+            ? "coming_soon"
+            : "active"
+        };
       }
 
-      if (!shouldShowListingOnMainMap(l, now)) return false;
+      if (mapState === "hidden" || mapState === "preview") return null;
+      if (!shouldShowListingOnMainMap(l, now)) return null;
 
       const start = new Date(l.startDateTime);
       const end = new Date(l.endDateTime);
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-      if (!demo && l.listingType !== "event" && (start > now || end < now)) return false;
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+      if (!demo && l.listingType !== "event" && mapState === "active" && (start > now || end < now)) return null;
 
-      return true;
-    }).filter(l => {
+      return { ...l, mapState };
+    }).filter(Boolean).filter(l => {
       const matchesCategory = selectedCategories.length === 0 || 
         selectedCategories.some(cat => (l.categories || []).includes(cat) || l.category === cat);
       return matchesCategory;
