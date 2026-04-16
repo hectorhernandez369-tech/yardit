@@ -1,6 +1,8 @@
 import Stripe from 'npm:stripe@16.10.0';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const Deno = globalThis.Deno;
+
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'), {
   apiVersion: '2024-06-20',
 });

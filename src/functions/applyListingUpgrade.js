@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const Deno = globalThis.Deno;
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
