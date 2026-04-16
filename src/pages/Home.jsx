@@ -46,6 +46,7 @@ import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
 import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.jsx";
+import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 
@@ -1246,21 +1247,23 @@ const stats = useMemo(() => {
                           <div className="p-1 overflow-y-auto flex-1 min-h-0 space-y-2">
                             <div className="flex items-center gap-1 flex-wrap mb-1">
                               <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
-                                {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : listing.listingType === "event" ? "🎉 Event" : "🏡 Yard Sale"}
+                                {getListingTypeBadgeLabel(listing)}
                               </Badge>
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier}</Badge>
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{getListingSecondaryBadgeLabel(listing)}</Badge>
+                              {!isPreviewState && (
+                                <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${getListingStatusUi(listing).isComingSoon ? "bg-amber-500" : getListingStatusUi(listing).isActive ? "bg-green-600" : "bg-slate-500"} text-white`}>
+                                  {getListingStatusUi(listing).label}
+                                </Badge>
+                              )}
                               {isPreviewState && (
                                 <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-amber-500 text-white">Preview</Badge>
-                              )}
-                              {isComingSoonState && (
-                                <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-amber-500 text-white">{UPCOMING_PREVIEW_LABEL}</Badge>
                               )}
                               {isHuntStop && !isPreviewState && (
                                 <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
                               )}
                             </div>
 
-                            <h3 className="font-bold text-sm leading-none">{listing.event_name || listing.title}</h3>
+                            <h3 className="font-bold text-sm leading-none">{getListingPrimaryText(listing)}</h3>
 
                             {isPreviewState ? (
                               <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2">
@@ -1268,16 +1271,23 @@ const stats = useMemo(() => {
                                 <p className="text-[11px] text-amber-700 mt-1">Not visible to public until {goLiveLabel}</p>
                               </div>
                             ) : (
-                              <div className="flex flex-wrap gap-1">
-                                {(listing.listingType === "event"
-                                  ? [listing.event_category || formatEventTierLabel(listing.event_tier || listing.tier)].filter(Boolean)
-                                  : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean)
-                                ).slice(0, 3).map((item, index) => (
-                                  <Badge key={`${item}-${index}`} variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 text-slate-600 border-slate-300 bg-slate-50">
-                                    {item}
-                                  </Badge>
-                                ))}
-                              </div>
+                              <>
+                                {getListingDescriptionText(listing) && (
+                                  <p className="text-[11px] text-slate-600 leading-relaxed">{getListingDescriptionText(listing)}</p>
+                                )}
+                                {!getListingStatusUi(listing).isComingSoon && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {(listing.listingType === "event"
+                                      ? [listing.event_category || formatEventTierLabel(listing.event_tier || listing.tier)].filter(Boolean)
+                                      : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean)
+                                    ).slice(0, 3).map((item, index) => (
+                                      <Badge key={`${item}-${index}`} variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 text-slate-600 border-slate-300 bg-slate-50">
+                                        {item}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
 

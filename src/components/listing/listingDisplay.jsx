@@ -85,6 +85,51 @@ export function formatListingDateRange(listing) {
   return "No dates set";
 }
 
+export function getListingStatusUi(listing) {
+  const status = getListingDisplayStatus(listing);
+  const isComingSoon = status === "coming_soon" || status === "upcoming" || status === "activated" || status === "activated_locked";
+  const isActive = status === "active";
+  const label = isComingSoon ? "Coming Soon" : isActive ? "Active" : formatListingStatusLabel(status);
+
+  return {
+    status,
+    isComingSoon,
+    isActive,
+    label,
+  };
+}
+
+export function getListingTypeBadgeLabel(listing) {
+  if (listing?.listingType === "event") return "Event";
+  if (listing?.listingType === "neighborhood_sale") return "Neighborhood Sale";
+  return "Yard Sale";
+}
+
+export function getListingSecondaryBadgeLabel(listing) {
+  if (listing?.listingType === "event") {
+    return listing?.event_category || formatListingTierLabel(listing?.event_tier || listing?.tier);
+  }
+
+  if (listing?.listingType === "neighborhood_sale") {
+    return formatListingTierLabel(listing?.tier === "neighborhood_tier" ? "premium" : listing?.tier);
+  }
+
+  return formatListingTierLabel(listing?.tier);
+}
+
+export function getListingPrimaryText(listing) {
+  return listing?.event_name || listing?.title || "Untitled listing";
+}
+
+export function getListingDescriptionText(listing) {
+  const { isComingSoon } = getListingStatusUi(listing);
+  if (isComingSoon) {
+    return `Starts: ${formatListingDateRange({ startDateTime: listing?.startDateTime })}`;
+  }
+
+  return listing?.event_description || listing?.description || "";
+}
+
 export function getOwnerDisplayName(owner, listing) {
   return owner?.full_name || owner?.email || listing?.created_by || listing?.ownerUserId || "Owner unavailable";
 }

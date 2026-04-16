@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { createPageUrl } from "@/utils";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
-import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
+import { getListingSortPriority } from "@/lib/eventListingConfig";
+import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
 
 // Calculate distance in feet
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -111,6 +112,8 @@ export default function ListView({ listings, userLocation }) {
             const categories = isEvent
               ? [listing.event_category].filter(Boolean)
               : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean);
+            const statusUi = getListingStatusUi(listing);
+            const descriptionText = getListingDescriptionText(listing);
 
             return (
             <Card key={listing.id} className={`transition-all duration-200 hover:shadow-lg ${listing._expired ? "opacity-60" : ""}`}>
@@ -119,24 +122,28 @@ export default function ListView({ listings, userLocation }) {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-2">
-                        {isEvent ? (
-                          <Badge variant="outline" className="text-[11px] text-slate-600 border-slate-300 bg-slate-50">
-                            Event
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[11px] text-slate-600 border-slate-300 bg-slate-50">
-                            {listing.tier === "neighborhood_tier" ? "Neighborhood" : listing.tier?.toUpperCase()}
-                          </Badge>
-                        )}
+                        <Badge variant="outline" className="text-[11px] text-slate-600 border-slate-300 bg-slate-50">
+                          {getListingTypeBadgeLabel(listing)}
+                        </Badge>
+                        <Badge variant="outline" className="text-[11px] text-slate-600 border-slate-300 bg-slate-50">
+                          {getListingSecondaryBadgeLabel(listing)}
+                        </Badge>
+                        <Badge className={`${statusUi.isComingSoon ? "bg-amber-500" : statusUi.isActive ? "bg-green-600" : "bg-slate-500"} text-white`}>
+                          {statusUi.label}
+                        </Badge>
                         {listing._expired && (
                           <Badge className="bg-red-500 text-white">Expired</Badge>
                         )}
                       </div>
-                      <h3 className="text-lg font-semibold text-slate-900 leading-tight">{listing.event_name || listing.title}</h3>
+                      <h3 className="text-lg font-semibold text-slate-900 leading-tight">{getListingPrimaryText(listing)}</h3>
                     </div>
                   </div>
 
-                  {categories.length > 0 && (
+                  {descriptionText && (
+                    <p className="text-sm text-slate-600 leading-relaxed">{descriptionText}</p>
+                  )}
+
+                  {categories.length > 0 && !statusUi.isComingSoon && (
                     <div className="flex flex-wrap gap-2">
                       {categories.map((item, index) => (
                         <Badge key={`${item}-${index}`} variant="outline" className="text-xs border-slate-200 text-slate-700 bg-white">
