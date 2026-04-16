@@ -1248,7 +1248,7 @@ const stats = useMemo(() => {
                               <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
                                 {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : listing.listingType === "event" ? "🎉 Event" : "🏡 Yard Sale"}
                               </Badge>
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{listing.listingType === "event" ? (listing.event_category || "Event") : listing.tier}</Badge>
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier}</Badge>
                               {isPreviewState && (
                                 <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-amber-500 text-white">Preview</Badge>
                               )}
@@ -1266,11 +1266,6 @@ const stats = useMemo(() => {
                               <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2">
                                 <p className="text-[11px] font-semibold text-amber-800">Preview only</p>
                                 <p className="text-[11px] text-amber-700 mt-1">Not visible to public until {goLiveLabel}</p>
-                              </div>
-                            ) : isComingSoonState && listing.listingType === "event" ? (
-                              <div className="rounded-md border border-sky-200 bg-sky-50 px-2 py-2">
-                                <p className="text-[11px] font-semibold text-sky-800">Active date</p>
-                                <p className="text-[11px] text-sky-700 mt-1">{goLiveLabel}</p>
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-1">
