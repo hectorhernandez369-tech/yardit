@@ -811,7 +811,7 @@ export default function HomePage() {
 
           return {
             ...listing,
-            mapState: neighborhoodState === "coming_soon" ? "coming_soon" : neighborhoodState === "active" ? "active" : mapState
+            mapState: neighborhoodState
           };
         } else {
           if (mapState === "hidden") return null;
@@ -874,7 +874,7 @@ export default function HomePage() {
 
         return {
           ...l,
-          mapState: neighborhoodState === "coming_soon" ? "coming_soon" : neighborhoodState === "active" ? "active" : getListingMapState(l, user, now)
+          mapState: neighborhoodState
         };
       }
 
