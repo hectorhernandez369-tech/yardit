@@ -1012,11 +1012,10 @@ const stats = useMemo(() => {
       (listing) => {
         const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
         if (!isMarquee) return false;
-        
+
         const marqueeState = openMarqueeIds[listing.id];
-        // Show marquee if state is "collapsed" or "expanded" (but not false or undefined)
-        const shouldShow = marqueeState === "collapsed" || marqueeState === "expanded";
-        
+        const shouldShow = marqueeState !== false;
+
         return shouldShow &&
           typeof listing?.lat === "number" &&
           typeof listing?.lng === "number";
@@ -1210,8 +1209,8 @@ const stats = useMemo(() => {
               const isComingSoonState = listing.mapState === "coming_soon";
               const isActiveState = listing.mapState === "active";
               const goLiveLabel = formatListingGoLive(listing);
-              const shouldShowCollapsedMarquee = isMarquee && currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM;
-              const marqueeOpen = shouldShowCollapsedMarquee && marqueeState !== false && marqueeState !== undefined;
+              const shouldShowCollapsedMarquee = isMarquee && currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM && marqueeState !== false;
+              const marqueeOpen = shouldShowCollapsedMarquee && marqueeState !== undefined;
 
                 return (
                   <Marker
