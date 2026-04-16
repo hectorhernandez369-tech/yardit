@@ -257,12 +257,32 @@ function isWithinViewingHours(startTime, endTime) {
   return currentMinutes >= startTotal && currentMinutes <= endTotal;
 }
 
-function isUpcomingOwnerPreview(listing, user, now = new Date()) {
-  if (!listing?.startDateTime || !user?.id) return false;
-  if (listing.ownerUserId !== user.id) return false;
-  const start = new Date(listing.startDateTime);
-  if (Number.isNaN(start.getTime())) return false;
-  return start > now;
+function getEarlyVisibilityStart(listing) {
+  const activeStart = new Date(listing?.startDateTime);
+  if (Number.isNaN(activeStart.getTime())) return null;
+  const earlyDays = Math.max(0, Number(listing?.earlyVisibilityDays || 0));
+  const earlyStart = new Date(activeStart);
+  earlyStart.setDate(earlyStart.getDate() - earlyDays);
+  return earlyStart;
+}
+
+function getListingMapState(listing, user, now = new Date()) {
+  if (!listing?.startDateTime) return "active";
+  const activeStart = new Date(listing.startDateTime);
+  if (Number.isNaN(activeStart.getTime())) return "active";
+
+  const earlyStart = getEarlyVisibilityStart(listing) || activeStart;
+  const isOwner = !!user?.id && listing.ownerUserId === user.id;
+
+  if (now < earlyStart) {
+    return isOwner ? "preview" : "hidden";
+  }
+
+  if (now < activeStart) {
+    return "coming_soon";
+  }
+
+  return "active";
 }
 
 function formatListingGoLive(listing) {
@@ -773,34 +793,29 @@ export default function HomePage() {
         if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return null;
         if (!isFinite(listing.lat) || !isFinite(listing.lng)) return null;
 
-        const ownerUpcomingPreview = isUpcomingOwnerPreview(listing, user, now);
+        const mapState = getListingMapState(listing, user, now);
 
         if (listing.listingType === "neighborhood_sale") {
           const isOwnerPendingPreview = user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, now) === "pending_activation";
           if (!isOwnerPendingPreview && listing.status !== "active") return null;
           const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
-          if (!isOwnerPendingPreview && !ownerUpcomingPreview && (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now))) return null;
+          if (!isOwnerPendingPreview && (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now))) return null;
 
           const start = new Date(listing.startDateTime);
           const end = new Date(listing.endDateTime);
           if (isNaN(start.getTime()) || isNaN(end.getTime()) || now > end) return null;
         } else {
-          if (!ownerUpcomingPreview && !shouldShowListingOnMainMap(listing, now)) return null;
+          if (mapState === "hidden") return null;
+          if (mapState === "active" && !shouldShowListingOnMainMap(listing, now)) return null;
 
           const start = new Date(listing.startDateTime);
           const end = new Date(listing.endDateTime);
           if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
-          if (!ownerUpcomingPreview && !demo && listing.listingType !== "event" && (start > now || end < now)) return null;
-          if (!ownerUpcomingPreview && demo && listing.listingType === "event" && end < now) return null;
+          if (mapState === "active" && !demo && listing.listingType !== "event" && (start > now || end < now)) return null;
+          if (mapState === "active" && demo && listing.listingType === "event" && end < now) return null;
         }
-
-        const matchesFilter = filter === "all" || listing.listingType === filter;
-        const matchesCategory = selectedCategories.length === 0 || 
-          selectedCategories.some(cat => (listing.categories || []).includes(cat) || listing.category === cat);
-
-        if (!matchesFilter || !matchesCategory) return null;
-
-        return { ...listing, ownerUpcomingPreview };
+...
+        return { ...listing, mapState };
       })
       .filter(Boolean);
 
@@ -855,7 +870,7 @@ export default function HomePage() {
   }, [listings, searchQuery, selectedCategories, demoOn]);
 
 const stats = useMemo(() => {
-  const publicListings = eligibleListings.filter((l) => !l.ownerUpcomingPreview);
+  const publicListings = eligibleListings.filter((l) => l.mapState !== "preview");
   return {
     total: publicListings.length,
     yard_sale: publicListings.filter((l) => l.listingType === "yard_sale").length,
@@ -917,12 +932,26 @@ const stats = useMemo(() => {
     const pins = [];
     const cPoints = [];
     eligibleListings.forEach(listing => {
-      if (listing.ownerUpcomingPreview) {
-        pins.push(listing);
+      const isPreview = listing.mapState === "preview";
+      const isComingSoon = listing.mapState === "coming_soon";
+      const isActive = listing.mapState === "active";
+
+      if (isPreview) {
+        if (currentZoom > 11) {
+          pins.push(listing);
+        }
         return;
       }
 
       const isNeighborhoodEvent = listing.listingType === "neighborhood_sale";
+
+      if (isComingSoon) {
+        const shouldRevealPin = isShowingAllListings || shouldShowAsPin(currentZoom, listing);
+        if (shouldRevealPin) {
+          pins.push(listing);
+        }
+        return;
+      }
 
       if (isNeighborhoodEvent) {
         if (currentZoom >= 12 && currentZoom < 18) {
@@ -933,19 +962,21 @@ const stats = useMemo(() => {
         return;
       }
 
-      const shouldRevealPin = isShowingAllListings || shouldShowAsPin(currentZoom, listing);
-      if (shouldRevealPin) {
-        pins.push(listing);
-      } else {
-        cPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id });
+      if (isActive) {
+        const shouldRevealPin = isShowingAllListings || shouldShowAsPin(currentZoom, listing);
+        if (shouldRevealPin) {
+          pins.push(listing);
+        } else {
+          cPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id });
+        }
       }
     });
 
     let fallback = false;
-    if (!isShowingAllListings && pins.length === 0 && eligibleListings.some((listing) => !listing.ownerUpcomingPreview) && currentZoom >= 11) {
+    if (!isShowingAllListings && pins.length === 0 && eligibleListings.some((listing) => listing.mapState === "active") && currentZoom >= 11) {
       fallback = true;
       eligibleListings.forEach(listing => {
-        if (listing.ownerUpcomingPreview) return;
+        if (listing.mapState !== "active") return;
         if (listing.listingType !== "neighborhood_sale" && listing.tier === "premium") {
           if (!pins.find(p => p.id === listing.id)) {
             pins.push(listing);
@@ -1162,7 +1193,8 @@ const stats = useMemo(() => {
               const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
               const marqueeState = openMarqueeIds[listing.id]; // "collapsed"|"expanded"|false|undefined
               const ownerPreviewPending = listing.listingType === "neighborhood_sale" && user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, new Date()) === "pending_activation";
-              const ownerUpcomingPreview = listing.ownerUpcomingPreview === true;
+              const isPreviewState = listing.mapState === "preview";
+              const isComingSoonState = listing.mapState === "coming_soon";
               const goLiveLabel = formatListingGoLive(listing);
               // Marquee open if zoom is sufficient AND state is not explicitly "false" and state is not undefined
               const marqueeOpen = isMarquee && currentZoom >= MARQUEE_OPEN_MIN_ZOOM && marqueeState !== false && marqueeState !== undefined;
@@ -1202,20 +1234,23 @@ const stats = useMemo(() => {
                                 {listing.listingType === "neighborhood_sale" ? "🏘️ Neighborhood" : listing.listingType === "event" ? "🎉 Event" : "🏡 Yard Sale"}
                               </Badge>
                               <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier}</Badge>
-                              {ownerUpcomingPreview && (
+                              {isPreviewState && (
+                                <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-amber-500 text-white">Preview</Badge>
+                              )}
+                              {isComingSoonState && (
                                 <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-amber-500 text-white">{UPCOMING_PREVIEW_LABEL}</Badge>
                               )}
-                              {isHuntStop && !ownerUpcomingPreview && (
+                              {isHuntStop && !isPreviewState && (
                                 <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
                               )}
                             </div>
 
                             <h3 className="font-bold text-sm leading-none">{listing.event_name || listing.title}</h3>
 
-                            {ownerUpcomingPreview ? (
+                            {isPreviewState ? (
                               <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2">
-                                <p className="text-[11px] font-semibold text-amber-800">Not Live Yet</p>
-                                <p className="text-[11px] text-amber-700 mt-1">Goes live: {goLiveLabel}</p>
+                                <p className="text-[11px] font-semibold text-amber-800">Preview only</p>
+                                <p className="text-[11px] text-amber-700 mt-1">Not visible to public until {goLiveLabel}</p>
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-1">
@@ -1242,7 +1277,7 @@ const stats = useMemo(() => {
                             >
                               View Listing
                             </Button>
-                            {!ownerUpcomingPreview && (
+                            {!isPreviewState && (
                               <>
                                 <Button
                                   size="sm"
@@ -1256,7 +1291,7 @@ const stats = useMemo(() => {
                                   Report
                                 </Button>
                                 <div className="ml-auto flex gap-1">
-                                  {!ownerUpcomingPreview && listing.listingType !== "event" && HUNT_ENABLED && (() => {
+                                  {!isPreviewState && listing.listingType !== "event" && HUNT_ENABLED && (() => {
                                     const huntStop = huntStops.find(s => s.id === listing.id);
                                     
                                     if (!huntStop) {
