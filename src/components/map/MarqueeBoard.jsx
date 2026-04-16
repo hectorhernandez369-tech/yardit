@@ -117,14 +117,25 @@ function wrapBoard(w, tailH, cardHtml) {
 export function getMarqueeBoardCollapsedHtml(listing, options = {}) {
   if (!listing) return "";
   const title = listing?.event_name || listing?.title || "Event";
-  const stateLabel = options.isComingSoon
+  const dateStr = formatEventDate(listing);
+
+  const derivedIsComingSoon =
+    options?.isComingSoon === true ||
+    listing?.mapState === "coming_soon" ||
+    (!!listing?.startDateTime && new Date(listing.startDateTime) > new Date());
+
+  const derivedIsActive =
+    !derivedIsComingSoon &&
+    (options?.isActive === true || listing?.mapState === "active");
+
+  const stateLabel = derivedIsComingSoon
     ? "COMING SOON"
-    : options.isActive
+    : derivedIsActive
       ? "ACTIVE"
       : "EVENT";
-  const dateStr = formatEventDate(listing);
-  const infoText = options.isComingSoon
-    ? `Active: ${escapeHtml(options.goLiveLabel || dateStr || "")}`
+
+  const infoText = derivedIsComingSoon
+    ? `Active: ${escapeHtml(options?.goLiveLabel || dateStr || "")}`
     : escapeHtml(dateStr || listing?.event_description || listing?.description || "");
   const detailText = infoText;
   const w = 165;
@@ -140,7 +151,7 @@ export function getMarqueeBoardCollapsedHtml(listing, options = {}) {
       ${bulbFrame(w, h, { sideCount: 2, sideTopInset: 13, sideBottomInset: 13, horizontalDensity: 15 })}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:5px;">
         <div style="flex:1;min-width:0;">
-          <div style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 6px;font-size:7px;font-weight:800;letter-spacing:0.06em;background:${options.isComingSoon ? "#f59e0b" : "#059669"};color:#fff;margin-bottom:4px;">${stateLabel}</div>
+          <div style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 6px;font-size:7px;font-weight:800;letter-spacing:0.06em;background:${derivedIsComingSoon ? "#f59e0b" : derivedIsActive ? "#059669" : "#475569"};color:#fff;margin-bottom:4px;">${stateLabel}</div>
           <div style="font-size:9.5px;font-weight:900;text-transform:uppercase;line-height:1.15;letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${escapeHtml(title)}</div>
           <div style="margin-top:3px;font-size:7px;color:rgba(255,255,255,0.82);line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${detailText}</div>
         </div>
@@ -156,14 +167,25 @@ export function getMarqueeBoardCollapsedHtml(listing, options = {}) {
 export function getMarqueeBoardExpandedHtml(listing, options = {}) {
   if (!listing) return "";
   const title = listing?.event_name || listing?.title || "Event";
-  const stateLabel = options.isComingSoon
+  const dateStr = formatEventDate(listing);
+
+  const derivedIsComingSoon =
+    options?.isComingSoon === true ||
+    listing?.mapState === "coming_soon" ||
+    (!!listing?.startDateTime && new Date(listing.startDateTime) > new Date());
+
+  const derivedIsActive =
+    !derivedIsComingSoon &&
+    (options?.isActive === true || listing?.mapState === "active");
+
+  const stateLabel = derivedIsComingSoon
     ? "COMING SOON"
-    : options.isActive
+    : derivedIsActive
       ? "ACTIVE"
       : "EVENT";
-  const dateStr = formatEventDate(listing);
-  const infoText = options.isComingSoon
-    ? `Active: ${escapeHtml(options.goLiveLabel || dateStr || "")}`
+
+  const infoText = derivedIsComingSoon
+    ? `Active: ${escapeHtml(options?.goLiveLabel || dateStr || "")}`
     : escapeHtml(dateStr || listing?.event_description || listing?.description || "");
   const w = MARQUEE_BOARD_WIDTH;
   const tailH = 6;
@@ -187,7 +209,7 @@ export function getMarqueeBoardExpandedHtml(listing, options = {}) {
             font-size:7px;
             font-weight:800;
             letter-spacing:0.06em;
-            background:${options.isComingSoon ? "#f59e0b" : "#059669"};
+            background:${derivedIsComingSoon ? "#f59e0b" : derivedIsActive ? "#059669" : "#475569"};
             color:#fff;
             margin-bottom:4px;
           ">
