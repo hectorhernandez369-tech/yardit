@@ -31,6 +31,8 @@ import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
 import ImageCropEditor from "@/components/admin/ImageCropEditor";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
 import MyCoinsPanel from "@/components/jth/MyCoinsPanel";
+import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
+import { canSelfServeUpgrade } from "@/lib/listingUpgradeConfig";
 import { getDefaultEventIconForCategory, EVENT_BASIC_ICON_LIBRARY, getEventIconEmoji } from "@/lib/eventListingConfig";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
@@ -66,6 +68,7 @@ export default function MyListingsPage() {
   const [backgroundImageForCrop, setBackgroundImageForCrop] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [upgradeListing, setUpgradeListing] = useState(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -761,6 +764,16 @@ export default function MyListingsPage() {
                         Relist
                       </Button>
 
+                      {canSelfServeUpgrade(listing) && (
+                        <Button
+                          size="sm"
+                          onClick={() => setUpgradeListing(listing)}
+                          className="bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                          Upgrade
+                        </Button>
+                      )}
+
                       {canCancelListingDirectly(listing) ? (
                         <Button
                           size="sm"
@@ -1186,6 +1199,18 @@ export default function MyListingsPage() {
       </Dialog>
 
       {/* Image Crop Editor */}
+      <ListingUpgradeDialog
+        open={!!upgradeListing}
+        onClose={() => setUpgradeListing(null)}
+        listing={upgradeListing}
+        user={user}
+        onSuccess={() => {
+          setUpgradeListing(null);
+          queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+          queryClient.invalidateQueries({ queryKey: ["listings"] });
+        }}
+      />
+
       <ImageCropEditor
         imageUrl={backgroundImageForCrop}
         open={cropEditorOpen}

@@ -10,6 +10,7 @@ import { base44 } from "@/api/base44Client";
 import { isComingSoonModeEnabled, getTesterBypass, shouldBypassComingSoonForCurrentUrl } from '@/lib/comingSoonMode';
 import PageNotFound from './lib/PageNotFound';
 import ComingSoon from './pages/ComingSoon';
+import CreateListingUpgradeReturn from './pages/CreateListingUpgradeReturn';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import GuestEntryModal from '@/components/guest/GuestEntryModal';
@@ -99,6 +100,7 @@ const AuthenticatedApp = () => {
             }
           />
         ))}
+        <Route path="/CreateListingUpgradeReturn" element={<LayoutWrapper currentPageName="CreateListingUpgradeReturn"><CreateListingUpgradeReturn /></LayoutWrapper>} />
         <Route path="/ComingSoon" element={<ComingSoon />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
