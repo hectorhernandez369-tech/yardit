@@ -151,7 +151,10 @@ export function getMarqueeBoardCollapsedHtml(listing, options = {}) {
       ${bulbFrame(w, h, { sideCount: 2, sideTopInset: 13, sideBottomInset: 13, horizontalDensity: 15 })}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:5px;">
         <div style="flex:1;min-width:0;">
-          <div style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 6px;font-size:7px;font-weight:800;letter-spacing:0.06em;background:${derivedIsComingSoon ? "#f59e0b" : derivedIsActive ? "#059669" : "#475569"};color:#fff;margin-bottom:4px;">${stateLabel}</div>
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:4px;">
+  <div style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 6px;font-size:7px;font-weight:800;letter-spacing:0.06em;background:#0f172a;color:#fff;">EVENT</div>
+  <div style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 6px;font-size:7px;font-weight:800;letter-spacing:0.06em;background:${derivedIsComingSoon ? "#f59e0b" : derivedIsActive ? "#059669" : "#475569"};color:#fff;">${stateLabel}</div>
+</div>
           <div style="font-size:9.5px;font-weight:900;text-transform:uppercase;line-height:1.15;letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${escapeHtml(title)}</div>
           <div style="margin-top:3px;font-size:7px;color:rgba(255,255,255,0.82);line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${detailText}</div>
         </div>
@@ -201,20 +204,10 @@ export function getMarqueeBoardExpandedHtml(listing, options = {}) {
       ${bulbFrame(w, h, { sideCount: 4, sideTopInset: 14, sideBottomInset: 14, horizontalDensity: 15 })}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;">
         <div style="flex:1;min-width:0;">
-          <div style="
-            display:inline-flex;
-            align-items:center;
-            border-radius:9999px;
-            padding:1px 6px;
-            font-size:7px;
-            font-weight:800;
-            letter-spacing:0.06em;
-            background:${derivedIsComingSoon ? "#f59e0b" : derivedIsActive ? "#059669" : "#475569"};
-            color:#fff;
-            margin-bottom:4px;
-          ">
-            ${stateLabel}
-          </div>
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:4px;">
+  <div style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 6px;font-size:7px;font-weight:800;letter-spacing:0.06em;background:#0f172a;color:#fff;">EVENT</div>
+  <div style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 6px;font-size:7px;font-weight:800;letter-spacing:0.06em;background:${derivedIsComingSoon ? "#f59e0b" : derivedIsActive ? "#059669" : "#475569"};color:#fff;">${stateLabel}</div>
+</div>
           <div style="font-size:10.5px;font-weight:900;text-transform:uppercase;line-height:1.2;letter-spacing:0.04em;word-break:break-word;">${escapeHtml(title)}</div>
           ${infoText ? `<div style="margin-top:2px;font-size:8px;color:rgba(255,255,255,0.85);line-height:1.3;">${infoText}</div>` : ""}
         </div>
