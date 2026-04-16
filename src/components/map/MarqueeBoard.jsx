@@ -114,12 +114,16 @@ function wrapBoard(w, tailH, cardHtml) {
 
 // COLLAPSED: compact theater-style card — title + date + expand button + border lights
 // Locked footprint: 160px width, ~52px height
-export function getMarqueeBoardCollapsedHtml(listing) {
+export function getMarqueeBoardCollapsedHtml(listing, options = {}) {
   if (!listing) return "";
   const title = listing?.event_name || listing?.title || "Event";
   const dateStr = formatEventDate(listing);
+  const stateLabel = options.isComingSoon ? "COMING SOON" : options.isActive ? "ACTIVE" : "EVENT";
+  const detailText = options.isComingSoon
+    ? `Coming soon ${escapeHtml(options.goLiveLabel || dateStr || "")}`
+    : escapeHtml(listing?.event_description || listing?.description || dateStr || "");
   const w = 165;
-  const h = 52;
+  const h = 66;
   const tailH = 6;
   const bgUrl = listing?.marquee_background_url;
   const bgStyle = bgUrl
@@ -131,8 +135,9 @@ export function getMarqueeBoardCollapsedHtml(listing) {
       ${bulbFrame(w, h, { sideCount: 2, sideTopInset: 13, sideBottomInset: 13, horizontalDensity: 15 })}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:5px;">
         <div style="flex:1;min-width:0;">
+          <div style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 6px;font-size:7px;font-weight:800;letter-spacing:0.06em;background:${options.isComingSoon ? "#f59e0b" : "#059669"};color:#fff;margin-bottom:4px;">${stateLabel}</div>
           <div style="font-size:9.5px;font-weight:900;text-transform:uppercase;line-height:1.15;letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${escapeHtml(title)}</div>
-          ${dateStr ? `<div style="margin-top:1px;font-size:7px;color:rgba(255,255,255,0.55);line-height:1.2;">${escapeHtml(dateStr)}</div>` : ""}
+          <div style="margin-top:3px;font-size:7px;color:rgba(255,255,255,0.82);line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${detailText}</div>
         </div>
         <button data-marquee-expand="true" style="flex-shrink:0;border:1px solid rgba(244,168,73,0.6);border-radius:3px;background:rgba(244,168,73,0.18);padding:1px 5px;font-size:8px;font-weight:700;color:#f4a849;cursor:pointer;line-height:1.3;white-space:nowrap;">▼</button>
       </div>

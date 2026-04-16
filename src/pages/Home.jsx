@@ -444,9 +444,10 @@ export default function HomePage() {
   const [focusListingId, setFocusListingId] = useState(null);
   const [activeFocusListing, setActiveFocusListing] = useState(null);
   const [selectedListingId, setSelectedListingId] = useState(null);
-  // marquee state per id: undefined = collapsed (board visible), "expanded" = expanded, false = hidden (spotlight only)
+  // marquee state per id: "collapsed" = collapsed board, "expanded" = expanded board, false = hidden/closed
   const [openMarqueeIds, setOpenMarqueeIds] = useState({});
-  const MARQUEE_OPEN_MIN_ZOOM = 11;
+  const MARQUEE_COLLAPSED_MIN_ZOOM = 13;
+  const MARQUEE_HIDDEN_MIN_ZOOM = 11;
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
   const showListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
@@ -902,12 +903,11 @@ const stats = useMemo(() => {
 
   const handlePinClick = (listing) => {
     if ((listing?.event_tier || listing?.tier) === "marquee") {
-      if (currentZoom >= MARQUEE_OPEN_MIN_ZOOM) {
-        // Show collapsed board on first tap (unless already open)
+      if (currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM) {
         setOpenMarqueeIds((prev) => {
           const cur = prev[listing.id];
           if (cur === false || cur === undefined) return { ...prev, [listing.id]: "collapsed" };
-          return prev; // already collapsed or expanded, don't change
+          return prev;
         });
       } else {
         setOpenMarqueeIds((prev) => ({ ...prev, [listing.id]: false }));
@@ -935,6 +935,7 @@ const stats = useMemo(() => {
       const isPreview = listing.mapState === "preview";
       const isComingSoon = listing.mapState === "coming_soon";
       const isActive = listing.mapState === "active";
+      const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
 
       if (isPreview) {
         if (currentZoom > 11) {
@@ -946,9 +947,15 @@ const stats = useMemo(() => {
       const isNeighborhoodEvent = listing.listingType === "neighborhood_sale";
 
       if (isComingSoon) {
-        const shouldRevealPin = isShowingAllListings || shouldShowAsPin(currentZoom, listing);
-        if (shouldRevealPin) {
-          pins.push(listing);
+        if (isMarquee) {
+          if (currentZoom >= MARQUEE_HIDDEN_MIN_ZOOM) {
+            pins.push(listing);
+          }
+        } else {
+          const shouldRevealPin = isShowingAllListings || shouldShowAsPin(currentZoom, listing);
+          if (shouldRevealPin) {
+            pins.push(listing);
+          }
         }
         return;
       }
@@ -963,11 +970,17 @@ const stats = useMemo(() => {
       }
 
       if (isActive) {
-        const shouldRevealPin = isShowingAllListings || shouldShowAsPin(currentZoom, listing);
-        if (shouldRevealPin) {
-          pins.push(listing);
+        if (isMarquee) {
+          if (currentZoom >= MARQUEE_HIDDEN_MIN_ZOOM) {
+            pins.push(listing);
+          }
         } else {
-          cPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id });
+          const shouldRevealPin = isShowingAllListings || shouldShowAsPin(currentZoom, listing);
+          if (shouldRevealPin) {
+            pins.push(listing);
+          } else {
+            cPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id });
+          }
         }
       }
     });
@@ -993,7 +1006,7 @@ const stats = useMemo(() => {
   // NO ZOOM-BASED STATE RESET - persist marquee state across zoom levels
 
   const marqueeOverlays = useMemo(() => {
-    if (currentZoom < MARQUEE_OPEN_MIN_ZOOM) return [];
+    if (currentZoom < MARQUEE_COLLAPSED_MIN_ZOOM) return [];
 
     return visiblePins.filter(
       (listing) => {
@@ -1195,9 +1208,10 @@ const stats = useMemo(() => {
               const ownerPreviewPending = listing.listingType === "neighborhood_sale" && user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, new Date()) === "pending_activation";
               const isPreviewState = listing.mapState === "preview";
               const isComingSoonState = listing.mapState === "coming_soon";
+              const isActiveState = listing.mapState === "active";
               const goLiveLabel = formatListingGoLive(listing);
-              // Marquee open if zoom is sufficient AND state is not explicitly "false" and state is not undefined
-              const marqueeOpen = isMarquee && currentZoom >= MARQUEE_OPEN_MIN_ZOOM && marqueeState !== false && marqueeState !== undefined;
+              const shouldShowCollapsedMarquee = isMarquee && currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM;
+              const marqueeOpen = shouldShowCollapsedMarquee && marqueeState !== false && marqueeState !== undefined;
 
                 return (
                   <Marker
@@ -1205,13 +1219,15 @@ const stats = useMemo(() => {
                     ref={(ref) => { if (ref) markerRefsMap.current[listing.id] = ref; }}
                     position={[listing.lat, listing.lng]}
                     icon={listing.listingType === "event" ? (() => {
-                 if (isMarquee && marqueeOpen) {
-                   const isExpanded = marqueeState === "expanded";
-                   const boardHtml = isExpanded ? getMarqueeBoardExpandedHtml(listing) : getMarqueeBoardCollapsedHtml(listing);
-                   return getEventMarkerIcon(listing, isMapSelected, true, boardHtml, currentZoom);
-                 }
-                 return getEventMarkerIcon(listing, isMapSelected, marqueeOpen);
-               })() : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
+                    if (isMarquee && shouldShowCollapsedMarquee) {
+                    const isExpanded = marqueeState === "expanded";
+                    const boardHtml = isExpanded
+                    ? getMarqueeBoardExpandedHtml(listing)
+                    : getMarqueeBoardCollapsedHtml(listing, { isComingSoon: isComingSoonState, isActive: isActiveState, goLiveLabel });
+                    return getEventMarkerIcon(listing, isMapSelected, true, boardHtml, currentZoom);
+                    }
+                    return getEventMarkerIcon(listing, isMapSelected, false);
+                    })() : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
                     eventHandlers={{
                       click: () => { handlePinClick(listing); },
                       popupopen: () => setSelectedListingId(listing.id),
@@ -1458,7 +1474,11 @@ const stats = useMemo(() => {
                 console.log("DEBUG: rendering marquee board for:", listing.id, "backgroundUrl:", listing?.marquee_background_url);
                 const boardHtml = isExpanded
                   ? getMarqueeBoardExpandedHtml(listing)
-                  : getMarqueeBoardCollapsedHtml(listing);
+                  : getMarqueeBoardCollapsedHtml(listing, {
+                      isComingSoon: listing.mapState === "coming_soon",
+                      isActive: listing.mapState === "active",
+                      goLiveLabel: formatListingGoLive(listing),
+                    });
                 return (
                   <Marker
                     key={`marquee-board-${listing.id}-${isExpanded ? "exp" : "col"}-z${isExpanded ? 0 : currentZoom}`}
