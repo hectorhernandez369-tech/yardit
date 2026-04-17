@@ -1,0 +1,21 @@
+{
+  "name": "Yardit",
+  "short_name": "Yardit",
+  "icons": [
+    {
+      "src": "https://media.base44.com/images/public/690f554506edf795e5d84121/289456407_generated_image.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://media.base44.com/images/public/690f554506edf795e5d84121/289456407_generated_image.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "theme_color": "#000000",
+  "background_color": "#000000",
+  "display": "standalone"
+}
