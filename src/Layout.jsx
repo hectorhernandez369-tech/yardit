@@ -24,7 +24,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "./components/guest/GuestAuthModal";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
-import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt } from "@/lib/installPrompt";
+import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -77,7 +77,7 @@ function LayoutContent({ children, user, setUser }) {
 
   useEffect(() => {
     const updateInstallState = () => {
-      setCanInstallApp(isIosDevice() ? !isStandaloneInstalled() : canUseBrowserInstallPrompt(deferredInstallPrompt));
+      setCanInstallApp(shouldShowInstallButton());
     };
 
     const handleBeforeInstallPrompt = (event) => {
@@ -153,23 +153,23 @@ function LayoutContent({ children, user, setUser }) {
                 </Button>
               </Link>
               
-              {(user || isGuest) && (
-                <>
-                  {!isGuest && <NotificationBell />}
-                  
-                  {canInstallApp && (
-                    <Button
-                      size="sm"
-                      onClick={handleInstallClick}
-                      variant="secondary"
-                      className="gap-2 bg-white/20 text-white hover:bg-white/30 border border-white/30"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span className="hidden sm:inline">Install</span>
-                    </Button>
-                  )}
+              <>
+                {!isGuest && user && <NotificationBell />}
 
+                {canInstallApp && (
                   <Button
+                    size="sm"
+                    onClick={handleInstallClick}
+                    variant="outline"
+                    className="h-8 px-3 text-xs sm:text-sm border-white/50 bg-white/10 text-white hover:bg-white/20"
+                  >
+                    Install
+                  </Button>
+                )}
+
+                {(user || isGuest) && (
+                  <>
+                    <Button
                     size="sm"
                     onClick={() => guardAction(() => navigate(createPageUrl("CreateListing")))}
                     className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
@@ -185,56 +185,12 @@ function LayoutContent({ children, user, setUser }) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 bg-[#E7D7B8] border-2 border-[#2C4F4E] z-[99999] relative">
-                      {!isGuest && (
-                        <>
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("MyListings"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
-                            <MapPin className="w-4 h-4 mr-2" />
-                            My Listings
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("Settings"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
-                            <User className="w-4 h-4 mr-2" />
-                            My Profile
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                      
-                      {hasAdminProfile && !isGuest && (
-                        <DropdownMenuItem
-                          onClick={() => {
-                            const session = getAdminSession();
-                            if (session) {
-                              navigate(createPageUrl("AdminLite"));
-                            } else {
-                              setShowAdminLogin(true);
-                            }
-                          }}
-                          className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium"
-                        >
-                          <Shield className="w-4 h-4 mr-2" />
-                          Admin
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => navigate(createPageUrl("FAQ"))} className="cursor-pointer text-[#2C4F4E] focus:bg-[#DCC9A5] font-medium">
-                        <HelpCircle className="w-4 h-4 mr-2" />
-                        FAQ
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => isGuest ? navigateToLogin() : logout()} className="cursor-pointer text-[#2C4F4E] focus:bg-white font-medium">
-                        {isGuest ? (
-                           <>
-                             <User className="w-4 h-4 mr-2" />
-                             Log In / Sign Up
-                           </>
-                        ) : (
-                           <>
-                             <LogOut className="w-4 h-4 mr-2 text-red-600" />
-                             <span className="text-red-600">Logout</span>
-                           </>
-                        )}
-                      </DropdownMenuItem>
+...
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </>
               )}
+            </>
             </nav>
           </div>
         </div>

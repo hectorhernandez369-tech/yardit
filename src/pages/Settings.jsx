@@ -13,7 +13,7 @@ import UserInfoSection from "@/components/profile/UserInfoSection";
 import ProfileCoinsSummary from "../components/profile/ProfileCoinsSummary";
 import { useAuth } from "@/lib/AuthContext";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
-import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt } from "@/lib/installPrompt";
+import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -78,7 +78,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const updateInstallState = () => {
-      setCanInstallApp(isIosDevice() ? !isStandaloneInstalled() : canUseBrowserInstallPrompt(deferredInstallPrompt));
+      setCanInstallApp(shouldShowInstallButton());
     };
 
     const handleBeforeInstallPrompt = (event) => {
@@ -192,7 +192,7 @@ export default function SettingsPage() {
                 variant="outline"
                 className="w-full justify-start text-left font-normal"
               >
-                Install App
+                Install Yardit
               </Button>
             </CardContent>
           </Card>
