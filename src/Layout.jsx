@@ -114,6 +114,10 @@ function LayoutContent({ children, user, setUser }) {
     setCanInstallApp(false);
   };
 
+  const handleLogout = async () => {
+    await logout?.();
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
       <Toaster richColors position="top-center" />
