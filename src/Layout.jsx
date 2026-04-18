@@ -189,23 +189,18 @@ function LayoutContent({ children, user, setUser }) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-
                       {user ? (
                         <>
                           <DropdownMenuItem onClick={() => navigate(createPageUrl("MyListings"))}>
                             My Listings
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("MyHunt"))}>
-                            My Hunt
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("Notifications"))}>
-                            Notifications
-                          </DropdownMenuItem>
-
                           <DropdownMenuItem onClick={() => navigate(createPageUrl("Profile"))}>
-                            Profile
+                            My Profile
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem onClick={() => navigate(createPageUrl("AdminLogin"))}>
+                            Admin Login
                           </DropdownMenuItem>
 
                           <DropdownMenuItem onClick={() => navigate(createPageUrl("Settings"))}>
@@ -214,10 +209,6 @@ function LayoutContent({ children, user, setUser }) {
 
                           <DropdownMenuItem onClick={() => navigate(createPageUrl("Help"))}>
                             Help & FAQ
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("AdminLogin"))}>
-                            Admin Login
                           </DropdownMenuItem>
 
                           <DropdownMenuItem onClick={handleLogout}>
@@ -235,7 +226,6 @@ function LayoutContent({ children, user, setUser }) {
                           </DropdownMenuItem>
                         </>
                       )}
-
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </>
