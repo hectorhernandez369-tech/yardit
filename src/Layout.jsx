@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Plus, Home, User, Settings, Shield, MoreVertical, LogOut, HelpCircle, MapPin } from "lucide-react";
+import { Plus, Home, User, Settings, Shield, MoreVertical, LogOut, HelpCircle, MapPin, Download } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,8 @@ import { syncAdminInvite } from "./components/admin/adminInviteSync";
 import { useAuth } from "@/lib/AuthContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "./components/guest/GuestAuthModal";
+import InstallPromptDialog from "@/components/install/InstallPromptDialog";
+import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt } from "@/lib/installPrompt";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -36,6 +38,9 @@ function LayoutContent({ children, user, setUser }) {
   const [hasAdminProfile, setHasAdminProfile] = useState(false);
   const [adminActivatedBanner, setAdminActivatedBanner] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const [showInstallDialog, setShowInstallDialog] = useState(false);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [canInstallApp, setCanInstallApp] = useState(false);
   const { isGuest, isAuthenticated, logout, navigateToLogin } = useAuth() || {};
 
   useEffect(() => {
@@ -69,6 +74,45 @@ function LayoutContent({ children, user, setUser }) {
           setHasAdminProfile(false);
       }
   }, [user]);
+
+  useEffect(() => {
+    const updateInstallState = () => {
+      setCanInstallApp(isIosDevice() ? !isStandaloneInstalled() : canUseBrowserInstallPrompt(deferredInstallPrompt));
+    };
+
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setDeferredInstallPrompt(event);
+    };
+
+    const handleInstalled = () => {
+      setDeferredInstallPrompt(null);
+      setCanInstallApp(false);
+      setShowInstallDialog(false);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleInstalled);
+    updateInstallState();
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
+  }, [deferredInstallPrompt]);
+
+  const handleInstallClick = async () => {
+    if (isIosDevice()) {
+      setShowInstallDialog(true);
+      return;
+    }
+
+    if (!deferredInstallPrompt) return;
+
+    await deferredInstallPrompt.prompt();
+    setDeferredInstallPrompt(null);
+    setCanInstallApp(false);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
@@ -113,6 +157,18 @@ function LayoutContent({ children, user, setUser }) {
                 <>
                   {!isGuest && <NotificationBell />}
                   
+                  {canInstallApp && (
+                    <Button
+                      size="sm"
+                      onClick={handleInstallClick}
+                      variant="secondary"
+                      className="gap-2 bg-white/20 text-white hover:bg-white/30 border border-white/30"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="hidden sm:inline">Install</span>
+                    </Button>
+                  )}
+
                   <Button
                     size="sm"
                     onClick={() => guardAction(() => navigate(createPageUrl("CreateListing")))}
@@ -212,6 +268,8 @@ function LayoutContent({ children, user, setUser }) {
           navigate(createPageUrl("AdminLite"));
         }}
       />
+
+      <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} />
 
       <Dialog open={showWelcomePopup} onOpenChange={setShowWelcomePopup}>
         <DialogContent className="sm:max-w-md bg-[#F3E6CF] border-2 border-[#2C4F4E]">

@@ -12,12 +12,17 @@ import { clearAdminSession } from "../components/admin/AdminLoginModal";
 import UserInfoSection from "@/components/profile/UserInfoSection";
 import ProfileCoinsSummary from "../components/profile/ProfileCoinsSummary";
 import { useAuth } from "@/lib/AuthContext";
+import InstallPromptDialog from "@/components/install/InstallPromptDialog";
+import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt } from "@/lib/installPrompt";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
+  const [showInstallDialog, setShowInstallDialog] = useState(false);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [canInstallApp, setCanInstallApp] = useState(false);
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -69,6 +74,45 @@ export default function SettingsPage() {
   const handleLogout = () => {
     clearAdminSession();
     logout(createPageUrl("Home"));
+  };
+
+  useEffect(() => {
+    const updateInstallState = () => {
+      setCanInstallApp(isIosDevice() ? !isStandaloneInstalled() : canUseBrowserInstallPrompt(deferredInstallPrompt));
+    };
+
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setDeferredInstallPrompt(event);
+    };
+
+    const handleInstalled = () => {
+      setDeferredInstallPrompt(null);
+      setCanInstallApp(false);
+      setShowInstallDialog(false);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleInstalled);
+    updateInstallState();
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
+  }, [deferredInstallPrompt]);
+
+  const handleInstallClick = async () => {
+    if (isIosDevice()) {
+      setShowInstallDialog(true);
+      return;
+    }
+
+    if (!deferredInstallPrompt) return;
+
+    await deferredInstallPrompt.prompt();
+    setDeferredInstallPrompt(null);
+    setCanInstallApp(false);
   };
 
   if (!user) {
@@ -137,6 +181,23 @@ export default function SettingsPage() {
           <UserInfoSection user={user} setUser={setUser} />
         </div>
 
+        {canInstallApp && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Install Yardit</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={handleInstallClick}
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+              >
+                Install App
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Help & Support</CardTitle>
@@ -202,6 +263,8 @@ export default function SettingsPage() {
             </Button>
           </CardContent>
         </Card>
+
+        <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} />
       </div>
     </div>
   );
