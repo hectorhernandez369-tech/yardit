@@ -188,7 +188,7 @@ function LayoutContent({ children, user, setUser }) {
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1200]">
                       {user ? (
                         <>
                           <DropdownMenuItem onClick={() => navigate(createPageUrl("MyListings"))}>
