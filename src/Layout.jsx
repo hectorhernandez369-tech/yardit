@@ -39,6 +39,7 @@ function LayoutContent({ children, user, setUser }) {
   const [adminActivatedBanner, setAdminActivatedBanner] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
+  const [installDialogMode, setInstallDialogMode] = useState("ios");
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [canInstallApp, setCanInstallApp] = useState(false);
   const { isGuest, isAuthenticated, logout, navigateToLogin } = useAuth() || {};
@@ -102,16 +103,19 @@ function LayoutContent({ children, user, setUser }) {
   }, [deferredInstallPrompt]);
 
   const handleInstallClick = async () => {
-    if (isIosDevice()) {
+    if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+      setInstallDialogMode("ios");
       setShowInstallDialog(true);
       return;
     }
 
-    if (!deferredInstallPrompt) return;
+    if (deferredInstallPrompt) {
+      await deferredInstallPrompt.prompt();
+      return;
+    }
 
-    await deferredInstallPrompt.prompt();
-    setDeferredInstallPrompt(null);
-    setCanInstallApp(false);
+    setInstallDialogMode("fallback");
+    setShowInstallDialog(true);
   };
 
   const handleLogout = async () => {
@@ -265,7 +269,7 @@ function LayoutContent({ children, user, setUser }) {
         }}
       />
 
-      <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} />
+      <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} mode={installDialogMode} />
 
       <Dialog open={showWelcomePopup} onOpenChange={setShowWelcomePopup}>
         <DialogContent className="sm:max-w-md bg-[#F3E6CF] border-2 border-[#2C4F4E]">
