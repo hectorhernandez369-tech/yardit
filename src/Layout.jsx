@@ -164,16 +164,6 @@ function LayoutContent({ children, user, setUser }) {
               <>
                 {!isGuest && user && <NotificationBell />}
 
-                {canInstallApp && (
-                  <Button
-                    size="sm"
-                    onClick={handleInstallClick}
-                    variant="outline"
-                    className="h-8 px-3 text-xs sm:text-sm border-white/50 bg-white/10 text-white hover:bg-white/20"
-                  >
-                    Install
-                  </Button>
-                )}
 
                 {(user || isGuest) && (
                   <>
