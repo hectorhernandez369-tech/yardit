@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -81,6 +81,12 @@ export default function MyListingsPage() {
   const [isSendingCoHostInvite, setIsSendingCoHostInvite] = useState(false);
   const [isUpdatingCoHost, setIsUpdatingCoHost] = useState(false);
 
+  const refreshEditingListing = useCallback(async (listingId) => {
+    const latestListing = await base44.entities.Listing.get(listingId);
+    setEditingListing(latestListing);
+    return latestListing;
+  }, []);
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -133,6 +139,11 @@ export default function MyListingsPage() {
     enabled: !!editingListing && editingListing.listingType === "neighborhood_sale",
     initialData: [],
   });
+
+  const coHostUser = useMemo(() => {
+    if (!editingListing?.co_host_user_id) return null;
+    return searchableUsers.find((candidate) => candidate.id === editingListing.co_host_user_id) || null;
+  }, [searchableUsers, editingListing?.co_host_user_id]);
 
   // ---- Helpers ----
   const getLatLng = (listing) => {
@@ -323,27 +334,24 @@ export default function MyListingsPage() {
 
   const shownListings = tab === "past" ? pastListings : tab === "pending" ? pendingListings : activeListings;
 
-  const openEditDescription = (listing) => {
+  const openEditDescription = async (listing) => {
    setIconPickerOpen(false);
-   setEditingListing(listing);
-   setEditTitle(listing?.title || listing?.event_name || "");
-   setEditDescription(listing?.description || listing?.event_description || "");
-   setEditCategories(listing?.categories?.length > 0 ? listing.categories : (listing?.category ? [listing.category] : []));
-   setEditEventIcon(listing?.event_icon || getDefaultEventIconForCategory(listing?.event_category || listing?.category));
-   setEditEventLogoUrl(listing?.event_logo_url || "");
-   setEditPhotoUrls(listing?.listingType === "event" ? (listing?.event_photos || listing?.photoUrls || []) : (listing?.photoUrls || []));
-   setEditMarqueeSlots(Array.isArray(listing?.marquee_schedule_slots) ? listing.marquee_schedule_slots : []);
-   const flyerUrl = listing?.marquee_flyer_url || "";
+   const latestListing = await refreshEditingListing(listing.id);
+   setEditTitle(latestListing?.title || latestListing?.event_name || "");
+   setEditDescription(latestListing?.description || latestListing?.event_description || "");
+   setEditCategories(latestListing?.categories?.length > 0 ? latestListing.categories : (latestListing?.category ? [latestListing.category] : []));
+   setEditEventIcon(latestListing?.event_icon || getDefaultEventIconForCategory(latestListing?.event_category || latestListing?.category));
+   setEditEventLogoUrl(latestListing?.event_logo_url || "");
+   setEditPhotoUrls(latestListing?.listingType === "event" ? (latestListing?.event_photos || latestListing?.photoUrls || []) : (latestListing?.photoUrls || []));
+   setEditMarqueeSlots(Array.isArray(latestListing?.marquee_schedule_slots) ? latestListing.marquee_schedule_slots : []);
+   const flyerUrl = latestListing?.marquee_flyer_url || "";
    setEditMarqueeFlyerUrl(flyerUrl);
-   console.log("DEBUG: openEditDescription - marquee_flyer_url:", flyerUrl);
-   const bgUrl = listing?.marquee_background_url || "";
+   const bgUrl = latestListing?.marquee_background_url || "";
    setEditMarqueeBackgroundUrl(bgUrl);
-   console.log("DEBUG: openEditDescription - marquee_background_url:", bgUrl);
 
-    // Marquee date/time prefill
-    if (listing?.listingType === "event" && (listing?.event_tier || listing?.tier) === "marquee") {
-      const start = listing.startDateTime ? new Date(listing.startDateTime) : null;
-      const end = listing.endDateTime ? new Date(listing.endDateTime) : null;
+    if (latestListing?.listingType === "event" && (latestListing?.event_tier || latestListing?.tier) === "marquee") {
+      const start = latestListing.startDateTime ? new Date(latestListing.startDateTime) : null;
+      const end = latestListing.endDateTime ? new Date(latestListing.endDateTime) : null;
       setEditEventStartDate(start ? start.toISOString().slice(0, 10) : "");
       setEditEventEndDate(end ? end.toISOString().slice(0, 10) : "");
       setEditEventStartTime(start ? start.toTimeString().slice(0, 5) : "");
@@ -355,8 +363,9 @@ export default function MyListingsPage() {
       setEditEventEndTime("");
     }
 
-    if (listing?.listingType === "neighborhood_sale") {
-      setEditStartDate(listing.selectedRangeStartDate || (listing.startDateTime ? new Date(listing.startDateTime).toISOString().split("T")[0] : ""));
+    if (latestListing?.listingType === "neighborhood_sale") {
+      setEditStartDate(latestListing.selectedRangeStartDate || (latestListing.startDateTime ? new Date(latestListing.startDateTime).toISOString().split("T")[0] : ""));
+      setSelectedCoHostUserId(latestListing.co_host_user_id || "");
     } else {
       setEditStartDate("");
     }
@@ -421,16 +430,10 @@ export default function MyListingsPage() {
       });
 
       toast.success("Co-host invite sent");
-      const nextListing = {
-        ...editingListing,
-        co_host_user_id: selectedUser.id,
-        co_host_status: "pending",
-        cohost_invite_status: "pending",
-      };
-      setEditingListing(nextListing);
-      setSelectedCoHostUserId(selectedUser.id);
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      await refreshEditingListing(editingListing.id);
+      setSelectedCoHostUserId(selectedUser.id);
     } catch (error) {
       toast.error("Could not send invite");
     } finally {
@@ -443,10 +446,9 @@ export default function MyListingsPage() {
     setIsUpdatingCoHost(true);
     try {
       await base44.entities.Listing.update(editingListing.id, updates);
-      const nextListing = { ...editingListing, ...updates };
-      setEditingListing(nextListing);
       toast.success(successMessage);
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      await refreshEditingListing(editingListing.id);
     } catch (error) {
       toast.error("Could not update co-host");
     } finally {
@@ -1111,33 +1113,38 @@ export default function MyListingsPage() {
                   {editingListing.co_host_user_id && editingListing.co_host_status && (
                     <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-800">Current Co-Host</p>
+                        <p className="text-sm font-medium text-slate-800 truncate">
+                          {getUserDisplayName(coHostUser) || "Invited co-host"}
+                        </p>
                         <p className="text-sm text-slate-600">
                           Status: <span className="font-medium capitalize">{editingListing.cohost_invite_status || editingListing.co_host_status}</span>
                         </p>
+                        {coHostUser?.email && (
+                          <p className="text-xs text-slate-500 truncate">{coHostUser.email}</p>
+                        )}
                         {editingListing.co_host_permissions && (
                           <p className="text-xs text-slate-500 capitalize">Permissions: {editingListing.co_host_permissions}</p>
                         )}
                       </div>
-                      <DropdownMenu>
+                      <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
                           <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost}>
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1400]">
                           {editingListing.co_host_status === "pending" ? (
-                            <DropdownMenuItem onClick={handleCancelInvite}>
+                            <DropdownMenuItem onSelect={handleCancelInvite}>
                               <UserX className="w-4 h-4" />
                               Cancel Invite
                             </DropdownMenuItem>
                           ) : (
                             <>
-                              <DropdownMenuItem onClick={handleRemoveCoHost}>
+                              <DropdownMenuItem onSelect={handleRemoveCoHost}>
                                 <UserX className="w-4 h-4" />
                                 Remove Co-Host
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={handleLimitCoHostPowers}>
+                              <DropdownMenuItem onSelect={handleLimitCoHostPowers}>
                                 <Shield className="w-4 h-4" />
                                 Limit Powers
                               </DropdownMenuItem>
