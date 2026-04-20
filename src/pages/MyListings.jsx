@@ -1236,12 +1236,31 @@ export default function MyListingsPage() {
                                 </div>
                                 <DropdownMenu modal={false}>
                                   <DropdownMenuTrigger asChild>
-                                    <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost}>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={isUpdatingCoHost}
+                                      onPointerDown={(e) => e.stopPropagation()}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
                                       <MoreHorizontal className="w-4 h-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1400]">
-                                    <DropdownMenuItem onSelect={() => handleCancelInvite(row.inviteId)}>
+                                  <DropdownMenuContent
+                                    align="end"
+                                    side="bottom"
+                                    sideOffset={8}
+                                    collisionPadding={12}
+                                    onCloseAutoFocus={(e) => e.preventDefault()}
+                                    className="z-[2000]"
+                                  >
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleCancelInvite(row.inviteId);
+                                      }}
+                                    >
                                       <UserX className="w-4 h-4" />
                                       Cancel Invite
                                     </DropdownMenuItem>
@@ -1264,16 +1283,40 @@ export default function MyListingsPage() {
                                 </div>
                                 <DropdownMenu modal={false}>
                                   <DropdownMenuTrigger asChild>
-                                    <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost}>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={isUpdatingCoHost}
+                                      onPointerDown={(e) => e.stopPropagation()}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
                                       <MoreHorizontal className="w-4 h-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1400]">
-                                    <DropdownMenuItem onSelect={() => handleSuspendCoHost(row.inviteId)}>
+                                  <DropdownMenuContent
+                                    align="end"
+                                    side="bottom"
+                                    sideOffset={8}
+                                    collisionPadding={12}
+                                    onCloseAutoFocus={(e) => e.preventDefault()}
+                                    className="z-[2000]"
+                                  >
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleSuspendCoHost(row.inviteId);
+                                      }}
+                                    >
                                       <Shield className="w-4 h-4" />
                                       Suspend Co-Host
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={() => handleRemoveCoHost(row.inviteId)}>
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleRemoveCoHost(row.inviteId);
+                                      }}
+                                    >
                                       <UserX className="w-4 h-4" />
                                       Remove Co-Host
                                     </DropdownMenuItem>
@@ -1296,16 +1339,40 @@ export default function MyListingsPage() {
                                 </div>
                                 <DropdownMenu modal={false}>
                                   <DropdownMenuTrigger asChild>
-                                    <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost}>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={isUpdatingCoHost}
+                                      onPointerDown={(e) => e.stopPropagation()}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
                                       <MoreHorizontal className="w-4 h-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1400]">
-                                    <DropdownMenuItem onSelect={() => handleReactivateCoHost(row.inviteId)}>
+                                  <DropdownMenuContent
+                                    align="end"
+                                    side="bottom"
+                                    sideOffset={8}
+                                    collisionPadding={12}
+                                    onCloseAutoFocus={(e) => e.preventDefault()}
+                                    className="z-[2000]"
+                                  >
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleReactivateCoHost(row.inviteId);
+                                      }}
+                                    >
                                       <Shield className="w-4 h-4" />
                                       Re-Activate Co-Host
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={() => handleRemoveCoHost(row.inviteId)}>
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleRemoveCoHost(row.inviteId);
+                                      }}
+                                    >
                                       <UserX className="w-4 h-4" />
                                       Remove Co-Host
                                     </DropdownMenuItem>
