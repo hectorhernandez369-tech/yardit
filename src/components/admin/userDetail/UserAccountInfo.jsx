@@ -157,10 +157,6 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
           <p className="font-medium">{last || "—"}</p>
         </div>
         <div>
-          <span className="text-gray-500">Display Name</span>
-          <p className="font-medium">{getUserDisplayName(user)}</p>
-        </div>
-        <div>
           <span className="text-gray-500">Email</span>
           <p className="font-medium break-all">{user.email || "—"}</p>
         </div>

@@ -14,7 +14,6 @@ export default function UserInfoSection({ user, setUser }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingAddress, setIsConfirmingAddress] = useState(false);
 
-  const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email || "Not set";
   const isAddressConfirmed = user.address_confirmation_status === "confirmed" && user.address_lat && user.address_lng;
 
   const [formData, setFormData] = useState({
@@ -197,13 +196,6 @@ export default function UserInfoSection({ user, setUser }) {
               )}
             </div>
           </div>
-
-          <div className="space-y-2">
-            <Label>Full Name</Label>
-            <p className="text-lg font-medium">{fullName}</p>
-          </div>
-
-
 
           {/* Email (Read-only) */}
           <div className="space-y-2">
