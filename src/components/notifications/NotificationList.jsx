@@ -117,6 +117,8 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
     mutationFn: ({ notification, action }) => respondToCoHostInvite(notification, action),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["myListings"] });
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
       toast.success(variables.action === "accept" ? "Co-host request accepted" : "Co-host request declined");
     },
     onError: (error) => {

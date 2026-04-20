@@ -101,6 +101,9 @@ export default function ListingDetailPage() {
   const pendingRequests = joinRequests?.filter(r => r.status === "pending") || [];
   const approvedRequests = joinRequests?.filter(r => r.status === "approved" && r.removed_by_eo !== true) || [];
   const removedRequests = joinRequests?.filter(r => r.removed_by_eo === true) || [];
+  const isOwner = !!user && user.id === listing?.ownerUserId;
+  const isAcceptedCoHost = !!user && listing?.listingType === "neighborhood_sale" && listing?.co_host_user_id === user.id && listing?.co_host_status === "accepted";
+  const canManageNeighborhoodSale = isOwner || isAcceptedCoHost;
   const approvedHomesCount = 1 + approvedRequests.length;
   const availableSpots = Math.max(0, 25 - approvedHomesCount);
   const formatAddress = (item) => {
@@ -567,6 +570,11 @@ export default function ListingDetailPage() {
                     <p className="text-sm text-emerald-800">
                       {listing.homeCount} homes participating • Span: {listing.spanFeet} ft
                     </p>
+                    {listing.co_host_user_id && (
+                      <p className="text-sm text-emerald-800 mt-1">
+                        Co-host status: <span className="font-medium capitalize">{listing.co_host_status || "pending"}</span>
+                      </p>
+                    )}
                   </div>
                   <Button size="sm" variant="outline" className="gap-2 border-emerald-300 text-emerald-800 hover:bg-emerald-100" onClick={handleCopyInvite}>
                     <Copy className="w-4 h-4" />
@@ -588,7 +596,7 @@ export default function ListingDetailPage() {
                   </div>
                 </div>
 
-                {user && user.id === listing.ownerUserId && salePricing && (
+                {canManageNeighborhoodSale && salePricing && (
                   <div className="bg-white/70 border border-emerald-200 rounded-lg p-4 space-y-3">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div>
@@ -655,7 +663,7 @@ export default function ListingDetailPage() {
                             >
                               Send Message
                             </Button>
-                            {(user?.id === listing.ownerUserId || user?.isAdmin) && (
+                            {(canManageNeighborhoodSale || user?.isAdmin) && (
                               isNeighborhoodSaleLive ? (
                                 <Button
                                   size="sm"
@@ -709,7 +717,7 @@ export default function ListingDetailPage() {
                 </div>
 
                 {/* (plain english) section to show pending requests for EO */}
-                {user && user.id === listing.ownerUserId && pendingRequests.length > 0 && (
+                {canManageNeighborhoodSale && pendingRequests.length > 0 && (
                   <div className="mt-4 border-t border-emerald-200 pt-4">
                     <h4 className="font-semibold text-emerald-900 mb-3">Pending Join Requests ({pendingRequests.length})</h4>
                     <div className="space-y-3">
@@ -754,7 +762,7 @@ export default function ListingDetailPage() {
                 )}
 
                 {/* (plain english) section to show participating homes for EO */}
-                {user && user.id === listing.ownerUserId && approvedRequests.length > 0 && (
+                {canManageNeighborhoodSale && approvedRequests.length > 0 && (
                   <div className="mt-4 border-t border-emerald-200 pt-4">
                     <h4 className="font-semibold text-emerald-900 mb-3">Participating Homes ({approvedRequests.length})</h4>
                     <div className="space-y-3">
@@ -797,7 +805,7 @@ export default function ListingDetailPage() {
                 )}
 
                 {/* (plain english) section to show removed homes for EO */}
-                {user && user.id === listing.ownerUserId && removedRequests.length > 0 && (
+                {canManageNeighborhoodSale && removedRequests.length > 0 && (
                   <div className="mt-4 border-t border-red-200 pt-4">
                     <h4 className="font-semibold text-red-900 mb-3">Removed Homes ({removedRequests.length})</h4>
                     <div className="space-y-3">

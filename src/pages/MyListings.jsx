@@ -7,7 +7,7 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Map, Trash2, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, MapPin, Map, Trash2, X, ChevronDown, ChevronUp, Search, Send } from "lucide-react";
 import { format } from "date-fns";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -69,6 +69,9 @@ export default function MyListingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [upgradeListing, setUpgradeListing] = useState(null);
+  const [coHostSearchQuery, setCoHostSearchQuery] = useState("");
+  const [selectedCoHostUserId, setSelectedCoHostUserId] = useState("");
+  const [isSendingCoHostInvite, setIsSendingCoHostInvite] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -85,7 +88,17 @@ export default function MyListingsPage() {
 
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ["myListings", user?.id],
-    queryFn: () => base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date"),
+    queryFn: async () => {
+      const owned = await base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date");
+      const coHosted = await base44.entities.Listing.filter({ co_host_user_id: user.id }, "-created_date");
+      const merged = [...owned, ...coHosted.filter((listing) => listing.co_host_status === "accepted")];
+      const seen = new Set();
+      return merged.filter((listing) => {
+        if (seen.has(listing.id)) return false;
+        seen.add(listing.id);
+        return true;
+      });
+    },
     enabled: !!user,
     initialData: [],
   });
@@ -103,6 +116,13 @@ export default function MyListingsPage() {
     queryKey: ["myListingsJthCoinHistory", user?.id],
     queryFn: () => base44.entities.JTHCoinEvent.filter({ collected_by_user_id: user.id }, "-collected_timestamp"),
     enabled: !!user?.id,
+    initialData: [],
+  });
+
+  const { data: searchableUsers = [] } = useQuery({
+    queryKey: ["coHostUserSearch", editingListing?.id],
+    queryFn: () => base44.entities.User.list(),
+    enabled: !!editingListing && editingListing.listingType === "neighborhood_sale",
     initialData: [],
   });
 
@@ -187,6 +207,28 @@ export default function MyListingsPage() {
   const activeListings = useMemo(() => normalizedListings.filter((l) => isActiveListing(l)), [normalizedListings]);
   const pendingListings = useMemo(() => normalizedListings.filter((l) => isPendingListing(l)), [normalizedListings]);
   const pastListings = useMemo(() => normalizedListings.filter((l) => isEffectivelyPastListing(l)), [normalizedListings]);
+
+  const filteredCoHostUsers = useMemo(() => {
+    if (!editingListing || editingListing.listingType !== "neighborhood_sale") return [];
+    const query = coHostSearchQuery.trim().toLowerCase();
+    if (!query) return [];
+
+    return searchableUsers.filter((candidate) => {
+      if (!candidate?.id || candidate.id === user?.id) return false;
+      const fullName = `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim();
+      const values = [
+        fullName,
+        candidate.full_name,
+        candidate.email,
+        candidate.phone,
+        candidate.address,
+        candidate.city,
+        candidate.id,
+      ].filter(Boolean).map((value) => String(value).toLowerCase());
+
+      return values.some((value) => value.includes(query));
+    }).slice(0, 8);
+  }, [searchableUsers, coHostSearchQuery, editingListing, user?.id]);
 
   useEffect(() => {
     const cleanup = async () => {
@@ -292,6 +334,57 @@ export default function MyListingsPage() {
     setEditEventEndTime("");
     setEditMarqueeFlyerUrl("");
     setEditMarqueeBackgroundUrl("");
+    setCoHostSearchQuery("");
+    setSelectedCoHostUserId("");
+  };
+
+  const sendCoHostInvite = async () => {
+    if (!editingListing || editingListing.listingType !== "neighborhood_sale" || !selectedCoHostUserId) return;
+
+    const selectedUser = searchableUsers.find((candidate) => candidate.id === selectedCoHostUserId);
+    if (!selectedUser) {
+      toast.error("Select a user first");
+      return;
+    }
+
+    setIsSendingCoHostInvite(true);
+    try {
+      await base44.entities.Listing.update(editingListing.id, {
+        co_host_user_id: selectedUser.id,
+        co_host_status: "pending",
+        cohost_invite_status: "pending",
+      });
+
+      await base44.entities.Notification.create({
+        userId: selectedUser.id,
+        user_id: selectedUser.id,
+        user_email: selectedUser.email,
+        title: "Neighborhood Sale Co-Host Invite",
+        message: `${user?.full_name || [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "A Yardit user"} invited you to co-host \"${editingListing.title}\".`,
+        type: "co_host_invite",
+        related_entity_type: "listing",
+        related_entity_id: editingListing.id,
+        read: false,
+        is_read: false,
+        metadata: {
+          sale_listing_id: editingListing.id,
+          event_title: editingListing.title,
+          inviter_user_id: user?.id,
+          inviter_name: user?.full_name || [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || "",
+          invite_type: "co_host",
+          invited_user_id: selectedUser.id,
+        },
+      });
+
+      toast.success("Co-host invite sent");
+      setSelectedCoHostUserId(selectedUser.id);
+      await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    } catch (error) {
+      toast.error("Could not send invite");
+    } finally {
+      setIsSendingCoHostInvite(false);
+    }
   };
 
   const saveDescription = async () => {
@@ -708,6 +801,11 @@ export default function MyListingsPage() {
                         <Badge variant="outline" className="bg-white text-slate-700 border-slate-300">
                           {listing.listingType === "event" ? "Event" : listing.listingType === "yard_sale" ? "Yard Sale" : listing.listingType === "neighborhood_sale" ? "Neighborhood Sale" : "Listing"}
                         </Badge>
+                        {listing.co_host_user_id === user?.id && listing.co_host_status === "accepted" && (
+                          <Badge className="bg-indigo-600 text-white hover:bg-indigo-700 border-none">
+                            Co-Host
+                          </Badge>
+                        )}
                         {/* (plain english) Requester listing badges for neighborhood join status */}
                         {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && (
                           <Badge className="bg-yellow-500 text-yellow-950 hover:bg-yellow-600 border-none">Pending Neighborhood Approval</Badge>
@@ -748,13 +846,15 @@ export default function MyListingsPage() {
                         View Details
                       </Button>
 
-                      <Button
-                        size="sm"
-                        onClick={() => openEditDescription(listing)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        Edit Listing
-                      </Button>
+                      {listing.ownerUserId === user?.id && (
+                        <Button
+                          size="sm"
+                          onClick={() => openEditDescription(listing)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          Edit Listing
+                        </Button>
+                      )}
 
                       <Button
                         size="sm"
@@ -848,17 +948,82 @@ export default function MyListingsPage() {
 
           <div className="space-y-4">
             {editingListing?.listingType === "neighborhood_sale" && (
-              <div>
-                <Label className="text-[#2C4F4E] mb-2 block">Start Date</Label>
-                <Input
-                  type="date"
-                  min={new Date().toISOString().split("T")[0]}
-                  value={editStartDate}
-                  onChange={(e) => setEditStartDate(e.target.value)}
-                  className="bg-[#F3E6CF] border-[#2C4F4E]"
-                />
-                <p className="text-xs text-slate-500 mt-1">Must be at least 7 days in the future. Changing this updates your event deadline rules and charge date.</p>
-              </div>
+              <>
+                <div>
+                  <Label className="text-[#2C4F4E] mb-2 block">Start Date</Label>
+                  <Input
+                    type="date"
+                    min={new Date().toISOString().split("T")[0]}
+                    value={editStartDate}
+                    onChange={(e) => setEditStartDate(e.target.value)}
+                    className="bg-[#F3E6CF] border-[#2C4F4E]"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Must be at least 7 days in the future. Changing this updates your event deadline rules and charge date.</p>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 p-4 space-y-3">
+                  <div>
+                    <Label className="text-[#2C4F4E] mb-2 block">Add Co-Host</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Input
+                        value={coHostSearchQuery}
+                        onChange={(e) => setCoHostSearchQuery(e.target.value)}
+                        placeholder="Search Co-Host by name, email, phone, address, city, or user ID"
+                        className="pl-9"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">Search existing Yardit users only.</p>
+                  </div>
+
+                  {filteredCoHostUsers.length > 0 && (
+                    <div className="space-y-2 max-h-56 overflow-y-auto">
+                      {filteredCoHostUsers.map((candidate) => {
+                        const fullName = `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim() || candidate.full_name || "Unnamed user";
+                        const isSelected = selectedCoHostUserId === candidate.id;
+                        return (
+                          <button
+                            key={candidate.id}
+                            type="button"
+                            onClick={() => setSelectedCoHostUserId(candidate.id)}
+                            className={`w-full rounded-md border p-3 text-left transition ${isSelected ? "border-blue-600 bg-blue-50" : "border-slate-200 hover:bg-slate-50"}`}
+                          >
+                            <div className="font-medium text-slate-900">{fullName}</div>
+                            <div className="text-xs text-slate-600 mt-1 space-y-1">
+                              <p>{candidate.email || "No email"}</p>
+                              <p>{candidate.phone || "No phone"}</p>
+                              <p>{candidate.address || candidate.city || "No address"}</p>
+                              <p>User ID: {candidate.id}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {coHostSearchQuery.trim() && filteredCoHostUsers.length === 0 && (
+                    <p className="text-sm text-slate-500">No users found.</p>
+                  )}
+
+                  {editingListing.co_host_user_id && editingListing.co_host_status && (
+                    <p className="text-sm text-slate-600">
+                      Current co-host status: <span className="font-medium capitalize">{editingListing.co_host_status}</span>
+                    </p>
+                  )}
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={sendCoHostInvite}
+                      disabled={!selectedCoHostUserId || isSendingCoHostInvite}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      {isSendingCoHostInvite ? "Sending..." : "Send Invite"}
+                    </Button>
+                  </div>
+                </div>
+              </>
             )}
 
             {editingListing?.listingType === "yard_sale" && (
