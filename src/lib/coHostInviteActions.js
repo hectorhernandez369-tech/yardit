@@ -9,7 +9,7 @@ export async function respondToCoHostInvite(notification, action) {
   const response = await base44.functions.invoke("manageNeighborhoodCoHostInvite", {
     action: "respond",
     invite_id: inviteId,
-    response: action === "accept" ? "accepted" : "declined",
+    response: action === "accept" ? "active" : "declined",
   });
 
   if (!response?.data?.success) {

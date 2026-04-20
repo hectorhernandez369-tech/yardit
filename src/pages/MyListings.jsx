@@ -147,36 +147,52 @@ export default function MyListingsPage() {
     initialData: [],
   });
 
-  const listingCoHostInvite = useMemo(() => {
-    if (!editingListing?.id) return null;
-    return coHostInvites.find((invite) => invite.related_listing_id === editingListing.id) || null;
+  const listingCoHostInvites = useMemo(() => {
+    if (!editingListing?.id) return [];
+    return coHostInvites.filter((invite) => invite.related_listing_id === editingListing.id);
   }, [coHostInvites, editingListing?.id]);
 
-  const coHostContainerRows = useMemo(() => {
-    const rows = [];
+  const latestInviteForAttachedCoHost = useMemo(() => {
+    if (!editingListing?.co_host_user_id) return null;
+    return listingCoHostInvites.find((invite) => invite.host_user_id === editingListing.co_host_user_id) || null;
+  }, [listingCoHostInvites, editingListing?.co_host_user_id]);
 
-    if (listingCoHostInvite && ["pending", "declined", "removed"].includes(listingCoHostInvite.status)) {
-      rows.push({
-        id: listingCoHostInvite.id,
-        source: "invite",
-        status: listingCoHostInvite.status,
-        name: listingCoHostInvite.host_name || "Invited co-host",
-        email: listingCoHostInvite.host_email || "",
-      });
-    }
+  const pendingInviteRows = useMemo(() => {
+    return listingCoHostInvites
+      .filter((invite) => invite.status === "pending")
+      .map((invite) => ({
+        id: invite.id,
+        inviteId: invite.id,
+        userId: invite.host_user_id,
+        status: "pending",
+        name: invite.host_name || "Invited co-host",
+        email: invite.host_email || "",
+      }));
+  }, [listingCoHostInvites]);
 
-    if (editingListing?.co_host_user_id && ["active", "accepted", "suspended"].includes(editingListing?.co_host_status)) {
-      rows.push({
-        id: editingListing.co_host_user_id,
-        source: "listing",
-        status: editingListing.co_host_status,
-        name: listingCoHostInvite?.host_name || "Co-host",
-        email: listingCoHostInvite?.host_email || "",
-      });
-    }
+  const activeCoHostRows = useMemo(() => {
+    if (!editingListing?.co_host_user_id || editingListing?.co_host_status !== "active") return [];
+    return [{
+      id: editingListing.co_host_user_id,
+      inviteId: latestInviteForAttachedCoHost?.id || null,
+      userId: editingListing.co_host_user_id,
+      status: "active",
+      name: latestInviteForAttachedCoHost?.host_name || "Co-host",
+      email: latestInviteForAttachedCoHost?.host_email || "",
+    }];
+  }, [editingListing?.co_host_user_id, editingListing?.co_host_status, latestInviteForAttachedCoHost]);
 
-    return rows;
-  }, [listingCoHostInvite, editingListing?.co_host_user_id, editingListing?.co_host_status]);
+  const suspendedCoHostRows = useMemo(() => {
+    if (!editingListing?.co_host_user_id || editingListing?.co_host_status !== "suspended") return [];
+    return [{
+      id: editingListing.co_host_user_id,
+      inviteId: latestInviteForAttachedCoHost?.id || null,
+      userId: editingListing.co_host_user_id,
+      status: "suspended",
+      name: latestInviteForAttachedCoHost?.host_name || "Co-host",
+      email: latestInviteForAttachedCoHost?.host_email || "",
+    }];
+  }, [editingListing?.co_host_user_id, editingListing?.co_host_status, latestInviteForAttachedCoHost]);
 
   // ---- Helpers ----
   const getLatLng = (listing) => {
@@ -435,11 +451,19 @@ export default function MyListingsPage() {
 
     setIsSendingCoHostInvite(true);
     try {
-      const existingInvite = coHostInvites.find((invite) => invite.related_listing_id === editingListing.id);
+      const duplicateInvite = listingCoHostInvites.find((invite) => invite.host_user_id === selectedUser.id && invite.status === "pending");
+      const duplicateLiveCoHost = editingListing.co_host_user_id === selectedUser.id && ["active", "suspended"].includes(editingListing.co_host_status);
 
-      let inviteRecord = existingInvite;
-      if (existingInvite) {
-        inviteRecord = await base44.entities.NeighborhoodCoHostInvite.update(existingInvite.id, {
+      if (duplicateInvite || duplicateLiveCoHost) {
+        toast.error("That co-host already has an active or pending relationship on this listing");
+        return;
+      }
+
+      const reusableInvite = listingCoHostInvites.find((invite) => invite.host_user_id === selectedUser.id);
+
+      let inviteRecord = reusableInvite;
+      if (reusableInvite) {
+        inviteRecord = await base44.entities.NeighborhoodCoHostInvite.update(reusableInvite.id, {
           host_user_id: selectedUser.id,
           host_email: selectedUser.email,
           host_name: getUserDisplayName(selectedUser),
@@ -453,7 +477,7 @@ export default function MyListingsPage() {
           organizer_email: user?.email,
           organizer_name: getUserDisplayName(user) || user?.email || "",
           event_title: editingListing.title,
-          address_key: `listing|${editingListing.id}`,
+          address_key: `listing|${editingListing.id}|${selectedUser.id}`,
           street_address: editingListing.addressText || editingListing.host_addressText || "Unknown",
           city: editingListing.city || editingListing.host_city || "Unknown",
           state: editingListing.state || editingListing.host_state || "XX",
@@ -465,12 +489,6 @@ export default function MyListingsPage() {
           related_listing_id: editingListing.id,
         });
       }
-
-      await base44.entities.Listing.update(editingListing.id, {
-        co_host_user_id: selectedUser.id,
-        co_host_status: "pending",
-        cohost_invite_status: "pending",
-      });
 
       await base44.entities.Notification.create({
         userId: selectedUser.id,
@@ -522,53 +540,46 @@ export default function MyListingsPage() {
     }
   };
 
-  const handleCancelInvite = async () => {
-    if (listingCoHostInvite?.id) {
-      await base44.entities.NeighborhoodCoHostInvite.update(listingCoHostInvite.id, { status: "removed" });
+  const handleCancelInvite = async (inviteId) => {
+    if (inviteId) {
+      await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "removed" });
     }
-    await updateCoHostDetails(
-      {
-        co_host_user_id: null,
-        co_host_status: null,
-        cohost_invite_status: null,
-        co_host_permissions: null,
-      },
-      "Co-host invite canceled"
-    );
-    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id] });
+    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
+    await refreshEditingListing(editingListing.id);
+    toast.success("Co-host invite canceled");
   };
 
-  const handleSuspendCoHost = async () => {
-    if (listingCoHostInvite?.id) {
-      await base44.entities.NeighborhoodCoHostInvite.update(listingCoHostInvite.id, { status: "suspended" });
+  const handleSuspendCoHost = async (inviteId) => {
+    if (inviteId) {
+      await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "accepted" });
     }
     await updateCoHostDetails(
       {
         co_host_status: "suspended",
-        cohost_invite_status: "suspended",
+        cohost_invite_status: null,
       },
       "Co-host suspended"
     );
-    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id] });
+    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
   };
 
-  const handleReactivateCoHost = async () => {
-    if (listingCoHostInvite?.id) {
-      await base44.entities.NeighborhoodCoHostInvite.update(listingCoHostInvite.id, { status: "accepted" });
+  const handleReactivateCoHost = async (inviteId) => {
+    if (inviteId) {
+      await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "accepted" });
     }
     await updateCoHostDetails(
       {
         co_host_status: "active",
-        cohost_invite_status: "active",
+        cohost_invite_status: null,
       },
       "Co-host re-activated"
     );
-    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id] });
+    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
   };
 
-  const handleRemoveCoHost = async () => {
-    if (listingCoHostInvite?.id) {
-      await base44.entities.NeighborhoodCoHostInvite.update(listingCoHostInvite.id, { status: "removed" });
+  const handleRemoveCoHost = async (inviteId) => {
+    if (inviteId) {
+      await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "removed" });
     }
     await updateCoHostDetails(
       {
@@ -579,7 +590,7 @@ export default function MyListingsPage() {
       },
       "Co-host removed"
     );
-    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id] });
+    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
   };
 
   const saveDescription = async () => {
@@ -1203,74 +1214,107 @@ export default function MyListingsPage() {
                     <p className="text-sm text-slate-500">No users found.</p>
                   )}
 
-                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-3">
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-4">
                     <div>
                       <p className="text-sm font-semibold text-slate-800">Co-Host Management</p>
                       <p className="text-xs text-slate-500">Manage pending invites, active co-hosts, and suspended co-hosts.</p>
                     </div>
 
-                    {coHostContainerRows.length === 0 ? (
+                    {pendingInviteRows.length === 0 && activeCoHostRows.length === 0 && suspendedCoHostRows.length === 0 ? (
                       <p className="text-sm text-slate-500">No co-hosts or invites yet.</p>
                     ) : (
-                      <div className="space-y-2">
-                        {coHostContainerRows.map((row) => {
-                          const badgeClass = row.status === "pending"
-                            ? "bg-amber-100 text-amber-800 border-amber-200"
-                            : row.status === "suspended"
-                            ? "bg-red-100 text-red-800 border-red-200"
-                            : "bg-green-100 text-green-800 border-green-200";
-
-                          return (
-                            <div key={`${row.source}-${row.id}`} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-slate-800 truncate">{row.name}</p>
-                                <p className="text-xs text-slate-500 truncate">{row.email || "No email available"}</p>
-                                <Badge variant="outline" className={`mt-2 capitalize ${badgeClass}`}>
-                                  {row.status === "accepted" ? "active" : row.status}
-                                </Badge>
-                              </div>
-                              <DropdownMenu modal={false}>
-                                <DropdownMenuTrigger asChild>
-                                  <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost}>
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1400]">
-                                  {row.status === "pending" && (
-                                    <DropdownMenuItem onSelect={handleCancelInvite}>
+                      <div className="space-y-4">
+                        {pendingInviteRows.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pending Invites</p>
+                            {pendingInviteRows.map((row) => (
+                              <div key={row.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-slate-800 truncate">{row.name}</p>
+                                  <p className="text-xs text-slate-500 truncate">{row.email || "No email available"}</p>
+                                  <Badge variant="outline" className="mt-2 capitalize bg-amber-100 text-amber-800 border-amber-200">Pending</Badge>
+                                </div>
+                                <DropdownMenu modal={false}>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost}>
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1400]">
+                                    <DropdownMenuItem onSelect={() => handleCancelInvite(row.inviteId)}>
                                       <UserX className="w-4 h-4" />
                                       Cancel Invite
                                     </DropdownMenuItem>
-                                  )}
-                                  {(row.status === "active" || row.status === "accepted") && (
-                                    <>
-                                      <DropdownMenuItem onSelect={handleSuspendCoHost}>
-                                        <Shield className="w-4 h-4" />
-                                        Suspend Co-Host
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onSelect={handleRemoveCoHost}>
-                                        <UserX className="w-4 h-4" />
-                                        Remove Co-Host
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                  {row.status === "suspended" && (
-                                    <>
-                                      <DropdownMenuItem onSelect={handleReactivateCoHost}>
-                                        <Shield className="w-4 h-4" />
-                                        Re-Activate Co-Host
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onSelect={handleRemoveCoHost}>
-                                        <UserX className="w-4 h-4" />
-                                        Remove Co-Host
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          );
-                        })}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {activeCoHostRows.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Active Co-Hosts</p>
+                            {activeCoHostRows.map((row) => (
+                              <div key={row.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-slate-800 truncate">{row.name}</p>
+                                  <p className="text-xs text-slate-500 truncate">{row.email || "No email available"}</p>
+                                  <Badge variant="outline" className="mt-2 capitalize bg-green-100 text-green-800 border-green-200">Active</Badge>
+                                </div>
+                                <DropdownMenu modal={false}>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost}>
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1400]">
+                                    <DropdownMenuItem onSelect={() => handleSuspendCoHost(row.inviteId)}>
+                                      <Shield className="w-4 h-4" />
+                                      Suspend Co-Host
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleRemoveCoHost(row.inviteId)}>
+                                      <UserX className="w-4 h-4" />
+                                      Remove Co-Host
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {suspendedCoHostRows.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Suspended Co-Hosts</p>
+                            {suspendedCoHostRows.map((row) => (
+                              <div key={row.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-slate-800 truncate">{row.name}</p>
+                                  <p className="text-xs text-slate-500 truncate">{row.email || "No email available"}</p>
+                                  <Badge variant="outline" className="mt-2 capitalize bg-red-100 text-red-800 border-red-200">Suspended</Badge>
+                                </div>
+                                <DropdownMenu modal={false}>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost}>
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1400]">
+                                    <DropdownMenuItem onSelect={() => handleReactivateCoHost(row.inviteId)}>
+                                      <Shield className="w-4 h-4" />
+                                      Re-Activate Co-Host
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleRemoveCoHost(row.inviteId)}>
+                                      <UserX className="w-4 h-4" />
+                                      Remove Co-Host
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
