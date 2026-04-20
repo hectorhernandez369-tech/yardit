@@ -193,7 +193,7 @@ function LayoutContent({ children, user, setUser }) {
                             My Profile
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("AdminLogin"))}>
+                          <DropdownMenuItem onClick={() => navigate(createPageUrl("AdminLite"))}>
                             Admin Login
                           </DropdownMenuItem>
 
