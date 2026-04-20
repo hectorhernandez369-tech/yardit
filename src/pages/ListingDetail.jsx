@@ -290,8 +290,14 @@ export default function ListingDetailPage() {
   ].filter(Boolean).join("\n");
 
   const marqueeSchedule = normalizeMarqueeSlots(listing?.marquee_schedule_slots || []);
-  const flyerImages = (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(listing?.event_photos || listing?.photoUrls || []);
-  const mainImage = flyerImages[selectedImageIndex] || flyerImages[0];
+  const listingImages = (() => {
+    const basePhotos = listing?.listingType === "event"
+      ? (listing?.event_photos || listing?.photoUrls || [])
+      : (listing?.photoUrls || listing?.event_photos || []);
+
+    return (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(basePhotos).filter(Boolean);
+  })();
+  const mainImage = listingImages[selectedImageIndex] || listingImages[0];
   const listingUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing.id}`;
   const shareTitle = listing.event_name || listing.title;
   const shareText = [shareTitle, listing.event_description || listing.description, listingUrl].filter(Boolean).join("\n\n");
@@ -372,7 +378,7 @@ export default function ListingDetailPage() {
         <Card className="overflow-hidden rounded-[2rem] border-0 bg-white/95 shadow-[0_18px_60px_rgba(15,23,42,0.10)]">
           <CardContent className="space-y-8 p-4 sm:p-6 md:p-8">
             <div className="space-y-5">
-              {flyerImages.length > 0 && (
+              {listingImages.length > 0 && (
                 <div className="space-y-4">
                   <div className="relative overflow-hidden rounded-[1.75rem] bg-slate-100 shadow-[0_12px_40px_rgba(15,23,42,0.16)]">
                     <img
@@ -382,9 +388,9 @@ export default function ListingDetailPage() {
                     />
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                   </div>
-                  {flyerImages.length > 1 && (
+                  {listingImages.length > 1 && (
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                      {flyerImages.map((url, idx) => (
+                      {listingImages.map((url, idx) => (
                         <button
                           key={idx}
                           type="button"
