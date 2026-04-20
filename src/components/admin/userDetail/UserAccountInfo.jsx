@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Pencil, Save, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import PromotionModal from "../promotions/PromotionModal";
+import { getUserDisplayName, getUserIdentityFields } from "@/lib/userIdentity";
 
 const statusColors = {
   active: "bg-green-600",
@@ -15,19 +16,11 @@ const statusColors = {
   banned: "bg-black",
 };
 
-function deriveNames(user) {
-  if (user.first_name || user.last_name) {
-    return { first: user.first_name || "", last: user.last_name || "" };
-  }
-  const parts = (user.full_name || "").split(" ");
-  return { first: parts[0] || "", last: parts.slice(1).join(" ") || "" };
-}
-
 export default function UserAccountInfo({ user, onUserUpdated }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPromoModal, setShowPromoModal] = useState(false);
-  const { first, last } = deriveNames(user);
+  const { first_name: first, last_name: last } = getUserIdentityFields(user);
 
   const [form, setForm] = useState({
     first_name: first,
@@ -38,7 +31,7 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
   });
 
   const startEdit = () => {
-    const names = deriveNames(user);
+    const names = getUserIdentityFields(user);
     setForm({
       first_name: names.first,
       last_name: names.last,
@@ -162,6 +155,10 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
         <div>
           <span className="text-gray-500">Last Name</span>
           <p className="font-medium">{last || "—"}</p>
+        </div>
+        <div>
+          <span className="text-gray-500">Display Name</span>
+          <p className="font-medium">{getUserDisplayName(user)}</p>
         </div>
         <div>
           <span className="text-gray-500">Email</span>

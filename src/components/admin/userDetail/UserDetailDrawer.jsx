@@ -8,6 +8,7 @@ import UserAccountNotes from "./UserAccountNotes";
 import UserSendMessage from "./UserSendMessage";
 import UserPromotionHistory from "./UserPromotionHistory";
 import UserActivityLogTab from "./UserActivityLogTab";
+import { getUserDisplayName } from "@/lib/userIdentity";
 
 export default function UserDetailDrawer({ user, adminUser, open, onClose, onUserUpdated }) {
   const [tab, setTab] = useState("info");
@@ -18,7 +19,7 @@ export default function UserDetailDrawer({ user, adminUser, open, onClose, onUse
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{user.full_name || user.email}</SheetTitle>
+          <SheetTitle>{getUserDisplayName(user)}</SheetTitle>
         </SheetHeader>
 
         <Tabs value={tab} onValueChange={setTab} className="mt-4">

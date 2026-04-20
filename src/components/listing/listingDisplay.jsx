@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
+import { getUserDisplayName } from "@/lib/userIdentity";
 
 export const tierColors = {
   free: "bg-slate-500",
@@ -145,7 +146,7 @@ export function getListingDescriptionText(listing) {
 }
 
 export function getOwnerDisplayName(owner, listing) {
-  return owner?.full_name || owner?.email || listing?.created_by || listing?.ownerUserId || "Owner unavailable";
+  return getUserDisplayName(owner) || listing?.created_by || listing?.ownerUserId || "Owner unavailable";
 }
 
 export function getListingNumber(listing) {

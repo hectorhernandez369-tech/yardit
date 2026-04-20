@@ -56,7 +56,7 @@ export default function UserActivityLogTab({ user }) {
           const item = record.data || record;
           return [record.id || item.id, item.title || item.listingNumber || record.id];
         })),
-        users: Object.fromEntries((users || []).map((record) => [record.id, record.email || record.full_name || record.id])),
+        users: Object.fromEntries((users || []).map((record) => [record.id, [record.first_name, record.last_name].filter(Boolean).join(" ") || record.email || record.id])),
       };
 
       const mergedUserLogs = [...userLogs, ...guestLogs].filter(

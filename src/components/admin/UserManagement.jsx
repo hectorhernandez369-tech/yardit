@@ -11,6 +11,7 @@ import { Search, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import UserDetailDrawer from "./userDetail/UserDetailDrawer";
 import DeleteUserDialog from "./DeleteUserDialog";
+import { getUserDisplayName } from "@/lib/userIdentity";
 
 export default function UserManagement() {
   const location = useLocation();
@@ -39,10 +40,11 @@ export default function UserManagement() {
     },
   });
 
-  const filteredUsers = users.filter(u =>
-    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (u.full_name && u.full_name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const normalizedQuery = searchQuery.toLowerCase();
+  const filteredUsers = users.filter(u => {
+    const fullName = `${u.first_name || ""} ${u.last_name || ""}`.trim().toLowerCase();
+    return u.email.toLowerCase().includes(normalizedQuery) || fullName.includes(normalizedQuery);
+  });
 
   const statusColors = {
     active: "bg-green-600",
@@ -82,7 +84,7 @@ export default function UserManagement() {
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold mb-2">{user.full_name || "No name"}</h3>
+                  <h3 className="font-semibold mb-2">{getUserDisplayName(user)}</h3>
                   <p className="text-sm text-slate-600 mb-2 break-all">{user.email}</p>
                   <div className="flex gap-2 flex-wrap">
                     <Badge className={statusColors[user.accountStatus || "active"]}>
