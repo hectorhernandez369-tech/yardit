@@ -18,7 +18,7 @@ export default function UserDetailDrawer({ user, adminUser, open, onClose, onUse
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{user.full_name || user.email}</SheetTitle>
+          <SheetTitle>{`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email}</SheetTitle>
         </SheetHeader>
 
         <Tabs value={tab} onValueChange={setTab} className="mt-4">

@@ -214,7 +214,7 @@ export default function MyListingsPage() {
     if (!query) return [];
 
     const matchConfigs = [
-      { key: "name", label: "Name", getValue: (candidate) => `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim() || candidate.full_name || "" },
+      { key: "name", label: "Name", getValue: (candidate) => `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim() || candidate.email || "" },
       { key: "phone", label: "Phone Number", getValue: (candidate) => candidate.phone || "" },
       { key: "address", label: "Address", getValue: (candidate) => [candidate.address, candidate.city].filter(Boolean).join(", ") },
       { key: "user_id", label: "User ID", getValue: (candidate) => candidate.id || "" },
@@ -396,7 +396,7 @@ export default function MyListingsPage() {
         user_id: selectedUser.id,
         user_email: selectedUser.email,
         title: "Neighborhood Sale Co-Host Invite",
-        message: `${user?.full_name || [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "A Yardit user"} invited you to co-host \"${editingListing.title}\".`,
+        message: `${[user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || "A Yardit user"} invited you to co-host \"${editingListing.title}\".`,
         type: "co_host_invite",
         related_entity_type: "listing",
         related_entity_id: editingListing.id,
@@ -406,7 +406,7 @@ export default function MyListingsPage() {
           sale_listing_id: editingListing.id,
           event_title: editingListing.title,
           inviter_user_id: user?.id,
-          inviter_name: user?.full_name || [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || "",
+          inviter_name: [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || "",
           invite_type: "co_host",
           invited_user_id: selectedUser.id,
         },
@@ -1016,11 +1016,11 @@ export default function MyListingsPage() {
                     <div className="space-y-2 max-h-56 overflow-y-auto">
                       {filteredCoHostUsers.map((candidate) => {
                         const fullName = `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim();
-                        const displayName = fullName || candidate.username || candidate.email || "Unnamed user";
+                        const displayName = fullName || candidate.email || "Unnamed user";
                         const isSelected = selectedCoHostUserId === candidate.id;
                         const matchedValue = candidate.matchedField?.value || "";
                         const supportingAddress = [candidate.address, candidate.city].filter(Boolean).join(", ");
-                        const showEmailAsFallbackTitle = !fullName && !candidate.username && !!candidate.email;
+                        const showEmailAsFallbackTitle = !fullName && !!candidate.email;
                         return (
                           <button
                             key={candidate.id}
@@ -1034,7 +1034,6 @@ export default function MyListingsPage() {
                               {matchedValue && <p>{matchedValue}</p>}
                               {supportingAddress && candidate.matchedField.key !== "address" && <p>{supportingAddress}</p>}
                               {candidate.phone && candidate.matchedField.key !== "phone" && <p>{candidate.phone}</p>}
-                              {candidate.username && <p>{candidate.username}</p>}
                               {candidate.matchedField.key === "email" && candidate.email && matchedValue !== candidate.email && <p>{candidate.email}</p>}
                               {showEmailAsFallbackTitle && candidate.matchedField.key !== "email" && matchedValue !== candidate.email ? null : null}
                             </div>

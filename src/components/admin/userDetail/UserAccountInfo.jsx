@@ -19,7 +19,13 @@ function deriveNames(user) {
   if (user.first_name || user.last_name) {
     return { first: user.first_name || "", last: user.last_name || "" };
   }
-  const parts = (user.full_name || "").split(" ");
+
+  const rawName = (user.full_name || "").trim();
+  if (!rawName || !rawName.includes(" ")) {
+    return { first: "", last: "" };
+  }
+
+  const parts = rawName.split(/\s+/);
   return { first: parts[0] || "", last: parts.slice(1).join(" ") || "" };
 }
 

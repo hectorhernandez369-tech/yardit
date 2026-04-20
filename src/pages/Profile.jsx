@@ -96,7 +96,7 @@ export default function ProfilePage() {
               <User className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900">{`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.full_name || user.username || user.email || "User"}</h1>
+              <h1 className="text-3xl font-bold text-gray-900">{`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email || "User"}</h1>
               <p className="text-gray-600">{user.email}</p>
             </div>
             {userLocations.length > 0 && (
