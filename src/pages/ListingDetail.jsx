@@ -27,6 +27,7 @@ import {
   NEIGHBORHOOD_MAX_HOMES,
   NEIGHBORHOOD_MIN_HOMES,
 } from "@/lib/neighborhoodSalePricing";
+import { getStateAbbreviation } from "@/lib/listingLocation";
 import { getListingNumber, getOwnerDisplayName } from "@/components/listing/listingDisplay";
 import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 import { formatEventTierLabel } from "@/lib/eventListingConfig";
@@ -116,7 +117,7 @@ export default function ListingDetailPage() {
   const approvedHomesCount = 1 + approvedRequests.length;
   const availableSpots = Math.max(0, 25 - approvedHomesCount);
   const formatAddress = (item) => {
-    const base = [item.address_text || item.addressText || "Address unavailable", item.city, item.state].filter(Boolean).join(", ");
+    const base = [item.address_text || item.addressText || "Address unavailable", item.city, getStateAbbreviation(item.state)].filter(Boolean).join(", ");
     return item.zip ? `${base} ${item.zip}` : base;
   };
   const salePricing = useMemo(() => {
@@ -502,7 +503,7 @@ export default function ListingDetailPage() {
                   <div className="flex flex-wrap items-center gap-3 sm:gap-5 text-sm text-slate-700">
                     <div className="flex items-center gap-2 min-w-0">
                       <MapPin className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                      <span className="font-medium truncate">{listing.city}{listing.state ? `, ${listing.state}` : ""}</span>
+                      <span className="font-medium truncate">{listing.city}{getStateAbbreviation(listing.state) ? `, ${getStateAbbreviation(listing.state)}` : ""}</span>
                     </div>
                     <div className="flex items-center gap-2 min-w-0">
                       <Calendar className="w-4 h-4 text-slate-500 flex-shrink-0" />
@@ -619,7 +620,7 @@ export default function ListingDetailPage() {
                       <MapPin className="w-5 h-5 mt-0.5 text-slate-500" />
                       <div className="min-w-0">
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location</p>
-                        <p className="text-sm font-medium text-slate-900">{listing.city}{listing.state ? `, ${listing.state}` : ""}</p>
+                        <p className="text-sm font-medium text-slate-900">{listing.city}{getStateAbbreviation(listing.state) ? `, ${getStateAbbreviation(listing.state)}` : ""}</p>
                         <p className="text-sm text-slate-600 break-words">{listing.address_text || listing.addressText || "Address unavailable"}</p>
                       </div>
                     </div>

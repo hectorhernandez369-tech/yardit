@@ -35,7 +35,7 @@ export function getStateAbbreviation(stateName) {
   if (!stateName) return "";
   const cleaned = String(stateName).trim().toLowerCase();
   if (cleaned.length === 2) return cleaned.toUpperCase();
-  return STATE_MAP[cleaned] || cleaned.slice(0, 2).toUpperCase();
+  return STATE_MAP[cleaned] || "";
 }
 
 export function normalizeLocationFields(location = {}) {

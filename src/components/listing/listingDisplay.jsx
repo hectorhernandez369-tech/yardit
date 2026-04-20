@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
 import { getUserDisplayName } from "@/lib/userIdentity";
+import { getStateAbbreviation } from "@/lib/listingLocation";
 
 export const tierColors = {
   free: "bg-slate-500",
@@ -68,7 +69,8 @@ export function formatListingTierLabel(tier) {
 
 export function getListingAddressLine(listing) {
   const street = listing?.addressText || listing?.street_address || "Address unavailable";
-  const parts = [street, listing?.city, listing?.state].filter(Boolean);
+  const stateAbbr = getStateAbbreviation(listing?.state);
+  const parts = [street, listing?.city, stateAbbr].filter(Boolean);
   const base = parts.join(", ");
   return listing?.zip ? `${base} ${listing.zip}` : base;
 }
@@ -151,7 +153,7 @@ export function getOwnerDisplayName(owner, listing) {
 
 export function getListingNumber(listing) {
   if (listing?.listingNumber) return listing.listingNumber;
-  const st = (listing?.state || "XX").toUpperCase().slice(0, 2);
+  const st = getStateAbbreviation(listing?.state) || "XX";
   const zp = (listing?.zip || "0000").slice(-4).padStart(4, "0");
   const idSuffix = (listing?.id || "00000").slice(-5).toLowerCase();
   return `${st}${zp}-${idSuffix}`;
