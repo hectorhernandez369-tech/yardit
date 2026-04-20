@@ -32,6 +32,13 @@ import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@
 import { formatEventTierLabel } from "@/lib/eventListingConfig";
 import { formatMarqueeSlotTime, normalizeMarqueeSlots } from "@/lib/marqueeSchedule";
 import NeighborhoodSalePreviewMap from "@/components/neighborhood/NeighborhoodSalePreviewMap";
+import {
+  getFeaturedItems,
+  getFormattedDescription,
+  getHookLine,
+  getTrustSignal,
+  getUrgencyText,
+} from "@/components/listing/listingDetailContent";
 
 export default function ListingDetailPage() {
   const navigate = useNavigate();
@@ -290,6 +297,11 @@ export default function ListingDetailPage() {
   ].filter(Boolean).join("\n");
 
   const marqueeSchedule = normalizeMarqueeSlots(listing?.marquee_schedule_slots || []);
+  const hookLine = getHookLine(listing);
+  const featuredItems = getFeaturedItems(listing);
+  const formattedDescription = getFormattedDescription(listing);
+  const trustSignal = getTrustSignal(listing);
+  const urgencyText = getUrgencyText(listing);
   const listingImages = (() => {
     const basePhotos = listing?.listingType === "event"
       ? (listing?.event_photos || listing?.photoUrls || [])
@@ -420,6 +432,9 @@ export default function ListingDetailPage() {
                   <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-950 break-words leading-[0.95]">
                     {listing.event_name || listing.title}
                   </h1>
+                  <p className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+                    {hookLine}
+                  </p>
                   <p className="text-xs text-slate-500">
                     Owner:{" "}
                     <button
@@ -432,7 +447,7 @@ export default function ListingDetailPage() {
                   </p>
                 </div>
 
-                <div className="rounded-3xl bg-slate-50/90 p-4 sm:p-5 shadow-sm">
+                <div className="rounded-3xl bg-slate-50/90 p-4 sm:p-5 shadow-sm space-y-3">
                   <div className="flex flex-wrap items-center gap-3 sm:gap-5 text-sm text-slate-700">
                     <div className="flex items-center gap-2 min-w-0">
                       <MapPin className="w-4 h-4 text-slate-500 flex-shrink-0" />
@@ -447,12 +462,39 @@ export default function ListingDetailPage() {
                       <span className="font-medium truncate">{(listing.categories?.length > 0 ? listing.categories[0] : listing.event_category || listing.category) || "General"}</span>
                     </div>
                   </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm">
+                      {urgencyText.starts}
+                    </div>
+                    <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 shadow-sm border border-amber-100">
+                      {urgencyText.ends}
+                    </div>
+                  </div>
                 </div>
 
-                {(listing.event_description || listing.description) && (
-                  <p className="text-base sm:text-lg text-slate-700 leading-relaxed">
-                    {listing.event_description || listing.description}
-                  </p>
+                <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">Featured Items</h3>
+                    <span className="text-xs text-slate-400">Parsed from listing details</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {featuredItems.map((item, idx) => (
+                      <Badge key={idx} variant="outline" className="rounded-full border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-700">
+                        • {item}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-sm font-medium text-slate-600">{trustSignal}</p>
+                </div>
+
+                {formattedDescription.length > 0 && (
+                  <div className="space-y-2">
+                    {formattedDescription.map((line, index) => (
+                      <p key={index} className={`text-slate-700 leading-relaxed ${index === 0 ? "text-base sm:text-lg font-semibold text-slate-900" : "text-base"}`}>
+                        {line}
+                      </p>
+                    ))}
+                  </div>
                 )}
 
                 <div className="space-y-2">
