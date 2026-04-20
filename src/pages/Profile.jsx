@@ -4,11 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { User, MapPin, CreditCard, Loader2, AlertTriangle } from "lucide-react";
+import { User, CreditCard, Loader2, AlertTriangle } from "lucide-react";
 
 import UserInfoSection from "../components/profile/UserInfoSection";
-import LocationsHistory from "../components/profile/LocationsHistory";
 import PaymentHistory from "../components/profile/PaymentHistory";
+import ProfileCoinsSummary from "../components/profile/ProfileCoinsSummary";
 import MyCoinsPanel from "../components/jth/MyCoinsPanel";
 
 export default function ProfilePage() {
@@ -117,21 +117,14 @@ export default function ProfilePage() {
 
         {/* Tabs */}
         <Tabs defaultValue="info" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
             <TabsTrigger value="info" className="gap-2">
               <User className="w-4 h-4" />
               <span className="hidden sm:inline">Info</span>
             </TabsTrigger>
-            <TabsTrigger value="locations" className="gap-2">
-              <MapPin className="w-4 h-4" />
-              <span className="hidden sm:inline">Locations</span>
-              <span className="ml-1 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-xs">
-                {userLocations.length}
-              </span>
-            </TabsTrigger>
             <TabsTrigger value="payments" className="gap-2">
               <CreditCard className="w-4 h-4" />
-              <span className="hidden sm:inline">Payments</span>
+              <span className="hidden sm:inline">Transaction History</span>
               <span className="ml-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs">
                 {payments.length}
               </span>
@@ -146,13 +139,6 @@ export default function ProfilePage() {
             <UserInfoSection user={user} setUser={setUser} />
           </TabsContent>
 
-          <TabsContent value="locations">
-            <LocationsHistory 
-              locations={userLocations} 
-              isLoading={isLoadingLocations}
-            />
-          </TabsContent>
-
           <TabsContent value="payments">
             <PaymentHistory 
               payments={payments}
@@ -161,7 +147,8 @@ export default function ProfilePage() {
             />
           </TabsContent>
 
-          <TabsContent value="coins">
+          <TabsContent value="coins" className="space-y-6">
+            <ProfileCoinsSummary stats={myCoinStats} />
             <MyCoinsPanel stats={myCoinStats} history={myCoinHistory} />
           </TabsContent>
         </Tabs>
