@@ -1015,9 +1015,12 @@ export default function MyListingsPage() {
                   {filteredCoHostUsers.length > 0 && (
                     <div className="space-y-2 max-h-56 overflow-y-auto">
                       {filteredCoHostUsers.map((candidate) => {
-                        const fullName = `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim() || candidate.full_name || candidate.email || "Unnamed user";
+                        const fullName = `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim();
+                        const displayName = fullName || candidate.username || candidate.email || "Unnamed user";
                         const isSelected = selectedCoHostUserId === candidate.id;
+                        const matchedValue = candidate.matchedField?.value || "";
                         const supportingAddress = [candidate.address, candidate.city].filter(Boolean).join(", ");
+                        const showEmailAsFallbackTitle = !fullName && !candidate.username && !!candidate.email;
                         return (
                           <button
                             key={candidate.id}
@@ -1025,14 +1028,15 @@ export default function MyListingsPage() {
                             onClick={() => setSelectedCoHostUserId(candidate.id)}
                             className={`w-full rounded-md border p-3 text-left transition ${isSelected ? "border-blue-600 bg-blue-50" : "border-slate-200 hover:bg-slate-50"}`}
                           >
-                            <div className="font-medium text-slate-900">{fullName}</div>
+                            <div className="font-medium text-slate-900">{displayName}</div>
                             <div className="text-xs font-medium text-slate-500 mt-1">Matched by: {candidate.matchedField.label}</div>
                             <div className="text-xs text-slate-600 mt-1 space-y-1">
-                              <p>{candidate.matchedField.value}</p>
-                              {candidate.matchedField.key !== "phone" && candidate.phone && <p>{candidate.phone}</p>}
-                              {candidate.matchedField.key !== "email" && candidate.email && <p>{candidate.email}</p>}
-                              {candidate.matchedField.key !== "address" && supportingAddress && <p>{supportingAddress}</p>}
-                              <p>User ID: {candidate.id}</p>
+                              {matchedValue && <p>{matchedValue}</p>}
+                              {supportingAddress && candidate.matchedField.key !== "address" && <p>{supportingAddress}</p>}
+                              {candidate.phone && candidate.matchedField.key !== "phone" && <p>{candidate.phone}</p>}
+                              {candidate.username && <p>{candidate.username}</p>}
+                              {candidate.matchedField.key === "email" && candidate.email && matchedValue !== candidate.email && <p>{candidate.email}</p>}
+                              {showEmailAsFallbackTitle && candidate.matchedField.key !== "email" && matchedValue !== candidate.email ? null : null}
                             </div>
                           </button>
                         );
