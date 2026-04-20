@@ -14,12 +14,13 @@ export default function UserInfoSection({ user, setUser }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingAddress, setIsConfirmingAddress] = useState(false);
 
-  const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email || "Not set";
+  const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.full_name || user.username || user.email || "Not set";
   const isAddressConfirmed = user.address_confirmation_status === "confirmed" && user.address_lat && user.address_lng;
 
   const [formData, setFormData] = useState({
     first_name: user.first_name || "",
     last_name: user.last_name || "",
+    username: user.username || "",
     street_address: user.street_address || "",
     city: user.city || "",
     state: user.state || "",
@@ -96,6 +97,7 @@ export default function UserInfoSection({ user, setUser }) {
 
     let currentData = {
       ...formData,
+      full_name: [formData.first_name, formData.last_name].filter(Boolean).join(" ").trim(),
       address: [formData.street_address, formData.city, formData.state, formData.zip_code].filter(Boolean).join(", "),
     };
 
@@ -114,6 +116,7 @@ export default function UserInfoSection({ user, setUser }) {
     setFormData({
       first_name: user.first_name || "",
       last_name: user.last_name || "",
+      username: user.username || "",
       street_address: user.street_address || "",
       city: user.city || "",
       state: user.state || "",
@@ -196,6 +199,25 @@ export default function UserInfoSection({ user, setUser }) {
                 <p className="text-lg font-medium">{user.last_name || "Not set"}</p>
               )}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Full Name</Label>
+            <p className="text-lg font-medium">{fullName}</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            {isEditing ? (
+              <Input
+                id="username"
+                value={formData.username}
+                onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
+                placeholder="Username"
+              />
+            ) : (
+              <p className="text-lg font-medium">{user.username || "Not set"}</p>
+            )}
           </div>
 
           {/* Email (Read-only) */}
