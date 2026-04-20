@@ -41,6 +41,7 @@ import { canSelfServeUpgrade } from "@/lib/listingUpgradeConfig";
 import { getDefaultEventIconForCategory, EVENT_BASIC_ICON_LIBRARY, getEventIconEmoji } from "@/lib/eventListingConfig";
 import { getUserDisplayName } from "@/lib/userIdentity";
 import { getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
+import { getStateAbbreviation } from "@/lib/listingLocation";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
@@ -194,7 +195,7 @@ export default function MyListingsPage() {
   const listingNumberText = (listing) => {
     if (listing?.listingNumber) return listing.listingNumber;
     // Fallback: generate from state + zip + id for older listings
-    const st = (listing?.state || "XX").toUpperCase().slice(0, 2);
+    const st = getStateAbbreviation(listing?.state || "XX");
     const zp = (listing?.zip || "0000").slice(-4).padStart(4, "0");
     const idSuffix = (listing?.id || "00000").slice(-5).toLowerCase();
     return `${st}${zp}-${idSuffix}`;

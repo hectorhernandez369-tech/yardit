@@ -38,7 +38,7 @@ import {
 } from "../components/shared/listingTierEngine";
 import { EVENT_TIER_PRICES } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
-import { buildResolvedListingLocation, isLocationReadyForSubmission, resolveTimeZoneFromCoordinates } from "@/lib/listingLocation";
+import { buildResolvedListingLocation, isLocationReadyForSubmission, resolveTimeZoneFromCoordinates, getStateAbbreviation } from "@/lib/listingLocation";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 const PAID_LISTING_CHECKOUT_KEY = "yardit_paid_listing_checkout_v1";
@@ -638,7 +638,7 @@ export default function CreateListingPage() {
       const demoPrefix = isGlobalDemoMode ? "Demo listing: " : "";
 
       // Generate listing number: STATE + last4zip + dash + 5 random chars
-      const stateCode = (data.state || "XX").toUpperCase().slice(0, 2);
+      const stateCode = getStateAbbreviation(data.state || "XX");
       const zipLast4 = (data.zip || "0000").slice(-4).padStart(4, "0");
       const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
       let rand5 = "";
@@ -1034,7 +1034,7 @@ export default function CreateListingPage() {
       ...payload,
       addressText: user?.street_address || payload.addressText,
       city: user?.city || payload.city,
-      state: (user?.state || payload.state || "").toUpperCase().slice(0, 2),
+      state: getStateAbbreviation(user?.state || payload.state || ""),
       zip: user?.zip_code || payload.zip,
       lat: user?.address_lat ?? payload.lat,
       lng: user?.address_lng ?? payload.lng,

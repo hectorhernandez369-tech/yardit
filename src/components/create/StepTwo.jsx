@@ -10,7 +10,7 @@ import { useAppMode } from "@/components/shared/DemoMode";
 import { MapPin, Navigation, Loader2, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import { getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
-import { buildResolvedListingLocation, resolveTimeZoneFromCoordinates } from "@/lib/listingLocation";
+import { buildResolvedListingLocation, resolveTimeZoneFromCoordinates, getStateAbbreviation } from "@/lib/listingLocation";
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -638,7 +638,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       ...prev,
       addressText: user.street_address || "",
       city: user.city || "",
-      state: (user.state || "").toUpperCase().slice(0, 2),
+      state: getStateAbbreviation(user.state),
       zip: user.zip_code || "",
       lat: user.address_lat ?? prev.lat ?? null,
       lng: user.address_lng ?? prev.lng ?? null,
