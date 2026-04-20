@@ -99,14 +99,7 @@ export default function ProfilePage() {
               <h1 className="text-3xl font-bold text-gray-900">{`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email || "User"}</h1>
               <p className="text-gray-600">{user.email}</p>
             </div>
-            {userLocations.length > 0 && (
-              <Button
-                onClick={() => window.location.href = "/seller-dashboard"}
-                className="gap-2 bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700"
-              >
-                📊 Seller Dashboard
-              </Button>
-            )}
+
             </div>
             </div>
 
