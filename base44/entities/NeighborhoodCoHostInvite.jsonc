@@ -18,6 +18,10 @@
       "type": "string",
       "description": "Neighborhood Sale title"
     },
+    "related_listing_id": {
+      "type": "string",
+      "description": "Neighborhood Sale listing ID"
+    },
     "address_key": {
       "type": "string",
       "description": "Normalized host address key"
@@ -68,10 +72,13 @@
       "enum": [
         "pending",
         "accepted",
-        "declined"
+        "active",
+        "suspended",
+        "declined",
+        "removed"
       ],
       "default": "pending",
-      "description": "Invite status"
+      "description": "Invite or co-host relationship status"
     },
     "responded_at": {
       "type": "string",
