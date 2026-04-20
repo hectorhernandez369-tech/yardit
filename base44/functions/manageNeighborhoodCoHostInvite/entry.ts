@@ -220,6 +220,14 @@ Deno.serve(async (req) => {
         address_lng: user.address_lng,
       });
 
+      if (response === 'accepted' && invite.related_listing_id) {
+        await base44.asServiceRole.entities.Listing.update(invite.related_listing_id, {
+          co_host_user_id: user.id,
+          co_host_status: 'active',
+          cohost_invite_status: null,
+        });
+      }
+
       await base44.asServiceRole.entities.Notification.create({
         user_id: invite.organizer_user_id,
         userId: invite.organizer_user_id,
@@ -246,6 +254,7 @@ Deno.serve(async (req) => {
         invite: {
           id: invite.id,
           status: response,
+          related_listing_id: invite.related_listing_id,
           street_address: invite.street_address,
           city: invite.city,
           state: invite.state,

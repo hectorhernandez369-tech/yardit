@@ -451,7 +451,7 @@ export default function MyListingsPage() {
 
     setIsSendingCoHostInvite(true);
     try {
-      const duplicateInvite = listingCoHostInvites.find((invite) => invite.host_user_id === selectedUser.id && invite.status === "pending");
+      const duplicateInvite = listingCoHostInvites.find((invite) => invite.host_user_id === selectedUser.id && ["pending", "accepted", "active", "suspended"].includes(invite.status));
       const duplicateLiveCoHost = editingListing.co_host_user_id === selectedUser.id && ["active", "suspended"].includes(editingListing.co_host_status);
 
       if (duplicateInvite || duplicateLiveCoHost) {
@@ -459,7 +459,7 @@ export default function MyListingsPage() {
         return;
       }
 
-      const reusableInvite = listingCoHostInvites.find((invite) => invite.host_user_id === selectedUser.id);
+      const reusableInvite = listingCoHostInvites.find((invite) => invite.host_user_id === selectedUser.id && ["declined", "removed"].includes(invite.status));
 
       let inviteRecord = reusableInvite;
       if (reusableInvite) {
@@ -1007,7 +1007,7 @@ export default function MyListingsPage() {
                         <Badge variant="outline" className="bg-white text-slate-700 border-slate-300">
                           {listing.listingType === "event" ? "Event" : listing.listingType === "yard_sale" ? "Yard Sale" : listing.listingType === "neighborhood_sale" ? "Neighborhood Sale" : "Listing"}
                         </Badge>
-                        {listing.co_host_user_id === user?.id && listing.co_host_status === "accepted" && (
+                        {listing.co_host_user_id === user?.id && listing.co_host_status === "active" && (
                           <Badge className="bg-indigo-600 text-white hover:bg-indigo-700 border-none">
                             Co-Host
                           </Badge>
