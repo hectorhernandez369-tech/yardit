@@ -213,21 +213,57 @@ export default function MyListingsPage() {
     const query = coHostSearchQuery.trim().toLowerCase();
     if (!query) return [];
 
-    return searchableUsers.filter((candidate) => {
-      if (!candidate?.id || candidate.id === user?.id) return false;
-      const fullName = `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim();
-      const values = [
-        fullName,
-        candidate.full_name,
-        candidate.email,
-        candidate.phone,
-        candidate.address,
-        candidate.city,
-        candidate.id,
-      ].filter(Boolean).map((value) => String(value).toLowerCase());
+    const matchConfigs = [
+      { key: "name", label: "Name", getValue: (candidate) => `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim() || candidate.full_name || "" },
+      { key: "phone", label: "Phone Number", getValue: (candidate) => candidate.phone || "" },
+      { key: "address", label: "Address", getValue: (candidate) => [candidate.address, candidate.city].filter(Boolean).join(", ") },
+      { key: "user_id", label: "User ID", getValue: (candidate) => candidate.id || "" },
+      { key: "email", label: "Email", getValue: (candidate) => candidate.email || "" },
+    ];
 
-      return values.some((value) => value.includes(query));
-    }).slice(0, 8);
+    const getPriority = (key) => {
+      if (key === "name") return 5;
+      if (key === "phone") return 4;
+      if (key === "email") return 3;
+      if (key === "address") return 2;
+      return 1;
+    };
+
+    return searchableUsers
+      .map((candidate) => {
+        if (!candidate?.id || candidate.id === user?.id) return null;
+
+        const matches = matchConfigs
+          .map((config) => {
+            const value = String(config.getValue(candidate) || "").trim();
+            if (!value) return null;
+            const normalizedValue = value.toLowerCase();
+            if (!normalizedValue.includes(query)) return null;
+            return {
+              key: config.key,
+              label: config.label,
+              value,
+              exact: normalizedValue === query,
+              startsWith: normalizedValue.startsWith(query),
+              priority: getPriority(config.key),
+            };
+          })
+          .filter(Boolean)
+          .sort((a, b) => {
+            if (a.exact !== b.exact) return a.exact ? -1 : 1;
+            if (a.startsWith !== b.startsWith) return a.startsWith ? -1 : 1;
+            return b.priority - a.priority;
+          });
+
+        if (!matches.length) return null;
+
+        return {
+          ...candidate,
+          matchedField: matches[0],
+        };
+      })
+      .filter(Boolean)
+      .slice(0, 8);
   }, [searchableUsers, coHostSearchQuery, editingListing, user?.id]);
 
   useEffect(() => {
@@ -979,8 +1015,9 @@ export default function MyListingsPage() {
                   {filteredCoHostUsers.length > 0 && (
                     <div className="space-y-2 max-h-56 overflow-y-auto">
                       {filteredCoHostUsers.map((candidate) => {
-                        const fullName = `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim() || candidate.full_name || "Unnamed user";
+                        const fullName = `${candidate.first_name || ""} ${candidate.last_name || ""}`.trim() || candidate.full_name || candidate.email || "Unnamed user";
                         const isSelected = selectedCoHostUserId === candidate.id;
+                        const supportingAddress = [candidate.address, candidate.city].filter(Boolean).join(", ");
                         return (
                           <button
                             key={candidate.id}
@@ -989,10 +1026,12 @@ export default function MyListingsPage() {
                             className={`w-full rounded-md border p-3 text-left transition ${isSelected ? "border-blue-600 bg-blue-50" : "border-slate-200 hover:bg-slate-50"}`}
                           >
                             <div className="font-medium text-slate-900">{fullName}</div>
+                            <div className="text-xs font-medium text-slate-500 mt-1">Matched by: {candidate.matchedField.label}</div>
                             <div className="text-xs text-slate-600 mt-1 space-y-1">
-                              <p>{candidate.email || "No email"}</p>
-                              <p>{candidate.phone || "No phone"}</p>
-                              <p>{candidate.address || candidate.city || "No address"}</p>
+                              <p>{candidate.matchedField.value}</p>
+                              {candidate.matchedField.key !== "phone" && candidate.phone && <p>{candidate.phone}</p>}
+                              {candidate.matchedField.key !== "email" && candidate.email && <p>{candidate.email}</p>}
+                              {candidate.matchedField.key !== "address" && supportingAddress && <p>{supportingAddress}</p>}
                               <p>User ID: {candidate.id}</p>
                             </div>
                           </button>
