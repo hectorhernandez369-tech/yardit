@@ -36,7 +36,6 @@ import EventIconManager from "@/components/events/EventIconManager";
 import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
 import ImageCropEditor from "@/components/admin/ImageCropEditor";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
-import MyCoinsPanel from "@/components/jth/MyCoinsPanel";
 import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
 import { canSelfServeUpgrade } from "@/lib/listingUpgradeConfig";
 import { getDefaultEventIconForCategory, EVENT_BASIC_ICON_LIBRARY, getEventIconEmoji } from "@/lib/eventListingConfig";
@@ -117,21 +116,6 @@ export default function MyListingsPage() {
     initialData: [],
   });
 
-  const { data: myCoinStats = null } = useQuery({
-    queryKey: ["myListingsJthCoinStats", user?.id],
-    queryFn: async () => {
-      const rows = await base44.entities.JTHUserCoinStats.filter({ user_id: user.id });
-      return rows[0] || null;
-    },
-    enabled: !!user?.id,
-  });
-
-  const { data: myCoinHistory = [] } = useQuery({
-    queryKey: ["myListingsJthCoinHistory", user?.id],
-    queryFn: () => base44.entities.JTHCoinEvent.filter({ collected_by_user_id: user.id }, "-collected_timestamp"),
-    enabled: !!user?.id,
-    initialData: [],
-  });
 
   const { data: searchableUsers = [] } = useQuery({
     queryKey: ["coHostUserSearch", editingListing?.id],
@@ -918,21 +902,6 @@ export default function MyListingsPage() {
             Billing / Payments
           </Button>
 
-          <Button
-            variant={tab === "hunt" ? "default" : "outline"}
-            onClick={() => setTab("hunt")}
-            className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-          >
-            My Hunt
-          </Button>
-
-          <Button
-            variant={tab === "coins" ? "default" : "outline"}
-            onClick={() => setTab("coins")}
-            className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
-          >
-            My Coins
-          </Button>
         </div>
 
         {/* Tabs Content */}
@@ -945,22 +914,6 @@ export default function MyListingsPage() {
               </p>
             </CardContent>
           </Card>
-        ) : tab === "hunt" ? (
-          <Card>
-            <CardContent className="p-8">
-              <h2 className="text-xl font-semibold mb-4 text-[#2C4F4E]">My Hunt</h2>
-              <p className="text-slate-600 mb-6 max-w-lg">
-                View your current selected hunt stops and manage your routing history.
-              </p>
-              <div className="flex gap-3">
-                <Button onClick={() => navigate(createPageUrl("MyHunt"))} className="bg-[#5DADA5] hover:bg-[#4A9B93] text-white">
-                  Manage Current Hunt Selection
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : tab === "coins" ? (
-          <MyCoinsPanel stats={myCoinStats} history={myCoinHistory} />
         ) : isLoading ? (
           <Card>
             <CardContent className="p-12 text-center">
