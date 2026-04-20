@@ -7,14 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Edit2, Save, X, Shield, MapPin, Loader2 } from "lucide-react";
+import AddressFields from "@/components/shared/AddressFields";
 import { toast } from "sonner";
 
 export default function UserInfoSection({ user, setUser }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingAddress, setIsConfirmingAddress] = useState(false);
 
+  const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.full_name || user.username || user.email || "Not set";
+  const isAddressConfirmed = user.address_confirmation_status === "confirmed" && user.address_lat && user.address_lng;
+
   const [formData, setFormData] = useState({
-    full_name: user.full_name || "",
+    first_name: user.first_name || "",
+    last_name: user.last_name || "",
+    username: user.username || "",
     street_address: user.street_address || "",
     city: user.city || "",
     state: user.state || "",
@@ -22,6 +28,7 @@ export default function UserInfoSection({ user, setUser }) {
     phone: user.phone || "",
     address_lat: user.address_lat || null,
     address_lng: user.address_lng || null,
+    address_confirmation_status: user.address_confirmation_status || "unconfirmed",
   });
 
   const confirmAddress = async () => {
@@ -42,9 +49,9 @@ export default function UserInfoSection({ user, setUser }) {
       if (data && data.features && data.features.length > 0) {
         const [lng, lat] = data.features[0].center;
         
-        setFormData(prev => ({ ...prev, address_lat: lat, address_lng: lng }));
-        await base44.auth.updateMe({ address_lat: lat, address_lng: lng });
-        setUser(prev => ({ ...prev, address_lat: lat, address_lng: lng }));
+        setFormData(prev => ({ ...prev, address_lat: lat, address_lng: lng, address_confirmation_status: "confirmed" }));
+        await base44.auth.updateMe({ address_lat: lat, address_lng: lng, address_confirmation_status: "confirmed" });
+        setUser(prev => ({ ...prev, address_lat: lat, address_lng: lng, address_confirmation_status: "confirmed" }));
         
         toast.success("Address confirmed and saved!");
         return { lat, lng };
@@ -88,13 +95,18 @@ export default function UserInfoSection({ user, setUser }) {
       state !== user.state ||
       zip_code !== user.zip_code;
 
-    let currentData = { ...formData };
+    let currentData = {
+      ...formData,
+      full_name: [formData.first_name, formData.last_name].filter(Boolean).join(" ").trim(),
+      address: [formData.street_address, formData.city, formData.state, formData.zip_code].filter(Boolean).join(", "),
+    };
 
     if (addressChanged || !formData.address_lat || !formData.address_lng) {
       const coords = await confirmAddress();
-      if (!coords) return; // Stop if confirmation fails
+      if (!coords) return;
       currentData.address_lat = coords.lat;
       currentData.address_lng = coords.lng;
+      currentData.address_confirmation_status = "confirmed";
     }
 
     updateUserMutation.mutate(currentData);
@@ -102,7 +114,9 @@ export default function UserInfoSection({ user, setUser }) {
 
   const handleCancel = () => {
     setFormData({
-      full_name: user.full_name || "",
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      username: user.username || "",
       street_address: user.street_address || "",
       city: user.city || "",
       state: user.state || "",
@@ -110,6 +124,7 @@ export default function UserInfoSection({ user, setUser }) {
       phone: user.phone || "",
       address_lat: user.address_lat || null,
       address_lng: user.address_lng || null,
+      address_confirmation_status: user.address_confirmation_status || "unconfirmed",
     });
     setIsEditing(false);
   };
@@ -157,20 +172,51 @@ export default function UserInfoSection({ user, setUser }) {
 
       <CardContent className="p-6">
         <div className="space-y-6">
-          {/* Full Name */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="first_name">First Name</Label>
+              {isEditing ? (
+                <Input
+                  id="first_name"
+                  value={formData.first_name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, first_name: e.target.value }))}
+                  placeholder="First name"
+                />
+              ) : (
+                <p className="text-lg font-medium">{user.first_name || "Not set"}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="last_name">Last Name</Label>
+              {isEditing ? (
+                <Input
+                  id="last_name"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, last_name: e.target.value }))}
+                  placeholder="Last name"
+                />
+              ) : (
+                <p className="text-lg font-medium">{user.last_name || "Not set"}</p>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="full_name">Full Name</Label>
+            <Label>Full Name</Label>
+            <p className="text-lg font-medium">{fullName}</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
             {isEditing ? (
               <Input
-                id="full_name"
-                value={formData.full_name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, full_name: e.target.value }))
-                }
-                placeholder="Enter your full name"
+                id="username"
+                value={formData.username}
+                onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
+                placeholder="Username"
               />
             ) : (
-              <p className="text-lg font-medium">{user.full_name || "Not set"}</p>
+              <p className="text-lg font-medium">{user.username || "Not set"}</p>
             )}
           </div>
 
@@ -222,57 +268,25 @@ export default function UserInfoSection({ user, setUser }) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Address</Label>
-              {user.address_lat && user.address_lng ? (
+              {isAddressConfirmed ? (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Address Confirmed</Badge>
               ) : (
                 <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Address Not Confirmed</Badge>
               )}
             </div>
             
-            {(!user.address_lat || !user.address_lng) && (
+            {!isAddressConfirmed && (
               <p className="text-xs text-orange-600 mb-2">Confirm your address to finish account setup and create live listings.</p>
             )}
 
             {isEditing ? (
               <div className="space-y-4 pt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="street_address">Street Address</Label>
-                  <Input
-                    id="street_address"
-                    value={formData.street_address}
-                    onChange={(e) => setFormData(prev => ({ ...prev, street_address: e.target.value, address_lat: null, address_lng: null }))}
-                    placeholder="123 Main St"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value, address_lat: null, address_lng: null }))}
-                      placeholder="City"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      value={formData.state}
-                      onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value, address_lat: null, address_lng: null }))}
-                      placeholder="State"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="zip_code">Zip Code</Label>
-                  <Input
-                    id="zip_code"
-                    value={formData.zip_code}
-                    onChange={(e) => setFormData(prev => ({ ...prev, zip_code: e.target.value, address_lat: null, address_lng: null }))}
-                    placeholder="Zip Code"
-                  />
-                </div>
+                <AddressFields formData={formData} setFormData={(updater) => {
+                  setFormData((prev) => {
+                    const next = typeof updater === "function" ? updater(prev) : updater;
+                    return { ...next, address_lat: null, address_lng: null, address_confirmation_status: "unconfirmed" };
+                  });
+                }} />
                 <Button 
                   type="button" 
                   variant="secondary" 
@@ -292,7 +306,7 @@ export default function UserInfoSection({ user, setUser }) {
                     ? `${user.street_address}, ${user.city}, ${user.state} ${user.zip_code}`
                     : "Not set"}
                 </p>
-                {(!user.address_lat || !user.address_lng) && user.street_address && (
+                {!isAddressConfirmed && user.street_address && (
                   <Button 
                     type="button" 
                     variant="outline" 

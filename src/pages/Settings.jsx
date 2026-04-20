@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { clearAdminSession } from "../components/admin/AdminLoginModal";
@@ -18,15 +15,10 @@ import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldS
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [canInstallApp, setCanInstallApp] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: "",
-    phone: "",
-  });
 
   const { data: coinStats } = useQuery({
     queryKey: ["jthUserCoinStats", user?.id],
@@ -44,10 +36,6 @@ export default function SettingsPage() {
       try {
         const currentUser = await base44.auth.me();
         setUser(currentUser);
-        setFormData({
-          full_name: currentUser.full_name || "",
-          phone: currentUser.phone || "",
-        });
       } catch (error) {
         navigate(createPageUrl("Home"));
       }
@@ -55,21 +43,6 @@ export default function SettingsPage() {
     fetchUser();
   }, []);
 
-  const updateMutation = useMutation({
-    mutationFn: (data) => base44.auth.updateMe(data),
-    onSuccess: () => {
-      toast.success("Profile updated successfully!");
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-    },
-    onError: () => {
-      toast.error("Failed to update profile");
-    },
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    updateMutation.mutate(formData);
-  };
 
   const handleLogout = () => {
     clearAdminSession();
@@ -128,58 +101,15 @@ export default function SettingsPage() {
 
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
+            <CardTitle>My Profile</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="full_name">Full Name</Label>
-                <Input
-                  id="full_name"
-                  value={formData.full_name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, full_name: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="email">Email (cannot be changed)</Label>
-                <Input
-                  id="email"
-                  value={user.email}
-                  disabled
-                  className="bg-slate-100"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="(555) 123-4567"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, phone: e.target.value }))
-                  }
-                />
-              </div>
-
-              <Button
-                type="submit"
-                disabled={updateMutation.isPending}
-                className="w-full bg-amber-600 hover:bg-amber-700"
-              >
-                {updateMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            </form>
+            <p className="text-sm text-slate-600">Personal identity, phone number, and verified address are now managed in My Profile.</p>
+            <Button onClick={() => navigate(createPageUrl("Profile"))} className="mt-4 bg-amber-600 hover:bg-amber-700">
+              Open My Profile
+            </Button>
           </CardContent>
         </Card>
-
-        <div className="mb-6">
-          <UserInfoSection user={user} setUser={setUser} />
-        </div>
 
         {canInstallApp && (
           <Card className="mb-6">

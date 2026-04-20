@@ -464,8 +464,10 @@ export default function CreateListingPage() {
   }, [navigateToLogin]);
 
   const { isDemoMode: isGlobalDemoMode } = useAppMode();
+  const profileIdentityIncomplete = !user?.first_name || !user?.last_name || !user?.phone;
   const profileAddressMissing = !user?.street_address || !user?.city || !user?.state || !user?.zip_code;
-  const profileAddressUnconfirmed = profileAddressMissing || !user?.address_lat || !user?.address_lng;
+  const profileAddressUnconfirmed = profileAddressMissing || user?.address_confirmation_status !== "confirmed" || !user?.address_lat || !user?.address_lng;
+  const profileIncomplete = profileIdentityIncomplete || profileAddressUnconfirmed;
   const regularAddressIncomplete = !formData.addressText || !formData.city || !formData.state || !formData.zip;
 
   // Pull all user listings (used for “1 active listing” rule)
@@ -895,6 +897,12 @@ export default function CreateListingPage() {
       }
 
       if (!isGlobalDemoMode) {
+        if (profileIncomplete) {
+          toast.error("Complete My Profile with your name, phone number, and confirmed address before creating a listing.");
+          navigate(createPageUrl("Profile"));
+          return;
+        }
+
         if (formData.listingType === "yard_sale" && hasActiveResidentialListing()) {
           const activeListing = getActiveResidentialListing();
           const listingTitle = activeListing?.title || "Untitled";
@@ -942,8 +950,9 @@ export default function CreateListingPage() {
         return;
       }
 
-      if (profileAddressMissing) {
-        toast.error("Please add an address in your profile before creating a listing");
+      if (profileIncomplete) {
+        toast.error("Complete My Profile with your name, phone number, and confirmed address before creating a listing");
+        navigate(createPageUrl("Profile"));
         return;
       }
 
