@@ -7,13 +7,19 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Map, Trash2, X, ChevronDown, ChevronUp, Search, Send } from "lucide-react";
+import { Calendar, MapPin, Map, Trash2, X, ChevronDown, ChevronUp, Search, Send, MoreHorizontal, Shield, UserX } from "lucide-react";
 import { format } from "date-fns";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
   formatListingDateRange,
@@ -73,6 +79,7 @@ export default function MyListingsPage() {
   const [coHostSearchQuery, setCoHostSearchQuery] = useState("");
   const [selectedCoHostUserId, setSelectedCoHostUserId] = useState("");
   const [isSendingCoHostInvite, setIsSendingCoHostInvite] = useState(false);
+  const [isUpdatingCoHost, setIsUpdatingCoHost] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -414,6 +421,13 @@ export default function MyListingsPage() {
       });
 
       toast.success("Co-host invite sent");
+      const nextListing = {
+        ...editingListing,
+        co_host_user_id: selectedUser.id,
+        co_host_status: "pending",
+        cohost_invite_status: "pending",
+      };
+      setEditingListing(nextListing);
       setSelectedCoHostUserId(selectedUser.id);
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -422,6 +436,55 @@ export default function MyListingsPage() {
     } finally {
       setIsSendingCoHostInvite(false);
     }
+  };
+
+  const updateCoHostDetails = async (updates, successMessage) => {
+    if (!editingListing) return;
+    setIsUpdatingCoHost(true);
+    try {
+      await base44.entities.Listing.update(editingListing.id, updates);
+      const nextListing = { ...editingListing, ...updates };
+      setEditingListing(nextListing);
+      toast.success(successMessage);
+      await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+    } catch (error) {
+      toast.error("Could not update co-host");
+    } finally {
+      setIsUpdatingCoHost(false);
+    }
+  };
+
+  const handleCancelInvite = async () => {
+    await updateCoHostDetails(
+      {
+        co_host_user_id: null,
+        co_host_status: null,
+        cohost_invite_status: "declined",
+        co_host_permissions: null,
+      },
+      "Co-host invite canceled"
+    );
+  };
+
+  const handleRemoveCoHost = async () => {
+    await updateCoHostDetails(
+      {
+        co_host_user_id: null,
+        co_host_status: null,
+        cohost_invite_status: null,
+        co_host_permissions: null,
+      },
+      "Co-host removed"
+    );
+  };
+
+  const handleLimitCoHostPowers = async () => {
+    await updateCoHostDetails(
+      {
+        co_host_permissions: "limited",
+      },
+      "Co-host powers limited"
+    );
   };
 
   const saveDescription = async () => {
@@ -1046,16 +1109,50 @@ export default function MyListingsPage() {
                   )}
 
                   {editingListing.co_host_user_id && editingListing.co_host_status && (
-                    <p className="text-sm text-slate-600">
-                      Current co-host status: <span className="font-medium capitalize">{editingListing.co_host_status}</span>
-                    </p>
+                    <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-800">Current Co-Host</p>
+                        <p className="text-sm text-slate-600">
+                          Status: <span className="font-medium capitalize">{editingListing.cohost_invite_status || editingListing.co_host_status}</span>
+                        </p>
+                        {editingListing.co_host_permissions && (
+                          <p className="text-xs text-slate-500 capitalize">Permissions: {editingListing.co_host_permissions}</p>
+                        )}
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost}>
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {editingListing.co_host_status === "pending" ? (
+                            <DropdownMenuItem onClick={handleCancelInvite}>
+                              <UserX className="w-4 h-4" />
+                              Cancel Invite
+                            </DropdownMenuItem>
+                          ) : (
+                            <>
+                              <DropdownMenuItem onClick={handleRemoveCoHost}>
+                                <UserX className="w-4 h-4" />
+                                Remove Co-Host
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={handleLimitCoHostPowers}>
+                                <Shield className="w-4 h-4" />
+                                Limit Powers
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   )}
 
                   <div className="flex justify-end">
                     <Button
                       type="button"
                       onClick={sendCoHostInvite}
-                      disabled={!selectedCoHostUserId || isSendingCoHostInvite}
+                      disabled={!selectedCoHostUserId || isSendingCoHostInvite || isUpdatingCoHost}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white"
                     >
                       <Send className="w-4 h-4 mr-2" />
