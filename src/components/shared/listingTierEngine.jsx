@@ -112,12 +112,28 @@ export function computePremiumDates(startDate, endDate, earlyVisibilityDays = 0)
 /**
  * enforcePhotoLimit(tier, photoUrls)
  * Returns the trimmed array and whether it was truncated.
- * Free: max 1, Featured: max 5, Premium: max 8.
+ * Free: max 3, Featured: max 10, Premium: max 25, Galactic Display: max 1.
  */
-export function enforcePhotoLimit(tier, photoUrls = []) {
-  const limits = { free: 1, featured: 5, premium: 8 };
-  const max = limits[tier] ?? 1;
+export function getPhotoLimitByTier(tier) {
+  const limits = {
+    free: 3,
+    featured: 10,
+    premium: 25,
+    galactic_display: 1,
+    galactic: 1,
+    display: 1,
+  };
 
+  return limits[tier] ?? 3;
+}
+
+export function getPhotoLimitLabel(tier) {
+  const max = getPhotoLimitByTier(tier);
+  return max === 1 ? "1 photo only" : `${max} max`;
+}
+
+export function enforcePhotoLimit(tier, photoUrls = []) {
+  const max = getPhotoLimitByTier(tier);
   const truncated = photoUrls.length > max;
 
   return {

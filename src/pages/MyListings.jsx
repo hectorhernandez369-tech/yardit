@@ -40,6 +40,7 @@ import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
 import { canSelfServeUpgrade } from "@/lib/listingUpgradeConfig";
 import { getDefaultEventIconForCategory, EVENT_BASIC_ICON_LIBRARY, getEventIconEmoji } from "@/lib/eventListingConfig";
 import { getUserDisplayName } from "@/lib/userIdentity";
+import { getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
@@ -1652,16 +1653,16 @@ export default function MyListingsPage() {
                 label="Listing Photos"
                 value={editPhotoUrls}
                 onChange={setEditPhotoUrls}
-                maxPhotos={3}
+                maxPhotos={getPhotoLimitByTier(editingListing?.tier)}
               />
             )}
 
-            {editingListing?.listingType === "event" && ["featured", "premium", "marquee"].includes(editingListing?.event_tier || editingListing?.tier) && (
+            {editingListing?.listingType === "event" && ["featured", "premium", "marquee", "galactic_display", "galactic", "display"].includes(editingListing?.event_tier || editingListing?.tier) && (
               <EditListingPhotos
                 label="Event Photos"
                 value={editPhotoUrls}
                 onChange={setEditPhotoUrls}
-                maxPhotos={3}
+                maxPhotos={getPhotoLimitByTier(editingListing?.event_tier || editingListing?.tier)}
               />
             )}
 

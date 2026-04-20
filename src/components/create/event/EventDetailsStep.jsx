@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EVENT_CATEGORIES, getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
+import { getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
 import EventPhotoUpload from "./EventPhotoUpload";
 
 export default function EventDetailsStep({ formData, setFormData }) {
@@ -94,6 +95,7 @@ export default function EventDetailsStep({ formData, setFormData }) {
 
       <EventPhotoUpload
         value={formData.event_photos || []}
+        maxPhotos={getPhotoLimitByTier(formData.event_tier || formData.tier || "basic")}
         onChange={(photos) => setFormData((prev) => ({ ...prev, event_photos: photos, photoUrls: photos }))}
       />
     </div>

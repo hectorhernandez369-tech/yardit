@@ -12,7 +12,7 @@ const tiers = [
     icon: MapPin,
     color: "gray",
     days: 0,
-    description: "Free listing. Appears in list view only (no map pin). 1 photo allowed. Ranked after paid listings. Shows as one of the bottom 3 listings on each page."
+    description: "Free listing. Appears in list view only (no map pin). 3 photos max. Ranked after paid listings. Shows as one of the bottom 3 listings on each page."
   },
   {
     id: "featured",
@@ -21,7 +21,7 @@ const tiers = [
     icon: Star,
     color: "purple",
     days: 3,
-    description: "3 total active days with map pin and mid-level zoom visibility. Appears in top 7 results for nearby Seekers. Includes photo carousel.",
+    description: "3 total active days with map pin and mid-level zoom visibility. Appears in top 7 results for nearby Seekers. Includes photo carousel with up to 10 photos.",
     popular: true
   },
   {
@@ -31,7 +31,7 @@ const tiers = [
     icon: Sparkles,
     color: "orange",
     days: 5,
-    description: "5 total active days with map pin and highest zoom visibility. Always ranks above Featured listings when distance is similar. Includes extended photo carousel."
+    description: "5 total active days with map pin and highest zoom visibility. Always ranks above Featured listings when distance is similar. Includes extended photo carousel with up to 25 photos."
   }
 ];
 

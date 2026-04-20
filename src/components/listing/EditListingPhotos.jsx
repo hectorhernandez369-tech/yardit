@@ -4,13 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Loader2, X } from "lucide-react";
 import { toast } from "sonner";
+import { getPhotoLimitLabel } from "@/components/shared/listingTierEngine";
 
 export default function EditListingPhotos({ label = "Photos", value = [], onChange, maxPhotos = 3 }) {
   const [isUploading, setIsUploading] = React.useState(false);
 
+  const limitLabel = getPhotoLimitLabel(maxPhotos === 1 ? "display" : maxPhotos === 10 ? "featured" : maxPhotos === 25 ? "premium" : "free");
+
   const handleFiles = async (event) => {
     const remaining = Math.max(0, maxPhotos - value.length);
-    const files = Array.from(event.target.files || []).slice(0, remaining);
+    const selectedFiles = Array.from(event.target.files || []);
+    const files = selectedFiles.slice(0, remaining);
+    if (selectedFiles.length > remaining && remaining >= 0) {
+      toast.error(`You can only add ${limitLabel}.`);
+    }
     if (files.length === 0) return;
 
     setIsUploading(true);
@@ -29,7 +36,7 @@ export default function EditListingPhotos({ label = "Photos", value = [], onChan
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <Label className="text-[#2C4F4E]">{label}</Label>
-        <span className="text-xs text-slate-500">Max {maxPhotos}</span>
+        <span className="text-xs text-slate-500">{limitLabel}</span>
       </div>
 
       <input

@@ -33,7 +33,8 @@ import {
   computeFreeWindow,
   computeFeaturedDates,
   computePremiumDates,
-  enforcePhotoLimit
+  enforcePhotoLimit,
+  getPhotoLimitByTier
 } from "../components/shared/listingTierEngine";
 import { EVENT_TIER_PRICES } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
