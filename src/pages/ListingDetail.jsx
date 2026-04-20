@@ -50,6 +50,8 @@ export default function ListingDetailPage() {
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [shareFallbackOpen, setShareFallbackOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
   
   const { guardAction, showModal, setShowModal, isGuest } = useGuestGuard();
 
@@ -351,6 +353,42 @@ export default function ListingDetailPage() {
     });
   };
 
+  const handleTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+    
+    if (isLeftSwipe && selectedImageIndex < listingImages.length - 1) {
+      setSelectedImageIndex(prev => prev + 1);
+    }
+    if (isRightSwipe && selectedImageIndex > 0) {
+      setSelectedImageIndex(prev => prev - 1);
+    }
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  const handlePhotoClick = (e) => {
+    if (listingImages.length <= 1) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    if (x < rect.width / 2) {
+      setSelectedImageIndex(prev => prev > 0 ? prev - 1 : prev);
+    } else {
+      setSelectedImageIndex(prev => (prev + 1) % listingImages.length);
+    }
+  };
+
   return (
     <div className="min-h-[calc(100vh-140px)] bg-slate-50">
       <div className="max-w-4xl mx-auto">
@@ -392,13 +430,26 @@ export default function ListingDetailPage() {
             <div className="space-y-5">
               {listingImages.length > 0 && (
                 <div className="space-y-4">
-                  <div className="relative overflow-hidden rounded-[1.75rem] bg-slate-100 shadow-[0_12px_40px_rgba(15,23,42,0.16)]">
+                  <div 
+                    className="relative overflow-hidden rounded-[1.75rem] bg-slate-100 shadow-[0_12px_40px_rgba(15,23,42,0.16)] cursor-pointer select-none touch-pan-y"
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    onClick={handlePhotoClick}
+                  >
                     <img
                       src={mainImage}
                       alt={shareTitle}
-                      className="w-full max-h-[420px] sm:max-h-[480px] object-cover"
+                      className="w-full max-h-[420px] sm:max-h-[480px] object-cover transition-opacity duration-300"
+                      draggable="false"
+                      key={mainImage}
                     />
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    {listingImages.length > 1 && (
+                      <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-md pointer-events-none">
+                        {selectedImageIndex + 1} / {listingImages.length}
+                      </div>
+                    )}
                   </div>
                   {listingImages.length > 1 && (
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
