@@ -12,6 +12,7 @@ import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getListingSortPriority } from "@/lib/eventListingConfig";
 import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
 import SaveListingButton from "@/components/listing/SaveListingButton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Calculate distance in feet
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -28,6 +29,7 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 export default function ListView({ listings, userLocation }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [searchRadius, setSearchRadius] = React.useState("any");
   const { huntStops, addToHunt } = useHunt() || { huntStops: [], addToHunt: () => {} };
   const { guardAction, showModal, setShowModal, isGuest, modalProps } = useGuestGuard();
 
@@ -44,6 +46,17 @@ export default function ListView({ listings, userLocation }) {
         listing.lng
       )
     }));
+
+    if (searchRadius !== "any") {
+      const radiusNum = Number(searchRadius);
+      const withinRadius = withDistance.filter(l => l.distance <= radiusNum);
+      withinRadius.sort((a, b) => {
+        const tierDelta = getListingSortPriority(a) - getListingSortPriority(b);
+        if (tierDelta !== 0) return tierDelta;
+        return a.distance - b.distance;
+      });
+      return withinRadius;
+    }
 
     // 1. Collect ALL listings within 3 miles first
     const within3Miles = withDistance.filter(l => l.distance <= 3);
@@ -79,7 +92,7 @@ export default function ListView({ listings, userLocation }) {
 
     // 5. Combine results and return top 10
     return selectedListings.slice(0, 10);
-  }, [listings, userLocation]);
+  }, [listings, userLocation, searchRadius]);
 
   const filteredListings = sortedListings.filter(listing =>
     (listing.event_name || listing.title || "").toLowerCase().includes(searchQuery.toLowerCase())
@@ -88,8 +101,8 @@ export default function ListView({ listings, userLocation }) {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      <div className="mb-6">
-        <div className="relative">
+      <div className="mb-6 flex gap-3">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
             placeholder="Search by title..."
@@ -98,6 +111,24 @@ export default function ListView({ listings, userLocation }) {
             className="pl-10"
           />
         </div>
+        {userLocation && (
+          <div className="w-[115px] shrink-0">
+            <Select value={searchRadius} onValueChange={setSearchRadius}>
+              <SelectTrigger>
+                <SelectValue placeholder="Distance" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any dist.</SelectItem>
+                <SelectItem value="1">1 mile</SelectItem>
+                <SelectItem value="3">3 miles</SelectItem>
+                <SelectItem value="5">5 miles</SelectItem>
+                <SelectItem value="10">10 miles</SelectItem>
+                <SelectItem value="25">25 miles</SelectItem>
+                <SelectItem value="50">50 miles</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {filteredListings.length === 0 ? (
