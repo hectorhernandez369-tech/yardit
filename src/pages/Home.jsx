@@ -47,6 +47,7 @@ import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
 import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.jsx";
 import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
+import SaveListingButton from "@/components/listing/SaveListingButton";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 
@@ -1326,6 +1327,7 @@ const stats = useMemo(() => {
                             >
                               View Listing
                             </Button>
+                            <SaveListingButton listing={listing} iconOnly size="sm" className="h-6 w-6 p-0 border-slate-200" />
                             {!isPreviewState && (
                               <>
                                 <Button

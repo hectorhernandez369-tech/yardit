@@ -11,6 +11,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getListingSortPriority } from "@/lib/eventListingConfig";
 import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
+import SaveListingButton from "@/components/listing/SaveListingButton";
 
 // Calculate distance in feet
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -160,6 +161,7 @@ export default function ListView({ listings, userLocation }) {
                     >
                       View Listing
                     </Button>
+                    <SaveListingButton listing={listing} iconOnly={true} className="w-10 px-0 flex-shrink-0 border-slate-200 text-slate-500" />
                   
                   {!isEvent && HUNT_ENABLED && (
                     <Button

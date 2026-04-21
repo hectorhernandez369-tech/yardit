@@ -10,6 +10,8 @@ import UserInfoSection from "../components/profile/UserInfoSection";
 import PaymentHistory from "../components/profile/PaymentHistory";
 import ProfileCoinsSummary from "../components/profile/ProfileCoinsSummary";
 import MyCoinsPanel from "../components/jth/MyCoinsPanel";
+import SavedListingsTab from "../components/profile/SavedListingsTab";
+import { Bookmark } from "lucide-react";
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
@@ -117,14 +119,18 @@ export default function ProfilePage() {
 
         {/* Tabs */}
         <Tabs defaultValue="info" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-4 max-w-3xl">
             <TabsTrigger value="info" className="gap-2">
               <User className="w-4 h-4" />
               <span className="hidden sm:inline">Info</span>
             </TabsTrigger>
-            <TabsTrigger value="payments" className="gap-2">
+            <TabsTrigger value="saved" className="gap-2">
+              <Bookmark className="w-4 h-4" />
+              <span className="hidden sm:inline">Saved</span>
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="gap-2 text-xs sm:text-sm">
               <CreditCard className="w-4 h-4" />
-              <span className="hidden sm:inline">Transaction History</span>
+              <span className="hidden sm:inline">History</span>
               <span className="ml-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs">
                 {payments.length}
               </span>
@@ -137,6 +143,10 @@ export default function ProfilePage() {
 
           <TabsContent value="info">
             <UserInfoSection user={user} setUser={setUser} />
+          </TabsContent>
+
+          <TabsContent value="saved">
+            <SavedListingsTab user={user} />
           </TabsContent>
 
           <TabsContent value="payments">

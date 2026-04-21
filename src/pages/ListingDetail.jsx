@@ -40,6 +40,7 @@ import {
   getTrustSignal,
   getUrgencyText,
 } from "@/components/listing/listingDetailContent";
+import SaveListingButton from "@/components/listing/SaveListingButton";
 
 export default function ListingDetailPage() {
   const navigate = useNavigate();
@@ -578,6 +579,11 @@ export default function ListingDetailPage() {
                       <Map className="w-4 h-4" />
                       Show on Map
                     </Button>
+                    <SaveListingButton 
+                      listing={listing}
+                      className="flex-1 gap-2 rounded-full h-12 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+                      size="default"
+                    />
                   </div>
                   <p className="px-1 text-sm text-slate-500">Share your sale to bring more people</p>
                 </div>
