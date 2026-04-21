@@ -33,7 +33,6 @@ import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@
 import { formatEventTierLabel } from "@/lib/eventListingConfig";
 import { formatMarqueeSlotTime, normalizeMarqueeSlots } from "@/lib/marqueeSchedule";
 import NeighborhoodSalePreviewMap from "@/components/neighborhood/NeighborhoodSalePreviewMap";
-import YardSaleGuideModal from "@/components/guide/YardSaleGuideModal";
 import {
   getFeaturedItems,
   getFormattedDescription,
@@ -51,7 +50,6 @@ export default function ListingDetailPage() {
   const [reportContext, setReportContext] = useState(null);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [shareFallbackOpen, setShareFallbackOpen] = useState(false);
-  const [showGuideModal, setShowGuideModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
@@ -953,16 +951,6 @@ export default function ListingDetailPage() {
               </div>
             )}
 
-            <div className="bg-teal-50 border border-teal-200 rounded-2xl p-5 mb-2 mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div>
-                <h4 className="text-teal-900 font-bold text-lg">Want more traffic?</h4>
-                <p className="text-teal-800 text-sm">View our steps to a successful yard sale and get the printable checklist.</p>
-              </div>
-              <Button onClick={() => setShowGuideModal(true)} className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white rounded-full font-semibold shadow-sm shrink-0">
-                View Success Guide
-              </Button>
-            </div>
-
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button
                 onClick={() => safeBack(navigate, createPageUrl("Home"))}
@@ -976,8 +964,6 @@ export default function ListingDetailPage() {
         </Card>
         </div>
       </div>
-
-      <YardSaleGuideModal open={showGuideModal} onOpenChange={setShowGuideModal} />
 
       {showReport && (
         <ReportModal
