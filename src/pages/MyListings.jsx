@@ -156,6 +156,7 @@ export default function MyListingsPage() {
         status: "pending",
         name: invite.host_name || "Invited co-host",
         email: invite.host_email || "",
+        created_date: invite.created_date,
       }));
   }, [listingCoHostInvites]);
 
@@ -536,6 +537,38 @@ export default function MyListingsPage() {
     await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
     await refreshEditingListing(editingListing.id);
     toast.success("Co-host invite canceled");
+  };
+
+  const handleResendInvite = async (row) => {
+    setIsUpdatingCoHost(true);
+    try {
+      await base44.entities.Notification.create({
+        userId: row.userId,
+        user_id: row.userId,
+        user_email: row.email,
+        title: "Neighborhood Sale Co-Host Invite",
+        message: `${getUserDisplayName(user) || "A Yardit user"} invited you to co-host "${editingListing?.title}".`,
+        type: "co_host_invite",
+        related_entity_type: "NeighborhoodCoHostInvite",
+        related_entity_id: row.inviteId,
+        read: false,
+        is_read: false,
+        metadata: {
+          invite_id: row.inviteId,
+          sale_listing_id: editingListing?.id,
+          event_title: editingListing?.title,
+          inviter_user_id: user?.id,
+          inviter_name: getUserDisplayName(user) || user?.email || "",
+          invite_type: "co_host",
+          invited_user_id: row.userId,
+        },
+      });
+      toast.success("Co-host invite resent");
+    } catch (e) {
+      toast.error("Could not resend invite");
+    } finally {
+      setIsUpdatingCoHost(false);
+    }
   };
 
   const handleSuspendCoHost = async (inviteId) => {
@@ -1204,6 +1237,7 @@ export default function MyListingsPage() {
                                 <div className="min-w-0">
                                   <p className="text-sm font-medium text-slate-800 truncate">{row.name}</p>
                                   <p className="text-xs text-slate-500 truncate">{row.email || "No email available"}</p>
+                                  {row.created_date && <p className="text-[10px] text-slate-400 mt-0.5">Sent: {format(new Date(row.created_date), "MMM d, yyyy")}</p>}
                                   <Badge variant="outline" className="mt-2 capitalize bg-amber-100 text-amber-800 border-amber-200">Pending</Badge>
                                 </div>
                                 <DropdownMenu modal={false}>
@@ -1227,6 +1261,15 @@ export default function MyListingsPage() {
                                     onCloseAutoFocus={(e) => e.preventDefault()}
                                     className="z-[2000]"
                                   >
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleResendInvite(row);
+                                      }}
+                                    >
+                                      <Send className="w-4 h-4" />
+                                      Resend Invite
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onSelect={(e) => {
                                         e.preventDefault();
