@@ -182,42 +182,42 @@ function LayoutContent({ children, user, setUser }) {
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1200] w-56 rounded-xl shadow-xl border border-gray-200 bg-white/95 backdrop-blur-md p-2">
+                    <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1200] w-48 rounded-xl shadow-xl border border-gray-200 bg-white/95 backdrop-blur-md p-1.5">
                       {user ? (
                         <>
-                          <div className="px-2 py-1 text-xs text-gray-400 uppercase">Account</div>
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("MyListings"))} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-[#f0fdfa] transition">
-                            <MapIcon className="w-4 h-4 text-[#5DADA5]" /> My Listings
+                          <div className="px-2 py-0.5 text-[10px] text-gray-400 uppercase">Account</div>
+                          <DropdownMenuItem onClick={() => navigate(createPageUrl("MyListings"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+                            <MapIcon className="w-3.5 h-3.5 text-[#5DADA5]" /> My Listings
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("Profile"))} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-[#f0fdfa] transition">
-                            <User className="w-4 h-4 text-[#5DADA5]" /> My Profile
+                          <DropdownMenuItem onClick={() => navigate(createPageUrl("Profile"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+                            <User className="w-3.5 h-3.5 text-[#5DADA5]" /> My Profile
                           </DropdownMenuItem>
 
-                          <div className="h-px bg-gray-100 my-1"></div>
+                          <div className="h-px bg-gray-100 my-0.5"></div>
 
-                          <div className="px-2 py-1 text-xs text-gray-400 uppercase">System</div>
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("AdminLite"))} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-[#f0fdfa] transition">
-                            <Shield className="w-4 h-4 text-[#F4A849]" /> Admin Login
+                          <div className="px-2 py-0.5 text-[10px] text-gray-400 uppercase">System</div>
+                          <DropdownMenuItem onClick={() => navigate(createPageUrl("AdminLite"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+                            <Shield className="w-3.5 h-3.5 text-[#F4A849]" /> Admin Login
                           </DropdownMenuItem>
 
-                          <div className="h-px bg-gray-100 my-1"></div>
+                          <div className="h-px bg-gray-100 my-0.5"></div>
 
-                          <div className="px-2 py-1 text-xs text-gray-400 uppercase">Preferences</div>
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("Settings"))} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-[#f0fdfa] transition">
-                            <Settings className="w-4 h-4 text-gray-500" /> Settings
+                          <div className="px-2 py-0.5 text-[10px] text-gray-400 uppercase">Preferences</div>
+                          <DropdownMenuItem onClick={() => navigate(createPageUrl("Settings"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+                            <Settings className="w-3.5 h-3.5 text-gray-500" /> Settings
                           </DropdownMenuItem>
 
-                          <div className="h-px bg-gray-100 my-1"></div>
+                          <div className="h-px bg-gray-100 my-0.5"></div>
 
-                          <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 rounded-md px-2 py-2 text-red-600 hover:bg-red-50 transition">
-                            <LogOut className="w-4 h-4" /> Logout
+                          <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 transition mt-1">
+                            <LogOut className="w-3.5 h-3.5" /> Logout
                           </DropdownMenuItem>
                         </>
                       ) : (
                         <>
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("Login"))} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-[#f0fdfa] transition">
-                            <User className="w-4 h-4 text-[#5DADA5]" /> Log In / Sign Up
+                          <DropdownMenuItem onClick={() => navigate(createPageUrl("Login"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+                            <User className="w-3.5 h-3.5 text-[#5DADA5]" /> Log In / Sign Up
                           </DropdownMenuItem>
                         </>
                       )}
