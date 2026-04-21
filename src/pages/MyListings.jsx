@@ -42,6 +42,7 @@ import { getDefaultEventIconForCategory, EVENT_BASIC_ICON_LIBRARY, getEventIconE
 import { getUserDisplayName } from "@/lib/userIdentity";
 import { getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
 import { getStateAbbreviation } from "@/lib/listingLocation";
+import YardSaleGuideModal from "@/components/guide/YardSaleGuideModal";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
@@ -53,6 +54,8 @@ export default function MyListingsPage() {
 
   // (Tabs) "active" | "pending" | "past" | "billing" | "hunt"
   const [tab, setTab] = useState("active");
+
+  const [showGuideModal, setShowGuideModal] = useState(false);
 
   // (Edit Listing modal state)
   const [editingListing, setEditingListing] = useState(null);
@@ -1093,12 +1096,26 @@ export default function MyListingsPage() {
                       </p>
                     </div>
                   )}
+
+                  {listing.listingType === "yard_sale" && (
+                    <div className="mt-4 pt-4 border-t border-slate-100 flex justify-center sm:justify-start">
+                      <button 
+                        type="button" 
+                        onClick={() => setShowGuideModal(true)} 
+                        className="text-sm text-teal-600 font-medium hover:text-teal-800 underline underline-offset-2 transition-colors"
+                      >
+                        Want more traffic? View Success Guide
+                      </button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      <YardSaleGuideModal open={showGuideModal} onOpenChange={setShowGuideModal} />
 
       {/* (Edit Listing popup) */}
       <Dialog open={!!editingListing} onOpenChange={(open) => !open && closeEditDescription()}>
