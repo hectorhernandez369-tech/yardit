@@ -30,24 +30,32 @@ export const statusColors = {
 };
 
 export function getListingDisplayStatus(listing) {
+  const rawStatus = listing?.status || "active";
+  const explicitEventState = listing?.event_state;
+  
+  if (rawStatus === "canceled" || rawStatus === "cancelled" || explicitEventState === "canceled") {
+    return "canceled";
+  }
+
   if (listing?.listingType === "neighborhood_sale") {
-    return deriveNeighborhoodEventState(listing) || "pending_activation";
+    const neighborhoodState = deriveNeighborhoodEventState(listing) || "pending_activation";
+    if (neighborhoodState === "coming_soon" || neighborhoodState === "activated" || neighborhoodState === "activated_locked") return "coming_soon";
+    if (neighborhoodState === "active") return "active";
+    if (neighborhoodState === "expired") return "expired";
+    return neighborhoodState;
   }
 
   const now = Date.now();
-  const rawStatus = listing?.status || "active";
   const endMs = listing?.endDateTime ? new Date(listing.endDateTime).getTime() : null;
   const startMs = listing?.startDateTime ? new Date(listing.startDateTime).getTime() : null;
-  const isPast = endMs && !Number.isNaN(endMs) && endMs < now;
 
-  if (rawStatus === "active") {
-    if (isPast) return "expired";
-    if (startMs && !Number.isNaN(startMs) && startMs > now) return "upcoming";
-  }
+  const isBeforeStart = startMs && !Number.isNaN(startMs) && now < startMs;
+  const isBetween = startMs && endMs && !Number.isNaN(startMs) && !Number.isNaN(endMs) && now >= startMs && now <= endMs;
+  const isPastEnd = endMs && !Number.isNaN(endMs) && now > endMs;
 
-  if (isPast && rawStatus !== "completed" && rawStatus !== "suspended") {
-    return "expired";
-  }
+  if (isBeforeStart) return "coming_soon";
+  if (isBetween) return "active";
+  if (isPastEnd) return "expired";
 
   return rawStatus;
 }
