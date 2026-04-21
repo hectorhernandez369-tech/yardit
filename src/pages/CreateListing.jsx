@@ -21,6 +21,7 @@ import EventScheduleStep from "../components/create/event/EventScheduleStep";
 import EventTierStep from "../components/create/event/EventTierStep";
 import MarqueeSlotsEditor from "../components/create/event/MarqueeSlotsEditor";
 import { useAppMode } from "../components/shared/DemoMode";
+import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import {
   deriveNeighborhoodEventState,
   getNeighborhoodCreationLeadTimeError,
@@ -131,6 +132,7 @@ export default function CreateListingPage() {
 
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
+  const [showGuideModal, setShowGuideModal] = useState(false);
   const [geocodeRef, setGeocodeRef] = useState(null);
   const [isStartingPayment, setIsStartingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
@@ -1499,6 +1501,13 @@ export default function CreateListingPage() {
               <span key={label} className={step === index + 1 ? "font-semibold" : ""}>{label}</span>
             ))}
           </div>
+          {formData.listingType === "yard_sale" && (
+             <div className="mt-5 flex justify-center">
+                <button type="button" onClick={() => setShowGuideModal(true)} className="text-sm text-teal-600 font-medium hover:text-teal-800 underline underline-offset-2 transition-colors">
+                   Need tips for a great sale? View our Success Guide & Checklist
+                </button>
+             </div>
+          )}
         </div>
 
         <Card>
@@ -1694,6 +1703,7 @@ export default function CreateListingPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <YardSaleGuideModal open={showGuideModal} onOpenChange={setShowGuideModal} />
     </div>
   );
 }
