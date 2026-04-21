@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
@@ -168,6 +168,12 @@ export default function ListView({ listings, userLocation }) {
                         )}
                       </div>
                       <h3 className="text-lg font-semibold text-slate-900 leading-tight">{getListingPrimaryText(listing)}</h3>
+                      {(listing.city || listing.state) && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-slate-500">
+                          <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="text-sm font-medium">{[listing.city, listing.state].filter(Boolean).join(", ")}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
