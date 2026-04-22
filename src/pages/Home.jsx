@@ -1065,7 +1065,15 @@ const stats = useMemo(() => {
           typeof listing?.lng === "number";
       }
     ).map(marquee => {
-      const overlapRadiusMeters = 40075016 * Math.cos(marquee.lat * Math.PI / 180) / (256 * Math.pow(2, currentZoom)) * 70;
+      const isExpanded = openMarqueeIds[marquee.id] === "expanded";
+      const wPixels = isExpanded ? 190 : 160;
+      const hPixels = isExpanded ? 74 : 66;
+      const tailPixels = 6;
+      const metersPerPixel = 40075016 * Math.cos(marquee.lat * Math.PI / 180) / (256 * Math.pow(2, currentZoom));
+      
+      const halfWidthM = (wPixels / 2) * metersPerPixel;
+      const heightM = (hPixels + tailPixels) * metersPerPixel;
+      const bufferM = 15 * metersPerPixel; // buffer for pin sizes
       
       const overlapped = eligibleListings.filter(l => {
         if (l.id === marquee.id) return false;
@@ -1074,8 +1082,15 @@ const stats = useMemo(() => {
         if (l.mapState === "hidden") return false;
         if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
         
-        const dist = calculateDistanceMeters(marquee.lat, marquee.lng, l.lat, l.lng);
-        return dist <= overlapRadiusMeters;
+        // Approximate distance in meters
+        const latDiffMeters = (l.lat - marquee.lat) * 111320;
+        const lngDiffMeters = (l.lng - marquee.lng) * (40075016 * Math.cos(marquee.lat * Math.PI / 180) / 360);
+        
+        // Check if listing is within the visual footprint (extends UP/North from anchor)
+        const inX = lngDiffMeters >= -(halfWidthM + bufferM) && lngDiffMeters <= (halfWidthM + bufferM);
+        const inY = latDiffMeters >= -bufferM && latDiffMeters <= (heightM + bufferM);
+        
+        return inX && inY;
       });
 
       return {
