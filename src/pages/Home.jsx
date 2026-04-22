@@ -1100,6 +1100,14 @@ const stats = useMemo(() => {
     });
   }, [visiblePins, openMarqueeIds, currentZoom, eligibleListings]);
 
+  const hiddenByMarqueeIds = useMemo(() => {
+    const ids = new Set();
+    marqueeOverlays.forEach(m => {
+      m.overlappedListings?.forEach(l => ids.add(l.id));
+    });
+    return ids;
+  }, [marqueeOverlays]);
+
   const neighborhoodParticipantPins = useMemo(() => {
     if (currentZoom < 18 || !allJoinRequests?.length) return [];
 
@@ -1277,6 +1285,8 @@ const stats = useMemo(() => {
               <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />
 
               {visiblePins.map((listing) => {
+              if (hiddenByMarqueeIds.has(listing.id)) return null;
+
               const isHuntStop = huntStops.some(loc => loc.id === listing.id);
               const isMapSelected = selectedListingId === listing.id;
               const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
