@@ -1075,11 +1075,10 @@ const stats = useMemo(() => {
       const heightM = (hPixels + tailPixels) * metersPerPixel;
       const bufferM = 15 * metersPerPixel; // buffer for pin sizes
       
-      const overlapped = eligibleListings.filter(l => {
+      const overlapped = visiblePins.filter(l => {
         if (l.id === marquee.id) return false;
-        if (l.status === "cancelled") return false;
-        if (l.mapState === "preview") return false;
-        if (l.mapState === "hidden") return false;
+        const isOtherMarquee = (l?.event_tier || l?.tier) === "marquee";
+        if (isOtherMarquee) return false; // don't count marquees
         if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
         
         // Approximate distance in meters
@@ -1098,7 +1097,7 @@ const stats = useMemo(() => {
         overlappedListings: overlapped
       };
     });
-  }, [visiblePins, openMarqueeIds, currentZoom, eligibleListings]);
+  }, [visiblePins, openMarqueeIds, currentZoom]);
 
   const hiddenByMarqueeIds = useMemo(() => {
     const ids = new Set();

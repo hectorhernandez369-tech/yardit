@@ -42,7 +42,11 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
             `transform:scale(${scale});transform-origin:bottom center;position:absolute;bottom:`
           )
         : marqueeHtml;
-      const cacheKey = `event_marquee_board_${listing?.id}_${boardWidth}_z${isCollapsed ? zoom : 0}_${marqueeHtml.slice(-48)}`;
+        
+      let htmlHash = 0;
+      for (let i = 0; i < marqueeHtml.length; i++) htmlHash = Math.imul(31, htmlHash) + marqueeHtml.charCodeAt(i) | 0;
+
+      const cacheKey = `event_marquee_board_${listing?.id}_${boardWidth}_z${isCollapsed ? zoom : 0}_${htmlHash}`;
       if (!cache[cacheKey]) {
         cache[cacheKey] = L.divIcon({
           className: "event-marker",
