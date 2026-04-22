@@ -1290,6 +1290,8 @@ const stats = useMemo(() => {
               const shouldShowCollapsedMarquee = isMarquee && currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM && marqueeState !== false;
               const marqueeOpen = shouldShowCollapsedMarquee && marqueeState !== undefined;
 
+              if (shouldShowCollapsedMarquee) return null;
+
                 return (
                   <Marker
                     key={listing.id}
@@ -1580,6 +1582,7 @@ const stats = useMemo(() => {
                   <Marker
                     key={`marquee-board-${listing.id}-${isExpanded ? "exp" : "col"}-z${isExpanded ? 0 : currentZoom}-o${overlappedCount}`}
                     position={[listing.lat, listing.lng]}
+                    ref={(ref) => { if (ref) markerRefsMap.current[listing.id] = ref; }}
                     icon={getEventMarkerIcon(listing, selectedListingId === listing.id, true, boardHtml, currentZoom)}
                     eventHandlers={{
                       add: (event) => {
