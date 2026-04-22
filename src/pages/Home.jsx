@@ -1082,11 +1082,10 @@ const stats = useMemo(() => {
       const heightM = (hPixels + tailPixels) * metersPerPixel;
       const bufferM = 15 * metersPerPixel; // buffer for pin sizes
       
-      const overlapped = eligibleListings.filter(l => {
+      const overlapped = visiblePins.filter(l => {
         if (l.id === marquee.id) return false;
-        if (l.status === "cancelled") return false;
-        if (l.mapState === "preview") return false;
-        if (l.mapState === "hidden") return false;
+        const isOtherMarquee = (l?.event_tier || l?.tier) === "marquee";
+        if (isOtherMarquee) return false; // don't count marquees
         if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
         
         // Approximate distance in meters
@@ -1105,7 +1104,7 @@ const stats = useMemo(() => {
         overlappedListings: overlapped
       };
     });
-  }, [visiblePins, openMarqueeIds, currentZoom, eligibleListings]);
+  }, [visiblePins, openMarqueeIds, currentZoom]);
 
   const hiddenByMarqueeIds = useMemo(() => {
     const ids = new Set();
@@ -1305,7 +1304,6 @@ const stats = useMemo(() => {
               const isActiveState = listing.mapState === "active";
               const goLiveLabel = formatListingGoLive(listing);
               const shouldShowCollapsedMarquee = isMarquee && currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM && marqueeState !== false;
-              const marqueeOpen = shouldShowCollapsedMarquee && marqueeState !== undefined;
 
               if (shouldShowCollapsedMarquee) return null;
 
@@ -1314,16 +1312,7 @@ const stats = useMemo(() => {
                     key={listing.id}
                     ref={(ref) => { if (ref) markerRefsMap.current[listing.id] = ref; }}
                     position={[listing.lat, listing.lng]}
-                    icon={listing.listingType === "event" ? (() => {
-                    if (isMarquee && shouldShowCollapsedMarquee) {
-                    const isExpanded = marqueeState === "expanded";
-                    const boardHtml = isExpanded
-                    ? getMarqueeBoardExpandedHtml(listing, { isComingSoon: isComingSoonState, isActive: isActiveState, goLiveLabel })
-                    : getMarqueeBoardCollapsedHtml(listing, { isComingSoon: isComingSoonState, isActive: isActiveState, goLiveLabel });
-                    return getEventMarkerIcon(listing, isMapSelected, true, boardHtml, currentZoom);
-                    }
-                    return getEventMarkerIcon(listing, isMapSelected, false);
-                    })() : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
+                    icon={listing.listingType === "event" ? getEventMarkerIcon(listing, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
                     eventHandlers={{
                       click: () => { handlePinClick(listing); },
                       popupopen: () => setSelectedListingId(listing.id),
@@ -1581,7 +1570,6 @@ const stats = useMemo(() => {
               {marqueeOverlays.map((listing) => {
                 const isExpanded = openMarqueeIds[listing.id] === "expanded";
                 const overlappedCount = listing.overlappedListings?.length || 0;
-                console.log("DEBUG: rendering marquee board for:", listing.id, "backgroundUrl:", listing?.marquee_background_url);
                 const boardHtml = isExpanded
                   ? getMarqueeBoardExpandedHtml(listing, {
                       isComingSoon: listing.mapState === "coming_soon",
