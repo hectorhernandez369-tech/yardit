@@ -940,7 +940,6 @@ export default function ListingDetailPage() {
           </CardContent>
         </Card>
       </div>
-      </div>
 
       {showReport && (
         <ReportModal
@@ -962,6 +961,7 @@ export default function ListingDetailPage() {
       )}
 
       <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} />
+      </div>
     </div>
   );
 }
