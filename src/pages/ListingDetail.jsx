@@ -442,7 +442,7 @@ export default function ListingDetailPage() {
                     <img
                       src={mainImage}
                       alt={shareTitle}
-                      className="w-full max-h-[420px] sm:max-h-[480px] object-cover transition-opacity duration-300"
+                      className="w-full max-h-[420px] sm:max-h-[480px] object-contain transition-opacity duration-300"
                       draggable="false"
                       key={mainImage}
                     />
