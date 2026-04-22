@@ -817,6 +817,10 @@ export default function HomePage() {
         if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return null;
         if (!isFinite(listing.lat) || !isFinite(listing.lng)) return null;
 
+        const matchesCategory = selectedCategories.length === 0 || 
+          selectedCategories.some(cat => (listing.categories || []).includes(cat) || listing.category === cat);
+        if (!matchesCategory) return null;
+
         const mapState = getListingMapState(listing, user, now);
 
         if (listing.listingType === "neighborhood_sale") {
@@ -887,6 +891,7 @@ export default function HomePage() {
 
       return true;
     }).filter(l => {
+      if (filter !== "all" && l.listingType !== filter) return false;
       const matchesCategory = selectedCategories.length === 0 || 
         selectedCategories.some(cat => (l.categories || []).includes(cat) || l.category === cat);
       return matchesCategory;
@@ -912,7 +917,7 @@ export default function HomePage() {
     }
 
     return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
-  }, [listings, searchQuery, selectedCategories, demoOn]);
+  }, [listings, filter, searchQuery, selectedCategories, demoOn, user]);
 
 const stats = useMemo(() => {
   const publicListings = eligibleListings.filter((l) => l.mapState !== "preview");
@@ -976,6 +981,8 @@ const stats = useMemo(() => {
     const pins = [];
     const cPoints = [];
     eligibleListings.forEach(listing => {
+      if (filter !== "all" && listing.listingType !== filter) return;
+
       const isPreview = listing.mapState === "preview";
       const isComingSoon = listing.mapState === "coming_soon";
       const isActive = listing.mapState === "active";
@@ -1045,7 +1052,7 @@ const stats = useMemo(() => {
     }
 
     return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
-  }, [eligibleListings, currentZoom, isShowingAllListings]);
+  }, [eligibleListings, currentZoom, isShowingAllListings, filter]);
 
   // NO ZOOM-BASED STATE RESET - persist marquee state across zoom levels
 
@@ -1138,7 +1145,7 @@ const stats = useMemo(() => {
         overlappedListings: overlapped
       };
     });
-  }, [visiblePins, openMarqueeIds, currentZoom]);
+  }, [visiblePins, currentVisibleCandidates, openMarqueeIds, currentZoom]);
 
   const hiddenByMarqueeIds = useMemo(() => {
     const ids = new Set();
