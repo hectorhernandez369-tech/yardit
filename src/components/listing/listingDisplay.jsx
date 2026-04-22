@@ -76,7 +76,7 @@ export function formatListingTierLabel(tier) {
 }
 
 export function getListingAddressLine(listing) {
-  const street = listing?.addressText || listing?.street_address || "Address unavailable";
+  const street = listing?.display_address || listing?.addressText || listing?.street_address || "Address unavailable";
   const stateAbbr = getStateAbbreviation(listing?.state);
   const parts = [street, listing?.city, stateAbbr].filter(Boolean);
   const base = parts.join(", ");

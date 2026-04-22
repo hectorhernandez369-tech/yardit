@@ -377,6 +377,7 @@ function listingMatchesQuery(listing, query, isFuzzy) {
       listing.description?.toLowerCase().includes(q) ||
       (listing.categories || []).some(c => c?.toLowerCase().includes(q)) ||
       listing.category?.toLowerCase().includes(q) ||
+      listing.display_address?.toLowerCase().includes(q) ||
       listing.addressText?.toLowerCase().includes(q) ||
       listing.city?.toLowerCase().includes(q)
     );
@@ -1064,7 +1065,8 @@ const stats = useMemo(() => {
           requestId: request.id,
           listingId: participantListing.id,
           title: participantListing.title,
-          addressText: participantListing.addressText,
+          display_address: participantListing.display_address,
+          addressText: participantListing.display_address || participantListing.addressText,
           lat: participantListing.lat,
           lng: participantListing.lng,
           listingType: participantListing.listingType,
@@ -1488,7 +1490,7 @@ const stats = useMemo(() => {
                         <Badge className="bg-emerald-600 text-white text-[9px] px-1 py-0 h-4 min-h-0">Participant Home</Badge>
                       </div>
                       <p className="font-semibold text-sm leading-none mt-0.5">{pin.title || "Participant"}</p>
-                      <p className="text-[11px] leading-tight text-slate-600 mb-1">{pin.addressText || "Address unavailable"}</p>
+                      <p className="text-[11px] leading-tight text-slate-600 mb-1">{pin.display_address || pin.addressText || "Address unavailable"}</p>
                       <Button
                         size="sm"
                         className="w-full h-6 text-[11px] py-0 bg-amber-600 hover:bg-amber-700"

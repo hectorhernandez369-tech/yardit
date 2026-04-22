@@ -830,7 +830,7 @@ export default function ListingDetailPage() {
                       {pendingRequests.map(req => (
                         <div key={req.id} className="bg-white p-3 rounded border border-emerald-100 shadow-sm">
                           <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
-                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.addressText || "No address"}</p>
+                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.display_address || req.listingDetails?.addressText || "No address"}</p>
                           <p className="text-sm text-slate-500 line-clamp-2 mb-3">{req.listingDetails?.description}</p>
                           <div className="flex gap-2">
                             <Button 
@@ -878,7 +878,7 @@ export default function ListingDetailPage() {
                             <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
                             <Badge className="bg-green-600 text-white hover:bg-green-700 border-none">Approved</Badge>
                           </div>
-                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.addressText || "No address"}</p>
+                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.display_address || req.listingDetails?.addressText || "No address"}</p>
                           <p className="text-sm text-slate-500 line-clamp-2 mb-3">{req.listingDetails?.description}</p>
                           <div className="flex gap-2">
                             <Button 
@@ -921,7 +921,7 @@ export default function ListingDetailPage() {
                             <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
                             <Badge className="bg-red-600 text-white hover:bg-red-700 border-none">Removed</Badge>
                           </div>
-                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.addressText || "No address"}</p>
+                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.display_address || req.listingDetails?.addressText || "No address"}</p>
                           <p className="text-sm text-slate-500 line-clamp-2 mb-3">{req.listingDetails?.description}</p>
                         </div>
                       ))}
