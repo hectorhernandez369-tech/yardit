@@ -449,8 +449,8 @@ export default function HomePage() {
   const [selectedListingId, setSelectedListingId] = useState(null);
   // marquee state per id: "collapsed" = collapsed board, "expanded" = expanded board, false = hidden/closed
   const [openMarqueeIds, setOpenMarqueeIds] = useState({});
-  const MARQUEE_COLLAPSED_MIN_ZOOM = 13;
-  const MARQUEE_HIDDEN_MIN_ZOOM = 11;
+  const MARQUEE_COLLAPSED_MIN_ZOOM = 12;
+  const MARQUEE_HIDDEN_MIN_ZOOM = 10;
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
   const showListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
