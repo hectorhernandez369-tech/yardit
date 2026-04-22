@@ -1066,19 +1066,27 @@ const stats = useMemo(() => {
       }
     ).map(marquee => {
       const isExpanded = openMarqueeIds[marquee.id] === "expanded";
-      const wPixels = isExpanded ? 190 : 160;
-      const hPixels = isExpanded ? 74 : 66;
-      const tailPixels = 6;
+      
+      let scale = 1.0;
+      if (!isExpanded) {
+        if (currentZoom === 12) scale = 0.85;
+        else if (currentZoom < 12) scale = 0.70;
+      }
+      
+      const wPixels = (isExpanded ? 190 : 160) * scale;
+      const hPixels = (isExpanded ? 74 : 66) * scale;
+      const tailPixels = 6 * scale;
       const metersPerPixel = 40075016 * Math.cos(marquee.lat * Math.PI / 180) / (256 * Math.pow(2, currentZoom));
       
       const halfWidthM = (wPixels / 2) * metersPerPixel;
       const heightM = (hPixels + tailPixels) * metersPerPixel;
       const bufferM = 15 * metersPerPixel; // buffer for pin sizes
       
-      const overlapped = visiblePins.filter(l => {
+      const overlapped = eligibleListings.filter(l => {
         if (l.id === marquee.id) return false;
-        const isOtherMarquee = (l?.event_tier || l?.tier) === "marquee";
-        if (isOtherMarquee) return false; // don't count marquees
+        if (l.status === "cancelled") return false;
+        if (l.mapState === "preview") return false;
+        if (l.mapState === "hidden") return false;
         if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
         
         // Approximate distance in meters
@@ -1097,7 +1105,7 @@ const stats = useMemo(() => {
         overlappedListings: overlapped
       };
     });
-  }, [visiblePins, openMarqueeIds, currentZoom]);
+  }, [visiblePins, openMarqueeIds, currentZoom, eligibleListings]);
 
   const hiddenByMarqueeIds = useMemo(() => {
     const ids = new Set();
@@ -1589,7 +1597,7 @@ const stats = useMemo(() => {
                     });
                 return (
                   <Marker
-                    key={`marquee-board-${listing.id}-${isExpanded ? "exp" : "col"}-z${isExpanded ? 0 : currentZoom}-o${overlappedCount}`}
+                    key={`marquee-board-${listing.id}-${isExpanded ? "exp" : "col"}-z${currentZoom}-o${overlappedCount}`}
                     position={[listing.lat, listing.lng]}
                     ref={(ref) => { if (ref) markerRefsMap.current[listing.id] = ref; }}
                     icon={getEventMarkerIcon(listing, selectedListingId === listing.id, true, boardHtml, currentZoom)}
