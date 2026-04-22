@@ -620,6 +620,7 @@ export default function ListingDetailPage() {
                   </div>
                 )}
               </div>
+            </div>
 
             {marqueeSchedule.length > 0 && (
               <div>
