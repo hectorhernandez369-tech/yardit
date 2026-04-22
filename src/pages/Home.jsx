@@ -198,10 +198,8 @@ function MapController({ center, zoom, onUserMove, onZoomChange, onMapReady }) {
 
   useEffect(() => {
     const handleMoveEnd = () => {
-      if (lastProgrammaticMove.current && Date.now() - lastProgrammaticMove.current < 1000) {
-        return;
-      }
-      onUserMove();
+      const isProgrammatic = lastProgrammaticMove.current && Date.now() - lastProgrammaticMove.current < 1000;
+      onUserMove(map.getCenter(), isProgrammatic);
     };
     const handleZoomEnd = () => {
       onZoomChange(map.getZoom());
@@ -418,6 +416,8 @@ export default function HomePage() {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const getSavedLocation = () => {
     try {
+      const savedSession = sessionStorage.getItem("yardit_last_map_center");
+      if (savedSession) return JSON.parse(savedSession);
       const saved = localStorage.getItem("yardit_last_map_center");
       if (saved) return JSON.parse(saved);
     } catch (e) {}
@@ -425,8 +425,8 @@ export default function HomePage() {
   };
   const getSavedZoom = () => {
     try {
-      const saved = localStorage.getItem("yardit_last_map_zoom");
-      if (saved) return parseInt(saved, 10) || 13;
+      const saved = sessionStorage.getItem("yardit_last_map_zoom");
+      if (saved) return parseInt(saved, 10);
     } catch (e) {}
     return 13;
   };
@@ -724,7 +724,7 @@ export default function HomePage() {
         };
         setUserLocation(newLoc);
         setLocationError(null);
-        if (!hasCenteredOnUser.current && !userHasMovedMap.current) {
+        if (!hasCenteredOnUser.current && !userHasMovedMap.current && !sessionStorage.getItem("yardit_last_map_center")) {
           setMapCenter([newLoc.lat, newLoc.lng]);
           hasCenteredOnUser.current = true;
         }
@@ -784,23 +784,23 @@ export default function HomePage() {
     }
   };
 
-  const handleUserMoveMap = React.useCallback(() => {
-    userHasMovedMap.current = true;
-    if (mapRef.current) {
-      const center = mapRef.current.getCenter();
+  const handleUserMoveMap = React.useCallback((center, isProgrammatic) => {
+    if (!isProgrammatic) {
+      userHasMovedMap.current = true;
+    }
+    if (center) {
       try {
+        sessionStorage.setItem("yardit_last_map_center", JSON.stringify([center.lat, center.lng]));
         localStorage.setItem("yardit_last_map_center", JSON.stringify([center.lat, center.lng]));
-      } catch (e) {}
+      } catch(e) {}
     }
   }, []);
 
   const handleZoomChange = React.useCallback((z) => {
     setCurrentZoom(z);
-    if (mapRef.current) {
-      try {
-        localStorage.setItem("yardit_last_map_zoom", z.toString());
-      } catch (e) {}
-    }
+    try {
+      sessionStorage.setItem("yardit_last_map_zoom", z);
+    } catch(e) {}
   }, []);
 
 
@@ -1207,7 +1207,7 @@ const stats = useMemo(() => {
           <div className="absolute inset-0 w-full h-full m-0 p-0" style={{ transform: "none", left: 0 }}>
             <MapContainer
               center={mapCenter}
-              zoom={mapZoom}
+              zoom={13}
               className="w-full h-full"
               style={{ width: "100%", height: "100%" }}
               zoomControl={false}
