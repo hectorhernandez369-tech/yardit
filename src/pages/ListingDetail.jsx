@@ -940,7 +940,7 @@ export default function ListingDetailPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
 
       {showReport && (
         <ReportModal
