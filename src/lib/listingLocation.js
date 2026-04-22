@@ -39,10 +39,14 @@ export function getStateAbbreviation(stateName) {
 }
 
 export function normalizeLocationFields(location = {}) {
+  const displayAddress = location.display_address || location.address_text || location.addressText || "";
   return {
     ...location,
-    address_text: location.address_text || location.addressText || "",
-    addressText: location.addressText || location.address_text || "",
+    display_address: displayAddress,
+    geocoded_address: location.geocoded_address || "",
+    location_source: location.location_source || "search",
+    address_text: displayAddress,
+    addressText: displayAddress,
     city: location.city || "",
     state: getStateAbbreviation(location.state),
     zip: location.zip || "",

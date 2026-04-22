@@ -95,6 +95,23 @@
         }
       }
     },
+    "display_address": {
+      "type": "string",
+      "description": "Final user-facing address"
+    },
+    "geocoded_address": {
+      "type": "string",
+      "description": "Optional, internal/reference only geocoded address"
+    },
+    "location_source": {
+      "type": "string",
+      "enum": [
+        "search",
+        "pin"
+      ],
+      "default": "search",
+      "description": "Source of the location data"
+    },
     "address_text": {
       "type": "string",
       "description": "Event address text alias"
@@ -388,6 +405,19 @@
         "declined"
       ],
       "description": "Co-host invite status"
+    },
+    "co_host_user_id": {
+      "type": "string",
+      "description": "Accepted co-host user ID for the neighborhood sale"
+    },
+    "co_host_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined"
+      ],
+      "description": "Current co-host invite status"
     },
     "participant_origin": {
       "type": "string",

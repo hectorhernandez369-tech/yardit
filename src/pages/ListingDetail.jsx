@@ -118,7 +118,7 @@ export default function ListingDetailPage() {
   const approvedHomesCount = 1 + approvedRequests.length;
   const availableSpots = Math.max(0, 25 - approvedHomesCount);
   const formatAddress = (item) => {
-    const base = [item.address_text || item.addressText || "Address unavailable", item.city, getStateAbbreviation(item.state)].filter(Boolean).join(", ");
+    const base = [item.display_address || item.address_text || item.addressText || "Address unavailable", item.city, getStateAbbreviation(item.state)].filter(Boolean).join(", ");
     return item.zip ? `${base} ${item.zip}` : base;
   };
   const salePricing = useMemo(() => {

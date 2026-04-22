@@ -178,8 +178,10 @@ export default function EventLocationStep({ formData, setFormData }) {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setAddressQuery(formData.address_text || formData.addressText || "");
-  }, [formData.address_text, formData.addressText]);
+    if (formData.location_source !== "pin") {
+      setAddressQuery(formData.display_address || formData.address_text || formData.addressText || "");
+    }
+  }, []);
 
   useEffect(() => {
     const query = addressQuery.trim();
@@ -215,13 +217,28 @@ export default function EventLocationStep({ formData, setFormData }) {
       city: location.city || prev.city,
       state: location.state || prev.state,
       zip: location.zip || prev.zip,
+      display_address: location.display_address !== undefined ? location.display_address : prev.display_address,
+      geocoded_address: location.geocoded_address !== undefined ? location.geocoded_address : prev.geocoded_address,
+      location_source: location.location_source || prev.location_source
     }));
   };
 
   const handleSelectSuggestion = (feature) => {
     const nextLocation = parseFeature(feature);
-    applyLocation(nextLocation);
-    setAddressQuery(nextLocation.address_text);
+    const selectedAddress = nextLocation.address_text;
+    
+    console.log("[LOCATION DEBUG] Search selected:", feature.place_name);
+    console.log("[LOCATION DEBUG] Selected lat/lng:", nextLocation.lat, nextLocation.lng);
+    console.log("[LOCATION DEBUG] location_source: search");
+    console.log("[LOCATION DEBUG] Final display_address:", selectedAddress);
+    
+    applyLocation({
+      ...nextLocation,
+      display_address: selectedAddress,
+      geocoded_address: selectedAddress,
+      location_source: "search"
+    });
+    setAddressQuery(selectedAddress);
     setAddressSuggestions([]);
     toast.success("Event location saved.");
   };
@@ -230,21 +247,53 @@ export default function EventLocationStep({ formData, setFormData }) {
     setIsSaving(true);
     try {
       const nextLocation = await reverseGeocode(lat, lng);
-      applyLocation({ ...nextLocation, lat, lng });
-      setAddressQuery(nextLocation.address_text);
+      const geocoded = nextLocation.address_text;
+      
+      console.log("[LOCATION DEBUG] Map pin dropped at:", lat, lng);
+      console.log("[LOCATION DEBUG] Reverse geocode result:", geocoded);
+      
+      const newDisplayAddress = formData.display_address?.trim() ? formData.display_address : geocoded;
+      
+      console.log("[LOCATION DEBUG] location_source: pin");
+      console.log("[LOCATION DEBUG] Final display_address:", newDisplayAddress);
+
+      applyLocation({ 
+        ...nextLocation, 
+        lat, 
+        lng,
+        address_text: newDisplayAddress,
+        addressText: newDisplayAddress,
+        display_address: newDisplayAddress,
+        geocoded_address: geocoded,
+        location_source: "pin"
+      });
+      setAddressQuery(""); // Clear search since we are using pin
       toast.success("Event location saved.");
     } catch {
+      console.log("[LOCATION DEBUG] Map pin dropped at:", lat, lng);
+      console.log("[LOCATION DEBUG] Reverse geocode FAILED");
+      
+      const fallbackAddress = formData.display_address?.trim() ? formData.display_address : "";
+      
+      console.log("[LOCATION DEBUG] location_source: pin");
+      console.log("[LOCATION DEBUG] Final display_address:", fallbackAddress);
+
       const fallbackLocation = {
         lat,
         lng,
-        address_text: "Selected event location",
-        addressText: "Selected event location",
+        address_text: fallbackAddress,
+        addressText: fallbackAddress,
         city: formData.city || "",
         state: formData.state || "",
         zip: formData.zip || "",
       };
-      applyLocation(fallbackLocation);
-      setAddressQuery(fallbackLocation.address_text);
+      applyLocation({
+        ...fallbackLocation,
+        display_address: fallbackAddress,
+        geocoded_address: "",
+        location_source: "pin"
+      });
+      setAddressQuery("");
       toast.success("Event location saved.");
     } finally {
       setIsSaving(false);
@@ -261,7 +310,14 @@ export default function EventLocationStep({ formData, setFormData }) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-[#2C4F4E]">Enter Address</label>
+          <label className="text-sm font-medium text-[#2C4F4E]">Display Address (What attendees see)</label>
+          <Input
+            value={formData.display_address || formData.address_text || ""}
+            onChange={(e) => setFormData(prev => ({ ...prev, display_address: e.target.value, addressText: e.target.value, address_text: e.target.value }))}
+            placeholder="e.g. 123 Main St (West Entrance)"
+            className="bg-[#F3E6CF] border-[#2C4F4E] mb-4"
+          />
+          <label className="text-sm font-medium text-[#2C4F4E]">Search Address for Map Pin</label>
           <div className="relative">
             <Input
               value={addressQuery}
@@ -302,7 +358,8 @@ export default function EventLocationStep({ formData, setFormData }) {
         <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-4 py-3 space-y-1">
           <p className="text-sm font-medium text-[#2C4F4E] flex items-center gap-2">
             <MapPin className="w-4 h-4" />
-            {formData.address_text || formData.addressText || "Center selected."}
+            {formData.display_address || formData.address_text || formData.addressText || "Center selected."}
+            {formData.location_source === "pin" && <span className="ml-2 text-[10px] bg-[#2C4F4E]/10 px-2 py-0.5 rounded-full text-[#2C4F4E]">Custom Pin</span>}
           </p>
           <p className="text-xs text-[#1F2937] opacity-80">
             {Number(formData.lat).toFixed(4)}, {Number(formData.lng).toFixed(4)}
