@@ -423,8 +423,15 @@ export default function HomePage() {
     } catch (e) {}
     return [37.7749, -122.4194];
   };
+  const getSavedZoom = () => {
+    try {
+      const saved = localStorage.getItem("yardit_last_map_zoom");
+      if (saved) return parseInt(saved, 10) || 13;
+    } catch (e) {}
+    return 13;
+  };
   const [mapCenter, setMapCenter] = useState(getSavedLocation);
-  const [mapZoom, setMapZoom] = useState(13);
+  const [mapZoom, setMapZoom] = useState(getSavedZoom);
   const [showControls, setShowControls] = useState(false);
   const controlsPanelRef = useRef(null);
   const controlsBtnRef = useRef(null);
@@ -779,10 +786,21 @@ export default function HomePage() {
 
   const handleUserMoveMap = React.useCallback(() => {
     userHasMovedMap.current = true;
+    if (mapRef.current) {
+      const center = mapRef.current.getCenter();
+      try {
+        localStorage.setItem("yardit_last_map_center", JSON.stringify([center.lat, center.lng]));
+      } catch (e) {}
+    }
   }, []);
 
   const handleZoomChange = React.useCallback((z) => {
     setCurrentZoom(z);
+    if (mapRef.current) {
+      try {
+        localStorage.setItem("yardit_last_map_zoom", z.toString());
+      } catch (e) {}
+    }
   }, []);
 
 
@@ -1189,7 +1207,7 @@ const stats = useMemo(() => {
           <div className="absolute inset-0 w-full h-full m-0 p-0" style={{ transform: "none", left: 0 }}>
             <MapContainer
               center={mapCenter}
-              zoom={13}
+              zoom={mapZoom}
               className="w-full h-full"
               style={{ width: "100%", height: "100%" }}
               zoomControl={false}
