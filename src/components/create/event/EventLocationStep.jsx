@@ -306,18 +306,11 @@ export default function EventLocationStep({ formData, setFormData }) {
       <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 space-y-3">
         <div>
           <h3 className="text-[#2C4F4E] font-semibold">Event Location</h3>
-          <p className="text-sm text-[#1F2937] opacity-80">Choose an event center by entering an address or picking directly on the map.</p>
+          <p className="text-sm text-[#1F2937] opacity-80">Search for Event Address or pick center on map.</p>
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-[#2C4F4E]">Display Address (What attendees see)</label>
-          <Input
-            value={formData.display_address || formData.address_text || ""}
-            onChange={(e) => setFormData(prev => ({ ...prev, display_address: e.target.value, addressText: e.target.value, address_text: e.target.value }))}
-            placeholder="e.g. 123 Main St (West Entrance)"
-            className="bg-[#F3E6CF] border-[#2C4F4E] mb-4"
-          />
-          <label className="text-sm font-medium text-[#2C4F4E]">Search Address for Map Pin</label>
+          <label className="text-sm font-medium text-[#2C4F4E]">Search for Event Address for Map Pin</label>
           <div className="relative">
             <Input
               value={addressQuery}
@@ -343,27 +336,40 @@ export default function EventLocationStep({ formData, setFormData }) {
             </div>
           )}
         </div>
+
+        <Button
+          type="button"
+          onClick={() => setIsMapModalOpen(true)}
+          className="w-full mt-4 py-8 text-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white flex gap-3 shadow-md border-2 border-[#2C4F4E]"
+        >
+          <MapIcon className="w-6 h-6" />
+          Pick center on map
+        </Button>
       </div>
 
-      <Button
-        type="button"
-        onClick={() => setIsMapModalOpen(true)}
-        className="w-full py-8 text-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white flex gap-3 shadow-md border-2 border-[#2C4F4E]"
-      >
-        <MapIcon className="w-6 h-6" />
-        Pick center on map
-      </Button>
-
       {typeof formData.lat === "number" && typeof formData.lng === "number" && (
-        <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-4 py-3 space-y-1">
-          <p className="text-sm font-medium text-[#2C4F4E] flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            {formData.display_address || formData.address_text || formData.addressText || "Center selected."}
-            {formData.location_source === "pin" && <span className="ml-2 text-[10px] bg-[#2C4F4E]/10 px-2 py-0.5 rounded-full text-[#2C4F4E]">Custom Pin</span>}
-          </p>
-          <p className="text-xs text-[#1F2937] opacity-80">
-            {Number(formData.lat).toFixed(4)}, {Number(formData.lng).toFixed(4)}
-          </p>
+        <div className="space-y-4">
+          <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 space-y-3">
+            <label className="text-sm font-medium text-[#2C4F4E]">Display Address (What attendees see)</label>
+            <Input
+              value={formData.display_address || formData.address_text || ""}
+              onChange={(e) => setFormData(prev => ({ ...prev, display_address: e.target.value, addressText: e.target.value, address_text: e.target.value }))}
+              placeholder="e.g. 123 Main St (West Entrance)"
+              className="bg-[#F3E6CF] border-[#2C4F4E]"
+            />
+            <p className="text-xs text-[#1F2937] opacity-80">This is the public address shown on your listing details.</p>
+          </div>
+
+          <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-4 py-3 space-y-1">
+            <p className="text-sm font-medium text-[#2C4F4E] flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              {formData.display_address || formData.address_text || formData.addressText || "Center selected."}
+              {formData.location_source === "pin" && <span className="ml-2 text-[10px] bg-[#2C4F4E]/10 px-2 py-0.5 rounded-full text-[#2C4F4E]">Custom Pin</span>}
+            </p>
+            <p className="text-xs text-[#1F2937] opacity-80">
+              {Number(formData.lat).toFixed(4)}, {Number(formData.lng).toFixed(4)}
+            </p>
+          </div>
         </div>
       )}
 
