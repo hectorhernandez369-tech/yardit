@@ -1049,6 +1049,40 @@ const stats = useMemo(() => {
 
   // NO ZOOM-BASED STATE RESET - persist marquee state across zoom levels
 
+  const neighborhoodParticipantPins = useMemo(() => {
+    if (currentZoom < 18 || !allJoinRequests?.length) return [];
+
+    const visiblePinIds = new Set(visiblePins.map((pin) => pin.id));
+    return allJoinRequests
+      .map((request) => {
+        const participantListing = listings.find((item) => item.id === request.listingId);
+        const eventListing = listings.find((item) => item.id === request.saleListingId);
+        if (!participantListing || !eventListing) return null;
+        if (!shouldShowListingInNeighborhoodParticipantView(participantListing, eventListing, request, new Date())) return null;
+        if (visiblePinIds.has(participantListing.id)) return null;
+        if (typeof participantListing.lat !== "number" || typeof participantListing.lng !== "number") return null;
+
+        return {
+          id: `participant-${request.id}`,
+          requestId: request.id,
+          listingId: participantListing.id,
+          title: participantListing.title,
+          display_address: participantListing.display_address,
+          addressText: participantListing.display_address || participantListing.addressText,
+          lat: participantListing.lat,
+          lng: participantListing.lng,
+          listingType: participantListing.listingType,
+          tier: participantListing.tier || "free",
+        };
+      })
+      .filter(Boolean);
+  }, [allJoinRequests, currentZoom, listings, visiblePins]);
+
+  const currentVisibleCandidates = useMemo(() => {
+    const fullParticipantListings = neighborhoodParticipantPins.map(pin => listings.find(l => l.id === pin.listingId)).filter(Boolean);
+    return [...visiblePins, ...fullParticipantListings];
+  }, [visiblePins, neighborhoodParticipantPins, listings]);
+
   const marqueeOverlays = useMemo(() => {
     if (currentZoom < MARQUEE_COLLAPSED_MIN_ZOOM) return [];
 
@@ -1082,7 +1116,7 @@ const stats = useMemo(() => {
       const heightM = (hPixels + tailPixels) * metersPerPixel;
       const bufferM = 15 * metersPerPixel; // buffer for pin sizes
       
-      const overlapped = visiblePins.filter(l => {
+      const overlapped = currentVisibleCandidates.filter(l => {
         if (l.id === marquee.id) return false;
         const isOtherMarquee = (l?.event_tier || l?.tier) === "marquee";
         if (isOtherMarquee) return false; // don't count marquees
@@ -1113,35 +1147,6 @@ const stats = useMemo(() => {
     });
     return ids;
   }, [marqueeOverlays]);
-
-  const neighborhoodParticipantPins = useMemo(() => {
-    if (currentZoom < 18 || !allJoinRequests?.length) return [];
-
-    const visiblePinIds = new Set(visiblePins.map((pin) => pin.id));
-    return allJoinRequests
-      .map((request) => {
-        const participantListing = listings.find((item) => item.id === request.listingId);
-        const eventListing = listings.find((item) => item.id === request.saleListingId);
-        if (!participantListing || !eventListing) return null;
-        if (!shouldShowListingInNeighborhoodParticipantView(participantListing, eventListing, request, new Date())) return null;
-        if (visiblePinIds.has(participantListing.id)) return null;
-        if (typeof participantListing.lat !== "number" || typeof participantListing.lng !== "number") return null;
-
-        return {
-          id: `participant-${request.id}`,
-          requestId: request.id,
-          listingId: participantListing.id,
-          title: participantListing.title,
-          display_address: participantListing.display_address,
-          addressText: participantListing.display_address || participantListing.addressText,
-          lat: participantListing.lat,
-          lng: participantListing.lng,
-          listingType: participantListing.listingType,
-          tier: participantListing.tier || "free",
-        };
-      })
-      .filter(Boolean);
-  }, [allJoinRequests, currentZoom, listings, visiblePins]);
 
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
@@ -1293,19 +1298,15 @@ const stats = useMemo(() => {
               {visiblePins.map((listing) => {
               if (hiddenByMarqueeIds.has(listing.id)) return null;
 
+              const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
+              if (isMarquee && currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM && openMarqueeIds[listing.id] !== false) return null;
+
               const isHuntStop = huntStops.some(loc => loc.id === listing.id);
               const isMapSelected = selectedListingId === listing.id;
               const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
-              const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
-              const marqueeState = openMarqueeIds[listing.id]; // "collapsed"|"expanded"|false|undefined
               const ownerPreviewPending = listing.listingType === "neighborhood_sale" && user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, new Date()) === "pending_activation";
               const isPreviewState = listing.mapState === "preview";
-              const isComingSoonState = listing.mapState === "coming_soon";
-              const isActiveState = listing.mapState === "active";
               const goLiveLabel = formatListingGoLive(listing);
-              const shouldShowCollapsedMarquee = isMarquee && currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM && marqueeState !== false;
-
-              if (shouldShowCollapsedMarquee) return null;
 
                 return (
                   <Marker
@@ -1534,7 +1535,9 @@ const stats = useMemo(() => {
                 );
               })}
 
-              {neighborhoodParticipantPins.map((pin) => (
+              {neighborhoodParticipantPins.map((pin) => {
+                if (hiddenByMarqueeIds.has(pin.listingId)) return null;
+                return (
                 <Marker
                   key={pin.id}
                   position={[pin.lat, pin.lng]}
@@ -1565,7 +1568,8 @@ const stats = useMemo(() => {
                     </div>
                   </Popup>
                 </Marker>
-              ))}
+                );
+              })}
 
               {marqueeOverlays.map((listing) => {
                 const isExpanded = openMarqueeIds[listing.id] === "expanded";
