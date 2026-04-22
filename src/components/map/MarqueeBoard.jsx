@@ -146,8 +146,16 @@ export function getMarqueeBoardCollapsedHtml(listing, options = {}) {
     ? `background:linear-gradient(rgba(0,0,0,0.65),rgba(0,0,0,0.65)),url('${bgUrl}');background-size:cover;background-position:center;`
     : `background:linear-gradient(to bottom,#7c2d12,#3f1d0b);`;
 
+  const overlappedCount = options?.overlappedCount || 0;
+  const overlapBubble = overlappedCount > 0 ? `
+    <div data-marquee-overlap="true" style="position:absolute;top:-10px;right:-10px;background:#ef4444;color:#fff;border-radius:999px;padding:2px 6px;font-size:10px;font-weight:900;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;z-index:20;border:2px solid #fff;line-height:1.2;">
+      +${overlappedCount}
+    </div>
+  ` : "";
+
   const card = `
     <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;height:${h}px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:7px 9px;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,0.3);box-sizing:border-box;pointer-events:auto;overflow:visible;">
+      ${overlapBubble}
       ${bulbFrame(w, h, { sideCount: 2, sideTopInset: 13, sideBottomInset: 13, horizontalDensity: 15 })}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:5px;">
         <div style="flex:1;min-width:0;">
@@ -199,8 +207,16 @@ export function getMarqueeBoardExpandedHtml(listing, options = {}) {
 
   const h = 74;
 
+  const overlappedCount = options?.overlappedCount || 0;
+  const overlapBubble = overlappedCount > 0 ? `
+    <div data-marquee-overlap="true" style="position:absolute;top:-10px;right:-10px;background:#ef4444;color:#fff;border-radius:999px;padding:2px 6px;font-size:10px;font-weight:900;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;z-index:20;border:2px solid #fff;line-height:1.2;">
+      +${overlappedCount}
+    </div>
+  ` : "";
+
   const card = `
     <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:7px 10px 9px;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,0.32);box-sizing:border-box;pointer-events:auto;overflow:visible;">
+      ${overlapBubble}
       ${bulbFrame(w, h, { sideCount: 4, sideTopInset: 14, sideBottomInset: 14, horizontalDensity: 15 })}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;">
         <div style="flex:1;min-width:0;">

@@ -38,6 +38,7 @@ import MapDebugOverlay from "../components/map/MapDebugOverlay";
 import MapZoomControl from "../components/map/MapZoomControl";
 import MapFocusController from "../components/map/MapFocusController";
 import MapTierDebugBox from "../components/map/MapTierDebugBox";
+import HiddenListingsOverlay from "../components/map/HiddenListingsOverlay";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import HuntMapLayers from "@/components/hunt/HuntMapLayers";
 import { calculateTotalDistance } from "@/components/hunt/huntUtils";
@@ -394,6 +395,7 @@ export default function HomePage() {
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [hiddenListingsForMarquee, setHiddenListingsForMarquee] = useState(null);
   const queryClient = useQueryClient();
   
   const huntContext = useHunt() || { 
@@ -1062,8 +1064,26 @@ const stats = useMemo(() => {
           typeof listing?.lat === "number" &&
           typeof listing?.lng === "number";
       }
-    );
-  }, [visiblePins, openMarqueeIds, currentZoom]);
+    ).map(marquee => {
+      const overlapRadiusMeters = 40075016 * Math.cos(marquee.lat * Math.PI / 180) / (256 * Math.pow(2, currentZoom)) * 70;
+      
+      const overlapped = eligibleListings.filter(l => {
+        if (l.id === marquee.id) return false;
+        if (l.status === "cancelled") return false;
+        if (l.mapState === "preview") return false;
+        if (l.mapState === "hidden") return false;
+        if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
+        
+        const dist = calculateDistanceMeters(marquee.lat, marquee.lng, l.lat, l.lng);
+        return dist <= overlapRadiusMeters;
+      });
+
+      return {
+        ...marquee,
+        overlappedListings: overlapped
+      };
+    });
+  }, [visiblePins, openMarqueeIds, currentZoom, eligibleListings]);
 
   const neighborhoodParticipantPins = useMemo(() => {
     if (currentZoom < 18 || !allJoinRequests?.length) return [];
@@ -1526,21 +1546,24 @@ const stats = useMemo(() => {
 
               {marqueeOverlays.map((listing) => {
                 const isExpanded = openMarqueeIds[listing.id] === "expanded";
+                const overlappedCount = listing.overlappedListings?.length || 0;
                 console.log("DEBUG: rendering marquee board for:", listing.id, "backgroundUrl:", listing?.marquee_background_url);
                 const boardHtml = isExpanded
                   ? getMarqueeBoardExpandedHtml(listing, {
                       isComingSoon: listing.mapState === "coming_soon",
                       isActive: listing.mapState === "active",
                       goLiveLabel: formatListingGoLive(listing),
+                      overlappedCount,
                     })
                   : getMarqueeBoardCollapsedHtml(listing, {
                       isComingSoon: listing.mapState === "coming_soon",
                       isActive: listing.mapState === "active",
                       goLiveLabel: formatListingGoLive(listing),
+                      overlappedCount,
                     });
                 return (
                   <Marker
-                    key={`marquee-board-${listing.id}-${isExpanded ? "exp" : "col"}-z${isExpanded ? 0 : currentZoom}`}
+                    key={`marquee-board-${listing.id}-${isExpanded ? "exp" : "col"}-z${isExpanded ? 0 : currentZoom}-o${overlappedCount}`}
                     position={[listing.lat, listing.lng]}
                     icon={getEventMarkerIcon(listing, selectedListingId === listing.id, true, boardHtml, currentZoom)}
                     eventHandlers={{
@@ -1551,6 +1574,7 @@ const stats = useMemo(() => {
                         const expandBtn = element.querySelector('[data-marquee-expand="true"]');
                         const collapseBtn = element.querySelector('[data-marquee-collapse="true"]');
                         const detailsBtn = element.querySelector('[data-marquee-details="true"]');
+                        const overlapBtn = element.querySelector('[data-marquee-overlap="true"]');
 
                         if (expandBtn) {
                           expandBtn.onclick = (e) => {
@@ -1569,6 +1593,12 @@ const stats = useMemo(() => {
                             e.preventDefault(); e.stopPropagation();
                             sessionStorage.setItem(MARQUEE_RESTORED_KEY, listing.id);
                             navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
+                          };
+                        }
+                        if (overlapBtn) {
+                          overlapBtn.onclick = (e) => {
+                            e.preventDefault(); e.stopPropagation();
+                            setHiddenListingsForMarquee(listing.overlappedListings);
                           };
                         }
                       },
@@ -1673,6 +1703,11 @@ const stats = useMemo(() => {
       )}
 
       <GuestAuthModal open={showModal} onClose={setShowModal} {...modalProps} />
+
+      <HiddenListingsOverlay 
+        listings={hiddenListingsForMarquee} 
+        onClose={() => setHiddenListingsForMarquee(null)} 
+      />
 
       {/* Filter Modal */}
       <Dialog open={showFilterModal} onOpenChange={setShowFilterModal}>
