@@ -1167,6 +1167,15 @@ export default function MyListingsPage() {
             {editingListing?.listingType === "neighborhood_sale" && (
               <>
                 <div>
+                  <Label className="text-[#2C4F4E] mb-2 block">Title</Label>
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Neighborhood Sale Title..."
+                    className="bg-[#F3E6CF] border-[#2C4F4E]"
+                  />
+                </div>
+                <div>
                   <Label className="text-[#2C4F4E] mb-2 block">Start Date</Label>
                   <Input
                     type="date"
@@ -1423,8 +1432,18 @@ export default function MyListingsPage() {
             )}
 
             {editingListing?.listingType === "yard_sale" && (
-              <div>
-                <Label className="text-[#2C4F4E]">Categories (Up to 10) *</Label>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-[#2C4F4E] mb-2 block">Title</Label>
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Yard Sale Title..."
+                    className="bg-[#F3E6CF] border-[#2C4F4E]"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[#2C4F4E] mb-2 block">Categories (Up to 10) *</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
                 {editCategories.map((cat, i) => (
                    <Badge key={i} className="flex items-center gap-1 bg-[#5DADA5] py-1.5 px-3 text-sm rounded-full">
@@ -1459,6 +1478,7 @@ export default function MyListingsPage() {
                   </SelectContent>
                 </Select>
               )}
+              </div>
             </div>
             )}
 
