@@ -20,6 +20,7 @@ import EventLocationStep from "../components/create/event/EventLocationStep";
 import EventScheduleStep from "../components/create/event/EventScheduleStep";
 import EventTierStep from "../components/create/event/EventTierStep";
 import MarqueeSlotsEditor from "../components/create/event/MarqueeSlotsEditor";
+import AdminAssignUserStep from "../components/admin/AdminAssignUserStep";
 import { useAppMode } from "../components/shared/DemoMode";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import {
@@ -143,6 +144,16 @@ export default function CreateListingPage() {
   const [saleModalStep, setSaleModalStep] = useState(0); // 0: none, 1: popup1, 2: popup2
   const [matchedSale, setMatchedSale] = useState(null);
   const [joinAction, setJoinAction] = useState(null); // null, "requested", "none"
+
+  const isAdminCreate = new URLSearchParams(location.search).get("adminCreate") === "1";
+  const [selectedUserForAdmin, setSelectedUserForAdmin] = useState(null);
+
+  useEffect(() => {
+    if (isAdminCreate && user && !["master", "supervisor"].includes(user.role)) {
+      toast.error("You do not have permission to use Admin Create Listing.");
+      navigate(createPageUrl("AdminLite"));
+    }
+  }, [isAdminCreate, user, navigate]);
 
   const findNearbyNeighborhoodSale = async (locationOverride = null) => {
     const sourceLocation = locationOverride || formData;
@@ -636,7 +647,7 @@ export default function CreateListingPage() {
   const createListingMutation = useMutation({
     mutationFn: async (data) => {
       // ✅ Enforce 1 active listing per account (residential Phase 1)
-      if (data.listingType === "yard_sale" && hasActiveResidentialListing()) {
+      if (!isAdminCreate && data.listingType === "yard_sale" && hasActiveResidentialListing()) {
         const activeListing = getActiveResidentialListing();
         const listingTitle = activeListing?.title || "Untitled";
         const listingId = activeListing?.listingNumber || activeListing?.id || "Unknown ID";
@@ -656,11 +667,21 @@ export default function CreateListingPage() {
       const listing = await base44.entities.Listing.create({
         ...data,
         title: demoPrefix + data.title,
-        ownerUserId: user.id,
+        ownerUserId: isAdminCreate ? selectedUserForAdmin?.id : user.id,
         status: data.status || (data.listingType === "neighborhood_sale" ? "collecting_participants" : "active"),
         event_state: data.listingType === "neighborhood_sale" ? (data.event_state || "pending_activation") : data.event_state,
-        listingNumber
+        listingNumber,
+        ...(isAdminCreate ? { created_by_admin: true, created_by_admin_id: user.id } : {})
       });
+
+      if (isAdminCreate) {
+        await base44.entities.AdminAuditLog.create({
+          admin_id: user.id,
+          action_type: "admin_created_listing",
+          target_id: listing.id,
+          metadata: { assigned_user_id: selectedUserForAdmin?.id }
+        });
+      }
 
       return listing;
     },
@@ -912,7 +933,7 @@ export default function CreateListingPage() {
           return;
         }
 
-        if (formData.listingType === "yard_sale" && hasActiveResidentialListing()) {
+        if (!isAdminCreate && formData.listingType === "yard_sale" && hasActiveResidentialListing()) {
           const activeListing = getActiveResidentialListing();
           const listingTitle = activeListing?.title || "Untitled";
           const listingId = activeListing?.listingNumber || activeListing?.id || "Unknown ID";
@@ -1262,7 +1283,7 @@ export default function CreateListingPage() {
   };
 
   const handleSubmit = async () => {
-    if (formData.listingType === "yard_sale" && hasActiveResidentialListing()) {
+    if (!isAdminCreate && formData.listingType === "yard_sale" && hasActiveResidentialListing()) {
       toast.error("You already have an active listing. End it before creating another.");
       return;
     }
@@ -1330,6 +1351,11 @@ export default function CreateListingPage() {
     const photoCheck = enforcePhotoLimit(formData.tier, formData.photoUrls || []);
     if (photoCheck.truncated) {
       toast.error(`Too many photos for ${formData.tier}. Max allowed: ${photoCheck.max}.`);
+      return;
+    }
+
+    if (isAdminCreate) {
+      setStep(entryStepNumber + 1);
       return;
     }
 
@@ -1504,8 +1530,8 @@ export default function CreateListingPage() {
           </div>
           <div className="flex justify-center gap-4 md:gap-8 text-xs text-slate-600 flex-wrap">
             {(isEventFlow
-              ? ["Details", "Location", "Date & Time", "Tier", "Payment"]
-              : ["Details", "Location & Time", "Tier & Review", "Payment"]
+              ? ["Details", "Location", "Date & Time", "Tier", isAdminCreate ? "Assign User" : "Payment"]
+              : ["Details", "Location & Time", "Tier & Review", isAdminCreate ? "Assign User" : "Payment"]
             ).map((label, index) => (
               <span key={label} className={step === index + 1 ? "font-semibold" : ""}>{label}</span>
             ))}
@@ -1521,7 +1547,7 @@ export default function CreateListingPage() {
 
         <Card>
           <CardHeader className="bg-gradient-to-r from-amber-600 to-amber-800 text-white">
-            <CardTitle>{formData.listingType === "event" ? "Create Event" : "Post Your Yard Sale"}</CardTitle>
+            <CardTitle>{isAdminCreate ? "Create Listing (Admin)" : (formData.listingType === "event" ? "Create Event" : "Post Your Yard Sale")}</CardTitle>
           </CardHeader>
           <CardContent className="p-6" ref={formContainerRef}>
             <FormScrollHelper containerRef={formContainerRef} />
@@ -1553,6 +1579,9 @@ export default function CreateListingPage() {
               </div>
             )}
             {step === 4 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (
+              isAdminCreate ? (
+                <AdminAssignUserStep selectedUser={selectedUserForAdmin} setSelectedUser={setSelectedUserForAdmin} />
+              ) : (
               <ResidentialPaymentStep
                 tier={formData.tier}
                 amount={(RESIDENTIAL_TIER_PRICES[formData.tier] || 0) / 100}
@@ -1565,8 +1594,12 @@ export default function CreateListingPage() {
                 }}
                 onPay={handlePaymentStepSubmit}
               />
+              )
             )}
             {step === 5 && formData.listingType === "event" && (
+              isAdminCreate ? (
+                <AdminAssignUserStep selectedUser={selectedUserForAdmin} setSelectedUser={setSelectedUserForAdmin} />
+              ) : (
               <ResidentialPaymentStep
                 tier={formData.event_tier}
                 amount={(EVENT_TIER_PRICES[formData.event_tier] || 0) / 100}
@@ -1579,8 +1612,12 @@ export default function CreateListingPage() {
                 }}
                 onPay={handlePaymentStepSubmit}
               />
+              )
             )}
             {step === 4 && formData.listingType === "neighborhood_sale" && (
+              isAdminCreate ? (
+                <AdminAssignUserStep selectedUser={selectedUserForAdmin} setSelectedUser={setSelectedUserForAdmin} />
+              ) : (
               <NeighborhoodSetupStep
                 isProcessing={isStartingPayment}
                 errorMessage={paymentError}
@@ -1590,17 +1627,18 @@ export default function CreateListingPage() {
                 }}
                 onSetup={handleNeighborhoodSetupSubmit}
               />
+              )
             )}
 
-            {step !== paymentStepNumber && <div className="flex gap-3 mt-6">
+            {(step !== paymentStepNumber || isAdminCreate) && <div className="flex gap-3 mt-6">
               {step > 1 && (
                 <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
                   Back
                 </Button>
               )}
-              {step < entryStepNumber ? (
+              {(isAdminCreate ? step < paymentStepNumber : step < entryStepNumber) ? (
                 <Button
-                  onClick={handleNext}
+                  onClick={isAdminCreate && step === entryStepNumber ? () => setStep(paymentStepNumber) : handleNext}
                   disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (isGlobalDemoMode ? (profileAddressMissing || regularAddressIncomplete) : profileAddressUnconfirmed)}
                   className="flex-1 bg-amber-600 hover:bg-amber-700"
                 >
@@ -1608,7 +1646,13 @@ export default function CreateListingPage() {
                 </Button>
               ) : (
                 <Button
-                  onClick={handleSubmit}
+                  onClick={isAdminCreate && step === paymentStepNumber ? () => {
+                    if (!selectedUserForAdmin) {
+                      toast.error("Please assign a user.");
+                      return;
+                    }
+                    executeSubmit("admin_create");
+                  } : handleSubmit}
                   disabled={createListingMutation.isPending || isStartingPayment}
                   className="flex-1 bg-amber-600 hover:bg-amber-700"
                 >
@@ -1618,6 +1662,10 @@ export default function CreateListingPage() {
                       : "Starting Payment..."
                     : createListingMutation.isPending
                     ? "Creating..."
+                    : isAdminCreate && step === paymentStepNumber
+                    ? "Create Listing (Admin)"
+                    : isAdminCreate && step === entryStepNumber
+                    ? "Continue to Assign User"
                     : formData.listingType === "event"
                     ? "Continue to Payment"
                     : formData.listingType === "neighborhood_sale"
