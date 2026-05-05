@@ -21,7 +21,7 @@ export default function MapFocusController({ focusData, markerRefsMap, onFocusCo
 
     if (isNaN(lat) || isNaN(lng)) return;
 
-    const currentZoom = map.getZoom();
+    const currentZoom = map.getZoom() ?? 13;
     let targetZoom = currentZoom;
 
     // Only apply tier-based zoom when navigating from URL
@@ -29,6 +29,8 @@ export default function MapFocusController({ focusData, markerRefsMap, onFocusCo
       const minZoom = getMinZoomForTier(listing.tier);
       targetZoom = Math.max(currentZoom, minZoom);
     }
+    
+    if (isNaN(targetZoom)) targetZoom = 13;
 
     // Center map on listing
     map.flyTo([lat, lng], targetZoom, { 
