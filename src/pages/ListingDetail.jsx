@@ -177,6 +177,44 @@ export default function ListingDetailPage() {
     return { summary, nextStatus };
   };
 
+  useEffect(() => {
+    if (listing) {
+      const shareTitle = listing.event_name || listing.title;
+      const listingUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing.id}`;
+      
+      const listingImages = (() => {
+        const basePhotos = listing?.listingType === "event"
+          ? (listing?.event_photos || listing?.photoUrls || [])
+          : (listing?.photoUrls || listing?.event_photos || []);
+        return (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(basePhotos).filter(Boolean);
+      })();
+      const mainImage = listingImages[0];
+
+      if (mainImage) {
+        document.title = shareTitle;
+        const setMeta = (attr, key, val) => {
+          let el = document.querySelector(`meta[${attr}="${key}"]`);
+          if (!el) {
+            el = document.createElement("meta");
+            el.setAttribute(attr, key);
+            document.head.appendChild(el);
+          }
+          el.setAttribute("content", val);
+        };
+        
+        setMeta("property", "og:title", shareTitle);
+        setMeta("property", "og:description", listing.event_description || listing.description || "");
+        setMeta("property", "og:image", mainImage);
+        setMeta("property", "og:url", listingUrl);
+        setMeta("property", "og:type", "website");
+        setMeta("name", "twitter:title", shareTitle);
+        setMeta("name", "twitter:description", listing.event_description || listing.description || "");
+        setMeta("name", "twitter:image", mainImage);
+        setMeta("name", "twitter:card", "summary_large_image");
+      }
+    }
+  }, [listing]);
+
   const respondToJoinRequestMutation = useMutation({
     mutationFn: async ({ requestId, requesterListingId, action, requesterUserId, eventTitle }) => {
       const sales = await base44.entities.Listing.filter({ id: listingId });
@@ -330,11 +368,32 @@ export default function ListingDetailPage() {
     }
 
     try {
-      await navigator.share({
+      let fileToShare = null;
+      if (mainImage) {
+        try {
+          const response = await fetch(mainImage, { mode: "cors" });
+          const blob = await response.blob();
+          const file = new File([blob], "listing_flyer.jpg", { type: blob.type });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            fileToShare = file;
+          }
+        } catch (e) {
+          console.error("Could not load image for sharing:", e);
+        }
+      }
+
+      const shareData = {
         title: shareTitle,
-        text: listing.event_description || listing.description || undefined,
-        url: listingUrl,
-      });
+        text: (listing.event_description || listing.description || "") + "\n\n" + listingUrl,
+      };
+
+      if (fileToShare) {
+        shareData.files = [fileToShare];
+      } else {
+        shareData.url = listingUrl;
+      }
+
+      await navigator.share(shareData);
     } catch (error) {
       if (error?.name === "NotAllowedError" || error?.name === "AbortError") {
         setShareFallbackOpen(true);
