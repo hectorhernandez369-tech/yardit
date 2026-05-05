@@ -1203,9 +1203,10 @@ const stats = useMemo(() => {
                   variant="outline"
                   size="sm"
                   onClick={handleShowListingsClick}
-                  className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-3 hidden sm:flex"
+                  className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-2 sm:px-3"
                 >
-                  Show Listings
+                  <span className="hidden sm:inline mr-1">Show</span>
+                  <span>Listings</span>
                 </Button>
                 <Button 
                   variant="outline" 
