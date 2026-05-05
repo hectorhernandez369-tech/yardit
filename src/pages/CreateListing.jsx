@@ -866,7 +866,13 @@ export default function CreateListingPage() {
           toast.error("Please choose a valid event location");
           return;
         }
-        setFormData((prev) => buildResolvedListingLocation(prev));
+        setFormData((prev) => {
+          const resolved = buildResolvedListingLocation(prev);
+          if (isAdminCreate) {
+            resolved.location_source = "admin_selected";
+          }
+          return resolved;
+        });
         setStep(3);
         return;
       }
@@ -935,7 +941,7 @@ export default function CreateListingPage() {
         return;
       }
 
-      if (!isGlobalDemoMode) {
+      if (!isGlobalDemoMode && !isAdminCreate) {
         if (profileIncomplete) {
           toast.error("Complete My Profile with your name, phone number, and confirmed address before creating a listing.");
           navigate(createPageUrl("Profile"));
@@ -989,7 +995,7 @@ export default function CreateListingPage() {
         return;
       }
 
-      if (profileIncomplete) {
+      if (profileIncomplete && !isAdminCreate) {
         toast.error("Complete My Profile with your name, phone number, and confirmed address before creating a listing");
         navigate(createPageUrl("Profile"));
         return;
@@ -1014,6 +1020,10 @@ export default function CreateListingPage() {
       const nextData = overrideLocation ? { ...formData, ...overrideLocation } : formData;
 
       const normalizedNextData = buildResolvedListingLocation(nextData);
+
+      if (isAdminCreate) {
+        normalizedNextData.location_source = "admin_selected";
+      }
 
       setFormData(normalizedNextData);
 
@@ -1070,7 +1080,7 @@ export default function CreateListingPage() {
       };
     }
 
-    if (payload.listingType === "yard_sale" && !isGlobalDemoMode) {
+    if (payload.listingType === "yard_sale" && !isGlobalDemoMode && !isAdminCreate) {
     payload = {
       ...payload,
       addressText: user?.street_address || payload.addressText,
