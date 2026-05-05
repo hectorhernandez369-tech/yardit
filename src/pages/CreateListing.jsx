@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { getAdminSession } from "../components/admin/AdminLoginModal";
 
 import StepOne from "../components/create/StepOne";
 import StepTwo from "../components/create/StepTwo";
@@ -675,11 +676,19 @@ export default function CreateListingPage() {
       });
 
       if (isAdminCreate) {
+        const adminSession = getAdminSession();
         await base44.entities.AdminAuditLog.create({
-          admin_id: user.id,
+          user_id: user.id,
+          admin_employee_id: adminSession?.employee_id || "UNKNOWN",
           action_type: "admin_created_listing",
+          target_type: "listing",
           target_id: listing.id,
-          metadata: { assigned_user_id: selectedUserForAdmin?.id }
+          success: true,
+          metadata: JSON.stringify({
+            assigned_user_id: selectedUserForAdmin?.id,
+            assigned_user_email: selectedUserForAdmin?.email,
+            created_at: new Date().toISOString()
+          })
         });
       }
 
