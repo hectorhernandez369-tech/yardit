@@ -872,8 +872,9 @@ export default function HomePage() {
       if (l.status === "cancelled" || l.status === "canceled" || l.status === "expired" || l.status === "removed" || l.status === "hidden") return false;
       if (l.canceled_at || l.expired_at) return false;
       if (!demo && l.endDateTime && now > new Date(l.endDateTime)) return false;
-      if (l.status !== "active") return false;
-      if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
+
+      if (l.status !== "active" && l.listingType !== "neighborhood_sale") return false;
+      if (typeof l.lat !== "number" || l.lat === null || typeof l.lng !== "number" || l.lng === null) return false;
       if (!isFinite(l.lat) || !isFinite(l.lng)) return false;
 
       if (l.listingType === "neighborhood_sale") {
@@ -1069,10 +1070,12 @@ const stats = useMemo(() => {
         const participantListing = listings.find((item) => item.id === request.listingId);
         const eventListing = listings.find((item) => item.id === request.saleListingId);
         if (!participantListing || !eventListing) return null;
-        
-        const isParticipantExpired = participantListing.status === "cancelled" || participantListing.status === "canceled" || participantListing.status === "expired" || participantListing.status === "removed" || participantListing.status === "hidden" || participantListing.canceled_at || participantListing.expired_at || (!demoOn && participantListing.endDateTime && new Date() > new Date(participantListing.endDateTime));
-        if (isParticipantExpired) return null;
-        
+
+        const isParticipantInvalid = participantListing.status === "cancelled" || participantListing.status === "canceled" || participantListing.status === "expired" || participantListing.status === "removed" || participantListing.status === "hidden" || participantListing.canceled_at || participantListing.expired_at || (!demoOn && participantListing.endDateTime && new Date() > new Date(participantListing.endDateTime));
+        const isEventInvalid = eventListing.status === "cancelled" || eventListing.status === "canceled" || eventListing.status === "expired" || eventListing.status === "removed" || eventListing.status === "hidden" || eventListing.canceled_at || eventListing.expired_at || (!demoOn && eventListing.endDateTime && new Date() > new Date(eventListing.endDateTime));
+
+        if (isParticipantInvalid || isEventInvalid) return null;
+
         if (!shouldShowListingInNeighborhoodParticipantView(participantListing, eventListing, request, new Date())) return null;
         if (visiblePinIds.has(participantListing.id)) return null;
         if (typeof participantListing.lat !== "number" || typeof participantListing.lng !== "number") return null;
