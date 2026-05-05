@@ -813,7 +813,9 @@ export default function HomePage() {
 
     const baseListings = listings
       .map((listing) => {
-        if (listing.status === "cancelled") return null;
+        if (listing.status === "cancelled" || listing.status === "canceled" || listing.status === "expired" || listing.status === "removed" || listing.status === "hidden") return null;
+        if (listing.canceled_at || listing.expired_at) return null;
+        if (!demo && listing.endDateTime && now > new Date(listing.endDateTime)) return null;
         if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return null;
         if (!isFinite(listing.lat) || !isFinite(listing.lng)) return null;
 
@@ -867,8 +869,10 @@ export default function HomePage() {
     const demo = demoOn;
 
     const baseListings = listings.filter((l) => {
+      if (l.status === "cancelled" || l.status === "canceled" || l.status === "expired" || l.status === "removed" || l.status === "hidden") return false;
+      if (l.canceled_at || l.expired_at) return false;
+      if (!demo && l.endDateTime && now > new Date(l.endDateTime)) return false;
       if (l.status !== "active") return false;
-      if (l.status === "cancelled") return false;
       if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
       if (!isFinite(l.lat) || !isFinite(l.lng)) return false;
 
@@ -1065,6 +1069,10 @@ const stats = useMemo(() => {
         const participantListing = listings.find((item) => item.id === request.listingId);
         const eventListing = listings.find((item) => item.id === request.saleListingId);
         if (!participantListing || !eventListing) return null;
+        
+        const isParticipantExpired = participantListing.status === "cancelled" || participantListing.status === "canceled" || participantListing.status === "expired" || participantListing.status === "removed" || participantListing.status === "hidden" || participantListing.canceled_at || participantListing.expired_at || (!demoOn && participantListing.endDateTime && new Date() > new Date(participantListing.endDateTime));
+        if (isParticipantExpired) return null;
+        
         if (!shouldShowListingInNeighborhoodParticipantView(participantListing, eventListing, request, new Date())) return null;
         if (visiblePinIds.has(participantListing.id)) return null;
         if (typeof participantListing.lat !== "number" || typeof participantListing.lng !== "number") return null;
