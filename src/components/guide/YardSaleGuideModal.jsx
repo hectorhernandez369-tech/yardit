@@ -3,61 +3,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Printer, CheckCircle2, Share2, Camera, Tag, LayoutDashboard, MapPin, Sparkles, CheckSquare, X } from "lucide-react";
 import { guideContent, checklistData } from "./YardSaleGuideContent";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function YardSaleGuideModal({ open, onOpenChange }) {
-  const handlePrint = () => {
-    const printWindow = window.open('', '', 'width=800,height=600');
-    
-    const checklistHtml = `
-      <html>
-        <head>
-          <title>Yardit Yard Sale Checklist</title>
-          <style>
-            body { font-family: sans-serif; padding: 2rem; color: #1e293b; max-width: 800px; margin: 0 auto; }
-            h1 { text-align: center; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.5rem; }
-            h2 { text-align: center; color: #475569; margin-top: 0; margin-bottom: 2rem; }
-            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-            .section { margin-bottom: 1.5rem; page-break-inside: avoid; }
-            .section h3 { border-bottom: 1px solid #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 1rem; font-size: 1.2rem; }
-            ul { list-style: none; padding: 0; margin: 0; }
-            li { display: flex; align-items: flex-start; margin-bottom: 0.75rem; }
-            .box { width: 1rem; height: 1rem; border: 2px solid #64748b; margin-right: 0.75rem; margin-top: 0.1rem; flex-shrink: 0; }
-            .footer { text-align: center; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.9rem; color: #64748b; }
-            @media print {
-              .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Yardit</h1>
-          <h2>Successful Yard Sale Checklist</h2>
-          <div class="grid">
-            ${checklistData.map(section => `
-              <div class="section">
-                <h3>${section.section}</h3>
-                <ul>
-                  ${section.items.map(item => `
-                    <li>
-                      <div class="box"></div>
-                      <span>${item}</span>
-                    </li>
-                  `).join('')}
-                </ul>
-              </div>
-            `).join('')}
-          </div>
-          <div class="footer">
-            Have a great sale! Remember to keep your listing updated at Yardit.
-          </div>
-          <script>
-            window.onload = function() { window.print(); window.close(); }
-          </script>
-        </body>
-      </html>
-    `;
+  const navigate = useNavigate();
 
-    printWindow.document.write(checklistHtml);
-    printWindow.document.close();
+  const handlePrint = () => {
+    onOpenChange(false);
+    navigate(createPageUrl("PrintableChecklist"));
   };
 
   const sections = [

@@ -11,6 +11,7 @@ import { isComingSoonModeEnabled, getTesterBypass, shouldBypassComingSoonForCurr
 import PageNotFound from './lib/PageNotFound';
 import ComingSoon from './pages/ComingSoon';
 import CreateListingUpgradeReturn from './pages/CreateListingUpgradeReturn';
+import PrintableChecklist from './pages/PrintableChecklist';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import GuestEntryModal from '@/components/guest/GuestEntryModal';
@@ -101,6 +102,7 @@ const AuthenticatedApp = () => {
           />
         ))}
         <Route path="/CreateListingUpgradeReturn" element={<LayoutWrapper currentPageName="CreateListingUpgradeReturn"><CreateListingUpgradeReturn /></LayoutWrapper>} />
+        <Route path="/PrintableChecklist" element={<PrintableChecklist />} />
         <Route path="/ComingSoon" element={<ComingSoon />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
