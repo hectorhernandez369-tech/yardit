@@ -1184,7 +1184,7 @@ const stats = useMemo(() => {
           </div>
         )}
 
-        <div className="px-3 py-1.5 flex items-center justify-center relative">
+        <div className="px-3 py-1.5 flex items-center justify-between gap-2">
           <Tabs value={view} onValueChange={setView} className="w-auto flex shrink-0">
             <TabsList className="grid grid-cols-2 h-9 w-32 bg-slate-100 p-1 rounded-md">
               <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
@@ -1196,26 +1196,28 @@ const stats = useMemo(() => {
             </TabsList>
           </Tabs>
 
-          {view === "map" && (
-            <div className="absolute left-1/2 ml-20 flex items-center gap-2">
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={handleShowListingsClick}
-                className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-3"
-              >
-                Show Listings
-              </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => setShowFilterModal(true)}
-                className="h-9 w-9 shrink-0 border-slate-200 text-slate-500 bg-white hover:bg-slate-50 rounded-full shadow-sm"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
+          <div className="flex items-center gap-2 ml-auto">
+            {view === "map" && (
+              <>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShowListingsClick}
+                  className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-3 hidden sm:flex"
+                >
+                  Show Listings
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => setShowFilterModal(true)}
+                  className="h-9 w-9 shrink-0 border-slate-200 text-slate-500 bg-white hover:bg-slate-50 rounded-full shadow-sm"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
