@@ -1057,6 +1057,10 @@ export default function CreateListingPage() {
   const executeSubmit = (actionStr = joinAction, sourceFormData = formData) => {
     let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId || "" };
 
+    if (isAdminCreate) {
+      payload.location_source = "admin_selected";
+    }
+
     if (payload.listingType === "event") {
       payload = {
         ...payload,

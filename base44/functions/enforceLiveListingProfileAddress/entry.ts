@@ -45,6 +45,10 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'Neighborhood sale listings are excluded' });
     }
 
+    if (listing.created_by_admin === true || listing.location_source === 'admin_selected') {
+      return Response.json({ skipped: true, reason: 'Admin created listings are excluded from profile lock' });
+    }
+
     const settings = await base44.asServiceRole.entities.AppSetting.list();
     if (getAppMode(settings) !== 'live') {
       return Response.json({ skipped: true, reason: 'App is not in live mode' });
