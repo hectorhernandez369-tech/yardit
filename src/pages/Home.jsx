@@ -49,8 +49,6 @@ import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListing
 import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.jsx";
 import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
 import SaveListingButton from "@/components/listing/SaveListingButton";
-import PublicMapRecordMarkers from "@/components/map/PublicMapRecordMarkers";
-import { shouldRenderPublicMapRecord } from "@/lib/publicMapRecords";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 
@@ -633,23 +631,9 @@ export default function HomePage() {
     initialData: [],
   });
 
-  const { data: publicMapRecords = [] } = useQuery({
-    queryKey: ["publicMapRecords"],
-    queryFn: () => base44.entities.PublicMapRecord.list("-updated_date"),
-    initialData: [],
-  });
-
   useEffect(() => {
     const unsubscribe = base44.entities.Listing.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ["listings"] });
-    });
-
-    return unsubscribe;
-  }, [queryClient]);
-
-  useEffect(() => {
-    const unsubscribe = base44.entities.PublicMapRecord.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: ["publicMapRecords"] });
     });
 
     return unsubscribe;
@@ -940,30 +924,15 @@ export default function HomePage() {
     return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
   }, [listings, filter, searchQuery, selectedCategories, demoOn, user]);
 
-  const visiblePublicMapRecords = useMemo(() => {
-    const now = new Date();
-    const query = searchQuery.toLowerCase().trim();
-
-    return publicMapRecords
-      .filter((record) => shouldRenderPublicMapRecord(record, now))
-      .filter((record) => filter === "all" || (filter === "event" && record.type === "event"))
-      .filter((record) => {
-        if (!query) return true;
-        return [record.title, record.description, record.display_address]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(query));
-      });
-  }, [publicMapRecords, filter, searchQuery]);
-
 const stats = useMemo(() => {
   const publicListings = eligibleListings.filter((l) => l.mapState !== "preview");
   return {
-    total: publicListings.length + visiblePublicMapRecords.length,
+    total: publicListings.length,
     yard_sale: publicListings.filter((l) => l.listingType === "yard_sale").length,
     neighborhood_sale: publicListings.filter((l) => l.listingType === "neighborhood_sale").length,
-    event: publicListings.filter((l) => l.listingType === "event").length + visiblePublicMapRecords.filter((r) => r.type === "event").length,
+    event: publicListings.filter((l) => l.listingType === "event").length,
   };
-}, [eligibleListings, visiblePublicMapRecords]);
+}, [eligibleListings]);
 
   useEffect(() => {
     if (filter !== "all" && filter !== "yard_sale" && filter !== "neighborhood_sale" && filter !== "event") {
@@ -1202,11 +1171,7 @@ const stats = useMemo(() => {
       {/* Sticky Top Bar */}
       <div className="bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex flex-col w-full">
         {view === "map" && (
-          <div className="px-3 pt-2 pb-1 space-y-1">
-            <div className="flex items-center justify-center gap-2 text-sm font-bold text-[#2C4F4E]">
-              <span>Yardit Map</span>
-              <Badge variant="outline" className="bg-white text-[#2C4F4E] border-[#5DADA5]">{stats.total} live</Badge>
-            </div>
+          <div className="px-3 pt-2 pb-1">
             <div className="relative w-full max-w-md mx-auto">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
@@ -1350,7 +1315,6 @@ const stats = useMemo(() => {
               )}
               
               <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />
-              <PublicMapRecordMarkers records={visiblePublicMapRecords} zoom={currentZoom} />
 
               {visiblePins.map((listing) => {
               if (hiddenByMarqueeIds.has(listing.id)) return null;
