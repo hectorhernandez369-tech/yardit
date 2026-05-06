@@ -193,21 +193,14 @@ export default function ListView({ listings, userLocation }) {
 
                   <div className="flex gap-2">
                     <Button
-                      disabled={listing.isExternalPublicMapRecord && !listing.externalUrl}
-                      onClick={() => {
-                        if (listing.isExternalPublicMapRecord) {
-                          if (listing.externalUrl) window.open(listing.externalUrl, "_blank", "noopener,noreferrer");
-                          return;
-                        }
-                        navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
-                      }}
+                      onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
                       className="flex-1 bg-amber-600 hover:bg-amber-700"
                     >
-                      {listing.isExternalPublicMapRecord ? "View Source" : "View Listing"}
+                      View Listing
                     </Button>
-                    {!listing.isExternalPublicMapRecord && <SaveListingButton listing={listing} iconOnly={true} className="w-10 px-0 flex-shrink-0 border-slate-200 text-slate-500" />}
+                    <SaveListingButton listing={listing} iconOnly={true} className="w-10 px-0 flex-shrink-0 border-slate-200 text-slate-500" />
                   
-                  {!listing.isExternalPublicMapRecord && !isEvent && HUNT_ENABLED && (
+                  {!isEvent && HUNT_ENABLED && (
                     <Button
                       variant="outline"
                       className="flex-1 border-amber-600 text-amber-700 hover:bg-amber-50"

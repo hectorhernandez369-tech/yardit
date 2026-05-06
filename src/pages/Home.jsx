@@ -49,7 +49,6 @@ import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListing
 import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.jsx";
 import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
 import SaveListingButton from "@/components/listing/SaveListingButton";
-import { publicMapRecordsToListings } from "@/lib/vendorMapRecordAdapter";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 
@@ -632,29 +631,12 @@ export default function HomePage() {
     initialData: [],
   });
 
-  const { data: publicMapRecords = [] } = useQuery({
-    queryKey: ["publicMapRecords"],
-    queryFn: () => base44.entities.PublicMapRecord.filter({ status: "active" }, "-last_synced_at"),
-    initialData: [],
-  });
-
-  const mapListings = useMemo(() => [
-    ...listings,
-    ...publicMapRecordsToListings(publicMapRecords)
-  ], [listings, publicMapRecords]);
-
   useEffect(() => {
-    const unsubscribeListings = base44.entities.Listing.subscribe(() => {
+    const unsubscribe = base44.entities.Listing.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ["listings"] });
     });
-    const unsubscribePublicMapRecords = base44.entities.PublicMapRecord.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: ["publicMapRecords"] });
-    });
 
-    return () => {
-      unsubscribeListings();
-      unsubscribePublicMapRecords();
-    };
+    return unsubscribe;
   }, [queryClient]);
 
   // Map movement on city search
@@ -665,7 +647,7 @@ export default function HomePage() {
       if (!q) return;
 
       // Priority Rule: Keep current behavior if exact title or listing number match
-      const exactListingMatch = mapListings.find(
+      const exactListingMatch = listings.find(
         (l) =>
           l.title?.toLowerCase().trim() === q ||
           (l.listingNumber && l.listingNumber.toLowerCase().trim() === q)
@@ -674,7 +656,7 @@ export default function HomePage() {
       if (exactListingMatch) return;
 
       // City Search Detection
-      const cityListings = mapListings.filter(
+      const cityListings = listings.filter(
         (l) => l.city && l.city.toLowerCase().trim() === q
       );
 
@@ -693,17 +675,17 @@ export default function HomePage() {
     }, 700);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, mapListings]);
+  }, [searchQuery, listings]);
 
   // Focus on a specific listing from URL param
   const focusListing = useMemo(() => {
-    if (!focusListingId || mapListings.length === 0) return null;
-    return mapListings.find(l => l.id === focusListingId) || null;
-  }, [focusListingId, mapListings]);
+    if (!focusListingId || listings.length === 0) return null;
+    return listings.find(l => l.id === focusListingId) || null;
+  }, [focusListingId, listings]);
 
   useEffect(() => {
     if (!focusListing) {
-      if (focusListingId && mapListings.length > 0) {
+      if (focusListingId && listings.length > 0) {
         toast.error("Listing not found.");
       }
       return;
@@ -712,7 +694,7 @@ export default function HomePage() {
     setSelectedListingId(focusListing.id);
     setActiveFocusListing({ listing: focusListing, fromUrl: true });
     hasHandledInitialFocus.current = true;
-  }, [focusListing, focusListingId, mapListings.length]);
+  }, [focusListing, focusListingId, listings.length]);
 
   const { data: allCheckIns } = useQuery({
     queryKey: ["allCheckIns"],
@@ -829,7 +811,7 @@ export default function HomePage() {
     const now = new Date();
     const demo = demoOn;
 
-    const baseListings = mapListings
+    const baseListings = listings
       .map((listing) => {
         if (listing.status === "cancelled" || listing.status === "canceled" || listing.status === "expired" || listing.status === "removed" || listing.status === "hidden") return null;
         if (listing.canceled_at || listing.expired_at) return null;
@@ -880,13 +862,13 @@ export default function HomePage() {
     }
 
     return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
-  }, [mapListings, filter, searchQuery, selectedCategories, demoOn, user]);
+  }, [listings, filter, searchQuery, selectedCategories, demoOn, user]);
 
   const listViewListings = useMemo(() => {
     const now = new Date();
     const demo = demoOn;
 
-    const baseListings = mapListings.filter((l) => {
+    const baseListings = listings.filter((l) => {
       if (l.status === "cancelled" || l.status === "canceled" || l.status === "expired" || l.status === "removed" || l.status === "hidden") return false;
       if (l.canceled_at || l.expired_at) return false;
       if (!demo && l.endDateTime && now > new Date(l.endDateTime)) return false;
@@ -940,7 +922,7 @@ export default function HomePage() {
     }
 
     return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
-  }, [mapListings, filter, searchQuery, selectedCategories, demoOn, user]);
+  }, [listings, filter, searchQuery, selectedCategories, demoOn, user]);
 
 const stats = useMemo(() => {
   const publicListings = eligibleListings.filter((l) => l.mapState !== "preview");
@@ -1422,37 +1404,30 @@ const stats = useMemo(() => {
                           <div className="flex items-center gap-1 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
                             <Button
                               size="sm"
-                              disabled={listing.isExternalPublicMapRecord && !listing.externalUrl}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (listing.isExternalPublicMapRecord) {
-                                  if (listing.externalUrl) window.open(listing.externalUrl, "_blank", "noopener,noreferrer");
-                                  return;
-                                }
                                 navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
                               }}
                               className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700"
                             >
-                              {listing.isExternalPublicMapRecord ? "View Source" : "View Listing"}
+                              View Listing
                             </Button>
-                            {!listing.isExternalPublicMapRecord && <SaveListingButton listing={listing} iconOnly size="sm" className="h-6 w-6 p-0 border-slate-200" />}
+                            <SaveListingButton listing={listing} iconOnly size="sm" className="h-6 w-6 p-0 border-slate-200" />
                             {!isPreviewState && (
                               <>
-                                {!listing.isExternalPublicMapRecord && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      guardAction(() => setReportListingId(listing.id));
-                                    }}
-                                    className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50"
-                                  >
-                                    Report
-                                  </Button>
-                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    guardAction(() => setReportListingId(listing.id));
+                                  }}
+                                  className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50"
+                                >
+                                  Report
+                                </Button>
                                 <div className="ml-auto flex gap-1">
-                                  {!isPreviewState && !listing.isExternalPublicMapRecord && listing.listingType !== "event" && HUNT_ENABLED && (() => {
+                                  {!isPreviewState && listing.listingType !== "event" && HUNT_ENABLED && (() => {
                                     const huntStop = huntStops.find(s => s.id === listing.id);
                                     
                                     if (!huntStop) {
