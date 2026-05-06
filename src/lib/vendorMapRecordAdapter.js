@@ -2,7 +2,9 @@ const toDateValue = (value) => value || new Date().toISOString();
 
 export function publicMapRecordToListing(record) {
   const payload = record?.payload || {};
-  const listingType = payload.listingType || payload.type || "event";
+  const rawListingType = payload.listingType || payload.type || "event";
+  const listingType = rawListingType === "vendor_pin_checkin" || rawListingType === "vendor_pin" ? "event" : rawListingType;
+  const normalizedStatus = payload.status === "live" ? "active" : (payload.status || "active");
   const title = payload.title || payload.event_name || "Public Event";
   const lat = Number(payload.lat ?? payload.latitude);
   const lng = Number(payload.lng ?? payload.longitude);
@@ -23,9 +25,9 @@ export function publicMapRecordToListing(record) {
     event_category: payload.event_category || payload.category || "Event",
     event_icon: payload.event_icon || payload.icon || payload.map_icon || payload.icon_key || "calendar",
     event_logo_url: payload.event_logo_url || payload.logo_url || payload.image_url || "",
-    tier: payload.tier || payload.event_tier || "featured",
-    event_tier: payload.event_tier || payload.tier || "featured",
-    status: payload.status || "active",
+    tier: ["basic", "featured", "premium", "marquee"].includes(payload.tier || payload.event_tier) ? (payload.tier || payload.event_tier) : "premium",
+    event_tier: ["basic", "featured", "premium", "marquee"].includes(payload.event_tier || payload.tier) ? (payload.event_tier || payload.tier) : "premium",
+    status: normalizedStatus,
     city: payload.city || "",
     state: payload.state || "",
     display_address: payload.display_address || payload.address || payload.addressText || "",
