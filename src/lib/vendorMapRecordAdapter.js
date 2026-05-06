@@ -21,6 +21,8 @@ export function publicMapRecordToListing(record) {
     event_description: payload.event_description || payload.description || "",
     category: payload.category || payload.event_category || "Event",
     event_category: payload.event_category || payload.category || "Event",
+    event_icon: payload.event_icon || payload.icon || payload.map_icon || payload.icon_key || "calendar",
+    event_logo_url: payload.event_logo_url || payload.logo_url || payload.image_url || "",
     tier: payload.tier || payload.event_tier || "featured",
     event_tier: payload.event_tier || payload.tier || "featured",
     status: payload.status || "active",
