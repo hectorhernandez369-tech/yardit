@@ -160,6 +160,15 @@ function LayoutContent({ children, user, setUser }) {
                   <span className="hidden sm:inline">Map</span>
                 </Button>
               </Link>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/10"
+              >
+                Vendor Portal
+              </Button>
               
               <>
                 {!isGuest && user && <NotificationBell />}
