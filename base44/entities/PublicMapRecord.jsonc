@@ -1,0 +1,157 @@
+{
+  "name": "PublicMapRecord",
+  "type": "object",
+  "properties": {
+    "source_app": {
+      "type": "string"
+    },
+    "source_record_id": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "vendor_pin_checkin",
+        "event"
+      ]
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "pro",
+        "growth"
+      ]
+    },
+    "event_tier": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "pro",
+        "growth"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "icon_url": {
+      "type": "string"
+    },
+    "icon": {
+      "type": "string"
+    },
+    "event_icon": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "lat": {
+      "type": "number"
+    },
+    "lng": {
+      "type": "number"
+    },
+    "display_address": {
+      "type": "string"
+    },
+    "start_datetime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_datetime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string"
+    },
+    "visibility": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string"
+    },
+    "vendor_pin_id": {
+      "type": "string"
+    },
+    "checkin_status": {
+      "type": "string"
+    },
+    "checkin_end_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "pin_animation": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pulse",
+        "bounce"
+      ]
+    },
+    "animation_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pulse",
+        "bounce"
+      ]
+    },
+    "animation_enabled": {
+      "type": "boolean"
+    },
+    "animation": {
+      "type": "object"
+    },
+    "visibility_rules": {
+      "type": "object"
+    },
+    "event_type": {
+      "type": "string"
+    },
+    "parent_event_id": {
+      "type": "string"
+    },
+    "child_event_count": {
+      "type": "number"
+    },
+    "floating_icon_enabled": {
+      "type": "boolean"
+    },
+    "marquee_enabled": {
+      "type": "boolean"
+    },
+    "child_events": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "raw_payload": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "source_app",
+    "source_record_id",
+    "type"
+  ]
+}

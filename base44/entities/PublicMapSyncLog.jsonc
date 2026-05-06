@@ -1,0 +1,32 @@
+{
+  "name": "PublicMapSyncLog",
+  "type": "object",
+  "properties": {
+    "source_app": {
+      "type": "string"
+    },
+    "source_record_id": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failure"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "payload_preview": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "action",
+    "status"
+  ]
+}
