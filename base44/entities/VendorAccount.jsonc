@@ -1,0 +1,58 @@
+{
+  "name": "VendorAccount",
+  "type": "object",
+  "properties": {
+    "business_name": {
+      "type": "string",
+      "description": "Vendor business name"
+    },
+    "business_logo": {
+      "type": "string",
+      "description": "Business logo URL"
+    },
+    "owner_user_id": {
+      "type": "string",
+      "description": "Owner user ID"
+    },
+    "vendor_tier": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "pro",
+        "growth"
+      ],
+      "default": "starter",
+      "description": "Vendor subscription tier"
+    },
+    "extra_users_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Additional paid authorized users"
+    },
+    "extra_pins_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Additional paid truck pins"
+    },
+    "current_authorized_users": {
+      "type": "number",
+      "default": 0,
+      "description": "Current authorized user count"
+    },
+    "current_vendor_pins": {
+      "type": "number",
+      "default": 0,
+      "description": "Current vendor pin count"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the vendor account is active"
+    }
+  },
+  "required": [
+    "business_name",
+    "owner_user_id",
+    "vendor_tier"
+  ]
+}

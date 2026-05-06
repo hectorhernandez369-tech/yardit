@@ -1,0 +1,30 @@
+{
+  "name": "VendorUpdate",
+  "type": "object",
+  "properties": {
+    "vendor_account_id": {
+      "type": "string",
+      "description": "Vendor account ID"
+    },
+    "text": {
+      "type": "string",
+      "description": "Vendor update text"
+    },
+    "likes": {
+      "type": "number",
+      "default": 0,
+      "description": "Like count"
+    },
+    "liked_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails that liked this update"
+    }
+  },
+  "required": [
+    "vendor_account_id",
+    "text"
+  ]
+}

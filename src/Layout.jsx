@@ -36,6 +36,7 @@ function LayoutContent({ children, user, setUser }) {
   const { isDemoMode: demoActive } = useAppMode();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [hasAdminProfile, setHasAdminProfile] = useState(false);
+  const [hasVendorAccount, setHasVendorAccount] = useState(false);
   const [adminActivatedBanner, setAdminActivatedBanner] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
@@ -73,6 +74,14 @@ function LayoutContent({ children, user, setUser }) {
           setHasAdminProfile(true);
       } else {
           setHasAdminProfile(false);
+      }
+
+      if (user?.id) {
+        base44.entities.VendorAccount.filter({ owner_user_id: user.id }).then((accounts) => {
+          setHasVendorAccount(accounts.some((account) => account.is_active !== false));
+        }).catch(() => setHasVendorAccount(false));
+      } else {
+        setHasVendorAccount(false);
       }
   }, [user]);
 
@@ -161,15 +170,17 @@ function LayoutContent({ children, user, setUser }) {
                 </Button>
               </Link>
 
-              <Link to="/VendorDashboard">
-                <Button
-                  variant={location.pathname === "/VendorDashboard" ? "secondary" : "ghost"}
-                  size="sm"
-                  className={`gap-2 ${location.pathname === "/VendorDashboard" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
-                >
-                  Vendor Dashboard
-                </Button>
-              </Link>
+              {hasVendorAccount && (
+                <Link to="/VendorDashboard">
+                  <Button
+                    variant={location.pathname === "/VendorDashboard" ? "secondary" : "ghost"}
+                    size="sm"
+                    className={`gap-2 ${location.pathname === "/VendorDashboard" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                  >
+                    Vendor Dashboard
+                  </Button>
+                </Link>
+              )}
               
               <>
                 {!isGuest && user && <NotificationBell />}

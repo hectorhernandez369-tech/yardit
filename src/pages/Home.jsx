@@ -49,6 +49,8 @@ import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListing
 import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.jsx";
 import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
 import SaveListingButton from "@/components/listing/SaveListingButton";
+import { isLiveVendorCheckIn } from "@/lib/vendorTiers";
+import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map/vendorMarkerIcons";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 
@@ -714,6 +716,24 @@ export default function HomePage() {
     initialData: [],
   });
 
+  const { data: vendorAccounts = [] } = useQuery({
+    queryKey: ["vendorAccounts"],
+    queryFn: () => base44.entities.VendorAccount.list(),
+    initialData: [],
+  });
+
+  const { data: vendorPins = [] } = useQuery({
+    queryKey: ["vendorPins"],
+    queryFn: () => base44.entities.VendorPin.list(),
+    initialData: [],
+  });
+
+  const { data: vendorCheckIns = [] } = useQuery({
+    queryKey: ["vendorCheckIns"],
+    queryFn: () => base44.entities.VendorPinCheckIn.list("-created_date"),
+    initialData: [],
+  });
+
   // Live location tracking
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -1100,6 +1120,19 @@ const stats = useMemo(() => {
     const fullParticipantListings = neighborhoodParticipantPins.map(pin => listings.find(l => l.id === pin.listingId)).filter(Boolean);
     return [...visiblePins, ...fullParticipantListings];
   }, [visiblePins, neighborhoodParticipantPins, listings]);
+
+  const liveVendorPins = useMemo(() => {
+    return vendorCheckIns
+      .filter(isLiveVendorCheckIn)
+      .map((checkIn) => {
+        const pin = vendorPins.find((item) => item.id === checkIn.vendor_pin_id);
+        const account = vendorAccounts.find((item) => item.id === checkIn.vendor_account_id);
+        if (!pin || !account || account.is_active === false || pin.is_active === false) return null;
+        if (!shouldShowVendorPinAtZoom(account, currentZoom)) return null;
+        return { checkIn, pin, account };
+      })
+      .filter(Boolean);
+  }, [vendorCheckIns, vendorPins, vendorAccounts, currentZoom]);
 
   const marqueeOverlays = useMemo(() => {
     if (currentZoom < MARQUEE_COLLAPSED_MIN_ZOOM) return [];
@@ -1555,6 +1588,29 @@ const stats = useMemo(() => {
                   </Marker>
                 );
               })}
+
+              {liveVendorPins.map(({ checkIn, pin, account }) => (
+                <Marker
+                  key={`vendor-${checkIn.id}`}
+                  position={[checkIn.checkin_latitude, checkIn.checkin_longitude]}
+                  icon={getVendorMarkerIcon({ pin, account, checkIn })}
+                >
+                  <Popup minWidth={210}>
+                    <div className="space-y-2 p-0.5">
+                      <div className="flex items-center gap-2">
+                        {(pin.pin_logo_url || account.business_logo) && <img src={pin.pin_logo_url || account.business_logo} alt={pin.pin_name} className="h-8 w-8 rounded-full object-cover border" />}
+                        <div>
+                          <p className="font-bold text-sm text-[#2C4F4E]">{pin.pin_name}</p>
+                          <p className="text-[11px] capitalize text-slate-500">{account.vendor_tier} vendor</p>
+                        </div>
+                      </div>
+                      {pin.description && <p className="text-xs text-slate-600">{pin.description}</p>}
+                      <p className="text-xs text-slate-600">{checkIn.checkin_display_address || "Live vendor location"}</p>
+                      <Badge className="bg-green-600 text-white">Live Now</Badge>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
 
               {neighborhoodParticipantPins.map((pin) => {
                 if (hiddenByMarqueeIds.has(pin.listingId)) return null;

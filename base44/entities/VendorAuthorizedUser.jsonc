@@ -1,0 +1,52 @@
+{
+  "name": "VendorAuthorizedUser",
+  "type": "object",
+  "properties": {
+    "vendor_account_id": {
+      "type": "string",
+      "description": "Vendor account ID"
+    },
+    "authorized_email": {
+      "type": "string",
+      "description": "Authorized user email"
+    },
+    "first_name": {
+      "type": "string",
+      "description": "First name"
+    },
+    "last_name": {
+      "type": "string",
+      "description": "Last name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number"
+    },
+    "assigned_pin_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Assigned vendor pin IDs"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "removed"
+      ],
+      "default": "active",
+      "description": "Authorized user status"
+    },
+    "added_by_owner_user_id": {
+      "type": "string",
+      "description": "Owner user ID who added this user"
+    }
+  },
+  "required": [
+    "vendor_account_id",
+    "authorized_email",
+    "status"
+  ]
+}

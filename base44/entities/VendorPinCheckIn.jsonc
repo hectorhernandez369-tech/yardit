@@ -1,0 +1,70 @@
+{
+  "name": "VendorPinCheckIn",
+  "type": "object",
+  "properties": {
+    "vendor_pin_id": {
+      "type": "string",
+      "description": "Vendor pin ID"
+    },
+    "vendor_account_id": {
+      "type": "string",
+      "description": "Vendor account ID"
+    },
+    "checked_in_by_email": {
+      "type": "string",
+      "description": "Email of the checker"
+    },
+    "checkin_latitude": {
+      "type": "number",
+      "description": "Check-in latitude"
+    },
+    "checkin_longitude": {
+      "type": "number",
+      "description": "Check-in longitude"
+    },
+    "checkin_display_address": {
+      "type": "string",
+      "description": "Editable display address"
+    },
+    "checkin_start_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Check-in start time"
+    },
+    "checkin_end_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Check-in end time"
+    },
+    "pin_animation": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pulse",
+        "bounce"
+      ],
+      "default": "none",
+      "description": "Map pin animation"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "live",
+        "paused",
+        "ended",
+        "expired"
+      ],
+      "default": "live",
+      "description": "Check-in status"
+    }
+  },
+  "required": [
+    "vendor_pin_id",
+    "vendor_account_id",
+    "checkin_latitude",
+    "checkin_longitude",
+    "checkin_start_time",
+    "checkin_end_time",
+    "status"
+  ]
+}

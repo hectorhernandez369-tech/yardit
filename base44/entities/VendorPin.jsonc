@@ -1,0 +1,42 @@
+{
+  "name": "VendorPin",
+  "type": "object",
+  "properties": {
+    "vendor_account_id": {
+      "type": "string",
+      "description": "Vendor account ID"
+    },
+    "pin_name": {
+      "type": "string",
+      "description": "Truck or location profile name"
+    },
+    "pin_logo_url": {
+      "type": "string",
+      "description": "Logo URL for this pin"
+    },
+    "pin_icon_url": {
+      "type": "string",
+      "description": "Icon URL for this pin"
+    },
+    "description": {
+      "type": "string",
+      "description": "Pin profile description"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this pin profile is active"
+    },
+    "assigned_users": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Authorized user emails assigned to this pin"
+    }
+  },
+  "required": [
+    "vendor_account_id",
+    "pin_name"
+  ]
+}
