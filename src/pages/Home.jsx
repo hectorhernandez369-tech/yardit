@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Calendar, User, Search, ShoppingBag, Plus, Check, Users, Star, Crosshair, Loader2, SlidersHorizontal, X, Map as MapIcon, List, Clock } from "lucide-react";
+import { MapPin, Calendar, User, Search, ShoppingBag, Plus, Check, Users, Star, Crosshair, Loader2, SlidersHorizontal, X, Map as MapIcon, List } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -631,52 +631,13 @@ export default function HomePage() {
     initialData: [],
   });
 
-  const { data: vendorProfiles = [] } = useQuery({
-    queryKey: ["vendorProfiles"],
-    queryFn: () => base44.entities.VendorProfile.list(),
-  });
-
-  const { data: vendorPins = [] } = useQuery({
-    queryKey: ["vendorPins"],
-    queryFn: () => base44.entities.VendorPin.list(),
-  });
-
-  const { data: vendorPinCheckIns = [] } = useQuery({
-    queryKey: ["vendorPinCheckIns"],
-    queryFn: () => base44.entities.VendorPinCheckIn.filter({ status: "live" }),
-  });
-
   useEffect(() => {
     const unsubscribe = base44.entities.Listing.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ["listings"] });
     });
 
-    const unsubVP = base44.entities.VendorProfile.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: ["vendorProfiles"] });
-    });
-    const unsubVPin = base44.entities.VendorPin.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: ["vendorPins"] });
-    });
-    const unsubVCheckIn = base44.entities.VendorPinCheckIn.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: ["vendorPinCheckIns"] });
-    });
-
-    return () => {
-      unsubscribe();
-      unsubVP();
-      unsubVPin();
-      unsubVCheckIn();
-    };
+    return unsubscribe;
   }, [queryClient]);
-
-  const activeVendorCheckIns = useMemo(() => {
-    const now = new Date();
-    return vendorPinCheckIns.filter(c => {
-      if (c.status !== "live") return false;
-      if (c.checkin_end_time && new Date(c.checkin_end_time) <= now) return false;
-      return true;
-    });
-  }, [vendorPinCheckIns]);
 
   // Map movement on city search
   useEffect(() => {
@@ -1248,49 +1209,6 @@ const stats = useMemo(() => {
                   <span>Listings</span>
                 </Button>
                 <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      const profile = await base44.entities.VendorProfile.create({
-                        business_name: "Taco Express",
-                        category: "Food Truck",
-                        display_address: "123 Main St, San Francisco, CA",
-                        is_live: true,
-                        logo_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=150&h=150&fit=crop"
-                      });
-                      const pin = await base44.entities.VendorPin.create({
-                        vendor_id: profile.id,
-                        pin_name: "Taco Express - Downtown",
-                        pin_logo_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=150&h=150&fit=crop",
-                        pin_icon_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=150&h=150&fit=crop",
-                        description: "Best tacos in town!"
-                      });
-                      
-                      const now = new Date();
-                      const end = new Date(now.getTime() + 4 * 60 * 60 * 1000);
-                      
-                      await base44.entities.VendorPinCheckIn.create({
-                        vendor_pin_id: pin.id,
-                        vendor_profile_id: profile.id,
-                        checkin_latitude: mapCenter[0] || 37.7749,
-                        checkin_longitude: mapCenter[1] || -122.4194,
-                        checkin_display_address: "123 Main St, San Francisco, CA",
-                        checkin_start_time: now.toISOString(),
-                        checkin_end_time: end.toISOString(),
-                        status: "live",
-                        pin_animation: "bounce"
-                      });
-                      toast.success("Sample vendor added!");
-                    } catch (err) {
-                      toast.error("Failed to add vendor");
-                    }
-                  }}
-                  className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-2 sm:px-3"
-                >
-                  <Plus className="w-3 h-3 mr-1" /> Vendor
-                </Button>
-                <Button 
                   variant="outline" 
                   size="icon" 
                   onClick={() => setShowFilterModal(true)}
@@ -1634,57 +1552,6 @@ const stats = useMemo(() => {
                         </div>
                       </Popup>
                     )}
-                  </Marker>
-                );
-              })}
-
-              {activeVendorCheckIns.map(checkIn => {
-                const pin = vendorPins.find(p => p.id === checkIn.vendor_pin_id);
-                const profile = vendorProfiles.find(p => p.id === pin?.vendor_id || p.id === checkIn.vendor_profile_id) || {};
-                
-                const animationClass = checkIn.pin_animation === "bounce" ? "animate-bounce" : (checkIn.pin_animation === "pulse" ? "animate-pulse" : "");
-                const iconHtml = `<div class="relative w-10 h-10 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white ${animationClass}"><img src="${pin?.pin_icon_url || profile?.logo_url || 'https://via.placeholder.com/40'}" class="w-full h-full object-cover" /></div>`;
-                
-                const vendorIcon = new L.DivIcon({
-                  className: `vendor-pin`,
-                  html: iconHtml,
-                  iconSize: [40, 40],
-                  iconAnchor: [20, 20],
-                  popupAnchor: [0, -20],
-                });
-
-                return (
-                  <Marker
-                    key={`vendor-${checkIn.id}`}
-                    position={[checkIn.checkin_latitude, checkIn.checkin_longitude]}
-                    icon={vendorIcon}
-                  >
-                    <Popup minWidth={200} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]}>
-                      <div className="flex flex-col gap-2 p-0.5" style={{ maxWidth: 240 }}>
-                        {(profile.logo_url || pin?.pin_logo_url) && (
-                          <img src={pin?.pin_logo_url || profile.logo_url} alt={profile.business_name || pin?.pin_name} className="w-full h-28 object-cover rounded-md shadow-sm" />
-                        )}
-                        <div>
-                          <Badge className="bg-purple-600 hover:bg-purple-700 text-white text-[10px] px-1.5 py-0 h-4 min-h-0 mb-1">
-                            {profile.category || "Vendor"}
-                          </Badge>
-                          <h3 className="font-bold text-sm leading-tight text-slate-900">{profile.business_name || pin?.pin_name || "Vendor"}</h3>
-                        </div>
-                        {pin?.description && (
-                          <p className="text-[11px] text-slate-600 leading-snug">{pin.description}</p>
-                        )}
-                        <div className="flex items-start gap-1 mt-1 text-[10px] text-slate-500">
-                          <MapPin className="w-3 h-3 shrink-0 mt-0.5" />
-                          <span className="leading-tight">{checkIn.checkin_display_address || profile.display_address || "Location unavailable"}</span>
-                        </div>
-                        {checkIn.checkin_end_time && (
-                          <div className="flex items-center gap-1 text-[10px] text-amber-600 font-medium mt-0.5">
-                            <Clock className="w-3 h-3 shrink-0" />
-                            <span>Ends at {new Date(checkIn.checkin_end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                          </div>
-                        )}
-                      </div>
-                    </Popup>
                   </Marker>
                 );
               })}
