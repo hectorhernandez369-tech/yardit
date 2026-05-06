@@ -161,14 +161,15 @@ function LayoutContent({ children, user, setUser }) {
                 </Button>
               </Link>
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white/10"
-              >
-                Vendor Portal
-              </Button>
+              <Link to="/VendorDashboard">
+                <Button
+                  variant={location.pathname === "/VendorDashboard" ? "secondary" : "ghost"}
+                  size="sm"
+                  className={`gap-2 ${location.pathname === "/VendorDashboard" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                >
+                  Vendor Dashboard
+                </Button>
+              </Link>
               
               <>
                 {!isGuest && user && <NotificationBell />}
