@@ -1248,6 +1248,49 @@ const stats = useMemo(() => {
                   <span>Listings</span>
                 </Button>
                 <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const profile = await base44.entities.VendorProfile.create({
+                        business_name: "Taco Express",
+                        category: "Food Truck",
+                        display_address: "123 Main St, San Francisco, CA",
+                        is_live: true,
+                        logo_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=150&h=150&fit=crop"
+                      });
+                      const pin = await base44.entities.VendorPin.create({
+                        vendor_id: profile.id,
+                        pin_name: "Taco Express - Downtown",
+                        pin_logo_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=150&h=150&fit=crop",
+                        pin_icon_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=150&h=150&fit=crop",
+                        description: "Best tacos in town!"
+                      });
+                      
+                      const now = new Date();
+                      const end = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+                      
+                      await base44.entities.VendorPinCheckIn.create({
+                        vendor_pin_id: pin.id,
+                        vendor_profile_id: profile.id,
+                        checkin_latitude: mapCenter[0] || 37.7749,
+                        checkin_longitude: mapCenter[1] || -122.4194,
+                        checkin_display_address: "123 Main St, San Francisco, CA",
+                        checkin_start_time: now.toISOString(),
+                        checkin_end_time: end.toISOString(),
+                        status: "live",
+                        pin_animation: "bounce"
+                      });
+                      toast.success("Sample vendor added!");
+                    } catch (err) {
+                      toast.error("Failed to add vendor");
+                    }
+                  }}
+                  className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-2 sm:px-3"
+                >
+                  <Plus className="w-3 h-3 mr-1" /> Vendor
+                </Button>
+                <Button 
                   variant="outline" 
                   size="icon" 
                   onClick={() => setShowFilterModal(true)}
