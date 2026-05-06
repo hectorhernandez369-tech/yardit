@@ -1,0 +1,25 @@
+{
+  "name": "VendorProfile",
+  "type": "object",
+  "properties": {
+    "logo_url": {
+      "type": "string"
+    },
+    "business_name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "display_address": {
+      "type": "string"
+    },
+    "is_live": {
+      "type": "boolean"
+    },
+    "current_checkin_id": {
+      "type": "string"
+    }
+  },
+  "required": []
+}

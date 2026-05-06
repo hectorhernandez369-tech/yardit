@@ -1,0 +1,47 @@
+{
+  "name": "VendorPinCheckIn",
+  "type": "object",
+  "properties": {
+    "vendor_pin_id": {
+      "type": "string"
+    },
+    "vendor_profile_id": {
+      "type": "string"
+    },
+    "checkin_latitude": {
+      "type": "number"
+    },
+    "checkin_longitude": {
+      "type": "number"
+    },
+    "checkin_display_address": {
+      "type": "string"
+    },
+    "checkin_start_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "checkin_end_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "live",
+        "paused",
+        "ended",
+        "expired"
+      ]
+    },
+    "pin_animation": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pulse",
+        "bounce"
+      ]
+    }
+  },
+  "required": []
+}
