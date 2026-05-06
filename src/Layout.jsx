@@ -165,7 +165,6 @@ function LayoutContent({ children, user, setUser }) {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/VendorPortal")}
                 className="text-white hover:bg-white/10"
               >
                 Vendor Portal

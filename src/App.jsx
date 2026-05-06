@@ -10,7 +10,6 @@ import { base44 } from "@/api/base44Client";
 import { isComingSoonModeEnabled, getTesterBypass, shouldBypassComingSoonForCurrentUrl } from '@/lib/comingSoonMode';
 import PageNotFound from './lib/PageNotFound';
 import ComingSoon from './pages/ComingSoon';
-import VendorPortal from './pages/VendorPortal';
 import CreateListingUpgradeReturn from './pages/CreateListingUpgradeReturn';
 import PrintableChecklist from './pages/PrintableChecklist';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -103,7 +102,6 @@ const AuthenticatedApp = () => {
           />
         ))}
         <Route path="/CreateListingUpgradeReturn" element={<LayoutWrapper currentPageName="CreateListingUpgradeReturn"><CreateListingUpgradeReturn /></LayoutWrapper>} />
-        <Route path="/VendorPortal" element={<LayoutWrapper currentPageName="VendorPortal"><VendorPortal /></LayoutWrapper>} />
         <Route path="/PrintableChecklist" element={<PrintableChecklist />} />
         <Route path="/ComingSoon" element={<ComingSoon />} />
         <Route path="*" element={<PageNotFound />} />
