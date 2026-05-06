@@ -1,0 +1,148 @@
+{
+  "name": "PublicMapRecord",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "vendor_pin_checkin",
+        "event"
+      ],
+      "description": "Type of public map record"
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description"
+    },
+    "lat": {
+      "type": "number",
+      "description": "Latitude"
+    },
+    "lng": {
+      "type": "number",
+      "description": "Longitude"
+    },
+    "display_address": {
+      "type": "string",
+      "description": "Address shown to users"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private",
+        "hidden"
+      ],
+      "default": "public",
+      "description": "Visibility state"
+    },
+    "visibility_rules": {
+      "type": "object",
+      "description": "Rendering visibility rules"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "live",
+        "active",
+        "scheduled",
+        "expired",
+        "hidden"
+      ],
+      "default": "live",
+      "description": "Record status"
+    },
+    "checkin_status": {
+      "type": "string",
+      "enum": [
+        "live",
+        "ended",
+        "cancelled"
+      ],
+      "description": "Vendor check-in status"
+    },
+    "checkin_end_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Vendor check-in end time"
+    },
+    "end_datetime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event end time"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "pro",
+        "growth"
+      ],
+      "default": "starter",
+      "description": "Vendor tier"
+    },
+    "event_tier": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "pro",
+        "growth"
+      ],
+      "description": "Event tier"
+    },
+    "event_icon": {
+      "type": "string",
+      "description": "Event icon image URL"
+    },
+    "icon_url": {
+      "type": "string",
+      "description": "Icon image URL"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Icon image URL"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Logo image URL"
+    },
+    "animation_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pulse",
+        "bounce"
+      ],
+      "default": "none",
+      "description": "Pin animation type"
+    },
+    "pin_animation": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pulse",
+        "bounce"
+      ],
+      "description": "Pin animation alias"
+    },
+    "animation_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether pin animation is enabled"
+    },
+    "animation": {
+      "type": "object",
+      "description": "Animation settings"
+    }
+  },
+  "required": [
+    "type",
+    "title",
+    "lat",
+    "lng"
+  ]
+}
