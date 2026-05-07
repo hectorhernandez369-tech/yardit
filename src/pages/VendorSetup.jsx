@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, Circle, Loader2 } from "lucide-react";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
-import { VENDOR_SETUP_STEPS, getFirstIncompleteSetupIndex, getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
+import { VENDOR_SETUP_STEPS, getFirstIncompleteSetupIndex, getVendorSetupProgress, getVendorSetupDashboardStepUrl } from "@/lib/vendorSetup";
 
 export default function VendorSetup() {
   const navigate = useNavigate();
@@ -49,7 +49,7 @@ export default function VendorSetup() {
   const loading = loadingUser || loadingAccount || loadingPins;
 
   const openActiveStep = () => {
-    navigate(getVendorSetupStepUrl(activeStep.key));
+    navigate(getVendorSetupDashboardStepUrl(activeStep.key));
   };
 
   const goNext = () => {

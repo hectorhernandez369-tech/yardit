@@ -70,5 +70,10 @@ export function getFirstIncompleteSetupIndex(account, pins = []) {
 
 export function getVendorSetupStepUrl(stepKey) {
   const step = VENDOR_SETUP_STEPS.find((item) => item.key === stepKey) || VENDOR_SETUP_STEPS[0];
+  return `/VendorSetup?step=${step.key}`;
+}
+
+export function getVendorSetupDashboardStepUrl(stepKey) {
+  const step = VENDOR_SETUP_STEPS.find((item) => item.key === stepKey) || VENDOR_SETUP_STEPS[0];
   return `/VendorDashboard?tab=${step.dashboardTab}&setup=${step.key}`;
 }
