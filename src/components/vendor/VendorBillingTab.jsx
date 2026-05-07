@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { VENDOR_TIERS } from "@/lib/vendorTiers";
+import VendorAddOnsSection from "@/components/vendor/billing/VendorAddOnsSection";
 import { toast } from "sonner";
 
 const TIER_ORDER = ["starter", "pro", "growth"];
@@ -22,7 +23,8 @@ export default function VendorBillingTab({ account, onRefresh }) {
   };
 
   return (
-    <div className="grid min-w-0 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="space-y-6">
+      <div className="grid min-w-0 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {Object.entries(VENDOR_TIERS).map(([key, tier]) => (
         <Card key={key} className={account?.vendor_tier === key ? "rounded-2xl border-2 border-[#F4A849] bg-[#FFF7E8] shadow-md overflow-hidden" : "rounded-2xl border-[#2C4F4E]/20 bg-white shadow-sm overflow-hidden"}>
         <CardHeader className="p-3 sm:p-5 pb-2">
@@ -53,6 +55,9 @@ export default function VendorBillingTab({ account, onRefresh }) {
           </CardContent>
         </Card>
       ))}
+      </div>
+
+      <VendorAddOnsSection account={account} />
     </div>
   );
 }
