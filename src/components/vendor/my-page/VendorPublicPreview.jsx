@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Camera, ExternalLink, Facebook, Globe, Instagram, MapPin, Music2 } from "lucide-react";
+import BusinessHero from "@/components/vendor/BusinessHero";
 import { format } from "date-fns";
 import { getVendorTierConfig, isLiveVendorCheckIn } from "@/lib/vendorTiers";
 
@@ -17,29 +18,24 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates }
   const tier = getVendorTierConfig(account.vendor_tier);
   const photos = account.photo_urls || [];
   const liveItems = (checkIns || []).filter(isLiveVendorCheckIn);
+  const activeCheckIn = liveItems[0];
   const pinName = (id) => pins.find((pin) => pin.id === id)?.pin_name || "Vendor Pin";
+  const heroProfile = {
+    id: account.id,
+    business_name: account.business_name,
+    logo_url: account.business_logo,
+    tier: account.vendor_tier,
+    category: account.business_category,
+    description: account.description,
+    phone: account.phone,
+    location: account.location,
+    hero_background_color: account.hero_background_color,
+  };
 
   return (
     <div className="rounded-3xl border-2 border-[#2C4F4E]/20 bg-white shadow-sm overflow-hidden">
-      <div className="relative min-h-44 bg-[#E7D7B8]">
-        {account.featured_photo_url ? (
-          <img src={account.featured_photo_url} alt="Featured vendor" className="absolute inset-0 h-full w-full object-cover" />
-        ) : <div className="absolute inset-0 bg-gradient-to-br from-[#5DADA5] to-[#F4A849]" />}
-        <div className="absolute inset-0 bg-black/25" />
-        <div className="relative p-5 sm:p-8 text-white flex items-end min-h-44">
-          <div className="flex items-center gap-4">
-            <div className="h-20 w-20 rounded-2xl border-4 border-white bg-[#F3E6CF] overflow-hidden flex items-center justify-center">
-              {account.business_logo ? <img src={account.business_logo} alt={account.business_name} className="h-full w-full object-cover" /> : <Camera className="h-8 w-8 text-[#2C4F4E]/60" />}
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold">{account.business_name}</h2>
-              <div className="mt-2 flex flex-wrap gap-2"><Badge className="bg-[#F4A849] text-[#2C4F4E]">{tier.label}</Badge><Badge className="bg-white/90 text-[#2C4F4E]">{account.business_category || "Vendor"}</Badge></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} editable={false} />
       <CardContent className="p-5 sm:p-8 space-y-6">
-        <p className="text-slate-700 leading-relaxed">{account.description || "This vendor has not added a description yet."}</p>
 
         <div className="flex flex-wrap gap-2">
           {socialLinks.filter(([key]) => account[key]).map(([key, Icon, label]) => (

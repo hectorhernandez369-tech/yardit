@@ -26,6 +26,11 @@
       "type": "string",
       "description": "Public business location or service area"
     },
+    "hero_background_color": {
+      "type": "string",
+      "default": "#FFFFFF",
+      "description": "Business hero background color"
+    },
     "email": {
       "type": "string",
       "description": "Public business email address"
