@@ -85,7 +85,7 @@ export default function TruckLogoEditor({ imageUrl, open, onClose, onApply }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="rounded-2xl max-w-md">
+      <DialogContent className="rounded-2xl max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Edit Truck Logo</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="mx-auto w-fit rounded-2xl border p-3 bg-[linear-gradient(45deg,#e5e7eb_25%,transparent_25%),linear-gradient(-45deg,#e5e7eb_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#e5e7eb_75%),linear-gradient(-45deg,transparent_75%,#e5e7eb_75%)] bg-[length:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px]">
@@ -118,9 +118,9 @@ export default function TruckLogoEditor({ imageUrl, open, onClose, onApply }) {
             </Button>
           </div>
 
-          <div className="flex gap-2 justify-end">
+          <div className="sticky bottom-0 grid grid-cols-2 gap-2 bg-background pt-3">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="button" onClick={handleApply}>Confirm & Save Photo</Button>
+            <Button type="button" onClick={handleApply}>Done / Use Photo</Button>
           </div>
         </div>
       </DialogContent>
