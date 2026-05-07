@@ -5,7 +5,7 @@ const cache = {};
 export function getVendorMarkerIcon({ pin, account, checkIn, selected = false }) {
   const tier = account?.vendor_tier || "starter";
   const image = pin?.pin_icon_style === "truck_logo" ? (pin?.pin_logo_url || pin?.pin_icon_url || account?.business_logo) : null;
-  const size = selected ? 42 : 36;
+  const size = selected ? 38 : 32;
   const animation = tier === "growth" ? checkIn?.pin_animation : "none";
   const animationCss = animation === "bounce" ? "animation:vendorBounce 1.2s ease-in-out infinite;" : animation === "pulse" ? "animation:vendorPulse 1.6s ease-in-out infinite;" : "";
   const key = `vendor_${tier}_${image || "default"}_${animation}_${selected}`;
