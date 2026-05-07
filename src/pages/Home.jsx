@@ -1589,28 +1589,75 @@ const stats = useMemo(() => {
                 );
               })}
 
-              {liveVendorPins.map(({ checkIn, pin, account }) => (
+              {liveVendorPins.map(({ checkIn, pin, account }) => {
+                const vendorStopId = `vendor-${checkIn.id}`;
+                const isVendorStop = huntStops.some((stop) => stop.id === vendorStopId);
+                const vendorStop = {
+                  id: vendorStopId,
+                  title: account.business_name || pin.pin_name || "Vendor",
+                  listingType: "vendor",
+                  tier: account.vendor_tier,
+                  lat: checkIn.checkin_latitude,
+                  lng: checkIn.checkin_longitude,
+                  display_address: checkIn.checkin_display_address || "Live vendor location",
+                  addressText: checkIn.checkin_display_address || "Live vendor location",
+                  description: pin.description || account.description || "",
+                };
+
+                return (
                 <Marker
                   key={`vendor-${checkIn.id}`}
                   position={[checkIn.checkin_latitude, checkIn.checkin_longitude]}
                   icon={getVendorMarkerIcon({ pin, account, checkIn })}
                 >
-                  <Popup minWidth={210}>
+                  <Popup minWidth={230}>
                     <div className="space-y-2 p-0.5">
                       <div className="flex items-center gap-2">
-                        {(pin.pin_logo_url || account.business_logo) && <img src={pin.pin_logo_url || account.business_logo} alt={pin.pin_name} className="h-8 w-8 rounded-full object-cover border" />}
-                        <div>
-                          <p className="font-bold text-sm text-[#2C4F4E]">{pin.pin_name}</p>
-                          <p className="text-[11px] capitalize text-slate-500">{account.vendor_tier} vendor</p>
+                        {(pin.pin_logo_url || account.business_logo) && <img src={pin.pin_logo_url || account.business_logo} alt={account.business_name || pin.pin_name} className="h-9 w-9 rounded-full object-cover border" />}
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-[#2C4F4E] truncate">{account.business_name || "Vendor Business"}</p>
+                          <p className="text-[11px] text-slate-500">Ends {format(new Date(checkIn.checkin_end_time), "h:mm a")}</p>
                         </div>
                       </div>
-                      {pin.description && <p className="text-xs text-slate-600">{pin.description}</p>}
+                      <p className="text-xs font-semibold text-slate-700">{pin.pin_name}</p>
+                      {pin.description && <p className="text-xs text-slate-600 line-clamp-2">{pin.description}</p>}
                       <p className="text-xs text-slate-600">{checkIn.checkin_display_address || "Live vendor location"}</p>
-                      <Badge className="bg-green-600 text-white">Live Now</Badge>
+                      <div className="flex gap-1.5 pt-1">
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/VendorPublicPage?accountId=${account.id}`);
+                          }}
+                          className="h-7 flex-1 bg-[#5DADA5] px-2 text-[11px] text-white hover:bg-[#4A9B93]"
+                        >
+                          View Page
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={isVendorStop}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            guardAction(() => addToHunt(vendorStop), {
+                              allowGuest: isGuest && huntStops.length < 2,
+                              modal: {
+                                title: "Create a Free Account to Save More Stops",
+                                description: "Guests can preview up to 2 map stops.",
+                                detail: "Create a free account to save more stops and continue your route.",
+                              }
+                            });
+                          }}
+                          className="h-7 flex-1 px-2 text-[11px]"
+                        >
+                          {isVendorStop ? "Added" : "Add to Map"}
+                        </Button>
+                      </div>
                     </div>
                   </Popup>
                 </Marker>
-              ))}
+                );
+              })}
 
               {neighborhoodParticipantPins.map((pin) => {
                 if (hiddenByMarqueeIds.has(pin.listingId)) return null;
