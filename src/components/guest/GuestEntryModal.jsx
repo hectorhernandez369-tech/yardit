@@ -8,13 +8,11 @@ export default function GuestEntryModal({ open, onLogin, onGuestEnter }) {
   const [tosChecked, setTosChecked] = useState(false);
   const [showTosError, setShowTosError] = useState(false);
   const [showTosModal, setShowTosModal] = useState(false);
-  const [screen, setScreen] = useState("welcome");
 
   useEffect(() => {
     if (!open) {
       setTosChecked(false);
       setShowTosError(false);
-      setScreen("welcome");
       return;
     }
 
@@ -38,10 +36,6 @@ export default function GuestEntryModal({ open, onLogin, onGuestEnter }) {
     }).catch(() => null);
   }, [showTosModal]);
 
-  const handleVendorSignup = () => {
-    base44.auth.redirectToLogin(`${window.location.origin}/VendorSignup`);
-  };
-
   const handleGuestContinue = () => {
     if (!tosChecked) {
       setShowTosError(true);
@@ -63,78 +57,50 @@ export default function GuestEntryModal({ open, onLogin, onGuestEnter }) {
     <>
       <Dialog open={open} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md [&>button]:hidden">
-          {screen === "welcome" ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>Welcome to Yardit</DialogTitle>
-                <DialogDescription>
-                  Log in or sign up for the full experience, or continue as a guest to browse public listings.
-                </DialogDescription>
-              </DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Welcome to Yardit</DialogTitle>
+            <DialogDescription>
+              Log in or sign up for the full experience, or continue as a guest to browse public listings.
+            </DialogDescription>
+          </DialogHeader>
 
-              <div className="space-y-4">
-                <Button onClick={() => setScreen("login")} className="w-full">
-                  Log In / Sign Up
-                </Button>
+          <div className="space-y-4">
+            <Button onClick={onLogin} className="w-full">
+              Log In / Sign Up
+            </Button>
 
-                <div className="rounded-lg border border-slate-200 p-4 space-y-3 bg-slate-50">
-                  <label className="flex items-start gap-2 text-sm text-slate-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={tosChecked}
-                      onChange={(e) => {
-                        setTosChecked(e.target.checked);
-                        if (e.target.checked) setShowTosError(false);
-                      }}
-                      className="mt-0.5 h-4 w-4 rounded border-slate-300"
-                    />
-                    <span>
-                      I agree to the{" "}
-                      <button
-                        type="button"
-                        onClick={() => setShowTosModal(true)}
-                        className="underline"
-                      >
-                        Terms of Service
-                      </button>
-                    </span>
-                  </label>
+            <div className="rounded-lg border border-slate-200 p-4 space-y-3 bg-slate-50">
+              <label className="flex items-start gap-2 text-sm text-slate-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={tosChecked}
+                  onChange={(e) => {
+                    setTosChecked(e.target.checked);
+                    if (e.target.checked) setShowTosError(false);
+                  }}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                />
+                <span>
+                  I agree to the{" "}
+                  <button
+                    type="button"
+                    onClick={() => setShowTosModal(true)}
+                    className="underline"
+                  >
+                    Terms of Service
+                  </button>
+                </span>
+              </label>
 
-                  {showTosError && (
-                    <p className="text-xs text-red-600">You must agree to the Terms of Service to continue as a guest.</p>
-                  )}
+              {showTosError && (
+                <p className="text-xs text-red-600">You must agree to the Terms of Service to continue as a guest.</p>
+              )}
 
-                  <Button onClick={handleGuestContinue} variant="outline" className="w-full text-slate-700">
-                    Continue as Guest
-                  </Button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle>Choose account type</DialogTitle>
-                <DialogDescription>
-                  Continue to log in or sign up. Business owners can create a vendor account after choosing this option.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-3">
-                <Button onClick={onLogin} className="w-full">
-                  Continue to Log In / Sign Up
-                </Button>
-                <div className="rounded-lg border border-[#2C4F4E]/20 bg-white p-3">
-                  <p className="text-xs font-semibold text-[#2C4F4E]">For businesses, vendors, and organizers</p>
-                  <Button onClick={handleVendorSignup} variant="outline" size="sm" className="mt-2 w-full border-[#2C4F4E]/30 text-[#2C4F4E]">
-                    Create Vendor Account
-                  </Button>
-                </div>
-                <Button onClick={() => setScreen("welcome")} variant="ghost" className="w-full text-slate-600">
-                  Back
-                </Button>
-              </div>
-            </>
-          )}
+              <Button onClick={handleGuestContinue} variant="outline" className="w-full text-slate-700">
+                Continue as Guest
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
