@@ -128,10 +128,10 @@ export default function VendorDashboard() {
     <div className="w-full min-h-screen overflow-x-hidden bg-[#FBFAF7]">
       <Tabs defaultValue="profile" className="space-y-0 min-w-0">
         <div className="bg-[#5DADA5] text-white">
-          <div className="max-w-7xl mx-auto w-full px-3 sm:px-5 lg:px-6 pt-4 sm:pt-5">
+          <div className="max-w-7xl mx-auto w-full px-3 sm:px-5 lg:px-6 pt-2 sm:pt-5">
             <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
 
-            <div className="mt-4 sm:mt-6 -mx-3 sm:mx-0 overflow-x-auto">
+            <div className="mt-2 sm:mt-6 -mx-3 sm:mx-0 overflow-x-auto">
               <TabsList className="flex w-max min-w-full bg-transparent p-0 h-auto justify-start rounded-none">
                 <TabsTrigger value="profile" className="min-w-[7.5rem] flex-1 rounded-t-2xl rounded-b-none px-3 sm:px-4 py-3 text-xs sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">My Page</TabsTrigger>
                 <TabsTrigger value="pins" className="min-w-[9rem] flex-1 rounded-t-2xl rounded-b-none px-3 sm:px-4 py-3 text-xs sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">My Trucks / Pins</TabsTrigger>
