@@ -82,6 +82,7 @@ export default function VendorDashboard() {
   }
 
   const heroProfile = {
+    id: account.id,
     business_name: account.business_name,
     logo_url: account.business_logo,
     tier: account.vendor_tier,
@@ -95,7 +96,7 @@ export default function VendorDashboard() {
   return (
     <div className="w-full min-h-screen bg-white">
       <div className="max-w-7xl mx-auto w-full p-4 sm:p-6 space-y-6">
-        <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} />
+        <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} />
 
         <Tabs defaultValue="profile" className="space-y-5">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 rounded-2xl border border-slate-200 bg-slate-50 p-1 h-auto shadow-sm">

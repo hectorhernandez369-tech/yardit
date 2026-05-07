@@ -22,6 +22,10 @@
       "type": "string",
       "description": "Public business phone number"
     },
+    "location": {
+      "type": "string",
+      "description": "Public business location or service area"
+    },
     "email": {
       "type": "string",
       "description": "Public business email address"
