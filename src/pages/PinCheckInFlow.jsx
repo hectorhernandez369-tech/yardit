@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Loader2, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
 
-export default function PinCheckInFlow({ pin, vendorAccount, existingCheckIn, onClose, onSuccess }) {
+export default function PinCheckInFlow({ pin, vendorAccount, currentUser, existingCheckIn, onClose, onSuccess }) {
   const [latitude, setLatitude] = useState(existingCheckIn?.checkin_latitude || "");
   const [longitude, setLongitude] = useState(existingCheckIn?.checkin_longitude || "");
   const [address, setAddress] = useState(existingCheckIn?.checkin_display_address || "");
@@ -51,7 +51,7 @@ export default function PinCheckInFlow({ pin, vendorAccount, existingCheckIn, on
     const data = {
       vendor_pin_id: pin.id,
       vendor_account_id: vendorAccount.id,
-      checked_in_by_email: vendorAccount.owner_user_id,
+      checked_in_by_email: currentUser?.email || vendorAccount.owner_user_id,
       checkin_latitude: lat,
       checkin_longitude: lng,
       checkin_display_address: address,

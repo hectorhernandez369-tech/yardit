@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { getTierLimits, TIER_CONFIG } from "@/lib/tierConfig";
 
-export default function MyTrucksSection({ vendorAccount: providedVendorAccount }) {
+export default function MyTrucksSection({ vendorAccount: providedVendorAccount, currentUser: providedCurrentUser }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPin, setEditingPin] = useState(null);
   const [selectedPinHistory, setSelectedPinHistory] = useState(null);
@@ -22,11 +22,13 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount }
   const [logoUploading, setLogoUploading] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: currentUser } = useQuery({
+  const { data: loadedCurrentUser } = useQuery({
     queryKey: ["currentVendorUser"],
     queryFn: () => base44.auth.me(),
-    enabled: !providedVendorAccount?.id,
+    enabled: !providedVendorAccount?.id && !providedCurrentUser?.id,
   });
+
+  const currentUser = providedCurrentUser || loadedCurrentUser;
 
   const { data: loadedVendorAccounts = [], isLoading: loadingVendorAccount } = useQuery({
     queryKey: ["vendorAccountForTrucks", currentUser?.id, currentUser?.email],
@@ -64,7 +66,10 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount }
 
   const activePins = pins.filter((p) => p.is_active);
   const canAddPin = hasVendorAccount && activePins.length < max_pins;
+  const isOwner = currentUser?.id === vendorAccount?.owner_user_id || currentUser?.email === vendorAccount?.owner_user_id;
+  const currentAuthorizedUser = authorizedUsers.find((u) => u.authorized_email?.toLowerCase() === currentUser?.email?.toLowerCase());
   const getAssignedUsers = (pinId) => authorizedUsers.filter((u) => u.assigned_pin_ids?.includes(pinId));
+  const canCurrentUserCheckIn = (pinId) => isOwner || (currentAuthorizedUser?.assigned_pin_ids || []).includes(pinId);
 
   const syncCheckInToPublicMap = async (checkInId) => {
     await base44.functions.invoke("syncPublicMapRecord", { recordType: "vendor_pin_checkin", recordId: checkInId });
@@ -128,6 +133,18 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount }
     setLogoUploading(false);
   };
 
+  const syncPinAssignments = async (pinId, selectedUserIds) => {
+    await Promise.all(authorizedUsers.map((authorizedUser) => {
+      const assignedPins = authorizedUser.assigned_pin_ids || [];
+      const shouldAssign = selectedUserIds.includes(authorizedUser.id);
+      const nextAssignedPins = shouldAssign
+        ? [...new Set([...assignedPins, pinId])]
+        : assignedPins.filter((id) => id !== pinId);
+
+      return base44.entities.VendorAuthorizedUser.update(authorizedUser.id, { assigned_pin_ids: nextAssignedPins });
+    }));
+  };
+
   const handleSavePin = async () => {
     if (!formData.pin_name.trim()) return toast.error("Truck/pin name is required");
     setSaving(true);
@@ -137,23 +154,28 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount }
         description: formData.description.trim(),
         is_active: formData.is_active,
         pin_logo_url: formData.pin_logo_url,
+        assigned_users: authorizedUsers.filter((u) => formData.assigned_users.includes(u.id)).map((u) => u.authorized_email),
       });
+      await syncPinAssignments(editingPin.id, formData.assigned_users);
       toast.success("Truck profile updated!");
     } else {
       if (!canAddPin) {
         setSaving(false);
         return toast.error(`You've reached your limit of ${max_pins} truck pin(s).`);
       }
-      await base44.entities.VendorPin.create({
+      const newPin = await base44.entities.VendorPin.create({
         vendor_account_id: vendorAccount.id,
         pin_name: formData.pin_name.trim(),
         description: formData.description.trim(),
         is_active: true,
         pin_logo_url: formData.pin_logo_url,
+        assigned_users: authorizedUsers.filter((u) => formData.assigned_users.includes(u.id)).map((u) => u.authorized_email),
       });
+      await syncPinAssignments(newPin.id, formData.assigned_users);
       toast.success("Truck profile created!");
     }
     queryClient.invalidateQueries({ queryKey: ["vendorPins"] });
+    queryClient.invalidateQueries({ queryKey: ["authorizedUsers"] });
     setShowAddForm(false);
     setSaving(false);
   };
@@ -192,7 +214,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount }
                 <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(pin)}><Edit2 className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" onClick={() => handleDeletePin(pin.id)}><Trash2 className="w-4 h-4" /></Button>
               </div>
-              <Button onClick={() => setCheckingInPin(pin)} className="w-full rounded-xl gap-2"><MapPin className="w-4 h-4" />{status === "Live Now" || status === "Paused" ? "Update Pin Location" : "Drop Your Pin"}</Button>
+              <Button onClick={() => setCheckingInPin(pin)} disabled={!canCurrentUserCheckIn(pin.id)} className="w-full rounded-xl gap-2"><MapPin className="w-4 h-4" />{canCurrentUserCheckIn(pin.id) ? (status === "Live Now" || status === "Paused" ? "Update Pin Location" : "Drop Your Pin") : "Not Assigned To You"}</Button>
               {(status === "Live Now" || status === "Paused") && <div className="flex gap-2">{status === "Live Now" ? <Button variant="outline" onClick={() => handlePause(lastCheckIn)} className="flex-1"><PauseCircle className="w-4 h-4" /> Pause</Button> : <Button variant="outline" onClick={() => handleResume(lastCheckIn)} className="flex-1"><PlayCircle className="w-4 h-4" /> Resume</Button>}<Button variant="outline" onClick={() => handleTakeOffline(lastCheckIn)} className="flex-1"><XCircle className="w-4 h-4" /> Offline</Button></div>}
               <p className="text-xs text-muted-foreground">Status: {status}{lastCheckIn ? ` • ${formatDistanceToNow(new Date(lastCheckIn.created_date), { addSuffix: true })}` : ""}</p>
               {assignedUsers.length > 0 && <p className="text-xs text-muted-foreground">Assigned: {assignedUsers.map((u) => u.authorized_email).join(", ")}</p>}
@@ -201,8 +223,8 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount }
         </div>
       )}
 
-      <Dialog open={showAddForm} onOpenChange={setShowAddForm}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>{editingPin ? "Edit Truck Profile" : "Create Truck Profile"}</DialogTitle></DialogHeader><div className="space-y-4"><Input value={formData.pin_name} onChange={(e) => setFormData({ ...formData, pin_name: e.target.value })} placeholder="Truck/Pin name" /><Input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={handleLogoUpload} disabled={logoUploading} /><Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Description" /><div className="flex items-center justify-between"><span className="text-sm">Active</span><Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} /></div><Button onClick={handleSavePin} disabled={saving} className="w-full">{saving ? "Saving..." : "Save"}</Button></div></DialogContent></Dialog>
-      {checkingInPin && <PinCheckInFlow pin={checkingInPin} vendorAccount={vendorAccount} existingCheckIn={getPinStatus(checkingInPin.id).lastCheckIn} onClose={() => setCheckingInPin(null)} onSuccess={() => { setCheckingInPin(null); queryClient.invalidateQueries({ queryKey: ["vendorPinCheckIns"] }); }} />}
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>{editingPin ? "Edit Truck Profile" : "Create Truck Profile"}</DialogTitle></DialogHeader><div className="space-y-4"><Input value={formData.pin_name} onChange={(e) => setFormData({ ...formData, pin_name: e.target.value })} placeholder="Truck/Pin name" /><Input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={handleLogoUpload} disabled={logoUploading} /><Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Description" /><div className="rounded-2xl border p-3 space-y-2"><p className="text-sm font-semibold">Assigned authorized users</p>{authorizedUsers.length ? authorizedUsers.map((authorizedUser) => <label key={authorizedUser.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.assigned_users.includes(authorizedUser.id)} onChange={(e) => setFormData({ ...formData, assigned_users: e.target.checked ? [...formData.assigned_users, authorizedUser.id] : formData.assigned_users.filter((id) => id !== authorizedUser.id) })} />{authorizedUser.first_name || authorizedUser.last_name ? `${authorizedUser.first_name || ""} ${authorizedUser.last_name || ""}`.trim() : authorizedUser.authorized_email}<span className="text-xs text-muted-foreground">{authorizedUser.authorized_email}</span></label>) : <p className="text-xs text-muted-foreground">Add authorized users before assigning them to this truck.</p>}</div><div className="flex items-center justify-between"><span className="text-sm">Active</span><Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} /></div><Button onClick={handleSavePin} disabled={saving} className="w-full">{saving ? "Saving..." : "Save"}</Button></div></DialogContent></Dialog>
+      {checkingInPin && <PinCheckInFlow pin={checkingInPin} vendorAccount={vendorAccount} currentUser={currentUser} existingCheckIn={getPinStatus(checkingInPin.id).lastCheckIn} onClose={() => setCheckingInPin(null)} onSuccess={() => { setCheckingInPin(null); queryClient.invalidateQueries({ queryKey: ["vendorPinCheckIns"] }); }} />}
       {selectedPinHistory && <Dialog open onOpenChange={() => setSelectedPinHistory(null)}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>Check-In History: {selectedPinHistory.pin_name}</DialogTitle></DialogHeader>{allCheckIns.filter((c) => c.vendor_pin_id === selectedPinHistory.id).map((checkIn) => <div key={checkIn.id} className="bg-muted/30 rounded-xl p-3 text-xs"><Clock className="w-4 h-4 inline mr-1" /> {checkIn.status} • {checkIn.checkin_display_address || `${checkIn.checkin_latitude}, ${checkIn.checkin_longitude}`}</div>)}</DialogContent></Dialog>}
     </div>
   );

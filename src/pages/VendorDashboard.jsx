@@ -132,7 +132,7 @@ export default function VendorDashboard() {
           <VendorPinStatusBar pins={pins} checkIns={checkIns} />
 
           <TabsContent value="profile"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
-          <TabsContent value="pins"><MyTrucksSection vendorAccount={account} /></TabsContent>
+          <TabsContent value="pins"><MyTrucksSection vendorAccount={account} currentUser={user} /></TabsContent>
           <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} pins={pins} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="tier"><VendorBillingTab account={account} /></TabsContent>
           <TabsContent value="updates"><VendorUpdatesTab account={account} updates={updates} user={user} onRefresh={refreshDashboard} /></TabsContent>
