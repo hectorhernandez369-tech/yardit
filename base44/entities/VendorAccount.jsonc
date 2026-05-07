@@ -111,6 +111,16 @@
       "default": "setup_required",
       "description": "Vendor onboarding/setup status"
     },
+    "setup_tier_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the vendor confirmed their setup tier selection"
+    },
+    "setup_dashboard_entered": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the vendor entered the dashboard during setup"
+    },
     "extra_users_count": {
       "type": "number",
       "default": 0,

@@ -4,6 +4,7 @@ import VendorActivePinPreview from "@/components/vendor/my-page/VendorActivePinP
 import VendorUpdatesPanel from "@/components/vendor/my-page/VendorUpdatesPanel";
 import VendorPublicPreview from "@/components/vendor/my-page/VendorPublicPreview";
 import VendorPhotoGallery from "@/components/vendor/my-page/VendorPhotoGallery";
+import VendorDetailsForm from "@/components/vendor/my-page/VendorDetailsForm";
 
 export default function VendorBusinessPage({ account, pins, checkIns, updates, onRefresh }) {
   const [previewMode, setPreviewMode] = useState(false);
@@ -48,6 +49,7 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
 
       <div className="grid min-w-0 gap-2 sm:gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.75fr)]">
         <div className="space-y-2 sm:space-y-5 min-w-0">
+          <VendorDetailsForm account={account} onRefresh={onRefresh} />
           <VendorUpdatesPanel account={account} updates={updates} onRefresh={onRefresh} />
         </div>
         <div className="space-y-2 sm:space-y-5 min-w-0">

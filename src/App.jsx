@@ -16,6 +16,7 @@ import PrintableChecklist from './pages/PrintableChecklist';
 import VendorPinPreview from './pages/VendorPinPreview';
 import VendorPublicPage from './pages/VendorPublicPage';
 import VendorSignup from './pages/VendorSignup';
+import VendorSetup from './pages/VendorSetup';
 import AccountOptions from './pages/AccountOptions';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -108,6 +109,7 @@ const AuthenticatedApp = () => {
         ))}
         <Route path="/VendorDashboard" element={<LayoutWrapper currentPageName="VendorDashboard"><VendorDashboard /></LayoutWrapper>} />
         <Route path="/VendorSignup" element={<LayoutWrapper currentPageName="VendorSignup"><VendorSignup /></LayoutWrapper>} />
+        <Route path="/VendorSetup" element={<LayoutWrapper currentPageName="VendorSetup"><VendorSetup /></LayoutWrapper>} />
         <Route path="/AccountOptions" element={<LayoutWrapper currentPageName="AccountOptions"><AccountOptions /></LayoutWrapper>} />
         <Route path="/VendorPinPreview" element={<LayoutWrapper currentPageName="VendorPinPreview"><VendorPinPreview /></LayoutWrapper>} />
         <Route path="/VendorPublicPage" element={<LayoutWrapper currentPageName="VendorPublicPage"><VendorPublicPage /></LayoutWrapper>} />

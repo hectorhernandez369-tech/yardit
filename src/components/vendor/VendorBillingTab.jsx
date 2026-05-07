@@ -14,16 +14,22 @@ export default function VendorBillingTab({ account, onRefresh }) {
   const currentTierIndex = TIER_ORDER.indexOf(account?.vendor_tier || "free");
 
   const handleChangeTier = async (tierKey) => {
-    if (!account?.id || tierKey === account.vendor_tier) return;
+    if (!account?.id) return;
+    if (tierKey === account.vendor_tier) {
+      await base44.entities.VendorAccount.update(account.id, { vendor_tier_confirmed: true, vendor_setup_status: "in_progress" });
+      toast.success(`${VENDOR_TIERS[tierKey].label} plan confirmed`);
+      await onRefresh?.();
+      return;
+    }
     setChangingTier(tierKey);
-    await base44.entities.VendorAccount.update(account.id, { vendor_tier: tierKey });
+    await base44.entities.VendorAccount.update(account.id, { vendor_tier: tierKey, vendor_tier_confirmed: true, vendor_setup_status: "in_progress" });
     toast.success(`Plan changed to ${VENDOR_TIERS[tierKey].label}`);
     await onRefresh?.();
     setChangingTier("");
   };
 
   return (
-    <div className="space-y-6">
+    <div id="vendor-tier-section" className="space-y-6">
       <div className="grid min-w-0 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {Object.entries(VENDOR_TIERS).map(([key, tier]) => (
         <Card key={key} className={account?.vendor_tier === key ? "rounded-2xl border-2 border-[#F4A849] bg-[#FFF7E8] shadow-md overflow-hidden" : "rounded-2xl border-[#2C4F4E]/20 bg-white shadow-sm overflow-hidden"}>
@@ -48,7 +54,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
             {key !== "free" && key !== "starter" && <p>Extra users: {tier.extraUserPrice} each</p>}
             {key !== "free" && key !== "starter" && <p>Extra pins: {tier.extraPinPrice} each</p>}
             {account?.vendor_tier === key ? (
-              <Button disabled variant="outline" className="w-full mt-3">Current Plan</Button>
+              <Button onClick={() => handleChangeTier(key)} variant="outline" className="w-full mt-3">{account?.vendor_tier_confirmed ? "Current Plan" : "Confirm This Plan"}</Button>
             ) : (
               <Button onClick={() => handleChangeTier(key)} disabled={!!changingTier} className="w-full mt-3">
                 {changingTier === key ? "Updating..." : TIER_ORDER.indexOf(key) > currentTierIndex ? `Upgrade to ${tier.label}` : `Downgrade to ${tier.label}`}

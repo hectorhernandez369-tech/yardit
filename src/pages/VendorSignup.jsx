@@ -7,12 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle, Building2, CheckCircle2, Loader2, MapPin } from "lucide-react";
 import AddressFields from "@/components/shared/AddressFields";
+import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
 import { toast } from "sonner";
 
 const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 const EIN_PATTERN = /^\d{2}-\d{7}$/;
-
-const setupSteps = ["Business Info", "Create First Vendor Pin", "Upload Logo", "Choose Tier", "Enter Vendor Dashboard"];
 
 async function geocodeResidentialAddress(form) {
   const query = `${form.street_address}, ${form.city}, ${form.state}, ${form.zip_code}`;
@@ -40,6 +39,7 @@ export default function VendorSignup() {
     business_city: "",
     business_state: "",
     business_zip_code: "",
+    description: "",
     website: "",
     phone: "",
     facebook_url: "",
@@ -102,6 +102,7 @@ export default function VendorSignup() {
       business_name: businessForm.business_name.trim(),
       business_category: businessForm.business_category.trim(),
       business_tax_id: businessForm.business_tax_id.trim(),
+      description: businessForm.description?.trim() || "",
       business_street_address: businessForm.business_street_address.trim(),
       business_city: businessForm.business_city.trim(),
       business_state: businessForm.business_state,
@@ -182,6 +183,7 @@ export default function VendorSignup() {
                   <div className="space-y-2 sm:col-span-2"><Label>Business Name *</Label><Input value={businessForm.business_name} onChange={(e) => setBusinessForm({ ...businessForm, business_name: e.target.value })} placeholder="Business or organization name" /></div>
                   <div className="space-y-2"><Label>Business Category *</Label><Input value={businessForm.business_category} onChange={(e) => setBusinessForm({ ...businessForm, business_category: e.target.value })} placeholder="Food truck, nonprofit, event host..." /></div>
                   <div className="space-y-2"><Label>EIN / 501(c)(3) / Tax ID *</Label><Input value={businessForm.business_tax_id} onChange={(e) => setBusinessForm({ ...businessForm, business_tax_id: e.target.value })} placeholder="12-3456789" /></div>
+                  <div className="space-y-2 sm:col-span-2"><Label>Business Description</Label><Input value={businessForm.description} onChange={(e) => setBusinessForm({ ...businessForm, description: e.target.value })} placeholder="What do you offer?" /></div>
                   <div className="space-y-2 sm:col-span-2"><Label>Website</Label><Input value={businessForm.website} onChange={(e) => setBusinessForm({ ...businessForm, website: e.target.value })} placeholder="https://example.com" /></div>
                   <div className="space-y-2"><Label>Phone</Label><Input value={businessForm.phone} onChange={(e) => setBusinessForm({ ...businessForm, phone: e.target.value })} placeholder="Business phone" /></div>
                   <div className="space-y-2"><Label>Instagram</Label><Input value={businessForm.instagram_url} onChange={(e) => setBusinessForm({ ...businessForm, instagram_url: e.target.value })} placeholder="Instagram URL" /></div>
@@ -209,10 +211,17 @@ export default function VendorSignup() {
             {step === 4 && (
               <div className="space-y-4">
                 <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-800"><CheckCircle2 className="mb-2 h-5 w-5" /><p className="font-bold">Complete Your Vendor Setup</p><p className="text-sm">Your vendor account is ready on the Free tier. Finish setup when you’re ready.</p></div>
-                <div className="grid gap-2">
-                  {setupSteps.map((item, index) => <div key={item} className="rounded-xl border bg-white px-4 py-3 text-sm"><span className="mr-2 font-bold text-[#5DADA5]">{index + 1}.</span>{item}</div>)}
+                <VendorSetupProgress
+                  account={createdAccount}
+                  pins={[]}
+                  onStepClick={(setupStep) => navigate(`/VendorDashboard?setupStep=${setupStep.key}&tab=${setupStep.tab}`)}
+                  onContinue={() => navigate("/VendorDashboard?setupStep=business&tab=profile")}
+                />
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Button onClick={() => setStep(3)} variant="outline" className="w-full rounded-xl">Back</Button>
+                  <Button onClick={() => navigate("/VendorDashboard?setupStep=business&tab=profile")} className="w-full rounded-xl bg-[#5DADA5] hover:bg-[#4A9B93]">Next</Button>
+                  <Button onClick={() => navigate("/VendorDashboard")} variant="outline" className="w-full rounded-xl bg-white">Finish Later</Button>
                 </div>
-                <Button onClick={() => navigate("/VendorDashboard")} className="w-full rounded-xl bg-[#5DADA5] hover:bg-[#4A9B93]">Enter Vendor Dashboard</Button>
               </div>
             )}
           </CardContent>

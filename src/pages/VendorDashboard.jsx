@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Loader2, Store } from "lucide-react";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import MobileVendorHeader from "@/components/vendor/MobileVendorHeader";
@@ -13,11 +14,16 @@ import VendorPinStatusBar from "@/components/vendor/VendorPinStatusBar";
 import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
 import VendorPortalGate from "@/components/vendor/VendorPortalGate";
+import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
+import { getVendorSetupProgress, VENDOR_SETUP_STEPS } from "@/lib/vendorSetupProgress";
 import { hasValidVendorPortalSession } from "@/lib/vendorPasscode";
 
 export default function VendorDashboard() {
   const queryClient = useQueryClient();
   const [portalUnlocked, setPortalUnlocked] = useState(false);
+  const [activeTab, setActiveTab] = useState(new URLSearchParams(window.location.search).get("tab") || "profile");
+  const [activeSetupKey, setActiveSetupKey] = useState(new URLSearchParams(window.location.search).get("setupStep") || "");
+  const [setupReminderDismissed, setSetupReminderDismissed] = useState(false);
 
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ["vendorDashboardUser"],
@@ -82,6 +88,22 @@ export default function VendorDashboard() {
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardUpdates"] });
   };
 
+  const goToSetupStep = (setupStep) => {
+    setActiveTab(setupStep.tab);
+    setActiveSetupKey(setupStep.key);
+    window.history.replaceState(null, "", `/VendorDashboard?setupStep=${setupStep.key}&tab=${setupStep.tab}`);
+    setTimeout(() => {
+      document.getElementById(setupStep.targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+  };
+
+  const markDashboardEntered = async () => {
+    if (account?.id && account.vendor_dashboard_entered !== true) {
+      await base44.entities.VendorAccount.update(account.id, { vendor_dashboard_entered: true, vendor_setup_status: "in_progress" });
+      refreshDashboard();
+    }
+  };
+
   useEffect(() => {
     if (isOwner || (account?.id && user?.email && hasValidVendorPortalSession(account.id, user.email))) {
       setPortalUnlocked(true);
@@ -89,6 +111,28 @@ export default function VendorDashboard() {
       setPortalUnlocked(false);
     }
   }, [account?.id, user?.email, isOwner]);
+
+  useEffect(() => {
+    if (!portalUnlocked || !account?.id) return;
+    markDashboardEntered();
+  }, [portalUnlocked, account?.id]);
+
+  useEffect(() => {
+    if (!portalUnlocked || !account?.id) return;
+    const progressAccount = { ...account, vendor_dashboard_entered: true };
+    const progress = getVendorSetupProgress(progressAccount, pins);
+    if (progress.isComplete && account.vendor_setup_status !== "complete") {
+      base44.entities.VendorAccount.update(account.id, { vendor_dashboard_entered: true, vendor_setup_status: "complete" }).then(refreshDashboard);
+    }
+  }, [portalUnlocked, account?.id, pins.length, account?.vendor_setup_status, account?.vendor_tier_confirmed, account?.business_logo, account?.description, account?.phone, account?.business_street_address, account?.business_city, account?.business_state, account?.business_zip_code]);
+
+  useEffect(() => {
+    if (!portalUnlocked) return;
+    const params = new URLSearchParams(window.location.search);
+    const setupKey = params.get("setupStep");
+    const setupStep = VENDOR_SETUP_STEPS.find((item) => item.key === setupKey);
+    if (setupStep) goToSetupStep(setupStep);
+  }, [portalUnlocked]);
 
   if (loadingUser || loadingAccount) {
     return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" /></div>;
@@ -121,6 +165,7 @@ export default function VendorDashboard() {
   };
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
   const activePin = activeCheckIn ? pins.find((pin) => pin.id === activeCheckIn.vendor_pin_id) : null;
+  const activeSetupIndex = VENDOR_SETUP_STEPS.findIndex((item) => item.key === activeSetupKey);
 
   if (!portalUnlocked) {
     return <VendorPortalGate account={account} authorizedUser={authorizedAccessRecord} user={user} onUnlock={() => setPortalUnlocked(true)} />;
@@ -128,7 +173,7 @@ export default function VendorDashboard() {
 
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-[#FBFAF7]">
-      <Tabs defaultValue="profile" className="space-y-0 min-w-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0 min-w-0">
         <div className="bg-[#5DADA5] text-white">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-5">
             <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} />
@@ -148,7 +193,25 @@ export default function VendorDashboard() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-2 sm:space-y-6">
+        <div id="vendor-dashboard-main" className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-2 sm:space-y-6">
+          {!setupReminderDismissed && account?.vendor_setup_status !== "complete" && (
+            <div className="space-y-3">
+              <VendorSetupProgress
+                account={{ ...account, vendor_dashboard_entered: true }}
+                pins={pins}
+                onStepClick={goToSetupStep}
+                onContinue={() => goToSetupStep(getVendorSetupProgress({ ...account, vendor_dashboard_entered: true }, pins).nextIncompleteStep)}
+                onDismiss={() => setSetupReminderDismissed(true)}
+              />
+              {activeSetupIndex >= 0 && (
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Button variant="outline" className="w-full rounded-xl bg-white" disabled={activeSetupIndex === 0} onClick={() => goToSetupStep(VENDOR_SETUP_STEPS[activeSetupIndex - 1])}>Back</Button>
+                  <Button className="w-full rounded-xl bg-[#5DADA5] hover:bg-[#4A9B93]" disabled={activeSetupIndex === VENDOR_SETUP_STEPS.length - 1} onClick={() => goToSetupStep(VENDOR_SETUP_STEPS[activeSetupIndex + 1])}>Next</Button>
+                  <Button variant="outline" className="w-full rounded-xl bg-white" onClick={() => { setActiveSetupKey(""); window.history.replaceState(null, "", "/VendorDashboard"); }}>Finish Later</Button>
+                </div>
+              )}
+            </div>
+          )}
           <div className="hidden sm:block">
             <VendorPinStatusBar pins={pins} checkIns={checkIns} />
           </div>
