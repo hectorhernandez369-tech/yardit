@@ -1,534 +1,576 @@
-import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MapPin, ArrowLeft, Loader2, Map, Lock, Users, Edit2, Check, X } from "lucide-react";
-import { Link } from "react-router-dom";
-import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
+import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Truck, Plus, Loader2, Trash2, MapPin, AlertCircle, Edit2, Clock, History, PauseCircle, PlayCircle, XCircle } from "lucide-react";
+import PinCheckInFlow from "./PinCheckInFlow";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { getTierLimits, TIER_CONFIG } from "@/lib/tierConfig";
 
-import BusinessHero from "@/components/vendor/BusinessHero";
-import QuickActions from "@/components/vendor/QuickActions";
-import FeedComposer from "@/components/vendor/FeedComposer";
-import FeedCard from "@/components/vendor/FeedCard";
-import TierSelector from "@/components/vendor/TierSelector";
-import OnboardingFlow from "@/components/vendor/OnboardingFlow";
-import NotificationBell from "@/components/vendor/NotificationBell";
-import AuthorizedUsersSection from "@/components/vendor/AuthorizedUsersSection";
-import TierInfoCard from "@/components/vendor/TierInfoCard";
-import MyTrucksSection from "@/components/vendor/MyTrucksSection";
-import CheckInProfileEditor from "@/components/vendor/CheckInProfileEditor";
-import CheckInHistory from "@/components/vendor/CheckInHistory";
-
-export default function VendorDashboard() {
-  const [activeTab, setActiveTab] = useState("page");
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [userEmail, setUserEmail] = useState("");
-  const [userData, setUserData] = useState(null);
-  const [editingField, setEditingField] = useState(null);
-  const [editValues, setEditValues] = useState({});
-  const [savingEdit, setSavingEdit] = useState(false);
+export default function MyTrucksSection({ vendorAccount }) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingPin, setEditingPin] = useState(null);
+  const [selectedPinHistory, setSelectedPinHistory] = useState(null);
+  const [checkingInPin, setCheckingInPin] = useState(null);
+  const [formData, setFormData] = useState({ pin_name: "", description: "", is_active: true, pin_logo_url: "", assigned_users: [] });
+  const [saving, setSaving] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    base44.auth.me().then((u) => {
-      setUserEmail(u?.email || "");
-      setUserData(u);
-    });
-  }, []);
+  const tierConfig = TIER_CONFIG[vendorAccount.vendor_tier];
+  const { max_pins } = getTierLimits(vendorAccount.vendor_tier, vendorAccount.extra_pins_count || 0);
 
-  // Fetch or create vendor profile
-  const { data: profiles, isLoading: loadingProfile } = useQuery({
-    queryKey: ["vendorProfile"],
-    queryFn: () => base44.entities.VendorProfile.filter({ created_by: userEmail }),
-    enabled: !!userEmail,
-  });
-
-  const profile = profiles?.[0];
-
-  // Fetch or create vendor account
-  const { data: vendorAccounts, isLoading: loadingAccount } = useQuery({
-    queryKey: ["vendorAccount"],
-    queryFn: () => base44.entities.VendorAccount.filter({ owner_user_id: userEmail }),
-    enabled: !!userEmail,
-  });
-
-  const vendorAccount = vendorAccounts?.[0];
-
-  const createProfileMutation = useMutation({
-    mutationFn: (data) => base44.entities.VendorProfile.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vendorProfile"] }),
-  });
-
-  const createAccountMutation = useMutation({
-    mutationFn: (data) => base44.entities.VendorAccount.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vendorAccount"] }),
-  });
-
-  // Show onboarding for brand new vendors
-  useEffect(() => {
-    if (!loadingProfile && userEmail && profiles && profiles.length === 0) {
-      setShowOnboarding(true);
-    }
-  }, [loadingProfile, userEmail, profiles]);
-
-  // Auto-create vendor account if it doesn't exist
-  useEffect(() => {
-    if (!loadingAccount && userEmail && vendorAccounts && vendorAccounts.length === 0 && profile) {
-      createAccountMutation.mutate({
-        business_name: profile.business_name || "My Business",
-        owner_user_id: userEmail,
-        vendor_tier: profile.tier || "starter",
-        is_active: true,
-      });
-    }
-  }, [loadingAccount, userEmail, vendorAccounts, profile]);
-
-  const handleOnboardingComplete = (data) => {
-    createProfileMutation.mutate({
-      business_name: data.business_name || "My Business",
-      category: data.category || undefined,
-      description: data.description || undefined,
-      tier: "starter",
-    });
-    setShowOnboarding(false);
-  };
-
-  // Fetch updates
-  const { data: updates = [] } = useQuery({
-    queryKey: ["vendorUpdates", profile?.id],
-    queryFn: () => base44.entities.VendorUpdate.filter({ vendor_profile_id: profile.id }, "-created_date"),
-    enabled: !!profile?.id,
-  });
-
-  // Active pin check-ins (new system)
-  const { data: activePinCheckIns = [] } = useQuery({
-    queryKey: ["activePinCheckIns", vendorAccount?.id],
-    queryFn: () => base44.entities.VendorPinCheckIn.filter({ vendor_account_id: vendorAccount.id, status: "live" }),
+  // Fetch truck pin profiles
+  const { data: pins = [] } = useQuery({
+    queryKey: ["vendorPins", vendorAccount.id],
+    queryFn: () => base44.entities.VendorPin.filter({ vendor_account_id: vendorAccount.id }),
     enabled: !!vendorAccount?.id,
-    refetchInterval: 60000,
-  });
-  const now = new Date();
-  const activePinCheckIn = activePinCheckIns.find(
-    (c) => c.checkin_end_time && new Date(c.checkin_end_time) > now
-  );
-
-  // Mutations
-  const postUpdateMutation = useMutation({
-    mutationFn: (text) => base44.entities.VendorUpdate.create({ vendor_profile_id: profile.id, text, likes: 0, liked_by: [] }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendorUpdates"] });
-      toast.success("Update posted!");
-    },
   });
 
-  const likeMutation = useMutation({
-    mutationFn: (update) => {
-      const isLiked = update.liked_by?.includes(userEmail);
-      const newLikedBy = isLiked
-        ? (update.liked_by || []).filter((e) => e !== userEmail)
-        : [...(update.liked_by || []), userEmail];
-      return base44.entities.VendorUpdate.update(update.id, {
-        liked_by: newLikedBy,
-        likes: newLikedBy.length,
-      });
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vendorUpdates"] }),
+  // Fetch all check-ins for all pins
+  const { data: allCheckIns = [] } = useQuery({
+    queryKey: ["vendorPinCheckIns", vendorAccount.id],
+    queryFn: () => base44.entities.VendorPinCheckIn.filter({ vendor_account_id: vendorAccount.id }, "-created_date"),
+    enabled: !!vendorAccount?.id,
   });
 
-  const tierMutation = useMutation({
-    mutationFn: async (tier) => {
-      await base44.entities.VendorProfile.update(profile.id, { tier });
-      if (vendorAccount) {
-        await base44.entities.VendorAccount.update(vendorAccount.id, { vendor_tier: tier });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendorProfile"] });
-      queryClient.invalidateQueries({ queryKey: ["vendorAccount"] });
-      toast.success("Tier updated!");
-    },
+  // Fetch authorized users
+  const { data: authorizedUsers = [] } = useQuery({
+    queryKey: ["authorizedUsers", vendorAccount.id],
+    queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: vendorAccount.id, status: "active" }),
+    enabled: !!vendorAccount?.id,
   });
 
-  const handleProfileUpdate = (updated) => {
-    queryClient.setQueryData(["vendorProfile"], [updated]);
+  const activePins = pins.filter((p) => p.is_active);
+  const canAddPin = activePins.length < max_pins;
+
+  // Get assigned users for a pin
+  const getAssignedUsers = (pinId) => {
+    return authorizedUsers.filter((u) => u.assigned_pin_ids?.includes(pinId));
   };
 
-  const startEdit = (field, value) => {
-    setEditingField(field);
-    setEditValues({ [field]: value });
-  };
+  // Get current status and last check-in for a pin
+  const getPinStatus = (pinId) => {
+    const checkIns = allCheckIns.filter((c) => c.vendor_pin_id === pinId);
+    if (checkIns.length === 0) return { status: "Offline", lastCheckIn: null };
 
-  const saveEdit = async () => {
-    setSavingEdit(true);
-    try {
-      const updates = {};
-      const fieldToKey = {
-        business_name: "business_name",
-        phone: "phone",
-        full_name: "full_name",
-      };
-      const key = fieldToKey[editingField];
-      
-      if (editingField === "full_name") {
-        await base44.auth.updateMe({ full_name: editValues[editingField] });
-        setUserData({ ...userData, full_name: editValues[editingField] });
-      } else {
-        updates[key] = editValues[editingField];
-        await base44.entities.VendorProfile.update(profile.id, updates);
-        queryClient.invalidateQueries({ queryKey: ["vendorProfile"] });
-      }
-      
-      toast.success("Updated successfully!");
-      setEditingField(null);
-    } catch (err) {
-      toast.error(err.message || "Failed to save");
-    } finally {
-      setSavingEdit(false);
+    const sortedByDate = [...checkIns].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+    const latest = sortedByDate[0];
+    const now = new Date();
+    const endTime = latest.checkin_end_time ? new Date(latest.checkin_end_time) : null;
+
+    if (latest.status === "paused" && endTime && endTime > now) {
+      return { status: "Paused", lastCheckIn: latest };
+    } else if (latest.status === "live" && endTime && endTime > now) {
+      return { status: "Live Now", lastCheckIn: latest };
+    } else if (latest.status === "live" && endTime && endTime <= now) {
+      base44.entities.VendorPinCheckIn.update(latest.id, { status: "expired" }).then(() => syncCheckInToPublicMap(latest.id));
+      return { status: "Expired", lastCheckIn: latest };
+    } else if (latest.status === "expired" || latest.status === "ended") {
+      return { status: "Offline", lastCheckIn: latest };
+    } else {
+      return { status: "Offline", lastCheckIn: latest };
     }
   };
 
-  const cancelEdit = () => {
-    setEditingField(null);
-    setEditValues({});
+  const syncCheckInToPublicMap = async (checkInId) => {
+    await base44.functions.invoke("syncPublicMapRecord", {
+      recordType: "vendor_pin_checkin",
+      recordId: checkInId,
+    });
   };
 
-  if (showOnboarding) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
-  }
+  const handlePause = async (checkIn) => {
+    await base44.entities.VendorPinCheckIn.update(checkIn.id, { status: "paused" });
+    await syncCheckInToPublicMap(checkIn.id);
+    queryClient.invalidateQueries({ queryKey: ["vendorPinCheckIns"] });
+    queryClient.invalidateQueries({ queryKey: ["activePinCheckIns"] });
+  };
 
-  if (loadingProfile || !profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const handleResume = async (checkIn) => {
+    await base44.entities.VendorPinCheckIn.update(checkIn.id, { status: "live" });
+    await syncCheckInToPublicMap(checkIn.id);
+    queryClient.invalidateQueries({ queryKey: ["vendorPinCheckIns"] });
+    queryClient.invalidateQueries({ queryKey: ["activePinCheckIns"] });
+  };
+
+  const handleTakeOffline = async (checkIn) => {
+    await base44.entities.VendorPinCheckIn.update(checkIn.id, { status: "ended" });
+    await syncCheckInToPublicMap(checkIn.id);
+    queryClient.invalidateQueries({ queryKey: ["vendorPinCheckIns"] });
+    queryClient.invalidateQueries({ queryKey: ["activePinCheckIns"] });
+  };
+
+  const handleOpenAdd = () => {
+    setEditingPin(null);
+    setFormData({ pin_name: "", description: "", is_active: true, pin_logo_url: "" });
+    setShowAddForm(true);
+  };
+
+  const handleOpenEdit = (pin) => {
+    setEditingPin(pin);
+    const assignedUserIds = authorizedUsers
+      .filter((u) => u.assigned_pin_ids?.includes(pin.id))
+      .map((u) => u.id);
+    setFormData({
+      pin_name: pin.pin_name || "",
+      description: pin.description || "",
+      is_active: pin.is_active !== false,
+      pin_logo_url: pin.pin_logo_url || "",
+      assigned_users: assignedUserIds,
+    });
+    setShowAddForm(true);
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2MB");
+      return;
+    }
+    if (!["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(file.type)) {
+      toast.error("Only PNG, JPG, or WebP allowed");
+      return;
+    }
+
+    setLogoUploading(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    setFormData({ ...formData, pin_logo_url: file_url });
+    setLogoUploading(false);
+    toast.success("Logo uploaded");
+  };
+
+  const handleSavePin = async () => {
+    if (!formData.pin_name.trim()) {
+      toast.error("Truck/pin name is required");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (editingPin) {
+        await base44.entities.VendorPin.update(editingPin.id, {
+          pin_name: formData.pin_name.trim(),
+          description: formData.description.trim(),
+          is_active: formData.is_active,
+          pin_logo_url: formData.pin_logo_url,
+        });
+
+        // Update user assignments
+        for (const user of authorizedUsers) {
+          const isAssigned = formData.assigned_users.includes(user.id);
+          const wasAssigned = user.assigned_pin_ids?.includes(editingPin.id);
+          if (isAssigned !== wasAssigned) {
+            const updatedPinIds = isAssigned
+              ? [...(user.assigned_pin_ids || []), editingPin.id]
+              : (user.assigned_pin_ids || []).filter((id) => id !== editingPin.id);
+            await base44.entities.VendorAuthorizedUser.update(user.id, {
+              assigned_pin_ids: updatedPinIds,
+            });
+          }
+        }
+
+        toast.success("Truck profile updated!");
+      } else {
+        if (!canAddPin) {
+          toast.error(`You've reached your limit of ${max_pins} truck pin(s). Upgrade your plan to add more.`);
+          setSaving(false);
+          return;
+        }
+
+        const newPin = await base44.entities.VendorPin.create({
+          vendor_account_id: vendorAccount.id,
+          pin_name: formData.pin_name.trim(),
+          description: formData.description.trim(),
+          is_active: true,
+          pin_logo_url: formData.pin_logo_url,
+        });
+
+        // Assign users to new pin
+        for (const userId of formData.assigned_users) {
+          const user = authorizedUsers.find((u) => u.id === userId);
+          if (user) {
+            await base44.entities.VendorAuthorizedUser.update(user.id, {
+              assigned_pin_ids: [...(user.assigned_pin_ids || []), newPin.id],
+            });
+          }
+        }
+
+        toast.success("Truck profile created!");
+      }
+      queryClient.invalidateQueries({ queryKey: ["vendorPins"] });
+      queryClient.invalidateQueries({ queryKey: ["authorizedUsers"] });
+      setShowAddForm(false);
+    } catch (error) {
+      toast.error(error.message || "Error saving truck profile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeletePin = async (pinId) => {
+    if (confirm("Delete this truck profile?")) {
+      await base44.entities.VendorPin.update(pinId, { is_active: false });
+      queryClient.invalidateQueries({ queryKey: ["vendorPins"] });
+      toast.success("Truck profile deleted");
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Yardit Header */}
-      <header className="sticky top-0 z-30" style={{ background: "linear-gradient(135deg, #4A9E97 0%, #5DADA5 60%, #6BBDB5 100%)" }}>
-        <div className="px-4 pt-4 pb-3">
-          <div className="flex items-center gap-3 mb-1">
-            <Link to="/" className="text-white/70 hover:text-white transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div className="flex items-center gap-2 flex-1">
-              <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
-                <MapPin className="w-4 h-4 text-white" />
+    <div className="space-y-5">
+      <div>
+        <h2 className="font-heading font-bold text-lg">My Truck Pins</h2>
+        <p className="text-sm text-muted-foreground">
+          Customize each truck/pin profile. Locations are set when the truck checks in.
+        </p>
+      </div>
+
+      {!canAddPin && (
+        <div className="bg-destructive/10 rounded-2xl p-4 flex gap-3">
+          <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-heading font-semibold text-destructive mb-1">Truck Limit Reached</p>
+            <p className="text-xs text-destructive/80">
+              You've reached your limit of {max_pins} truck pin{max_pins > 1 ? "s" : ""} for {tierConfig.name} tier.
+              {vendorAccount.vendor_tier !== "growth" && " Add extra trucks at +$10/month each."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <Button onClick={handleOpenAdd} disabled={!canAddPin} className="w-full gap-2 rounded-xl font-heading">
+        <Plus className="w-4 h-4" />
+        Add Truck Pin
+      </Button>
+
+      {activePins.length === 0 ? (
+        <div className="bg-card rounded-2xl border border-border/50 px-5 py-10 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
+            <Truck className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="font-heading font-semibold text-sm">No truck pins yet</p>
+          <p className="text-xs text-muted-foreground mt-1">Create your first truck profile to manage check-ins.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {activePins.map((pin) => {
+            const { status, lastCheckIn } = getPinStatus(pin.id);
+            const assignedUsers = getAssignedUsers(pin.id);
+            const statusColor = status === "Live Now" ? "text-green-600" : status === "Paused" ? "text-amber-500" : status === "Expired" ? "text-destructive" : "text-muted-foreground";
+
+            return (
+              <div key={pin.id} className="bg-card rounded-2xl border shadow-sm overflow-hidden">
+                <div className="p-4 space-y-3">
+                  {/* Header with logo and name */}
+                  <div className="flex items-start gap-3">
+                    {pin.pin_logo_url ? (
+                      <img
+                        src={pin.pin_logo_url}
+                        alt="Truck logo"
+                        className="w-12 h-12 rounded-lg object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <Truck className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-heading font-bold text-sm">{pin.pin_name}</p>
+                      {pin.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{pin.description}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Status and actions row */}
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${status === "Live Now" ? "bg-green-600" : status === "Paused" ? "bg-amber-500" : "bg-muted"}`} />
+                      <span className={`text-xs font-heading font-semibold ${statusColor}`}>{status}</span>
+                      {lastCheckIn && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          • {formatDistanceToNow(new Date(lastCheckIn.created_date), { addSuffix: true })}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-1.5 shrink-0">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setSelectedPinHistory(pin)}
+                        className="rounded-lg text-muted-foreground hover:bg-muted/50 h-8 w-8"
+                        title="View check-in history"
+                      >
+                        <History className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleOpenEdit(pin)}
+                        className="rounded-lg text-primary hover:bg-primary/10 h-8 w-8"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDeletePin(pin.id)}
+                        className="rounded-lg text-destructive hover:bg-destructive/10 h-8 w-8"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Drop Pin button */}
+                  <Button
+                    onClick={() => setCheckingInPin(pin)}
+                    className={`w-full rounded-xl font-heading text-xs h-9 gap-1.5 ${
+                      status === "Live Now" || status === "Paused"
+                        ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                        : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                    }`}
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    {status === "Live Now" || status === "Paused" ? "Update Pin Location" : "Drop Your Pin"}
+                  </Button>
+
+                  {/* Pause / Resume / Take Offline buttons */}
+                  {(status === "Live Now" || status === "Paused") && (
+                    <div className="flex gap-2">
+                      {status === "Live Now" ? (
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePause(lastCheckIn)}
+                          className="flex-1 rounded-xl font-heading text-xs h-9 gap-1.5 border-amber-400 text-amber-600 hover:bg-amber-50"
+                        >
+                          <PauseCircle className="w-3.5 h-3.5" />
+                          Pause
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          onClick={() => handleResume(lastCheckIn)}
+                          className="flex-1 rounded-xl font-heading text-xs h-9 gap-1.5 border-green-500 text-green-600 hover:bg-green-50"
+                        >
+                          <PlayCircle className="w-3.5 h-3.5" />
+                          Resume
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        onClick={() => handleTakeOffline(lastCheckIn)}
+                        className="flex-1 rounded-xl font-heading text-xs h-9 gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/10"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        Take Offline
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Assigned users */}
+                  {assignedUsers.length > 0 && (
+                    <div className="text-xs space-y-1 pt-2 border-t">
+                      <p className="text-muted-foreground font-heading">Assigned Users</p>
+                      {assignedUsers.map((user) => (
+                        <div key={user.id} className="flex items-center gap-1.5 text-muted-foreground">
+                          <div className="w-1 h-1 rounded-full bg-primary" />
+                          {user.authorized_email}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              <span className="font-heading font-bold text-white text-base tracking-tight">Yardit Vendors</span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Edit Truck Profile Dialog */}
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+        <DialogContent className="rounded-2xl max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-heading">
+              {editingPin ? "Edit Truck Profile" : "Create Truck Profile"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-heading text-muted-foreground mb-2 block">Truck/Pin Name *</label>
+              <Input
+                value={formData.pin_name}
+                onChange={(e) => setFormData({ ...formData, pin_name: e.target.value })}
+                placeholder="e.g. Truck 1, Taco Truck"
+                className="rounded-xl"
+              />
             </div>
-            <Link
-              to="/vendor/map"
-              className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-              title="Open Yardit Map"
-            >
-              <Map className="w-[18px] h-[18px] text-white" />
-            </Link>
-            <NotificationBell updates={updates} profile={profile} activePinCheckIn={activePinCheckIn} />
-            <div className="w-2 h-2 rounded-full" style={{ background: !!activePinCheckIn ? "#4ADE80" : "#ffffff40" }} />
-          </div>
-          <p className="text-white/60 text-xs font-body pl-10">
-            Run your sales. Show your location. Be found.
-          </p>
-        </div>
-
-        {/* Tabs row */}
-        <div className="px-4 pb-0">
-          <div className="flex gap-1 overflow-x-auto lg:flex-wrap scrollbar-hide">
-            {[
-              { id: "page", label: "My Page" },
-              { id: "pin", label: "My Trucks / Pins" },
-              { id: "history", label: "History" },
-              { id: "tier", label: "Tier" },
-              { id: "authorized", label: "Authorized Users & Pins" },
-              { id: "settings", label: "Settings" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2.5 text-xs font-heading font-semibold whitespace-nowrap transition-all rounded-t-lg ${
-                  activeTab === tab.id
-                    ? "bg-background text-primary"
-                    : "text-white/70 hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
-
-      <main className="px-4 py-5 pb-24">
-        <div className="max-w-6xl mx-auto space-y-5">
-        {/* PAGE TAB */}
-        {activeTab === "page" && (
-          <>
-            <BusinessHero profile={profile} activeCheckIn={activePinCheckIn} />
-
-            <div className="border-t border-border/40" />
-
-            <QuickActions
-              isLive={!!activePinCheckIn}
-              activeCheckIn={activePinCheckIn}
-              onCheckIn={() => setActiveTab("pin")}
-              onEditProfile={() => setActiveTab("profile")}
-              onTier={() => setActiveTab("tier")}
-            />
-
-            <div className="border-t border-border/40" />
 
             <div>
-              <p className="font-heading font-bold text-sm mb-3 text-foreground">Share an Update</p>
-              <FeedComposer onSubmit={(text) => postUpdateMutation.mutate(text)} isSubmitting={postUpdateMutation.isPending} />
-            </div>
-
-            {updates.length === 0 ? (
-              <div className="bg-card rounded-2xl border border-border/50 px-5 py-10 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
-                  <MapPin className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <p className="font-heading font-semibold text-sm">No updates yet</p>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Your customers will see your updates here when you're active.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {updates.map((u) => (
-                  <FeedCard
-                    key={u.id}
-                    update={u}
-                    businessName={profile.business_name}
-                    logoUrl={profile.logo_url}
-                    onLike={(update) => likeMutation.mutate(update)}
-                    currentUserEmail={userEmail}
+              <label className="text-xs font-heading text-muted-foreground mb-2 block">Logo/Icon</label>
+              <div className="flex items-center gap-3">
+                {formData.pin_logo_url && (
+                  <img
+                    src={formData.pin_logo_url}
+                    alt="Logo"
+                    className="w-12 h-12 rounded-lg object-cover"
                   />
-                ))}
+                )}
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={handleLogoUpload}
+                  disabled={logoUploading}
+                  className="rounded-xl flex-1"
+                />
               </div>
-            )}
-          </>
-        )}
-
-        {/* MY TRUCKS / PINS TAB */}
-        {activeTab === "pin" && (
-          vendorAccount ? (
-            <MyTrucksSection vendorAccount={vendorAccount} />
-          ) : (
-            <div className="bg-card rounded-2xl border border-border/50 px-5 py-10 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
-                <MapPin className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <p className="font-heading font-semibold text-sm">No Vendor Account Yet</p>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Set up a Vendor Account to manage trucks and pins.
-              </p>
             </div>
-          )
-        )}
 
-        {/* HISTORY TAB */}
-        {activeTab === "history" && (
-          vendorAccount ? (
-            <CheckInHistory vendorAccount={vendorAccount} />
-          ) : (
-            <div className="bg-card rounded-2xl border border-border/50 px-5 py-10 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
-                <MapPin className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <p className="font-heading font-semibold text-sm">No check-ins yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Use My Trucks / Pins to manage check-ins.</p>
-            </div>
-          )
-        )}
-
-        {/* TIER TAB */}
-        {activeTab === "tier" && (
-          <>
             <div>
-              <h2 className="font-heading font-bold text-lg">Boost Your Visibility</h2>
-              <p className="text-sm text-muted-foreground">Higher tiers appear first and reach more customers.</p>
+              <label className="text-xs font-heading text-muted-foreground mb-2 block">Description</label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Short description of this truck/pin"
+                className="rounded-xl resize-none min-h-[80px]"
+              />
             </div>
-            {vendorAccount && <TierInfoCard profile={profile} vendorAccount={vendorAccount} />}
-            <TierSelector
-              currentTier={profile.tier}
-              onSelect={(tier) => tierMutation.mutate(tier)}
-              isSaving={tierMutation.isPending}
-            />
-          </>
-        )}
 
-        {/* AUTHORIZED USERS & PINS TAB */}
-        {activeTab === "authorized" && (
-          vendorAccount ? (
-            <>
-              <div>
-                <h2 className="font-heading font-bold text-lg">Authorized Users & Pins</h2>
-                <p className="text-sm text-muted-foreground">Manage team access and vendor locations</p>
-              </div>
-              <AuthorizedUsersSection vendorAccount={vendorAccount} />
-            </>
-          ) : (
-            <div className="bg-card rounded-2xl border border-border/50 px-5 py-10 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
-                <Users className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <p className="font-heading font-semibold text-sm">No Vendor Account Yet</p>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Set up a Vendor Account to manage authorized users and pins.
-              </p>
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
+              <span className="text-sm font-heading">Active</span>
+              <Switch
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+              />
             </div>
-          )
-        )}
 
-        {/* SETTINGS TAB */}
-        {activeTab === "settings" && (
-          <>
             <div>
-              <h2 className="font-heading font-bold text-lg">Profile & Settings</h2>
-            </div>
-            <div className="space-y-5">
-              <div className="space-y-3">
-                <p className="font-heading font-semibold text-sm">Public Profile</p>
-                <CheckInProfileEditor profile={profile} onUpdate={handleProfileUpdate} />
-              </div>
-              <div className="border-t border-border/40" />
-              <div className="space-y-3">
-                <p className="font-heading font-semibold text-sm">Business Profile</p>
-                <div className="bg-card rounded-2xl border shadow-sm divide-y divide-border/50">
-                  {/* Business Name */}
-                  <div className="px-4 py-3.5">
-                    <p className="text-xs text-muted-foreground font-heading mb-2">Business Name</p>
-                    {editingField === "business_name" ? (
-                      <div className="flex gap-2">
-                        <Input
-                          value={editValues.business_name || ""}
-                          onChange={(e) => setEditValues({ ...editValues, business_name: e.target.value })}
-                          className="rounded-lg flex-1"
-                        />
-                        <Button size="sm" onClick={saveEdit} disabled={savingEdit} className="shrink-0 rounded-lg">
-                          <Check className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={cancelEdit} className="shrink-0 rounded-lg">
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium">{profile.business_name}</p>
-                        <Button size="sm" variant="outline" onClick={() => startEdit("business_name", profile.business_name)} className="shrink-0 rounded-lg">
-                          Edit
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  {/* Phone */}
-                  <div className="px-4 py-3.5">
-                    <p className="text-xs text-muted-foreground font-heading mb-2">Phone</p>
-                    {editingField === "phone" ? (
-                      <div className="flex gap-2">
-                        <Input
-                          value={editValues.phone || ""}
-                          onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
-                          placeholder="Enter phone number"
-                          className="rounded-lg flex-1"
-                        />
-                        <Button size="sm" onClick={saveEdit} disabled={savingEdit} className="shrink-0 rounded-lg">
-                          <Check className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={cancelEdit} className="shrink-0 rounded-lg">
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium">{profile.phone || "Not set"}</p>
-                        <Button size="sm" variant="outline" onClick={() => startEdit("phone", profile.phone || "")} className="shrink-0 rounded-lg">
-                          Edit
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="border-t border-border/40" />
-              <div className="space-y-3">
-                <p className="font-heading font-semibold text-sm">Personal & Contact</p>
-                <div className="bg-card rounded-2xl border shadow-sm divide-y divide-border/50">
-                  {/* Full Name */}
-                  <div className="px-4 py-3.5">
-                    <p className="text-xs text-muted-foreground font-heading mb-2">Full Name</p>
-                    {editingField === "full_name" ? (
-                      <div className="flex gap-2">
-                        <Input
-                          value={editValues.full_name || ""}
-                          onChange={(e) => setEditValues({ ...editValues, full_name: e.target.value })}
-                          placeholder="Enter full name"
-                          className="rounded-lg flex-1"
-                        />
-                        <Button size="sm" onClick={saveEdit} disabled={savingEdit} className="shrink-0 rounded-lg">
-                          <Check className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={cancelEdit} className="shrink-0 rounded-lg">
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium">{userData?.full_name || "Not set"}</p>
-                        <Button size="sm" variant="outline" onClick={() => startEdit("full_name", userData?.full_name || "")} className="shrink-0 rounded-lg">
-                          Edit
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  {/* Email (Read-only) */}
-                  <div className="px-4 py-3.5">
-                    <p className="text-xs text-muted-foreground font-heading mb-0.5">Email</p>
-                    <p className="text-sm font-medium text-muted-foreground">{userEmail}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <p className="font-heading font-semibold text-sm">Security</p>
-                <button
-                  onClick={() => toast.error("Password reset coming soon")}
-                  className="w-full flex items-center gap-3 bg-card rounded-xl border p-4 text-left hover:bg-muted/50 transition-colors opacity-50 cursor-not-allowed"
-                  disabled
-                >
-                  <Lock className="w-5 h-5 text-primary shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground font-heading">Password</p>
-                    <p className="text-sm font-medium">Change your password</p>
-                  </div>
-                </button>
-              </div>
-              <div className="border-t border-border/40" />
-              <div className="space-y-2">
-                <p className="font-heading font-semibold text-sm">Account</p>
-                <div className="bg-card rounded-2xl border shadow-sm divide-y divide-border/50">
-                  <div className="px-4 py-3.5">
-                    <p className="text-xs text-muted-foreground font-heading mb-0.5">Current Tier</p>
-                    <p className="text-sm font-medium capitalize">{profile.tier}</p>
-                  </div>
-                  <div className="px-4 py-3.5">
-                    <p className="text-xs text-muted-foreground font-heading mb-0.5">Public Vendor Page</p>
-                    <Link to={`/vendor/page/${profile.id}`} className="text-sm text-primary underline">
-                      View public page →
-                    </Link>
-                  </div>
-                </div>
+              <label className="text-xs font-heading text-muted-foreground mb-2 block">Assign Authorized Users</label>
+              <p className="text-xs text-muted-foreground mb-2">Select users who can check in this truck (leave empty to allow any authorized user)</p>
+              <div className="space-y-2 max-h-[180px] overflow-y-auto border border-border/50 rounded-xl p-2">
+                {authorizedUsers.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-2">No authorized users yet</p>
+                ) : (
+                  authorizedUsers.map((user) => (
+                    <label key={user.id} className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded-lg cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.assigned_users.includes(user.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({
+                              ...formData,
+                              assigned_users: [...formData.assigned_users, user.id],
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              assigned_users: formData.assigned_users.filter((id) => id !== user.id),
+                            });
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-xs">{user.authorized_email}</span>
+                    </label>
+                  ))
+                )}
               </div>
             </div>
-          </>
-        )}
-        </div>
-      </main>
 
+            <Button onClick={handleSavePin} disabled={saving} className="w-full rounded-xl font-heading">
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : editingPin ? (
+                "Update Profile"
+              ) : (
+                "Create Profile"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
+      {/* Pin Check-In Flow */}
+      {checkingInPin && (
+        <PinCheckInFlow
+          pin={checkingInPin}
+          vendorAccount={vendorAccount}
+          existingCheckIn={(() => {
+            const { status, lastCheckIn } = getPinStatus(checkingInPin.id);
+            return status === "Live Now" ? lastCheckIn : null;
+          })()}
+          onClose={() => setCheckingInPin(null)}
+          onSuccess={() => {
+            setCheckingInPin(null);
+            queryClient.invalidateQueries({ queryKey: ["vendorPinCheckIns"] });
+          }}
+        />
+      )}
+
+      {/* Check-In History Dialog */}
+      {selectedPinHistory && (
+        <Dialog open={!!selectedPinHistory} onOpenChange={() => setSelectedPinHistory(null)}>
+          <DialogContent className="rounded-2xl max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-heading">
+                Check-In History: {selectedPinHistory.pin_name}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              {allCheckIns.filter((c) => c.vendor_pin_id === selectedPinHistory.id).length === 0 ? (
+                <div className="text-center py-8">
+                  <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No check-ins yet</p>
+                </div>
+              ) : (
+                allCheckIns
+                  .filter((c) => c.vendor_pin_id === selectedPinHistory.id)
+                  .map((checkIn) => (
+                    <div key={checkIn.id} className="bg-muted/30 rounded-xl p-3 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Checked in by</span>
+                        <span className="font-medium">{checkIn.checked_in_by_email}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Status</span>
+                        <span className={`font-medium ${checkIn.status === "live" ? "text-green-600" : "text-muted-foreground"}`}>
+                          {checkIn.status}
+                        </span>
+                      </div>
+                      {checkIn.checkin_display_address && (
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-muted-foreground">Location</span>
+                          <span className="font-medium text-right">{checkIn.checkin_display_address}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="text-muted-foreground">Started</span>
+                        <span className="font-medium">{new Date(checkIn.checkin_start_time).toLocaleString()}</span>
+                      </div>
+                      {checkIn.checkin_end_time && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Ended</span>
+                          <span className="font-medium">{new Date(checkIn.checkin_end_time).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
