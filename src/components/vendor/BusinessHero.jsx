@@ -55,7 +55,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
     hero_background_color: { label: "Hero background", entityField: "hero_background_color", value: profile?.hero_background_color || "#FFFFFF" },
   };
 
-  const heroBackgroundColor = profile?.hero_background_color && profile.hero_background_color !== "#FFFFFF" ? profile.hero_background_color : "#5DADA5";
+  const heroBackgroundColor = profile?.hero_background_color && profile.hero_background_color !== "#FFFFFF" ? profile.hero_background_color : "#E8F7F5";
 
   const startEdit = (field) => {
     if (!editable) return;
@@ -99,18 +99,18 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
 
   return (
     <section className={asHeader ? "overflow-hidden bg-white min-w-0" : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm min-w-0"}>
-      <div className={asHeader ? "max-w-7xl mx-auto w-full px-3 sm:px-6 py-3 sm:py-8 flex flex-row gap-3 sm:gap-5 items-start" : "p-3 sm:p-7 lg:p-9 flex flex-row gap-3 sm:gap-5 items-start"} style={{ backgroundColor: heroBackgroundColor }}>
+      <div className={asHeader ? "max-w-7xl mx-auto w-full px-3 sm:px-6 py-2.5 sm:py-5 flex flex-row gap-2.5 sm:gap-4 items-start" : "p-2.5 sm:p-5 flex flex-row gap-2.5 sm:gap-4 items-start"} style={{ backgroundColor: heroBackgroundColor }}>
         <button
           type="button"
           onClick={() => editable && logoInputRef.current?.click()}
           disabled={!editable || uploadingLogo}
-          className="group relative h-16 w-16 sm:h-24 sm:w-24 rounded-2xl border border-slate-100 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0 disabled:cursor-default"
+          className="group relative h-12 w-12 sm:h-20 sm:w-20 rounded-xl sm:rounded-2xl border border-white/70 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0 disabled:cursor-default"
           title={editable ? "Upload business photo" : undefined}
         >
           {profile?.logo_url || profile?.business_logo ? (
             <img src={profile.logo_url || profile.business_logo} alt={profile.business_name} className="h-full w-full object-cover" />
           ) : (
-            <Store className="h-7 w-7 sm:h-10 sm:w-10 text-slate-400" />
+            <Store className="h-5 w-5 sm:h-8 sm:w-8 text-[#5DADA5]" />
           )}
           {editable && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition group-hover:opacity-100">
@@ -119,37 +119,37 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
           )}
           <input ref={logoInputRef} type="file" accept="image/*" onChange={uploadLogo} className="hidden" />
         </button>
-        <div className="flex-1 space-y-2 sm:space-y-3 min-w-0">
+        <div className="flex-1 space-y-1.5 sm:space-y-2 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <EditableButton field="business_name" className="rounded-lg px-1 -mx-1">
-              <h1 className="inline text-lg sm:text-3xl font-bold text-[#1F2937] break-words leading-tight">{profile?.business_name || "My Business"}</h1>
+              <h1 className="inline text-base sm:text-2xl font-bold text-[#1F2937] break-words leading-tight">{profile?.business_name || "My Business"}</h1>
             </EditableButton>
             <Badge className="bg-[#FFF1D6] text-[#7A4B00] border border-[#F4A849]/40 capitalize text-[10px] sm:text-xs px-1.5 sm:px-2">♨ {profile?.tier || "starter"}</Badge>
           </div>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
+          <div className="flex flex-wrap gap-1 sm:gap-2 text-[11px] sm:text-sm text-slate-600">
             {editable && (
-              <EditableButton field="hero_background_color" className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 border border-slate-200">
+              <EditableButton field="hero_background_color" className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2 py-0.5 sm:px-3 sm:py-1 border border-white/70">
                 <Palette className="h-3.5 w-3.5 text-[#5DADA5]" /> Background
               </EditableButton>
             )}
-            <EditableButton field="business_category" className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 border border-slate-200">
+            <EditableButton field="business_category" className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2 py-0.5 sm:px-3 sm:py-1 border border-white/70">
               <Tag className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.category || "Category not added"}
             </EditableButton>
-            <EditableButton field="phone" className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 border border-slate-200">
+            <EditableButton field="phone" className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2 py-0.5 sm:px-3 sm:py-1 border border-white/70">
               <Phone className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.phone || "Phone not added"}
             </EditableButton>
-            <EditableButton field="location" className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 border border-slate-200">
+            <EditableButton field="location" className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2 py-0.5 sm:px-3 sm:py-1 border border-white/70">
               <MapPin className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.location || "Location not added"}
             </EditableButton>
           </div>
           <EditableButton field="description" className="rounded-xl px-2 py-1 -mx-2">
-            <p className="max-w-3xl text-xs sm:text-sm leading-snug sm:leading-relaxed text-slate-600 line-clamp-2 sm:line-clamp-none">{profile?.description || "Add a brief description so customers know what your business offers."}</p>
+            <p className="hidden sm:block max-w-3xl text-sm leading-relaxed text-slate-600 line-clamp-2">{profile?.description || "Add a brief description so customers know what your business offers."}</p>
           </EditableButton>
         </div>
       </div>
       {activeCheckIn && (
         <div className="border-t border-slate-200 bg-white px-5 py-3">
-          <div className="rounded-xl bg-[#E8F7F5] px-4 py-3 text-sm text-[#2C4F4E] break-words">
+          <div className="rounded-xl bg-white/70 px-3 py-2 text-xs sm:text-sm text-[#2C4F4E] break-words">
             <span className="mr-1 inline-block h-3 w-3 rounded-full bg-emerald-500 align-middle" />
             <span className="font-bold text-[#00A88A]">LIVE NOW</span>
             <span className="text-slate-600"> · Open until {format(new Date(activeCheckIn.checkin_end_time), "h:mm a")}</span>
