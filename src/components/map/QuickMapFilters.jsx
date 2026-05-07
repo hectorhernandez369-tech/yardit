@@ -14,16 +14,16 @@ export default function QuickMapFilters({ value, onChange }) {
   };
 
   return (
-    <div className="absolute right-3 bottom-28 z-[1001] rounded-2xl border border-[#2C4F4E]/20 bg-white/70 p-2 shadow-lg backdrop-blur-md sm:right-4 sm:bottom-32">
-      <div className="space-y-1.5">
+    <div className="absolute right-2 bottom-16 z-[1001] rounded-xl border border-[#2C4F4E]/20 bg-white/65 p-1.5 shadow-lg backdrop-blur-md sm:right-3 sm:bottom-20">
+      <div className="space-y-1">
         {FILTERS.map(({ key, label, icon: Icon }) => (
-          <label key={key} className="flex min-h-9 cursor-pointer items-center gap-2 rounded-xl px-2 py-1.5 text-xs font-semibold text-[#2C4F4E] hover:bg-white/60">
+          <label key={key} className="flex min-h-7 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 py-1 text-[11px] font-semibold text-[#2C4F4E] hover:bg-white/60">
             <Checkbox
               checked={value[key]}
               onCheckedChange={(checked) => toggleFilter(key, checked === true)}
-              className="h-4 w-4 border-[#2C4F4E] bg-white/80"
+              className="h-3.5 w-3.5 border-[#2C4F4E] bg-white/80"
             />
-            <Icon className="h-3.5 w-3.5" />
+            <Icon className="h-3 w-3" />
             <span className="whitespace-nowrap">{label}</span>
           </label>
         ))}
