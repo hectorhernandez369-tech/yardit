@@ -90,6 +90,7 @@ export default function VendorDashboard() {
     description: account.description,
     phone: account.phone,
     location: account.location || account.service_area || account.city || account.address,
+    featured_photo_url: account.featured_photo_url,
   };
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
 
