@@ -1,8 +1,6 @@
 import React from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, ExternalLink, Facebook, Globe, Instagram, MapPin, Music2 } from "lucide-react";
+import { ExternalLink, Facebook, Globe, Instagram, MapPin, Music2 } from "lucide-react";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import { format } from "date-fns";
 import { getVendorTierConfig, isLiveVendorCheckIn } from "@/lib/vendorTiers";
@@ -16,10 +14,9 @@ const socialLinks = [
 
 export default function VendorPublicPreview({ account, pins, checkIns, updates }) {
   const tier = getVendorTierConfig(account.vendor_tier);
-  const photos = account.photo_urls || [];
   const liveItems = (checkIns || []).filter(isLiveVendorCheckIn);
   const activeCheckIn = liveItems[0];
-  const pinName = (id) => pins.find((pin) => pin.id === id)?.pin_name || "Vendor Pin";
+  const pinFor = (id) => pins.find((pin) => pin.id === id);
   const heroProfile = {
     id: account.id,
     business_name: account.business_name,
@@ -46,13 +43,35 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates }
         </div>
 
         <section>
-          <h3 className="font-bold text-[#2C4F4E] mb-3">Photos</h3>
-          {photos.length ? <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{photos.map((url) => <img key={url} src={url} alt="Vendor" className="h-32 w-full rounded-2xl object-cover" />)}</div> : <p className="text-sm text-slate-600">Add photos to make your vendor page stand out.</p>}
-        </section>
-
-        <section>
-          <h3 className="font-bold text-[#2C4F4E] mb-3">Active Locations</h3>
-          {liveItems.length ? <div className="grid gap-3">{liveItems.map((item) => <Card key={item.id} className="shadow-none"><CardContent className="p-4"><p className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4 text-[#5DADA5]" />{pinName(item.vendor_pin_id)}</p><p className="text-sm text-slate-600">{item.checkin_display_address}</p><p className="text-xs text-slate-500">Live until {format(new Date(item.checkin_end_time), "h:mm a")}</p></CardContent></Card>)}</div> : <p className="text-sm text-slate-600">No live locations right now. Check in a pin to appear on the map.</p>}
+          <h3 className="font-bold text-[#2C4F4E] mb-3">Active Location</h3>
+          {liveItems.length ? (
+            <div className="grid gap-3">
+              {liveItems.map((item) => {
+                const pin = pinFor(item.vendor_pin_id);
+                return (
+                  <Card key={item.id} className="shadow-none border-[#5DADA5]/30">
+                    <CardContent className="p-4 flex items-start gap-4">
+                      <div className="h-14 w-14 shrink-0 rounded-2xl bg-[#F3E6CF] border border-[#2C4F4E]/10 overflow-hidden flex items-center justify-center">
+                        {pin?.pin_logo_url || pin?.pin_icon_url ? (
+                          <img src={pin.pin_logo_url || pin.pin_icon_url} alt={pin?.pin_name || "Vendor Pin"} className="h-full w-full object-cover" />
+                        ) : (
+                          <MapPin className="h-6 w-6 text-[#5DADA5]" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[#2C4F4E]">{pin?.pin_name || "Vendor Pin"}</p>
+                        <p className="text-sm text-slate-600">{item.checkin_display_address}</p>
+                        {pin?.description && <p className="mt-1 text-xs text-slate-500 line-clamp-2">{pin.description}</p>}
+                        <p className="mt-2 text-xs text-slate-500">Live until {format(new Date(item.checkin_end_time), "h:mm a")}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-600">No live locations right now. Check in a pin to appear on the map.</p>
+          )}
         </section>
 
         <section>
