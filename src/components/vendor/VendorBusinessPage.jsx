@@ -20,7 +20,7 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
             <Button onClick={() => setPreviewMode(false)} className="shrink-0 bg-[#5DADA5] hover:bg-[#4A9B93] text-white">Back to Editing</Button>
           </div>
         </div>
-        <div className="mx-auto max-w-7xl p-3 sm:p-5 lg:p-6">
+        <div className="mx-auto max-w-7xl p-3 pb-32 sm:p-5 sm:pb-28 lg:p-6 lg:pb-28">
           <VendorPublicPreview account={account} pins={pins} checkIns={checkIns} updates={updates} />
         </div>
       </div>
