@@ -10,7 +10,7 @@ const FILTERS = [
 
 export default function QuickMapFilters({ value, onChange }) {
   const [position, setPosition] = React.useState({ right: 8, bottom: 64 });
-  const [collapsed, setCollapsed] = React.useState(true);
+  const [collapsed, setCollapsed] = React.useState(false);
   const dragRef = React.useRef(null);
 
   const toggleFilter = (key, checked) => {
@@ -41,7 +41,7 @@ export default function QuickMapFilters({ value, onChange }) {
 
   return (
     <div
-      className="absolute z-[1001] rounded-xl border border-[#2C4F4E]/20 bg-white/65 p-1.5 shadow-lg backdrop-blur-md transition-all duration-200"
+      className={`absolute z-[1001] rounded-xl border border-[#2C4F4E]/20 bg-white/65 p-1.5 shadow-lg backdrop-blur-md transition-transform duration-200 ${collapsed ? "translate-x-[calc(100%-1.75rem)]" : "translate-x-0"}`}
       style={{ right: position.right, bottom: position.bottom }}
     >
       <div className="mb-1 flex h-4 items-center gap-1">
@@ -53,19 +53,17 @@ export default function QuickMapFilters({ value, onChange }) {
         >
           <ChevronRight className={`h-3 w-3 transition-transform ${collapsed ? "rotate-180" : ""}`} />
         </button>
-        {!collapsed && (
-          <button
-            type="button"
-            onPointerDown={startDrag}
-            onPointerMove={moveDrag}
-            onPointerUp={stopDrag}
-            onPointerCancel={stopDrag}
-            className="flex h-4 flex-1 cursor-grab items-center justify-center rounded-md text-[9px] font-bold uppercase tracking-wide text-[#2C4F4E]/70 active:cursor-grabbing"
-            aria-label="Drag map filters"
-          >
-            ⋮⋮
-          </button>
-        )}
+        <button
+          type="button"
+          onPointerDown={startDrag}
+          onPointerMove={moveDrag}
+          onPointerUp={stopDrag}
+          onPointerCancel={stopDrag}
+          className="flex h-4 flex-1 cursor-grab items-center justify-center rounded-md text-[9px] font-bold uppercase tracking-wide text-[#2C4F4E]/70 active:cursor-grabbing"
+          aria-label="Drag map filters"
+        >
+          ⋮⋮
+        </button>
       </div>
       <div className="space-y-1">
         {FILTERS.map(({ key, label, icon: Icon }) => (
@@ -76,7 +74,7 @@ export default function QuickMapFilters({ value, onChange }) {
               className="h-3.5 w-3.5 border-[#2C4F4E] bg-white/80"
             />
             <Icon className="h-3 w-3" />
-            {!collapsed && <span className="whitespace-nowrap">{label}</span>}
+            <span className="whitespace-nowrap">{label}</span>
           </label>
         ))}
       </div>

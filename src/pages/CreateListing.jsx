@@ -1585,7 +1585,7 @@ export default function CreateListingPage() {
             {step === 2 && (
               formData.listingType === "event"
                 ? <EventLocationStep formData={formData} setFormData={setFormData} />
-                : <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} isAdminCreate={isAdminCreate} />
+                : <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} />
             )}
             {step === 3 && (formData.listingType === "event" ? <EventScheduleStep formData={formData} setFormData={setFormData} /> : <StepThree formData={formData} setFormData={setFormData} />)}
             {step === 4 && formData.listingType === "event" && (
@@ -1662,7 +1662,7 @@ export default function CreateListingPage() {
               {(isAdminCreate ? step < paymentStepNumber : step < entryStepNumber) ? (
                 <Button
                   onClick={isAdminCreate && step === entryStepNumber ? () => setStep(paymentStepNumber) : handleNext}
-                  disabled={step === 2 && !isAdminCreate && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (isGlobalDemoMode ? (profileAddressMissing || regularAddressIncomplete) : profileAddressUnconfirmed)}
+                  disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (isGlobalDemoMode ? (profileAddressMissing || regularAddressIncomplete) : profileAddressUnconfirmed)}
                   className="flex-1 bg-amber-600 hover:bg-amber-700"
                 >
                   Continue
