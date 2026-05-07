@@ -9,6 +9,7 @@ import MyTrucksSection from "@/components/vendor/MyTrucksSection";
 import VendorCheckInHistory from "@/components/vendor/VendorCheckInHistory";
 import VendorBillingTab from "@/components/vendor/VendorBillingTab";
 import VendorUsersTab from "@/components/vendor/VendorUsersTab";
+import VendorPinStatusBar from "@/components/vendor/VendorPinStatusBar";
 
 export default function VendorDashboard() {
   const queryClient = useQueryClient();
@@ -102,6 +103,8 @@ export default function VendorDashboard() {
           <TabsTrigger value="users" className="rounded-xl gap-1"><Users className="h-4 w-4" /> Users</TabsTrigger>
           <TabsTrigger value="settings" className="rounded-xl gap-1"><Settings className="h-4 w-4" /> Settings</TabsTrigger>
         </TabsList>
+
+        <VendorPinStatusBar pins={pins} checkIns={checkIns} />
 
         <TabsContent value="page"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
         <TabsContent value="pins"><MyTrucksSection vendorAccount={account} /></TabsContent>
