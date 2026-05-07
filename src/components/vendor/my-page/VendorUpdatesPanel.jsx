@@ -27,7 +27,7 @@ export default function VendorUpdatesPanel({ account, updates, onRefresh }) {
   return (
     <Card className="border-[#2C4F4E]/15">
       <CardHeader>
-        <CardTitle className="text-[#2C4F4E]">Business Updates</CardTitle>
+        <CardTitle className="text-[#2C4F4E]">Updates</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <Textarea placeholder="Share a short update with customers..." value={text} onChange={(e) => setText(e.target.value)} className="min-h-24" />
