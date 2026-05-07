@@ -9,7 +9,7 @@ import VendorBillingTab from "@/components/vendor/VendorBillingTab";
 import VendorUsersTab from "@/components/vendor/VendorUsersTab";
 import VendorPinStatusBar from "@/components/vendor/VendorPinStatusBar";
 import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
-import VendorUpdatesTab from "@/components/vendor/VendorUpdatesTab";
+import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
 
 export default function VendorDashboard() {
   const queryClient = useQueryClient();
@@ -119,7 +119,7 @@ export default function VendorDashboard() {
             <TabsList className="mt-6 grid w-full grid-cols-2 md:grid-cols-5 bg-transparent p-0 h-auto justify-start rounded-none">
               <TabsTrigger value="profile" className="rounded-t-2xl rounded-b-none px-4 py-3 text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">My Page</TabsTrigger>
               <TabsTrigger value="pins" className="rounded-t-2xl rounded-b-none px-4 py-3 text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">My Trucks / Pins</TabsTrigger>
-              <TabsTrigger value="updates" className="rounded-t-2xl rounded-b-none px-4 py-3 text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">History</TabsTrigger>
+              <TabsTrigger value="history" className="rounded-t-2xl rounded-b-none px-4 py-3 text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">History</TabsTrigger>
               <TabsTrigger value="tier" className="rounded-t-2xl rounded-b-none px-4 py-3 text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Tier</TabsTrigger>
               <TabsTrigger value="users" className="rounded-t-2xl rounded-b-none px-4 py-3 text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Authorized Users & Pins</TabsTrigger>
             </TabsList>
@@ -135,7 +135,7 @@ export default function VendorDashboard() {
           <TabsContent value="pins"><MyTrucksSection vendorAccount={account} currentUser={user} /></TabsContent>
           <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} pins={pins} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="tier"><VendorBillingTab account={account} /></TabsContent>
-          <TabsContent value="updates"><VendorUpdatesTab account={account} updates={updates} user={user} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="history"><VendorPinHistoryTab pins={pins} checkIns={checkIns} /></TabsContent>
         </div>
       </Tabs>
     </div>
