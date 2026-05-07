@@ -171,20 +171,22 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
                     Posted {format(new Date(update.created_date), "MMM d, yyyy 'at' h:mm a")}
                   </p>
                   <p className="text-base font-semibold leading-relaxed text-[#1F2937] sm:text-lg">{update.text}</p>
-                  <div className="mt-4 flex items-center justify-between gap-3">
-                    <p className="text-xs text-slate-600">{update.likes || 0} likes</p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={hasLiked ? "secondary" : "outline"}
-                      disabled={hasLiked || isLiking}
-                      onClick={() => handleLikeUpdate(update)}
-                      className="rounded-full border-[#2C4F4E]/30 text-black"
-                    >
-                      <Heart className={`h-4 w-4 ${hasLiked ? "fill-[#F4A849] text-[#F4A849]" : "text-black"}`} />
-                      {hasLiked ? "Liked" : "Like"}
-                    </Button>
-                  </div>
+                  {tier.hasLikeButton && (
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-xs text-slate-600">{update.likes || 0} likes</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={hasLiked ? "secondary" : "outline"}
+                        disabled={hasLiked || isLiking}
+                        onClick={() => handleLikeUpdate(update)}
+                        className="rounded-full border-[#2C4F4E]/30 text-black"
+                      >
+                        <Heart className={`h-4 w-4 ${hasLiked ? "fill-[#F4A849] text-[#F4A849]" : "text-black"}`} />
+                        {hasLiked ? "Liked" : "Like"}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             }) : <p className="text-sm text-slate-600">No updates yet.</p>}

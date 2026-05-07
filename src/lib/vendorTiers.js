@@ -71,12 +71,12 @@ export function getVendorTierConfig(tier) {
 
 export function getVendorUserLimit(account) {
   const tier = getVendorTierConfig(account?.vendor_tier);
-  return tier.includedUsers + Number(account?.extra_users_count || 0);
+  return tier.includedUsers + (account?.vendor_tier === "free" ? 0 : Number(account?.extra_users_count || 0));
 }
 
 export function getVendorPinLimit(account) {
   const tier = getVendorTierConfig(account?.vendor_tier);
-  return tier.includedPins + Number(account?.extra_pins_count || 0);
+  return tier.includedPins + (account?.vendor_tier === "free" ? 0 : Number(account?.extra_pins_count || 0));
 }
 
 export function canVendorCheckInToday(account, checkIns, now = new Date()) {
