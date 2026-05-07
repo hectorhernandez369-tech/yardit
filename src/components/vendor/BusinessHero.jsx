@@ -52,7 +52,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh }) {
 
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="h-2 bg-[#5DADA5] hidden" />
+      
       <div className="p-5 sm:p-7 flex flex-col sm:flex-row gap-5 sm:items-center">
         <div className="h-24 w-24 rounded-2xl border border-slate-200 bg-slate-50 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
           {profile?.logo_url ?
