@@ -8,7 +8,7 @@ import MyTrucksSection from "@/components/vendor/MyTrucksSection";
 import VendorBillingTab from "@/components/vendor/VendorBillingTab";
 import VendorUsersTab from "@/components/vendor/VendorUsersTab";
 import VendorPinStatusBar from "@/components/vendor/VendorPinStatusBar";
-import VendorProfileTab from "@/components/vendor/VendorProfileTab";
+import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorUpdatesTab from "@/components/vendor/VendorUpdatesTab";
 
 export default function VendorDashboard() {
@@ -105,7 +105,7 @@ export default function VendorDashboard() {
 
         <VendorPinStatusBar pins={pins} checkIns={checkIns} />
 
-        <TabsContent value="profile"><VendorProfileTab account={account} onRefresh={refreshDashboard} /></TabsContent>
+        <TabsContent value="profile"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
         <TabsContent value="pins"><MyTrucksSection vendorAccount={account} /></TabsContent>
         <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} pins={pins} onRefresh={refreshDashboard} /></TabsContent>
         <TabsContent value="tier"><VendorBillingTab account={account} /></TabsContent>
