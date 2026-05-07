@@ -85,6 +85,7 @@ function AddOnCard({ config, included, quantity, onDecrease, onIncrease }) {
 
 export default function VendorAddOnsSection({ account }) {
   const tier = getVendorTierConfig(account?.vendor_tier);
+  const isFreeTier = (account?.vendor_tier || "free") === "free";
   const basePrice = Number((tier.price || "$0").replace(/[^0-9.]/g, "")) || 0;
   const [extraUsers, setExtraUsers] = useState(Number(account?.extra_users_count || 0));
   const [extraPins, setExtraPins] = useState(Number(account?.extra_pins_count || 0));
@@ -98,6 +99,19 @@ export default function VendorAddOnsSection({ account }) {
       estimatedTotal: basePrice + usersCost + pinsCost,
     };
   }, [basePrice, extraUsers, extraPins]);
+
+  if (isFreeTier) {
+    return (
+      <section className="space-y-4">
+        <Card className="rounded-3xl border-[#2C4F4E]/15 bg-white shadow-sm">
+          <CardContent className="p-4 sm:p-6">
+            <p className="text-sm font-semibold text-[#2C4F4E]">Add-ons are available after upgrading from the Free plan.</p>
+            <p className="mt-1 text-xs text-slate-500">Free vendor accounts include 1 user login and 1 vendor pin.</p>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-4">

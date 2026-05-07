@@ -14,6 +14,30 @@
       "type": "string",
       "description": "Vendor business category"
     },
+    "business_tax_id": {
+      "type": "string",
+      "description": "EIN, 501(c)(3), or Business Tax ID in formatted form"
+    },
+    "business_street_address": {
+      "type": "string",
+      "description": "Business street address"
+    },
+    "business_city": {
+      "type": "string",
+      "description": "Business city"
+    },
+    "business_state": {
+      "type": "string",
+      "description": "Business state"
+    },
+    "business_zip_code": {
+      "type": "string",
+      "description": "Business ZIP code"
+    },
+    "business_address": {
+      "type": "string",
+      "description": "Combined business address"
+    },
     "description": {
       "type": "string",
       "description": "Short public vendor bio or business description"
@@ -69,12 +93,23 @@
     "vendor_tier": {
       "type": "string",
       "enum": [
+        "free",
         "starter",
         "pro",
         "growth"
       ],
-      "default": "starter",
+      "default": "free",
       "description": "Vendor subscription tier"
+    },
+    "vendor_setup_status": {
+      "type": "string",
+      "enum": [
+        "setup_required",
+        "in_progress",
+        "complete"
+      ],
+      "default": "setup_required",
+      "description": "Vendor onboarding/setup status"
     },
     "extra_users_count": {
       "type": "number",
@@ -95,19 +130,6 @@
       "type": "number",
       "default": 0,
       "description": "Current vendor pin count"
-    },
-    "vendor_dashboard_passcode_hash": {
-      "type": "string",
-      "description": "Hashed Vendor Dashboard passcode"
-    },
-    "passcode_updated_at": {
-      "type": "string",
-      "format": "date-time",
-      "description": "When the Vendor Dashboard passcode was last changed"
-    },
-    "passcode_updated_by": {
-      "type": "string",
-      "description": "User ID who last changed the Vendor Dashboard passcode"
     },
     "is_active": {
       "type": "boolean",

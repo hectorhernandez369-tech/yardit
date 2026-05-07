@@ -7,11 +7,11 @@ import { VENDOR_TIERS } from "@/lib/vendorTiers";
 import VendorAddOnsSection from "@/components/vendor/billing/VendorAddOnsSection";
 import { toast } from "sonner";
 
-const TIER_ORDER = ["starter", "pro", "growth"];
+const TIER_ORDER = ["free", "starter", "pro", "growth"];
 
 export default function VendorBillingTab({ account, onRefresh }) {
   const [changingTier, setChangingTier] = useState("");
-  const currentTierIndex = TIER_ORDER.indexOf(account?.vendor_tier || "starter");
+  const currentTierIndex = TIER_ORDER.indexOf(account?.vendor_tier || "free");
 
   const handleChangeTier = async (tierKey) => {
     if (!account?.id || tierKey === account.vendor_tier) return;
@@ -24,7 +24,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid min-w-0 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid min-w-0 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {Object.entries(VENDOR_TIERS).map(([key, tier]) => (
         <Card key={key} className={account?.vendor_tier === key ? "rounded-2xl border-2 border-[#F4A849] bg-[#FFF7E8] shadow-md overflow-hidden" : "rounded-2xl border-[#2C4F4E]/20 bg-white shadow-sm overflow-hidden"}>
         <CardHeader className="p-3 sm:p-5 pb-2">
@@ -33,7 +33,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
               {account?.vendor_tier === key && <Badge>Current</Badge>}
             </div>
             <p className="text-xl sm:text-2xl font-bold text-[#2C4F4E]">{tier.price}</p>
-            <p className="text-xs font-semibold text-slate-500">{key === "starter" ? "I’m trying Yardit" : key === "pro" ? "I actively use Yardit" : "I run my business through Yardit"}</p>
+            <p className="text-xs font-semibold text-slate-500">{key === "free" ? "Trial/casual vendor usage" : key === "starter" ? "I’m trying Yardit" : key === "pro" ? "I actively use Yardit" : "I run my business through Yardit"}</p>
           </CardHeader>
           <CardContent className="p-3 pt-0 sm:p-5 sm:pt-0 text-xs sm:text-sm space-y-1.5 text-slate-700">
             <p>{tier.includedUsers} user login{tier.includedUsers > 1 ? "s" : ""}</p>
@@ -43,8 +43,10 @@ export default function VendorBillingTab({ account, onRefresh }) {
             <p>{tier.logoPin ? "Logo pin included" : "Basic vendor icon only"}</p>
             <p>{tier.animation ? "Animated pin included" : "No animation"}</p>
             <p>{tier.visibilityRange}</p>
-            {key !== "starter" && <p>Extra users: {tier.extraUserPrice} each</p>}
-            {key !== "starter" && <p>Extra pins: {tier.extraPinPrice} each</p>}
+            {tier.maxCheckInDurationHours && <p>Limited to {tier.maxCheckInDurationHours} live hours</p>}
+            <p>{tier.hasLikeButton ? "Like button included" : "No Like button"}</p>
+            {key !== "free" && key !== "starter" && <p>Extra users: {tier.extraUserPrice} each</p>}
+            {key !== "free" && key !== "starter" && <p>Extra pins: {tier.extraPinPrice} each</p>}
             {account?.vendor_tier === key ? (
               <Button disabled variant="outline" className="w-full mt-3">Current Plan</Button>
             ) : (
@@ -57,7 +59,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
       ))}
       </div>
 
-      <VendorAddOnsSection account={account} />
+      {account?.vendor_tier !== "free" && <VendorAddOnsSection account={account} />}
     </div>
   );
 }

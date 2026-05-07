@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { logUserActivity, logUserActivityOncePerSession } from "@/lib/logUserActivity";
@@ -35,6 +36,10 @@ export default function GuestEntryModal({ open, onLogin, onGuestEnter }) {
     }).catch(() => null);
   }, [showTosModal]);
 
+  const handleVendorSignup = () => {
+    base44.auth.redirectToLogin(`${window.location.origin}/VendorSignup`);
+  };
+
   const handleGuestContinue = () => {
     if (!tosChecked) {
       setShowTosError(true);
@@ -67,6 +72,13 @@ export default function GuestEntryModal({ open, onLogin, onGuestEnter }) {
             <Button onClick={onLogin} className="w-full">
               Log In / Sign Up
             </Button>
+
+            <div className="rounded-lg border border-[#2C4F4E]/20 bg-white p-3">
+              <p className="text-xs font-semibold text-[#2C4F4E]">For businesses, vendors, and organizers</p>
+              <Button onClick={handleVendorSignup} variant="outline" size="sm" className="mt-2 w-full border-[#2C4F4E]/30 text-[#2C4F4E]">
+                Create Vendor Account
+              </Button>
+            </div>
 
             <div className="rounded-lg border border-slate-200 p-4 space-y-3 bg-slate-50">
               <label className="flex items-start gap-2 text-sm text-slate-600 cursor-pointer">

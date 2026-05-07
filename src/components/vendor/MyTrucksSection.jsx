@@ -44,8 +44,8 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
 
   const vendorAccount = providedVendorAccount || loadedVendorAccounts.find((account) => account.is_active !== false) || null;
   const hasVendorAccount = !!vendorAccount?.id;
-  const vendorTier = vendorAccount?.vendor_tier || "starter";
-  const tierConfig = TIER_CONFIG[vendorTier] || TIER_CONFIG.starter;
+  const vendorTier = vendorAccount?.vendor_tier || "free";
+  const tierConfig = TIER_CONFIG[vendorTier] || TIER_CONFIG.free;
   const { max_pins } = getTierLimits(vendorTier, vendorAccount?.extra_pins_count || 0);
 
   const { data: pins = [] } = useQuery({

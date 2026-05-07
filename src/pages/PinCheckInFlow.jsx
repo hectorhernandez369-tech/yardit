@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
+import { canVendorCheckInToday, getVendorTierConfig } from "@/lib/vendorTiers";
 
 export default function PinCheckInFlow({ pin, vendorAccount, currentUser, existingCheckIn, onClose, onSuccess }) {
   const [latitude, setLatitude] = useState(existingCheckIn?.checkin_latitude || "");
@@ -14,6 +15,7 @@ export default function PinCheckInFlow({ pin, vendorAccount, currentUser, existi
   const [pinAnimation, setPinAnimation] = useState(existingCheckIn?.pin_animation || "none");
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
+  const tier = getVendorTierConfig(vendorAccount?.vendor_tier);
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -45,9 +47,17 @@ export default function PinCheckInFlow({ pin, vendorAccount, currentUser, existi
       return;
     }
 
+    const existingCheckIns = await base44.entities.VendorPinCheckIn.filter({ vendor_account_id: vendorAccount.id }, "-created_date");
+    const result = canVendorCheckInToday(vendorAccount, existingCheckIns);
+    if (!existingCheckIn?.id && !result.allowed) {
+      toast.error(result.reason);
+      return;
+    }
+
     setSaving(true);
     const now = new Date();
-    const endTime = new Date(now.getTime() + Number(durationHours) * 60 * 60 * 1000);
+    const hours = tier.maxCheckInDurationHours ? Math.min(Number(durationHours), tier.maxCheckInDurationHours) : Number(durationHours);
+    const endTime = new Date(now.getTime() + hours * 60 * 60 * 1000);
     const data = {
       vendor_pin_id: pin.id,
       vendor_account_id: vendorAccount.id,
@@ -58,7 +68,7 @@ export default function PinCheckInFlow({ pin, vendorAccount, currentUser, existi
       checkin_start_time: now.toISOString(),
       checkin_end_time: endTime.toISOString(),
       status: "live",
-      pin_animation: pinAnimation,
+      pin_animation: tier.animation ? pinAnimation : "none",
     };
 
     const savedCheckIn = existingCheckIn?.id
@@ -88,12 +98,13 @@ export default function PinCheckInFlow({ pin, vendorAccount, currentUser, existi
             <Input value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="Longitude" className="rounded-xl" />
           </div>
           <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Display address or location note" className="rounded-xl" />
-          <Input type="number" min="1" max="12" value={durationHours} onChange={(e) => setDurationHours(e.target.value)} placeholder="Hours live" className="rounded-xl" />
-          <select value={pinAnimation} onChange={(e) => setPinAnimation(e.target.value)} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm">
+          <Input type="number" min="1" max={tier.maxCheckInDurationHours || 12} value={durationHours} onChange={(e) => setDurationHours(e.target.value)} placeholder="Hours live" className="rounded-xl" />
+          {tier.maxCheckInDurationHours && <p className="text-xs text-slate-500">Free vendor check-ins auto-expire after 4 hours. Upgrade for longer live visibility and unlimited check-ins.</p>}
+          {tier.animation && <select value={pinAnimation} onChange={(e) => setPinAnimation(e.target.value)} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm">
             <option value="none">No animation</option>
             <option value="pulse">Pulse animation</option>
             <option value="bounce">Bounce animation</option>
-          </select>
+          </select>}
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
             <Button onClick={handleSave} disabled={saving} className="flex-1 rounded-xl gap-2">

@@ -3,7 +3,7 @@ import L from "leaflet";
 const cache = {};
 
 export function getVendorMarkerIcon({ pin, account, checkIn, selected = false }) {
-  const tier = account?.vendor_tier || "starter";
+  const tier = account?.vendor_tier || "free";
   const image = pin?.pin_icon_style === "truck_logo" ? (pin?.pin_logo_url || pin?.pin_icon_url || account?.business_logo) : null;
   const size = selected ? 38 : 32;
   const animation = tier === "growth" ? checkIn?.pin_animation : "none";
@@ -28,8 +28,9 @@ export function getVendorMarkerIcon({ pin, account, checkIn, selected = false })
 }
 
 export function shouldShowVendorPinAtZoom(account, zoom) {
-  const tier = account?.vendor_tier || "starter";
+  const tier = account?.vendor_tier || "free";
   if (tier === "growth") return zoom >= 11;
   if (tier === "pro") return zoom >= 13;
-  return zoom >= 15;
+  if (tier === "starter") return zoom >= 15;
+  return zoom >= 16;
 }
