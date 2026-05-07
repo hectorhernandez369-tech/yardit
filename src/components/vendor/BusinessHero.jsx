@@ -55,7 +55,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
     hero_background_color: { label: "Hero background", entityField: "hero_background_color", value: profile?.hero_background_color || "#FFFFFF" },
   };
 
-  const heroBackgroundColor = profile?.hero_background_color || "#FFFFFF";
+  const heroBackgroundColor = profile?.hero_background_color && profile.hero_background_color !== "#FFFFFF" ? profile.hero_background_color : "#5DADA5";
 
   const startEdit = (field) => {
     if (!editable) return;
