@@ -159,6 +159,7 @@ export default function VendorDashboard() {
                 <TabsTrigger value="pins" className="min-w-[7.25rem] sm:min-w-[9rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Trucks / Pins</TabsTrigger>
                 <TabsTrigger value="history" className="min-w-[5.75rem] sm:min-w-[7.5rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">History</TabsTrigger>
                 <TabsTrigger value="tier" className="min-w-[4.5rem] sm:min-w-[7rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Tier</TabsTrigger>
+                <TabsTrigger value="events" className="min-w-[5.25rem] sm:min-w-[7.5rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Events</TabsTrigger>
                 <TabsTrigger value="users" className="min-w-[6.75rem] sm:min-w-[11rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Users</TabsTrigger>
               </TabsList>
             </div>
@@ -187,6 +188,14 @@ export default function VendorDashboard() {
           <TabsContent value="pins" className="mt-0 min-w-0"><MyTrucksSection vendorAccount={account} currentUser={user} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="users" className="mt-0 min-w-0"><VendorUsersTab account={account} users={users} user={user} pins={pins} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="tier" className="mt-0 min-w-0"><VendorBillingTab account={account} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="events" className="mt-0 min-w-0">
+            <Card className="rounded-3xl border-[#2C4F4E]/15 bg-white shadow-sm">
+              <CardContent className="p-8 text-center space-y-3">
+                <h2 className="text-2xl font-black text-[#2C4F4E]">Events Coming Soon</h2>
+                <p className="text-sm text-slate-600">You’ll be able to create and manage vendor events here soon.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
           <TabsContent value="history" className="mt-0 min-w-0"><VendorPinHistoryTab pins={pins} checkIns={checkIns} /></TabsContent>
         </div>
       </Tabs>
