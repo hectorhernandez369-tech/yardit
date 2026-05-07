@@ -112,6 +112,7 @@ export default function VendorPinPreview() {
       setIconStyle(pins[0]?.pin_icon_style || "default");
       setAccount(accounts[0] || null);
       setLatestCheckIn(checkIns[0] || null);
+      setAddress(checkIns[0]?.checkin_display_address || "");
       setLoading(false);
     };
 
@@ -141,6 +142,8 @@ export default function VendorPinPreview() {
   }, [selectedHours]);
 
   const distanceFeet = gpsLocation && pinLocation ? Math.round(getDistanceMeters(gpsLocation, pinLocation) * 3.28084) : 0;
+  const coordinateDisplayAddress = pinLocation ? `${pinLocation.lat.toFixed(5)}, ${pinLocation.lng.toFixed(5)}` : "";
+  const displayAddress = address || coordinateDisplayAddress;
   const isGrowthPlan = account?.vendor_tier === "growth";
   const previewAnimation = isGrowthPlan && animationEnabled ? selectedAnimation : "none";
   const canUseTruckLogoIcon = !!(pin?.pin_logo_url || pin?.pin_icon_url || account?.business_logo);
@@ -172,7 +175,7 @@ export default function VendorPinPreview() {
       checked_in_by_email: user?.email || "",
       checkin_latitude: pinLocation.lat,
       checkin_longitude: pinLocation.lng,
-      checkin_display_address: address,
+      checkin_display_address: displayAddress,
       checkin_start_time: start.toISOString(),
       checkin_end_time: end.toISOString(),
       pin_animation: previewAnimation,
@@ -235,7 +238,7 @@ export default function VendorPinPreview() {
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
           <Card className="rounded-3xl"><CardContent className="p-5 space-y-3">
             <p className="text-sm font-semibold text-[#2C4F4E]">Pin address</p>
-            <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter the address customers should see" />
+            <Input value={displayAddress} onChange={(e) => setAddress(e.target.value)} placeholder="Enter the address customers should see" />
             <p className="text-xs text-muted-foreground">Current adjustment from GPS: {distanceFeet} ft / 350 ft max.</p>
             <div className="rounded-2xl border p-4 space-y-3">
               <div className="flex items-center justify-between gap-3">
