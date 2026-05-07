@@ -1,0 +1,37 @@
+{
+  "name": "EventInviteCode",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "VendorEvent ID"
+    },
+    "invite_code": {
+      "type": "string",
+      "description": "Join invite code"
+    },
+    "invite_link": {
+      "type": "string",
+      "description": "Invite link URL"
+    },
+    "auto_approve": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether invite joins are auto-approved"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional expiration"
+    }
+  },
+  "required": [
+    "event_id",
+    "invite_code",
+    "auto_approve"
+  ]
+}

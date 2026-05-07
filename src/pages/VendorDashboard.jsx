@@ -14,6 +14,7 @@ import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
 import VendorPortalGate from "@/components/vendor/VendorPortalGate";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
+import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
 import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
 import { hasValidVendorPortalSession } from "@/lib/vendorPasscode";
 
@@ -188,14 +189,7 @@ export default function VendorDashboard() {
           <TabsContent value="pins" className="mt-0 min-w-0"><MyTrucksSection vendorAccount={account} currentUser={user} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="users" className="mt-0 min-w-0"><VendorUsersTab account={account} users={users} user={user} pins={pins} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="tier" className="mt-0 min-w-0"><VendorBillingTab account={account} onRefresh={refreshDashboard} /></TabsContent>
-          <TabsContent value="events" className="mt-0 min-w-0">
-            <Card className="rounded-3xl border-[#2C4F4E]/15 bg-white shadow-sm">
-              <CardContent className="p-8 text-center space-y-3">
-                <h2 className="text-2xl font-black text-[#2C4F4E]">Events Coming Soon</h2>
-                <p className="text-sm text-slate-600">You’ll be able to create and manage vendor events here soon.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          <TabsContent value="events" className="mt-0 min-w-0"><VendorEventsTab account={account} user={user} /></TabsContent>
           <TabsContent value="history" className="mt-0 min-w-0"><VendorPinHistoryTab pins={pins} checkIns={checkIns} /></TabsContent>
         </div>
       </Tabs>

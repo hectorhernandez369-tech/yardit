@@ -1,0 +1,186 @@
+{
+  "name": "VendorEvent",
+  "type": "object",
+  "properties": {
+    "organizer_user_id": {
+      "type": "string",
+      "description": "Organizer user ID"
+    },
+    "organizer_business_id": {
+      "type": "string",
+      "description": "VendorAccount ID for the organizer"
+    },
+    "organizer_business_name": {
+      "type": "string",
+      "description": "Organizer business name"
+    },
+    "organizer_logo": {
+      "type": "string",
+      "description": "Organizer logo URL"
+    },
+    "title": {
+      "type": "string",
+      "description": "Event title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Event description"
+    },
+    "category": {
+      "type": "string",
+      "description": "Event category"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "single",
+        "multi_spot",
+        "multi_location"
+      ],
+      "default": "single",
+      "description": "Vendor event type"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_payment",
+        "published",
+        "active",
+        "completed",
+        "cancelled"
+      ],
+      "default": "draft",
+      "description": "Vendor event status"
+    },
+    "open_to_vendors": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether vendors can request to join"
+    },
+    "vendor_invitation_description": {
+      "type": "string",
+      "description": "Vendor-facing invitation text"
+    },
+    "vendor_fee_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "general_fee",
+        "set_space_fee"
+      ],
+      "default": "none",
+      "description": "Vendor attendance fee type"
+    },
+    "vendor_general_fee": {
+      "type": "number",
+      "description": "General vendor attendance fee"
+    },
+    "vendor_space_options": {
+      "type": "array",
+      "description": "Space options for set space fees",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "allow_custom_spaces": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether custom vendor spaces are allowed"
+    },
+    "vendor_instructions": {
+      "type": "string",
+      "description": "Instructions for attending vendors"
+    },
+    "vendor_deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "Vendor signup deadline"
+    },
+    "max_vendors": {
+      "type": "number",
+      "description": "Optional maximum vendor count"
+    },
+    "startDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event start date/time"
+    },
+    "endDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event end date/time"
+    },
+    "earlyVisibilityStartDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event can appear before it starts"
+    },
+    "display_address": {
+      "type": "string",
+      "description": "Public display address"
+    },
+    "geocoded_address": {
+      "type": "string",
+      "description": "Geocoded/reference address"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Event latitude"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Event longitude"
+    },
+    "timeZoneId": {
+      "type": "string",
+      "description": "IANA timezone"
+    },
+    "radius_feet": {
+      "type": "number",
+      "description": "Multi-spot event radius in feet"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Event photo URLs"
+    },
+    "logo": {
+      "type": "string",
+      "description": "Event logo URL"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Event icon key or URL"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "organizer_user_id",
+    "organizer_business_id",
+    "title",
+    "event_type",
+    "status",
+    "startDateTime",
+    "endDateTime",
+    "latitude",
+    "longitude"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "EventVendorAttendee",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "VendorEvent ID"
+    },
+    "vendor_user_id": {
+      "type": "string",
+      "description": "Attending vendor user ID"
+    },
+    "vendor_business_id": {
+      "type": "string",
+      "description": "Attending VendorAccount ID"
+    },
+    "business_name": {
+      "type": "string",
+      "description": "Vendor business name"
+    },
+    "logo": {
+      "type": "string",
+      "description": "Vendor logo URL"
+    },
+    "description": {
+      "type": "string",
+      "description": "Vendor short description"
+    },
+    "approved_request_id": {
+      "type": "string",
+      "description": "Approved request ID"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "event_id",
+    "vendor_business_id",
+    "business_name"
+  ]
+}

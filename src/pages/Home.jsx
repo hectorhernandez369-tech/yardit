@@ -50,6 +50,7 @@ import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/com
 import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
 import SaveListingButton from "@/components/listing/SaveListingButton";
 import { isLiveVendorCheckIn } from "@/lib/vendorTiers";
+import { isPublishedVendorEvent, toVendorEventListing } from "@/lib/vendorEvents";
 import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map/vendorMarkerIcons";
 import QuickMapFilters from "@/components/map/QuickMapFilters";
 
@@ -736,6 +737,12 @@ export default function HomePage() {
     initialData: [],
   });
 
+  const { data: vendorEvents = [] } = useQuery({
+    queryKey: ["publicVendorEvents"],
+    queryFn: () => base44.entities.VendorEvent.list("startDateTime"),
+    initialData: [],
+  });
+
   // Live location tracking
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -878,13 +885,16 @@ export default function HomePage() {
       })
       .filter(Boolean);
 
-    const strictMatches = baseListings.filter(l => listingMatchesQuery(l, searchQuery, false));
+    const vendorEventListings = vendorEvents.filter((event) => isPublishedVendorEvent(event, now)).map(toVendorEventListing);
+    const combinedListings = [...baseListings, ...vendorEventListings];
+
+    const strictMatches = combinedListings.filter(l => listingMatchesQuery(l, searchQuery, false));
     if (strictMatches.length > 0 || !searchQuery) {
       return strictMatches.sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
     }
 
-    return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
-  }, [listings, filter, searchQuery, selectedCategories, demoOn, user]);
+    return combinedListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
+  }, [listings, vendorEvents, filter, searchQuery, selectedCategories, demoOn, user]);
 
   const listViewListings = useMemo(() => {
     const now = new Date();
@@ -938,13 +948,16 @@ export default function HomePage() {
       };
     });
 
-    const strictMatches = baseListings.filter(l => listingMatchesQuery(l, searchQuery, false));
+    const vendorEventListings = vendorEvents.filter((event) => isPublishedVendorEvent(event, now)).map(toVendorEventListing);
+    const combinedListings = [...baseListings, ...vendorEventListings];
+
+    const strictMatches = combinedListings.filter(l => listingMatchesQuery(l, searchQuery, false));
     if (strictMatches.length > 0 || !searchQuery) {
       return strictMatches.sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
     }
 
-    return baseListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
-  }, [listings, filter, searchQuery, selectedCategories, demoOn, user]);
+    return combinedListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
+  }, [listings, vendorEvents, filter, searchQuery, selectedCategories, demoOn, user]);
 
 const stats = useMemo(() => {
   const publicListings = eligibleListings.filter((l) => l.mapState !== "preview");
@@ -1445,7 +1458,7 @@ const stats = useMemo(() => {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
+                                navigate(listing.is_vendor_event ? `/VendorEventDetail?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`);
                               }}
                               className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700"
                             >

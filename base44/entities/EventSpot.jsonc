@@ -1,0 +1,53 @@
+{
+  "name": "EventSpot",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Parent VendorEvent ID"
+    },
+    "title": {
+      "type": "string",
+      "description": "Spot title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Spot description"
+    },
+    "mini_schedule": {
+      "type": "string",
+      "description": "Optional spot-specific schedule"
+    },
+    "photo": {
+      "type": "string",
+      "description": "Spot photo URL"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Spot latitude"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Spot longitude"
+    },
+    "display_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "event_id",
+    "title",
+    "latitude",
+    "longitude"
+  ]
+}

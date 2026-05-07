@@ -1,0 +1,58 @@
+{
+  "name": "EventVendorRequest",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "VendorEvent ID"
+    },
+    "vendor_user_id": {
+      "type": "string",
+      "description": "Requesting vendor user ID"
+    },
+    "vendor_business_id": {
+      "type": "string",
+      "description": "Requesting VendorAccount ID"
+    },
+    "business_name": {
+      "type": "string",
+      "description": "Requesting business name"
+    },
+    "logo": {
+      "type": "string",
+      "description": "Requesting business logo"
+    },
+    "request_message": {
+      "type": "string",
+      "description": "Message to organizer"
+    },
+    "requested_space_option": {
+      "type": "string",
+      "description": "Requested booth or space option"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "denied"
+      ],
+      "default": "pending",
+      "description": "Request status"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "event_id",
+    "vendor_business_id",
+    "business_name",
+    "status"
+  ]
+}
