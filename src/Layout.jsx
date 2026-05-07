@@ -237,7 +237,7 @@ function LayoutContent({ children, user, setUser }) {
                         </>
                       ) : (
                         <>
-                          <DropdownMenuItem onClick={navigateToLogin} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+                          <DropdownMenuItem onClick={() => navigate("/AccountOptions")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
                             <User className="w-3.5 h-3.5 text-[#5DADA5]" /> Log In / Sign Up
                           </DropdownMenuItem>
                         </>
