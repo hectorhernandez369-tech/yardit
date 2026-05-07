@@ -97,6 +97,7 @@ export default function VendorPinPreview() {
   const [iconStyle, setIconStyle] = useState("default");
   const [animationEnabled, setAnimationEnabled] = useState(false);
   const [selectedAnimation, setSelectedAnimation] = useState("pulse");
+  const [upgradingGrowth, setUpgradingGrowth] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -149,6 +150,15 @@ export default function VendorPinPreview() {
   const handleMarkerDrag = (event) => {
     const next = event.target.getLatLng();
     setPinLocation(clampToRadius(gpsLocation, next));
+  };
+
+  const upgradeToGrowth = async () => {
+    if (!account?.id) return;
+    setUpgradingGrowth(true);
+    await base44.entities.VendorAccount.update(account.id, { vendor_tier: "growth" });
+    setAccount({ ...account, vendor_tier: "growth" });
+    toast.success("Upgraded to Growth");
+    setUpgradingGrowth(false);
   };
 
   const startCheckIn = async () => {
@@ -237,23 +247,25 @@ export default function VendorPinPreview() {
               </div>
               {!canUseTruckLogoIcon && <p className="text-xs text-muted-foreground">Upload a truck logo first to use this option.</p>}
             </div>
-            {isGrowthPlan && (
-              <div className="rounded-2xl border p-4 space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-[#2C4F4E]">Animate icon</p>
-                    <p className="text-xs text-muted-foreground">Growth plan preview animation</p>
-                  </div>
-                  <Switch checked={animationEnabled} onCheckedChange={setAnimationEnabled} />
+            <div className={`rounded-2xl border p-4 space-y-3 ${!isGrowthPlan ? "bg-slate-100 opacity-70" : ""}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[#2C4F4E]">Animate icon</p>
+                  <p className="text-xs text-muted-foreground">Growth plan preview animation</p>
                 </div>
-                {animationEnabled && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button type="button" variant={selectedAnimation === "pulse" ? "default" : "outline"} onClick={() => setSelectedAnimation("pulse")} className="rounded-xl">Pulsing icon</Button>
-                    <Button type="button" variant={selectedAnimation === "bounce" ? "default" : "outline"} onClick={() => setSelectedAnimation("bounce")} className="rounded-xl">Bouncing icon</Button>
-                  </div>
-                )}
+                <Switch checked={animationEnabled} disabled={!isGrowthPlan} onCheckedChange={setAnimationEnabled} />
               </div>
-            )}
+              {!isGrowthPlan ? (
+                <Button type="button" onClick={upgradeToGrowth} disabled={upgradingGrowth} className="w-full rounded-xl bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">
+                  {upgradingGrowth ? "Upgrading..." : "Upgrade to Growth"}
+                </Button>
+              ) : animationEnabled && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant={selectedAnimation === "pulse" ? "default" : "outline"} onClick={() => setSelectedAnimation("pulse")} className="rounded-xl">Pulsing icon</Button>
+                  <Button type="button" variant={selectedAnimation === "bounce" ? "default" : "outline"} onClick={() => setSelectedAnimation("bounce")} className="rounded-xl">Bouncing icon</Button>
+                </div>
+              )}
+            </div>
           </CardContent></Card>
 
           <Card className="rounded-3xl"><CardContent className="p-5 space-y-4">
