@@ -51,6 +51,7 @@ import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBa
 import SaveListingButton from "@/components/listing/SaveListingButton";
 import { isLiveVendorCheckIn } from "@/lib/vendorTiers";
 import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map/vendorMarkerIcons";
+import QuickMapFilters from "@/components/map/QuickMapFilters";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 
@@ -437,6 +438,7 @@ export default function HomePage() {
   const [mapCenter, setMapCenter] = useState(getSavedLocation);
   const [mapZoom, setMapZoom] = useState(getSavedZoom);
   const [showControls, setShowControls] = useState(false);
+  const [quickMapFilters, setQuickMapFilters] = useState({ yardSales: true, events: true, vendors: true });
   const controlsPanelRef = useRef(null);
   const controlsBtnRef = useRef(null);
   const mapAreaRef = useRef(null);
@@ -1007,6 +1009,8 @@ const stats = useMemo(() => {
     const cPoints = [];
     eligibleListings.forEach(listing => {
       if (filter !== "all" && listing.listingType !== filter) return;
+      if (!quickMapFilters.events && listing.listingType === "event") return;
+      if (!quickMapFilters.yardSales && listing.listingType !== "event") return;
 
       const isPreview = listing.mapState === "preview";
       const isComingSoon = listing.mapState === "coming_soon";
@@ -1077,7 +1081,7 @@ const stats = useMemo(() => {
     }
 
     return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
-  }, [eligibleListings, currentZoom, isShowingAllListings, filter]);
+  }, [eligibleListings, currentZoom, isShowingAllListings, filter, quickMapFilters]);
 
   // NO ZOOM-BASED STATE RESET - persist marquee state across zoom levels
 
@@ -1122,6 +1126,7 @@ const stats = useMemo(() => {
   }, [visiblePins, neighborhoodParticipantPins, listings]);
 
   const liveVendorPins = useMemo(() => {
+    if (!quickMapFilters.vendors) return [];
     return vendorCheckIns
       .filter(isLiveVendorCheckIn)
       .map((checkIn) => {
@@ -1132,7 +1137,7 @@ const stats = useMemo(() => {
         return { checkIn, pin, account };
       })
       .filter(Boolean);
-  }, [vendorCheckIns, vendorPins, vendorAccounts, currentZoom]);
+  }, [vendorCheckIns, vendorPins, vendorAccounts, currentZoom, quickMapFilters.vendors]);
 
   const marqueeOverlays = useMemo(() => {
     if (currentZoom < MARQUEE_COLLAPSED_MIN_ZOOM) return [];
@@ -1321,6 +1326,7 @@ const stats = useMemo(() => {
               zoomControl={false}
             >
               <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => { mapRef.current = map; }} />
+              <QuickMapFilters value={quickMapFilters} onChange={setQuickMapFilters} />
               <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
               <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
               <HuntMapLayers />
