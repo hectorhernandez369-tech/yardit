@@ -99,18 +99,18 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
 
   return (
     <section className={asHeader ? "overflow-hidden bg-white min-w-0" : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm min-w-0"}>
-      <div className={asHeader ? "max-w-7xl mx-auto w-full px-4 sm:px-6 py-5 sm:py-8 flex flex-col sm:flex-row gap-4 sm:gap-5 sm:items-start" : "p-4 sm:p-7 lg:p-9 flex flex-col sm:flex-row gap-4 sm:gap-5 sm:items-start"} style={{ backgroundColor: heroBackgroundColor }}>
+      <div className={asHeader ? "max-w-7xl mx-auto w-full px-3 sm:px-6 py-3 sm:py-8 flex flex-row gap-3 sm:gap-5 items-start" : "p-3 sm:p-7 lg:p-9 flex flex-row gap-3 sm:gap-5 items-start"} style={{ backgroundColor: heroBackgroundColor }}>
         <button
           type="button"
           onClick={() => editable && logoInputRef.current?.click()}
           disabled={!editable || uploadingLogo}
-          className="group relative h-24 w-24 rounded-2xl border border-slate-100 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0 disabled:cursor-default"
+          className="group relative h-16 w-16 sm:h-24 sm:w-24 rounded-2xl border border-slate-100 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0 disabled:cursor-default"
           title={editable ? "Upload business photo" : undefined}
         >
           {profile?.logo_url || profile?.business_logo ? (
             <img src={profile.logo_url || profile.business_logo} alt={profile.business_name} className="h-full w-full object-cover" />
           ) : (
-            <Store className="h-10 w-10 text-slate-400" />
+            <Store className="h-7 w-7 sm:h-10 sm:w-10 text-slate-400" />
           )}
           {editable && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition group-hover:opacity-100">
@@ -119,14 +119,14 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
           )}
           <input ref={logoInputRef} type="file" accept="image/*" onChange={uploadLogo} className="hidden" />
         </button>
-        <div className="flex-1 space-y-3 min-w-0">
+        <div className="flex-1 space-y-2 sm:space-y-3 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <EditableButton field="business_name" className="rounded-lg px-1 -mx-1">
-              <h1 className="inline text-2xl sm:text-3xl font-bold text-[#1F2937] break-words">{profile?.business_name || "My Business"}</h1>
+              <h1 className="inline text-lg sm:text-3xl font-bold text-[#1F2937] break-words leading-tight">{profile?.business_name || "My Business"}</h1>
             </EditableButton>
-            <Badge className="bg-[#FFF1D6] text-[#7A4B00] border border-[#F4A849]/40 capitalize">♨ {profile?.tier || "starter"}</Badge>
+            <Badge className="bg-[#FFF1D6] text-[#7A4B00] border border-[#F4A849]/40 capitalize text-[10px] sm:text-xs px-1.5 sm:px-2">♨ {profile?.tier || "starter"}</Badge>
           </div>
-          <div className="flex flex-wrap gap-2 text-sm text-slate-600">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
             {editable && (
               <EditableButton field="hero_background_color" className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 border border-slate-200">
                 <Palette className="h-3.5 w-3.5 text-[#5DADA5]" /> Background
@@ -143,7 +143,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
             </EditableButton>
           </div>
           <EditableButton field="description" className="rounded-xl px-2 py-1 -mx-2">
-            <p className="max-w-3xl text-sm leading-relaxed text-slate-600">{profile?.description || "Add a brief description so customers know what your business offers."}</p>
+            <p className="max-w-3xl text-xs sm:text-sm leading-snug sm:leading-relaxed text-slate-600 line-clamp-2 sm:line-clamp-none">{profile?.description || "Add a brief description so customers know what your business offers."}</p>
           </EditableButton>
         </div>
       </div>
