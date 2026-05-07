@@ -9,7 +9,7 @@ export const TIER_CONFIG = {
     name: "Pro",
     price: "$19.99/month",
     max_pins: 1,
-    max_users: 1,
+    max_users: 2,
   },
   growth: {
     name: "Growth",

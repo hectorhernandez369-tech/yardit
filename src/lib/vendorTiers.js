@@ -15,7 +15,7 @@ export const VENDOR_TIERS = {
   pro: {
     label: "Pro",
     price: "$19.99/month",
-    includedUsers: 1,
+    includedUsers: 2,
     includedPins: 1,
     dailyCheckInLimit: null,
     fridayToSundayOnly: false,
