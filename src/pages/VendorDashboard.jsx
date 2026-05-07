@@ -1,8 +1,9 @@
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Bell, Loader2, Store, MapPin, CreditCard, Users, MessageSquare, Navigation } from "lucide-react";
+import { ArrowLeft, Bell, Loader2, Store, MapPin, Navigation } from "lucide-react";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import MyTrucksSection from "@/components/vendor/MyTrucksSection";
 import VendorBillingTab from "@/components/vendor/VendorBillingTab";
@@ -10,9 +11,12 @@ import VendorUsersTab from "@/components/vendor/VendorUsersTab";
 import VendorPinStatusBar from "@/components/vendor/VendorPinStatusBar";
 import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
+import VendorPortalGate from "@/components/vendor/VendorPortalGate";
+import { hasValidVendorPortalSession } from "@/lib/vendorPasscode";
 
 export default function VendorDashboard() {
   const queryClient = useQueryClient();
+  const [portalUnlocked, setPortalUnlocked] = useState(false);
 
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ["vendorDashboardUser"],
@@ -24,12 +28,26 @@ export default function VendorDashboard() {
     queryFn: async () => {
       const byId = await base44.entities.VendorAccount.filter({ owner_user_id: user.id });
       if (byId.length) return byId;
-      return base44.entities.VendorAccount.filter({ owner_user_id: user.email });
+      const byEmail = await base44.entities.VendorAccount.filter({ owner_user_id: user.email });
+      if (byEmail.length) return byEmail;
+      const authorizedRecords = await base44.entities.VendorAuthorizedUser.filter({ authorized_email: user.email, status: "active" });
+      if (!authorizedRecords.length) return [];
+      const allAccounts = await base44.entities.VendorAccount.list();
+      return allAccounts.filter((vendorAccount) => authorizedRecords.some((record) => record.vendor_account_id === vendorAccount.id));
     },
     enabled: !!user?.id,
   });
 
   const account = accounts.find((item) => item.is_active !== false) || accounts[0];
+  const isOwner = !!account && (account.owner_user_id === user?.id || account.owner_user_id === user?.email);
+
+  const { data: authorizedAccessRecords = [] } = useQuery({
+    queryKey: ["vendorDashboardAuthorizedAccess", account?.id, user?.email],
+    queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: account.id, authorized_email: user.email, status: "active" }),
+    enabled: !!account?.id && !!user?.email && !isOwner,
+  });
+
+  const authorizedAccessRecord = authorizedAccessRecords[0];
 
   const { data: pins = [] } = useQuery({
     queryKey: ["vendorDashboardPins", account?.id],
@@ -63,6 +81,14 @@ export default function VendorDashboard() {
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardUpdates"] });
   };
 
+  useEffect(() => {
+    if (isOwner || (account?.id && user?.email && hasValidVendorPortalSession(account.id, user.email))) {
+      setPortalUnlocked(true);
+    } else {
+      setPortalUnlocked(false);
+    }
+  }, [account?.id, user?.email, isOwner]);
+
   if (loadingUser || loadingAccount) {
     return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" /></div>;
   }
@@ -93,6 +119,10 @@ export default function VendorDashboard() {
     hero_background_color: account.hero_background_color,
   };
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
+
+  if (!portalUnlocked) {
+    return <VendorPortalGate account={account} authorizedUser={authorizedAccessRecord} user={user} onUnlock={() => setPortalUnlocked(true)} />;
+  }
 
   return (
     <div className="w-full min-h-screen bg-[#FBFAF7]">
@@ -133,7 +163,7 @@ export default function VendorDashboard() {
 
           <TabsContent value="profile"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="pins"><MyTrucksSection vendorAccount={account} currentUser={user} /></TabsContent>
-          <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} pins={pins} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} pins={pins} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="tier"><VendorBillingTab account={account} /></TabsContent>
           <TabsContent value="history"><VendorPinHistoryTab pins={pins} checkIns={checkIns} /></TabsContent>
         </div>

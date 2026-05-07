@@ -96,6 +96,19 @@
       "default": 0,
       "description": "Current vendor pin count"
     },
+    "vendor_dashboard_passcode_hash": {
+      "type": "string",
+      "description": "Hashed Vendor Dashboard passcode"
+    },
+    "passcode_updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the Vendor Dashboard passcode was last changed"
+    },
+    "passcode_updated_by": {
+      "type": "string",
+      "description": "User ID who last changed the Vendor Dashboard passcode"
+    },
     "is_active": {
       "type": "boolean",
       "default": true,
