@@ -3,7 +3,9 @@ import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Facebook, Globe, Heart, Instagram, MapPin, Music2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ExternalLink, Facebook, Globe, Heart, Instagram, MapPin, MessageCircle, Music2, Send } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import { format } from "date-fns";
@@ -37,6 +39,9 @@ function getPublicLikeId() {
 
 export default function VendorPublicPreview({ account, pins, checkIns, updates, onRefresh }) {
   const [likingIds, setLikingIds] = useState([]);
+  const [messageForm, setMessageForm] = useState({ name: "", contact: "", message: "" });
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageSent, setMessageSent] = useState(false);
   const tier = getVendorTierConfig(account.vendor_tier);
   const liveItems = (checkIns || []).filter(isLiveVendorCheckIn);
   const activeCheckIn = liveItems[0];
@@ -54,6 +59,34 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
     });
     setLikingIds((current) => current.filter((id) => id !== update.id));
     onRefresh?.();
+  };
+
+  const handleMessageBusiness = async (event) => {
+    event.preventDefault();
+    if (!messageForm.message.trim()) return;
+
+    const ownerIdentifier = account.owner_user_id;
+    setSendingMessage(true);
+    await base44.entities.Notification.create({
+      userId: ownerIdentifier,
+      user_id: ownerIdentifier,
+      user_email: ownerIdentifier?.includes("@") ? ownerIdentifier : undefined,
+      title: "New business message",
+      message: `${messageForm.name || "A customer"}: ${messageForm.message}${messageForm.contact ? ` Contact: ${messageForm.contact}` : ""}`,
+      type: "vendor_message",
+      related_entity_type: "vendor_account",
+      related_entity_id: account.id,
+      metadata: {
+        vendor_account_id: account.id,
+        sender_name: messageForm.name,
+        sender_contact: messageForm.contact,
+      },
+      read: false,
+      is_read: false,
+    });
+    setMessageForm({ name: "", contact: "", message: "" });
+    setMessageSent(true);
+    setSendingMessage(false);
   };
 
   const heroProfile = {
@@ -82,6 +115,42 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
             </a>
           ))}
         </div>
+
+        <section className="rounded-2xl border border-[#5DADA5]/30 bg-[#F3E6CF]/50 p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-[#5DADA5]" />
+            <h3 className="font-bold text-[#2C4F4E]">Message Business</h3>
+          </div>
+          <form onSubmit={handleMessageBusiness} className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                value={messageForm.name}
+                onChange={(event) => setMessageForm({ ...messageForm, name: event.target.value })}
+                placeholder="Your name"
+                className="bg-white text-black"
+              />
+              <Input
+                value={messageForm.contact}
+                onChange={(event) => setMessageForm({ ...messageForm, contact: event.target.value })}
+                placeholder="Email or phone"
+                className="bg-white text-black"
+              />
+            </div>
+            <Textarea
+              value={messageForm.message}
+              onChange={(event) => setMessageForm({ ...messageForm, message: event.target.value })}
+              placeholder="Write your message..."
+              className="min-h-24 bg-white text-black"
+              required
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {messageSent ? <p className="text-sm font-semibold text-[#2C4F4E]">Message sent to the business.</p> : <span />}
+              <Button type="submit" disabled={sendingMessage} className="rounded-full bg-[#5DADA5] text-white hover:bg-[#4A9B93]">
+                <Send className="h-4 w-4" /> {sendingMessage ? "Sending..." : "Send Message"}
+              </Button>
+            </div>
+          </form>
+        </section>
 
         <section>
           <h3 className="font-bold text-[#2C4F4E] mb-3">Active Location</h3>
