@@ -169,12 +169,17 @@ export default function VendorPinPreview() {
           <CardContent className="p-0">
             <div className="h-[420px] bg-slate-100">
               {gpsLocation && pinLocation ? (
-                <MapContainer center={pinLocation} zoom={19} className="h-full w-full" scrollWheelZoom>
-                  <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  <Circle center={gpsLocation} radius={MAX_DISTANCE_METERS} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12 }} />
-                  <Marker position={pinLocation} draggable eventHandlers={{ dragend: handleMarkerDrag }} />
-                  <ClickToMove gpsLocation={gpsLocation} onMove={setPinLocation} />
-                </MapContainer>
+                <div className="relative h-full w-full">
+                  <MapContainer center={pinLocation} zoom={19} className="h-full w-full" scrollWheelZoom>
+                    <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <Circle center={gpsLocation} radius={MAX_DISTANCE_METERS} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12 }} />
+                    <Marker position={pinLocation} draggable eventHandlers={{ dragend: handleMarkerDrag }} />
+                    <ClickToMove gpsLocation={gpsLocation} onMove={setPinLocation} />
+                  </MapContainer>
+                  <Button onClick={handleCurrentLocation} className="absolute right-3 top-3 z-[1000] rounded-full bg-white text-[#2C4F4E] shadow-lg hover:bg-[#F3E6CF]">
+                    <Navigation className="h-4 w-4" /> My Location
+                  </Button>
+                </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center gap-3 text-center p-6">
                   <Navigation className="h-8 w-8 text-[#5DADA5]" />
@@ -188,8 +193,8 @@ export default function VendorPinPreview() {
 
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
           <Card className="rounded-3xl"><CardContent className="p-5 space-y-3">
-            <p className="text-sm font-semibold text-[#2C4F4E]">Display address or note</p>
-            <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Example: Parked near the north entrance" />
+            <p className="text-sm font-semibold text-[#2C4F4E]">Pin address</p>
+            <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter the address customers should see" />
             <p className="text-xs text-muted-foreground">Current adjustment from GPS: {distanceFeet} ft / 150 ft max.</p>
           </CardContent></Card>
 
