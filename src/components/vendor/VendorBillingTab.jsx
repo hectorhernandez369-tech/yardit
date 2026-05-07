@@ -42,7 +42,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
             <p>{tier.fridayToSundayOnly ? "Friday–Sunday only" : "Any day check-ins"}</p>
             <p>{tier.logoPin ? "Logo pin included" : "Basic vendor icon only"}</p>
             <p>{tier.animation ? "Animated pin included" : "No animation"}</p>
-            <p>Appears at zoom level {tier.mapZoom}+</p>
+            <p>{tier.visibilityRange}</p>
             {key !== "starter" && <p>Extra users: {tier.extraUserPrice} each</p>}
             {key !== "starter" && <p>Extra pins: {tier.extraPinPrice} each</p>}
             {account?.vendor_tier === key ? (
