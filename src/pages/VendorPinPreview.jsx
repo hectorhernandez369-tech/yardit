@@ -23,7 +23,7 @@ function createPreviewIcon({ pin, account, animation }) {
   const image = useLogo ? (pin?.pin_logo_url || pin?.pin_icon_url || account?.business_logo) : null;
   const animationCss = animation === "bounce" ? "vendorPreviewBounce 1.2s ease-in-out infinite" : animation === "pulse" ? "vendorPreviewPulse 1.6s ease-in-out infinite" : "none";
   const html = image
-    ? `<img src='${image}' alt='Truck logo' style='width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.32));animation:${animationCss};'/>`
+    ? `<div style='position:relative;width:46px;height:54px;animation:${animationCss};'><img src='${image}' alt='Truck logo' style='width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.32));'/><div style='position:absolute;left:50%;bottom:0;width:0;height:0;transform:translateX(-50%);border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #2C4F4E;filter:drop-shadow(0 3px 3px rgba(0,0,0,.24));'></div></div>`
     : `<div style='width:32px;height:32px;border-radius:50% 50% 50% 0;background:#F4A849;border:3px solid #2C4F4E;box-shadow:0 4px 12px rgba(0,0,0,.32);transform:rotate(-45deg);animation:${animationCss};'><div style='width:10px;height:10px;border-radius:9999px;background:#2C4F4E;margin:8px auto 0;'></div></div>`;
 
   return L.divIcon({
