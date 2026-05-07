@@ -167,6 +167,9 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
 
               return (
                 <div key={update.id} className="rounded-3xl border-2 border-[#F4A849]/40 bg-[#FFF7E8] p-5 shadow-sm">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Posted {format(new Date(update.created_date), "MMM d, yyyy 'at' h:mm a")}
+                  </p>
                   <p className="text-base font-semibold leading-relaxed text-[#1F2937] sm:text-lg">{update.text}</p>
                   <div className="mt-4 flex items-center justify-between gap-3">
                     <p className="text-xs text-slate-600">{update.likes || 0} likes</p>
