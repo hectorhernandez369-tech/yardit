@@ -18,12 +18,24 @@ const categories = [
 const heroColors = [
   ["White", "#FFFFFF"],
   ["Soft Teal", "#E8F7F5"],
+  ["Deep Teal", "#D7F0ED"],
   ["Warm Cream", "#FFF7E8"],
   ["Light Gold", "#FFF1D6"],
+  ["Sunset", "#FFE8CC"],
   ["Slate", "#F8FAFC"],
+  ["Cloud Blue", "#EFF6FF"],
+  ["Sky", "#E0F2FE"],
   ["Blush", "#FFF1F2"],
+  ["Rose", "#FFE4E6"],
+  ["Peach", "#FFEDD5"],
   ["Mint", "#ECFDF5"],
-  ["Lavender", "#F5F3FF"]
+  ["Sage", "#F0FDF4"],
+  ["Lavender", "#F5F3FF"],
+  ["Lilac", "#FAE8FF"],
+  ["Sand", "#F5EFE0"],
+  ["Parchment", "#F3E6CF"],
+  ["Charcoal", "#F1F5F9"],
+  ["Pearl", "#F8F5F0"]
 ];
 
 export default function BusinessHero({ profile, activeCheckIn, onRefresh, editable = true }) {
