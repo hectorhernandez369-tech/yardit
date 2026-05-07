@@ -202,27 +202,33 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   }
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="font-heading font-bold text-lg">My Truck Pins</h2>
-        <p className="text-sm text-muted-foreground">Customize each truck/pin profile. Locations are set when the truck checks in.</p>
+    <div className="space-y-4 sm:space-y-5 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="font-heading font-bold text-lg">My Truck Pins</h2>
+          <p className="text-sm text-muted-foreground">Customize each truck/pin profile. Locations are set when the truck checks in.</p>
+        </div>
+        <Button onClick={handleOpenAdd} disabled={!canAddPin} className="w-full sm:w-auto gap-2 rounded-xl font-heading"><Plus className="w-4 h-4" /> Add Truck Pin</Button>
       </div>
 
-      {!canAddPin && <div className="bg-destructive/10 rounded-2xl p-4 flex gap-3"><AlertCircle className="w-5 h-5 text-destructive" /><p className="text-xs text-destructive/80">You've reached your limit of {max_pins} truck pin{max_pins > 1 ? "s" : ""} for {tierConfig.name} tier.</p></div>}
-      <Button onClick={handleOpenAdd} disabled={!canAddPin} className="w-full gap-2 rounded-xl font-heading"><Plus className="w-4 h-4" /> Add Truck Pin</Button>
+      {!canAddPin && <div className="bg-destructive/10 rounded-2xl p-4 flex gap-3"><AlertCircle className="w-5 h-5 text-destructive shrink-0" /><p className="text-xs text-destructive/80">You've reached your limit of {max_pins} truck pin{max_pins > 1 ? "s" : ""} for {tierConfig.name} tier.</p></div>}
 
       {activePins.length === 0 ? <div className="bg-card rounded-2xl border px-5 py-10 text-center"><Truck className="w-6 h-6 mx-auto text-muted-foreground mb-2" /><p className="font-heading font-semibold text-sm">No truck pins yet</p></div> : (
         <div className="space-y-3">
           {activePins.map((pin) => {
             const { status, lastCheckIn } = getPinStatus(pin.id);
             const assignedUsers = getAssignedUsers(pin.id);
-            return <div key={pin.id} className="bg-card rounded-2xl border shadow-sm p-4 space-y-3">
-              <div className="flex items-start gap-3">
-                {pin.pin_logo_url ? <img src={pin.pin_logo_url} alt="Truck logo" className="w-12 h-12 rounded-lg object-cover" /> : <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center"><Truck className="w-6 h-6 text-muted-foreground" /></div>}
-                <div className="flex-1"><p className="font-heading font-bold text-sm">{pin.pin_name}</p>{pin.description && <p className="text-xs text-muted-foreground mt-1">{pin.description}</p>}</div>
-                <Button size="icon" variant="ghost" onClick={() => setSelectedPinHistory(pin)}><History className="w-4 h-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(pin)}><Edit2 className="w-4 h-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => handleDeletePin(pin.id)}><Trash2 className="w-4 h-4" /></Button>
+            return <div key={pin.id} className="bg-card rounded-2xl border shadow-sm p-3 sm:p-4 space-y-3 min-w-0">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  {pin.pin_logo_url ? <img src={pin.pin_logo_url} alt="Truck logo" className="w-12 h-12 rounded-lg object-cover shrink-0" /> : <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0"><Truck className="w-6 h-6 text-muted-foreground" /></div>}
+                  <div className="min-w-0 flex-1"><p className="font-heading font-bold text-sm truncate">{pin.pin_name}</p>{pin.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{pin.description}</p>}</div>
+                </div>
+                <div className="flex justify-end gap-1 shrink-0">
+                  <Button size="icon" variant="ghost" onClick={() => setSelectedPinHistory(pin)}><History className="w-4 h-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(pin)}><Edit2 className="w-4 h-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => handleDeletePin(pin.id)}><Trash2 className="w-4 h-4" /></Button>
+                </div>
               </div>
               <Button onClick={() => navigate(`/VendorPinPreview?pinId=${pin.id}&accountId=${vendorAccount.id}`)} disabled={!canCurrentUserCheckIn(pin.id)} className="w-full rounded-xl gap-2"><MapPin className="w-4 h-4" />{canCurrentUserCheckIn(pin.id) ? (status === "Live Now" || status === "Paused" ? "Update Pin Location" : "Drop Your Pin") : "Not Assigned To You"}</Button>
               {(status === "Live Now" || status === "Paused") && <div className="flex gap-2">{status === "Live Now" ? <Button variant="outline" onClick={() => handlePause(lastCheckIn)} className="flex-1"><PauseCircle className="w-4 h-4" /> Pause</Button> : <Button variant="outline" onClick={() => handleResume(lastCheckIn)} className="flex-1"><PlayCircle className="w-4 h-4" /> Resume</Button>}<Button variant="outline" onClick={() => handleTakeOffline(lastCheckIn)} className="flex-1"><XCircle className="w-4 h-4" /> Offline</Button></div>}

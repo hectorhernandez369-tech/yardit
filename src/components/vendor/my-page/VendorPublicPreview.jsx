@@ -41,9 +41,9 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates }
   };
 
   return (
-    <div className="rounded-3xl border-2 border-[#2C4F4E]/20 bg-white shadow-sm overflow-hidden">
+    <div className="rounded-3xl border-2 border-[#2C4F4E]/20 bg-white shadow-sm overflow-hidden min-w-0">
       <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} editable={false} />
-      <CardContent className="p-5 sm:p-8 space-y-6">
+      <CardContent className="p-4 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
 
         <div className="flex flex-wrap gap-2">
           {socialLinks.filter(([key]) => account[key]).map(([key, Icon, label]) => (
