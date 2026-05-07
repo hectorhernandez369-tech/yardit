@@ -143,7 +143,7 @@ export default function VendorDashboard() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto w-full min-w-0 p-3 sm:p-5 lg:p-6 space-y-4 sm:space-y-6">
+        <div className="max-w-7xl mx-auto w-full min-w-0 p-3 pb-28 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-4 sm:space-y-6">
           <VendorPinStatusBar pins={pins} checkIns={checkIns} />
 
           <TabsContent value="profile" className="mt-0 min-w-0"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
