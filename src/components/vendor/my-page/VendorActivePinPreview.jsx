@@ -11,7 +11,7 @@ export default function VendorActivePinPreview({ pins, checkIns }) {
   const pinName = (id) => pins.find((pin) => pin.id === id)?.pin_name || "Vendor Pin";
 
   return (
-    <Card className="border-[#2C4F4E]/15">
+    <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="text-[#2C4F4E]">Active Locations</CardTitle>
       </CardHeader>

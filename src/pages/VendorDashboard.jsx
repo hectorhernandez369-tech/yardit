@@ -91,26 +91,28 @@ export default function VendorDashboard() {
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
 
   return (
-    <div className="max-w-7xl mx-auto w-full p-4 sm:p-6 space-y-6">
-      <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} />
+    <div className="w-full min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto w-full p-4 sm:p-6 space-y-6">
+        <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} />
 
-      <Tabs defaultValue="profile" className="space-y-5">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 rounded-2xl bg-white/70 p-1 h-auto">
-          <TabsTrigger value="profile" className="rounded-xl gap-1"><Store className="h-4 w-4" /> my page</TabsTrigger>
-          <TabsTrigger value="pins" className="rounded-xl gap-1"><MapPin className="h-4 w-4" /> My Trucks</TabsTrigger>
-          <TabsTrigger value="users" className="rounded-xl gap-1"><Users className="h-4 w-4" /> Team</TabsTrigger>
-          <TabsTrigger value="tier" className="rounded-xl gap-1"><CreditCard className="h-4 w-4" /> Plan</TabsTrigger>
-          <TabsTrigger value="updates" className="rounded-xl gap-1"><MessageSquare className="h-4 w-4" /> Updates</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="profile" className="space-y-5">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 rounded-2xl border border-slate-200 bg-slate-50 p-1 h-auto shadow-sm">
+            <TabsTrigger value="profile" className="rounded-xl gap-1 data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white"><Store className="h-4 w-4" /> my page</TabsTrigger>
+            <TabsTrigger value="pins" className="rounded-xl gap-1 data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white"><MapPin className="h-4 w-4" /> My Trucks</TabsTrigger>
+            <TabsTrigger value="users" className="rounded-xl gap-1 data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white"><Users className="h-4 w-4" /> Team</TabsTrigger>
+            <TabsTrigger value="tier" className="rounded-xl gap-1 data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white"><CreditCard className="h-4 w-4" /> Plan</TabsTrigger>
+            <TabsTrigger value="updates" className="rounded-xl gap-1 data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white"><MessageSquare className="h-4 w-4" /> Updates</TabsTrigger>
+          </TabsList>
 
-        <VendorPinStatusBar pins={pins} checkIns={checkIns} />
+          <VendorPinStatusBar pins={pins} checkIns={checkIns} />
 
-        <TabsContent value="profile"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
-        <TabsContent value="pins"><MyTrucksSection vendorAccount={account} /></TabsContent>
-        <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} pins={pins} onRefresh={refreshDashboard} /></TabsContent>
-        <TabsContent value="tier"><VendorBillingTab account={account} /></TabsContent>
-        <TabsContent value="updates"><VendorUpdatesTab account={account} updates={updates} user={user} onRefresh={refreshDashboard} /></TabsContent>
-      </Tabs>
+          <TabsContent value="profile"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="pins"><MyTrucksSection vendorAccount={account} /></TabsContent>
+          <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} pins={pins} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="tier"><VendorBillingTab account={account} /></TabsContent>
+          <TabsContent value="updates"><VendorUpdatesTab account={account} updates={updates} user={user} onRefresh={refreshDashboard} /></TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

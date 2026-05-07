@@ -25,7 +25,7 @@ export default function VendorUpdatesPanel({ account, updates, onRefresh }) {
   };
 
   return (
-    <Card className="border-[#2C4F4E]/15">
+    <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="text-[#2C4F4E]">Updates</CardTitle>
       </CardHeader>

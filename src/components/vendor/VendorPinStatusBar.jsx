@@ -14,7 +14,7 @@ export default function VendorPinStatusBar({ pins = [], checkIns = [] }) {
 
   if (!activeCheckIn) {
     return (
-      <div className="rounded-2xl border bg-white px-4 py-3 shadow-sm flex items-center justify-between gap-3">
+      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <span className="h-3 w-3 rounded-full bg-slate-400 shrink-0" />
           <div className="min-w-0">
@@ -28,7 +28,7 @@ export default function VendorPinStatusBar({ pins = [], checkIns = [] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="rounded-2xl border border-green-200 bg-white px-4 py-3 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">
         <span className="relative flex h-3 w-3 shrink-0">
           <span className="absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75 animate-ping" />
