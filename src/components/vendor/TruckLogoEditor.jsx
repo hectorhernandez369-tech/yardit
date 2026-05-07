@@ -120,7 +120,7 @@ export default function TruckLogoEditor({ imageUrl, open, onClose, onApply }) {
 
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="button" onClick={handleApply}>Use Edited Photo</Button>
+            <Button type="button" onClick={handleApply}>Confirm & Save Photo</Button>
           </div>
         </div>
       </DialogContent>
