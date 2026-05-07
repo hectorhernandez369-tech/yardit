@@ -131,19 +131,19 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
               )}
               <input ref={logoInputRef} type="file" accept="image/*" onChange={uploadLogo} className="hidden" />
             </button>
-            <div className="min-w-0 flex-1 pb-1 text-white">
+            <div className="min-w-0 flex-1 pb-1 text-black">
               <div className="flex flex-wrap items-center gap-2">
                 <EditableButton field="business_name" className="rounded-xl px-1.5 -mx-1.5 hover:bg-white/15">
                   <h1 className="inline text-2xl sm:text-4xl font-black tracking-tight break-words leading-tight drop-shadow">{profile?.business_name || "My Business"}</h1>
                 </EditableButton>
-                {activeCheckIn && <Badge className="bg-emerald-500 text-white shadow-sm">Live now</Badge>}
+                {activeCheckIn && <Badge className="bg-emerald-100 text-black shadow-sm">Live now</Badge>}
               </div>
               <EditableButton field="description" className="mt-1 rounded-xl px-2 py-1 -mx-2 hover:bg-white/15">
-                <p className="max-w-3xl text-xs sm:text-sm leading-relaxed text-white/90 line-clamp-2">{profile?.description || "Add a brief description so customers know what your business offers."}</p>
+                <p className="max-w-3xl text-xs sm:text-sm leading-relaxed text-black line-clamp-2">{profile?.description || "Add a brief description so customers know what your business offers."}</p>
               </EditableButton>
             </div>
           </div>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2 text-[11px] sm:text-sm text-[#2C4F4E]">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 text-[11px] sm:text-sm text-black">
             {editable && (
               <EditableButton field="hero_background_color" className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2 py-1 sm:px-3 border border-white shadow-sm">
                 <Palette className="h-3.5 w-3.5 text-[#5DADA5]" /> Cover
@@ -165,8 +165,8 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
         <div className="border-t border-slate-200 bg-white px-5 py-3">
           <div className="rounded-xl bg-white/70 px-3 py-2 text-xs sm:text-sm text-[#2C4F4E] break-words">
             <span className="mr-1 inline-block h-3 w-3 rounded-full bg-emerald-500 align-middle" />
-            <span className="font-bold text-[#00A88A]">LIVE NOW</span>
-            <span className="text-slate-600"> · Open until {format(new Date(activeCheckIn.checkin_end_time), "h:mm a")}</span>
+            <span className="font-bold text-black">LIVE NOW</span>
+            <span className="text-black"> · Open until {format(new Date(activeCheckIn.checkin_end_time), "h:mm a")}</span>
           </div>
         </div>
       )}
@@ -206,7 +206,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
           )}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>Cancel</Button>
-            <Button onClick={saveEdit} disabled={saving} className="bg-[#5DADA5] hover:bg-[#4A9B93] text-white">Save</Button>
+            <Button onClick={saveEdit} disabled={saving} className="bg-[#5DADA5] hover:bg-[#4A9B93] text-black">Save</Button>
           </div>
         </div>
       )}
