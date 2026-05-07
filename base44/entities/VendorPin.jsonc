@@ -18,6 +18,15 @@
       "type": "string",
       "description": "Icon URL for this pin"
     },
+    "pin_icon_style": {
+      "type": "string",
+      "enum": [
+        "default",
+        "truck_logo"
+      ],
+      "default": "default",
+      "description": "Whether to use the default map pin or the truck logo as the map icon"
+    },
     "description": {
       "type": "string",
       "description": "Pin profile description"

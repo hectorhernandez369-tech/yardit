@@ -16,7 +16,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPin, setEditingPin] = useState(null);
   const [selectedPinHistory, setSelectedPinHistory] = useState(null);
-  const [formData, setFormData] = useState({ pin_name: "", description: "", is_active: true, pin_logo_url: "", assigned_users: [] });
+  const [formData, setFormData] = useState({ pin_name: "", description: "", is_active: true, pin_logo_url: "", pin_icon_style: "default", assigned_users: [] });
   const [saving, setSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const queryClient = useQueryClient();
@@ -106,7 +106,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
 
   const handleOpenAdd = () => {
     setEditingPin(null);
-    setFormData({ pin_name: "", description: "", is_active: true, pin_logo_url: "", assigned_users: [] });
+    setFormData({ pin_name: "", description: "", is_active: true, pin_logo_url: "", pin_icon_style: "default", assigned_users: [] });
     setShowAddForm(true);
   };
 
@@ -117,6 +117,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
       description: pin.description || "",
       is_active: pin.is_active !== false,
       pin_logo_url: pin.pin_logo_url || "",
+      pin_icon_style: pin.pin_icon_style || "default",
       assigned_users: authorizedUsers.filter((u) => u.assigned_pin_ids?.includes(pin.id)).map((u) => u.id),
     });
     setShowAddForm(true);
@@ -154,6 +155,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
         description: formData.description.trim(),
         is_active: formData.is_active,
         pin_logo_url: formData.pin_logo_url,
+        pin_icon_style: formData.pin_icon_style,
         assigned_users: authorizedUsers.filter((u) => formData.assigned_users.includes(u.id)).map((u) => u.authorized_email),
       });
       await syncPinAssignments(editingPin.id, formData.assigned_users);
@@ -169,6 +171,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
         description: formData.description.trim(),
         is_active: true,
         pin_logo_url: formData.pin_logo_url,
+        pin_icon_style: formData.pin_icon_style,
         assigned_users: authorizedUsers.filter((u) => formData.assigned_users.includes(u.id)).map((u) => u.authorized_email),
       });
       await syncPinAssignments(newPin.id, formData.assigned_users);
@@ -223,7 +226,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
         </div>
       )}
 
-      <Dialog open={showAddForm} onOpenChange={setShowAddForm}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>{editingPin ? "Edit Truck Profile" : "Create Truck Profile"}</DialogTitle></DialogHeader><div className="space-y-4"><Input value={formData.pin_name} onChange={(e) => setFormData({ ...formData, pin_name: e.target.value })} placeholder="Truck/Pin name" /><Input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={handleLogoUpload} disabled={logoUploading} /><Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Description" /><div className="rounded-2xl border p-3 space-y-2"><p className="text-sm font-semibold">Assigned authorized users</p>{authorizedUsers.length ? authorizedUsers.map((authorizedUser) => <label key={authorizedUser.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.assigned_users.includes(authorizedUser.id)} onChange={(e) => setFormData({ ...formData, assigned_users: e.target.checked ? [...formData.assigned_users, authorizedUser.id] : formData.assigned_users.filter((id) => id !== authorizedUser.id) })} />{authorizedUser.first_name || authorizedUser.last_name ? `${authorizedUser.first_name || ""} ${authorizedUser.last_name || ""}`.trim() : authorizedUser.authorized_email}<span className="text-xs text-muted-foreground">{authorizedUser.authorized_email}</span></label>) : <p className="text-xs text-muted-foreground">Add authorized users before assigning them to this truck.</p>}</div><div className="flex items-center justify-between"><span className="text-sm">Active</span><Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} /></div><Button onClick={handleSavePin} disabled={saving} className="w-full">{saving ? "Saving..." : "Save"}</Button></div></DialogContent></Dialog>
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>{editingPin ? "Edit Truck Profile" : "Create Truck Profile"}</DialogTitle></DialogHeader><div className="space-y-4"><Input value={formData.pin_name} onChange={(e) => setFormData({ ...formData, pin_name: e.target.value })} placeholder="Truck/Pin name" /><Input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={handleLogoUpload} disabled={logoUploading} />{formData.pin_logo_url && <div className="rounded-2xl border p-3 space-y-3"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Use truck logo as map icon</p><p className="text-xs text-muted-foreground">No background will be added when enabled.</p></div><Switch checked={formData.pin_icon_style === "truck_logo"} onCheckedChange={(checked) => setFormData({ ...formData, pin_icon_style: checked ? "truck_logo" : "default" })} /></div><div className="flex items-center gap-3"><span className="text-xs text-muted-foreground">Preview:</span>{formData.pin_icon_style === "truck_logo" ? <img src={formData.pin_logo_url} alt="Truck icon preview" className="h-12 w-12 object-contain drop-shadow-md" /> : <div className="h-12 w-12 rounded-full bg-[#F4A849] border-2 border-[#2C4F4E] flex items-center justify-center">🚚</div>}</div></div>}<Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Description" /><div className="rounded-2xl border p-3 space-y-2"><p className="text-sm font-semibold">Assigned authorized users</p>{authorizedUsers.length ? authorizedUsers.map((authorizedUser) => <label key={authorizedUser.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.assigned_users.includes(authorizedUser.id)} onChange={(e) => setFormData({ ...formData, assigned_users: e.target.checked ? [...formData.assigned_users, authorizedUser.id] : formData.assigned_users.filter((id) => id !== authorizedUser.id) })} />{authorizedUser.first_name || authorizedUser.last_name ? `${authorizedUser.first_name || ""} ${authorizedUser.last_name || ""}`.trim() : authorizedUser.authorized_email}<span className="text-xs text-muted-foreground">{authorizedUser.authorized_email}</span></label>) : <p className="text-xs text-muted-foreground">Add authorized users before assigning them to this truck.</p>}</div><div className="flex items-center justify-between"><span className="text-sm">Active</span><Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} /></div><Button onClick={handleSavePin} disabled={saving} className="w-full">{saving ? "Saving..." : "Save"}</Button></div></DialogContent></Dialog>
       {selectedPinHistory && <Dialog open onOpenChange={() => setSelectedPinHistory(null)}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>Check-In History: {selectedPinHistory.pin_name}</DialogTitle></DialogHeader>{allCheckIns.filter((c) => c.vendor_pin_id === selectedPinHistory.id).map((checkIn) => <div key={checkIn.id} className="bg-muted/30 rounded-xl p-3 text-xs"><Clock className="w-4 h-4 inline mr-1" /> {checkIn.status} • {checkIn.checkin_display_address || `${checkIn.checkin_latitude}, ${checkIn.checkin_longitude}`}</div>)}</DialogContent></Dialog>}
     </div>
   );

@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from "react-leaflet";
+import L from "leaflet";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,6 +17,22 @@ const TIME_SLOTS = [
   { label: "8 hours", hours: 8 },
   { label: "12 hours", hours: 12 },
 ];
+
+function createPreviewIcon({ pin, account, animation }) {
+  const useLogo = pin?.pin_icon_style === "truck_logo";
+  const image = useLogo ? (pin?.pin_logo_url || pin?.pin_icon_url || account?.business_logo) : null;
+  const animationCss = animation === "bounce" ? "vendorPreviewBounce 1.2s ease-in-out infinite" : animation === "pulse" ? "vendorPreviewPulse 1.6s ease-in-out infinite" : "none";
+  const html = image
+    ? `<img src='${image}' alt='Truck logo' style='width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.32));animation:${animationCss};'/>`
+    : `<div style='width:42px;height:42px;border-radius:9999px;background:#F4A849;border:3px solid #2C4F4E;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.32);animation:${animationCss};'><span style='font-size:21px;'>🚚</span></div>`;
+
+  return L.divIcon({
+    className: "vendor-preview-marker",
+    html: `<style>@keyframes vendorPreviewPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}@keyframes vendorPreviewBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}</style>${html}`,
+    iconSize: [46, 46],
+    iconAnchor: [23, 46],
+  });
+}
 
 function toRadians(value) {
   return (value * Math.PI) / 180;
@@ -76,6 +94,9 @@ export default function VendorPinPreview() {
   const [pinLocation, setPinLocation] = useState(null);
   const [address, setAddress] = useState("");
   const [selectedHours, setSelectedHours] = useState(4);
+  const [iconStyle, setIconStyle] = useState("default");
+  const [animationEnabled, setAnimationEnabled] = useState(false);
+  const [selectedAnimation, setSelectedAnimation] = useState("pulse");
 
   useEffect(() => {
     const loadData = async () => {
@@ -87,6 +108,7 @@ export default function VendorPinPreview() {
       ]);
       setUser(currentUser);
       setPin(pins[0] || null);
+      setIconStyle(pins[0]?.pin_icon_style || "default");
       setAccount(accounts[0] || null);
       setLatestCheckIn(checkIns[0] || null);
       setLoading(false);
@@ -118,6 +140,11 @@ export default function VendorPinPreview() {
   }, [selectedHours]);
 
   const distanceFeet = gpsLocation && pinLocation ? Math.round(getDistanceMeters(gpsLocation, pinLocation) * 3.28084) : 0;
+  const isGrowthPlan = account?.vendor_tier === "growth";
+  const previewAnimation = isGrowthPlan && animationEnabled ? selectedAnimation : "none";
+  const canUseTruckLogoIcon = !!(pin?.pin_logo_url || pin?.pin_icon_url || account?.business_logo);
+  const previewPin = useMemo(() => ({ ...pin, pin_icon_style: iconStyle }), [pin, iconStyle]);
+  const previewIcon = useMemo(() => createPreviewIcon({ pin: previewPin, account, animation: previewAnimation }), [previewPin, account, previewAnimation]);
 
   const handleMarkerDrag = (event) => {
     const next = event.target.getLatLng();
@@ -138,9 +165,13 @@ export default function VendorPinPreview() {
       checkin_display_address: address,
       checkin_start_time: start.toISOString(),
       checkin_end_time: end.toISOString(),
-      pin_animation: latestCheckIn?.pin_animation || "none",
+      pin_animation: previewAnimation,
       status: "live",
     };
+
+    if (pin.pin_icon_style !== iconStyle) {
+      await base44.entities.VendorPin.update(pin.id, { pin_icon_style: iconStyle });
+    }
 
     const liveExisting = latestCheckIn && ["live", "paused"].includes(latestCheckIn.status);
     const saved = liveExisting
@@ -164,7 +195,7 @@ export default function VendorPinPreview() {
         <Card className="rounded-3xl overflow-hidden">
           <CardHeader className="bg-[#5DADA5] text-white">
             <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5" /> Preview Pin: {pin?.pin_name || "Truck Pin"}</CardTitle>
-            <p className="text-sm text-white/80">Move the pin within 150 feet of your GPS location, then choose how long it should stay live.</p>
+            <p className="text-sm text-white/80">Move the pin within 350 feet of your GPS location, then choose how long it should stay live.</p>
           </CardHeader>
           <CardContent className="p-0">
             <div className="h-[420px] bg-slate-100">
@@ -173,7 +204,7 @@ export default function VendorPinPreview() {
                   <MapContainer center={pinLocation} zoom={19} className="h-full w-full" scrollWheelZoom>
                     <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <Circle center={gpsLocation} radius={MAX_DISTANCE_METERS} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12 }} />
-                    <Marker position={pinLocation} draggable eventHandlers={{ dragend: handleMarkerDrag }} />
+                    <Marker position={pinLocation} draggable icon={previewIcon} eventHandlers={{ dragend: handleMarkerDrag }} />
                     <ClickToMove gpsLocation={gpsLocation} onMove={setPinLocation} />
                   </MapContainer>
                   <Button onClick={handleCurrentLocation} className="absolute right-3 top-3 z-[1000] rounded-full bg-white text-[#2C4F4E] shadow-lg hover:bg-[#F3E6CF]">
@@ -195,7 +226,34 @@ export default function VendorPinPreview() {
           <Card className="rounded-3xl"><CardContent className="p-5 space-y-3">
             <p className="text-sm font-semibold text-[#2C4F4E]">Pin address</p>
             <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter the address customers should see" />
-            <p className="text-xs text-muted-foreground">Current adjustment from GPS: {distanceFeet} ft / 150 ft max.</p>
+            <p className="text-xs text-muted-foreground">Current adjustment from GPS: {distanceFeet} ft / 350 ft max.</p>
+            <div className="rounded-2xl border p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[#2C4F4E]">Use truck logo as map icon</p>
+                  <p className="text-xs text-muted-foreground">Uses the logo shape with no background.</p>
+                </div>
+                <Switch checked={iconStyle === "truck_logo"} disabled={!canUseTruckLogoIcon} onCheckedChange={(checked) => setIconStyle(checked ? "truck_logo" : "default")} />
+              </div>
+              {!canUseTruckLogoIcon && <p className="text-xs text-muted-foreground">Upload a truck logo first to use this option.</p>}
+            </div>
+            {isGrowthPlan && (
+              <div className="rounded-2xl border p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[#2C4F4E]">Animate icon</p>
+                    <p className="text-xs text-muted-foreground">Growth plan preview animation</p>
+                  </div>
+                  <Switch checked={animationEnabled} onCheckedChange={setAnimationEnabled} />
+                </div>
+                {animationEnabled && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button type="button" variant={selectedAnimation === "pulse" ? "default" : "outline"} onClick={() => setSelectedAnimation("pulse")} className="rounded-xl">Pulsing icon</Button>
+                    <Button type="button" variant={selectedAnimation === "bounce" ? "default" : "outline"} onClick={() => setSelectedAnimation("bounce")} className="rounded-xl">Bouncing icon</Button>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent></Card>
 
           <Card className="rounded-3xl"><CardContent className="p-5 space-y-4">
