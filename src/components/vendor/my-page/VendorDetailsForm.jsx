@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { ChevronDown } from "lucide-react";
 
 const fields = [
   ["business_name", "Business Name"],
@@ -26,6 +27,7 @@ const fields = [
 export default function VendorDetailsForm({ account, onRefresh }) {
   const [form, setForm] = useState({ ...account });
   const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -59,25 +61,33 @@ export default function VendorDetailsForm({ account, onRefresh }) {
   return (
     <Card id="vendor-profile-editor" className="border-[#2C4F4E]/15 bg-white shadow-sm overflow-hidden">
       <CardHeader className="p-4 sm:p-6">
-        <CardTitle className="text-[#2C4F4E]">Business Details</CardTitle>
+        <button type="button" onClick={() => setExpanded((value) => !value)} className="flex w-full items-center justify-between gap-3 text-left">
+          <div>
+            <CardTitle className="text-[#2C4F4E]">Business Details</CardTitle>
+            <p className="mt-1 text-sm text-slate-500">Tap to edit your public business information.</p>
+          </div>
+          <ChevronDown className={`h-5 w-5 text-[#2C4F4E] transition-transform ${expanded ? "rotate-180" : ""}`} />
+        </button>
       </CardHeader>
-      <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
-        <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4">
-          {fields.map(([key, label]) => (
-            <div key={key} className="space-y-1.5">
-              <Label>{label}</Label>
-              <Input value={form[key] || ""} onChange={(e) => updateField(key, e.target.value)} className="min-w-0" />
-            </div>
-          ))}
-        </div>
-        <div className="space-y-1.5">
-          <Label>Short Bio / Description</Label>
-          <Textarea value={form.description || ""} onChange={(e) => updateField("description", e.target.value)} className="min-h-28" />
-        </div>
-        <Button onClick={saveProfile} disabled={saving} className="w-full sm:w-auto bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">
-          {saving ? "Saving..." : "Save Profile"}
-        </Button>
-      </CardContent>
+      {expanded && (
+        <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4">
+            {fields.map(([key, label]) => (
+              <div key={key} className="space-y-1.5">
+                <Label>{label}</Label>
+                <Input value={form[key] || ""} onChange={(e) => updateField(key, e.target.value)} className="min-w-0" />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-1.5">
+            <Label>Short Bio / Description</Label>
+            <Textarea value={form.description || ""} onChange={(e) => updateField("description", e.target.value)} className="min-h-28" />
+          </div>
+          <Button onClick={saveProfile} disabled={saving} className="w-full sm:w-auto bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">
+            {saving ? "Saving..." : "Save Profile"}
+          </Button>
+        </CardContent>
+      )}
     </Card>
   );
 }
