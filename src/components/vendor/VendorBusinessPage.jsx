@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import VendorPhotoGallery from "@/components/vendor/my-page/VendorPhotoGallery";
 import VendorActivePinPreview from "@/components/vendor/my-page/VendorActivePinPreview";
 import VendorUpdatesPanel from "@/components/vendor/my-page/VendorUpdatesPanel";
 import VendorPublicPreview from "@/components/vendor/my-page/VendorPublicPreview";
@@ -30,7 +29,6 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
         </div>
         <div className="space-y-5">
           <VendorUpdatesPanel account={account} updates={updates} onRefresh={onRefresh} />
-          <VendorPhotoGallery account={account} onRefresh={onRefresh} />
         </div>
       </div>
     </div>
