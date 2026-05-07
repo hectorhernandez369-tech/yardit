@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Loader2, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
 
-const MAX_DISTANCE_METERS = 45.72;
+const MAX_DISTANCE_METERS = 106.68;
 const TIME_SLOTS = [
   { label: "2 hours", hours: 2 },
   { label: "4 hours", hours: 4 },
