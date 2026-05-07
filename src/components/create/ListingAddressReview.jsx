@@ -9,6 +9,7 @@ export default function ListingAddressReview({
   formData,
   setFormData,
   isDemoMode,
+  isAdminCreate = false,
   hasProfileAddress,
   isGettingLocation,
   isGeocoding,
@@ -19,7 +20,7 @@ export default function ListingAddressReview({
   addressConfirmed,
   onSelectSuggestion,
 }) {
-  const readOnly = !isDemoMode;
+  const readOnly = !isDemoMode && !isAdminCreate;
   const inputClassName = `bg-[#F3E6CF] border-[#2C4F4E] ${readOnly ? "opacity-70 cursor-not-allowed" : ""}`;
 
   return (
@@ -32,19 +33,19 @@ export default function ListingAddressReview({
             {readOnly && (
               <p className="mt-2 text-sm text-[#2C4F4E] flex items-center gap-2 font-medium">
                 <Lock className="w-4 h-4" />
-                Address is based on your account profile
+                {isAdminCreate ? "Admin can enter and locate any listing address" : "Address is based on your account profile"}
               </p>
             )}
           </div>
           {readOnly && (
             <div className="rounded-full border border-[#2C4F4E]/20 bg-white/70 px-3 py-1 text-xs font-semibold text-[#2C4F4E]">
-              Locked
+              {isAdminCreate ? "Admin Override" : "Locked"}
             </div>
           )}
         </div>
       </div>
 
-      {!hasProfileAddress && (
+      {!isAdminCreate && !hasProfileAddress && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           Please add an address in your profile before creating a listing.
         </div>
@@ -99,18 +100,31 @@ export default function ListingAddressReview({
         </div>
       </div>
 
-      {isDemoMode && hasProfileAddress && (
+      {(isDemoMode || isAdminCreate) && (hasProfileAddress || isAdminCreate) && (
         <div className="flex flex-wrap gap-3">
-          <Button
-            type="button"
-            onClick={onUseCurrentLocation}
-            disabled={isGettingLocation}
-            variant="outline"
-            className="gap-2 border-2 border-[#2C4F4E] bg-[#F3E6CF] text-[#2C4F4E] hover:bg-[#E7D7B8]"
-          >
-            {isGettingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-            Use My Location
-          </Button>
+          {isDemoMode && hasProfileAddress && (
+            <Button
+              type="button"
+              onClick={onUseCurrentLocation}
+              disabled={isGettingLocation}
+              variant="outline"
+              className="gap-2 border-2 border-[#2C4F4E] bg-[#F3E6CF] text-[#2C4F4E] hover:bg-[#E7D7B8]"
+            >
+              {isGettingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+              Use My Location
+            </Button>
+          )}
+          {isAdminCreate && (
+            <Button
+              type="button"
+              onClick={onLocateAddress}
+              disabled={isGeocoding}
+              className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635]"
+            >
+              {isGeocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+              Locate Address
+            </Button>
+          )}
         </div>
       )}
 

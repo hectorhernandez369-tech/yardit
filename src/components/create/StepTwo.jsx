@@ -180,7 +180,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
   );
 }
 
-export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
+export default function StepTwo({ formData, setFormData, onGeocodeRef, user, isAdminCreate = false }) {
   const { isDemoMode } = useAppMode();
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -631,7 +631,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
   };
 
   useEffect(() => {
-    if (isNeighborhood || !user || didPrefillProfileRef.current) return;
+    if (isAdminCreate || isNeighborhood || !user || didPrefillProfileRef.current) return;
 
     didPrefillProfileRef.current = true;
     setFormData((prev) => ({
@@ -677,7 +677,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
         })
         .catch(() => {});
     }
-  }, [ensureUserProfileTimeZone, isNeighborhood, setFormData, user]);
+  }, [ensureUserProfileTimeZone, isAdminCreate, isNeighborhood, setFormData, user]);
 
   return (
     <div className="space-y-6">
@@ -840,6 +840,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
           formData={formData}
           setFormData={setFormData}
           isDemoMode={isDemoMode}
+          isAdminCreate={isAdminCreate}
           hasProfileAddress={hasProfileAddress}
           isGettingLocation={isGettingLocation}
           isGeocoding={isGeocoding}
