@@ -2,14 +2,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Store, MapPin, Clock, CreditCard, Users, Settings } from "lucide-react";
+import { Loader2, Store, MapPin, CreditCard, Users, MessageSquare } from "lucide-react";
 import BusinessHero from "@/components/vendor/BusinessHero";
-import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import MyTrucksSection from "@/components/vendor/MyTrucksSection";
-import VendorCheckInHistory from "@/components/vendor/VendorCheckInHistory";
 import VendorBillingTab from "@/components/vendor/VendorBillingTab";
 import VendorUsersTab from "@/components/vendor/VendorUsersTab";
 import VendorPinStatusBar from "@/components/vendor/VendorPinStatusBar";
+import VendorProfileTab from "@/components/vendor/VendorProfileTab";
+import VendorUpdatesTab from "@/components/vendor/VendorUpdatesTab";
 
 export default function VendorDashboard() {
   const queryClient = useQueryClient();
@@ -94,24 +94,22 @@ export default function VendorDashboard() {
     <div className="max-w-7xl mx-auto w-full p-4 sm:p-6 space-y-6">
       <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} />
 
-      <Tabs defaultValue="page" className="space-y-5">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 rounded-2xl bg-white/70 p-1 h-auto">
-          <TabsTrigger value="page" className="rounded-xl gap-1"><Store className="h-4 w-4" /> Page</TabsTrigger>
-          <TabsTrigger value="pins" className="rounded-xl gap-1"><MapPin className="h-4 w-4" /> Pins</TabsTrigger>
-          <TabsTrigger value="history" className="rounded-xl gap-1"><Clock className="h-4 w-4" /> History</TabsTrigger>
-          <TabsTrigger value="tier" className="rounded-xl gap-1"><CreditCard className="h-4 w-4" /> Tier</TabsTrigger>
-          <TabsTrigger value="users" className="rounded-xl gap-1"><Users className="h-4 w-4" /> Users</TabsTrigger>
-          <TabsTrigger value="settings" className="rounded-xl gap-1"><Settings className="h-4 w-4" /> Settings</TabsTrigger>
+      <Tabs defaultValue="profile" className="space-y-5">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 rounded-2xl bg-white/70 p-1 h-auto">
+          <TabsTrigger value="profile" className="rounded-xl gap-1"><Store className="h-4 w-4" /> Business Profile</TabsTrigger>
+          <TabsTrigger value="pins" className="rounded-xl gap-1"><MapPin className="h-4 w-4" /> My Trucks</TabsTrigger>
+          <TabsTrigger value="users" className="rounded-xl gap-1"><Users className="h-4 w-4" /> Team</TabsTrigger>
+          <TabsTrigger value="tier" className="rounded-xl gap-1"><CreditCard className="h-4 w-4" /> Plan</TabsTrigger>
+          <TabsTrigger value="updates" className="rounded-xl gap-1"><MessageSquare className="h-4 w-4" /> Updates</TabsTrigger>
         </TabsList>
 
         <VendorPinStatusBar pins={pins} checkIns={checkIns} />
 
-        <TabsContent value="page"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
+        <TabsContent value="profile"><VendorProfileTab account={account} onRefresh={refreshDashboard} /></TabsContent>
         <TabsContent value="pins"><MyTrucksSection vendorAccount={account} /></TabsContent>
-        <TabsContent value="history"><VendorCheckInHistory checkIns={checkIns} pins={pins} /></TabsContent>
+        <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} pins={pins} onRefresh={refreshDashboard} /></TabsContent>
         <TabsContent value="tier"><VendorBillingTab account={account} /></TabsContent>
-        <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} onRefresh={refreshDashboard} /></TabsContent>
-        <TabsContent value="settings"><Card><CardContent className="p-6 text-sm text-muted-foreground">Business settings are managed from the Page tab.</CardContent></Card></TabsContent>
+        <TabsContent value="updates"><VendorUpdatesTab account={account} updates={updates} user={user} onRefresh={refreshDashboard} /></TabsContent>
       </Tabs>
     </div>
   );

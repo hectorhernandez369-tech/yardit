@@ -11,6 +11,7 @@ export default function PinCheckInFlow({ pin, vendorAccount, existingCheckIn, on
   const [longitude, setLongitude] = useState(existingCheckIn?.checkin_longitude || "");
   const [address, setAddress] = useState(existingCheckIn?.checkin_display_address || "");
   const [durationHours, setDurationHours] = useState(4);
+  const [pinAnimation, setPinAnimation] = useState(existingCheckIn?.pin_animation || "none");
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
 
@@ -57,14 +58,14 @@ export default function PinCheckInFlow({ pin, vendorAccount, existingCheckIn, on
       checkin_start_time: now.toISOString(),
       checkin_end_time: endTime.toISOString(),
       status: "live",
-      pin_animation: "none",
+      pin_animation: pinAnimation,
     };
 
-    if (existingCheckIn?.id) {
-      await base44.entities.VendorPinCheckIn.update(existingCheckIn.id, data);
-    } else {
-      await base44.entities.VendorPinCheckIn.create(data);
-    }
+    const savedCheckIn = existingCheckIn?.id
+      ? await base44.entities.VendorPinCheckIn.update(existingCheckIn.id, data)
+      : await base44.entities.VendorPinCheckIn.create(data);
+
+    await base44.functions.invoke("syncPublicMapRecord", { recordType: "vendor_pin_checkin", recordId: savedCheckIn.id || existingCheckIn.id });
 
     toast.success("Pin is live");
     setSaving(false);
@@ -88,6 +89,11 @@ export default function PinCheckInFlow({ pin, vendorAccount, existingCheckIn, on
           </div>
           <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Display address or location note" className="rounded-xl" />
           <Input type="number" min="1" max="12" value={durationHours} onChange={(e) => setDurationHours(e.target.value)} placeholder="Hours live" className="rounded-xl" />
+          <select value={pinAnimation} onChange={(e) => setPinAnimation(e.target.value)} className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm">
+            <option value="none">No animation</option>
+            <option value="pulse">Pulse animation</option>
+            <option value="bounce">Bounce animation</option>
+          </select>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
             <Button onClick={handleSave} disabled={saving} className="flex-1 rounded-xl gap-2">
