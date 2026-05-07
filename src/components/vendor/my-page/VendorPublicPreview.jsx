@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ExternalLink, Facebook, Globe, Heart, Instagram, MapPin, MessageCircle, Music2, Send } from "lucide-react";
+import { ChevronDown, ExternalLink, Facebook, Globe, Heart, Instagram, MapPin, MessageCircle, Music2, Send } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import { format } from "date-fns";
@@ -42,6 +42,7 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
   const [messageForm, setMessageForm] = useState({ name: "", contact: "", message: "" });
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
+  const [showMessageForm, setShowMessageForm] = useState(false);
   const tier = getVendorTierConfig(account.vendor_tier);
   const liveItems = (checkIns || []).filter(isLiveVendorCheckIn);
   const activeCheckIn = liveItems[0];
@@ -158,16 +159,16 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
         </section>
 
         <section>
-          <h3 className="font-bold text-[#2C4F4E] mb-3">Updates</h3>
-          <div className="space-y-3">
+          <h3 className="mb-3 text-xl font-black text-[#2C4F4E] sm:text-2xl">Latest Posts</h3>
+          <div className="space-y-4">
             {updates.length ? updates.map((update) => {
               const hasLiked = (update.liked_by || []).includes(publicLikeId);
               const isLiking = likingIds.includes(update.id);
 
               return (
-                <div key={update.id} className="rounded-2xl bg-[#F3E6CF]/70 p-4">
-                  <p className="text-sm text-black">{update.text}</p>
-                  <div className="mt-3 flex items-center justify-between gap-3">
+                <div key={update.id} className="rounded-3xl border-2 border-[#F4A849]/40 bg-[#FFF7E8] p-5 shadow-sm">
+                  <p className="text-base font-semibold leading-relaxed text-[#1F2937] sm:text-lg">{update.text}</p>
+                  <div className="mt-4 flex items-center justify-between gap-3">
                     <p className="text-xs text-slate-600">{update.likes || 0} likes</p>
                     <Button
                       type="button"
@@ -187,12 +188,20 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#5DADA5]/30 bg-[#F3E6CF]/50 p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-[#5DADA5]" />
-            <h3 className="font-bold text-[#2C4F4E]">Message Business</h3>
-          </div>
-          <form onSubmit={handleMessageBusiness} className="space-y-3">
+        <section className="rounded-2xl border border-[#5DADA5]/20 bg-white p-3 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setShowMessageForm(!showMessageForm)}
+            className="flex w-full items-center justify-between gap-3 text-left"
+          >
+            <span className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-[#5DADA5]" />
+              <span className="font-bold text-[#2C4F4E]">Message Business</span>
+            </span>
+            <ChevronDown className={`h-4 w-4 text-[#2C4F4E] transition-transform ${showMessageForm ? "rotate-180" : ""}`} />
+          </button>
+          {messageSent && !showMessageForm && <p className="mt-2 text-sm font-semibold text-[#2C4F4E]">Message sent to the business.</p>}
+          {showMessageForm && <form onSubmit={handleMessageBusiness} className="mt-3 space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
                 value={messageForm.name}
@@ -220,7 +229,7 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
                 <Send className="h-4 w-4" /> {sendingMessage ? "Sending..." : "Send Message"}
               </Button>
             </div>
-          </form>
+          </form>}
         </section>
       </CardContent>
     </div>
