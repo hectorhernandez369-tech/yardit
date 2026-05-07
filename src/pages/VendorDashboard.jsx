@@ -96,7 +96,7 @@ export default function VendorDashboard() {
 
       <Tabs defaultValue="profile" className="space-y-5">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 rounded-2xl bg-white/70 p-1 h-auto">
-          <TabsTrigger value="profile" className="rounded-xl gap-1"><Store className="h-4 w-4" /> Business Profile</TabsTrigger>
+          <TabsTrigger value="profile" className="rounded-xl gap-1"><Store className="h-4 w-4" /> my page</TabsTrigger>
           <TabsTrigger value="pins" className="rounded-xl gap-1"><MapPin className="h-4 w-4" /> My Trucks</TabsTrigger>
           <TabsTrigger value="users" className="rounded-xl gap-1"><Users className="h-4 w-4" /> Team</TabsTrigger>
           <TabsTrigger value="tier" className="rounded-xl gap-1"><CreditCard className="h-4 w-4" /> Plan</TabsTrigger>
