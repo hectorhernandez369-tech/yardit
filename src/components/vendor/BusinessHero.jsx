@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { MapPin, Palette, Phone, Pencil, Store, Tag } from "lucide-react";
+import { Camera, Loader2, MapPin, Palette, Phone, Pencil, Store, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 const categories = [
@@ -43,6 +43,8 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
   const [editing, setEditing] = useState(null);
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef(null);
 
   const fields = {
     business_name: { label: "Business name", entityField: "business_name", value: profile?.business_name || "" },
@@ -71,6 +73,19 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
     onRefresh?.();
   };
 
+  const uploadLogo = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !profile?.id) return;
+
+    setUploadingLogo(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    await base44.entities.VendorAccount.update(profile.id, { business_logo: file_url });
+    setUploadingLogo(false);
+    toast.success("Business photo updated");
+    onRefresh?.();
+    event.target.value = "";
+  };
+
   const EditableButton = ({ field, children, className = "" }) => {
     if (!editable) return <div className={className}>{children}</div>;
 
@@ -85,13 +100,25 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
   return (
     <section className={asHeader ? "overflow-hidden bg-white" : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"}>
       <div className={asHeader ? "max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 flex flex-col sm:flex-row gap-5 sm:items-start" : "p-7 sm:p-9 flex flex-col sm:flex-row gap-5 sm:items-start"} style={{ backgroundColor: heroBackgroundColor }}>
-        <div className="h-24 w-24 rounded-2xl border border-slate-100 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-          {profile?.logo_url ? (
-            <img src={profile.logo_url} alt={profile.business_name} className="h-full w-full object-cover" />
+        <button
+          type="button"
+          onClick={() => editable && logoInputRef.current?.click()}
+          disabled={!editable || uploadingLogo}
+          className="group relative h-24 w-24 rounded-2xl border border-slate-100 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0 disabled:cursor-default"
+          title={editable ? "Upload business photo" : undefined}
+        >
+          {profile?.logo_url || profile?.business_logo ? (
+            <img src={profile.logo_url || profile.business_logo} alt={profile.business_name} className="h-full w-full object-cover" />
           ) : (
             <Store className="h-10 w-10 text-slate-400" />
           )}
-        </div>
+          {editable && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition group-hover:opacity-100">
+              {uploadingLogo ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+            </div>
+          )}
+          <input ref={logoInputRef} type="file" accept="image/*" onChange={uploadLogo} className="hidden" />
+        </button>
         <div className="flex-1 space-y-3 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <EditableButton field="business_name" className="rounded-lg px-1 -mx-1">
