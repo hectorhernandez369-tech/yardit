@@ -10,6 +10,49 @@
       "type": "string",
       "description": "Business logo URL"
     },
+    "business_category": {
+      "type": "string",
+      "description": "Vendor business category"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short public vendor bio or business description"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Public business phone number"
+    },
+    "email": {
+      "type": "string",
+      "description": "Public business email address"
+    },
+    "website": {
+      "type": "string",
+      "description": "Public business website URL"
+    },
+    "facebook_url": {
+      "type": "string",
+      "description": "Facebook profile or page URL"
+    },
+    "instagram_url": {
+      "type": "string",
+      "description": "Instagram profile URL"
+    },
+    "tiktok_url": {
+      "type": "string",
+      "description": "TikTok profile URL"
+    },
+    "photo_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Public business photo gallery URLs"
+    },
+    "featured_photo_url": {
+      "type": "string",
+      "description": "Featured public business photo URL"
+    },
     "owner_user_id": {
       "type": "string",
       "description": "Owner user ID"

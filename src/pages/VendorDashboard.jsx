@@ -92,7 +92,7 @@ export default function VendorDashboard() {
 
         <Tabs defaultValue="business" className="space-y-4">
           <TabsList className="flex flex-wrap h-auto justify-start bg-white/70">
-            <TabsTrigger value="business">Business Page</TabsTrigger>
+            <TabsTrigger value="business">Vendor My Page</TabsTrigger>
             <TabsTrigger value="pins">My Truck Pins</TabsTrigger>
             <TabsTrigger value="users">Authorized Users</TabsTrigger>
             <TabsTrigger value="history">Check-In History</TabsTrigger>
@@ -100,7 +100,7 @@ export default function VendorDashboard() {
             <TabsTrigger value="events">Events later</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="business"><VendorBusinessPage account={account} updates={updates} onRefresh={loadVendorData} /></TabsContent>
+          <TabsContent value="business"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={loadVendorData} /></TabsContent>
           <TabsContent value="pins"><VendorPinsTab account={account} pins={pins} users={users} onRefresh={loadVendorData} onCheckIn={openCheckIn} /></TabsContent>
           <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} onRefresh={loadVendorData} /></TabsContent>
           <TabsContent value="history"><VendorCheckInHistory checkIns={checkIns} pins={pins} /></TabsContent>
