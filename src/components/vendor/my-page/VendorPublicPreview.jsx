@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import { Card, CardContent } from "@/components/ui/card";
-import { ExternalLink, Facebook, Globe, Instagram, MapPin, Music2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, Facebook, Globe, Heart, Instagram, MapPin, Music2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import { format } from "date-fns";
 import { getVendorTierConfig, isLiveVendorCheckIn } from "@/lib/vendorTiers";
@@ -23,11 +25,37 @@ function createMapPreviewIcon(pin) {
   return L.divIcon({ className: "vendor-public-preview-pin", html, iconSize: [42, 50], iconAnchor: [21, 50] });
 }
 
-export default function VendorPublicPreview({ account, pins, checkIns, updates }) {
+function getPublicLikeId() {
+  const storageKey = "yardit_public_like_id";
+  let likeId = localStorage.getItem(storageKey);
+  if (!likeId) {
+    likeId = `guest_${crypto.randomUUID?.() || Date.now()}`;
+    localStorage.setItem(storageKey, likeId);
+  }
+  return likeId;
+}
+
+export default function VendorPublicPreview({ account, pins, checkIns, updates, onRefresh }) {
+  const [likingIds, setLikingIds] = useState([]);
   const tier = getVendorTierConfig(account.vendor_tier);
   const liveItems = (checkIns || []).filter(isLiveVendorCheckIn);
   const activeCheckIn = liveItems[0];
   const pinFor = (id) => pins.find((pin) => pin.id === id);
+  const publicLikeId = getPublicLikeId();
+
+  const handleLikeUpdate = async (update) => {
+    const likedBy = update.liked_by || [];
+    if (likedBy.includes(publicLikeId) || likingIds.includes(update.id)) return;
+
+    setLikingIds((current) => [...current, update.id]);
+    await base44.entities.VendorUpdate.update(update.id, {
+      likes: (update.likes || 0) + 1,
+      liked_by: [...likedBy, publicLikeId],
+    });
+    setLikingIds((current) => current.filter((id) => id !== update.id));
+    onRefresh?.();
+  };
+
   const heroProfile = {
     id: account.id,
     business_name: account.business_name,
@@ -97,7 +125,32 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates }
 
         <section>
           <h3 className="font-bold text-[#2C4F4E] mb-3">Updates</h3>
-          <div className="space-y-3">{updates.length ? updates.map((update) => <div key={update.id} className="rounded-2xl bg-[#F3E6CF]/70 p-4"><p className="text-sm">{update.text}</p><p className="mt-2 text-xs text-slate-500">{update.likes || 0} likes</p></div>) : <p className="text-sm text-slate-600">No updates yet.</p>}</div>
+          <div className="space-y-3">
+            {updates.length ? updates.map((update) => {
+              const hasLiked = (update.liked_by || []).includes(publicLikeId);
+              const isLiking = likingIds.includes(update.id);
+
+              return (
+                <div key={update.id} className="rounded-2xl bg-[#F3E6CF]/70 p-4">
+                  <p className="text-sm text-black">{update.text}</p>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <p className="text-xs text-slate-600">{update.likes || 0} likes</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={hasLiked ? "secondary" : "outline"}
+                      disabled={hasLiked || isLiking}
+                      onClick={() => handleLikeUpdate(update)}
+                      className="rounded-full border-[#2C4F4E]/30 text-black"
+                    >
+                      <Heart className={`h-4 w-4 ${hasLiked ? "fill-[#F4A849] text-[#F4A849]" : "text-black"}`} />
+                      {hasLiked ? "Liked" : "Like"}
+                    </Button>
+                  </div>
+                </div>
+              );
+            }) : <p className="text-sm text-slate-600">No updates yet.</p>}
+          </div>
         </section>
       </CardContent>
     </div>

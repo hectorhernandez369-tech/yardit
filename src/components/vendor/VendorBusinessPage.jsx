@@ -21,7 +21,7 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
           </div>
         </div>
         <div className="mx-auto max-w-7xl p-3 pb-32 sm:p-5 sm:pb-28 lg:p-6 lg:pb-28">
-          <VendorPublicPreview account={account} pins={pins} checkIns={checkIns} updates={updates} />
+          <VendorPublicPreview account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={onRefresh} />
         </div>
       </div>
     );
