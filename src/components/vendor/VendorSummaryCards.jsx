@@ -1,23 +1,32 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getVendorTierConfig, getVendorUserLimit, getVendorPinLimit } from "@/lib/vendorTiers";
+import { Camera } from "lucide-react";
+import { getVendorTierConfig } from "@/lib/vendorTiers";
 
-export default function VendorSummaryCards({ account, pins, users, liveCheckIns }) {
+export default function VendorSummaryCards({ account }) {
   const tier = getVendorTierConfig(account?.vendor_tier);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card className="border-[#2C4F4E]/20">
-        <CardContent className="p-4">
-          <p className="text-sm text-slate-500">Business</p>
-          <p className="text-xl font-bold text-[#2C4F4E] truncate">{account?.business_name || "Vendor"}</p>
-          <Badge className="mt-2 bg-[#F4A849] text-[#2C4F4E]">{tier.label}</Badge>
-        </CardContent>
-      </Card>
-      <Card className="border-[#2C4F4E]/20"><CardContent className="p-4"><p className="text-sm text-slate-500">Truck Pins</p><p className="text-2xl font-bold">{pins.length}/{getVendorPinLimit(account)}</p></CardContent></Card>
-      <Card className="border-[#2C4F4E]/20"><CardContent className="p-4"><p className="text-sm text-slate-500">Authorized Users</p><p className="text-2xl font-bold">{users.length}/{getVendorUserLimit(account)}</p></CardContent></Card>
-      <Card className="border-[#2C4F4E]/20"><CardContent className="p-4"><p className="text-sm text-slate-500">Live Check-ins</p><p className="text-2xl font-bold">{liveCheckIns.length}</p></CardContent></Card>
-    </div>
+    <Card className="overflow-hidden border-2 border-[#2C4F4E]/20 bg-white shadow-sm">
+      <div className="h-28 bg-gradient-to-r from-[#5DADA5] via-[#6FC3BA] to-[#F4A849]" />
+      <CardContent className="p-5 sm:p-6 -mt-14 flex flex-col sm:flex-row sm:items-end gap-4">
+        <div className="h-28 w-28 rounded-3xl border-4 border-white bg-[#E7D7B8] shadow-md flex items-center justify-center overflow-hidden">
+          {account?.business_logo ? (
+            <img src={account.business_logo} alt={account.business_name} className="h-full w-full object-cover" />
+          ) : (
+            <Camera className="h-10 w-10 text-[#2C4F4E]/50" />
+          )}
+        </div>
+        <div className="space-y-2 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-3xl font-bold text-[#2C4F4E]">{account?.business_name || "Vendor Business"}</h2>
+            <Badge className="bg-[#F4A849] text-[#2C4F4E] border border-[#2C4F4E]/20">{tier.label}</Badge>
+          </div>
+          <p className="text-sm font-semibold text-[#5DADA5]">{account?.business_category || "Vendor"}</p>
+          <p className="max-w-3xl text-sm text-slate-600">{account?.description || "Manage your public Yardit vendor presence, check-ins, photos, and customer updates."}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
