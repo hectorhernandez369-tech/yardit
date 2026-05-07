@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { getTierLimits, TIER_CONFIG } from "@/lib/tierConfig";
+import TruckLogoEditor from "./TruckLogoEditor";
 
 export default function MyTrucksSection({ vendorAccount: providedVendorAccount, currentUser: providedCurrentUser }) {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -19,6 +20,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   const [formData, setFormData] = useState({ pin_name: "", description: "", is_active: true, pin_logo_url: "", pin_icon_style: "default", assigned_users: [] });
   const [saving, setSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [logoEditorUrl, setLogoEditorUrl] = useState("");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -128,6 +130,11 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) return toast.error("Image must be under 2MB");
     if (!["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(file.type)) return toast.error("Only PNG, JPG, or WebP allowed");
+    setLogoEditorUrl(URL.createObjectURL(file));
+    e.target.value = "";
+  };
+
+  const handleEditedLogoUpload = async (file) => {
     setLogoUploading(true);
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
     setFormData({ ...formData, pin_logo_url: file_url });
@@ -226,7 +233,8 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
         </div>
       )}
 
-      <Dialog open={showAddForm} onOpenChange={setShowAddForm}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>{editingPin ? "Edit Truck Profile" : "Create Truck Profile"}</DialogTitle></DialogHeader><div className="space-y-4"><Input value={formData.pin_name} onChange={(e) => setFormData({ ...formData, pin_name: e.target.value })} placeholder="Truck/Pin name" /><Input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={handleLogoUpload} disabled={logoUploading} /><Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Description" /><div className="rounded-2xl border p-3 space-y-2"><p className="text-sm font-semibold">Assigned authorized users</p>{authorizedUsers.length ? authorizedUsers.map((authorizedUser) => <label key={authorizedUser.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.assigned_users.includes(authorizedUser.id)} onChange={(e) => setFormData({ ...formData, assigned_users: e.target.checked ? [...formData.assigned_users, authorizedUser.id] : formData.assigned_users.filter((id) => id !== authorizedUser.id) })} />{authorizedUser.first_name || authorizedUser.last_name ? `${authorizedUser.first_name || ""} ${authorizedUser.last_name || ""}`.trim() : authorizedUser.authorized_email}<span className="text-xs text-muted-foreground">{authorizedUser.authorized_email}</span></label>) : <p className="text-xs text-muted-foreground">Add authorized users before assigning them to this truck.</p>}</div><div className="flex items-center justify-between"><span className="text-sm">Active</span><Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} /></div><Button onClick={handleSavePin} disabled={saving} className="w-full">{saving ? "Saving..." : "Save"}</Button></div></DialogContent></Dialog>
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>{editingPin ? "Edit Truck Profile" : "Create Truck Profile"}</DialogTitle></DialogHeader><div className="space-y-4"><Input value={formData.pin_name} onChange={(e) => setFormData({ ...formData, pin_name: e.target.value })} placeholder="Truck/Pin name" /><Input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={handleLogoUpload} disabled={logoUploading} />{logoUploading && <p className="text-xs text-muted-foreground">Uploading edited photo...</p>}{formData.pin_logo_url && <img src={formData.pin_logo_url} alt="Truck logo preview" className="h-16 w-16 rounded-xl object-contain border bg-white p-1" />}<Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Description" /><div className="rounded-2xl border p-3 space-y-2"><p className="text-sm font-semibold">Assigned authorized users</p>{authorizedUsers.length ? authorizedUsers.map((authorizedUser) => <label key={authorizedUser.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.assigned_users.includes(authorizedUser.id)} onChange={(e) => setFormData({ ...formData, assigned_users: e.target.checked ? [...formData.assigned_users, authorizedUser.id] : formData.assigned_users.filter((id) => id !== authorizedUser.id) })} />{authorizedUser.first_name || authorizedUser.last_name ? `${authorizedUser.first_name || ""} ${authorizedUser.last_name || ""}`.trim() : authorizedUser.authorized_email}<span className="text-xs text-muted-foreground">{authorizedUser.authorized_email}</span></label>) : <p className="text-xs text-muted-foreground">Add authorized users before assigning them to this truck.</p>}</div><div className="flex items-center justify-between"><span className="text-sm">Active</span><Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} /></div><Button onClick={handleSavePin} disabled={saving} className="w-full">{saving ? "Saving..." : "Save"}</Button></div></DialogContent></Dialog>
+      <TruckLogoEditor imageUrl={logoEditorUrl} open={!!logoEditorUrl} onClose={() => setLogoEditorUrl("")} onApply={handleEditedLogoUpload} />
       {selectedPinHistory && <Dialog open onOpenChange={() => setSelectedPinHistory(null)}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>Check-In History: {selectedPinHistory.pin_name}</DialogTitle></DialogHeader>{allCheckIns.filter((c) => c.vendor_pin_id === selectedPinHistory.id).map((checkIn) => <div key={checkIn.id} className="bg-muted/30 rounded-xl p-3 text-xs"><Clock className="w-4 h-4 inline mr-1" /> {checkIn.status} • {checkIn.checkin_display_address || `${checkIn.checkin_latitude}, ${checkIn.checkin_longitude}`}</div>)}</DialogContent></Dialog>}
     </div>
   );
