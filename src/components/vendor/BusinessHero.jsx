@@ -13,7 +13,7 @@ const categories = [
   "Food Truck", "Coffee & Drinks", "Desserts", "Bakery", "Catering", "Farmers Market", "Fresh Produce", "BBQ", "Tacos", "Pizza", "Ice Cream",
   "Retail", "Boutique", "Vintage", "Thrift", "Handmade Goods", "Art", "Crafts", "Jewelry", "Home Decor", "Furniture", "Collectibles", "Books", "Toys",
   "Health & Wellness", "Fitness", "Beauty", "Hair & Barber", "Skincare", "Massage", "Pet Services", "Auto Services", "Repair Services", "Cleaning Services",
-  "Entertainment", "Music", "Photography", "Party Services", "Kids Activities", "Community Organization", "Nonprofit", "Other"
+  "Entertainment", "Music", "Photography", "Party Services", "Kids Activities", "Community Organization", "Nonprofit", "YARDIT EVENT", "Other"
 ];
 
 const heroColors = [
