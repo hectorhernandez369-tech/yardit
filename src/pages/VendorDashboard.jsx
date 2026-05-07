@@ -80,14 +80,6 @@ export default function VendorDashboard() {
   return (
     <div className="min-h-screen bg-[#F3E6CF] p-4 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-bold text-[#2C4F4E]">Vendor Dashboard</h1>
-            <p className="text-slate-600">Manage vendor pins, check-ins, users, billing, and updates.</p>
-          </div>
-          <Button onClick={() => openCheckIn(pins[0])} disabled={!pins.length} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">Quick Check-In</Button>
-        </div>
-
         <VendorSummaryCards account={account} pins={pins} users={users} liveCheckIns={liveCheckIns} />
 
         <Tabs defaultValue="business" className="space-y-4">
