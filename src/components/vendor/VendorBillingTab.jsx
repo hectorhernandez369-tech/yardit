@@ -31,15 +31,18 @@ export default function VendorBillingTab({ account, onRefresh }) {
               {account?.vendor_tier === key && <Badge>Current</Badge>}
             </div>
             <p className="text-xl sm:text-2xl font-bold text-[#2C4F4E]">{tier.price}</p>
+            <p className="text-xs font-semibold text-slate-500">{key === "starter" ? "I’m trying Yardit" : key === "pro" ? "I actively use Yardit" : "I run my business through Yardit"}</p>
           </CardHeader>
           <CardContent className="p-3 pt-0 sm:p-5 sm:pt-0 text-xs sm:text-sm space-y-1.5 text-slate-700">
-            <p>{tier.includedUsers} included user{tier.includedUsers > 1 ? "s" : ""}</p>
-            <p>{tier.includedPins} included pin{tier.includedPins > 1 ? "s" : ""}</p>
+            <p>{tier.includedUsers} user login{tier.includedUsers > 1 ? "s" : ""}</p>
+            <p>{tier.includedPins} active pin{tier.includedPins > 1 ? "s" : ""}</p>
             <p>{tier.dailyCheckInLimit ? `${tier.dailyCheckInLimit} check-in per day` : "Unlimited check-ins"}</p>
             <p>{tier.fridayToSundayOnly ? "Friday–Sunday only" : "Any day check-ins"}</p>
-            <p>{tier.logoPin ? "Logo pin included" : "No logo pin"}</p>
+            <p>{tier.logoPin ? "Logo pin included" : "Basic vendor icon only"}</p>
             <p>{tier.animation ? "Animated pin included" : "No animation"}</p>
-            <p>Map zoom {tier.mapZoom}+</p>
+            <p>Appears at zoom level {tier.mapZoom}+</p>
+            {key !== "starter" && <p>Extra users: {tier.extraUserPrice} each</p>}
+            {key !== "starter" && <p>Extra pins: {tier.extraPinPrice} each</p>}
             {account?.vendor_tier === key ? (
               <Button disabled variant="outline" className="w-full mt-3">Current Plan</Button>
             ) : (

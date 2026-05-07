@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 const tiers = [
-  { id: "starter", name: "Starter", price: "Free", text: "Basic vendor presence" },
-  { id: "pro", name: "Pro", price: "$19/mo", text: "More visibility and tools" },
-  { id: "growth", name: "Growth", price: "$49/mo", text: "Best for active vendors" },
+  { id: "starter", name: "Starter", price: "$9.99/mo", text: "I’m trying Yardit" },
+  { id: "pro", name: "Pro", price: "$19.99/mo", text: "I actively use Yardit" },
+  { id: "growth", name: "Growth", price: "$39.99/mo", text: "I run my business through Yardit" },
 ];
 
 export default function TierSelector({ currentTier, onSelect, isSaving }) {
