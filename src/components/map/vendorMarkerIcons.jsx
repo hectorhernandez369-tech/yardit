@@ -13,7 +13,7 @@ export function getVendorMarkerIcon({ pin, account, checkIn, selected = false })
   if (!cache[key]) {
     const markerHtml = image
       ? `<img src='${image}' alt='Vendor' style='width:${size}px;height:${size}px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.32));${animationCss}'/>`
-      : `<div style="width:${size}px;height:${size}px;border-radius:9999px;background:#F4A849;border:3px solid #2C4F4E;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.32);${animationCss}"><span style='font-size:20px;'>🚚</span></div>`;
+      : `<div style="width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;background:#F4A849;border:3px solid #2C4F4E;box-shadow:0 4px 12px rgba(0,0,0,.32);transform:rotate(-45deg);${animationCss}"><div style='width:10px;height:10px;border-radius:9999px;background:#2C4F4E;margin:8px auto 0;'></div></div>`;
     const html = `<style>@keyframes vendorPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}@keyframes vendorBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}</style>${markerHtml}`;
     cache[key] = L.divIcon({
       className: "vendor-marker",

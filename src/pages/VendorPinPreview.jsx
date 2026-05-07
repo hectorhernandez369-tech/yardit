@@ -24,7 +24,7 @@ function createPreviewIcon({ pin, account, animation }) {
   const animationCss = animation === "bounce" ? "vendorPreviewBounce 1.2s ease-in-out infinite" : animation === "pulse" ? "vendorPreviewPulse 1.6s ease-in-out infinite" : "none";
   const html = image
     ? `<img src='${image}' alt='Truck logo' style='width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.32));animation:${animationCss};'/>`
-    : `<div style='width:42px;height:42px;border-radius:9999px;background:#F4A849;border:3px solid #2C4F4E;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.32);animation:${animationCss};'><span style='font-size:21px;'>🚚</span></div>`;
+    : `<div style='width:32px;height:32px;border-radius:50% 50% 50% 0;background:#F4A849;border:3px solid #2C4F4E;box-shadow:0 4px 12px rgba(0,0,0,.32);transform:rotate(-45deg);animation:${animationCss};'><div style='width:10px;height:10px;border-radius:9999px;background:#2C4F4E;margin:8px auto 0;'></div></div>`;
 
   return L.divIcon({
     className: "vendor-preview-marker",
