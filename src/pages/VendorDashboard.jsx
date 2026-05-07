@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { getTierLimits, TIER_CONFIG } from "@/lib/tierConfig";
 
-export default function MyTrucksSection({ vendorAccount }) {
+export default function MyTrucksSection({ vendorAccount: providedVendorAccount }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPin, setEditingPin] = useState(null);
   const [selectedPinHistory, setSelectedPinHistory] = useState(null);
@@ -22,32 +22,52 @@ export default function MyTrucksSection({ vendorAccount }) {
   const [logoUploading, setLogoUploading] = useState(false);
   const queryClient = useQueryClient();
 
-  const tierConfig = TIER_CONFIG[vendorAccount.vendor_tier];
-  const { max_pins } = getTierLimits(vendorAccount.vendor_tier, vendorAccount.extra_pins_count || 0);
+  const { data: currentUser } = useQuery({
+    queryKey: ["currentVendorUser"],
+    queryFn: () => base44.auth.me(),
+    enabled: !providedVendorAccount?.id,
+  });
+
+  const { data: loadedVendorAccounts = [], isLoading: loadingVendorAccount } = useQuery({
+    queryKey: ["vendorAccountForTrucks", currentUser?.id, currentUser?.email],
+    queryFn: async () => {
+      const byId = await base44.entities.VendorAccount.filter({ owner_user_id: currentUser.id });
+      if (byId.length) return byId;
+      return base44.entities.VendorAccount.filter({ owner_user_id: currentUser.email });
+    },
+    enabled: !providedVendorAccount?.id && !!currentUser?.id,
+  });
+
+  const vendorAccount = providedVendorAccount || loadedVendorAccounts.find((account) => account.is_active !== false) || null;
+  const hasVendorAccount = !!vendorAccount?.id;
+  const vendorTier = vendorAccount?.vendor_tier || "starter";
+
+  const tierConfig = TIER_CONFIG[vendorTier] || TIER_CONFIG.starter;
+  const { max_pins } = getTierLimits(vendorTier, vendorAccount?.extra_pins_count || 0);
 
   // Fetch truck pin profiles
   const { data: pins = [] } = useQuery({
-    queryKey: ["vendorPins", vendorAccount.id],
+    queryKey: ["vendorPins", vendorAccount?.id],
     queryFn: () => base44.entities.VendorPin.filter({ vendor_account_id: vendorAccount.id }),
-    enabled: !!vendorAccount?.id,
+    enabled: hasVendorAccount,
   });
 
   // Fetch all check-ins for all pins
   const { data: allCheckIns = [] } = useQuery({
-    queryKey: ["vendorPinCheckIns", vendorAccount.id],
+    queryKey: ["vendorPinCheckIns", vendorAccount?.id],
     queryFn: () => base44.entities.VendorPinCheckIn.filter({ vendor_account_id: vendorAccount.id }, "-created_date"),
-    enabled: !!vendorAccount?.id,
+    enabled: hasVendorAccount,
   });
 
   // Fetch authorized users
   const { data: authorizedUsers = [] } = useQuery({
-    queryKey: ["authorizedUsers", vendorAccount.id],
+    queryKey: ["authorizedUsers", vendorAccount?.id],
     queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: vendorAccount.id, status: "active" }),
-    enabled: !!vendorAccount?.id,
+    enabled: hasVendorAccount,
   });
 
   const activePins = pins.filter((p) => p.is_active);
-  const canAddPin = activePins.length < max_pins;
+  const canAddPin = hasVendorAccount && activePins.length < max_pins;
 
   // Get assigned users for a pin
   const getAssignedUsers = (pinId) => {
@@ -223,6 +243,24 @@ export default function MyTrucksSection({ vendorAccount }) {
     }
   };
 
+  if (!hasVendorAccount) {
+    return (
+      <div className="bg-card rounded-2xl border border-border/50 px-5 py-10 text-center">
+        {loadingVendorAccount ? (
+          <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+        ) : (
+          <>
+            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
+              <Truck className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="font-heading font-semibold text-sm">No Vendor Account Yet</p>
+            <p className="text-xs text-muted-foreground mt-1">Create or connect a vendor account to manage truck pins.</p>
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <div>
@@ -239,7 +277,7 @@ export default function MyTrucksSection({ vendorAccount }) {
             <p className="font-heading font-semibold text-destructive mb-1">Truck Limit Reached</p>
             <p className="text-xs text-destructive/80">
               You've reached your limit of {max_pins} truck pin{max_pins > 1 ? "s" : ""} for {tierConfig.name} tier.
-              {vendorAccount.vendor_tier !== "growth" && " Add extra trucks at +$10/month each."}
+              {vendorTier !== "growth" && " Add extra trucks at +$10/month each."}
             </p>
           </div>
         </div>
