@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 const fields = [
   ["business_name", "Business Name"],
-  ["business_logo", "Business Logo URL", "vendor-logo-upload"],
+  ["business_logo", "Business Logo URL"],
   ["business_category", "Business Category"],
   ["phone", "Phone"],
   ["email", "Email"],
@@ -31,6 +31,7 @@ export default function VendorDetailsForm({ account, onRefresh }) {
 
   const saveProfile = async () => {
     setSaving(true);
+    const businessAddress = [form.business_street_address, form.business_city, form.business_state, form.business_zip_code].filter(Boolean).join(", ");
     const payload = {
       business_name: form.business_name,
       business_logo: form.business_logo,
@@ -39,16 +40,15 @@ export default function VendorDetailsForm({ account, onRefresh }) {
       phone: form.phone,
       email: form.email,
       website: form.website,
+      facebook_url: form.facebook_url,
+      instagram_url: form.instagram_url,
+      tiktok_url: form.tiktok_url,
       business_street_address: form.business_street_address,
       business_city: form.business_city,
       business_state: form.business_state,
       business_zip_code: form.business_zip_code,
-      business_address: [form.business_street_address, form.business_city, form.business_state, form.business_zip_code].filter(Boolean).join(", "),
-      location: [form.business_street_address, form.business_city, form.business_state, form.business_zip_code].filter(Boolean).join(", "),
-      facebook_url: form.facebook_url,
-      instagram_url: form.instagram_url,
-      tiktok_url: form.tiktok_url,
-      vendor_setup_status: "in_progress",
+      business_address: businessAddress,
+      location: businessAddress || form.location,
     };
     await base44.entities.VendorAccount.update(account.id, payload);
     toast.success("Vendor page updated");
@@ -63,8 +63,8 @@ export default function VendorDetailsForm({ account, onRefresh }) {
       </CardHeader>
       <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
         <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4">
-          {fields.map(([key, label, id]) => (
-            <div key={key} id={id} className="space-y-1.5">
+          {fields.map(([key, label]) => (
+            <div key={key} className="space-y-1.5">
               <Label>{label}</Label>
               <Input value={form[key] || ""} onChange={(e) => updateField(key, e.target.value)} className="min-w-0" />
             </div>

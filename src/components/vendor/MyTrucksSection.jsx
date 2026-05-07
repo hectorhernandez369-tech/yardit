@@ -13,7 +13,7 @@ import { formatDistanceToNow } from "date-fns";
 import { getTierLimits, TIER_CONFIG } from "@/lib/tierConfig";
 import TruckLogoEditor from "./TruckLogoEditor";
 
-export default function MyTrucksSection({ vendorAccount: providedVendorAccount, currentUser: providedCurrentUser }) {
+export default function MyTrucksSection({ vendorAccount: providedVendorAccount, currentUser: providedCurrentUser, onRefresh }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPin, setEditingPin] = useState(null);
   const [selectedPinHistory, setSelectedPinHistory] = useState(null);
@@ -182,11 +182,11 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
         assigned_users: authorizedUsers.filter((u) => formData.assigned_users.includes(u.id)).map((u) => u.authorized_email),
       });
       await syncPinAssignments(newPin.id, formData.assigned_users);
-      await base44.entities.VendorAccount.update(vendorAccount.id, { current_vendor_pins: activePins.length + 1, vendor_setup_status: "in_progress" });
       toast.success("Truck profile created!");
     }
     queryClient.invalidateQueries({ queryKey: ["vendorPins"] });
     queryClient.invalidateQueries({ queryKey: ["authorizedUsers"] });
+    onRefresh?.();
     setShowAddForm(false);
     setSaving(false);
   };
@@ -203,7 +203,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   }
 
   return (
-    <div id="vendor-trucks-section" className="space-y-3 sm:space-y-5 min-w-0">
+    <div className="space-y-3 sm:space-y-5 min-w-0">
       <div className="flex items-center justify-between gap-3 rounded-2xl border bg-white p-3 sm:p-5 shadow-sm min-w-0">
         <div className="min-w-0">
           <h2 className="font-heading font-bold text-base sm:text-lg">My Truck Pins</h2>
