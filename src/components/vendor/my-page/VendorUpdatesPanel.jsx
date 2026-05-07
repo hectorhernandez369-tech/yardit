@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
-import { Trash2 } from "lucide-react";
+import { Heart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function VendorUpdatesPanel({ account, updates, onRefresh }) {
@@ -24,6 +24,22 @@ export default function VendorUpdatesPanel({ account, updates, onRefresh }) {
     onRefresh();
   };
 
+  const toggleLike = async (update) => {
+    const currentUser = await base44.auth.me();
+    const userEmail = currentUser?.email;
+    if (!userEmail) return;
+
+    const likedBy = update.liked_by || [];
+    const hasLiked = likedBy.includes(userEmail);
+    const nextLikedBy = hasLiked ? likedBy.filter((email) => email !== userEmail) : [...likedBy, userEmail];
+
+    await base44.entities.VendorUpdate.update(update.id, {
+      liked_by: nextLikedBy,
+      likes: nextLikedBy.length,
+    });
+    onRefresh();
+  };
+
   return (
     <Card className="border-slate-200 bg-white shadow-sm overflow-hidden">
       <CardHeader className="p-4 sm:p-6">
@@ -36,12 +52,17 @@ export default function VendorUpdatesPanel({ account, updates, onRefresh }) {
           {updates.length === 0 ? (
             <p className="rounded-2xl bg-[#F3E6CF]/70 p-5 text-sm text-slate-600">No updates yet. Post news, specials, or where customers can find you next.</p>
           ) : updates.map((update) => (
-            <div key={update.id} className="rounded-2xl border bg-white p-4 flex min-w-0 items-start justify-between gap-3">
+            <div key={update.id} className="rounded-xl border bg-white p-3 flex min-w-0 items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-sm text-slate-700 break-words">{update.text}</p>
-                <p className="mt-2 text-xs text-slate-500">{update.created_date ? format(new Date(update.created_date), "MMM d, yyyy") : "New update"} · {update.likes || 0} likes</p>
+                <p className="text-xs sm:text-sm text-slate-700 break-words">{update.text}</p>
+                <p className="mt-1 text-[11px] text-slate-500">{update.created_date ? format(new Date(update.created_date), "MMM d") : "New update"}</p>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => deleteUpdate(update)} className="text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button size="sm" variant="ghost" onClick={() => toggleLike(update)} className="h-7 rounded-full px-2 text-[11px] text-rose-600 hover:bg-rose-50">
+                  <Heart className="h-3.5 w-3.5" /> {update.likes || 0}
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => deleteUpdate(update)} className="h-7 w-7 text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /></Button>
+              </div>
             </div>
           ))}
         </div>
