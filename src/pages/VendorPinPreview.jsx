@@ -94,6 +94,7 @@ export default function VendorPinPreview() {
   const [pinLocation, setPinLocation] = useState(null);
   const [address, setAddress] = useState("");
   const [selectedHours, setSelectedHours] = useState(4);
+  const [customEndTime, setCustomEndTime] = useState("");
   const [iconStyle, setIconStyle] = useState("default");
   const [animationEnabled, setAnimationEnabled] = useState(false);
   const [selectedAnimation, setSelectedAnimation] = useState("pulse");
@@ -136,10 +137,19 @@ export default function VendorPinPreview() {
     if (!gpsLocation) handleCurrentLocation();
   }, [gpsLocation]);
 
-  const endTime = useMemo(() => {
-    const end = new Date(Date.now() + selectedHours * 60 * 60 * 1000);
-    return end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  }, [selectedHours]);
+  const endDate = useMemo(() => {
+    if (selectedHours === "custom" && customEndTime) {
+      const [hours, minutes] = customEndTime.split(":").map(Number);
+      const end = new Date();
+      end.setHours(hours, minutes, 0, 0);
+      if (end <= new Date()) end.setDate(end.getDate() + 1);
+      return end;
+    }
+
+    return new Date(Date.now() + selectedHours * 60 * 60 * 1000);
+  }, [selectedHours, customEndTime]);
+
+  const endTime = useMemo(() => endDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }), [endDate]);
 
   const distanceFeet = gpsLocation && pinLocation ? Math.round(getDistanceMeters(gpsLocation, pinLocation) * 3.28084) : 0;
   const coordinateDisplayAddress = pinLocation ? `${pinLocation.lat.toFixed(5)}, ${pinLocation.lng.toFixed(5)}` : "";
@@ -168,7 +178,7 @@ export default function VendorPinPreview() {
     if (!pinLocation || !account || !pin) return toast.error("Set your pin location first.");
     setSaving(true);
     const start = new Date();
-    const end = new Date(start.getTime() + selectedHours * 60 * 60 * 1000);
+    const end = endDate;
     const payload = {
       vendor_pin_id: pin.id,
       vendor_account_id: account.id,
@@ -282,7 +292,24 @@ export default function VendorPinPreview() {
                   {slot.label}
                 </Button>
               ))}
+              <Button
+                type="button"
+                variant={selectedHours === "custom" ? "default" : "outline"}
+                onClick={() => {
+                  setSelectedHours("custom");
+                  if (!customEndTime) {
+                    const defaultEnd = new Date(Date.now() + 4 * 60 * 60 * 1000);
+                    setCustomEndTime(`${String(defaultEnd.getHours()).padStart(2, "0")}:${String(defaultEnd.getMinutes()).padStart(2, "0")}`);
+                  }
+                }}
+                className="rounded-xl col-span-2"
+              >
+                Custom end time
+              </Button>
             </div>
+            {selectedHours === "custom" && (
+              <Input type="time" value={customEndTime} onChange={(e) => setCustomEndTime(e.target.value)} className="rounded-xl" />
+            )}
             <Button onClick={startCheckIn} disabled={saving || !pinLocation} className="w-full rounded-xl bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">
               {saving ? "Going live..." : "Confirm Live Pin"}
             </Button>
