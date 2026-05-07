@@ -181,7 +181,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
                   key={color}
                   type="button"
                   onClick={() => setValue(color)}
-                  className={`rounded-2xl border p-3 text-left text-sm font-medium transition ${value === color ? "border-[#5DADA5] ring-2 ring-[#5DADA5]/30" : "border-slate-200"}`}
+                  className={`rounded-2xl border p-3 text-left text-sm font-medium text-black transition ${value === color ? "border-[#5DADA5] ring-2 ring-[#5DADA5]/30" : "border-slate-200"}`}
                   style={{ backgroundColor: color }}
                 >
                   {label}
@@ -190,7 +190,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
             </div>
           ) : editing === "business_category" ? (
             <Select value={value} onValueChange={setValue}>
-              <SelectTrigger className="bg-white">
+              <SelectTrigger className="bg-white text-black">
                 <SelectValue placeholder="Choose a category" />
               </SelectTrigger>
               <SelectContent>
@@ -200,9 +200,9 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
               </SelectContent>
             </Select>
           ) : editing === "description" ? (
-            <Textarea value={value} onChange={(e) => setValue(e.target.value)} className="min-h-24 bg-white" />
+            <Textarea value={value} onChange={(e) => setValue(e.target.value)} className="min-h-24 bg-white text-black placeholder:text-black/60" />
           ) : (
-            <Input value={value} onChange={(e) => setValue(e.target.value)} className="bg-white" />
+            <Input value={value} onChange={(e) => setValue(e.target.value)} className="bg-white text-black placeholder:text-black/60" />
           )}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>Cancel</Button>
