@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Store, MapPin, CreditCard, Users, MessageSquare } from "lucide-react";
+import { ArrowLeft, Bell, Loader2, Store, MapPin, CreditCard, Users, MessageSquare, Navigation } from "lucide-react";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import MyTrucksSection from "@/components/vendor/MyTrucksSection";
 import VendorBillingTab from "@/components/vendor/VendorBillingTab";
@@ -95,18 +95,39 @@ export default function VendorDashboard() {
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
 
   return (
-    <div className="w-full min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto w-full p-4 sm:p-6 space-y-6">
-        <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} />
+    <div className="w-full min-h-screen bg-[#FBFAF7]">
+      <Tabs defaultValue="profile" className="space-y-0">
+        <div className="bg-[#5DADA5] text-white">
+          <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <ArrowLeft className="h-5 w-5 mt-1 text-white/80" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/20"><MapPin className="h-5 w-5" /></span>
+                    <h1 className="font-bold text-lg">Yardit Vendors</h1>
+                  </div>
+                  <p className="mt-2 text-sm text-white/75">Run your sales. Show your location. Be found.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15"><Navigation className="h-5 w-5" /></span>
+                <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15"><Bell className="h-5 w-5" /><span className="absolute -top-1 -right-1 rounded-full bg-[#F4A849] px-1.5 text-[10px] font-bold text-white">2</span></span>
+              </div>
+            </div>
 
-        <Tabs defaultValue="profile" className="space-y-5">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 rounded-2xl border border-slate-200 bg-slate-50 p-1 h-auto shadow-sm">
-            <TabsTrigger value="profile" className="rounded-xl gap-1 data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white"><Store className="h-4 w-4" /> my page</TabsTrigger>
-            <TabsTrigger value="pins" className="rounded-xl gap-1 data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white"><MapPin className="h-4 w-4" /> My Trucks</TabsTrigger>
-            <TabsTrigger value="users" className="rounded-xl gap-1 data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white"><Users className="h-4 w-4" /> Team</TabsTrigger>
-            <TabsTrigger value="tier" className="rounded-xl gap-1 data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white"><CreditCard className="h-4 w-4" /> Plan</TabsTrigger>
-            <TabsTrigger value="updates" className="rounded-xl gap-1 data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white"><MessageSquare className="h-4 w-4" /> Updates</TabsTrigger>
-          </TabsList>
+            <TabsList className="mt-6 grid w-full grid-cols-2 md:grid-cols-5 bg-transparent p-0 h-auto justify-start rounded-none">
+              <TabsTrigger value="profile" className="rounded-t-2xl rounded-b-none px-4 py-3 text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">My Page</TabsTrigger>
+              <TabsTrigger value="pins" className="rounded-t-2xl rounded-b-none px-4 py-3 text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">My Trucks / Pins</TabsTrigger>
+              <TabsTrigger value="updates" className="rounded-t-2xl rounded-b-none px-4 py-3 text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">History</TabsTrigger>
+              <TabsTrigger value="tier" className="rounded-t-2xl rounded-b-none px-4 py-3 text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Tier</TabsTrigger>
+              <TabsTrigger value="users" className="rounded-t-2xl rounded-b-none px-4 py-3 text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Authorized Users & Pins</TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto w-full p-4 sm:p-6 space-y-6">
+          <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} />
 
           <VendorPinStatusBar pins={pins} checkIns={checkIns} />
 
@@ -115,8 +136,8 @@ export default function VendorDashboard() {
           <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} pins={pins} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="tier"><VendorBillingTab account={account} /></TabsContent>
           <TabsContent value="updates"><VendorUpdatesTab account={account} updates={updates} user={user} onRefresh={refreshDashboard} /></TabsContent>
-        </Tabs>
-      </div>
+        </div>
+      </Tabs>
     </div>
   );
 }

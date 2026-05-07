@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
 import { MapPin, Palette, Phone, Pencil, Store, Tag } from "lucide-react";
 import { toast } from "sonner";
 
@@ -82,9 +83,9 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
   };
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="p-5 sm:p-7 flex flex-col sm:flex-row gap-5 sm:items-center" style={{ backgroundColor: heroBackgroundColor }}>
-        <div className="h-24 w-24 rounded-2xl border border-slate-200 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="p-7 sm:p-9 flex flex-col sm:flex-row gap-5 sm:items-start" style={{ backgroundColor: heroBackgroundColor }}>
+        <div className="h-24 w-24 rounded-2xl border border-slate-100 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
           {profile?.logo_url ? (
             <img src={profile.logo_url} alt={profile.business_name} className="h-full w-full object-cover" />
           ) : (
@@ -92,12 +93,11 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
           )}
         </div>
         <div className="flex-1 space-y-3 min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#5DADA5]">Public business profile</p>
           <div className="flex flex-wrap items-center gap-2">
             <EditableButton field="business_name" className="rounded-lg px-1 -mx-1">
               <h1 className="inline text-2xl sm:text-3xl font-bold text-[#1F2937]">{profile?.business_name || "My Business"}</h1>
             </EditableButton>
-            <Badge className="bg-[#F4A849] text-[#2C4F4E] capitalize">{profile?.tier || "starter"}</Badge>
+            <Badge className="bg-[#FFF1D6] text-[#7A4B00] border border-[#F4A849]/40 capitalize">♨ {profile?.tier || "starter"}</Badge>
           </div>
           <div className="flex flex-wrap gap-2 text-sm text-slate-600">
             {editable && (
@@ -119,12 +119,16 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
             <p className="max-w-3xl text-sm leading-relaxed text-slate-600">{profile?.description || "Add a brief description so customers know what your business offers."}</p>
           </EditableButton>
         </div>
-        {activeCheckIn && (
-          <div className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 shrink-0">
-            <MapPin className="h-4 w-4" /> Live now
-          </div>
-        )}
       </div>
+      {activeCheckIn && (
+        <div className="border-t border-slate-200 bg-white px-5 py-3">
+          <div className="rounded-xl bg-[#E8F7F5] px-4 py-3 text-sm text-[#2C4F4E]">
+            <span className="mr-1 inline-block h-3 w-3 rounded-full bg-emerald-500 align-middle" />
+            <span className="font-bold text-[#00A88A]">LIVE NOW</span>
+            <span className="text-slate-600"> · Open until {format(new Date(activeCheckIn.checkin_end_time), "h:mm a")}</span>
+          </div>
+        </div>
+      )}
 
       {editing && (
         <div className="border-t border-slate-200 bg-slate-50 p-5 sm:p-6 space-y-3">
