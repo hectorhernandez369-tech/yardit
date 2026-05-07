@@ -87,6 +87,8 @@ export default function VendorDashboard() {
     tier: account.vendor_tier,
     category: account.business_category,
     description: account.description,
+    phone: account.phone,
+    location: account.location || account.service_area || account.city || account.address,
   };
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
 
