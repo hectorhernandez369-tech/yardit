@@ -116,41 +116,6 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
           ))}
         </div>
 
-        <section className="rounded-2xl border border-[#5DADA5]/30 bg-[#F3E6CF]/50 p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-[#5DADA5]" />
-            <h3 className="font-bold text-[#2C4F4E]">Message Business</h3>
-          </div>
-          <form onSubmit={handleMessageBusiness} className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input
-                value={messageForm.name}
-                onChange={(event) => setMessageForm({ ...messageForm, name: event.target.value })}
-                placeholder="Your name"
-                className="bg-white text-black"
-              />
-              <Input
-                value={messageForm.contact}
-                onChange={(event) => setMessageForm({ ...messageForm, contact: event.target.value })}
-                placeholder="Email or phone"
-                className="bg-white text-black"
-              />
-            </div>
-            <Textarea
-              value={messageForm.message}
-              onChange={(event) => setMessageForm({ ...messageForm, message: event.target.value })}
-              placeholder="Write your message..."
-              className="min-h-24 bg-white text-black"
-              required
-            />
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              {messageSent ? <p className="text-sm font-semibold text-[#2C4F4E]">Message sent to the business.</p> : <span />}
-              <Button type="submit" disabled={sendingMessage} className="rounded-full bg-[#5DADA5] text-white hover:bg-[#4A9B93]">
-                <Send className="h-4 w-4" /> {sendingMessage ? "Sending..." : "Send Message"}
-              </Button>
-            </div>
-          </form>
-        </section>
 
         <section>
           <h3 className="font-bold text-[#2C4F4E] mb-3">Active Location</h3>
@@ -220,6 +185,42 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
               );
             }) : <p className="text-sm text-slate-600">No updates yet.</p>}
           </div>
+        </section>
+
+        <section className="rounded-2xl border border-[#5DADA5]/30 bg-[#F3E6CF]/50 p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-[#5DADA5]" />
+            <h3 className="font-bold text-[#2C4F4E]">Message Business</h3>
+          </div>
+          <form onSubmit={handleMessageBusiness} className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                value={messageForm.name}
+                onChange={(event) => setMessageForm({ ...messageForm, name: event.target.value })}
+                placeholder="Your name"
+                className="bg-white text-black"
+              />
+              <Input
+                value={messageForm.contact}
+                onChange={(event) => setMessageForm({ ...messageForm, contact: event.target.value })}
+                placeholder="Email or phone"
+                className="bg-white text-black"
+              />
+            </div>
+            <Textarea
+              value={messageForm.message}
+              onChange={(event) => setMessageForm({ ...messageForm, message: event.target.value })}
+              placeholder="Write your message..."
+              className="min-h-24 bg-white text-black"
+              required
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {messageSent ? <p className="text-sm font-semibold text-[#2C4F4E]">Message sent to the business.</p> : <span />}
+              <Button type="submit" disabled={sendingMessage} className="rounded-full bg-[#5DADA5] text-white hover:bg-[#4A9B93]">
+                <Send className="h-4 w-4" /> {sendingMessage ? "Sending..." : "Send Message"}
+              </Button>
+            </div>
+          </form>
         </section>
       </CardContent>
     </div>
