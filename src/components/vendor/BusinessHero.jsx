@@ -99,18 +99,18 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
 
   return (
     <section className={asHeader ? "overflow-hidden bg-white min-w-0" : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm min-w-0"}>
-      <div className={asHeader ? "max-w-7xl mx-auto w-full px-3 sm:px-6 py-2.5 sm:py-5 flex flex-row gap-2.5 sm:gap-4 items-start" : "p-2.5 sm:p-5 flex flex-row gap-2.5 sm:gap-4 items-start"} style={{ backgroundColor: heroBackgroundColor }}>
+      <div className={asHeader ? "max-w-7xl mx-auto w-full px-2.5 sm:px-6 py-2 sm:py-5 flex flex-row gap-2 sm:gap-4 items-start" : "p-2 sm:p-5 flex flex-row gap-2 sm:gap-4 items-start"} style={{ backgroundColor: heroBackgroundColor }}>
         <button
           type="button"
           onClick={() => editable && logoInputRef.current?.click()}
           disabled={!editable || uploadingLogo}
-          className="group relative h-12 w-12 sm:h-20 sm:w-20 rounded-xl sm:rounded-2xl border border-white/70 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0 disabled:cursor-default"
+          className="group relative h-10 w-10 sm:h-20 sm:w-20 rounded-xl sm:rounded-2xl border border-white/70 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0 disabled:cursor-default"
           title={editable ? "Upload business photo" : undefined}
         >
           {profile?.logo_url || profile?.business_logo ? (
             <img src={profile.logo_url || profile.business_logo} alt={profile.business_name} className="h-full w-full object-cover" />
           ) : (
-            <Store className="h-5 w-5 sm:h-8 sm:w-8 text-[#5DADA5]" />
+            <Store className="h-4 w-4 sm:h-8 sm:w-8 text-[#5DADA5]" />
           )}
           {editable && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition group-hover:opacity-100">
@@ -122,9 +122,9 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
         <div className="flex-1 space-y-1.5 sm:space-y-2 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <EditableButton field="business_name" className="rounded-lg px-1 -mx-1">
-              <h1 className="inline text-base sm:text-2xl font-bold text-[#1F2937] break-words leading-tight">{profile?.business_name || "My Business"}</h1>
+              <h1 className="inline text-sm sm:text-2xl font-bold text-[#1F2937] break-words leading-tight">{profile?.business_name || "My Business"}</h1>
             </EditableButton>
-            <Badge className="bg-[#FFF1D6] text-[#7A4B00] border border-[#F4A849]/40 capitalize text-[10px] sm:text-xs px-1.5 sm:px-2">♨ {profile?.tier || "starter"}</Badge>
+
           </div>
           <div className="flex flex-wrap gap-1 sm:gap-2 text-[11px] sm:text-sm text-slate-600">
             {editable && (
