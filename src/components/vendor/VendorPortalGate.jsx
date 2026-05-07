@@ -37,9 +37,9 @@ export default function VendorPortalGate({ account, authorizedUser, user, onUnlo
   };
 
   return (
-    <div className="min-h-screen bg-[#FBFAF7] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md rounded-3xl shadow-xl border-[#2C4F4E]/20">
-        <CardContent className="p-8 space-y-6">
+    <div className="min-h-screen bg-[#FBFAF7] flex items-center justify-center p-3 sm:p-4 overflow-hidden">
+      <Card className="w-full max-w-md rounded-3xl shadow-xl border-[#2C4F4E]/20 overflow-hidden bg-white">
+        <CardContent className="p-5 sm:p-8 space-y-6">
           <div className="text-center space-y-3">
             {account.business_logo ? (
               <img src={account.business_logo} alt={account.business_name} className="mx-auto h-16 w-16 rounded-2xl object-cover border" />

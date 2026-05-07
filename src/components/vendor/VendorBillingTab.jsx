@@ -22,11 +22,11 @@ export default function VendorBillingTab({ account, onRefresh }) {
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {Object.entries(VENDOR_TIERS).map(([key, tier]) => (
-        <Card key={key} className={account?.vendor_tier === key ? "border-2 border-[#F4A849]" : "border-[#2C4F4E]/20"}>
+        <Card key={key} className={account?.vendor_tier === key ? "border-2 border-[#F4A849] bg-[#FFF7E8] shadow-md overflow-hidden" : "border-[#2C4F4E]/20 bg-white shadow-sm overflow-hidden"}>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <CardTitle>{tier.label}</CardTitle>
               {account?.vendor_tier === key && <Badge>Current</Badge>}
             </div>

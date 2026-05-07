@@ -61,8 +61,8 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates }
                 const pin = pinFor(item.vendor_pin_id);
                 return (
                   <Card key={item.id} className="shadow-none border-[#5DADA5]/30">
-                    <CardContent className="p-4 grid gap-4 lg:grid-cols-[1fr_260px]">
-                      <div className="flex items-start gap-4">
+                    <CardContent className="p-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px]">
+                      <div className="flex min-w-0 items-start gap-4">
                         <div className="h-14 w-14 shrink-0 rounded-2xl bg-[#F3E6CF] border border-[#2C4F4E]/10 overflow-hidden flex items-center justify-center">
                           {pin?.pin_logo_url || pin?.pin_icon_url ? (
                             <img src={pin.pin_logo_url || pin.pin_icon_url} alt={pin?.pin_name || "Vendor Pin"} className="h-full w-full object-cover" />
@@ -72,7 +72,7 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates }
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-[#2C4F4E]">{pin?.pin_name || "Vendor Pin"}</p>
-                          <p className="text-sm text-slate-600">{item.checkin_display_address}</p>
+                          <p className="text-sm text-slate-600 break-words">{item.checkin_display_address}</p>
                           {pin?.description && <p className="mt-1 text-xs text-slate-500 line-clamp-2">{pin.description}</p>}
                           <p className="mt-2 text-xs text-slate-500">Live until {format(new Date(item.checkin_end_time), "h:mm a")}</p>
                         </div>

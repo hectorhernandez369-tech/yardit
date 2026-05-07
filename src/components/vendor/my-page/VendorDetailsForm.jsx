@@ -46,16 +46,16 @@ export default function VendorDetailsForm({ account, onRefresh }) {
   };
 
   return (
-    <Card id="vendor-profile-editor" className="border-[#2C4F4E]/15">
-      <CardHeader>
+    <Card id="vendor-profile-editor" className="border-[#2C4F4E]/15 bg-white shadow-sm overflow-hidden">
+      <CardHeader className="p-4 sm:p-6">
         <CardTitle className="text-[#2C4F4E]">Business Details</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid sm:grid-cols-2 gap-4">
+      <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+        <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4">
           {fields.map(([key, label]) => (
             <div key={key} className="space-y-1.5">
               <Label>{label}</Label>
-              <Input value={form[key] || ""} onChange={(e) => updateField(key, e.target.value)} />
+              <Input value={form[key] || ""} onChange={(e) => updateField(key, e.target.value)} className="min-w-0" />
             </div>
           ))}
         </div>
@@ -63,7 +63,7 @@ export default function VendorDetailsForm({ account, onRefresh }) {
           <Label>Short Bio / Description</Label>
           <Textarea value={form.description || ""} onChange={(e) => updateField("description", e.target.value)} className="min-h-28" />
         </div>
-        <Button onClick={saveProfile} disabled={saving} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">
+        <Button onClick={saveProfile} disabled={saving} className="w-full sm:w-auto bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">
           {saving ? "Saving..." : "Save Profile"}
         </Button>
       </CardContent>

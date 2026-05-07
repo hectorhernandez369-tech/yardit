@@ -98,8 +98,8 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
   };
 
   return (
-    <section className={asHeader ? "overflow-hidden bg-white" : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"}>
-      <div className={asHeader ? "max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 flex flex-col sm:flex-row gap-5 sm:items-start" : "p-7 sm:p-9 flex flex-col sm:flex-row gap-5 sm:items-start"} style={{ backgroundColor: heroBackgroundColor }}>
+    <section className={asHeader ? "overflow-hidden bg-white min-w-0" : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm min-w-0"}>
+      <div className={asHeader ? "max-w-7xl mx-auto w-full px-4 sm:px-6 py-5 sm:py-8 flex flex-col sm:flex-row gap-4 sm:gap-5 sm:items-start" : "p-4 sm:p-7 lg:p-9 flex flex-col sm:flex-row gap-4 sm:gap-5 sm:items-start"} style={{ backgroundColor: heroBackgroundColor }}>
         <button
           type="button"
           onClick={() => editable && logoInputRef.current?.click()}
@@ -122,7 +122,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
         <div className="flex-1 space-y-3 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <EditableButton field="business_name" className="rounded-lg px-1 -mx-1">
-              <h1 className="inline text-2xl sm:text-3xl font-bold text-[#1F2937]">{profile?.business_name || "My Business"}</h1>
+              <h1 className="inline text-2xl sm:text-3xl font-bold text-[#1F2937] break-words">{profile?.business_name || "My Business"}</h1>
             </EditableButton>
             <Badge className="bg-[#FFF1D6] text-[#7A4B00] border border-[#F4A849]/40 capitalize">♨ {profile?.tier || "starter"}</Badge>
           </div>
@@ -149,7 +149,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
       </div>
       {activeCheckIn && (
         <div className="border-t border-slate-200 bg-white px-5 py-3">
-          <div className="rounded-xl bg-[#E8F7F5] px-4 py-3 text-sm text-[#2C4F4E]">
+          <div className="rounded-xl bg-[#E8F7F5] px-4 py-3 text-sm text-[#2C4F4E] break-words">
             <span className="mr-1 inline-block h-3 w-3 rounded-full bg-emerald-500 align-middle" />
             <span className="font-bold text-[#00A88A]">LIVE NOW</span>
             <span className="text-slate-600"> · Open until {format(new Date(activeCheckIn.checkin_end_time), "h:mm a")}</span>

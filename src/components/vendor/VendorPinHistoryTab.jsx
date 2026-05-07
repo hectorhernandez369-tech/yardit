@@ -19,7 +19,7 @@ export default function VendorPinHistoryTab({ pins = [], checkIns = [] }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-w-0">
       <div>
         <h2 className="text-lg font-bold text-[#2C4F4E]">Pin Check-In History</h2>
         <p className="text-sm text-muted-foreground">A complete record of where each truck pin checked in.</p>
@@ -33,22 +33,22 @@ export default function VendorPinHistoryTab({ pins = [], checkIns = [] }) {
           const location = checkIn.checkin_display_address || `${checkIn.checkin_latitude}, ${checkIn.checkin_longitude}`;
 
           return (
-            <Card key={checkIn.id} className="rounded-2xl bg-white shadow-sm">
+            <Card key={checkIn.id} className="rounded-2xl bg-white shadow-sm overflow-hidden">
               <CardContent className="p-4">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div className="space-y-2 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Truck className="h-4 w-4 text-[#5DADA5]" />
-                      <h3 className="font-semibold text-[#2C4F4E]">{pin?.pin_name || "Unknown pin"}</h3>
+                      <h3 className="font-semibold text-[#2C4F4E] break-words">{pin?.pin_name || "Unknown pin"}</h3>
                       <Badge variant="outline" className="capitalize">{checkIn.status || "history"}</Badge>
                     </div>
                     <div className="flex items-start gap-2 text-sm text-muted-foreground">
                       <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>{location}</span>
+                      <span className="min-w-0 break-words">{location}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <User className="h-4 w-4" />
-                      <span>{checkIn.checked_in_by_email || "Unknown user"}</span>
+                      <span className="min-w-0 break-all">{checkIn.checked_in_by_email || "Unknown user"}</span>
                     </div>
                   </div>
 

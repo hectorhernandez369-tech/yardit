@@ -25,20 +25,20 @@ export default function VendorUpdatesPanel({ account, updates, onRefresh }) {
   };
 
   return (
-    <Card className="border-slate-200 bg-white shadow-sm">
-      <CardHeader>
+    <Card className="border-slate-200 bg-white shadow-sm overflow-hidden">
+      <CardHeader className="p-4 sm:p-6">
         <CardTitle className="text-[#2C4F4E]">Updates</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
         <Textarea placeholder="Share a short update with customers..." value={text} onChange={(e) => setText(e.target.value)} className="min-h-24" />
-        <Button onClick={addUpdate} className="bg-[#5DADA5] hover:bg-[#4A9B93] text-white">Post Update</Button>
+        <Button onClick={addUpdate} className="w-full sm:w-auto bg-[#5DADA5] hover:bg-[#4A9B93] text-white">Post Update</Button>
         <div className="space-y-3">
           {updates.length === 0 ? (
             <p className="rounded-2xl bg-[#F3E6CF]/70 p-5 text-sm text-slate-600">No updates yet. Post news, specials, or where customers can find you next.</p>
           ) : updates.map((update) => (
-            <div key={update.id} className="rounded-2xl border bg-white p-4 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm text-slate-700">{update.text}</p>
+            <div key={update.id} className="rounded-2xl border bg-white p-4 flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm text-slate-700 break-words">{update.text}</p>
                 <p className="mt-2 text-xs text-slate-500">{update.created_date ? format(new Date(update.created_date), "MMM d, yyyy") : "New update"} · {update.likes || 0} likes</p>
               </div>
               <Button size="icon" variant="ghost" onClick={() => deleteUpdate(update)} className="text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>

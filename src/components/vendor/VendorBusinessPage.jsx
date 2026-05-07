@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import VendorActivePinPreview from "@/components/vendor/my-page/VendorActivePinPreview";
 import VendorUpdatesPanel from "@/components/vendor/my-page/VendorUpdatesPanel";
 import VendorPublicPreview from "@/components/vendor/my-page/VendorPublicPreview";
+import VendorDetailsForm from "@/components/vendor/my-page/VendorDetailsForm";
+import VendorPhotoGallery from "@/components/vendor/my-page/VendorPhotoGallery";
 
 export default function VendorBusinessPage({ account, pins, checkIns, updates, onRefresh }) {
   const [previewMode, setPreviewMode] = useState(false);
@@ -35,11 +37,13 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
         </div>
         <Button onClick={() => setPreviewMode(true)} className="w-full sm:w-auto bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">Preview Public Page</Button>
       </div>
-      <div className="grid min-w-0 gap-4 sm:gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-        <div className="space-y-5">
-          <VendorActivePinPreview pins={pins} checkIns={checkIns} />
+      <div className="grid min-w-0 gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
+        <div className="space-y-4 sm:space-y-5 min-w-0">
+          <VendorDetailsForm account={account} onRefresh={onRefresh} />
+          <VendorPhotoGallery account={account} onRefresh={onRefresh} />
         </div>
-        <div className="space-y-5">
+        <div className="space-y-4 sm:space-y-5 min-w-0">
+          <VendorActivePinPreview pins={pins} checkIns={checkIns} />
           <VendorUpdatesPanel account={account} updates={updates} onRefresh={onRefresh} />
         </div>
       </div>

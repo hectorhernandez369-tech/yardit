@@ -25,23 +25,23 @@ export default function VendorActivePinPreview({ pins, checkIns }) {
   };
 
   return (
-    <Card className="border-slate-200 bg-white shadow-sm">
-      <CardHeader>
+    <Card className="border-slate-200 bg-white shadow-sm overflow-hidden">
+      <CardHeader className="p-4 sm:p-6">
         <CardTitle className="text-[#2C4F4E]">Active Locations</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
         {liveItems.length === 0 ? (
           <div className="rounded-2xl bg-[#F3E6CF]/70 p-5 text-sm text-slate-600">
             No live locations right now. Check in a pin to appear on the map.
           </div>
         ) : liveItems.map((item) => (
-          <div key={item.id} className="rounded-2xl border bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-1">
-              <p className="font-semibold text-[#2C4F4E] flex items-center gap-2"><MapPin className="h-4 w-4 text-[#5DADA5]" />{pinName(item.vendor_pin_id)}</p>
-              <p className="text-sm text-slate-600">{item.checkin_display_address || `${item.checkin_latitude}, ${item.checkin_longitude}`}</p>
+          <div key={item.id} className="rounded-2xl border bg-white p-4 flex min-w-0 flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+              <p className="font-semibold text-[#2C4F4E] flex items-center gap-2 break-words"><MapPin className="h-4 w-4 shrink-0 text-[#5DADA5]" />{pinName(item.vendor_pin_id)}</p>
+              <p className="text-sm text-slate-600 break-words">{item.checkin_display_address || `${item.checkin_latitude}, ${item.checkin_longitude}`}</p>
               <p className="text-xs text-slate-500">Ends {format(new Date(item.checkin_end_time), "MMM d, h:mm a")}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
               <Badge className="bg-green-600">Live</Badge>
               <Button size="sm" variant="outline" onClick={() => updateCheckInStatus(item, "paused")} className="gap-1">
                 <Pause className="h-3.5 w-3.5" /> Pause
