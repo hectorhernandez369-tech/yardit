@@ -55,16 +55,16 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
   };
 
   return (
-    <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
-      <div className="space-y-4 min-w-0">
-        <Card className="overflow-hidden bg-white shadow-sm"><CardHeader className="p-4 sm:p-6"><CardTitle>Vendor Portal Passcode</CardTitle></CardHeader><CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
+    <div className="grid min-w-0 gap-3 sm:gap-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
+      <div className="space-y-3 sm:space-y-4 min-w-0">
+        <Card className="rounded-2xl overflow-hidden bg-white shadow-sm"><CardHeader className="p-3 sm:p-5 pb-2"><CardTitle className="text-base sm:text-lg">Vendor Portal Passcode</CardTitle></CardHeader><CardContent className="space-y-2.5 p-3 pt-0 sm:p-5 sm:pt-0">
           <p className="text-sm text-slate-600">Authorized users must enter this shared passcode before accessing the Vendor Dashboard. The current passcode is never shown.</p>
           <Input type="password" placeholder={account.vendor_dashboard_passcode_hash ? "New passcode" : "Create passcode"} value={passcode} onChange={(e) => setPasscode(e.target.value)} disabled={!isOwner} />
           <Button onClick={savePasscode} disabled={!isOwner || savingPasscode} className="w-full bg-[#5DADA5] hover:bg-[#4A9B93]">{savingPasscode ? "Saving..." : account.vendor_dashboard_passcode_hash ? "Reset Passcode" : "Create Passcode"}</Button>
           {!isOwner && <p className="text-xs text-muted-foreground">Only the business owner can change this passcode.</p>}
         </CardContent></Card>
 
-        <Card className="overflow-hidden bg-white shadow-sm"><CardHeader className="p-4 sm:p-6"><CardTitle>Add Authorized User</CardTitle></CardHeader><CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
+        <Card className="rounded-2xl overflow-hidden bg-white shadow-sm"><CardHeader className="p-3 sm:p-5 pb-2"><CardTitle className="text-base sm:text-lg">Add Authorized User</CardTitle></CardHeader><CardContent className="space-y-2.5 p-3 pt-0 sm:p-5 sm:pt-0">
           <p className="text-sm text-slate-600">Employees must create their own Yardit account first. This only grants access to this business portal.</p>
           <Input placeholder="Email" value={form.authorized_email} onChange={(e) => setForm({ ...form, authorized_email: e.target.value })} disabled={!isOwner} />
           <Input placeholder="First name" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} disabled={!isOwner} />
@@ -75,8 +75,8 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
           {isOwner && !canAddUser && <p className="text-sm text-amber-700">User limit reached for your tier.</p>}
         </CardContent></Card>
       </div>
-      <div className="grid min-w-0 gap-3">
-        {users.map((item) => <Card key={item.id} className="overflow-hidden bg-white shadow-sm"><CardContent className="p-4 space-y-3"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="font-semibold break-words">{item.first_name} {item.last_name}</p><p className="text-sm text-slate-600 break-all">{item.authorized_email}</p></div><div className="flex flex-wrap items-center gap-2"><Badge>{item.status}</Badge><Button variant="outline" size="sm" disabled={!isOwner} onClick={() => removeUser(item)}>Remove</Button></div></div>{pins.length > 0 && <div className="border-t pt-3"><p className="mb-2 text-xs font-semibold text-slate-500 uppercase">Assigned trucks</p><div className="flex flex-wrap gap-2">{pins.filter((pin) => pin.is_active !== false).map((pin) => <label key={pin.id} className="flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs"><input type="checkbox" disabled={!isOwner} checked={(item.assigned_pin_ids || []).includes(pin.id)} onChange={() => toggleAssignedPin(item, pin.id)} /><span className="break-words">{pin.pin_name}</span></label>)}</div></div>}</CardContent></Card>)}
+      <div className="grid min-w-0 gap-2.5 sm:gap-3">
+        {users.map((item) => <Card key={item.id} className="rounded-2xl overflow-hidden bg-white shadow-sm"><CardContent className="p-3 space-y-2.5"><div className="flex items-start justify-between gap-2 min-w-0"><div className="min-w-0"><p className="text-sm font-semibold break-words">{item.first_name} {item.last_name}</p><p className="text-xs text-slate-600 break-all">{item.authorized_email}</p></div><div className="flex shrink-0 flex-wrap items-center gap-1.5"><Badge className="text-[11px]">{item.status}</Badge><Button variant="outline" size="sm" disabled={!isOwner} onClick={() => removeUser(item)} className="h-7 rounded-full px-2 text-[11px]">Remove</Button></div></div>{pins.length > 0 && <div className="border-t pt-2"><p className="mb-1.5 text-[11px] font-semibold text-slate-500 uppercase">Assigned trucks</p><div className="flex flex-wrap gap-1.5">{pins.filter((pin) => pin.is_active !== false).map((pin) => <label key={pin.id} className="flex max-w-full items-center gap-1.5 rounded-full border px-2 py-1 text-[11px]"><input type="checkbox" disabled={!isOwner} checked={(item.assigned_pin_ids || []).includes(pin.id)} onChange={() => toggleAssignedPin(item, pin.id)} /><span className="break-words">{pin.pin_name}</span></label>)}</div></div>}</CardContent></Card>)}
       </div>
     </div>
   );

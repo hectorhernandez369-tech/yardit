@@ -22,17 +22,17 @@ export default function VendorBillingTab({ account, onRefresh }) {
   };
 
   return (
-    <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid min-w-0 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {Object.entries(VENDOR_TIERS).map(([key, tier]) => (
-        <Card key={key} className={account?.vendor_tier === key ? "border-2 border-[#F4A849] bg-[#FFF7E8] shadow-md overflow-hidden" : "border-[#2C4F4E]/20 bg-white shadow-sm overflow-hidden"}>
-          <CardHeader>
+        <Card key={key} className={account?.vendor_tier === key ? "rounded-2xl border-2 border-[#F4A849] bg-[#FFF7E8] shadow-md overflow-hidden" : "rounded-2xl border-[#2C4F4E]/20 bg-white shadow-sm overflow-hidden"}>
+        <CardHeader className="p-3 sm:p-5 pb-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <CardTitle>{tier.label}</CardTitle>
               {account?.vendor_tier === key && <Badge>Current</Badge>}
             </div>
-            <p className="text-2xl font-bold text-[#2C4F4E]">{tier.price}</p>
+            <p className="text-xl sm:text-2xl font-bold text-[#2C4F4E]">{tier.price}</p>
           </CardHeader>
-          <CardContent className="text-sm space-y-2 text-slate-700">
+          <CardContent className="p-3 pt-0 sm:p-5 sm:pt-0 text-xs sm:text-sm space-y-1.5 text-slate-700">
             <p>{tier.includedUsers} included user{tier.includedUsers > 1 ? "s" : ""}</p>
             <p>{tier.includedPins} included pin{tier.includedPins > 1 ? "s" : ""}</p>
             <p>{tier.dailyCheckInLimit ? `${tier.dailyCheckInLimit} check-in per day` : "Unlimited check-ins"}</p>

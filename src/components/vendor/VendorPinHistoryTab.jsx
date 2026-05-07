@@ -8,9 +8,9 @@ export default function VendorPinHistoryTab({ pins = [], checkIns = [] }) {
 
   if (!checkIns.length) {
     return (
-      <Card className="rounded-3xl border-dashed bg-white">
-        <CardContent className="p-8 text-center space-y-3">
-          <Clock className="h-10 w-10 mx-auto text-muted-foreground" />
+      <Card className="rounded-2xl border-dashed bg-white">
+        <CardContent className="p-5 text-center space-y-2">
+          <Clock className="h-7 w-7 mx-auto text-muted-foreground" />
           <h2 className="text-lg font-bold text-[#2C4F4E]">No check-in history yet</h2>
           <p className="text-sm text-muted-foreground">Once a truck drops a pin, its date, time, location, and user will appear here.</p>
         </CardContent>
@@ -19,13 +19,13 @@ export default function VendorPinHistoryTab({ pins = [], checkIns = [] }) {
   }
 
   return (
-    <div className="space-y-4 min-w-0">
-      <div>
-        <h2 className="text-lg font-bold text-[#2C4F4E]">Pin Check-In History</h2>
-        <p className="text-sm text-muted-foreground">A complete record of where each truck pin checked in.</p>
+    <div className="space-y-3 min-w-0">
+      <div className="rounded-2xl border bg-white p-3 sm:p-5 shadow-sm">
+        <h2 className="text-base sm:text-lg font-bold text-[#2C4F4E]">Pin Check-In History</h2>
+        <p className="text-xs sm:text-sm text-muted-foreground">A complete record of truck pin check-ins.</p>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {checkIns.map((checkIn) => {
           const pin = pinById.get(checkIn.vendor_pin_id);
           const startTime = checkIn.checkin_start_time || checkIn.created_date;
@@ -34,9 +34,9 @@ export default function VendorPinHistoryTab({ pins = [], checkIns = [] }) {
 
           return (
             <Card key={checkIn.id} className="rounded-2xl bg-white shadow-sm overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="space-y-2 min-w-0">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                  <div className="space-y-1.5 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <Truck className="h-4 w-4 text-[#5DADA5]" />
                       <h3 className="font-semibold text-[#2C4F4E] break-words">{pin?.pin_name || "Unknown pin"}</h3>
@@ -52,7 +52,7 @@ export default function VendorPinHistoryTab({ pins = [], checkIns = [] }) {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl bg-[#F3E6CF]/70 px-4 py-3 text-sm text-[#2C4F4E] md:text-right">
+                  <div className="rounded-xl bg-[#F3E6CF]/70 px-3 py-2 text-xs sm:text-sm text-[#2C4F4E] md:text-right">
                     <p className="font-semibold">{startTime ? format(new Date(startTime), "MMM d, yyyy") : "Date unavailable"}</p>
                     <p>{startTime ? format(new Date(startTime), "h:mm a") : "Time unavailable"}{endTime ? ` - ${format(new Date(endTime), "h:mm a")}` : ""}</p>
                   </div>
