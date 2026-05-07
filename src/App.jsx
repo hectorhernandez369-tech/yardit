@@ -13,6 +13,7 @@ import ComingSoon from './pages/ComingSoon';
 import VendorDashboard from './pages/VendorDashboard';
 import CreateListingUpgradeReturn from './pages/CreateListingUpgradeReturn';
 import PrintableChecklist from './pages/PrintableChecklist';
+import VendorPinPreview from './pages/VendorPinPreview';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import GuestEntryModal from '@/components/guest/GuestEntryModal';
@@ -103,6 +104,7 @@ const AuthenticatedApp = () => {
           />
         ))}
         <Route path="/VendorDashboard" element={<LayoutWrapper currentPageName="VendorDashboard"><VendorDashboard /></LayoutWrapper>} />
+        <Route path="/VendorPinPreview" element={<LayoutWrapper currentPageName="VendorPinPreview"><VendorPinPreview /></LayoutWrapper>} />
         <Route path="/CreateListingUpgradeReturn" element={<LayoutWrapper currentPageName="CreateListingUpgradeReturn"><CreateListingUpgradeReturn /></LayoutWrapper>} />
         <Route path="/PrintableChecklist" element={<PrintableChecklist />} />
         <Route path="/ComingSoon" element={<ComingSoon />} />

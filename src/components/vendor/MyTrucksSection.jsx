@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Truck, Plus, Loader2, Trash2, MapPin, AlertCircle, Edit2, Clock, History, PauseCircle, PlayCircle, XCircle } from "lucide-react";
-import PinCheckInFlow from "@/pages/PinCheckInFlow";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { getTierLimits, TIER_CONFIG } from "@/lib/tierConfig";
@@ -16,11 +16,11 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPin, setEditingPin] = useState(null);
   const [selectedPinHistory, setSelectedPinHistory] = useState(null);
-  const [checkingInPin, setCheckingInPin] = useState(null);
   const [formData, setFormData] = useState({ pin_name: "", description: "", is_active: true, pin_logo_url: "", assigned_users: [] });
   const [saving, setSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: loadedCurrentUser } = useQuery({
     queryKey: ["currentVendorUser"],
@@ -214,7 +214,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
                 <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(pin)}><Edit2 className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" onClick={() => handleDeletePin(pin.id)}><Trash2 className="w-4 h-4" /></Button>
               </div>
-              <Button onClick={() => setCheckingInPin(pin)} disabled={!canCurrentUserCheckIn(pin.id)} className="w-full rounded-xl gap-2"><MapPin className="w-4 h-4" />{canCurrentUserCheckIn(pin.id) ? (status === "Live Now" || status === "Paused" ? "Update Pin Location" : "Drop Your Pin") : "Not Assigned To You"}</Button>
+              <Button onClick={() => navigate(`/VendorPinPreview?pinId=${pin.id}&accountId=${vendorAccount.id}`)} disabled={!canCurrentUserCheckIn(pin.id)} className="w-full rounded-xl gap-2"><MapPin className="w-4 h-4" />{canCurrentUserCheckIn(pin.id) ? (status === "Live Now" || status === "Paused" ? "Update Pin Location" : "Drop Your Pin") : "Not Assigned To You"}</Button>
               {(status === "Live Now" || status === "Paused") && <div className="flex gap-2">{status === "Live Now" ? <Button variant="outline" onClick={() => handlePause(lastCheckIn)} className="flex-1"><PauseCircle className="w-4 h-4" /> Pause</Button> : <Button variant="outline" onClick={() => handleResume(lastCheckIn)} className="flex-1"><PlayCircle className="w-4 h-4" /> Resume</Button>}<Button variant="outline" onClick={() => handleTakeOffline(lastCheckIn)} className="flex-1"><XCircle className="w-4 h-4" /> Offline</Button></div>}
               <p className="text-xs text-muted-foreground">Status: {status}{lastCheckIn ? ` • ${formatDistanceToNow(new Date(lastCheckIn.created_date), { addSuffix: true })}` : ""}</p>
               {assignedUsers.length > 0 && <p className="text-xs text-muted-foreground">Assigned: {assignedUsers.map((u) => u.authorized_email).join(", ")}</p>}
@@ -224,7 +224,6 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
       )}
 
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>{editingPin ? "Edit Truck Profile" : "Create Truck Profile"}</DialogTitle></DialogHeader><div className="space-y-4"><Input value={formData.pin_name} onChange={(e) => setFormData({ ...formData, pin_name: e.target.value })} placeholder="Truck/Pin name" /><Input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={handleLogoUpload} disabled={logoUploading} /><Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Description" /><div className="rounded-2xl border p-3 space-y-2"><p className="text-sm font-semibold">Assigned authorized users</p>{authorizedUsers.length ? authorizedUsers.map((authorizedUser) => <label key={authorizedUser.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.assigned_users.includes(authorizedUser.id)} onChange={(e) => setFormData({ ...formData, assigned_users: e.target.checked ? [...formData.assigned_users, authorizedUser.id] : formData.assigned_users.filter((id) => id !== authorizedUser.id) })} />{authorizedUser.first_name || authorizedUser.last_name ? `${authorizedUser.first_name || ""} ${authorizedUser.last_name || ""}`.trim() : authorizedUser.authorized_email}<span className="text-xs text-muted-foreground">{authorizedUser.authorized_email}</span></label>) : <p className="text-xs text-muted-foreground">Add authorized users before assigning them to this truck.</p>}</div><div className="flex items-center justify-between"><span className="text-sm">Active</span><Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} /></div><Button onClick={handleSavePin} disabled={saving} className="w-full">{saving ? "Saving..." : "Save"}</Button></div></DialogContent></Dialog>
-      {checkingInPin && <PinCheckInFlow pin={checkingInPin} vendorAccount={vendorAccount} currentUser={currentUser} existingCheckIn={getPinStatus(checkingInPin.id).lastCheckIn} onClose={() => setCheckingInPin(null)} onSuccess={() => { setCheckingInPin(null); queryClient.invalidateQueries({ queryKey: ["vendorPinCheckIns"] }); }} />}
       {selectedPinHistory && <Dialog open onOpenChange={() => setSelectedPinHistory(null)}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>Check-In History: {selectedPinHistory.pin_name}</DialogTitle></DialogHeader>{allCheckIns.filter((c) => c.vendor_pin_id === selectedPinHistory.id).map((checkIn) => <div key={checkIn.id} className="bg-muted/30 rounded-xl p-3 text-xs"><Clock className="w-4 h-4 inline mr-1" /> {checkIn.status} • {checkIn.checkin_display_address || `${checkIn.checkin_latitude}, ${checkIn.checkin_longitude}`}</div>)}</DialogContent></Dialog>}
     </div>
   );
