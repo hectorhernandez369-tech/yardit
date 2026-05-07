@@ -83,6 +83,7 @@ export default function VendorPinPreview() {
   const params = new URLSearchParams(window.location.search);
   const pinId = params.get("pinId");
   const accountId = params.get("accountId");
+  const checkInId = params.get("checkInId");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -108,24 +109,44 @@ export default function VendorPinPreview() {
         base44.entities.VendorAccount.filter({ id: accountId }),
         base44.entities.VendorPinCheckIn.filter({ vendor_pin_id: pinId }, "-created_date"),
       ]);
+      const activeCheckIn = checkInId
+        ? checkIns.find((item) => item.id === checkInId)
+        : checkIns.find((item) => ["live", "paused"].includes(item.status)) || checkIns[0];
+
       setUser(currentUser);
       setPin(pins[0] || null);
       setIconStyle(pins[0]?.pin_icon_style || "default");
       setAccount(accounts[0] || null);
-      setLatestCheckIn(checkIns[0] || null);
-      setAddress(checkIns[0]?.checkin_display_address || "");
+      setLatestCheckIn(activeCheckIn || null);
+      setAddress(activeCheckIn?.checkin_display_address || "");
+
+      if (typeof activeCheckIn?.checkin_latitude === "number" && typeof activeCheckIn?.checkin_longitude === "number") {
+        setPinLocation({ lat: activeCheckIn.checkin_latitude, lng: activeCheckIn.checkin_longitude });
+      }
+
+      if (activeCheckIn?.checkin_end_time) {
+        const savedEnd = new Date(activeCheckIn.checkin_end_time);
+        setSelectedHours("custom");
+        setCustomEndTime(`${String(savedEnd.getHours()).padStart(2, "0")}:${String(savedEnd.getMinutes()).padStart(2, "0")}`);
+      }
+
+      if (["pulse", "bounce"].includes(activeCheckIn?.pin_animation)) {
+        setAnimationEnabled(true);
+        setSelectedAnimation(activeCheckIn.pin_animation);
+      }
+
       setLoading(false);
     };
 
     loadData();
-  }, [pinId, accountId]);
+  }, [pinId, accountId, checkInId]);
 
   const handleCurrentLocation = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const nextLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
         setGpsLocation(nextLocation);
-        setPinLocation(nextLocation);
+        setPinLocation((current) => current || nextLocation);
         toast.success("GPS location found");
       },
       () => toast.error("Could not get your GPS location."),
@@ -177,7 +198,8 @@ export default function VendorPinPreview() {
   const startCheckIn = async () => {
     if (!pinLocation || !account || !pin) return toast.error("Set your pin location first.");
     setSaving(true);
-    const start = new Date();
+    const liveExisting = latestCheckIn && ["live", "paused"].includes(latestCheckIn.status);
+    const start = liveExisting && latestCheckIn.checkin_start_time ? new Date(latestCheckIn.checkin_start_time) : new Date();
     const end = endDate;
     const payload = {
       vendor_pin_id: pin.id,
@@ -196,13 +218,12 @@ export default function VendorPinPreview() {
       await base44.entities.VendorPin.update(pin.id, { pin_icon_style: iconStyle });
     }
 
-    const liveExisting = latestCheckIn && ["live", "paused"].includes(latestCheckIn.status);
     const saved = liveExisting
       ? await base44.entities.VendorPinCheckIn.update(latestCheckIn.id, payload)
       : await base44.entities.VendorPinCheckIn.create(payload);
 
     await base44.functions.invoke("syncPublicMapRecord", { recordType: "vendor_pin_checkin", recordId: liveExisting ? latestCheckIn.id : saved.id });
-    toast.success("Pin location is live");
+    toast.success(liveExisting ? "Pin updated" : "Pin location is live");
     navigate("/VendorDashboard");
   };
 
@@ -311,7 +332,7 @@ export default function VendorPinPreview() {
               <Input type="time" value={customEndTime} onChange={(e) => setCustomEndTime(e.target.value)} className="rounded-xl" />
             )}
             <Button onClick={startCheckIn} disabled={saving || !pinLocation} className="w-full rounded-xl bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">
-              {saving ? "Going live..." : "Confirm Live Pin"}
+              {saving ? (latestCheckIn && ["live", "paused"].includes(latestCheckIn.status) ? "Updating..." : "Going live...") : (latestCheckIn && ["live", "paused"].includes(latestCheckIn.status) ? "Update Now" : "Confirm Live Pin")}
             </Button>
           </CardContent></Card>
         </div>

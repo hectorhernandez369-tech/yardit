@@ -21,7 +21,7 @@ export default function VendorActivePinPreview({ pins, checkIns }) {
   };
 
   const editPin = (item) => {
-    window.location.href = `/VendorPinPreview?pinId=${item.vendor_pin_id}&accountId=${pinAccountId(item.vendor_pin_id)}`;
+    window.location.href = `/VendorPinPreview?pinId=${item.vendor_pin_id}&accountId=${pinAccountId(item.vendor_pin_id)}&checkInId=${item.id}`;
   };
 
   return (
