@@ -56,6 +56,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
   };
 
   const heroBackgroundColor = profile?.hero_background_color && profile.hero_background_color !== "#FFFFFF" ? profile.hero_background_color : "#E8F7F5";
+  const heroImage = profile?.featured_photo_url || profile?.photo_urls?.[0] || "";
 
   const startEdit = (field) => {
     if (!editable) return;
@@ -98,53 +99,66 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
   };
 
   return (
-    <section className={asHeader ? "overflow-hidden bg-white min-w-0" : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm min-w-0"}>
-      <div className={asHeader ? "max-w-7xl mx-auto w-full px-2.5 sm:px-6 py-2 sm:py-5 flex flex-row gap-2 sm:gap-4 items-start" : "p-2 sm:p-5 flex flex-row gap-2 sm:gap-4 items-start"} style={{ backgroundColor: heroBackgroundColor }}>
-        <button
-          type="button"
-          onClick={() => editable && logoInputRef.current?.click()}
-          disabled={!editable || uploadingLogo}
-          className="group relative h-10 w-10 sm:h-20 sm:w-20 rounded-xl sm:rounded-2xl border border-white/70 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0 disabled:cursor-default"
-          title={editable ? "Upload business photo" : undefined}
-        >
-          {profile?.logo_url || profile?.business_logo ? (
-            <img src={profile.logo_url || profile.business_logo} alt={profile.business_name} className="h-full w-full object-cover" />
-          ) : (
-            <Store className="h-4 w-4 sm:h-8 sm:w-8 text-[#5DADA5]" />
-          )}
-          {editable && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition group-hover:opacity-100">
-              {uploadingLogo ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+    <section className={asHeader ? "overflow-hidden bg-white min-w-0" : "overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md min-w-0"}>
+      <div
+        className={asHeader ? "relative max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-8 min-h-[150px] sm:min-h-[230px]" : "relative p-4 sm:p-6 min-h-[170px] sm:min-h-[250px]"}
+        style={{
+          backgroundColor: heroBackgroundColor,
+          backgroundImage: heroImage ? `linear-gradient(135deg, rgba(44,79,78,.92), rgba(93,173,165,.55)), url(${heroImage})` : `radial-gradient(circle at top right, rgba(244,168,73,.35), transparent 34%), linear-gradient(135deg, ${heroBackgroundColor}, #ffffff)`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 to-transparent" />
+        <div className="relative flex h-full flex-col justify-end gap-3 sm:gap-4">
+          <div className="flex items-end gap-3 sm:gap-5 min-w-0">
+            <button
+              type="button"
+              onClick={() => editable && logoInputRef.current?.click()}
+              disabled={!editable || uploadingLogo}
+              className="group relative h-16 w-16 sm:h-28 sm:w-28 rounded-2xl sm:rounded-3xl border-4 border-white bg-white shadow-xl flex items-center justify-center overflow-hidden shrink-0 disabled:cursor-default"
+              title={editable ? "Upload business photo" : undefined}
+            >
+              {profile?.logo_url || profile?.business_logo ? (
+                <img src={profile.logo_url || profile.business_logo} alt={profile.business_name} className="h-full w-full object-cover" />
+              ) : (
+                <Store className="h-7 w-7 sm:h-11 sm:w-11 text-[#5DADA5]" />
+              )}
+              {editable && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition group-hover:opacity-100">
+                  {uploadingLogo ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+                </div>
+              )}
+              <input ref={logoInputRef} type="file" accept="image/*" onChange={uploadLogo} className="hidden" />
+            </button>
+            <div className="min-w-0 flex-1 pb-1 text-white">
+              <div className="flex flex-wrap items-center gap-2">
+                <EditableButton field="business_name" className="rounded-xl px-1.5 -mx-1.5 hover:bg-white/15">
+                  <h1 className="inline text-2xl sm:text-4xl font-black tracking-tight break-words leading-tight drop-shadow">{profile?.business_name || "My Business"}</h1>
+                </EditableButton>
+                {activeCheckIn && <Badge className="bg-emerald-500 text-white shadow-sm">Live now</Badge>}
+              </div>
+              <EditableButton field="description" className="mt-1 rounded-xl px-2 py-1 -mx-2 hover:bg-white/15">
+                <p className="max-w-3xl text-xs sm:text-sm leading-relaxed text-white/90 line-clamp-2">{profile?.description || "Add a brief description so customers know what your business offers."}</p>
+              </EditableButton>
             </div>
-          )}
-          <input ref={logoInputRef} type="file" accept="image/*" onChange={uploadLogo} className="hidden" />
-        </button>
-        <div className="flex-1 space-y-1.5 sm:space-y-2 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <EditableButton field="business_name" className="rounded-lg px-1 -mx-1">
-              <h1 className="inline text-sm sm:text-2xl font-bold text-[#1F2937] break-words leading-tight">{profile?.business_name || "My Business"}</h1>
-            </EditableButton>
-
           </div>
-          <div className="flex flex-wrap gap-1 sm:gap-2 text-[11px] sm:text-sm text-slate-600">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 text-[11px] sm:text-sm text-[#2C4F4E]">
             {editable && (
-              <EditableButton field="hero_background_color" className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2 py-0.5 sm:px-3 sm:py-1 border border-white/70">
-                <Palette className="h-3.5 w-3.5 text-[#5DADA5]" /> Background
+              <EditableButton field="hero_background_color" className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2 py-1 sm:px-3 border border-white shadow-sm">
+                <Palette className="h-3.5 w-3.5 text-[#5DADA5]" /> Cover
               </EditableButton>
             )}
-            <EditableButton field="business_category" className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2 py-0.5 sm:px-3 sm:py-1 border border-white/70">
-              <Tag className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.category || "Category not added"}
+            <EditableButton field="business_category" className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2 py-1 sm:px-3 border border-white shadow-sm">
+              <Tag className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.category || "Category"}
             </EditableButton>
-            <EditableButton field="phone" className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2 py-0.5 sm:px-3 sm:py-1 border border-white/70">
-              <Phone className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.phone || "Phone not added"}
+            <EditableButton field="phone" className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2 py-1 sm:px-3 border border-white shadow-sm">
+              <Phone className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.phone || "Phone"}
             </EditableButton>
-            <EditableButton field="location" className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2 py-0.5 sm:px-3 sm:py-1 border border-white/70">
-              <MapPin className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.location || "Location not added"}
+            <EditableButton field="location" className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2 py-1 sm:px-3 border border-white shadow-sm">
+              <MapPin className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.location || "Location"}
             </EditableButton>
           </div>
-          <EditableButton field="description" className="rounded-xl px-2 py-1 -mx-2">
-            <p className="hidden sm:block max-w-3xl text-sm leading-relaxed text-slate-600 line-clamp-2">{profile?.description || "Add a brief description so customers know what your business offers."}</p>
-          </EditableButton>
         </div>
       </div>
       {activeCheckIn && (

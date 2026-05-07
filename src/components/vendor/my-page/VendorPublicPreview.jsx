@@ -38,6 +38,8 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates }
     phone: account.phone,
     location: account.location,
     hero_background_color: account.hero_background_color,
+    featured_photo_url: account.featured_photo_url,
+    photo_urls: account.photo_urls,
   };
 
   return (

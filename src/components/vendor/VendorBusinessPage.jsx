@@ -4,6 +4,7 @@ import VendorActivePinPreview from "@/components/vendor/my-page/VendorActivePinP
 import VendorUpdatesPanel from "@/components/vendor/my-page/VendorUpdatesPanel";
 import VendorPublicPreview from "@/components/vendor/my-page/VendorPublicPreview";
 import VendorPhotoGallery from "@/components/vendor/my-page/VendorPhotoGallery";
+import BusinessHero from "@/components/vendor/BusinessHero";
 
 export default function VendorBusinessPage({ account, pins, checkIns, updates, onRefresh }) {
   const [previewMode, setPreviewMode] = useState(false);
@@ -27,22 +28,35 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
     );
   }
 
+  const liveItems = (checkIns || []).filter((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
+  const liveCount = liveItems.length;
+  const heroProfile = {
+    ...account,
+    category: account.business_category,
+    logo_url: account.business_logo,
+  };
+
   return (
-    <div className="space-y-4 sm:space-y-5 min-w-0">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-[#1F2937]">My Page</h2>
-          <p className="text-sm text-slate-600">Manage what customers see on your public vendor profile.</p>
+    <div className="space-y-3 sm:space-y-5 min-w-0">
+      <div className="rounded-3xl border border-[#2C4F4E]/15 bg-white p-2 sm:p-3 shadow-sm">
+        <BusinessHero profile={heroProfile} activeCheckIn={liveItems[0]} onRefresh={onRefresh} editable />
+        <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-3 sm:px-3">
+          <div className="flex gap-2 sm:gap-3 text-center">
+            <div className="rounded-2xl bg-[#F3E6CF] px-3 py-2"><p className="text-base font-black text-[#2C4F4E]">{(account.photo_urls || []).length}</p><p className="text-[11px] text-slate-600">Photos</p></div>
+            <div className="rounded-2xl bg-[#F3E6CF] px-3 py-2"><p className="text-base font-black text-[#2C4F4E]">{updates.length}</p><p className="text-[11px] text-slate-600">Posts</p></div>
+            <div className="rounded-2xl bg-[#F3E6CF] px-3 py-2"><p className="text-base font-black text-[#2C4F4E]">{liveCount}</p><p className="text-[11px] text-slate-600">Live</p></div>
+          </div>
+          <Button onClick={() => setPreviewMode(true)} className="rounded-full bg-[#F4A849] px-4 text-[#2C4F4E] hover:bg-[#E39635]">View Public Page</Button>
         </div>
-        <Button onClick={() => setPreviewMode(true)} className="w-full sm:w-auto bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">Preview Public Page</Button>
       </div>
-      <div className="grid min-w-0 gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
-        <div className="space-y-4 sm:space-y-5 min-w-0">
-          <VendorPhotoGallery account={account} onRefresh={onRefresh} />
-        </div>
-        <div className="space-y-4 sm:space-y-5 min-w-0">
-          <VendorActivePinPreview pins={pins} checkIns={checkIns} />
+
+      <div className="grid min-w-0 gap-3 sm:gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.75fr)]">
+        <div className="space-y-3 sm:space-y-5 min-w-0">
           <VendorUpdatesPanel account={account} updates={updates} onRefresh={onRefresh} />
+        </div>
+        <div className="space-y-3 sm:space-y-5 min-w-0">
+          <VendorActivePinPreview pins={pins} checkIns={checkIns} />
+          <VendorPhotoGallery account={account} onRefresh={onRefresh} />
         </div>
       </div>
     </div>
