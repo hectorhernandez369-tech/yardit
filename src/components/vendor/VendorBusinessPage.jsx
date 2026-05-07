@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import VendorProfileHeader from "@/components/vendor/my-page/VendorProfileHeader";
 import VendorDetailsForm from "@/components/vendor/my-page/VendorDetailsForm";
 import VendorPhotoGallery from "@/components/vendor/my-page/VendorPhotoGallery";
 import VendorActivePinPreview from "@/components/vendor/my-page/VendorActivePinPreview";
@@ -30,7 +29,6 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
       <div className="flex justify-end">
         <Button onClick={() => setPreviewMode(true)} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">Preview Public Page</Button>
       </div>
-      <VendorProfileHeader account={account} onEditClick={scrollToEditor} />
       <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-5">
           <VendorDetailsForm account={account} onRefresh={onRefresh} />
