@@ -1,0 +1,39 @@
+{
+  "name": "VendorProfile",
+  "type": "object",
+  "properties": {
+    "business_name": {
+      "type": "string",
+      "description": "Vendor business name"
+    },
+    "category": {
+      "type": "string",
+      "description": "Business category"
+    },
+    "description": {
+      "type": "string",
+      "description": "Public business description"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Public business phone"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Business logo URL"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "starter",
+        "pro",
+        "growth"
+      ],
+      "default": "starter",
+      "description": "Vendor tier"
+    }
+  },
+  "required": [
+    "business_name"
+  ]
+}

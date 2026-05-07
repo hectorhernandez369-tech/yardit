@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Vendor account ID"
     },
+    "vendor_profile_id": {
+      "type": "string",
+      "description": "Vendor profile ID"
+    },
     "text": {
       "type": "string",
       "description": "Vendor update text"
@@ -24,7 +28,6 @@
     }
   },
   "required": [
-    "vendor_account_id",
     "text"
   ]
 }
