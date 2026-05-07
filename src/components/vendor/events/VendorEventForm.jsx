@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { VENDOR_EVENT_TYPES } from "@/lib/vendorEvents";
+import EventLocationPicker from "./EventLocationPicker";
 import { toast } from "sonner";
 
 const initialForm = {
@@ -23,30 +24,41 @@ const initialForm = {
   vendor_invitation_description: "",
   vendor_fee_type: "none",
   vendor_general_fee: "",
-  vendor_space_options_text: "10x10 = 100\n10x20 = 150",
+  vendor_space_options: [],
   allow_custom_spaces: false,
   vendor_instructions: "",
   vendor_deadline: "",
   max_vendors: "",
 };
 
-function parseSpaceOptions(text) {
-  return String(text || "").split("\n").map((line) => {
-    const [label, price] = line.split("=").map((item) => item?.trim());
-    if (!label) return null;
-    return { label, price: Number(price || 0) };
-  }).filter(Boolean);
-}
-
 export default function VendorEventForm({ account, user, onCreated }) {
   const [form, setForm] = useState(initialForm);
   const [saving, setSaving] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const addSpaceOption = () => update("vendor_space_options", [...form.vendor_space_options, { label: "", width: "", depth: "", price: "", quantity: "" }]);
+  const updateSpaceOption = (index, key, value) => update("vendor_space_options", form.vendor_space_options.map((option, optionIndex) => optionIndex === index ? { ...option, [key]: value } : option));
+  const removeSpaceOption = (index) => update("vendor_space_options", form.vendor_space_options.filter((_, optionIndex) => optionIndex !== index));
 
   const createEvent = async (status) => {
     if (!form.title || !form.startDateTime || !form.endDateTime || !form.latitude || !form.longitude) {
-      toast.error("Please add a title, schedule, and map coordinates.");
+      toast.error("Please add a title, schedule, and event location.");
+      return;
+    }
+
+    if (form.open_to_vendors && (!form.max_vendors || Number(form.max_vendors) <= 0)) {
+      toast.error("Please add max vendors before opening this event to vendors.");
+      return;
+    }
+
+    if (form.open_to_vendors && form.vendor_fee_type === "none") {
+      toast.error("Please choose a vendor fee setup.");
+      return;
+    }
+
+    if (form.open_to_vendors && form.vendor_fee_type === "set_space_fee" && form.vendor_space_options.length === 0) {
+      toast.error("Please add at least one space option.");
       return;
     }
 
@@ -73,7 +85,7 @@ export default function VendorEventForm({ account, user, onCreated }) {
       vendor_invitation_description: form.vendor_invitation_description,
       vendor_fee_type: form.open_to_vendors ? form.vendor_fee_type : "none",
       vendor_general_fee: form.vendor_fee_type === "general_fee" ? Number(form.vendor_general_fee || 0) : 0,
-      vendor_space_options: form.vendor_fee_type === "set_space_fee" ? parseSpaceOptions(form.vendor_space_options_text) : [],
+      vendor_space_options: form.vendor_fee_type === "set_space_fee" ? form.vendor_space_options.map((option) => ({ label: option.label, width: Number(option.width || 0), depth: Number(option.depth || 0), price: Number(option.price || 0), quantity: option.quantity ? Number(option.quantity) : null })) : [],
       allow_custom_spaces: form.allow_custom_spaces,
       vendor_instructions: form.vendor_instructions,
       vendor_deadline: form.vendor_deadline,
@@ -109,10 +121,13 @@ export default function VendorEventForm({ account, user, onCreated }) {
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>{VENDOR_EVENT_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent>
         </Select>
-        <Input placeholder="Display address" value={form.display_address} onChange={(e) => update("display_address", e.target.value)} />
-        <Input type="number" placeholder="Latitude" value={form.latitude} onChange={(e) => update("latitude", e.target.value)} />
-        <Input type="number" placeholder="Longitude" value={form.longitude} onChange={(e) => update("longitude", e.target.value)} />
-        {form.event_type === "multi_spot" && <Input type="number" placeholder="Radius in feet" value={form.radius_feet} onChange={(e) => update("radius_feet", e.target.value)} />}
+        <div className="sm:col-span-2 rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-[#2C4F4E]">Event location</p>
+            <p className="text-sm text-slate-600">{form.display_address || "No location selected yet"}</p>
+          </div>
+          <Button type="button" variant="outline" onClick={() => setShowLocationPicker(true)}>Choose Event Location</Button>
+        </div>
         <Input type="datetime-local" value={form.startDateTime} onChange={(e) => update("startDateTime", e.target.value)} />
         <Input type="datetime-local" value={form.endDateTime} onChange={(e) => update("endDateTime", e.target.value)} />
       </div>
@@ -138,16 +153,28 @@ export default function VendorEventForm({ account, user, onCreated }) {
             </Select>
             {form.vendor_fee_type === "general_fee" && <Input type="number" placeholder="Fee amount" value={form.vendor_general_fee} onChange={(e) => update("vendor_general_fee", e.target.value)} />}
             {form.vendor_fee_type === "set_space_fee" && (
-              <div className="space-y-2">
-                <Label>Space options, one per line</Label>
-                <Textarea value={form.vendor_space_options_text} onChange={(e) => update("vendor_space_options_text", e.target.value)} />
+              <div className="space-y-3">
+                <Label>Custom space fee options</Label>
+                {form.vendor_space_options.map((option, index) => (
+                  <div key={index} className="rounded-xl border bg-white p-3 space-y-2">
+                    <div className="grid gap-2 sm:grid-cols-5">
+                      <Input placeholder="Space label/name" value={option.label} onChange={(e) => updateSpaceOption(index, "label", e.target.value)} />
+                      <Input type="number" placeholder="Width" value={option.width} onChange={(e) => updateSpaceOption(index, "width", e.target.value)} />
+                      <Input type="number" placeholder="Depth" value={option.depth} onChange={(e) => updateSpaceOption(index, "depth", e.target.value)} />
+                      <Input type="number" placeholder="Price" value={option.price} onChange={(e) => updateSpaceOption(index, "price", e.target.value)} />
+                      <Input type="number" placeholder="Quantity optional" value={option.quantity} onChange={(e) => updateSpaceOption(index, "quantity", e.target.value)} />
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => removeSpaceOption(index)}>Remove</Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" onClick={addSpaceOption}>Add Space Option</Button>
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.allow_custom_spaces} onChange={(e) => update("allow_custom_spaces", e.target.checked)} />Allow custom spaces</label>
               </div>
             )}
             <Textarea placeholder="Vendor instructions" value={form.vendor_instructions} onChange={(e) => update("vendor_instructions", e.target.value)} />
             <div className="grid gap-3 sm:grid-cols-2">
               <Input type="date" value={form.vendor_deadline} onChange={(e) => update("vendor_deadline", e.target.value)} />
-              <Input type="number" placeholder="Optional max vendors" value={form.max_vendors} onChange={(e) => update("max_vendors", e.target.value)} />
+              <Input type="number" placeholder="Max vendors required" value={form.max_vendors} onChange={(e) => update("max_vendors", e.target.value)} />
             </div>
           </div>
         )}
@@ -157,6 +184,14 @@ export default function VendorEventForm({ account, user, onCreated }) {
         <Button variant="outline" disabled={saving} onClick={() => createEvent("draft")}>Save Draft</Button>
         <Button disabled={saving} onClick={() => createEvent("published")} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Publish Event</Button>
       </div>
+
+      <EventLocationPicker
+        open={showLocationPicker}
+        onOpenChange={setShowLocationPicker}
+        eventType={form.event_type}
+        value={{ latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, radius_feet: Number(form.radius_feet || 500) }}
+        onChange={(location) => setForm((prev) => ({ ...prev, display_address: location.display_address, latitude: location.latitude, longitude: location.longitude, radius_feet: String(location.radius_feet || 500) }))}
+      />
     </div>
   );
 }

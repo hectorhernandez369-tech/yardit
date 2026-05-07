@@ -55,6 +55,9 @@ export default function VendorEventDetail() {
   if (isLoading) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (!event) return <div className="p-6 text-center">Event not found.</div>;
 
+  const spotsLeft = event.max_vendors ? Math.max(Number(event.max_vendors) - attendees.length, 0) : null;
+  const isFull = spotsLeft === 0;
+
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <Card className="rounded-3xl overflow-hidden">
@@ -68,7 +71,7 @@ export default function VendorEventDetail() {
       </Card>
 
       {event.open_to_vendors && (
-        <Card className="rounded-2xl"><CardContent className="p-5 space-y-3"><h2 className="text-xl font-black text-[#2C4F4E]">Request to Join</h2><p className="text-sm text-slate-600">{event.vendor_invitation_description || "This event is accepting vendor requests."}</p>{event.vendor_space_options?.length > 0 && <Select value={spaceOption} onValueChange={setSpaceOption}><SelectTrigger><SelectValue placeholder="Select space" /></SelectTrigger><SelectContent>{event.vendor_space_options.map((option) => <SelectItem key={option.label} value={option.label}>{option.label} ${option.price}</SelectItem>)}</SelectContent></Select>}<Textarea placeholder="Message to organizer" value={message} onChange={(e) => setMessage(e.target.value)} /><Button onClick={requestToJoin} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Request to Join</Button></CardContent></Card>
+        <Card className="rounded-2xl"><CardContent className="p-5 space-y-3"><h2 className="text-xl font-black text-[#2C4F4E]">Request to Join</h2><p className="text-sm text-slate-600">{event.vendor_invitation_description || "This event is accepting vendor requests."}</p>{spotsLeft !== null && <p className="text-sm font-bold text-emerald-700">{isFull ? "Event is full" : `${spotsLeft} vendor spots left`}</p>}{event.vendor_space_options?.length > 0 && <Select value={spaceOption} onValueChange={setSpaceOption}><SelectTrigger><SelectValue placeholder="Select space" /></SelectTrigger><SelectContent>{event.vendor_space_options.map((option) => <SelectItem key={option.label} value={option.label}>{option.label}{option.width && option.depth ? ` — ${option.width} x ${option.depth}` : ""} — ${option.price}</SelectItem>)}</SelectContent></Select>}<Textarea placeholder="Message to organizer" value={message} onChange={(e) => setMessage(e.target.value)} /><Button disabled={isFull} onClick={requestToJoin} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Request to Join</Button></CardContent></Card>
       )}
 
       {attendees.length > 0 && <Card className="rounded-2xl"><CardContent className="p-5 space-y-3"><h2 className="text-xl font-black text-[#2C4F4E]">Attending Vendors</h2><div className="grid gap-3 sm:grid-cols-2">{attendees.map((vendor) => <div key={vendor.id} className="flex items-center gap-3 rounded-xl border p-3">{vendor.logo && <img src={vendor.logo} alt={vendor.business_name} className="h-12 w-12 rounded-full object-cover" />}<div><p className="font-bold">{vendor.business_name}</p><p className="text-sm text-slate-600">{vendor.description}</p></div></div>)}</div></CardContent></Card>}

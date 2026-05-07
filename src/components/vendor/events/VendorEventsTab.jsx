@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarPlus, Search } from "lucide-react";
+import { CalendarPlus, Search, SlidersHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import VendorEventCard from "./VendorEventCard";
 import VendorEventForm from "./VendorEventForm";
@@ -22,15 +22,29 @@ export default function VendorEventsTab({ account, user }) {
   const [locationQuery, setLocationQuery] = useState("");
   const [distance, setDistance] = useState("100");
   const [eventType, setEventType] = useState("all");
-  const [showOpenToVendors, setShowOpenToVendors] = useState(false);
+  const [showOpenToVendors, setShowOpenToVendors] = useState(true);
   const [sort, setSort] = useState("soonest");
   const [userLocation, setUserLocation] = useState(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const { data: events = [] } = useQuery({
     queryKey: ["vendorEvents"],
     queryFn: () => base44.entities.VendorEvent.list("startDateTime"),
     initialData: [],
   });
+
+  const { data: attendees = [] } = useQuery({
+    queryKey: ["eventVendorAttendeesAll"],
+    queryFn: () => base44.entities.EventVendorAttendee.list(),
+    initialData: [],
+  });
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition((position) => {
+      setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+    });
+  }, []);
 
   const useMyLocation = () => {
     if (!navigator.geolocation) return;
@@ -46,6 +60,7 @@ export default function VendorEventsTab({ account, user }) {
         ...event,
         distanceMiles: userLocation ? calculateMiles(userLocation.lat, userLocation.lng, event.latitude, event.longitude) : null,
         computedStatus: getVendorEventStatus(event, now),
+        approvedVendorCount: attendees.filter((attendee) => attendee.event_id === event.id).length,
       }))
       .filter((event) => event.organizer_business_id === account.id || ["published", "active"].includes(event.status))
       .filter((event) => tab === "history" ? ["completed", "cancelled"].includes(event.computedStatus) : !["completed", "cancelled"].includes(event.computedStatus))
@@ -59,7 +74,7 @@ export default function VendorEventsTab({ account, user }) {
         if (sort === "closest") return (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity);
         return new Date(a.startDateTime) - new Date(b.startDateTime);
       });
-  }, [events, account.id, tab, query, locationQuery, distance, eventType, showOpenToVendors, sort, userLocation]);
+  }, [events, attendees, account.id, tab, query, locationQuery, distance, eventType, showOpenToVendors, sort, userLocation]);
 
   return (
     <div className="space-y-4">
@@ -72,25 +87,28 @@ export default function VendorEventsTab({ account, user }) {
           <Button onClick={() => setShowCreate(true)} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"><CalendarPlus className="h-4 w-4" /> Create Event</Button>
         </div>
 
-        <div className="grid gap-2 md:grid-cols-[1.4fr_1fr_120px_160px_150px]">
+        <div className="grid gap-2 md:grid-cols-[1fr_auto_180px_auto]">
           <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" /><Input className="pl-9" placeholder="Search events" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
-          <Input placeholder="Location" value={locationQuery} onChange={(e) => setLocationQuery(e.target.value)} />
-          <Select value={distance} onValueChange={setDistance}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="100">100 miles</SelectItem><SelectItem value="25">25 miles</SelectItem><SelectItem value="50">50 miles</SelectItem><SelectItem value="any">Any distance</SelectItem></SelectContent></Select>
-          <Select value={eventType} onValueChange={setEventType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All types</SelectItem><SelectItem value="single">Single</SelectItem><SelectItem value="multi_spot">Multi-Spot</SelectItem><SelectItem value="multi_location">Multi-Location</SelectItem></SelectContent></Select>
+          <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm bg-white"><input type="checkbox" checked={showOpenToVendors} onChange={(e) => setShowOpenToVendors(e.target.checked)} />Open to Vendors Only</label>
           <Select value={sort} onValueChange={setSort}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="soonest">Soonest</SelectItem><SelectItem value="latest">Latest</SelectItem><SelectItem value="closest">Closest</SelectItem></SelectContent></Select>
+          <Button variant="outline" onClick={() => setFiltersOpen(!filtersOpen)}><SlidersHorizontal className="h-4 w-4" /> Filters</Button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <label className="flex items-center gap-2"><input type="checkbox" checked={showOpenToVendors} onChange={(e) => setShowOpenToVendors(e.target.checked)} />Show open vendor events</label>
-          <Button variant="outline" size="sm" onClick={useMyLocation}>Use my location</Button>
-        </div>
+        {filtersOpen && (
+          <div className="grid gap-2 md:grid-cols-[1fr_140px_180px_auto] rounded-2xl bg-[#FBFAF7] p-3">
+            <Input placeholder="Location override" value={locationQuery} onChange={(e) => setLocationQuery(e.target.value)} />
+            <Select value={distance} onValueChange={setDistance}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="100">100 miles</SelectItem><SelectItem value="25">25 miles</SelectItem><SelectItem value="50">50 miles</SelectItem><SelectItem value="any">Any distance</SelectItem></SelectContent></Select>
+            <Select value={eventType} onValueChange={setEventType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All types</SelectItem><SelectItem value="single">Single</SelectItem><SelectItem value="multi_spot">Multi-Spot</SelectItem><SelectItem value="multi_location">Multi-Location</SelectItem></SelectContent></Select>
+            <Button variant="outline" size="sm" onClick={useMyLocation}>Use my location</Button>
+          </div>
+        )}
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList><TabsTrigger value="active">Active Events</TabsTrigger><TabsTrigger value="history">History</TabsTrigger></TabsList>
         <TabsContent value={tab} className="space-y-3">
           {filteredEvents.length ? filteredEvents.map((event) => (
-            <VendorEventCard key={event.id} event={event} distanceMiles={event.distanceMiles} onView={() => navigate(`/VendorEventDashboard?id=${event.id}`)} />
+            <VendorEventCard key={event.id} event={event} distanceMiles={event.distanceMiles} approvedVendorCount={event.approvedVendorCount} onView={() => navigate(`/VendorEventDashboard?id=${event.id}`)} />
           )) : (
             <Card><CardContent className="p-8 text-center text-slate-500">No vendor events found.</CardContent></Card>
           )}

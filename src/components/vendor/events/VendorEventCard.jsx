@@ -5,7 +5,7 @@ import { CalendarDays, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 
-export default function VendorEventCard({ event, distanceMiles, onView }) {
+export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, onView }) {
   const status = getVendorEventStatus(event);
 
   return (
@@ -23,6 +23,7 @@ export default function VendorEventCard({ event, distanceMiles, onView }) {
           <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#F4A849]" />{event.display_address || "Address not set"}</div>
           <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#F4A849]" />{format(new Date(event.startDateTime), "MMM d, yyyy h:mm a")} - {format(new Date(event.endDateTime), "MMM d, yyyy h:mm a")}</div>
           {distanceMiles !== null && distanceMiles !== undefined && <p className="text-xs font-semibold text-slate-500">{distanceMiles.toFixed(1)} miles away</p>}
+          {event.open_to_vendors && event.max_vendors && <p className="text-xs font-semibold text-emerald-700">Approved vendors: {approvedVendorCount} / {event.max_vendors}</p>}
         </div>
 
         <div className="flex items-center justify-between gap-2 pt-1">

@@ -78,14 +78,23 @@
     },
     "vendor_space_options": {
       "type": "array",
-      "description": "Space options for set space fees",
+      "description": "Custom space options for set space fees",
       "items": {
         "type": "object",
         "properties": {
           "label": {
             "type": "string"
           },
+          "width": {
+            "type": "number"
+          },
+          "depth": {
+            "type": "number"
+          },
           "price": {
+            "type": "number"
+          },
+          "quantity": {
             "type": "number"
           }
         }
@@ -146,7 +155,7 @@
     },
     "radius_feet": {
       "type": "number",
-      "description": "Multi-spot event radius in feet"
+      "description": "Event area radius in feet"
     },
     "photos": {
       "type": "array",

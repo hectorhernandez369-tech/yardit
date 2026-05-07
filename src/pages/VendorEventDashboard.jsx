@@ -22,6 +22,7 @@ export default function VendorEventDashboard() {
   const { data: invites = [] } = useQuery({ queryKey: ["eventInvites", eventId], queryFn: () => base44.entities.EventInviteCode.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
 
   const pendingRequests = useMemo(() => requests.filter((request) => request.status === "pending"), [requests]);
+  const spotsLeft = event?.max_vendors ? Math.max(Number(event.max_vendors) - attendees.length, 0) : null;
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["eventVendorRequests", eventId] });
     queryClient.invalidateQueries({ queryKey: ["eventVendorAttendees", eventId] });
@@ -71,6 +72,7 @@ export default function VendorEventDashboard() {
             <p><strong>Location:</strong> {event.display_address}</p>
             <p><strong>Organizer:</strong> {event.organizer_business_name}</p>
             {event.open_to_vendors && <p><strong>Vendor setup:</strong> Open to vendors</p>}
+            {event.open_to_vendors && event.max_vendors && <p><strong>Approved vendors:</strong> {attendees.length} / {event.max_vendors}</p>}
           </div>
           {invites[0] && <div className="rounded-xl bg-[#FBFAF7] p-3 text-sm"><strong>Invite link:</strong> {invites[0].invite_link}</div>}
         </CardContent>
