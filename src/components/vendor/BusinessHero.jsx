@@ -39,7 +39,7 @@ const heroColors = [
   ["Pearl", "#F8F5F0"]
 ];
 
-export default function BusinessHero({ profile, activeCheckIn, onRefresh, editable = true }) {
+export default function BusinessHero({ profile, activeCheckIn, onRefresh, editable = true, asHeader = false }) {
   const [editing, setEditing] = useState(null);
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -83,8 +83,8 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
   };
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="p-7 sm:p-9 flex flex-col sm:flex-row gap-5 sm:items-start" style={{ backgroundColor: heroBackgroundColor }}>
+    <section className={asHeader ? "overflow-hidden bg-white" : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"}>
+      <div className={asHeader ? "max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 flex flex-col sm:flex-row gap-5 sm:items-start" : "p-7 sm:p-9 flex flex-col sm:flex-row gap-5 sm:items-start"} style={{ backgroundColor: heroBackgroundColor }}>
         <div className="h-24 w-24 rounded-2xl border border-slate-100 bg-white/80 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
           {profile?.logo_url ? (
             <img src={profile.logo_url} alt={profile.business_name} className="h-full w-full object-cover" />
