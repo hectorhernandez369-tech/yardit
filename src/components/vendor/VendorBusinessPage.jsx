@@ -30,27 +30,27 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
   const liveItems = (checkIns || []).filter((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
   const liveCount = liveItems.length;
   return (
-    <div className="space-y-3 sm:space-y-5 min-w-0">
-      <div className="rounded-3xl border border-[#2C4F4E]/15 bg-white p-3 sm:p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-2 sm:space-y-5 min-w-0">
+      <div id="vendor-my-page-card" className="rounded-2xl sm:rounded-3xl border border-[#2C4F4E]/15 bg-white p-3 sm:p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="text-lg sm:text-xl font-black text-[#2C4F4E]">My Page</h2>
-            <p className="text-xs sm:text-sm text-slate-600">Manage your public business feed, photos, and live locations.</p>
+            <h2 className="text-base sm:text-xl font-black text-[#2C4F4E]">My Page</h2>
+            <p className="truncate text-xs sm:text-sm text-slate-600">Manage your public feed, photos, and live locations.</p>
           </div>
-          <Button onClick={() => setPreviewMode(true)} className="rounded-full bg-[#F4A849] px-4 text-[#2C4F4E] hover:bg-[#E39635]">View Public Page</Button>
+          <Button id="vendor-public-preview-button" onClick={() => setPreviewMode(true)} size="sm" className="h-8 shrink-0 rounded-full bg-[#F4A849] px-3 text-xs text-[#2C4F4E] hover:bg-[#E39635] sm:h-9 sm:px-4 sm:text-sm">View Public Page</Button>
         </div>
-        <div className="mt-3 flex gap-2 sm:gap-3 text-center">
-          <div className="rounded-2xl bg-[#F3E6CF] px-3 py-2"><p className="text-base font-black text-[#2C4F4E]">{(account.photo_urls || []).length}</p><p className="text-[11px] text-slate-600">Photos</p></div>
-          <div className="rounded-2xl bg-[#F3E6CF] px-3 py-2"><p className="text-base font-black text-[#2C4F4E]">{updates.length}</p><p className="text-[11px] text-slate-600">Posts</p></div>
-          <div className="rounded-2xl bg-[#F3E6CF] px-3 py-2"><p className="text-base font-black text-[#2C4F4E]">{liveCount}</p><p className="text-[11px] text-slate-600">Live</p></div>
+        <div className="mt-2 flex gap-1.5 sm:mt-3 sm:gap-3 text-center">
+          <div className="rounded-xl sm:rounded-2xl bg-[#F3E6CF] px-2.5 py-1.5 sm:px-3 sm:py-2"><p className="text-sm sm:text-base font-black text-[#2C4F4E]">{(account.photo_urls || []).length}</p><p className="text-[10px] sm:text-[11px] text-slate-600">Photos</p></div>
+          <div className="rounded-xl sm:rounded-2xl bg-[#F3E6CF] px-2.5 py-1.5 sm:px-3 sm:py-2"><p className="text-sm sm:text-base font-black text-[#2C4F4E]">{updates.length}</p><p className="text-[10px] sm:text-[11px] text-slate-600">Posts</p></div>
+          <div className="rounded-xl sm:rounded-2xl bg-[#F3E6CF] px-2.5 py-1.5 sm:px-3 sm:py-2"><p className="text-sm sm:text-base font-black text-[#2C4F4E]">{liveCount}</p><p className="text-[10px] sm:text-[11px] text-slate-600">Live</p></div>
         </div>
       </div>
 
-      <div className="grid min-w-0 gap-3 sm:gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.75fr)]">
-        <div className="space-y-3 sm:space-y-5 min-w-0">
+      <div className="grid min-w-0 gap-2 sm:gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.75fr)]">
+        <div className="space-y-2 sm:space-y-5 min-w-0">
           <VendorUpdatesPanel account={account} updates={updates} onRefresh={onRefresh} />
         </div>
-        <div className="space-y-3 sm:space-y-5 min-w-0">
+        <div className="space-y-2 sm:space-y-5 min-w-0">
           <VendorActivePinPreview pins={pins} checkIns={checkIns} />
           <VendorPhotoGallery account={account} onRefresh={onRefresh} />
         </div>

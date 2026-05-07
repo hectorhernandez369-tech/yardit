@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Store } from "lucide-react";
 import BusinessHero from "@/components/vendor/BusinessHero";
+import MobileVendorHeader from "@/components/vendor/MobileVendorHeader";
 import MyTrucksSection from "@/components/vendor/MyTrucksSection";
 import VendorBillingTab from "@/components/vendor/VendorBillingTab";
 import VendorUsersTab from "@/components/vendor/VendorUsersTab";
@@ -119,6 +120,7 @@ export default function VendorDashboard() {
     hero_background_color: account.hero_background_color,
   };
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
+  const activePin = activeCheckIn ? pins.find((pin) => pin.id === activeCheckIn.vendor_pin_id) : null;
 
   if (!portalUnlocked) {
     return <VendorPortalGate account={account} authorizedUser={authorizedAccessRecord} user={user} onUnlock={() => setPortalUnlocked(true)} />;
@@ -128,23 +130,28 @@ export default function VendorDashboard() {
     <div className="w-full min-h-screen overflow-x-hidden bg-[#FBFAF7]">
       <Tabs defaultValue="profile" className="space-y-0 min-w-0">
         <div className="bg-[#5DADA5] text-white">
-          <div className="max-w-7xl mx-auto w-full px-3 sm:px-5 lg:px-6 pt-2 sm:pt-5">
-            <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
+          <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-5">
+            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} />
+            <div className="hidden sm:block">
+              <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
+            </div>
 
-            <div className="mt-2 sm:mt-6 -mx-3 sm:mx-0 overflow-x-auto">
+            <div className="mt-0 sm:mt-6 sm:mx-0 overflow-x-auto">
               <TabsList className="flex w-max min-w-full bg-transparent p-0 h-auto justify-start rounded-none">
-                <TabsTrigger value="profile" className="min-w-[7.5rem] flex-1 rounded-t-2xl rounded-b-none px-3 sm:px-4 py-3 text-xs sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">My Page</TabsTrigger>
-                <TabsTrigger value="pins" className="min-w-[9rem] flex-1 rounded-t-2xl rounded-b-none px-3 sm:px-4 py-3 text-xs sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">My Trucks / Pins</TabsTrigger>
-                <TabsTrigger value="history" className="min-w-[7.5rem] flex-1 rounded-t-2xl rounded-b-none px-3 sm:px-4 py-3 text-xs sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">History</TabsTrigger>
-                <TabsTrigger value="tier" className="min-w-[7rem] flex-1 rounded-t-2xl rounded-b-none px-3 sm:px-4 py-3 text-xs sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Tier</TabsTrigger>
-                <TabsTrigger value="users" className="min-w-[11rem] flex-1 rounded-t-2xl rounded-b-none px-3 sm:px-4 py-3 text-xs sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Users & Pins</TabsTrigger>
+                <TabsTrigger value="profile" className="min-w-[5.75rem] sm:min-w-[7.5rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">My Page</TabsTrigger>
+                <TabsTrigger value="pins" className="min-w-[7.25rem] sm:min-w-[9rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Trucks / Pins</TabsTrigger>
+                <TabsTrigger value="history" className="min-w-[5.75rem] sm:min-w-[7.5rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">History</TabsTrigger>
+                <TabsTrigger value="tier" className="min-w-[4.5rem] sm:min-w-[7rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Tier</TabsTrigger>
+                <TabsTrigger value="users" className="min-w-[6.75rem] sm:min-w-[11rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Users</TabsTrigger>
               </TabsList>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto w-full min-w-0 p-3 pb-28 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-4 sm:space-y-6">
-          <VendorPinStatusBar pins={pins} checkIns={checkIns} />
+        <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-2 sm:space-y-6">
+          <div className="hidden sm:block">
+            <VendorPinStatusBar pins={pins} checkIns={checkIns} />
+          </div>
 
           <TabsContent value="profile" className="mt-0 min-w-0"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="pins" className="mt-0 min-w-0"><MyTrucksSection vendorAccount={account} currentUser={user} /></TabsContent>

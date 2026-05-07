@@ -25,13 +25,13 @@ export default function VendorActivePinPreview({ pins, checkIns }) {
   };
 
   return (
-    <Card className="rounded-3xl border-slate-200 bg-white shadow-sm overflow-hidden">
+    <Card className="rounded-2xl sm:rounded-3xl border-slate-200 bg-white shadow-sm overflow-hidden">
       <CardHeader className="p-3 sm:p-4">
         <CardTitle className="text-base text-[#2C4F4E]">Live Locations</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2.5 p-3 pt-0 sm:p-4 sm:pt-0">
         {liveItems.length === 0 ? (
-          <div className="rounded-2xl bg-[#F3E6CF]/70 p-4 text-sm text-slate-600">
+          <div className="rounded-xl sm:rounded-2xl bg-[#F3E6CF]/70 p-3 sm:p-4 text-xs sm:text-sm text-slate-600">
             No live locations right now.
           </div>
         ) : liveItems.map((item) => (

@@ -42,15 +42,15 @@ export default function VendorUpdatesPanel({ account, updates, onRefresh }) {
 
   return (
     <Card className="border-slate-200 bg-white shadow-sm overflow-hidden">
-      <CardHeader className="p-4 sm:p-6">
-        <CardTitle className="text-[#2C4F4E]">Updates</CardTitle>
+      <CardHeader className="p-3 sm:p-6">
+        <CardTitle className="text-base sm:text-lg text-[#2C4F4E]">Updates</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
-        <Textarea placeholder="Share a short update with customers..." value={text} onChange={(e) => setText(e.target.value)} className="min-h-24" />
+      <CardContent className="space-y-2 sm:space-y-4 p-3 pt-0 sm:p-6 sm:pt-0">
+        <Textarea placeholder="Share a short update with customers..." value={text} onChange={(e) => setText(e.target.value)} className="min-h-16 sm:min-h-24" />
         <Button onClick={addUpdate} className="w-full sm:w-auto bg-[#5DADA5] hover:bg-[#4A9B93] text-white">Post Update</Button>
         <div className="space-y-3">
           {updates.length === 0 ? (
-            <p className="rounded-2xl bg-[#F3E6CF]/70 p-5 text-sm text-slate-600">No updates yet. Post news, specials, or where customers can find you next.</p>
+            <p className="rounded-xl sm:rounded-2xl bg-[#F3E6CF]/70 p-3 sm:p-5 text-xs sm:text-sm text-slate-600">No updates yet. Post news, specials, or where customers can find you next.</p>
           ) : updates.map((update) => (
             <div key={update.id} className="rounded-xl border bg-white p-3 flex min-w-0 items-start justify-between gap-2">
               <div className="min-w-0">
