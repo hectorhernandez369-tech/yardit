@@ -76,9 +76,9 @@ export default function ScheduleImportPanel({ fields, eventDate, onConfirm }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="w-full min-w-0 space-y-4">
       <ScheduleFormatGuide />
-      <div className="rounded-2xl border bg-white p-4 space-y-3">
+      <div className="w-full min-w-0 overflow-hidden rounded-2xl border bg-white p-4 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div><h3 className="font-black text-[#2C4F4E]">Upload Schedule File</h3><p className="text-sm text-slate-600">Upload .xlsx or .csv, preview it, then confirm import.</p></div>
           <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md bg-[#F4A849] px-4 py-2 text-sm font-bold text-[#2C4F4E] hover:bg-[#E39635]"><Upload className="h-4 w-4" /> {loading ? "Reading..." : "Choose File"}<Input type="file" accept=".xlsx,.csv" className="hidden" disabled={loading} onChange={(e) => handleUpload(e.target.files?.[0])} /></label>

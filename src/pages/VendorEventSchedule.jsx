@@ -86,7 +86,7 @@ export default function VendorEventSchedule() {
   if (!canManageSchedule) return <div className="p-6 text-center text-[#2C4F4E] font-bold">You do not have access to manage this event schedule.</div>;
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4">
+    <div className="max-w-7xl mx-auto w-full min-w-0 overflow-x-hidden p-3 sm:p-6 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <Button variant="outline" onClick={() => safeBack(navigate, `/VendorEventDashboard?id=${event.id}`)} className="bg-white w-fit"><ArrowLeft className="h-4 w-4" /> Back</Button>
         <Button onClick={saveSchedule} disabled={saving} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"><Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Schedule"}</Button>
@@ -96,7 +96,7 @@ export default function VendorEventSchedule() {
         <CardContent className="p-5 sm:p-6 space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div><h1 className="text-3xl font-black text-[#2C4F4E]">Schedule Manager</h1><p className="text-xl font-bold text-slate-800">{event.title}</p><p className="flex items-center gap-2 text-sm text-slate-600"><CalendarDays className="h-4 w-4 text-[#F4A849]" /> {format(new Date(event.startDateTime), "PPp")} - {format(new Date(event.endDateTime), "PPp")}</p></div>
-            <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[520px]">
+            <div className="grid w-full min-w-0 gap-3 sm:grid-cols-3 lg:max-w-[520px]">
               <label className="text-sm font-bold text-[#2C4F4E]">Time Between Events<Input className="mt-1" type="number" value={timeBetweenMinutes} onChange={(e) => setTimeBetweenMinutes(Number(e.target.value || 0))} /></label>
               <label className="text-sm font-bold text-[#2C4F4E]">Add Slots<Input className="mt-1" type="number" value={bulkCount} onChange={(e) => setBulkCount(Number(e.target.value || 0))} /></label>
               <div className="flex items-end"><Button type="button" variant="outline" onClick={addBulkSlots} className="w-full"><Plus className="h-4 w-4" /> Add Slots</Button></div>

@@ -6,19 +6,19 @@ import { buildBlankScheduleRows, formatTimeInput, groupScheduleRows, makeSchedul
 
 function ScheduleRow({ row, index, fields, eventDate, timeBetweenMinutes, onUpdate, onDuplicate, onDelete }) {
   return (
-    <div className="grid gap-2 rounded-xl border bg-white p-3 lg:grid-cols-[180px_1fr_130px_130px_1fr_auto]">
+    <div className="grid w-full min-w-0 gap-2 rounded-xl border bg-white p-3 lg:grid-cols-[170px_minmax(0,1fr)_120px_120px_minmax(0,1fr)_auto]">
       <Select value={row.spot_id || row.field_name || "main-event"} onValueChange={(value) => {
         const field = fields.find((item) => item.id === value || item.title === value);
         onUpdate(row.id, { spot_id: field?.id || "", field_name: field?.title || value });
       }}>
-        <SelectTrigger><SelectValue placeholder="Field / Flag" /></SelectTrigger>
+        <SelectTrigger className="w-full min-w-0"><SelectValue placeholder="Field / Flag" /></SelectTrigger>
         <SelectContent>{fields.map((field) => <SelectItem key={field.id || field.title} value={field.id || field.title}>{field.title}</SelectItem>)}</SelectContent>
       </Select>
-      <Input placeholder="Activity/Game Name" value={row.title || ""} onChange={(e) => onUpdate(row.id, { title: e.target.value })} />
-      <Input placeholder="12:00 PM" value={formatTimeInput(row.start_time)} onChange={(e) => onUpdate(row.id, { start_time: e.target.value })} onBlur={(e) => onUpdate(row.id, { start_time: parseScheduleTime(eventDate, e.target.value, row.date) })} />
-      <Input placeholder="End Time" value={formatTimeInput(row.end_time)} onChange={(e) => onUpdate(row.id, { end_time: e.target.value })} onBlur={(e) => onUpdate(row.id, { end_time: parseScheduleTime(eventDate, e.target.value, row.date) })} />
-      <Input placeholder="Notes" value={row.notes || ""} onChange={(e) => onUpdate(row.id, { notes: e.target.value })} />
-      <div className="flex gap-2">
+      <Input className="min-w-0" placeholder="Activity/Game Name" value={row.title || ""} onChange={(e) => onUpdate(row.id, { title: e.target.value })} />
+      <Input className="min-w-0" placeholder="12:00 PM" value={formatTimeInput(row.start_time)} onChange={(e) => onUpdate(row.id, { start_time: e.target.value })} onBlur={(e) => onUpdate(row.id, { start_time: parseScheduleTime(eventDate, e.target.value, row.date) })} />
+      <Input className="min-w-0" placeholder="End Time" value={formatTimeInput(row.end_time)} onChange={(e) => onUpdate(row.id, { end_time: e.target.value })} onBlur={(e) => onUpdate(row.id, { end_time: parseScheduleTime(eventDate, e.target.value, row.date) })} />
+      <Input className="min-w-0" placeholder="Notes" value={row.notes || ""} onChange={(e) => onUpdate(row.id, { notes: e.target.value })} />
+      <div className="flex gap-2 justify-start">
         <Button type="button" variant="outline" size="icon" title="Duplicate" onClick={() => onDuplicate(row, index)}><Copy className="h-4 w-4" /></Button>
         <Button type="button" variant="outline" size="icon" title="Delete" onClick={() => onDelete(row.id)}><Trash2 className="h-4 w-4" /></Button>
       </div>
