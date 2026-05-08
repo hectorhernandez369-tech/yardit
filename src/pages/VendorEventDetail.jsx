@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarDays, Loader2, MapPin, Share2, Store, UserCircle } from "lucide-react";
+import { ArrowLeft, CalendarDays, Loader2, MapPin, Share2, Store, UserCircle } from "lucide-react";
 import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 import { toast } from "sonner";
@@ -14,6 +15,7 @@ import PublicEventUpdates from "@/components/vendor/events/PublicEventUpdates";
 import PublicVendorCard from "@/components/vendor/events/PublicVendorCard";
 
 export default function VendorEventDetail() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
@@ -129,6 +131,9 @@ export default function VendorEventDetail() {
   return (
     <div className="bg-[#F3E6CF] min-h-screen">
       <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-5">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2 text-[#2C4F4E]">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Button>
         <section className="rounded-3xl overflow-hidden bg-white border border-[#2C4F4E]/10 shadow-sm">
           <div className="relative h-64 sm:h-96 bg-[#E7D7B8]">
             {heroImage ? <img src={heroImage} alt={event.title} className="h-full w-full object-cover" /> : <div className="h-full w-full flex items-center justify-center text-[#2C4F4E] font-black text-2xl">Yardit Vendor Event</div>}

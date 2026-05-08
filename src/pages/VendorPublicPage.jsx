@@ -1,10 +1,13 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Store } from "lucide-react";
+import { ArrowLeft, Loader2, Store } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { Button } from "@/components/ui/button";
 import VendorPublicPreview from "@/components/vendor/my-page/VendorPublicPreview";
 
 export default function VendorPublicPage() {
+  const navigate = useNavigate();
   const accountId = new URLSearchParams(window.location.search).get("accountId");
 
   const { data: account, isLoading: loadingAccount } = useQuery({
@@ -52,6 +55,9 @@ export default function VendorPublicPage() {
 
   return (
     <div className="mx-auto max-w-5xl p-3 pb-24 sm:p-6">
+      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 gap-2 text-[#2C4F4E]">
+        <ArrowLeft className="h-4 w-4" /> Back
+      </Button>
       <VendorPublicPreview account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refetchUpdates} />
     </div>
   );
