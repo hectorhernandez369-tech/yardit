@@ -148,6 +148,17 @@ export default function VendorEventDetail() {
           </div>
         </section>
 
+        {event.flyer_url && (
+          <section className="rounded-3xl bg-white border border-[#2C4F4E]/10 shadow-sm p-5 sm:p-6 space-y-3">
+            <h2 className="text-2xl font-black text-[#2C4F4E]">Event Flyer</h2>
+            {isFlyerPdf ? (
+              <a href={event.flyer_url} target="_blank" rel="noreferrer" className="inline-flex rounded-full bg-[#F4A849] px-4 py-2 text-sm font-bold text-[#2C4F4E] shadow hover:bg-[#E39635]">Open Flyer PDF</a>
+            ) : (
+              <img src={event.flyer_url} alt={`${event.title} flyer`} className="max-h-[720px] w-full rounded-2xl border border-[#2C4F4E]/10 object-contain bg-[#FBFAF7]" />
+            )}
+          </section>
+        )}
+
         <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
           <main className="space-y-5">
             <Card className="rounded-3xl bg-white"><CardContent className="p-5 sm:p-6 space-y-4">

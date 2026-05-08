@@ -225,8 +225,9 @@ export default function VendorEventForm({ account, user, event = null, approvedV
               <p className="text-xs text-slate-500">Upload an image or PDF flyer to show on the public event page.</p>
             </div>
             {form.flyer_url && (
-              <div className="rounded-xl bg-white p-3 text-sm">
+              <div className="rounded-xl bg-white p-3 text-sm space-y-3">
                 <a href={form.flyer_url} target="_blank" rel="noreferrer" className="font-semibold text-[#5DADA5] underline">View uploaded flyer</a>
+                {!form.flyer_url.toLowerCase().includes(".pdf") && <img src={form.flyer_url} alt="Uploaded event flyer" className="max-h-80 w-full rounded-xl border object-contain bg-[#FBFAF7]" />}
               </div>
             )}
             <Input type="file" accept="image/*,.pdf" onChange={uploadFlyer} disabled={uploadingFlyer} />
