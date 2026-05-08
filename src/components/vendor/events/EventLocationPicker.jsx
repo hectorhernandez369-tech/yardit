@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,17 @@ function LocationClickHandler({ onSelect }) {
   useMapEvents({
     click: (event) => onSelect(event.latlng.lat, event.latlng.lng),
   });
+  return null;
+}
+
+function RecenterMap({ center }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.setView(center, 14);
+    setTimeout(() => map.invalidateSize(), 100);
+  }, [center[0], center[1], map]);
+
   return null;
 }
 
@@ -46,6 +57,13 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     });
   };
 
+  useEffect(() => {
+    if (!open || selected || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition((position) => {
+      selectLocation(position.coords.latitude, position.coords.longitude);
+    });
+  }, [open, selected]);
+
   const saveLocation = () => {
     if (!selected) return;
     onChange({ ...selected, radius_feet: Number(radius || 500) });
@@ -65,6 +83,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
           <div className="h-[360px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
             <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom>
               <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <RecenterMap center={center} />
               <LocationClickHandler onSelect={selectLocation} />
               {selected && <Marker position={[selected.latitude, selected.longitude]} />}
             </MapContainer>
