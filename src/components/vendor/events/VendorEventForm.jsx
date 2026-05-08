@@ -129,11 +129,11 @@ export default function VendorEventForm({ account, user, onCreated }) {
           <Button type="button" variant="outline" onClick={() => setShowLocationPicker(true)}>Choose Event Location</Button>
         </div>
         <div className="space-y-1">
-          <Label>Start time</Label>
+          <Label className="text-sm font-bold text-[#2C4F4E]">Start date & time</Label>
           <Input type="datetime-local" value={form.startDateTime} onChange={(e) => update("startDateTime", e.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label>End time</Label>
+          <Label className="text-sm font-bold text-[#2C4F4E]">End date & time</Label>
           <Input type="datetime-local" value={form.endDateTime} onChange={(e) => update("endDateTime", e.target.value)} />
         </div>
       </div>
