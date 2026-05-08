@@ -1,8 +1,9 @@
 import { useEffect } from "react";
-import { Circle, MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { Circle, MapContainer, Marker, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { calculateMiles } from "@/lib/vendorEvents";
 import { toast } from "sonner";
+import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
 
 function RecenterMap({ center }) {
   const map = useMap();
@@ -42,7 +43,7 @@ export default function EventSpotMapPicker({ event, value, onChange }) {
   return (
     <div className="h-[320px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
       <MapContainer center={center} zoom={15} className="h-full w-full" scrollWheelZoom>
-        <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <VendorEventMapboxTileLayer />
         <RecenterMap center={center} />
         <Circle center={center} radius={radiusMeters} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12, weight: 2 }} />
         <Marker position={center} />

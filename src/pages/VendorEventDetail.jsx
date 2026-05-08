@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { safeBack } from "@/utils";
 import PublicEventUpdates from "@/components/vendor/events/PublicEventUpdates";
 import PublicVendorCard from "@/components/vendor/events/PublicVendorCard";
+import PublicVendorEventMap from "@/components/vendor/events/PublicVendorEventMap";
 
 export default function VendorEventDetail() {
   const navigate = useNavigate();
@@ -170,7 +171,7 @@ export default function VendorEventDetail() {
               <div><h3 className="font-black text-[#2C4F4E] mb-2">Description</h3><p className="text-slate-700 whitespace-pre-wrap">{event.description}</p></div>
             </CardContent></Card>
 
-            {event.latitude && event.longitude && <Card className="rounded-3xl bg-white"><CardContent className="p-5 sm:p-6 space-y-3"><h2 className="text-2xl font-black text-[#2C4F4E]">Map / Location</h2><div className="rounded-2xl bg-[#FBFAF7] border border-[#2C4F4E]/10 p-5 text-sm text-slate-700"><MapPin className="h-5 w-5 text-[#F4A849] inline mr-2" />{event.display_address}<p className="mt-2 text-xs text-slate-500">Coordinates: {Number(event.latitude).toFixed(4)}, {Number(event.longitude).toFixed(4)}</p></div></CardContent></Card>}
+            {event.latitude && event.longitude && <Card className="rounded-3xl bg-white"><CardContent className="p-5 sm:p-6 space-y-3"><h2 className="text-2xl font-black text-[#2C4F4E]">Map / Location</h2><PublicVendorEventMap event={event} spots={spots} /></CardContent></Card>}
 
             <PublicEventUpdates updates={updates} likes={likes} currentUser={currentUser} organizerName={event.organizer_business_name} onToggleLike={toggleLike} onLoginPrompt={() => { toast.error("Please log in to like updates."); base44.auth.redirectToLogin(window.location.href); }} />
 

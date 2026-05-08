@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { Circle, MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { useEffect, useRef, useState } from "react";
+import { Circle, MapContainer, Marker, useMap, useMapEvents } from "react-leaflet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
 import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER = [34.0522, -118.2437];
@@ -41,26 +42,20 @@ async function geocodeAddress(address, biasCenter) {
   const photonSuggestions = photonResult.status === "fulfilled" ? (photonResult.value.features || []).map((feature) => {
     const [longitude, latitude] = feature.geometry.coordinates;
     const addressText = formatPhotonAddress(feature.properties);
-    return {
-      latitude: Number(latitude),
-      longitude: Number(longitude),
-      geocoded_address: addressText,
-      display_address: addressText,
-    };
+    return { latitude: Number(latitude), longitude: Number(longitude), address: addressText };
   }) : [];
 
   const nominatimSuggestions = nominatimResult.status === "fulfilled" ? (nominatimResult.value || []).map((result) => ({
     latitude: Number(result.lat),
     longitude: Number(result.lon),
-    geocoded_address: result.display_name,
-    display_address: result.display_name,
+    address: result.display_name,
   })) : [];
 
   const seen = new Set();
   return [...photonSuggestions, ...nominatimSuggestions]
-    .filter((suggestion) => suggestion.display_address && Number.isFinite(suggestion.latitude) && Number.isFinite(suggestion.longitude))
+    .filter((suggestion) => suggestion.address && Number.isFinite(suggestion.latitude) && Number.isFinite(suggestion.longitude))
     .filter((suggestion) => {
-      const key = `${suggestion.display_address.toLowerCase()}-${suggestion.latitude.toFixed(4)}-${suggestion.longitude.toFixed(4)}`;
+      const key = `${suggestion.address.toLowerCase()}-${suggestion.latitude.toFixed(4)}-${suggestion.longitude.toFixed(4)}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -91,108 +86,110 @@ function RecenterMap({ center }) {
 }
 
 export default function EventLocationPicker({ open, onOpenChange, eventType, value, onChange }) {
+  const searchWrapRef = useRef(null);
+  const searchInputRef = useRef(null);
   const hasValidValue = value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
-  const [selected, setSelected] = useState(hasValidValue ? value : null);
-  const [radius, setRadius] = useState(value?.radius_feet || 500);
-  const [addressQuery, setAddressQuery] = useState("");
+  const [selected, setSelected] = useState(hasValidValue ? { latitude: value.latitude, longitude: value.longitude } : null);
+  const [selectedAddress, setSelectedAddress] = useState(value?.geocoded_address || value?.display_address || "");
+  const [displayAddress, setDisplayAddress] = useState(value?.display_address || "");
+  const [searchQuery, setSearchQuery] = useState("");
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const [userCoords, setUserCoords] = useState(null);
   const [displayAddressIsDifferent, setDisplayAddressIsDifferent] = useState(false);
-  const [publicDisplayAddress, setPublicDisplayAddress] = useState("");
+  const [radius, setRadius] = useState(value?.radius_feet || 500);
   const showRadius = eventType === "multi_spot" || eventType === "multi_location";
+  const showSuggestions = searchFocused && searchQuery.trim().length >= 3 && (addressSuggestions.length > 0 || searching);
 
   useEffect(() => {
-    if (open) {
-      const hasValidOpenValue = value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
-      const currentLocation = hasValidOpenValue ? {
-        ...value,
-        geocoded_address: value.geocoded_address || value.display_address,
-      } : null;
-      const isCustomDisplay = !!currentLocation?.display_address && !!currentLocation?.geocoded_address && currentLocation.display_address !== currentLocation.geocoded_address;
+    if (!open) return;
+    const hasValidOpenValue = value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
+    const nextSelectedAddress = value?.geocoded_address || value?.display_address || "";
+    const nextDisplayAddress = value?.display_address || nextSelectedAddress;
+    const isCustomDisplay = !!nextDisplayAddress && !!nextSelectedAddress && nextDisplayAddress !== nextSelectedAddress;
 
-      setSelected(currentLocation);
-      setAddressQuery(currentLocation?.geocoded_address || "");
-      setAddressSuggestions([]);
-      setDisplayAddressIsDifferent(isCustomDisplay);
-      setPublicDisplayAddress(isCustomDisplay ? currentLocation.display_address : "");
-      setRadius(value?.radius_feet || 500);
-    }
+    setSelected(hasValidOpenValue ? { latitude: value.latitude, longitude: value.longitude } : null);
+    setSelectedAddress(nextSelectedAddress);
+    setDisplayAddress(nextDisplayAddress);
+    setSearchQuery("");
+    setAddressSuggestions([]);
+    setSearchFocused(false);
+    setDisplayAddressIsDifferent(isCustomDisplay);
+    setRadius(value?.radius_feet || 500);
   }, [open, value]);
 
-  const selectLocation = async (lat, lng) => {
-    const displayAddress = await reverseGeocode(lat, lng);
-    setSelected({
-      latitude: lat,
-      longitude: lng,
-      geocoded_address: displayAddress,
-      display_address: displayAddressIsDifferent && publicDisplayAddress.trim() ? publicDisplayAddress.trim() : displayAddress,
-    });
-    setAddressQuery(displayAddress);
-    setAddressSuggestions([]);
-    if (!displayAddressIsDifferent) setPublicDisplayAddress("");
-  };
-
-  const searchAddress = async () => {
-    if (addressQuery.trim().length < 3) {
-      setAddressSuggestions([]);
-      return;
-    }
-    setSearching(true);
-    const biasCenter = selected ? [selected.latitude, selected.longitude] : userCoords || DEFAULT_CENTER;
-    const results = await geocodeAddress(addressQuery.trim(), biasCenter);
-    setAddressSuggestions(results);
-    setSearching(false);
-  };
-
-  const chooseSuggestion = async (suggestion) => {
-    const geocodedAddress = suggestion.geocoded_address || suggestion.display_address || await reverseGeocode(suggestion.latitude, suggestion.longitude);
-    setSelected({
-      ...suggestion,
-      geocoded_address: geocodedAddress,
-      display_address: displayAddressIsDifferent && publicDisplayAddress.trim() ? publicDisplayAddress.trim() : geocodedAddress,
-    });
-    setAddressQuery(geocodedAddress);
-    setAddressSuggestions([]);
-    if (!displayAddressIsDifferent) setPublicDisplayAddress("");
-  };
-
   useEffect(() => {
-    if (!open || selected || !navigator.geolocation) return;
+    if (!open || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition((position) => {
-      const coords = [position.coords.latitude, position.coords.longitude];
-      setUserCoords(coords);
-      selectLocation(coords[0], coords[1]);
+      setUserCoords([position.coords.latitude, position.coords.longitude]);
     });
-  }, [open, selected]);
+  }, [open]);
 
   useEffect(() => {
-    if (!open || addressQuery.trim().length < 3) {
+    const handlePointerDown = (event) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(event.target)) {
+        setSearchFocused(false);
+        setAddressSuggestions([]);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
+
+  useEffect(() => {
+    if (!open || !searchFocused || searchQuery.trim().length < 3) {
       setAddressSuggestions([]);
       return;
     }
 
-    const timer = setTimeout(() => {
-      searchAddress();
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      const biasCenter = selected ? [selected.latitude, selected.longitude] : userCoords || DEFAULT_CENTER;
+      const results = await geocodeAddress(searchQuery.trim(), biasCenter);
+      setAddressSuggestions(results);
+      setSearching(false);
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [addressQuery, open]);
+  }, [searchQuery, searchFocused, open, selected?.latitude, selected?.longitude, userCoords]);
+
+  const closeSuggestions = () => {
+    setSearchFocused(false);
+    setAddressSuggestions([]);
+    searchInputRef.current?.blur();
+  };
+
+  const selectMapLocation = async (lat, lng) => {
+    closeSuggestions();
+    setSelected({ latitude: lat, longitude: lng });
+    const address = await reverseGeocode(lat, lng);
+    setSelectedAddress(address);
+    if (!displayAddressIsDifferent) setDisplayAddress(address);
+  };
+
+  const chooseSuggestion = (suggestion) => {
+    const address = suggestion.address;
+    setSelected({ latitude: suggestion.latitude, longitude: suggestion.longitude });
+    setSelectedAddress(address);
+    if (!displayAddressIsDifferent) setDisplayAddress(address);
+    setSearchQuery(address);
+    closeSuggestions();
+  };
 
   const saveLocation = () => {
     if (!selected) return;
-    const geocodedAddress = selected.geocoded_address || selected.display_address;
-    const displayAddress = displayAddressIsDifferent && publicDisplayAddress.trim()
-      ? publicDisplayAddress.trim()
-      : geocodedAddress;
+    const finalDisplayAddress = displayAddressIsDifferent && displayAddress.trim() ? displayAddress.trim() : selectedAddress;
 
     onChange({
       latitude: selected.latitude,
       longitude: selected.longitude,
-      geocoded_address: geocodedAddress,
-      display_address: displayAddress,
+      geocoded_address: selectedAddress,
+      display_address: finalDisplayAddress,
       radius_feet: Number(radius || 500),
     });
+    closeSuggestions();
     onOpenChange(false);
   };
 
@@ -205,16 +202,19 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
           <DialogTitle>Choose Event Location</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="space-y-2">
+          <div ref={searchWrapRef} className="space-y-2">
             <Input
-              value={addressQuery}
+              ref={searchInputRef}
+              value={searchQuery}
+              onFocus={() => setSearchFocused(true)}
               onChange={(e) => {
-                setAddressQuery(e.target.value);
+                setSearchQuery(e.target.value);
+                setSearchFocused(true);
                 if (e.target.value.trim().length < 3) setAddressSuggestions([]);
               }}
               placeholder="Search address, venue, park, school, or business"
             />
-            {(addressSuggestions.length > 0 || searching) && (
+            {showSuggestions && (
               <div className="rounded-xl border border-[#2C4F4E]/15 bg-white shadow-sm overflow-hidden">
                 {searching && addressSuggestions.length === 0 && (
                   <div className="px-3 py-2 text-sm text-slate-500">Finding nearby suggestions...</div>
@@ -226,21 +226,30 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
                     onClick={() => chooseSuggestion(suggestion)}
                     className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-[#FBFAF7] border-b last:border-b-0"
                   >
-                    {suggestion.display_address}
+                    {suggestion.address}
                   </button>
                 ))}
               </div>
             )}
           </div>
+
           <div className="h-[360px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
             <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom>
-              <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <VendorEventMapboxTileLayer />
               <RecenterMap center={center} />
-              <LocationClickHandler onSelect={selectLocation} />
+              <LocationClickHandler onSelect={selectMapLocation} />
               {selected && showRadius && <Circle center={[selected.latitude, selected.longitude]} radius={Number(radius || 500) * 0.3048} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12, weight: 2 }} />}
               {selected && <Marker position={[selected.latitude, selected.longitude]} />}
             </MapContainer>
           </div>
+
+          {selectedAddress && (
+            <div className="rounded-xl bg-[#FBFAF7] p-3 text-sm text-slate-700">
+              <p className="font-bold text-[#2C4F4E]">Selected location:</p>
+              <p>{selectedAddress}</p>
+            </div>
+          )}
+
           {selected && (
             <div className="space-y-3 rounded-xl bg-[#FBFAF7] p-3">
               <label className="flex items-start gap-2 text-sm font-medium text-[#2C4F4E]">
@@ -249,30 +258,26 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
                   checked={displayAddressIsDifferent}
                   onChange={(e) => {
                     setDisplayAddressIsDifferent(e.target.checked);
-                    if (!e.target.checked) setPublicDisplayAddress("");
+                    if (!e.target.checked) setDisplayAddress(selectedAddress);
                   }}
                   className="mt-1 accent-[#5DADA5]"
                 />
-                <span>
-                  Display address is different
-                  <span className="block text-xs font-normal text-slate-600">
-                    This means the public address shown to users can be different from the exact pin/navigation location.
-                  </span>
-                </span>
+                <span>Display address is different</span>
               </label>
               {displayAddressIsDifferent && (
                 <div className="space-y-1">
                   <Label>Public Display Address</Label>
                   <Input
-                    value={publicDisplayAddress}
-                    onChange={(e) => setPublicDisplayAddress(e.target.value)}
+                    value={displayAddress}
+                    onChange={(e) => setDisplayAddress(e.target.value)}
                     placeholder="Enter the address customers should see"
                   />
-                  <p className="text-xs text-slate-600">Customers will see this address, but directions will still use the map pin location.</p>
+                  <p className="text-xs text-slate-600">Directions will still use the map pin location.</p>
                 </div>
               )}
             </div>
           )}
+
           {showRadius && (
             <div className="space-y-2 rounded-xl bg-[#FBFAF7] p-3">
               <div className="flex items-center justify-between gap-3">
@@ -283,6 +288,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
               <p className="text-xs text-slate-600">Spots/fields must be placed inside this circle.</p>
             </div>
           )}
+
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="button" disabled={!selected} onClick={saveLocation} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Save Location</Button>
