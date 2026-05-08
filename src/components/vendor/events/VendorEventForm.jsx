@@ -159,7 +159,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       await base44.entities.EventInviteCode.create({
         event_id: savedEvent.id,
         invite_code: code,
-        invite_link: `${window.location.origin}/VendorEventDetail?id=${savedEvent.id}&invite=${code}`,
+        invite_link: `${window.location.origin}/VendorEventPublicPage?id=${savedEvent.id}&invite=${code}`,
         auto_approve: true,
         created_at: now,
       });

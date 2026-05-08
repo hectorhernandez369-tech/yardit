@@ -1458,11 +1458,11 @@ const stats = useMemo(() => {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(listing.is_vendor_event ? `/VendorEventDetail?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`);
+                                navigate(listing.is_vendor_event ? `/VendorEventPublicPage?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`);
                               }}
                               className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700"
                             >
-                              View Listing
+                              {listing.is_vendor_event ? "Public View" : "View Listing"}
                             </Button>
                             <SaveListingButton listing={listing} iconOnly size="sm" className="h-6 w-6 p-0 border-slate-200" />
                             {!isPreviewState && (
@@ -1762,7 +1762,7 @@ const stats = useMemo(() => {
                           detailsBtn.onclick = (e) => {
                             e.preventDefault(); e.stopPropagation();
                             sessionStorage.setItem(MARQUEE_RESTORED_KEY, listing.id);
-                            navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
+                            navigate(listing.is_vendor_event ? `/VendorEventPublicPage?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`);
                           };
                         }
                         if (overlapBtn) {

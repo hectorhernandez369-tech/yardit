@@ -87,7 +87,7 @@ export default function VendorEventDashboard() {
               <p className="text-slate-600">{formatVendorEventType(event.event_type)} · {event.category}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => window.location.href = `/VendorEventDetail?id=${event.id}`}>Public Detail Page</Button>
+              <Button variant="outline" onClick={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}>View Public Page</Button>
             </div>
           </div>
           <p className="text-slate-700">{event.description}</p>

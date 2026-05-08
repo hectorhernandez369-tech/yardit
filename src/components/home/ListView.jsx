@@ -193,10 +193,10 @@ export default function ListView({ listings, userLocation }) {
 
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => navigate(listing.is_vendor_event ? `/VendorEventDetail?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+                      onClick={() => navigate(listing.is_vendor_event ? `/VendorEventPublicPage?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`)}
                       className="flex-1 bg-amber-600 hover:bg-amber-700"
                     >
-                      {listing.is_vendor_event ? "View Event" : "View Listing"}
+                      {listing.is_vendor_event ? "Public View" : "View Listing"}
                     </Button>
                     <SaveListingButton listing={listing} iconOnly={true} className="w-10 px-0 flex-shrink-0 border-slate-200 text-slate-500" />
                   
