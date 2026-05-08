@@ -16,6 +16,7 @@ const initialForm = {
   category: "",
   event_type: "single",
   display_address: "",
+  geocoded_address: "",
   latitude: "",
   longitude: "",
   radius_feet: "500",
@@ -30,10 +31,45 @@ const initialForm = {
   vendor_instructions: "",
   vendor_deadline: "",
   max_vendors: "",
+  status: "draft",
 };
 
-export default function VendorEventForm({ account, user, onCreated }) {
-  const [form, setForm] = useState(initialForm);
+const toLocalDateTimeValue = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 16);
+};
+
+const buildInitialForm = (event) => event ? {
+  ...initialForm,
+  title: event.title || "",
+  description: event.description || "",
+  category: event.category || "",
+  event_type: event.event_type || "single",
+  display_address: event.display_address || "",
+  geocoded_address: event.geocoded_address || event.display_address || "",
+  latitude: event.latitude || "",
+  longitude: event.longitude || "",
+  radius_feet: String(event.radius_feet || 500),
+  startDateTime: toLocalDateTimeValue(event.startDateTime),
+  endDateTime: toLocalDateTimeValue(event.endDateTime),
+  open_to_vendors: !!event.open_to_vendors,
+  vendor_invitation_description: event.vendor_invitation_description || "",
+  vendor_fee_type: event.vendor_fee_type || "none",
+  vendor_general_fee: event.vendor_general_fee || "",
+  vendor_space_options: event.vendor_space_options || [],
+  allow_custom_spaces: !!event.allow_custom_spaces,
+  vendor_instructions: event.vendor_instructions || "",
+  vendor_deadline: event.vendor_deadline || "",
+  max_vendors: event.max_vendors || "",
+  status: event.status || "draft",
+} : initialForm;
+
+export default function VendorEventForm({ account, user, event = null, approvedVendorCount = 0, onCreated }) {
+  const isEditing = !!event?.id;
+  const datesLocked = isEditing && approvedVendorCount > 0;
+  const [form, setForm] = useState(buildInitialForm(event));
   const [saving, setSaving] = useState(false);
   const [createdEvent, setCreatedEvent] = useState(null);
   const [showInviteVendors, setShowInviteVendors] = useState(false);
@@ -44,7 +80,7 @@ export default function VendorEventForm({ account, user, onCreated }) {
   const updateSpaceOption = (index, key, value) => update("vendor_space_options", form.vendor_space_options.map((option, optionIndex) => optionIndex === index ? { ...option, [key]: value } : option));
   const removeSpaceOption = (index) => update("vendor_space_options", form.vendor_space_options.filter((_, optionIndex) => optionIndex !== index));
 
-  const createEvent = async (status) => {
+  const saveEvent = async (status) => {
     if (!form.title || !form.startDateTime || !form.endDateTime || !form.latitude || !form.longitude) {
       toast.error("Please add a title, schedule, and event location.");
       return;
@@ -67,7 +103,7 @@ export default function VendorEventForm({ account, user, onCreated }) {
 
     setSaving(true);
     const now = new Date().toISOString();
-    const event = await base44.entities.VendorEvent.create({
+    const eventData = {
       organizer_user_id: user.id,
       organizer_business_id: account.id,
       organizer_business_name: account.business_name,
@@ -78,12 +114,13 @@ export default function VendorEventForm({ account, user, onCreated }) {
       event_type: form.event_type,
       status,
       display_address: form.display_address,
+      geocoded_address: form.geocoded_address,
       latitude: Number(form.latitude),
       longitude: Number(form.longitude),
       timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
       radius_feet: Number(form.radius_feet || 0),
-      startDateTime: new Date(form.startDateTime).toISOString(),
-      endDateTime: new Date(form.endDateTime).toISOString(),
+      startDateTime: datesLocked ? event.startDateTime : new Date(form.startDateTime).toISOString(),
+      endDateTime: datesLocked ? event.endDateTime : new Date(form.endDateTime).toISOString(),
       open_to_vendors: form.open_to_vendors,
       vendor_invitation_description: form.vendor_invitation_description,
       vendor_fee_type: form.open_to_vendors ? form.vendor_fee_type : "none",
@@ -93,27 +130,30 @@ export default function VendorEventForm({ account, user, onCreated }) {
       vendor_instructions: form.vendor_instructions,
       vendor_deadline: form.vendor_deadline,
       max_vendors: form.max_vendors ? Number(form.max_vendors) : null,
-      photos: [],
-      created_at: now,
+      photos: event?.photos || [],
       updated_at: now,
-    });
+    };
 
-    if (form.event_type === "multi_location") {
+    const savedEvent = isEditing
+      ? await base44.entities.VendorEvent.update(event.id, eventData)
+      : await base44.entities.VendorEvent.create({ ...eventData, created_at: now });
+
+    if (!isEditing && form.event_type === "multi_location") {
       const code = `VE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
       await base44.entities.EventInviteCode.create({
-        event_id: event.id,
+        event_id: savedEvent.id,
         invite_code: code,
-        invite_link: `${window.location.origin}/VendorEventDetail?id=${event.id}&invite=${code}`,
+        invite_link: `${window.location.origin}/VendorEventDetail?id=${savedEvent.id}&invite=${code}`,
         auto_approve: true,
         created_at: now,
       });
     }
 
-    setCreatedEvent(event);
-    setForm(initialForm);
+    setCreatedEvent(savedEvent);
+    if (!isEditing) setForm(initialForm);
     setSaving(false);
-    toast.success(status === "published" ? "Event published" : "Event saved as draft");
-    onCreated?.(event);
+    toast.success(isEditing ? "Event details updated" : status === "published" ? "Event published" : "Event saved as draft");
+    onCreated?.(savedEvent);
   };
 
   return (
@@ -134,11 +174,12 @@ export default function VendorEventForm({ account, user, onCreated }) {
         </div>
         <div className="space-y-1">
           <Label className="text-sm font-bold text-[#2C4F4E]">Start date & time</Label>
-          <Input type="datetime-local" value={form.startDateTime} onChange={(e) => update("startDateTime", e.target.value)} />
+          <Input type="datetime-local" value={form.startDateTime} disabled={datesLocked} onChange={(e) => update("startDateTime", e.target.value)} />
         </div>
         <div className="space-y-1">
           <Label className="text-sm font-bold text-[#2C4F4E]">End date & time</Label>
-          <Input type="datetime-local" value={form.endDateTime} onChange={(e) => update("endDateTime", e.target.value)} />
+          <Input type="datetime-local" value={form.endDateTime} disabled={datesLocked} onChange={(e) => update("endDateTime", e.target.value)} />
+          {datesLocked && <p className="text-xs text-amber-700">Dates cannot be changed once at least one vendor is approved.</p>}
         </div>
       </div>
 
@@ -191,24 +232,24 @@ export default function VendorEventForm({ account, user, onCreated }) {
       </div>
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" disabled={saving} onClick={() => createEvent("draft")}>Save Draft</Button>
-        <Button variant="outline" disabled={!createdEvent} onClick={() => setShowInviteVendors(true)}>Invite Vendors</Button>
-        <Button disabled={saving} onClick={() => createEvent("published")} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Publish Event</Button>
+        {!isEditing && <Button variant="outline" disabled={saving} onClick={() => saveEvent("draft")}>Save Draft</Button>}
+        <Button variant="outline" disabled={!createdEvent && !isEditing} onClick={() => setShowInviteVendors(true)}>Invite Vendors</Button>
+        <Button disabled={saving} onClick={() => saveEvent(isEditing ? form.status || event.status : "published")} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">{isEditing ? "Save Changes" : "Publish Event"}</Button>
       </div>
 
       <EventLocationPicker
         open={showLocationPicker}
         onOpenChange={setShowLocationPicker}
         eventType={form.event_type}
-        value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, radius_feet: Number(form.radius_feet || 500) } : null}
-        onChange={(location) => setForm((prev) => ({ ...prev, display_address: location.display_address, latitude: location.latitude, longitude: location.longitude, radius_feet: String(location.radius_feet || 500) }))}
+        value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, geocoded_address: form.geocoded_address, radius_feet: Number(form.radius_feet || 500) } : null}
+        onChange={(location) => setForm((prev) => ({ ...prev, display_address: location.display_address, geocoded_address: location.geocoded_address, latitude: location.latitude, longitude: location.longitude, radius_feet: String(location.radius_feet || 500) }))}
       />
 
       {createdEvent && (
         <InviteVendorsModal
           open={showInviteVendors}
           onOpenChange={setShowInviteVendors}
-          event={createdEvent}
+          event={createdEvent || event}
           organizerUserId={user.id}
           approvedCount={0}
         />

@@ -17,6 +17,7 @@ export default function VendorEventsTab({ account, user }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
   const [tab, setTab] = useState("active");
   const [query, setQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
@@ -108,7 +109,16 @@ export default function VendorEventsTab({ account, user }) {
         <TabsList><TabsTrigger value="active">Active Events</TabsTrigger><TabsTrigger value="history">History</TabsTrigger></TabsList>
         <TabsContent value={tab} className="space-y-3">
           {filteredEvents.length ? filteredEvents.map((event) => (
-            <VendorEventCard key={event.id} event={event} distanceMiles={event.distanceMiles} approvedVendorCount={event.approvedVendorCount} onView={() => navigate(`/VendorEventDashboard?id=${event.id}`)} />
+            <VendorEventCard
+              key={event.id}
+              event={event}
+              distanceMiles={event.distanceMiles}
+              approvedVendorCount={event.approvedVendorCount}
+              canManage={event.organizer_business_id === account.id}
+              onEdit={() => setEditingEvent(event)}
+              onManage={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
+              onView={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
+            />
           )) : (
             <Card><CardContent className="p-8 text-center text-slate-500">No vendor events found.</CardContent></Card>
           )}
@@ -118,7 +128,25 @@ export default function VendorEventsTab({ account, user }) {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Create Vendor Event</DialogTitle></DialogHeader>
-          <VendorEventForm account={account} user={user} onCreated={() => { queryClient.invalidateQueries({ queryKey: ["vendorEvents"] }); }} />
+          <VendorEventForm account={account} user={user} onCreated={() => { queryClient.invalidateQueries({ queryKey: ["vendorEvents"] }); setShowCreate(false); }} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingEvent} onOpenChange={(open) => !open && setEditingEvent(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit Event Details</DialogTitle></DialogHeader>
+          {editingEvent && (
+            <VendorEventForm
+              account={account}
+              user={user}
+              event={editingEvent}
+              approvedVendorCount={editingEvent.approvedVendorCount}
+              onCreated={() => {
+                queryClient.invalidateQueries({ queryKey: ["vendorEvents"] });
+                setEditingEvent(null);
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,11 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays, MapPin, Pencil, Users } from "lucide-react";
 import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 
-export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, onView }) {
+export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, canManage = false, onView, onEdit, onManage }) {
   const status = getVendorEventStatus(event);
 
   return (
@@ -26,12 +26,20 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
           {event.open_to_vendors && event.max_vendors && <p className="text-xs font-semibold text-emerald-700">Approved vendors: {approvedVendorCount} / {event.max_vendors}</p>}
         </div>
 
-        <div className="flex items-center justify-between gap-2 pt-1">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
           <div className="flex flex-wrap gap-2">
             {event.open_to_vendors && <Badge className="bg-emerald-600 text-white">Open to vendors</Badge>}
             <Badge variant="outline" className="capitalize">{event.category || "Event"}</Badge>
           </div>
-          <Button onClick={onView} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">View Details</Button>
+          <div className="flex flex-wrap gap-2">
+            {canManage && (
+              <>
+                <Button variant="outline" onClick={onEdit}><Pencil className="h-4 w-4" /> Edit Details</Button>
+                <Button variant="outline" onClick={onManage}><Users className="h-4 w-4" /> Vendor Management</Button>
+              </>
+            )}
+            <Button onClick={onView} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">View Details</Button>
+          </div>
         </div>
       </CardContent>
     </Card>
