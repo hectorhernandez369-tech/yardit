@@ -8,7 +8,16 @@
     },
     "title": {
       "type": "string",
-      "description": "Spot title"
+      "description": "Public flag or spot name"
+    },
+    "label": {
+      "type": "string",
+      "description": "Optional short spot label"
+    },
+    "icon_key": {
+      "type": "string",
+      "default": "flag",
+      "description": "Map-friendly icon key for this flag"
     },
     "description": {
       "type": "string",
@@ -17,6 +26,35 @@
     "mini_schedule": {
       "type": "string",
       "description": "Optional spot-specific schedule"
+    },
+    "schedule_entries": {
+      "type": "array",
+      "description": "Activity/game/show schedule entries for this flag",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "number"
+          }
+        }
+      }
     },
     "photo": {
       "type": "string",

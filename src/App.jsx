@@ -18,6 +18,7 @@ import VendorPublicPage from './pages/VendorPublicPage';
 import VendorSignup from './pages/VendorSignup';
 import VendorSetup from './pages/VendorSetup';
 import VendorEventDashboard from './pages/VendorEventDashboard';
+import VendorEventFlags from './pages/VendorEventFlags';
 import VendorEventDetail from './pages/VendorEventDetail';
 import AccountOptions from './pages/AccountOptions';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -113,6 +114,7 @@ const AuthenticatedApp = () => {
         <Route path="/VendorSignup" element={<LayoutWrapper currentPageName="VendorSignup"><VendorSignup /></LayoutWrapper>} />
         <Route path="/VendorSetup" element={<LayoutWrapper currentPageName="VendorSetup"><VendorSetup /></LayoutWrapper>} />
         <Route path="/VendorEventDashboard" element={<LayoutWrapper currentPageName="VendorEventDashboard"><VendorEventDashboard /></LayoutWrapper>} />
+        <Route path="/VendorEventFlags" element={<LayoutWrapper currentPageName="VendorEventFlags"><VendorEventFlags /></LayoutWrapper>} />
         <Route path="/VendorEventPublicPage" element={<LayoutWrapper currentPageName="VendorEventPublicPage"><VendorEventDetail /></LayoutWrapper>} />
         <Route path="/VendorEventDetail" element={<LayoutWrapper currentPageName="VendorEventDetail"><VendorEventDetail /></LayoutWrapper>} />
         <Route path="/AccountOptions" element={<LayoutWrapper currentPageName="AccountOptions"><AccountOptions /></LayoutWrapper>} />

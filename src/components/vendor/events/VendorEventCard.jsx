@@ -1,11 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarDays, MapPin, Pencil, Users } from "lucide-react";
+import { CalendarDays, Flag, MapPin, Pencil, Users } from "lucide-react";
 import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 
-export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, canManage = false, onView, onEdit, onManage }) {
+export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, canManage = false, onView, onEdit, onManage, onEditFlags }) {
   const status = getVendorEventStatus(event);
 
   return (
@@ -35,6 +35,7 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
             {canManage && (
               <>
                 <Button variant="outline" onClick={onEdit}><Pencil className="h-4 w-4" /> Edit Details</Button>
+                {["multi_spot", "multi_location"].includes(event.event_type) && <Button variant="outline" onClick={onEditFlags}><Flag className="h-4 w-4" /> Edit Flags</Button>}
                 <Button variant="outline" onClick={onManage}><Users className="h-4 w-4" /> Vendor Management</Button>
               </>
             )}

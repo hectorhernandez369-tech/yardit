@@ -100,7 +100,10 @@ export default function VendorEventForm({ account, user, event = null, approvedV
     await Promise.all(flags.map((flag, index) => {
       const data = {
         event_id: eventId,
-        title: flag.label || `Field ${index + 1}`,
+        title: flag.title || flag.label || `Field ${index + 1}`,
+        label: flag.label || flag.title || `Field ${index + 1}`,
+        icon_key: flag.icon_key || "flag",
+        schedule_entries: flag.schedule_entries || [],
         latitude: Number(flag.latitude),
         longitude: Number(flag.longitude),
         display_order: index,
@@ -122,7 +125,10 @@ export default function VendorEventForm({ account, user, event = null, approvedV
           id: spot.id,
           temp_id: spot.id,
           event_id: event.id,
-          label: spot.title || `Field ${index + 1}`,
+          label: spot.label || spot.title || `Field ${index + 1}`,
+          title: spot.title || spot.label || `Field ${index + 1}`,
+          icon_key: spot.icon_key || "flag",
+          schedule_entries: spot.schedule_entries || [],
           latitude: spot.latitude,
           longitude: spot.longitude,
           display_order: spot.display_order ?? index,

@@ -117,6 +117,7 @@ export default function VendorEventsTab({ account, user }) {
               canManage={event.organizer_business_id === account.id}
               onEdit={() => setEditingEvent(event)}
               onManage={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
+              onEditFlags={() => navigate(`/VendorEventFlags?id=${event.id}`)}
               onView={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}
             />
           )) : (

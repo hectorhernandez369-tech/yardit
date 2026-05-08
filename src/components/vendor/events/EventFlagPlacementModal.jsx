@@ -47,6 +47,9 @@ function MapTapHandler({ eventLocation, flags, onAddFlag }) {
       onAddFlag({
         temp_id: `flag-${Date.now()}-${flags.length + 1}`,
         label: `Field ${flags.length + 1}`,
+        title: `Field ${flags.length + 1}`,
+        icon_key: "flag",
+        schedule_entries: [],
         latitude: lat,
         longitude: lng,
         display_order: flags.length,

@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Loader2, Mail } from "lucide-react";
+import { ArrowLeft, Flag, Loader2, Mail } from "lucide-react";
 import { format } from "date-fns";
 import EventSpotManager from "@/components/vendor/events/EventSpotManager";
 import InviteVendorsModal from "@/components/vendor/events/InviteVendorsModal";
@@ -87,6 +87,7 @@ export default function VendorEventDashboard() {
               <p className="text-slate-600">{formatVendorEventType(event.event_type)} · {event.category}</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              {["multi_spot", "multi_location"].includes(event.event_type) && <Button variant="outline" onClick={() => navigate(`/VendorEventFlags?id=${event.id}`)}><Flag className="h-4 w-4" /> Edit Flags</Button>}
               <Button variant="outline" onClick={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}>View Public Page</Button>
             </div>
           </div>
