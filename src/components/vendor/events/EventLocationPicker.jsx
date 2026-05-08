@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import "leaflet/dist/leaflet.css";
@@ -11,6 +12,18 @@ async function reverseGeocode(lat, lng) {
   const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
   const data = await response.json();
   return data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+}
+
+async function geocodeAddress(address) {
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`);
+  const data = await response.json();
+  const result = data?.[0];
+  if (!result) return null;
+  return {
+    latitude: Number(result.lat),
+    longitude: Number(result.lon),
+    display_address: result.display_name,
+  };
 }
 
 function LocationClickHandler({ onSelect }) {
@@ -35,6 +48,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const hasValidValue = value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
   const [selected, setSelected] = useState(hasValidValue ? value : null);
   const [radius, setRadius] = useState(value?.radius_feet || 500);
+  const [addressQuery, setAddressQuery] = useState("");
+  const [searching, setSearching] = useState(false);
   const showRadius = eventType === "multi_spot" || eventType === "multi_location";
 
   useEffect(() => {
@@ -55,6 +70,14 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     navigator.geolocation.getCurrentPosition((position) => {
       selectLocation(position.coords.latitude, position.coords.longitude);
     });
+  };
+
+  const searchAddress = async () => {
+    if (!addressQuery.trim()) return;
+    setSearching(true);
+    const result = await geocodeAddress(addressQuery.trim());
+    if (result) setSelected(result);
+    setSearching(false);
   };
 
   useEffect(() => {
@@ -79,7 +102,16 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
           <DialogTitle>Choose Event Location</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <Button type="button" variant="outline" onClick={useMyLocation}>Use My Location</Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              value={addressQuery}
+              onChange={(e) => setAddressQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && searchAddress()}
+              placeholder="Search address, city, or place"
+            />
+            <Button type="button" variant="outline" disabled={searching} onClick={searchAddress}>{searching ? "Searching..." : "Search"}</Button>
+            <Button type="button" variant="outline" onClick={useMyLocation}>Use My Location</Button>
+          </div>
           <div className="h-[360px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
             <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom>
               <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
