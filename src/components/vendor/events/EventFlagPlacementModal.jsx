@@ -32,12 +32,10 @@ function MapBounds({ center, radiusFeet }) {
   return null;
 }
 
-function LongPressHandler({ eventLocation, flags, onAddFlag }) {
-  const timerRef = useRef(null);
-
-  const start = (mapEvent) => {
-    const { lat, lng } = mapEvent.latlng;
-    timerRef.current = setTimeout(() => {
+function MapTapHandler({ eventLocation, flags, onAddFlag }) {
+  useMapEvents({
+    click: (mapEvent) => {
+      const { lat, lng } = mapEvent.latlng;
       const miles = calculateMiles(eventLocation.latitude, eventLocation.longitude, lat, lng);
       const radiusMiles = Number(eventLocation.radius_feet || 0) / 5280;
 
@@ -53,21 +51,7 @@ function LongPressHandler({ eventLocation, flags, onAddFlag }) {
         longitude: lng,
         display_order: flags.length,
       });
-    }, 550);
-  };
-
-  const clear = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = null;
-  };
-
-  useMapEvents({
-    mousedown: start,
-    touchstart: start,
-    mouseup: clear,
-    touchend: clear,
-    dragstart: clear,
-    zoomstart: clear,
+    },
   });
 
   return null;
@@ -75,11 +59,20 @@ function LongPressHandler({ eventLocation, flags, onAddFlag }) {
 
 export default function EventFlagPlacementModal({ open, onOpenChange, eventLocation, flags = [], onSave }) {
   const [draftFlags, setDraftFlags] = useState(flags);
+  const [deleteFlag, setDeleteFlag] = useState(null);
+  const [mapStyle, setMapStyle] = useState("standard");
+  const longPressTimerRef = useRef(null);
   const center = useMemo(() => [eventLocation.latitude, eventLocation.longitude], [eventLocation.latitude, eventLocation.longitude]);
   const radiusMeters = Number(eventLocation.radius_feet || 500) * 0.3048;
 
+  const renumberFlags = (items) => items.map((flag, index) => ({ ...flag, label: `Field ${index + 1}`, display_order: index }));
+
   useEffect(() => {
-    if (open) setDraftFlags(flags);
+    if (open) {
+      setDraftFlags(renumberFlags(flags));
+      setDeleteFlag(null);
+      setMapStyle("standard");
+    }
   }, [open, flags]);
 
   const updateFlagLocation = (flag, lat, lng) => {
@@ -97,7 +90,17 @@ export default function EventFlagPlacementModal({ open, onOpenChange, eventLocat
   };
 
   const removeFlag = (flag) => {
-    setDraftFlags((current) => current.filter((item) => item.temp_id !== flag.temp_id && item.id !== flag.id).map((item, index) => ({ ...item, display_order: index })));
+    setDraftFlags((current) => renumberFlags(current.filter((item) => item.temp_id !== flag.temp_id && item.id !== flag.id)));
+    setDeleteFlag(null);
+  };
+
+  const startFlagLongPress = (flag) => {
+    longPressTimerRef.current = setTimeout(() => setDeleteFlag(flag), 650);
+  };
+
+  const clearFlagLongPress = () => {
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
   };
 
   const saveFlags = () => {
@@ -112,12 +115,16 @@ export default function EventFlagPlacementModal({ open, onOpenChange, eventLocat
           <DialogTitle>Place Event Flags</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="rounded-xl bg-[#FBFAF7] p-3 text-sm font-semibold text-[#2C4F4E]">
-            Flags placed: {draftFlags.length}
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[#FBFAF7] p-3 text-sm font-semibold text-[#2C4F4E]">
+            <span>Flags placed: {draftFlags.length}</span>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" variant={mapStyle === "standard" ? "default" : "outline"} onClick={() => setMapStyle("standard")}>Standard</Button>
+              <Button type="button" size="sm" variant={mapStyle === "satellite" ? "default" : "outline"} onClick={() => setMapStyle("satellite")}>Satellite</Button>
+            </div>
           </div>
           <div className="h-[520px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
             <MapContainer center={center} zoom={15} className="h-full w-full" scrollWheelZoom>
-              <VendorEventMapboxTileLayer />
+              <VendorEventMapboxTileLayer mapStyle={mapStyle} />
               <MapBounds center={center} radiusFeet={eventLocation.radius_feet} />
               <Circle center={center} radius={radiusMeters} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12, weight: 2 }} />
               <Marker position={center} />
@@ -127,23 +134,39 @@ export default function EventFlagPlacementModal({ open, onOpenChange, eventLocat
                   position={[Number(flag.latitude), Number(flag.longitude)]}
                   icon={makeFlagIcon(flag.label)}
                   draggable
+                  bubblingMouseEvents={false}
                   eventHandlers={{
+                    mousedown: () => startFlagLongPress(flag),
+                    touchstart: () => startFlagLongPress(flag),
+                    mouseup: clearFlagLongPress,
+                    touchend: clearFlagLongPress,
+                    dragstart: clearFlagLongPress,
                     dragend: (markerEvent) => {
+                      clearFlagLongPress();
                       const position = markerEvent.target.getLatLng();
                       updateFlagLocation(flag, position.lat, position.lng);
                     },
                   }}
                 />
               ))}
-              <LongPressHandler eventLocation={eventLocation} flags={draftFlags} onAddFlag={(flag) => setDraftFlags((current) => [...current, flag])} />
+              <MapTapHandler eventLocation={eventLocation} flags={draftFlags} onAddFlag={(flag) => setDraftFlags((current) => renumberFlags([...current, flag]))} />
             </MapContainer>
           </div>
+          {deleteFlag && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <span className="font-semibold text-red-700">Delete {deleteFlag.label}?</span>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setDeleteFlag(null)}>Cancel</Button>
+                <Button type="button" size="sm" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => removeFlag(deleteFlag)}>Delete Flag</Button>
+              </div>
+            </div>
+          )}
           {draftFlags.length > 0 && (
             <div className="grid gap-2 sm:grid-cols-2">
               {draftFlags.map((flag) => (
                 <div key={flag.temp_id || flag.id} className="flex items-center justify-between gap-3 rounded-xl border bg-white p-3 text-sm">
                   <span className="font-bold text-[#2C4F4E]">{flag.label}</span>
-                  <Button type="button" variant="outline" size="sm" onClick={() => removeFlag(flag)}>Remove</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setDeleteFlag(flag)}>Remove</Button>
                 </div>
               ))}
             </div>

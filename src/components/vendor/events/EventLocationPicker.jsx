@@ -102,6 +102,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const [radius, setRadius] = useState(value?.radius_feet || 500);
   const [flags, setFlags] = useState(value?.flags || []);
   const [showFlagPlacement, setShowFlagPlacement] = useState(false);
+  const [mapStyle, setMapStyle] = useState("standard");
   const showRadius = eventType === "multi_spot" || eventType === "multi_location";
   const showSuggestions = searchFocused && searchQuery.trim().length >= 3 && (addressSuggestions.length > 0 || searching);
 
@@ -121,6 +122,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     setDisplayAddressIsDifferent(isCustomDisplay);
     setRadius(value?.radius_feet || 500);
     setFlags(value?.flags || []);
+    setMapStyle("standard");
   }, [open, value]);
 
   useEffect(() => {
@@ -238,14 +240,20 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             )}
           </div>
 
-          <div className="h-[360px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
-            <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom>
-              <VendorEventMapboxTileLayer />
+          <div className="space-y-2">
+            <div className="flex justify-end gap-2">
+              <Button type="button" size="sm" variant={mapStyle === "standard" ? "default" : "outline"} onClick={() => setMapStyle("standard")}>Standard</Button>
+              <Button type="button" size="sm" variant={mapStyle === "satellite" ? "default" : "outline"} onClick={() => setMapStyle("satellite")}>Satellite</Button>
+            </div>
+            <div className="h-[360px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
+              <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom>
+                <VendorEventMapboxTileLayer mapStyle={mapStyle} />
               <RecenterMap center={center} />
               <LocationClickHandler onSelect={selectMapLocation} />
-              {selected && showRadius && <Circle center={[selected.latitude, selected.longitude]} radius={Number(radius || 500) * 0.3048} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12, weight: 2 }} />}
-              {selected && <Marker position={[selected.latitude, selected.longitude]} />}
-            </MapContainer>
+                {selected && showRadius && <Circle center={[selected.latitude, selected.longitude]} radius={Number(radius || 500) * 0.3048} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12, weight: 2 }} />}
+                {selected && <Marker position={[selected.latitude, selected.longitude]} />}
+              </MapContainer>
+            </div>
           </div>
 
           {selectedAddress && (
