@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
+import { safeBack } from "@/utils";
 
 const MAX_DISTANCE_METERS = 106.68;
 const TIME_SLOTS = [
@@ -234,7 +235,7 @@ export default function VendorPinPreview() {
   return (
     <div className="min-h-screen bg-[#FBFAF7] p-4 sm:p-6">
       <div className="max-w-5xl mx-auto space-y-4">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2"><ArrowLeft className="h-4 w-4" /> Back</Button>
+        <Button variant="ghost" onClick={() => safeBack(navigate, "/VendorDashboard?tab=pins")} className="gap-2"><ArrowLeft className="h-4 w-4" /> Back</Button>
 
         <Card className="rounded-3xl overflow-hidden">
           <CardHeader className="bg-[#5DADA5] text-white">

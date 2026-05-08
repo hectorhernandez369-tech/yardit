@@ -11,6 +11,7 @@ import { ArrowLeft, CalendarDays, Loader2, MapPin, Share2, Store, UserCircle } f
 import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 import { toast } from "sonner";
+import { safeBack } from "@/utils";
 import PublicEventUpdates from "@/components/vendor/events/PublicEventUpdates";
 import PublicVendorCard from "@/components/vendor/events/PublicVendorCard";
 
@@ -131,7 +132,7 @@ export default function VendorEventDetail() {
   return (
     <div className="bg-[#F3E6CF] min-h-screen">
       <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-5">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2 text-[#2C4F4E]">
+        <Button variant="ghost" onClick={() => safeBack(navigate, "/VendorDashboard?tab=events")} className="gap-2 text-[#2C4F4E]">
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
         <section className="rounded-3xl overflow-hidden bg-white border border-[#2C4F4E]/10 shadow-sm">

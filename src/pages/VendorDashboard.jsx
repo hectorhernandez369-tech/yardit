@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,9 +20,11 @@ import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup
 import { hasValidVendorPortalSession } from "@/lib/vendorPasscode";
 
 export default function VendorDashboard() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const requestedTab = urlParams.get("tab") || "profile";
+  const [activeTab, setActiveTab] = useState(requestedTab);
   const [portalUnlocked, setPortalUnlocked] = useState(false);
   const [showSetupReminder, setShowSetupReminder] = useState(true);
 
@@ -91,6 +94,15 @@ export default function VendorDashboard() {
   const setupProgress = getVendorSetupProgress(account, pins);
 
   useEffect(() => {
+    setActiveTab(requestedTab);
+  }, [requestedTab]);
+
+  const handleTabChange = (nextTab) => {
+    setActiveTab(nextTab);
+    navigate(`/VendorDashboard?tab=${nextTab}`, { replace: true });
+  };
+
+  useEffect(() => {
     if (isOwner || (account?.id && user?.email && hasValidVendorPortalSession(account.id, user.email))) {
       setPortalUnlocked(true);
     } else {
@@ -146,7 +158,7 @@ export default function VendorDashboard() {
 
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-[#FBFAF7]">
-      <Tabs defaultValue={requestedTab} className="space-y-0 min-w-0">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0 min-w-0">
         <div className="bg-[#5DADA5] text-white">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-5">
             <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} />

@@ -33,10 +33,16 @@ export function getSafeBackTarget(fallbackRoute: string, explicitRoute?: string 
 }
 
 export function safeBack(navigate: (to: string | number) => void, fallbackRoute: string, explicitRoute?: string | null) {
+    const target = getSafeBackTarget(fallbackRoute, explicitRoute);
+    if (target) {
+        navigate(target);
+        return;
+    }
+
     if (typeof window !== 'undefined' && window.history.length > 1) {
         navigate(-1);
         return;
     }
 
-    navigate(getSafeBackTarget(fallbackRoute, explicitRoute));
+    navigate(fallbackRoute);
 }

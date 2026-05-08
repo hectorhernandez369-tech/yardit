@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Store } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
+import { safeBack } from "@/utils";
 import VendorPublicPreview from "@/components/vendor/my-page/VendorPublicPreview";
 
 export default function VendorPublicPage() {
@@ -55,7 +56,7 @@ export default function VendorPublicPage() {
 
   return (
     <div className="mx-auto max-w-5xl p-3 pb-24 sm:p-6">
-      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 gap-2 text-[#2C4F4E]">
+      <Button variant="ghost" onClick={() => safeBack(navigate, "/VendorDashboard")} className="mb-3 gap-2 text-[#2C4F4E]">
         <ArrowLeft className="h-4 w-4" /> Back
       </Button>
       <VendorPublicPreview account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refetchUpdates} />

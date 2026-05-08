@@ -117,7 +117,7 @@ export default function VendorEventsTab({ account, user }) {
               canManage={event.organizer_business_id === account.id}
               onEdit={() => setEditingEvent(event)}
               onManage={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
-              onView={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
+              onView={() => navigate(`/VendorEventDetail?id=${event.id}`)}
             />
           )) : (
             <Card><CardContent className="p-8 text-center text-slate-500">No vendor events found.</CardContent></Card>

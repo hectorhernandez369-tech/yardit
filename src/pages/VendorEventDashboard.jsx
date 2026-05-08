@@ -13,8 +13,11 @@ import CollapsiblePanel from "@/components/vendor/events/CollapsiblePanel";
 import EventUpdatesManager from "@/components/vendor/events/EventUpdatesManager";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 import { toast } from "sonner";
+import { safeBack } from "@/utils";
+import { useNavigate } from "react-router-dom";
 
 export default function VendorEventDashboard() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const eventId = new URLSearchParams(window.location.search).get("id");
   const [showInviteVendors, setShowInviteVendors] = useState(false);
@@ -71,7 +74,7 @@ export default function VendorEventDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-4">
-      <Button variant="outline" onClick={() => window.history.back()} className="bg-white">
+      <Button variant="outline" onClick={() => safeBack(navigate, "/VendorDashboard?tab=events")} className="bg-white">
         <ArrowLeft className="h-4 w-4" /> Back
       </Button>
 
