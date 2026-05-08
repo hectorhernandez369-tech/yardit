@@ -24,7 +24,9 @@ const initialForm = {
   endDateTime: "",
   open_to_vendors: false,
   vendor_invitation_description: "",
-  vendor_fee_type: "none",
+  vendor_fee_type: "set_space_fee",
+  vendor_payment_type: "reserve_deposit",
+  reserve_deposit_percentage: "20",
   vendor_general_fee: "",
   vendor_space_options: [],
   allow_custom_spaces: false,
@@ -56,7 +58,9 @@ const buildInitialForm = (event) => event ? {
   endDateTime: toLocalDateTimeValue(event.endDateTime),
   open_to_vendors: !!event.open_to_vendors,
   vendor_invitation_description: event.vendor_invitation_description || "",
-  vendor_fee_type: event.vendor_fee_type || "none",
+  vendor_fee_type: event.vendor_fee_type && event.vendor_fee_type !== "none" ? event.vendor_fee_type : "set_space_fee",
+  vendor_payment_type: event.vendor_payment_type || "reserve_deposit",
+  reserve_deposit_percentage: event.reserve_deposit_percentage || "20",
   vendor_general_fee: event.vendor_general_fee || "",
   vendor_space_options: event.vendor_space_options || [],
   allow_custom_spaces: !!event.allow_custom_spaces,
@@ -79,6 +83,13 @@ export default function VendorEventForm({ account, user, event = null, approvedV
   const addSpaceOption = () => update("vendor_space_options", [...form.vendor_space_options, { label: "", width: "", depth: "", price: "", quantity: "" }]);
   const updateSpaceOption = (index, key, value) => update("vendor_space_options", form.vendor_space_options.map((option, optionIndex) => optionIndex === index ? { ...option, [key]: value } : option));
   const removeSpaceOption = (index) => update("vendor_space_options", form.vendor_space_options.filter((_, optionIndex) => optionIndex !== index));
+  const formatMoney = (value) => `$${Number(value || 0).toFixed(0)}`;
+  const previewSpace = form.vendor_space_options.find((option) => Number(option.price) > 0);
+  const previewPrice = Number(previewSpace?.price || 0);
+  const reservePercent = Number(form.reserve_deposit_percentage || 20);
+  const reserveDue = previewPrice * (reservePercent / 100);
+  const splitAmount = reserveDue / 2;
+  const remainingBalance = Math.max(previewPrice - reserveDue, 0);
 
   const saveEvent = async (status) => {
     if (!form.title || !form.startDateTime || !form.endDateTime || !form.latitude || !form.longitude) {
@@ -123,7 +134,9 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       endDateTime: datesLocked ? event.endDateTime : new Date(form.endDateTime).toISOString(),
       open_to_vendors: form.open_to_vendors,
       vendor_invitation_description: form.vendor_invitation_description,
-      vendor_fee_type: form.open_to_vendors ? form.vendor_fee_type : "none",
+      vendor_fee_type: form.open_to_vendors ? "set_space_fee" : "none",
+      vendor_payment_type: form.open_to_vendors ? form.vendor_payment_type : "no_online_payment",
+      reserve_deposit_percentage: form.open_to_vendors ? Number(form.reserve_deposit_percentage || 20) : null,
       vendor_general_fee: form.vendor_fee_type === "general_fee" ? Number(form.vendor_general_fee || 0) : 0,
       vendor_space_options: form.vendor_fee_type === "set_space_fee" ? form.vendor_space_options.map((option) => ({ label: option.label, width: Number(option.width || 0), depth: Number(option.depth || 0), price: Number(option.price || 0), quantity: option.quantity ? Number(option.quantity) : null })) : [],
       allow_custom_spaces: form.allow_custom_spaces,
@@ -192,40 +205,115 @@ export default function VendorEventForm({ account, user, event = null, approvedV
         </label>
 
         {form.open_to_vendors && (
-          <div className="space-y-3">
-            <Textarea placeholder="Vendor invitation description" value={form.vendor_invitation_description} onChange={(e) => update("vendor_invitation_description", e.target.value)} />
-            <Select value={form.vendor_fee_type} onValueChange={(value) => update("vendor_fee_type", value)}>
-              <SelectTrigger><SelectValue placeholder="Attendance cost type" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No fee</SelectItem>
-                <SelectItem value="general_fee">General fee</SelectItem>
-                <SelectItem value="set_space_fee">Set space fee</SelectItem>
-              </SelectContent>
-            </Select>
-            {form.vendor_fee_type === "general_fee" && <Input type="number" placeholder="Fee amount" value={form.vendor_general_fee} onChange={(e) => update("vendor_general_fee", e.target.value)} />}
-            {form.vendor_fee_type === "set_space_fee" && (
-              <div className="space-y-3">
-                <Label>Custom space fee options</Label>
-                {form.vendor_space_options.map((option, index) => (
-                  <div key={index} className="rounded-xl border bg-white p-3 space-y-2">
-                    <div className="grid gap-2 sm:grid-cols-5">
-                      <Input placeholder="Space label/name" value={option.label} onChange={(e) => updateSpaceOption(index, "label", e.target.value)} />
-                      <Input type="number" placeholder="Width" value={option.width} onChange={(e) => updateSpaceOption(index, "width", e.target.value)} />
-                      <Input type="number" placeholder="Depth" value={option.depth} onChange={(e) => updateSpaceOption(index, "depth", e.target.value)} />
-                      <Input type="number" placeholder="Price" value={option.price} onChange={(e) => updateSpaceOption(index, "price", e.target.value)} />
-                      <Input type="number" placeholder="Quantity optional" value={option.quantity} onChange={(e) => updateSpaceOption(index, "quantity", e.target.value)} />
-                    </div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => removeSpaceOption(index)}>Remove</Button>
-                  </div>
-                ))}
-                <Button type="button" variant="outline" onClick={addSpaceOption}>Add Space Option</Button>
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.allow_custom_spaces} onChange={(e) => update("allow_custom_spaces", e.target.checked)} />Allow custom spaces</label>
+          <div className="space-y-4">
+            <div className="rounded-xl border bg-white p-4 space-y-3">
+              <div>
+                <h3 className="font-black text-[#2C4F4E]">Vendor Invitation Info</h3>
+                <p className="text-xs text-slate-500">Tell vendors what to expect before they request or reserve a spot.</p>
               </div>
-            )}
-            <Textarea placeholder="Vendor instructions" value={form.vendor_instructions} onChange={(e) => update("vendor_instructions", e.target.value)} />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input type="date" value={form.vendor_deadline} onChange={(e) => update("vendor_deadline", e.target.value)} />
-              <Input type="number" placeholder="Max vendors required" value={form.max_vendors} onChange={(e) => update("max_vendors", e.target.value)} />
+              <div className="space-y-1">
+                <Label className="text-sm font-bold text-[#2C4F4E]">Vendor Invitation Description</Label>
+                <Textarea placeholder="Describe why vendors should join this event" value={form.vendor_invitation_description} onChange={(e) => update("vendor_invitation_description", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-bold text-[#2C4F4E]">Vendor Instructions</Label>
+                <Textarea placeholder="Setup instructions, arrival details, power access, parking, or other notes" value={form.vendor_instructions} onChange={(e) => update("vendor_instructions", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-bold text-[#2C4F4E]">Vendor Signup Deadline</Label>
+                <Input type="date" value={form.vendor_deadline} onChange={(e) => update("vendor_deadline", e.target.value)} />
+                <p className="text-xs text-slate-500">Last day vendors can reserve or request to join this event.</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border bg-white p-4 space-y-3">
+              <div>
+                <h3 className="font-black text-[#2C4F4E]">Space Options</h3>
+                <p className="text-xs text-slate-500">Create the space types vendors can reserve.</p>
+              </div>
+              {form.vendor_space_options.map((option, index) => (
+                <div key={index} className="rounded-xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3 space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+                      <Label className="text-xs font-bold text-[#2C4F4E]">Space Type / Name</Label>
+                      <Input placeholder="Non-food Vendor, Food Truck, 10x10 Booth" value={option.label} onChange={(e) => updateSpaceOption(index, "label", e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-[#2C4F4E]">Width (feet)</Label>
+                      <Input type="number" placeholder="10" value={option.width} onChange={(e) => updateSpaceOption(index, "width", e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-[#2C4F4E]">Depth (feet)</Label>
+                      <Input type="number" placeholder="10" value={option.depth} onChange={(e) => updateSpaceOption(index, "depth", e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-[#2C4F4E]">Price</Label>
+                      <Input type="number" placeholder="150" value={option.price} onChange={(e) => updateSpaceOption(index, "price", e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-[#2C4F4E]">Quantity Available</Label>
+                      <Input type="number" placeholder="5" value={option.quantity} onChange={(e) => updateSpaceOption(index, "quantity", e.target.value)} />
+                    </div>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => removeSpaceOption(index)}>Remove Space Option</Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" onClick={addSpaceOption}>Add Space Option</Button>
+              <label className="flex items-start gap-2 text-sm text-slate-700">
+                <input className="mt-1" type="checkbox" checked={form.allow_custom_spaces} onChange={(e) => update("allow_custom_spaces", e.target.checked)} />
+                <span><strong>Allow custom spaces</strong><br /><span className="text-xs text-slate-500">Let vendors request a space size that is not listed above.</span></span>
+              </label>
+            </div>
+
+            <div className="rounded-xl border bg-white p-4 space-y-3">
+              <div>
+                <h3 className="font-black text-[#2C4F4E]">Vendor Capacity</h3>
+                <p className="text-xs text-slate-500">This controls how many vendors can reserve or request to join this event.</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm font-bold text-[#2C4F4E]">Maximum Vendors Allowed</Label>
+                <Input type="number" placeholder="10" value={form.max_vendors} onChange={(e) => update("max_vendors", e.target.value)} />
+                {form.max_vendors && <p className="text-xs text-slate-600">{form.max_vendors} maximum vendors</p>}
+              </div>
+            </div>
+
+            <div className="rounded-xl border bg-white p-4 space-y-3">
+              <div>
+                <h3 className="font-black text-[#2C4F4E]">Reserve Payment</h3>
+                <p className="text-xs text-slate-500">Set how vendors reserve their spot online.</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="text-sm font-bold text-[#2C4F4E]">Vendor Payment Type</Label>
+                  <Select value={form.vendor_payment_type} onValueChange={(value) => update("vendor_payment_type", value)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="reserve_deposit">Reserve Deposit</SelectItem>
+                      <SelectItem value="pay_full_amount">Pay Full Amount</SelectItem>
+                      <SelectItem value="no_online_payment">No Online Payment Yet</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">Choose how vendors will pay when reserving a space.</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-bold text-[#2C4F4E]">Reserve Deposit Percentage</Label>
+                  <Input type="number" placeholder="20" value={form.reserve_deposit_percentage} onChange={(e) => update("reserve_deposit_percentage", e.target.value)} />
+                  <p className="text-xs text-slate-500">Vendors pay this percentage to reserve their spot. Yardit and the event organizer split this reserve payment.</p>
+                </div>
+              </div>
+              <div className="rounded-xl bg-[#FBFAF7] p-3 text-sm text-slate-700 space-y-1">
+                <p className="font-bold text-[#2C4F4E]">Split Preview{previewSpace?.label ? ` for ${previewSpace.label}` : ""}</p>
+                {previewPrice > 0 ? (
+                  <>
+                    <p>Reserve due today: {formatMoney(reserveDue)}</p>
+                    <p>Organizer receives: {formatMoney(splitAmount)}</p>
+                    <p>Yardit receives: {formatMoney(splitAmount)}</p>
+                    <p>Vendor pays remaining balance later: {formatMoney(remainingBalance)}</p>
+                  </>
+                ) : (
+                  <p>Add a space option price to preview the reserve payment split.</p>
+                )}
+              </div>
             </div>
           </div>
         )}

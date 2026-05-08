@@ -72,6 +72,21 @@
       "default": "none",
       "description": "Vendor attendance fee type"
     },
+    "vendor_payment_type": {
+      "type": "string",
+      "enum": [
+        "reserve_deposit",
+        "pay_full_amount",
+        "no_online_payment"
+      ],
+      "default": "reserve_deposit",
+      "description": "How vendors pay to reserve their event space"
+    },
+    "reserve_deposit_percentage": {
+      "type": "number",
+      "default": 20,
+      "description": "Percentage vendors pay online to reserve their spot"
+    },
     "vendor_general_fee": {
       "type": "number",
       "description": "General vendor attendance fee"
