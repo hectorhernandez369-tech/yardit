@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { VENDOR_EVENT_TYPES } from "@/lib/vendorEvents";
 import EventLocationPicker from "./EventLocationPicker";
 import InviteVendorsModal from "./InviteVendorsModal";
+import CollapsiblePanel from "./CollapsiblePanel";
 import { toast } from "sonner";
 
 const initialForm = {
@@ -219,11 +220,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
 
         {form.open_to_vendors && (
           <div className="space-y-4">
-            <div className="rounded-xl border bg-white p-4 space-y-3">
-              <div>
-                <h3 className="font-black text-[#2C4F4E]">Vendor Invitation Info</h3>
-                <p className="text-xs text-slate-500">Tell vendors what to expect before they request or reserve a spot.</p>
-              </div>
+            <CollapsiblePanel title="Vendor Invitation Info" description="Tell vendors what to expect before they request or reserve a spot." defaultOpen>
               <div className="space-y-1">
                 <Label className="text-sm font-bold text-[#2C4F4E]">Vendor Invitation Description</Label>
                 <Textarea placeholder="Describe why vendors should join this event" value={form.vendor_invitation_description} onChange={(e) => update("vendor_invitation_description", e.target.value)} />
@@ -237,13 +234,9 @@ export default function VendorEventForm({ account, user, event = null, approvedV
                 <Input type="date" value={form.vendor_deadline} onChange={(e) => update("vendor_deadline", e.target.value)} />
                 <p className="text-xs text-slate-500">Last day vendors can reserve or request to join this event.</p>
               </div>
-            </div>
+            </CollapsiblePanel>
 
-            <div className="rounded-xl border bg-white p-4 space-y-3">
-              <div>
-                <h3 className="font-black text-[#2C4F4E]">Space Options</h3>
-                <p className="text-xs text-slate-500">Create the space types vendors can reserve.</p>
-              </div>
+            <CollapsiblePanel title="Space Options" description="Create the space types vendors can reserve." count={form.vendor_space_options.length} defaultOpen>
               {form.vendor_space_options.map((option, index) => (
                 <div key={index} className="rounded-xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3 space-y-3">
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -276,25 +269,17 @@ export default function VendorEventForm({ account, user, event = null, approvedV
                 <input className="mt-1" type="checkbox" checked={form.allow_custom_spaces} onChange={(e) => update("allow_custom_spaces", e.target.checked)} />
                 <span><strong>Allow custom spaces</strong><br /><span className="text-xs text-slate-500">Let vendors request a space size that is not listed above.</span></span>
               </label>
-            </div>
+            </CollapsiblePanel>
 
-            <div className="rounded-xl border bg-white p-4 space-y-3">
-              <div>
-                <h3 className="font-black text-[#2C4F4E]">Vendor Capacity</h3>
-                <p className="text-xs text-slate-500">This controls how many vendors can reserve or request to join this event.</p>
-              </div>
+            <CollapsiblePanel title="Vendor Capacity" description="This controls how many vendors can reserve or request to join this event." defaultOpen>
               <div className="space-y-1">
                 <Label className="text-sm font-bold text-[#2C4F4E]">Maximum Vendors Allowed</Label>
                 <Input type="number" placeholder="10" value={form.max_vendors} onChange={(e) => update("max_vendors", e.target.value)} />
                 {form.max_vendors && <p className="text-xs text-slate-600">{form.max_vendors} maximum vendors</p>}
               </div>
-            </div>
+            </CollapsiblePanel>
 
-            <div className="rounded-xl border bg-white p-4 space-y-3">
-              <div>
-                <h3 className="font-black text-[#2C4F4E]">Reserve Payment</h3>
-                <p className="text-xs text-slate-500">Set how vendors reserve their spot online.</p>
-              </div>
+            <CollapsiblePanel title="Reserve Payment" description="Set how vendors reserve their spot online." defaultOpen>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <Label className="text-sm font-bold text-[#2C4F4E]">Vendor Payment Type</Label>
@@ -327,7 +312,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
                   <p>Add a space option price to preview the reserve payment split.</p>
                 )}
               </div>
-            </div>
+            </CollapsiblePanel>
           </div>
         )}
       </div>}

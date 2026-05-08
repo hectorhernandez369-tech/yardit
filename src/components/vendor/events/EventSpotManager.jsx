@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { calculateMiles } from "@/lib/vendorEvents";
 import { toast } from "sonner";
+import CollapsiblePanel from "./CollapsiblePanel";
 
 export default function EventSpotManager({ event, spots, onRefresh }) {
   const [form, setForm] = useState({ title: "", description: "", mini_schedule: "", photo: "", latitude: "", longitude: "" });
@@ -32,9 +32,7 @@ export default function EventSpotManager({ event, spots, onRefresh }) {
   };
 
   return (
-    <Card className="rounded-2xl">
-      <CardContent className="p-5 space-y-4">
-        <h3 className="text-lg font-black text-[#2C4F4E]">Multi-spot tools</h3>
+    <CollapsiblePanel title="Multi-spot tools" description="Add and review individual event spots." count={spots.length}>
         <div className="grid gap-2 sm:grid-cols-2">
           <Input placeholder="Spot name" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <Input placeholder="Photo URL optional" value={form.photo} onChange={(e) => setForm({ ...form, photo: e.target.value })} />
@@ -47,7 +45,6 @@ export default function EventSpotManager({ event, spots, onRefresh }) {
         <div className="grid gap-2 sm:grid-cols-2">
           {spots.map((spot) => <div key={spot.id} className="rounded-xl border p-3"><p className="font-bold">{spot.title}</p><p className="text-sm text-slate-600">{spot.description}</p></div>)}
         </div>
-      </CardContent>
-    </Card>
+    </CollapsiblePanel>
   );
 }
