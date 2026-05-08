@@ -59,7 +59,8 @@ export default function VendorEventDetail() {
   const hasExistingVendorStatus = alreadyAttending || !!requestRecord || (inviteRecord && blockedStatuses.includes(inviteRecord.status));
   const canRequest = authChecked && !!vendorAccount && event?.open_to_vendors && !isFull && !hasExistingVendorStatus;
   const organizerAccount = vendorById[event?.organizer_business_id];
-  const heroImage = event?.photos?.[0] || event?.logo || organizerAccount?.featured_photo_url || organizerAccount?.business_logo;
+  const isFlyerPdf = event?.flyer_url?.toLowerCase?.().includes(".pdf");
+  const heroImage = !isFlyerPdf && event?.flyer_url ? event.flyer_url : event?.photos?.[0] || event?.logo || organizerAccount?.featured_photo_url || organizerAccount?.business_logo;
 
   const refreshPublicData = () => {
     queryClient.invalidateQueries({ queryKey: ["publicEventAttendees", eventId] });
@@ -136,6 +137,7 @@ export default function VendorEventDetail() {
             <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8 text-white space-y-3">
               <div className="flex flex-wrap gap-2"><Badge className="bg-[#5DADA5] text-white">{getVendorEventStatus(event)}</Badge><Badge className="bg-white text-[#2C4F4E]">{event.category || "Vendor Event"}</Badge><Badge className="bg-[#F4A849] text-[#2C4F4E]">{formatVendorEventType(event.event_type)}</Badge></div>
               <h1 className="text-3xl sm:text-5xl font-black leading-tight">{event.title}</h1>
+              {isFlyerPdf && <a href={event.flyer_url} target="_blank" rel="noreferrer" className="inline-flex rounded-full bg-white px-4 py-2 text-sm font-bold text-[#2C4F4E] shadow">View Event Flyer</a>}
             </div>
           </div>
         </section>
