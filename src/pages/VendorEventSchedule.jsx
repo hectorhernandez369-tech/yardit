@@ -58,7 +58,7 @@ export default function VendorEventSchedule() {
     if (savedEntries.length) {
       setRows(savedEntries.map((entry) => ({ ...entry, isBlank: false })));
     } else {
-      setRows(buildBlankScheduleRows(10, fields, event.startDateTime, timeBetweenMinutes));
+      setRows(buildBlankScheduleRows(1, fields, event.startDateTime, timeBetweenMinutes));
     }
   }, [event, fields, isLoadingEntries, rows.length, savedEntries, timeBetweenMinutes]);
 
@@ -98,8 +98,8 @@ export default function VendorEventSchedule() {
             <div><h1 className="text-3xl font-black text-[#2C4F4E]">Schedule Manager</h1><p className="text-xl font-bold text-slate-800">{event.title}</p><p className="flex items-center gap-2 text-sm text-slate-600"><CalendarDays className="h-4 w-4 text-[#F4A849]" /> {format(new Date(event.startDateTime), "PPp")} - {format(new Date(event.endDateTime), "PPp")}</p></div>
             <div className="grid w-full min-w-0 gap-3 sm:grid-cols-3 lg:max-w-[520px]">
               <label className="text-sm font-bold text-[#2C4F4E]">Time Between Events<Input className="mt-1" type="number" value={timeBetweenMinutes} onChange={(e) => setTimeBetweenMinutes(Number(e.target.value || 0))} /></label>
-              <label className="text-sm font-bold text-[#2C4F4E]">Add Slots<Input className="mt-1" type="number" value={bulkCount} onChange={(e) => setBulkCount(Number(e.target.value || 0))} /></label>
-              <div className="flex items-end"><Button type="button" variant="outline" onClick={addBulkSlots} className="w-full"><Plus className="h-4 w-4" /> Add Slots</Button></div>
+              <label className="text-sm font-bold text-[#2C4F4E]">Add Multiple Slots<Input className="mt-1" type="number" value={bulkCount} onChange={(e) => setBulkCount(Number(e.target.value || 0))} /></label>
+              <div className="flex items-end"><Button type="button" variant="outline" onClick={addBulkSlots} className="w-full"><Plus className="h-4 w-4" /> Add Multiple Slots</Button></div>
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm font-bold text-[#2C4F4E]"><Switch checked={groupByField} onCheckedChange={setGroupByField} /> Group by Field</label>
