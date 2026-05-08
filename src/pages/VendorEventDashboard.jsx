@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { format } from "date-fns";
 import EventSpotManager from "@/components/vendor/events/EventSpotManager";
 import InviteVendorsModal from "@/components/vendor/events/InviteVendorsModal";
+import VendorEventForm from "@/components/vendor/events/VendorEventForm";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 import { toast } from "sonner";
 
@@ -24,6 +25,7 @@ export default function VendorEventDashboard() {
   const { data: invites = [] } = useQuery({ queryKey: ["eventInvites", eventId], queryFn: () => base44.entities.EventInviteCode.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: vendorInvites = [] } = useQuery({ queryKey: ["eventVendorInvites", eventId], queryFn: () => base44.entities.EventVendorInvite.filter({ event_id: eventId }, "-created_date"), enabled: !!eventId, initialData: [] });
   const { data: vendorAccounts = [] } = useQuery({ queryKey: ["eventInviteVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
+  const organizerAccount = vendorAccounts.find((account) => account.id === event?.organizer_business_id);
 
   const pendingRequests = useMemo(() => requests.filter((request) => request.status === "pending"), [requests]);
   const invitedVendors = useMemo(() => vendorInvites.filter((invite) => invite.status === "invited"), [vendorInvites]);
@@ -78,7 +80,6 @@ export default function VendorEventDashboard() {
               <p className="text-slate-600">{formatVendorEventType(event.event_type)} · {event.category}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={isFull} onClick={() => setShowInviteVendors(true)}><Mail className="h-4 w-4" /> Invite Vendors</Button>
               <Button variant="outline" onClick={() => window.location.href = `/VendorEventDetail?id=${event.id}`}>Public Detail Page</Button>
             </div>
           </div>
@@ -91,6 +92,28 @@ export default function VendorEventDashboard() {
             {event.max_vendors && <p><strong>Vendor capacity:</strong> {attendees.length} / {event.max_vendors} spots filled{spotsLeft !== null ? ` · ${spotsLeft} remaining` : ""}</p>}
           </div>
           {invites[0] && <div className="rounded-xl bg-[#FBFAF7] p-3 text-sm"><strong>Invite link:</strong> {invites[0].invite_link}</div>}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl bg-white">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-black text-[#2C4F4E]">Vendor Management</h2>
+              <p className="text-sm text-slate-600">Manage how vendors join, pay, reserve space, and get approved.</p>
+            </div>
+            <Button variant="outline" disabled={isFull} onClick={() => setShowInviteVendors(true)}><Mail className="h-4 w-4" /> Invite Vendors</Button>
+          </div>
+          {organizerAccount && (
+            <VendorEventForm
+              account={organizerAccount}
+              user={{ id: event.organizer_user_id }}
+              event={event}
+              approvedVendorCount={attendees.length}
+              mode="vendor"
+              onCreated={() => queryClient.invalidateQueries({ queryKey: ["vendorEvent", eventId] })}
+            />
+          )}
         </CardContent>
       </Card>
 

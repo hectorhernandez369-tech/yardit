@@ -70,8 +70,10 @@ const buildInitialForm = (event) => event ? {
   status: event.status || "draft",
 } : initialForm;
 
-export default function VendorEventForm({ account, user, event = null, approvedVendorCount = 0, onCreated }) {
+export default function VendorEventForm({ account, user, event = null, approvedVendorCount = 0, mode = "full", onCreated }) {
   const isEditing = !!event?.id;
+  const showPublicFields = mode !== "vendor";
+  const showVendorFields = mode !== "public";
   const datesLocked = isEditing && approvedVendorCount > 0;
   const [form, setForm] = useState(buildInitialForm(event));
   const [saving, setSaving] = useState(false);
@@ -97,17 +99,17 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       return;
     }
 
-    if (form.open_to_vendors && (!form.max_vendors || Number(form.max_vendors) <= 0)) {
+    if (showVendorFields && form.open_to_vendors && (!form.max_vendors || Number(form.max_vendors) <= 0)) {
       toast.error("Please add max vendors before opening this event to vendors.");
       return;
     }
 
-    if (form.open_to_vendors && form.vendor_fee_type === "none") {
+    if (showVendorFields && form.open_to_vendors && form.vendor_fee_type === "none") {
       toast.error("Please choose a vendor fee setup.");
       return;
     }
 
-    if (form.open_to_vendors && form.vendor_fee_type === "set_space_fee" && form.vendor_space_options.length === 0) {
+    if (showVendorFields && form.open_to_vendors && form.vendor_fee_type === "set_space_fee" && form.vendor_space_options.length === 0) {
       toast.error("Please add at least one space option.");
       return;
     }
@@ -171,37 +173,48 @@ export default function VendorEventForm({ account, user, event = null, approvedV
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Input placeholder="Event name" value={form.title} onChange={(e) => update("title", e.target.value)} />
-        <Input placeholder="Category" value={form.category} onChange={(e) => update("category", e.target.value)} />
-        <Select value={form.event_type} onValueChange={(value) => update("event_type", value)}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>{VENDOR_EVENT_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent>
-        </Select>
-        <div className="sm:col-span-2 rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-[#2C4F4E]">Event location</p>
-            <p className="text-sm text-slate-600">{form.display_address || "No location selected yet"}</p>
+      {showPublicFields && (
+        <>
+          <div className="rounded-xl bg-[#FBFAF7] border border-[#2C4F4E]/10 p-3 text-sm text-slate-600">
+            <strong className="text-[#2C4F4E]">Edit Details</strong> controls what customers and attendees see on the public event page.
           </div>
-          <Button type="button" variant="outline" onClick={() => setShowLocationPicker(true)}>Choose Event Location</Button>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-sm font-bold text-[#2C4F4E]">Start date & time</Label>
-          <Input type="datetime-local" value={form.startDateTime} disabled={datesLocked} onChange={(e) => update("startDateTime", e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-sm font-bold text-[#2C4F4E]">End date & time</Label>
-          <Input type="datetime-local" value={form.endDateTime} disabled={datesLocked} onChange={(e) => update("endDateTime", e.target.value)} />
-          {datesLocked && <p className="text-xs text-amber-700">Dates cannot be changed once at least one vendor is approved.</p>}
-        </div>
-      </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input placeholder="Event name" value={form.title} onChange={(e) => update("title", e.target.value)} />
+            <Input placeholder="Category" value={form.category} onChange={(e) => update("category", e.target.value)} />
+            <Select value={form.event_type} onValueChange={(value) => update("event_type", value)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{VENDOR_EVENT_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent>
+            </Select>
+            <div className="sm:col-span-2 rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-[#2C4F4E]">Public location / display address</p>
+                <p className="text-sm text-slate-600">{form.display_address || "No location selected yet"}</p>
+              </div>
+              <Button type="button" variant="outline" onClick={() => setShowLocationPicker(true)}>Choose Event Location</Button>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-bold text-[#2C4F4E]">Start date & time</Label>
+              <Input type="datetime-local" value={form.startDateTime} disabled={datesLocked} onChange={(e) => update("startDateTime", e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-bold text-[#2C4F4E]">End date & time</Label>
+              <Input type="datetime-local" value={form.endDateTime} disabled={datesLocked} onChange={(e) => update("endDateTime", e.target.value)} />
+              {datesLocked && <p className="text-xs text-amber-700">Dates cannot be changed once at least one vendor is approved.</p>}
+            </div>
+          </div>
 
-      <Textarea placeholder="Event description" value={form.description} onChange={(e) => update("description", e.target.value)} />
+          <Textarea placeholder="Event description" value={form.description} onChange={(e) => update("description", e.target.value)} />
+        </>
+      )}
 
-      <div className="rounded-2xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-4 space-y-3">
+      {showVendorFields && <div className="rounded-2xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-4 space-y-3">
+        <div>
+          <h3 className="font-black text-[#2C4F4E]">Vendor Management</h3>
+          <p className="text-xs text-slate-500">Vendor Management controls how vendors join, pay, and get approved.</p>
+        </div>
         <label className="flex items-center gap-2 text-sm font-bold text-[#2C4F4E]">
           <input type="checkbox" checked={form.open_to_vendors} onChange={(e) => update("open_to_vendors", e.target.checked)} />
-          Open to vendors
+          Open to Vendors
         </label>
 
         {form.open_to_vendors && (
@@ -298,7 +311,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
                 <div className="space-y-1">
                   <Label className="text-sm font-bold text-[#2C4F4E]">Reserve Deposit Percentage</Label>
                   <Input type="number" placeholder="20" value={form.reserve_deposit_percentage} onChange={(e) => update("reserve_deposit_percentage", e.target.value)} />
-                  <p className="text-xs text-slate-500">Vendors pay this percentage to reserve their spot. Yardit and the event organizer split this reserve payment.</p>
+                  <p className="text-xs text-slate-500">Vendors pay this percentage to reserve their spot. The reserve payment is split between the organizer payout and platform reservation fee.</p>
                 </div>
               </div>
               <div className="rounded-xl bg-[#FBFAF7] p-3 text-sm text-slate-700 space-y-1">
@@ -317,11 +330,11 @@ export default function VendorEventForm({ account, user, event = null, approvedV
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       <div className="flex flex-wrap justify-end gap-2">
         {!isEditing && <Button variant="outline" disabled={saving} onClick={() => saveEvent("draft")}>Save Draft</Button>}
-        <Button variant="outline" disabled={!createdEvent && !isEditing} onClick={() => setShowInviteVendors(true)}>Invite Vendors</Button>
+        {mode === "full" && <Button variant="outline" disabled={!createdEvent && !isEditing} onClick={() => setShowInviteVendors(true)}>Invite Vendors</Button>}
         <Button disabled={saving} onClick={() => saveEvent(isEditing ? form.status || event.status : "published")} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">{isEditing ? "Save Changes" : "Publish Event"}</Button>
       </div>
 

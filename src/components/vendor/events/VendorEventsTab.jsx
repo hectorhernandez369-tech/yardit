@@ -134,13 +134,14 @@ export default function VendorEventsTab({ account, user }) {
 
       <Dialog open={!!editingEvent} onOpenChange={(open) => !open && setEditingEvent(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit Event Details</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit Details — Public Page Details</DialogTitle></DialogHeader>
           {editingEvent && (
             <VendorEventForm
               account={account}
               user={user}
               event={editingEvent}
               approvedVendorCount={editingEvent.approvedVendorCount}
+              mode="public"
               onCreated={() => {
                 queryClient.invalidateQueries({ queryKey: ["vendorEvents"] });
                 setEditingEvent(null);
