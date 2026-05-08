@@ -118,7 +118,7 @@ export default function VendorEventsTab({ account, user }) {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Create Vendor Event</DialogTitle></DialogHeader>
-          <VendorEventForm account={account} user={user} onCreated={() => { setShowCreate(false); queryClient.invalidateQueries({ queryKey: ["vendorEvents"] }); }} />
+          <VendorEventForm account={account} user={user} onCreated={() => { queryClient.invalidateQueries({ queryKey: ["vendorEvents"] }); }} />
         </DialogContent>
       </Dialog>
     </div>

@@ -23,8 +23,13 @@ export default function VendorEventDetail() {
   const event = events[0];
   const { data: attendees = [] } = useQuery({ queryKey: ["publicEventAttendees", eventId], queryFn: () => base44.entities.EventVendorAttendee.filter({ event_id: eventId }, "-created_date"), enabled: !!eventId, initialData: [] });
   const { data: spots = [] } = useQuery({ queryKey: ["publicEventSpots", eventId], queryFn: () => base44.entities.EventSpot.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
+  const { data: vendorInvites = [] } = useQuery({ queryKey: ["publicEventVendorInvites", eventId], queryFn: () => base44.entities.EventVendorInvite.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
 
   const requestToJoin = async () => {
+    if (isFull) {
+      toast.error("This event is full.");
+      return;
+    }
     const user = await base44.auth.me();
     const accounts = await base44.entities.VendorAccount.filter({ owner_user_id: user.id });
     const account = accounts.find((item) => item.is_active !== false) || accounts[0];
@@ -33,6 +38,10 @@ export default function VendorEventDetail() {
       return;
     }
     const autoApprove = !!invite;
+    const existingInvite = vendorInvites.find((item) => item.vendor_business_id === account.id && item.status !== "declined");
+    if (existingInvite) {
+      await base44.entities.EventVendorInvite.update(existingInvite.id, { status: account.vendor_setup_status === "complete" ? "pending_payment" : "pending_setup", updated_at: new Date().toISOString() });
+    }
     const request = await base44.entities.EventVendorRequest.create({
       event_id: event.id,
       vendor_user_id: user.id,

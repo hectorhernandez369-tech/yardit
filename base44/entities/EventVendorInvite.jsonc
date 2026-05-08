@@ -1,0 +1,49 @@
+{
+  "name": "EventVendorInvite",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "VendorEvent ID"
+    },
+    "organizer_user_id": {
+      "type": "string",
+      "description": "Organizer user ID"
+    },
+    "vendor_user_id": {
+      "type": "string",
+      "description": "Invited vendor user ID"
+    },
+    "vendor_business_id": {
+      "type": "string",
+      "description": "Invited VendorAccount ID"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "invited",
+        "accepted",
+        "declined",
+        "pending_setup",
+        "pending_payment",
+        "approved"
+      ],
+      "default": "invited",
+      "description": "Invitation status"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "event_id",
+    "organizer_user_id",
+    "vendor_business_id",
+    "status"
+  ]
+}

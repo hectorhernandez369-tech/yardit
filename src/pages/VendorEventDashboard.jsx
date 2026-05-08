@@ -1,18 +1,20 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import { format } from "date-fns";
 import EventSpotManager from "@/components/vendor/events/EventSpotManager";
+import InviteVendorsModal from "@/components/vendor/events/InviteVendorsModal";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 import { toast } from "sonner";
 
 export default function VendorEventDashboard() {
   const queryClient = useQueryClient();
   const eventId = new URLSearchParams(window.location.search).get("id");
+  const [showInviteVendors, setShowInviteVendors] = useState(false);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["vendorEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
   const event = events[0];
@@ -20,12 +22,19 @@ export default function VendorEventDashboard() {
   const { data: attendees = [] } = useQuery({ queryKey: ["eventVendorAttendees", eventId], queryFn: () => base44.entities.EventVendorAttendee.filter({ event_id: eventId }, "-created_date"), enabled: !!eventId, initialData: [] });
   const { data: spots = [] } = useQuery({ queryKey: ["eventSpots", eventId], queryFn: () => base44.entities.EventSpot.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
   const { data: invites = [] } = useQuery({ queryKey: ["eventInvites", eventId], queryFn: () => base44.entities.EventInviteCode.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
+  const { data: vendorInvites = [] } = useQuery({ queryKey: ["eventVendorInvites", eventId], queryFn: () => base44.entities.EventVendorInvite.filter({ event_id: eventId }, "-created_date"), enabled: !!eventId, initialData: [] });
+  const { data: vendorAccounts = [] } = useQuery({ queryKey: ["eventInviteVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
 
   const pendingRequests = useMemo(() => requests.filter((request) => request.status === "pending"), [requests]);
+  const invitedVendors = useMemo(() => vendorInvites.filter((invite) => invite.status === "invited"), [vendorInvites]);
+  const pendingInvites = useMemo(() => vendorInvites.filter((invite) => ["accepted", "pending_setup", "pending_payment"].includes(invite.status)), [vendorInvites]);
+  const vendorById = useMemo(() => Object.fromEntries(vendorAccounts.map((vendor) => [vendor.id, vendor])), [vendorAccounts]);
   const spotsLeft = event?.max_vendors ? Math.max(Number(event.max_vendors) - attendees.length, 0) : null;
+  const isFull = spotsLeft === 0;
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["eventVendorRequests", eventId] });
     queryClient.invalidateQueries({ queryKey: ["eventVendorAttendees", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["eventVendorInvites", eventId] });
     queryClient.invalidateQueries({ queryKey: ["eventSpots", eventId] });
   };
 
@@ -64,7 +73,10 @@ export default function VendorEventDashboard() {
               <h1 className="text-3xl font-black text-[#2C4F4E]">{event.title}</h1>
               <p className="text-slate-600">{formatVendorEventType(event.event_type)} · {event.category}</p>
             </div>
-            <Button variant="outline" onClick={() => window.location.href = `/VendorEventDetail?id=${event.id}`}>Public Detail Page</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" disabled={isFull} onClick={() => setShowInviteVendors(true)}><Mail className="h-4 w-4" /> Invite Vendors</Button>
+              <Button variant="outline" onClick={() => window.location.href = `/VendorEventDetail?id=${event.id}`}>Public Detail Page</Button>
+            </div>
           </div>
           <p className="text-slate-700">{event.description}</p>
           <div className="grid gap-2 text-sm sm:grid-cols-2">
@@ -72,7 +84,7 @@ export default function VendorEventDashboard() {
             <p><strong>Location:</strong> {event.display_address}</p>
             <p><strong>Organizer:</strong> {event.organizer_business_name}</p>
             {event.open_to_vendors && <p><strong>Vendor setup:</strong> Open to vendors</p>}
-            {event.open_to_vendors && event.max_vendors && <p><strong>Approved vendors:</strong> {attendees.length} / {event.max_vendors}</p>}
+            {event.max_vendors && <p><strong>Vendor capacity:</strong> {attendees.length} / {event.max_vendors} spots filled{spotsLeft !== null ? ` · ${spotsLeft} remaining` : ""}</p>}
           </div>
           {invites[0] && <div className="rounded-xl bg-[#FBFAF7] p-3 text-sm"><strong>Invite link:</strong> {invites[0].invite_link}</div>}
         </CardContent>
@@ -80,12 +92,15 @@ export default function VendorEventDashboard() {
 
       {event.event_type === "multi_spot" && <EventSpotManager event={event} spots={spots} onRefresh={refresh} />}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-2xl"><CardContent className="p-5 space-y-3"><h2 className="text-xl font-black text-[#2C4F4E]">Pending vendor requests</h2>{pendingRequests.length ? pendingRequests.map((request) => <div key={request.id} className="rounded-xl border p-3 space-y-2"><p className="font-bold">{request.business_name}</p><p className="text-sm text-slate-600">{request.request_message}</p><div className="flex gap-2"><Button size="sm" onClick={() => approveRequest(request)}>Approve</Button><Button size="sm" variant="outline" onClick={() => denyRequest(request)}>Deny</Button></div></div>) : <p className="text-sm text-slate-500">No pending requests.</p>}</CardContent></Card>
-        <Card className="rounded-2xl"><CardContent className="p-5 space-y-3"><h2 className="text-xl font-black text-[#2C4F4E]">Approved vendors</h2>{attendees.length ? attendees.map((vendor) => <div key={vendor.id} className="flex items-center gap-3 rounded-xl border p-3">{vendor.logo && <img src={vendor.logo} alt={vendor.business_name} className="h-10 w-10 rounded-full object-cover" />}<span className="font-bold">{vendor.business_name}</span></div>) : <p className="text-sm text-slate-500">No approved vendors yet.</p>}</CardContent></Card>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="rounded-2xl"><CardContent className="p-5 space-y-3"><h2 className="text-xl font-black text-[#2C4F4E]">Invited Vendors ({invitedVendors.length})</h2>{invitedVendors.length ? invitedVendors.map((invite) => { const vendor = vendorById[invite.vendor_business_id]; return <div key={invite.id} className="flex items-center gap-3 rounded-xl border p-3">{vendor?.business_logo && <img src={vendor.business_logo} alt={vendor.business_name} className="h-10 w-10 rounded-full object-cover" />}<div><p className="font-bold">{vendor?.business_name || "Vendor"}</p><p className="text-xs text-slate-500">Invited</p></div></div>; }) : <p className="text-sm text-slate-500">No invited vendors.</p>}</CardContent></Card>
+        <Card className="rounded-2xl"><CardContent className="p-5 space-y-3"><h2 className="text-xl font-black text-[#2C4F4E]">Pending Vendors ({pendingRequests.length + pendingInvites.length})</h2>{pendingInvites.map((invite) => { const vendor = vendorById[invite.vendor_business_id]; return <div key={invite.id} className="rounded-xl border p-3"><p className="font-bold">{vendor?.business_name || "Vendor"}</p><p className="text-xs text-slate-500">{invite.status.replace("_", " ")}</p></div>; })}{pendingRequests.length ? pendingRequests.map((request) => <div key={request.id} className="rounded-xl border p-3 space-y-2"><p className="font-bold">{request.business_name}</p><p className="text-sm text-slate-600">{request.request_message}</p><div className="flex gap-2"><Button size="sm" disabled={isFull} onClick={() => approveRequest(request)}>Approve</Button><Button size="sm" variant="outline" onClick={() => denyRequest(request)}>Deny</Button></div></div>) : null}{!pendingRequests.length && !pendingInvites.length && <p className="text-sm text-slate-500">No pending vendors.</p>}</CardContent></Card>
+        <Card className="rounded-2xl"><CardContent className="p-5 space-y-3"><h2 className="text-xl font-black text-[#2C4F4E]">Approved Vendors ({attendees.length})</h2>{attendees.length ? attendees.map((vendor) => <div key={vendor.id} className="flex items-center gap-3 rounded-xl border p-3">{vendor.logo && <img src={vendor.logo} alt={vendor.business_name} className="h-10 w-10 rounded-full object-cover" />}<span className="font-bold">{vendor.business_name}</span></div>) : <p className="text-sm text-slate-500">No approved vendors yet.</p>}</CardContent></Card>
       </div>
 
       <Card className="rounded-2xl"><CardContent className="p-5"><h2 className="text-xl font-black text-[#2C4F4E] mb-2">History / Activity</h2><p className="text-sm text-slate-500">Event activity will appear here as vendors join and updates are made.</p></CardContent></Card>
+
+      <InviteVendorsModal open={showInviteVendors} onOpenChange={setShowInviteVendors} event={event} organizerUserId={event.organizer_user_id} approvedCount={attendees.length} onInvited={refresh} />
     </div>
   );
 }

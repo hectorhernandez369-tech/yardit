@@ -126,7 +126,28 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
     }
   });
 
+  const vendorEventInviteMutation = useMutation({
+    mutationFn: async ({ notification, action }) => {
+      const inviteId = notification.metadata?.invite_id;
+      if (!inviteId) return;
+      await base44.entities.EventVendorInvite.update(inviteId, {
+        status: action === "accept" ? "pending_setup" : "declined",
+        updated_at: new Date().toISOString(),
+      });
+      await base44.entities.Notification.update(notification.id, {
+        read: true,
+        is_read: true,
+        message: action === "accept" ? "You accepted this event invitation." : "You declined this event invitation.",
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success(variables.action === "accept" ? "Invitation accepted" : "Invitation declined");
+    }
+  });
+
   const getIcon = (type) => {
+    if (type === "vendor_event_invite") return <Users className="w-4 h-4 text-emerald-600" />;
     if (type?.startsWith("join_")) return <Users className="w-4 h-4 text-purple-600" />;
     if (type?.startsWith("report_")) return <AlertTriangle className="w-4 h-4 text-red-600" />;
     if (type?.startsWith("support_")) return <LifeBuoy className="w-4 h-4 text-blue-600" />;
@@ -161,6 +182,8 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
         url = createPageUrl("CreateListing") + "?rescueToken=" + notification.metadata.rescue_token;
       } else if (notification.type === "join_invitation" && notification.metadata?.invite_code) {
         url = createPageUrl("JoinNeighborhoodSale") + `?code=${encodeURIComponent(notification.metadata.invite_code)}`;
+      } else if (notification.type === "vendor_event_invite") {
+        url = `/VendorEventDetail?id=${notification.metadata?.event_id || entityId}`;
       } else if (notification.type?.startsWith("join_")) {
         if (entityId) {
           url = createPageUrl("ListingDetail") + "?id=" + entityId;
@@ -254,6 +277,14 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                           >
                             <X className="w-3 h-3 mr-1" /> Deny
                           </Button>
+                        </div>
+                      )}
+
+                      {notification.type === "vendor_event_invite" && (
+                        <div className="flex flex-wrap gap-2 mt-2 mb-3">
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); navigate(`/VendorEventDetail?id=${notification.metadata?.event_id}`); }}>View Event</Button>
+                          <Button size="sm" className="h-7 text-xs bg-green-600 hover:bg-green-700" onClick={(e) => { e.stopPropagation(); vendorEventInviteMutation.mutate({ notification, action: "accept" }); }}><Check className="w-3 h-3 mr-1" /> Accept</Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); vendorEventInviteMutation.mutate({ notification, action: "decline" }); }}><X className="w-3 h-3 mr-1" /> Decline</Button>
                         </div>
                       )}
 

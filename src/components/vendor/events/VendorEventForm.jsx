@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { VENDOR_EVENT_TYPES } from "@/lib/vendorEvents";
 import EventLocationPicker from "./EventLocationPicker";
+import InviteVendorsModal from "./InviteVendorsModal";
 import { toast } from "sonner";
 
 const initialForm = {
@@ -34,6 +35,8 @@ const initialForm = {
 export default function VendorEventForm({ account, user, onCreated }) {
   const [form, setForm] = useState(initialForm);
   const [saving, setSaving] = useState(false);
+  const [createdEvent, setCreatedEvent] = useState(null);
+  const [showInviteVendors, setShowInviteVendors] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -106,6 +109,7 @@ export default function VendorEventForm({ account, user, onCreated }) {
       });
     }
 
+    setCreatedEvent(event);
     setForm(initialForm);
     setSaving(false);
     toast.success(status === "published" ? "Event published" : "Event saved as draft");
@@ -186,8 +190,9 @@ export default function VendorEventForm({ account, user, onCreated }) {
         )}
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button variant="outline" disabled={saving} onClick={() => createEvent("draft")}>Save Draft</Button>
+        <Button variant="outline" disabled={!createdEvent} onClick={() => setShowInviteVendors(true)}>Invite Vendors</Button>
         <Button disabled={saving} onClick={() => createEvent("published")} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Publish Event</Button>
       </div>
 
@@ -198,6 +203,16 @@ export default function VendorEventForm({ account, user, onCreated }) {
         value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, radius_feet: Number(form.radius_feet || 500) } : null}
         onChange={(location) => setForm((prev) => ({ ...prev, display_address: location.display_address, latitude: location.latitude, longitude: location.longitude, radius_feet: String(location.radius_feet || 500) }))}
       />
+
+      {createdEvent && (
+        <InviteVendorsModal
+          open={showInviteVendors}
+          onOpenChange={setShowInviteVendors}
+          event={createdEvent}
+          organizerUserId={user.id}
+          approvedCount={0}
+        />
+      )}
     </div>
   );
 }

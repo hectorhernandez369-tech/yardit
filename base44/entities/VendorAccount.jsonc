@@ -38,6 +38,32 @@
       "type": "string",
       "description": "Combined business address"
     },
+    "latitude": {
+      "type": "number",
+      "description": "Business latitude"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Business longitude"
+    },
+    "owner_name": {
+      "type": "string",
+      "description": "Vendor owner name"
+    },
+    "account_number": {
+      "type": "string",
+      "description": "Vendor account number"
+    },
+    "is_verified_vendor": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the vendor has been verified"
+    },
+    "is_demo_vendor": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a demo vendor account"
+    },
     "description": {
       "type": "string",
       "description": "Short public vendor bio or business description"
