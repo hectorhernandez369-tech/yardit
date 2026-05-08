@@ -12,6 +12,11 @@ export default function EventSpotManager({ event, spots, onRefresh }) {
   const [form, setForm] = useState({ title: "", description: "", mini_schedule: "", photo: "", latitude: "", longitude: "" });
 
   const addSpot = async () => {
+    if (!form.title || !form.latitude || !form.longitude) {
+      toast.error("Add a spot name and tap inside the event area to place it.");
+      return;
+    }
+
     const miles = calculateMiles(event.latitude, event.longitude, Number(form.latitude), Number(form.longitude));
     const radiusMiles = Number(event.radius_feet || 0) / 5280;
     if (["multi_spot", "multi_location"].includes(event.event_type) && miles !== null && radiusMiles > 0 && miles > radiusMiles) {

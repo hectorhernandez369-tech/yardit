@@ -133,15 +133,6 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     if (!displayAddressIsDifferent) setPublicDisplayAddress("");
   };
 
-  const useMyLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition((position) => {
-      const coords = [position.coords.latitude, position.coords.longitude];
-      setUserCoords(coords);
-      selectLocation(coords[0], coords[1]);
-    });
-  };
-
   const searchAddress = async () => {
     if (addressQuery.trim().length < 3) {
       setAddressSuggestions([]);
@@ -215,17 +206,14 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                value={addressQuery}
-                onChange={(e) => {
-                  setAddressQuery(e.target.value);
-                  if (e.target.value.trim().length < 3) setAddressSuggestions([]);
-                }}
-                placeholder="Search address, venue, park, school, or business"
-              />
-              <Button type="button" variant="outline" onClick={useMyLocation}>Use My Location</Button>
-            </div>
+            <Input
+              value={addressQuery}
+              onChange={(e) => {
+                setAddressQuery(e.target.value);
+                if (e.target.value.trim().length < 3) setAddressSuggestions([]);
+              }}
+              placeholder="Search address, venue, park, school, or business"
+            />
             {(addressSuggestions.length > 0 || searching) && (
               <div className="rounded-xl border border-[#2C4F4E]/15 bg-white shadow-sm overflow-hidden">
                 {searching && addressSuggestions.length === 0 && (
