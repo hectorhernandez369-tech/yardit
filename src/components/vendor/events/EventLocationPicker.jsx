@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
+import EventFlagPlacementModal from "./EventFlagPlacementModal";
 import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER = [34.0522, -118.2437];
@@ -99,6 +100,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const [userCoords, setUserCoords] = useState(null);
   const [displayAddressIsDifferent, setDisplayAddressIsDifferent] = useState(false);
   const [radius, setRadius] = useState(value?.radius_feet || 500);
+  const [flags, setFlags] = useState(value?.flags || []);
+  const [showFlagPlacement, setShowFlagPlacement] = useState(false);
   const showRadius = eventType === "multi_spot" || eventType === "multi_location";
   const showSuggestions = searchFocused && searchQuery.trim().length >= 3 && (addressSuggestions.length > 0 || searching);
 
@@ -117,6 +120,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     setSearchFocused(false);
     setDisplayAddressIsDifferent(isCustomDisplay);
     setRadius(value?.radius_feet || 500);
+    setFlags(value?.flags || []);
   }, [open, value]);
 
   useEffect(() => {
@@ -188,6 +192,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
       geocoded_address: selectedAddress,
       display_address: finalDisplayAddress,
       radius_feet: Number(radius || 500),
+      flags,
     });
     closeSuggestions();
     onOpenChange(false);
@@ -286,6 +291,10 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
               </div>
               <input className="w-full accent-[#5DADA5]" type="range" min="100" max="5000" step="100" value={radius} onChange={(e) => setRadius(e.target.value)} />
               <p className="text-xs text-slate-600">Spots/fields must be placed inside this circle.</p>
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <Button type="button" variant="outline" disabled={!selected} onClick={() => setShowFlagPlacement(true)}>Add Flags</Button>
+                {flags.length > 0 && <span className="text-sm font-semibold text-[#2C4F4E]">{flags.length} flags selected</span>}
+              </div>
             </div>
           )}
 
@@ -294,6 +303,15 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             <Button type="button" disabled={!selected} onClick={saveLocation} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Save Location</Button>
           </div>
         </div>
+        {selected && showRadius && (
+          <EventFlagPlacementModal
+            open={showFlagPlacement}
+            onOpenChange={setShowFlagPlacement}
+            eventLocation={{ latitude: selected.latitude, longitude: selected.longitude, radius_feet: Number(radius || 500) }}
+            flags={flags}
+            onSave={setFlags}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

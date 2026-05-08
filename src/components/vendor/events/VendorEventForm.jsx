@@ -35,6 +35,7 @@ const initialForm = {
   vendor_deadline: "",
   max_vendors: "",
   flyer_url: "",
+  event_flags: [],
   status: "draft",
 };
 
@@ -70,6 +71,7 @@ const buildInitialForm = (event) => event ? {
   vendor_deadline: event.vendor_deadline || "",
   max_vendors: event.max_vendors || "",
   flyer_url: event.flyer_url || "",
+  event_flags: [],
   status: event.status || "draft",
 } : initialForm;
 
@@ -86,6 +88,50 @@ export default function VendorEventForm({ account, user, event = null, approvedV
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const syncFlagsToEvent = async (eventId, flags) => {
+    const existingSpots = await base44.entities.EventSpot.filter({ event_id: eventId });
+    const keepIds = flags.filter((flag) => flag.id).map((flag) => flag.id);
+
+    await Promise.all(existingSpots
+      .filter((spot) => spot.title?.startsWith("Field ") && !keepIds.includes(spot.id))
+      .map((spot) => base44.entities.EventSpot.delete(spot.id)));
+
+    await Promise.all(flags.map((flag, index) => {
+      const data = {
+        event_id: eventId,
+        title: flag.label || `Field ${index + 1}`,
+        latitude: Number(flag.latitude),
+        longitude: Number(flag.longitude),
+        display_order: index,
+        updated_at: new Date().toISOString(),
+      };
+
+      return flag.id
+        ? base44.entities.EventSpot.update(flag.id, data)
+        : base44.entities.EventSpot.create({ ...data, created_at: new Date().toISOString() });
+    }));
+  };
+
+  const openLocationPicker = async () => {
+    if (isEditing) {
+      const spots = await base44.entities.EventSpot.filter({ event_id: event.id }, "display_order");
+      setForm((prev) => ({
+        ...prev,
+        event_flags: spots.map((spot, index) => ({
+          id: spot.id,
+          temp_id: spot.id,
+          event_id: event.id,
+          label: spot.title || `Field ${index + 1}`,
+          latitude: spot.latitude,
+          longitude: spot.longitude,
+          display_order: spot.display_order ?? index,
+        })),
+      }));
+    }
+    setShowLocationPicker(true);
+  };
+
   const uploadFlyer = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -167,6 +213,10 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       ? await base44.entities.VendorEvent.update(event.id, eventData)
       : await base44.entities.VendorEvent.create({ ...eventData, created_at: now });
 
+    if (["multi_spot", "multi_location"].includes(form.event_type) && form.event_flags.length > 0) {
+      await syncFlagsToEvent(savedEvent.id, form.event_flags);
+    }
+
     if (!isEditing && form.event_type === "multi_location") {
       const code = `VE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
       await base44.entities.EventInviteCode.create({
@@ -204,7 +254,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
                 <p className="text-sm font-bold text-[#2C4F4E]">Public location / display address</p>
                 <p className="text-sm text-slate-600">{form.display_address || "No location selected yet"}</p>
               </div>
-              <Button type="button" variant="outline" onClick={() => setShowLocationPicker(true)}>Choose Event Location</Button>
+              <Button type="button" variant="outline" onClick={openLocationPicker}>Choose Event Location</Button>
             </div>
             <div className="space-y-1">
               <Label className="text-sm font-bold text-[#2C4F4E]">Start date & time</Label>
@@ -355,8 +405,13 @@ export default function VendorEventForm({ account, user, event = null, approvedV
         open={showLocationPicker}
         onOpenChange={setShowLocationPicker}
         eventType={form.event_type}
-        value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, geocoded_address: form.geocoded_address, radius_feet: Number(form.radius_feet || 500) } : null}
-        onChange={(location) => setForm((prev) => ({ ...prev, display_address: location.display_address, geocoded_address: location.geocoded_address, latitude: location.latitude, longitude: location.longitude, radius_feet: String(location.radius_feet || 500) }))}
+        value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, geocoded_address: form.geocoded_address, radius_feet: Number(form.radius_feet || 500), flags: form.event_flags } : null}
+        onChange={(location) => {
+          setForm((prev) => ({ ...prev, display_address: location.display_address, geocoded_address: location.geocoded_address, latitude: location.latitude, longitude: location.longitude, radius_feet: String(location.radius_feet || 500), event_flags: location.flags || [] }));
+          if (isEditing && ["multi_spot", "multi_location"].includes(form.event_type)) {
+            syncFlagsToEvent(event.id, location.flags || []);
+          }
+        }}
       />
 
       {createdEvent && (
