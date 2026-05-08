@@ -1,0 +1,40 @@
+{
+  "name": "EventUpdate",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "VendorEvent ID"
+    },
+    "organizer_user_id": {
+      "type": "string",
+      "description": "Organizer user ID"
+    },
+    "body": {
+      "type": "string",
+      "description": "Update text"
+    },
+    "photo": {
+      "type": "string",
+      "description": "Optional update photo URL"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_deleted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this update is deleted"
+    }
+  },
+  "required": [
+    "event_id",
+    "organizer_user_id",
+    "body"
+  ]
+}

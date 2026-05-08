@@ -10,6 +10,7 @@ import EventSpotManager from "@/components/vendor/events/EventSpotManager";
 import InviteVendorsModal from "@/components/vendor/events/InviteVendorsModal";
 import VendorEventForm from "@/components/vendor/events/VendorEventForm";
 import CollapsiblePanel from "@/components/vendor/events/CollapsiblePanel";
+import EventUpdatesManager from "@/components/vendor/events/EventUpdatesManager";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 import { toast } from "sonner";
 
@@ -26,6 +27,7 @@ export default function VendorEventDashboard() {
   const { data: invites = [] } = useQuery({ queryKey: ["eventInvites", eventId], queryFn: () => base44.entities.EventInviteCode.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: vendorInvites = [] } = useQuery({ queryKey: ["eventVendorInvites", eventId], queryFn: () => base44.entities.EventVendorInvite.filter({ event_id: eventId }, "-created_date"), enabled: !!eventId, initialData: [] });
   const { data: vendorAccounts = [] } = useQuery({ queryKey: ["eventInviteVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
+  const { data: updates = [] } = useQuery({ queryKey: ["eventUpdates", eventId], queryFn: () => base44.entities.EventUpdate.filter({ event_id: eventId, is_deleted: false }, "-created_at"), enabled: !!eventId, initialData: [] });
   const organizerAccount = vendorAccounts.find((account) => account.id === event?.organizer_business_id);
 
   const pendingRequests = useMemo(() => requests.filter((request) => request.status === "pending"), [requests]);
@@ -39,6 +41,7 @@ export default function VendorEventDashboard() {
     queryClient.invalidateQueries({ queryKey: ["eventVendorAttendees", eventId] });
     queryClient.invalidateQueries({ queryKey: ["eventVendorInvites", eventId] });
     queryClient.invalidateQueries({ queryKey: ["eventSpots", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["eventUpdates", eventId] });
   };
 
   const approveRequest = async (request) => {
@@ -117,6 +120,8 @@ export default function VendorEventDashboard() {
           )}
         </CardContent>
       </Card>
+
+      <EventUpdatesManager event={event} updates={updates} onRefresh={refresh} />
 
       {event.event_type === "multi_spot" && <EventSpotManager event={event} spots={spots} onRefresh={refresh} />}
 

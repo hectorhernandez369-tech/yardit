@@ -1,0 +1,27 @@
+{
+  "name": "EventUpdateLike",
+  "type": "object",
+  "properties": {
+    "update_id": {
+      "type": "string",
+      "description": "EventUpdate ID"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "VendorEvent ID"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User ID who liked the update"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "update_id",
+    "event_id",
+    "user_id"
+  ]
+}
