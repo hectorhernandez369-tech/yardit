@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { calculateMiles } from "@/lib/vendorEvents";
 import { toast } from "sonner";
 import CollapsiblePanel from "./CollapsiblePanel";
+import EventSpotMapPicker from "./EventSpotMapPicker";
 
 export default function EventSpotManager({ event, spots, onRefresh }) {
   const [form, setForm] = useState({ title: "", description: "", mini_schedule: "", photo: "", latitude: "", longitude: "" });
@@ -13,8 +14,8 @@ export default function EventSpotManager({ event, spots, onRefresh }) {
   const addSpot = async () => {
     const miles = calculateMiles(event.latitude, event.longitude, Number(form.latitude), Number(form.longitude));
     const radiusMiles = Number(event.radius_feet || 0) / 5280;
-    if (event.event_type === "multi_spot" && miles !== null && radiusMiles > 0 && miles > radiusMiles) {
-      toast.error("Spot must be inside the selected event radius.");
+    if (["multi_spot", "multi_location"].includes(event.event_type) && miles !== null && radiusMiles > 0 && miles > radiusMiles) {
+      toast.error("Spot must be inside the event area.");
       return;
     }
     await base44.entities.EventSpot.create({
@@ -36,8 +37,10 @@ export default function EventSpotManager({ event, spots, onRefresh }) {
         <div className="grid gap-2 sm:grid-cols-2">
           <Input placeholder="Spot name" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <Input placeholder="Photo URL optional" value={form.photo} onChange={(e) => setForm({ ...form, photo: e.target.value })} />
-          <Input type="number" placeholder="Latitude" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} />
-          <Input type="number" placeholder="Longitude" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-[#2C4F4E]">Tap inside the event area to place this spot.</p>
+          <EventSpotMapPicker event={event} value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude) } : null} onChange={(location) => setForm({ ...form, latitude: location.latitude, longitude: location.longitude })} />
         </div>
         <Textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         <Textarea placeholder="Optional mini schedule" value={form.mini_schedule} onChange={(e) => setForm({ ...form, mini_schedule: e.target.value })} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { Circle, MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -122,7 +122,12 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
 
   const selectLocation = async (lat, lng) => {
     const displayAddress = await reverseGeocode(lat, lng);
-    setSelected({ latitude: lat, longitude: lng, geocoded_address: displayAddress, display_address: displayAddress });
+    setSelected({
+      latitude: lat,
+      longitude: lng,
+      geocoded_address: displayAddress,
+      display_address: displayAddressIsDifferent && publicDisplayAddress.trim() ? publicDisplayAddress.trim() : displayAddress,
+    });
     setAddressQuery(displayAddress);
     setAddressSuggestions([]);
     if (!displayAddressIsDifferent) setPublicDisplayAddress("");
@@ -151,7 +156,11 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
 
   const chooseSuggestion = async (suggestion) => {
     const geocodedAddress = suggestion.geocoded_address || suggestion.display_address || await reverseGeocode(suggestion.latitude, suggestion.longitude);
-    setSelected({ ...suggestion, geocoded_address: geocodedAddress, display_address: geocodedAddress });
+    setSelected({
+      ...suggestion,
+      geocoded_address: geocodedAddress,
+      display_address: displayAddressIsDifferent && publicDisplayAddress.trim() ? publicDisplayAddress.trim() : geocodedAddress,
+    });
     setAddressQuery(geocodedAddress);
     setAddressSuggestions([]);
     if (!displayAddressIsDifferent) setPublicDisplayAddress("");
@@ -240,14 +249,10 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
               <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <RecenterMap center={center} />
               <LocationClickHandler onSelect={selectLocation} />
+              {selected && showRadius && <Circle center={[selected.latitude, selected.longitude]} radius={Number(radius || 500) * 0.3048} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12, weight: 2 }} />}
               {selected && <Marker position={[selected.latitude, selected.longitude]} />}
             </MapContainer>
           </div>
-          {selected?.geocoded_address && (
-            <div className="rounded-xl bg-[#FBFAF7] p-3 text-sm text-slate-700">
-              <strong>Selected pin location:</strong> {selected.geocoded_address}
-            </div>
-          )}
           {selected && (
             <div className="space-y-3 rounded-xl bg-[#FBFAF7] p-3">
               <label className="flex items-start gap-2 text-sm font-medium text-[#2C4F4E]">
@@ -287,7 +292,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
                 <span className="text-sm font-bold text-[#2C4F4E]">{radius} ft</span>
               </div>
               <input className="w-full accent-[#5DADA5]" type="range" min="100" max="5000" step="100" value={radius} onChange={(e) => setRadius(e.target.value)} />
-              <p className="text-xs text-slate-600">This controls how far away spots/fields can be added from the main event location.</p>
+              <p className="text-xs text-slate-600">Spots/fields must be placed inside this circle.</p>
             </div>
           )}
           <div className="flex justify-end gap-2">
