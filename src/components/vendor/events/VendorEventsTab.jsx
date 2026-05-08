@@ -68,7 +68,7 @@ export default function VendorEventsTab({ account, user }) {
       .filter((event) => !query || `${event.title} ${event.description} ${event.category}`.toLowerCase().includes(query.toLowerCase()))
       .filter((event) => !locationQuery || (event.display_address || "").toLowerCase().includes(locationQuery.toLowerCase()))
       .filter((event) => eventType === "all" || event.event_type === eventType)
-      .filter((event) => showOpenToVendors ? event.open_to_vendors : true)
+      .filter((event) => showOpenToVendors ? event.open_to_vendors || event.organizer_business_id === account.id : true)
       .filter((event) => !userLocation || distance === "any" || event.distanceMiles === null || event.distanceMiles <= Number(distance))
       .sort((a, b) => {
         if (sort === "latest") return new Date(b.startDateTime) - new Date(a.startDateTime);
