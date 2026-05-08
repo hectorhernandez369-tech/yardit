@@ -15,15 +15,13 @@ async function reverseGeocode(lat, lng) {
 }
 
 async function geocodeAddress(address) {
-  const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`);
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(address)}`);
   const data = await response.json();
-  const result = data?.[0];
-  if (!result) return null;
-  return {
+  return (data || []).map((result) => ({
     latitude: Number(result.lat),
     longitude: Number(result.lon),
     display_address: result.display_name,
-  };
+  }));
 }
 
 function LocationClickHandler({ onSelect }) {
@@ -49,6 +47,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const [selected, setSelected] = useState(hasValidValue ? value : null);
   const [radius, setRadius] = useState(value?.radius_feet || 500);
   const [addressQuery, setAddressQuery] = useState("");
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [searching, setSearching] = useState(false);
   const showRadius = eventType === "multi_spot" || eventType === "multi_location";
 
@@ -75,9 +74,15 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const searchAddress = async () => {
     if (!addressQuery.trim()) return;
     setSearching(true);
-    const result = await geocodeAddress(addressQuery.trim());
-    if (result) setSelected(result);
+    const results = await geocodeAddress(addressQuery.trim());
+    setAddressSuggestions(results);
     setSearching(false);
+  };
+
+  const chooseSuggestion = (suggestion) => {
+    setSelected(suggestion);
+    setAddressQuery(suggestion.display_address);
+    setAddressSuggestions([]);
   };
 
   useEffect(() => {
@@ -102,15 +107,31 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
           <DialogTitle>Choose Event Location</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Input
-              value={addressQuery}
-              onChange={(e) => setAddressQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && searchAddress()}
-              placeholder="Search address, city, or place"
-            />
-            <Button type="button" variant="outline" disabled={searching} onClick={searchAddress}>{searching ? "Searching..." : "Search"}</Button>
-            <Button type="button" variant="outline" onClick={useMyLocation}>Use My Location</Button>
+          <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                value={addressQuery}
+                onChange={(e) => setAddressQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && searchAddress()}
+                placeholder="Search address, city, or place"
+              />
+              <Button type="button" variant="outline" disabled={searching} onClick={searchAddress}>{searching ? "Searching..." : "Search"}</Button>
+              <Button type="button" variant="outline" onClick={useMyLocation}>Use My Location</Button>
+            </div>
+            {addressSuggestions.length > 0 && (
+              <div className="rounded-xl border border-[#2C4F4E]/15 bg-white shadow-sm overflow-hidden">
+                {addressSuggestions.map((suggestion, index) => (
+                  <button
+                    key={`${suggestion.latitude}-${suggestion.longitude}-${index}`}
+                    type="button"
+                    onClick={() => chooseSuggestion(suggestion)}
+                    className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-[#FBFAF7] border-b last:border-b-0"
+                  >
+                    {suggestion.display_address}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="h-[360px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
             <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom>
