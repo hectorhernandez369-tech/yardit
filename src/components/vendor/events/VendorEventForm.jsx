@@ -306,9 +306,9 @@ export default function VendorEventForm({ account, user, event = null, approvedV
                 {previewPrice > 0 ? (
                   <>
                     <p>Reserve due today: {formatMoney(reserveDue)}</p>
-                    <p>Organizer receives: {formatMoney(splitAmount)}</p>
-                    <p>Yardit receives: {formatMoney(splitAmount)}</p>
-                    <p>Vendor pays remaining balance later: {formatMoney(remainingBalance)}</p>
+                    <p>Organizer receives now: {formatMoney(splitAmount)}</p>
+                    <p>Platform reservation fee: {formatMoney(splitAmount)}</p>
+                    <p>Remaining balance paid to organizer later: {formatMoney(remainingBalance)}</p>
                   </>
                 ) : (
                   <p>Add a space option price to preview the reserve payment split.</p>
