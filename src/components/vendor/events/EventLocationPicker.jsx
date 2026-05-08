@@ -8,21 +8,68 @@ import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER = [34.0522, -118.2437];
 
+function distanceFrom(lat1, lng1, lat2, lng2) {
+  const toRad = (value) => (value * Math.PI) / 180;
+  const earthRadiusMiles = 3958.8;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return earthRadiusMiles * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatPhotonAddress(properties) {
+  return [properties.name, properties.housenumber && properties.street ? `${properties.housenumber} ${properties.street}` : properties.street, properties.city || properties.county, properties.state, properties.postcode]
+    .filter(Boolean)
+    .join(", ");
+}
+
 async function reverseGeocode(lat, lng) {
   const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
   const data = await response.json();
   return data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 }
 
-async function geocodeAddress(address) {
-  const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&q=${encodeURIComponent(address)}`);
-  const data = await response.json();
-  return (data || []).map((result) => ({
+async function geocodeAddress(address, biasCenter) {
+  const encodedAddress = encodeURIComponent(address);
+  const photonBias = biasCenter ? `&lat=${biasCenter[0]}&lon=${biasCenter[1]}` : "";
+  const viewBox = biasCenter ? `&viewbox=${biasCenter[1] - 0.8},${biasCenter[0] + 0.8},${biasCenter[1] + 0.8},${biasCenter[0] - 0.8}` : "";
+  const [photonResult, nominatimResult] = await Promise.allSettled([
+    fetch(`https://photon.komoot.io/api/?q=${encodedAddress}&limit=8${photonBias}`).then((response) => response.json()),
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8${viewBox}&q=${encodedAddress}`).then((response) => response.json()),
+  ]);
+
+  const photonSuggestions = photonResult.status === "fulfilled" ? (photonResult.value.features || []).map((feature) => {
+    const [longitude, latitude] = feature.geometry.coordinates;
+    const addressText = formatPhotonAddress(feature.properties);
+    return {
+      latitude: Number(latitude),
+      longitude: Number(longitude),
+      geocoded_address: addressText,
+      display_address: addressText,
+    };
+  }) : [];
+
+  const nominatimSuggestions = nominatimResult.status === "fulfilled" ? (nominatimResult.value || []).map((result) => ({
     latitude: Number(result.lat),
     longitude: Number(result.lon),
     geocoded_address: result.display_name,
     display_address: result.display_name,
-  }));
+  })) : [];
+
+  const seen = new Set();
+  return [...photonSuggestions, ...nominatimSuggestions]
+    .filter((suggestion) => suggestion.display_address && Number.isFinite(suggestion.latitude) && Number.isFinite(suggestion.longitude))
+    .filter((suggestion) => {
+      const key = `${suggestion.display_address.toLowerCase()}-${suggestion.latitude.toFixed(4)}-${suggestion.longitude.toFixed(4)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => {
+      if (!biasCenter) return 0;
+      return distanceFrom(a.latitude, a.longitude, biasCenter[0], biasCenter[1]) - distanceFrom(b.latitude, b.longitude, biasCenter[0], biasCenter[1]);
+    })
+    .slice(0, 6);
 }
 
 function LocationClickHandler({ onSelect }) {
@@ -50,6 +97,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const [addressQuery, setAddressQuery] = useState("");
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [userCoords, setUserCoords] = useState(null);
   const [displayAddressIsDifferent, setDisplayAddressIsDifferent] = useState(false);
   const [publicDisplayAddress, setPublicDisplayAddress] = useState("");
   const showRadius = eventType === "multi_spot" || eventType === "multi_location";
@@ -83,7 +131,9 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const useMyLocation = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition((position) => {
-      selectLocation(position.coords.latitude, position.coords.longitude);
+      const coords = [position.coords.latitude, position.coords.longitude];
+      setUserCoords(coords);
+      selectLocation(coords[0], coords[1]);
     });
   };
 
@@ -93,7 +143,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
       return;
     }
     setSearching(true);
-    const results = await geocodeAddress(addressQuery.trim());
+    const biasCenter = selected ? [selected.latitude, selected.longitude] : userCoords || DEFAULT_CENTER;
+    const results = await geocodeAddress(addressQuery.trim(), biasCenter);
     setAddressSuggestions(results);
     setSearching(false);
   };
@@ -109,7 +160,9 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   useEffect(() => {
     if (!open || selected || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition((position) => {
-      selectLocation(position.coords.latitude, position.coords.longitude);
+      const coords = [position.coords.latitude, position.coords.longitude];
+      setUserCoords(coords);
+      selectLocation(coords[0], coords[1]);
     });
   }, [open, selected]);
 
@@ -160,14 +213,15 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
                   setAddressQuery(e.target.value);
                   if (e.target.value.trim().length < 3) setAddressSuggestions([]);
                 }}
-                onKeyDown={(e) => e.key === "Enter" && searchAddress()}
-                placeholder="Search address, city, or place"
+                placeholder="Search address, venue, park, school, or business"
               />
-              <Button type="button" variant="outline" disabled={searching} onClick={searchAddress}>{searching ? "Searching..." : "Search"}</Button>
               <Button type="button" variant="outline" onClick={useMyLocation}>Use My Location</Button>
             </div>
-            {addressSuggestions.length > 0 && (
+            {(addressSuggestions.length > 0 || searching) && (
               <div className="rounded-xl border border-[#2C4F4E]/15 bg-white shadow-sm overflow-hidden">
+                {searching && addressSuggestions.length === 0 && (
+                  <div className="px-3 py-2 text-sm text-slate-500">Finding nearby suggestions...</div>
+                )}
                 {addressSuggestions.map((suggestion, index) => (
                   <button
                     key={`${suggestion.latitude}-${suggestion.longitude}-${index}`}
