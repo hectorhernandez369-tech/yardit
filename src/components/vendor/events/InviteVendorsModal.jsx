@@ -40,7 +40,7 @@ export default function InviteVendorsModal({ open, onOpenChange, event, organize
           ? calculateMiles(event.latitude, event.longitude, vendor.latitude, vendor.longitude)
           : null,
       }))
-      .filter((vendor) => radius === "any" || vendor.distanceMiles === null || vendor.distanceMiles <= Number(radius))
+      .filter((vendor) => radius === "any" || (vendor.distanceMiles !== null && vendor.distanceMiles <= Number(radius)))
       .filter((vendor) => !onlyActive || vendor.is_active !== false)
       .filter((vendor) => !onlyVerified || vendor.is_verified_vendor === true)
       .filter((vendor) => category === "all" || vendor.business_category === category)
