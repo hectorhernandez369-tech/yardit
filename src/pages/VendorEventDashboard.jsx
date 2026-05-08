@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Mail } from "lucide-react";
+import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { format } from "date-fns";
 import EventSpotManager from "@/components/vendor/events/EventSpotManager";
 import InviteVendorsModal from "@/components/vendor/events/InviteVendorsModal";
@@ -65,6 +65,10 @@ export default function VendorEventDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-4">
+      <Button variant="outline" onClick={() => window.history.back()} className="bg-white">
+        <ArrowLeft className="h-4 w-4" /> Back
+      </Button>
+
       <Card className="rounded-3xl bg-white">
         <CardContent className="p-6 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
