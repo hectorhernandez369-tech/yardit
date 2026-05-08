@@ -34,6 +34,7 @@ const initialForm = {
   vendor_instructions: "",
   vendor_deadline: "",
   max_vendors: "",
+  flyer_url: "",
   status: "draft",
 };
 
@@ -68,6 +69,7 @@ const buildInitialForm = (event) => event ? {
   vendor_instructions: event.vendor_instructions || "",
   vendor_deadline: event.vendor_deadline || "",
   max_vendors: event.max_vendors || "",
+  flyer_url: event.flyer_url || "",
   status: event.status || "draft",
 } : initialForm;
 
@@ -78,11 +80,21 @@ export default function VendorEventForm({ account, user, event = null, approvedV
   const datesLocked = isEditing && approvedVendorCount > 0;
   const [form, setForm] = useState(buildInitialForm(event));
   const [saving, setSaving] = useState(false);
+  const [uploadingFlyer, setUploadingFlyer] = useState(false);
   const [createdEvent, setCreatedEvent] = useState(null);
   const [showInviteVendors, setShowInviteVendors] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const uploadFlyer = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingFlyer(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    update("flyer_url", file_url);
+    setUploadingFlyer(false);
+    event.target.value = "";
+  };
   const addSpaceOption = () => update("vendor_space_options", [...form.vendor_space_options, { label: "", width: "", depth: "", price: "", quantity: "" }]);
   const updateSpaceOption = (index, key, value) => update("vendor_space_options", form.vendor_space_options.map((option, optionIndex) => optionIndex === index ? { ...option, [key]: value } : option));
   const removeSpaceOption = (index) => update("vendor_space_options", form.vendor_space_options.filter((_, optionIndex) => optionIndex !== index));
@@ -146,6 +158,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       vendor_instructions: form.vendor_instructions,
       vendor_deadline: form.vendor_deadline,
       max_vendors: form.max_vendors ? Number(form.max_vendors) : null,
+      flyer_url: form.flyer_url,
       photos: event?.photos || [],
       updated_at: now,
     };
@@ -205,6 +218,20 @@ export default function VendorEventForm({ account, user, event = null, approvedV
           </div>
 
           <Textarea placeholder="Event description" value={form.description} onChange={(e) => update("description", e.target.value)} />
+
+          <div className="rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-3 space-y-3">
+            <div>
+              <Label className="text-sm font-bold text-[#2C4F4E]">Public event flyer</Label>
+              <p className="text-xs text-slate-500">Upload an image or PDF flyer to show on the public event page.</p>
+            </div>
+            {form.flyer_url && (
+              <div className="rounded-xl bg-white p-3 text-sm">
+                <a href={form.flyer_url} target="_blank" rel="noreferrer" className="font-semibold text-[#5DADA5] underline">View uploaded flyer</a>
+              </div>
+            )}
+            <Input type="file" accept="image/*,.pdf" onChange={uploadFlyer} disabled={uploadingFlyer} />
+            {uploadingFlyer && <p className="text-xs text-slate-500">Uploading flyer...</p>}
+          </div>
         </>
       )}
 
