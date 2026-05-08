@@ -189,7 +189,7 @@ export default function VendorEventForm({ account, user, onCreated }) {
         open={showLocationPicker}
         onOpenChange={setShowLocationPicker}
         eventType={form.event_type}
-        value={{ latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, radius_feet: Number(form.radius_feet || 500) }}
+        value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, radius_feet: Number(form.radius_feet || 500) } : null}
         onChange={(location) => setForm((prev) => ({ ...prev, display_address: location.display_address, latitude: location.latitude, longitude: location.longitude, radius_feet: String(location.radius_feet || 500) }))}
       />
     </div>

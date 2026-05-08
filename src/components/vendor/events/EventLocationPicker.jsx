@@ -21,13 +21,15 @@ function LocationClickHandler({ onSelect }) {
 }
 
 export default function EventLocationPicker({ open, onOpenChange, eventType, value, onChange }) {
-  const [selected, setSelected] = useState(value || null);
+  const hasValidValue = value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
+  const [selected, setSelected] = useState(hasValidValue ? value : null);
   const [radius, setRadius] = useState(value?.radius_feet || 500);
   const showRadius = eventType === "multi_spot" || eventType === "multi_location";
 
   useEffect(() => {
     if (open) {
-      setSelected(value || null);
+      const hasValidOpenValue = value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
+      setSelected(hasValidOpenValue ? value : null);
       setRadius(value?.radius_feet || 500);
     }
   }, [open, value]);
