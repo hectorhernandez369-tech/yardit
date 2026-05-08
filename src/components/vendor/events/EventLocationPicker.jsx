@@ -15,11 +15,12 @@ async function reverseGeocode(lat, lng) {
 }
 
 async function geocodeAddress(address) {
-  const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(address)}`);
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&q=${encodeURIComponent(address)}`);
   const data = await response.json();
   return (data || []).map((result) => ({
     latitude: Number(result.lat),
     longitude: Number(result.lon),
+    geocoded_address: result.display_name,
     display_address: result.display_name,
   }));
 }
@@ -49,19 +50,34 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const [addressQuery, setAddressQuery] = useState("");
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [displayAddressIsDifferent, setDisplayAddressIsDifferent] = useState(false);
+  const [publicDisplayAddress, setPublicDisplayAddress] = useState("");
   const showRadius = eventType === "multi_spot" || eventType === "multi_location";
 
   useEffect(() => {
     if (open) {
       const hasValidOpenValue = value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
-      setSelected(hasValidOpenValue ? value : null);
+      const currentLocation = hasValidOpenValue ? {
+        ...value,
+        geocoded_address: value.geocoded_address || value.display_address,
+      } : null;
+      const isCustomDisplay = !!currentLocation?.display_address && !!currentLocation?.geocoded_address && currentLocation.display_address !== currentLocation.geocoded_address;
+
+      setSelected(currentLocation);
+      setAddressQuery(currentLocation?.geocoded_address || "");
+      setAddressSuggestions([]);
+      setDisplayAddressIsDifferent(isCustomDisplay);
+      setPublicDisplayAddress(isCustomDisplay ? currentLocation.display_address : "");
       setRadius(value?.radius_feet || 500);
     }
   }, [open, value]);
 
   const selectLocation = async (lat, lng) => {
     const displayAddress = await reverseGeocode(lat, lng);
-    setSelected({ latitude: lat, longitude: lng, display_address: displayAddress });
+    setSelected({ latitude: lat, longitude: lng, geocoded_address: displayAddress, display_address: displayAddress });
+    setAddressQuery(displayAddress);
+    setAddressSuggestions([]);
+    if (!displayAddressIsDifferent) setPublicDisplayAddress("");
   };
 
   const useMyLocation = () => {
@@ -72,17 +88,22 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   };
 
   const searchAddress = async () => {
-    if (!addressQuery.trim()) return;
+    if (addressQuery.trim().length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
     setSearching(true);
     const results = await geocodeAddress(addressQuery.trim());
     setAddressSuggestions(results);
     setSearching(false);
   };
 
-  const chooseSuggestion = (suggestion) => {
-    setSelected(suggestion);
-    setAddressQuery(suggestion.display_address);
+  const chooseSuggestion = async (suggestion) => {
+    const geocodedAddress = suggestion.geocoded_address || suggestion.display_address || await reverseGeocode(suggestion.latitude, suggestion.longitude);
+    setSelected({ ...suggestion, geocoded_address: geocodedAddress, display_address: geocodedAddress });
+    setAddressQuery(geocodedAddress);
     setAddressSuggestions([]);
+    if (!displayAddressIsDifferent) setPublicDisplayAddress("");
   };
 
   useEffect(() => {
@@ -92,9 +113,33 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     });
   }, [open, selected]);
 
+  useEffect(() => {
+    if (!open || addressQuery.trim().length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      searchAddress();
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [addressQuery, open]);
+
   const saveLocation = () => {
     if (!selected) return;
-    onChange({ ...selected, radius_feet: Number(radius || 500) });
+    const geocodedAddress = selected.geocoded_address || selected.display_address;
+    const displayAddress = displayAddressIsDifferent && publicDisplayAddress.trim()
+      ? publicDisplayAddress.trim()
+      : geocodedAddress;
+
+    onChange({
+      latitude: selected.latitude,
+      longitude: selected.longitude,
+      geocoded_address: geocodedAddress,
+      display_address: displayAddress,
+      radius_feet: Number(radius || 500),
+    });
     onOpenChange(false);
   };
 
@@ -111,7 +156,10 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 value={addressQuery}
-                onChange={(e) => setAddressQuery(e.target.value)}
+                onChange={(e) => {
+                  setAddressQuery(e.target.value);
+                  if (e.target.value.trim().length < 3) setAddressSuggestions([]);
+                }}
                 onKeyDown={(e) => e.key === "Enter" && searchAddress()}
                 placeholder="Search address, city, or place"
               />
@@ -141,9 +189,41 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
               {selected && <Marker position={[selected.latitude, selected.longitude]} />}
             </MapContainer>
           </div>
-          {selected?.display_address && (
+          {selected?.geocoded_address && (
             <div className="rounded-xl bg-[#FBFAF7] p-3 text-sm text-slate-700">
-              <strong>Selected location:</strong> {selected.display_address}
+              <strong>Selected pin location:</strong> {selected.geocoded_address}
+            </div>
+          )}
+          {selected && (
+            <div className="space-y-3 rounded-xl bg-[#FBFAF7] p-3">
+              <label className="flex items-start gap-2 text-sm font-medium text-[#2C4F4E]">
+                <input
+                  type="checkbox"
+                  checked={displayAddressIsDifferent}
+                  onChange={(e) => {
+                    setDisplayAddressIsDifferent(e.target.checked);
+                    if (!e.target.checked) setPublicDisplayAddress("");
+                  }}
+                  className="mt-1 accent-[#5DADA5]"
+                />
+                <span>
+                  Display address is different
+                  <span className="block text-xs font-normal text-slate-600">
+                    This means the public address shown to users can be different from the exact pin/navigation location.
+                  </span>
+                </span>
+              </label>
+              {displayAddressIsDifferent && (
+                <div className="space-y-1">
+                  <Label>Public Display Address</Label>
+                  <Input
+                    value={publicDisplayAddress}
+                    onChange={(e) => setPublicDisplayAddress(e.target.value)}
+                    placeholder="Enter the address customers should see"
+                  />
+                  <p className="text-xs text-slate-600">Customers will see this address, but directions will still use the map pin location.</p>
+                </div>
+              )}
             </div>
           )}
           {showRadius && (
