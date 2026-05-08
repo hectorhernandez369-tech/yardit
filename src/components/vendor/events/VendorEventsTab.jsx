@@ -114,10 +114,11 @@ export default function VendorEventsTab({ account, user }) {
               event={event}
               distanceMiles={event.distanceMiles}
               approvedVendorCount={event.approvedVendorCount}
-              canManage={event.organizer_business_id === account.id}
+              canManage={event.organizer_business_id === account.id || user?.isAdmin || user?.role === "admin"}
               onEdit={() => setEditingEvent(event)}
               onManage={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
               onEditFlags={() => navigate(`/VendorEventFlags?id=${event.id}`)}
+              onSchedule={() => navigate(`/VendorEventSchedule?id=${event.id}`)}
               onView={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}
             />
           )) : (

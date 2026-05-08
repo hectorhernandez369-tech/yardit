@@ -15,6 +15,7 @@ import { safeBack } from "@/utils";
 import PublicEventUpdates from "@/components/vendor/events/PublicEventUpdates";
 import PublicVendorCard from "@/components/vendor/events/PublicVendorCard";
 import PublicVendorEventMap from "@/components/vendor/events/PublicVendorEventMap";
+import PublicEventSchedule from "@/components/vendor/events/schedule/PublicEventSchedule";
 
 export default function VendorEventDetail() {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ export default function VendorEventDetail() {
   const { data: vendorAccounts = [] } = useQuery({ queryKey: ["publicEventVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
   const { data: updates = [] } = useQuery({ queryKey: ["publicEventUpdates", eventId], queryFn: () => base44.entities.EventUpdate.filter({ event_id: eventId, is_deleted: false }, "-created_at"), enabled: !!eventId, initialData: [] });
   const { data: likes = [] } = useQuery({ queryKey: ["publicEventUpdateLikes", eventId], queryFn: () => base44.entities.EventUpdateLike.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
+  const { data: scheduleEntries = [] } = useQuery({ queryKey: ["publicEventScheduleEntries", eventId], queryFn: () => base44.entities.EventScheduleEntry.filter({ event_id: eventId }, "sort_order"), enabled: !!eventId, initialData: [] });
 
   useEffect(() => {
     base44.auth.isAuthenticated().then(async (authed) => {
@@ -171,7 +173,9 @@ export default function VendorEventDetail() {
               <div><h3 className="font-black text-[#2C4F4E] mb-2">Description</h3><p className="text-slate-700 whitespace-pre-wrap">{event.description}</p></div>
             </CardContent></Card>
 
-            {event.latitude && event.longitude && <Card className="rounded-3xl bg-white"><CardContent className="p-5 sm:p-6 space-y-3"><h2 className="text-2xl font-black text-[#2C4F4E]">Map / Location</h2><PublicVendorEventMap event={event} spots={spots} /></CardContent></Card>}
+            {event.latitude && event.longitude && <Card className="rounded-3xl bg-white"><CardContent className="p-5 sm:p-6 space-y-3"><h2 className="text-2xl font-black text-[#2C4F4E]">Map / Location</h2><PublicVendorEventMap event={event} spots={spots} scheduleEntries={scheduleEntries} /></CardContent></Card>}
+
+            <PublicEventSchedule entries={scheduleEntries} grouped />
 
             <PublicEventUpdates updates={updates} likes={likes} currentUser={currentUser} organizerName={event.organizer_business_name} onToggleLike={toggleLike} onLoginPrompt={() => { toast.error("Please log in to like updates."); base44.auth.redirectToLogin(window.location.href); }} />
 

@@ -11,7 +11,7 @@ const makePublicFlagIcon = (spot) => L.divIcon({
   iconAnchor: [13, 26],
 });
 
-export default function PublicVendorEventMap({ event, spots = [] }) {
+export default function PublicVendorEventMap({ event, spots = [], scheduleEntries = [] }) {
   const center = [event.latitude, event.longitude];
   const showRadius = ["multi_spot", "multi_location"].includes(event.event_type);
 
@@ -27,7 +27,7 @@ export default function PublicVendorEventMap({ event, spots = [] }) {
               <Popup>
                 <div className="space-y-1">
                   <p className="font-bold">{getEventFlagIcon(spot.icon_key)} {spot.title || spot.label || "Flag"}</p>
-                  {(spot.schedule_entries || []).slice(0, 3).map((entry) => (
+                  {scheduleEntries.filter((entry) => entry.spot_id === spot.id || entry.field_name === spot.title).slice(0, 3).map((entry) => (
                     <p key={entry.id} className="text-xs">{new Date(entry.start_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} — {entry.title}</p>
                   ))}
                 </div>
