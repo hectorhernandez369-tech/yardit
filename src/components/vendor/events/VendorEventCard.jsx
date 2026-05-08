@@ -38,7 +38,7 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
                 <Button variant="outline" onClick={onManage}><Users className="h-4 w-4" /> Vendor Management</Button>
               </>
             )}
-            <Button onClick={onView} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">View Details</Button>
+            <Button onClick={onView} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">View Public Page</Button>
           </div>
         </div>
       </CardContent>
