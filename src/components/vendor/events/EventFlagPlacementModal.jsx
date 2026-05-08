@@ -81,12 +81,13 @@ export default function EventFlagPlacementModal({ open, onOpenChange, eventLocat
 
     if (miles !== null && radiusMiles > 0 && miles > radiusMiles) {
       toast.error("Flags must be inside the event area.");
-      return;
+      return false;
     }
 
     setDraftFlags((current) => current.map((item) => (
       item.temp_id === flag.temp_id || item.id === flag.id ? { ...item, latitude: lat, longitude: lng } : item
     )));
+    return true;
   };
 
   const removeFlag = (flag) => {
@@ -144,7 +145,8 @@ export default function EventFlagPlacementModal({ open, onOpenChange, eventLocat
                     dragend: (markerEvent) => {
                       clearFlagLongPress();
                       const position = markerEvent.target.getLatLng();
-                      updateFlagLocation(flag, position.lat, position.lng);
+                      const movedInsideRadius = updateFlagLocation(flag, position.lat, position.lng);
+                      if (!movedInsideRadius) markerEvent.target.setLatLng([Number(flag.latitude), Number(flag.longitude)]);
                     },
                   }}
                 />
