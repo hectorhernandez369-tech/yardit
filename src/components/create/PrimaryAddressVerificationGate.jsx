@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import AddressFields from "@/components/shared/AddressFields";
 import { Loader2, MapPin, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { getStateAbbreviation } from "@/lib/listingLocation";
+import { clearStaleTrustProgress } from "@/lib/trustActions";
 
 const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 
@@ -30,27 +31,25 @@ function extractAddressParts(feature, fallback) {
 }
 
 export default function PrimaryAddressVerificationGate({ user, onVerified }) {
-  const storageKey = useMemo(() => `yardit_trust_verification_${user?.id || user?.email || "guest"}`, [user?.email, user?.id]);
-  const savedDraft = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem(storageKey) || "{}");
-    } catch {
-      return {};
-    }
-  }, [storageKey]);
-
   const [formData, setFormData] = useState({
-    street_address: savedDraft.formData?.street_address || user?.street_address || "",
-    city: savedDraft.formData?.city || user?.city || "",
-    state: getStateAbbreviation(savedDraft.formData?.state || user?.state || ""),
-    zip_code: savedDraft.formData?.zip_code || user?.zip_code || "",
+    street_address: user?.street_address || "",
+    city: user?.city || "",
+    state: getStateAbbreviation(user?.state || ""),
+    zip_code: user?.zip_code || "",
   });
   const [isVerifying, setIsVerifying] = useState(false);
-  const [agreedToRules, setAgreedToRules] = useState(savedDraft.agreedToRules === true || !!user?.listing_rules_agreed_at);
+  const [agreedToRules, setAgreedToRules] = useState(user?.listing_rules_accepted === true);
 
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify({ formData, agreedToRules, step: "address_entry" }));
-  }, [agreedToRules, formData, storageKey]);
+    setFormData({
+      street_address: user?.street_address || "",
+      city: user?.city || "",
+      state: getStateAbbreviation(user?.state || ""),
+      zip_code: user?.zip_code || "",
+    });
+    setAgreedToRules(user?.listing_rules_accepted === true);
+    clearStaleTrustProgress();
+  }, [user]);
 
   const handleVerifyAddress = async () => {
     const query = [formData.street_address, formData.city, formData.state, formData.zip_code]
@@ -87,15 +86,17 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
       const addressParts = extractAddressParts(feature, formData);
       const verifiedAt = new Date().toISOString();
 
-      const isAddressChange = !!user?.has_primary_address && user?.primary_address !== formattedAddress;
+      const isAddressChange = !!user?.primary_address_verified && user?.primary_address !== formattedAddress;
       const profileUpdate = {
         has_primary_address: true,
+        primary_address_verified: true,
         primary_address: formattedAddress,
         primary_latitude: latitude,
         primary_longitude: longitude,
         primary_address_verified_at: verifiedAt,
         primary_address_last_changed_at: isAddressChange ? verifiedAt : (user?.primary_address_last_changed_at || verifiedAt),
         address_change_count: Number(user?.address_change_count || 0) + (isAddressChange ? 1 : 0),
+        listing_rules_accepted: true,
         listing_rules_agreed_at: user?.listing_rules_agreed_at || verifiedAt,
         address_verification_required: false,
         street_address: addressParts.street_address,
@@ -109,7 +110,7 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
       };
 
       await base44.auth.updateMe(profileUpdate);
-      localStorage.removeItem(storageKey);
+      clearStaleTrustProgress();
       toast.success("Address verified. You can now continue creating your listing.");
       onVerified({ ...user, ...profileUpdate });
     } catch (error) {

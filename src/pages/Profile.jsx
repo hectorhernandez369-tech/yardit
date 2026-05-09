@@ -13,6 +13,7 @@ import ProfileCoinsSummary from "../components/profile/ProfileCoinsSummary";
 import MyCoinsPanel from "../components/jth/MyCoinsPanel";
 import SavedListingsTab from "../components/profile/SavedListingsTab";
 import { Bookmark } from "lucide-react";
+import { getTrustStatus } from "@/lib/trustActions";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -67,6 +68,8 @@ export default function ProfilePage() {
     initialData: [],
   });
 
+  const trustStatus = getTrustStatus(user);
+
   if (isLoadingUser) {
     return (
       <div className="min-h-[calc(100vh-140px)] flex items-center justify-center">
@@ -111,7 +114,7 @@ export default function ProfilePage() {
             </div>
             </div>
 
-        {!user?.has_primary_address || !user?.listing_rules_agreed_at || user?.email_verified === false ? (
+        {!trustStatus.addressVerified || !trustStatus.listingRulesAccepted || !trustStatus.emailVerified ? (
           <Card className="mb-6 border-orange-200 bg-orange-50">
             <CardContent className="p-4 space-y-4">
               <div className="flex items-start gap-3">
@@ -122,9 +125,9 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="grid gap-2 text-sm text-orange-900">
-                <div className="flex items-center gap-2">{user?.email_verified === false ? <Circle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4 text-green-600" />} Verified email</div>
-                <div className="flex items-center gap-2">{user?.has_primary_address ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Circle className="w-4 h-4" />} Verified primary address</div>
-                <div className="flex items-center gap-2">{user?.listing_rules_agreed_at ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Circle className="w-4 h-4" />} Listing rules agreement</div>
+                <div className="flex items-center gap-2">{trustStatus.emailVerified ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Circle className="w-4 h-4" />} Verified email</div>
+                <div className="flex items-center gap-2">{trustStatus.addressVerified ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Circle className="w-4 h-4" />} Verified primary address</div>
+                <div className="flex items-center gap-2">{trustStatus.listingRulesAccepted ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Circle className="w-4 h-4" />} Listing rules agreement</div>
               </div>
               <Button onClick={() => navigate("/CreateListing")} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
                 Complete Profile

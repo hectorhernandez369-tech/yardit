@@ -94,7 +94,12 @@
     "has_primary_address": {
       "type": "boolean",
       "default": false,
-      "description": "Whether the user has verified a primary physical address"
+      "description": "Legacy compatibility flag for verified primary physical address"
+    },
+    "primary_address_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the primary address is verified"
     },
     "primary_address": {
       "type": "string",
@@ -128,10 +133,15 @@
       "default": false,
       "description": "Whether the user must verify a primary address before posting"
     },
+    "listing_rules_accepted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user accepted listing rules"
+    },
     "listing_rules_agreed_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When the user agreed to listing rules"
+      "description": "Legacy timestamp when the user agreed to listing rules"
     },
     "isAdmin": {
       "type": "boolean",

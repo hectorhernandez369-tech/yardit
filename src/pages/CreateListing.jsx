@@ -23,7 +23,7 @@ import EventTierStep from "../components/create/event/EventTierStep";
 import MarqueeSlotsEditor from "../components/create/event/MarqueeSlotsEditor";
 import AdminAssignUserStep from "../components/admin/AdminAssignUserStep";
 import PrimaryAddressVerificationGate from "../components/create/PrimaryAddressVerificationGate";
-import { canPerformTrustAction, hasVerifiedPrimaryAddress } from "@/lib/trustActions";
+import { canPerformTrustAction, clearStaleTrustProgress, hasVerifiedPrimaryAddress } from "@/lib/trustActions";
 import { useAppMode } from "../components/shared/DemoMode";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import {
@@ -477,6 +477,7 @@ export default function CreateListingPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        clearStaleTrustProgress();
         const currentUser = await base44.auth.me();
         setUser(currentUser);
       } catch (error) {
@@ -825,6 +826,7 @@ export default function CreateListingPage() {
       queryClient.invalidateQueries({ queryKey: ["userListings", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       sessionStorage.removeItem("yardit_pending_trust_action");
+      clearStaleTrustProgress();
       toast.success("Listing created successfully!");
       navigate(createPageUrl("MyListings"));
     },
@@ -970,7 +972,8 @@ export default function CreateListingPage() {
           resolvedProfileTimeZoneId = resolveTimeZoneFromCoordinates(user.address_lat, user.address_lng) || "";
           if (resolvedProfileTimeZoneId) {
             await base44.auth.updateMe({ timeZoneId: resolvedProfileTimeZoneId });
-            setUser((prev) => prev ? { ...prev, timeZoneId: resolvedProfileTimeZoneId } : prev);
+            const refreshedUser = await base44.auth.me();
+            setUser(refreshedUser);
           }
         }
 
@@ -1536,7 +1539,7 @@ export default function CreateListingPage() {
 
   if (shouldRequirePrimaryAddress) {
     sessionStorage.setItem("yardit_pending_trust_action", JSON.stringify({ returnTo: window.location.href, action: "create_listing", createdAt: Date.now() }));
-    return <PrimaryAddressVerificationGate user={user} onVerified={(updatedUser) => setUser((prev) => ({ ...prev, ...updatedUser }))} />;
+    return <PrimaryAddressVerificationGate user={user} onVerified={async () => setUser(await base44.auth.me())} />;
   }
 
   return (
