@@ -299,7 +299,8 @@ export default function CreateListingPage() {
     validatedText: false,
 
     // optional flags
-    locationMethod: "address"
+    locationMethod: "address",
+    organizer_participation: "participating"
   });
 
   useEffect(() => {
@@ -700,6 +701,47 @@ export default function CreateListingPage() {
     onSuccess: async (createdListing) => {
       if (createdListing.listingType === "neighborhood_sale") {
         try {
+          if (!isAdminCreate && createdListing.organizer_participation !== "organizing_only") {
+            const organizerState = getStateAbbreviation(user.state || user.primary_state || createdListing.state || "XX");
+            const organizerZip = user.zip_code || createdListing.zip || "0000";
+            const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+            let participantSuffix = "";
+            for (let i = 0; i < 5; i++) participantSuffix += chars[Math.floor(Math.random() * chars.length)];
+            const organizerParticipant = await base44.entities.Listing.create({
+              ownerUserId: createdListing.ownerUserId,
+              listingType: "yard_sale",
+              title: `${createdListing.title || "Neighborhood Sale"} - Organizer Sale`,
+              description: "",
+              addressText: user.primary_address || user.street_address || createdListing.addressText,
+              city: user.city || createdListing.city,
+              state: organizerState,
+              zip: organizerZip,
+              lat: user.primary_latitude ?? user.address_lat ?? createdListing.lat,
+              lng: user.primary_longitude ?? user.address_lng ?? createdListing.lng,
+              timeZoneId: user.timeZoneId || createdListing.timeZoneId || "",
+              tier: "free",
+              pricePaid: 0,
+              status: "active",
+              category: "Neighborhood Sale",
+              categories: [],
+              startDateTime: createdListing.startDateTime,
+              endDateTime: createdListing.endDateTime,
+              selectedRangeStartDate: createdListing.selectedRangeStartDate || createdListing.startDateTime?.slice(0, 10),
+              selectedRangeEndDate: createdListing.selectedRangeEndDate || createdListing.endDateTime?.slice(0, 10),
+              neighborhood_join_status: "approved",
+              payment_intent_status: "none",
+              neighborhood_sale_id: createdListing.id,
+              participant_origin: "neighborhood_invite",
+              origin_sale_listing_id: createdListing.id,
+              listingNumber: `${organizerState}${String(organizerZip).slice(-4).padStart(4, "0")}-${participantSuffix}`,
+            });
+
+            await base44.entities.Listing.update(createdListing.id, {
+              organizer_participant_listing_id: organizerParticipant.id,
+              homeCount: 1,
+            });
+          }
+
           if (createdListing.organizer_stripe_payment_method_id) {
             const durationDays = Math.max(1, Math.round((new Date(createdListing.endDateTime).getTime() - new Date(createdListing.startDateTime).getTime()) / (1000 * 60 * 60 * 24)) + 1);
             await base44.entities.Payment.create({
@@ -1126,7 +1168,8 @@ export default function CreateListingPage() {
       payload.status = "collecting_participants";
       payload.activation_status = "pending";
       payload.event_state = "pending_activation";
-      payload.homeCount = 1;
+      payload.organizer_participation = sourceFormData.organizer_participation || "participating";
+      payload.homeCount = payload.organizer_participation === "organizing_only" ? 0 : 1;
       payload.pricePaid = 0;
       payload.payment_intent_status = "none";
       payload.payment_setup_status = sourceFormData.organizer_stripe_payment_method_id ? "saved" : "pending";
@@ -1339,8 +1382,8 @@ export default function CreateListingPage() {
     }
 
     if (formData.listingType === "neighborhood_sale") {
-      if (formData.homeCount < 1 || formData.homeCount > 25) {
-        toast.error("Neighborhood Sales must have between 1 and 25 homes.");
+      if (!["participating", "organizing_only"].includes(formData.organizer_participation)) {
+        toast.error("Please choose whether you are participating or only organizing.");
         return;
       }
       const leadTimeError = getNeighborhoodCreationLeadTimeError(formData.selectedRangeStartDate);

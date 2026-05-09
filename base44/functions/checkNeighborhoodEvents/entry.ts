@@ -9,9 +9,10 @@ function normalizeNeighborhoodJoinStatus(status) {
   return status;
 }
 
-function getApprovedHomesCount(requests = []) {
+function getApprovedHomesCount(requests = [], sale = null) {
+  const organizerCount = sale?.organizer_participation === 'organizing_only' ? 0 : 1;
   const activeRequests = (requests || []).filter((request) => request?.removed_by_eo !== true);
-  return activeRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + 1;
+  return activeRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + organizerCount;
 }
 
 function deriveNeighborhoodEventState(listing, nowInput = new Date()) {
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
 
     for (const listing of listings) {
       const requests = await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId: listing.id });
-      const approvedHomes = Math.min(NEIGHBORHOOD_MAX_HOMES, getApprovedHomesCount(requests));
+      const approvedHomes = Math.min(NEIGHBORHOOD_MAX_HOMES, getApprovedHomesCount(requests, listing));
       const nextEventState = deriveNeighborhoodEventState({ ...listing, homeCount: approvedHomes }, now);
       const nextStatus = nextEventState === 'expired'
         ? 'expired'

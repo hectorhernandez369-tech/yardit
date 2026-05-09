@@ -17,8 +17,9 @@ function normalizeNeighborhoodJoinStatus(status) {
   return status;
 }
 
-function getApprovedHomesCount(requests = []) {
-  return (requests || []).filter((request) => request?.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + 1;
+function getApprovedHomesCount(requests = [], sale = null) {
+  const organizerCount = sale?.organizer_participation === 'organizing_only' ? 0 : 1;
+  return (requests || []).filter((request) => request?.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + organizerCount;
 }
 
 function createToken() {
@@ -136,7 +137,7 @@ Deno.serve(async (req) => {
     const nowIso = now.toISOString();
     const rescueExpiry = new Date(now.getTime() + RESCUE_EXPIRATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const requests = await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId });
-    const approvedHomes = getApprovedHomesCount(requests);
+    const approvedHomes = getApprovedHomesCount(requests, sale);
 
     let typeADeleted = 0;
     let typeBDetached = 0;
@@ -185,6 +186,14 @@ Deno.serve(async (req) => {
           pricePaid: chargeAmount,
           payment_intent_status: 'captured',
         });
+      }
+    }
+
+    if (sale.organizer_participant_listing_id) {
+      const organizerListings = await base44.asServiceRole.entities.Listing.filter({ id: sale.organizer_participant_listing_id });
+      if (organizerListings[0]) {
+        await base44.asServiceRole.entities.Listing.delete(organizerListings[0].id);
+        typeADeleted += 1;
       }
     }
 

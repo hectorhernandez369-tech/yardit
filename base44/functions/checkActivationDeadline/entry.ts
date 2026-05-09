@@ -19,8 +19,9 @@ function normalizeNeighborhoodJoinStatus(status) {
   return status;
 }
 
-function getApprovedHomesCount(requests = []) {
-  const approved = (requests || []).filter((request) => request?.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + 1;
+function getApprovedHomesCount(requests = [], sale = null) {
+  const organizerCount = sale?.organizer_participation === 'organizing_only' ? 0 : 1;
+  const approved = (requests || []).filter((request) => request?.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + organizerCount;
   return Math.min(NEIGHBORHOOD_MAX_HOMES, approved);
 }
 
@@ -376,7 +377,7 @@ Deno.serve(async (req) => {
       }
 
       const requests = await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId: sale.id });
-      const approvedHomes = getApprovedHomesCount(requests);
+      const approvedHomes = getApprovedHomesCount(requests, sale);
       await base44.asServiceRole.entities.Listing.update(sale.id, { homeCount: approvedHomes });
 
       if (job.checkpoint_type === 'warning_48h') {

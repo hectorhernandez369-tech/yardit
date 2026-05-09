@@ -194,7 +194,8 @@ export default function JoinNeighborhoodSale() {
   const activeRequest = existingRequests.find((request) => ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status)));
   const missingConfirmedAddress = user && (!user.street_address || !user.city || !user.state || !user.zip_code || !user.address_lat || !user.address_lng);
   const hasBlockingResidentialListing = existingListings.some((listing) => listing.listingType !== "neighborhood_sale" && listing.status === "active" && !listing.neighborhood_sale_id && normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "none");
-  const approvedHomesCount = 1 + participantRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === "approved" && request.removed_by_eo !== true).length;
+  const organizerCount = sale.organizer_participation === "organizing_only" ? 0 : 1;
+  const approvedHomesCount = organizerCount + participantRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === "approved" && request.removed_by_eo !== true).length;
   const availableSpots = Math.max(0, 25 - approvedHomesCount);
   const isFull = availableSpots === 0;
 

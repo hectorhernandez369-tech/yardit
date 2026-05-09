@@ -35,6 +35,7 @@ export default function StepOne({ formData, setFormData }) {
               categories: [],
               category: "Neighborhood Sale",
               description: "",
+              organizer_participation: prev.organizer_participation || "participating",
             } : {}),
             ...(value === "event" ? {
               tier: "basic",
@@ -175,7 +176,31 @@ export default function StepOne({ formData, setFormData }) {
       )}
 
       {listingType === "neighborhood_sale" && (
-        <div className="space-y-3 rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
+        <div className="space-y-4 rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
+          <div className="rounded-lg border border-[#2C4F4E]/30 bg-[#F3E6CF] p-4">
+            <Label className="mb-3 block font-semibold text-[#2C4F4E]">Will you be participating in your own Neighborhood Sale?</Label>
+            <RadioGroup
+              value={formData.organizer_participation || "participating"}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, organizer_participation: value }))}
+              className="space-y-2"
+            >
+              <div className="flex items-start space-x-2 rounded-md border border-[#2C4F4E]/20 bg-white/50 p-3">
+                <RadioGroupItem value="participating" id="organizer_participating" className="mt-1" />
+                <Label htmlFor="organizer_participating" className="flex-1 cursor-pointer">
+                  <div className="font-semibold text-[#2C4F4E]">Yes, I will have a sale at my address</div>
+                  <div className="text-sm text-[#1F2937] opacity-80">Count my home as one participating home in this Neighborhood Sale.</div>
+                </Label>
+              </div>
+              <div className="flex items-start space-x-2 rounded-md border border-[#2C4F4E]/20 bg-white/50 p-3">
+                <RadioGroupItem value="organizing_only" id="organizer_only" className="mt-1" />
+                <Label htmlFor="organizer_only" className="flex-1 cursor-pointer">
+                  <div className="font-semibold text-[#2C4F4E]">No, I am only organizing</div>
+                  <div className="text-sm text-[#1F2937] opacity-80">Do not count my home as a participant.</div>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
           <div className="flex flex-col gap-2">
             <div>
               <p className="font-semibold text-[#2C4F4E]">Neighborhood Sale Pricing & Rules</p>

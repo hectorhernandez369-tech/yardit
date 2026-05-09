@@ -107,7 +107,8 @@
       "type": "string",
       "enum": [
         "search",
-        "pin"
+        "pin",
+        "admin_selected"
       ],
       "default": "search",
       "description": "Source of the location data"
@@ -306,6 +307,19 @@
     "homeCount": {
       "type": "number",
       "description": "Number of homes currently visible in the neighborhood sale"
+    },
+    "organizer_participation": {
+      "type": "string",
+      "enum": [
+        "participating",
+        "organizing_only"
+      ],
+      "default": "participating",
+      "description": "Whether the organizer is also hosting a sale in their own neighborhood event"
+    },
+    "organizer_participant_listing_id": {
+      "type": "string",
+      "description": "Organizer's linked personal yard sale listing ID, if participating"
     },
     "neighborhood_join_status": {
       "type": "string",
