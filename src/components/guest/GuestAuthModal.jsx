@@ -14,11 +14,12 @@ export default function GuestAuthModal({
   title = "Create a Free Account",
   description = "Create a free account to continue your hunt.",
   detail = "Sign up to post listings, join neighborhood sales, save your hunt, and more.",
-  buttonText = "Log In / Sign Up"
+  buttonText = "Log In / Sign Up",
+  returnTo = ""
 }) {
   const handleLogin = () => {
     clearGuestMode();
-    base44.auth.redirectToLogin(window.location.href);
+    base44.auth.redirectToLogin(returnTo || window.location.href);
   };
 
   return (

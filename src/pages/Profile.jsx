@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { User, CreditCard, Loader2, AlertTriangle, Store } from "lucide-react";
+import { User, CreditCard, Loader2, AlertTriangle, Store, CheckCircle2, Circle } from "lucide-react";
 
 import UserInfoSection from "../components/profile/UserInfoSection";
 import PaymentHistory from "../components/profile/PaymentHistory";
@@ -111,14 +111,24 @@ export default function ProfilePage() {
             </div>
             </div>
 
-        {!user?.has_primary_address ? (
+        {!user?.has_primary_address || !user?.listing_rules_agreed_at || user?.email_verified === false ? (
           <Card className="mb-6 border-orange-200 bg-orange-50">
-            <CardContent className="p-4 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
-              <div>
-                <p className="font-semibold text-orange-900">Complete your profile to start posting</p>
-                <p className="text-sm text-orange-800">You can keep browsing now. Yardit will ask you to verify your address only when you create a listing or use another trusted action.</p>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-orange-900">Complete your profile to start posting listings.</p>
+                  <p className="text-sm text-orange-800">You can keep browsing now. Yardit will ask for these only when you create a listing or use another trusted action.</p>
+                </div>
               </div>
+              <div className="grid gap-2 text-sm text-orange-900">
+                <div className="flex items-center gap-2">{user?.email_verified === false ? <Circle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4 text-green-600" />} Verified email</div>
+                <div className="flex items-center gap-2">{user?.has_primary_address ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Circle className="w-4 h-4" />} Verified primary address</div>
+                <div className="flex items-center gap-2">{user?.listing_rules_agreed_at ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Circle className="w-4 h-4" />} Listing rules agreement</div>
+              </div>
+              <Button onClick={() => navigate("/CreateListing")} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
+                Complete Profile
+              </Button>
             </CardContent>
           </Card>
         ) : null}

@@ -824,6 +824,7 @@ export default function CreateListingPage() {
       queryClient.invalidateQueries({ queryKey: ["listings"] });
       queryClient.invalidateQueries({ queryKey: ["userListings", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      sessionStorage.removeItem("yardit_pending_trust_action");
       toast.success("Listing created successfully!");
       navigate(createPageUrl("MyListings"));
     },
@@ -975,14 +976,14 @@ export default function CreateListingPage() {
 
         const nextData = buildResolvedListingLocation({
           ...formData,
-          addressText: user.primary_address || user.street_address,
+          addressText: user.primary_address,
           city: user.city,
           state: (user.state || "").toUpperCase().slice(0, 2),
           zip: user.zip_code,
-          lat: user.primary_latitude ?? user.address_lat,
-          lng: user.primary_longitude ?? user.address_lng,
+          lat: user.primary_latitude,
+          lng: user.primary_longitude,
           timeZoneId: resolvedProfileTimeZoneId,
-          locationMethod: "profile"
+          locationMethod: "verified_primary_address"
         });
         setFormData(nextData);
 
@@ -1087,16 +1088,22 @@ export default function CreateListingPage() {
     }
 
     if (payload.listingType === "yard_sale" && !isGlobalDemoMode && !isAdminCreate) {
-    payload = {
-      ...payload,
-      addressText: user?.primary_address || user?.street_address || payload.addressText,
-      city: user?.city || payload.city,
-      state: getStateAbbreviation(user?.state || payload.state || ""),
-      zip: user?.zip_code || payload.zip,
-      lat: user?.primary_latitude ?? user?.address_lat ?? payload.lat,
-      lng: user?.primary_longitude ?? user?.address_lng ?? payload.lng,
-      timeZoneId: user?.timeZoneId || payload.timeZoneId || "",
-    };
+      const selectedDistanceFeet = getDistanceFeet(payload.lat, payload.lng, user.primary_latitude, user.primary_longitude);
+      if (selectedDistanceFeet > 500) {
+        throw new Error("Your listing must use your verified primary address. You can adjust the pin slightly for map accuracy.");
+      }
+
+      payload = {
+        ...payload,
+        addressText: user.primary_address,
+        city: user.city,
+        state: getStateAbbreviation(user.state || ""),
+        zip: user.zip_code,
+        lat: typeof payload.lat === "number" ? payload.lat : user.primary_latitude,
+        lng: typeof payload.lng === "number" ? payload.lng : user.primary_longitude,
+        timeZoneId: user?.timeZoneId || payload.timeZoneId || "",
+        locationMethod: "verified_primary_address",
+      };
     }
 
     if (payload.listingType === "neighborhood_sale") {
@@ -1528,6 +1535,7 @@ export default function CreateListingPage() {
   const shouldRequirePrimaryAddress = !isAdminCreate && !isGlobalDemoMode && !canPerformTrustAction(user);
 
   if (shouldRequirePrimaryAddress) {
+    sessionStorage.setItem("yardit_pending_trust_action", JSON.stringify({ returnTo: window.location.href, action: "create_listing", createdAt: Date.now() }));
     return <PrimaryAddressVerificationGate user={user} onVerified={(updatedUser) => setUser((prev) => ({ ...prev, ...updatedUser }))} />;
   }
 

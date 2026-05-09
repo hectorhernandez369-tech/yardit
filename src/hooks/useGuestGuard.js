@@ -28,7 +28,7 @@ export function useGuestGuard() {
   };
 
   const guardAction = (fn, options = {}) => {
-    const { allowGuest = false, modal = DEFAULT_MODAL_PROPS } = options;
+    const { allowGuest = false, modal = DEFAULT_MODAL_PROPS, returnTo = "" } = options;
 
     if (isGuest && allowGuest) {
       if (fn) fn();
@@ -36,7 +36,10 @@ export function useGuestGuard() {
     }
 
     if (isGuest || !isAuthenticated) {
-      setModalProps({ ...DEFAULT_MODAL_PROPS, ...modal });
+      if (returnTo) {
+        sessionStorage.setItem("yardit_pending_trust_action", JSON.stringify({ returnTo, createdAt: Date.now() }));
+      }
+      setModalProps({ ...DEFAULT_MODAL_PROPS, ...modal, returnTo });
       setShowModal(true);
       return;
     }

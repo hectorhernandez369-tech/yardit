@@ -190,7 +190,7 @@ function LayoutContent({ children, user, setUser }) {
                   <>
                     <Button
                     size="sm"
-                    onClick={() => guardAction(() => navigate(createPageUrl("CreateListing")))}
+                    onClick={() => guardAction(() => navigate(createPageUrl("CreateListing")), { returnTo: `${window.location.origin}${createPageUrl("CreateListing")}` })}
                     className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
                   >
                     <Plus className="w-4 h-4" />
@@ -270,7 +270,7 @@ function LayoutContent({ children, user, setUser }) {
         {children}
       </main>
       
-      <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} />
+      <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} returnTo={`${window.location.origin}${createPageUrl("CreateListing")}`} />
 
       <AdminLoginModal
         open={showAdminLogin}

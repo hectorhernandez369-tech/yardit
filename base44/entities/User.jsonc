@@ -32,6 +32,28 @@
       "default": 0,
       "description": "Internal trust score for progressive trust actions"
     },
+    "risk_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Internal risk flags for admin review"
+    },
+    "moderation_notes": {
+      "type": "string",
+      "description": "Internal moderation notes"
+    },
+    "seller_verification_level": {
+      "type": "string",
+      "enum": [
+        "basic",
+        "verified",
+        "trusted",
+        "vendor_verified"
+      ],
+      "default": "basic",
+      "description": "Future seller verification level"
+    },
     "street_address": {
       "type": "string",
       "description": "Street address"
@@ -90,6 +112,16 @@
       "type": "string",
       "format": "date-time",
       "description": "When the primary address was verified"
+    },
+    "primary_address_last_changed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the primary address was last changed"
+    },
+    "address_change_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of verified primary address changes"
     },
     "address_verification_required": {
       "type": "boolean",
