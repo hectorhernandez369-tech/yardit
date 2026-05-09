@@ -898,25 +898,39 @@ export default function MyListingsPage() {
 
   // ---- Render Guards ----
   if (!user) {
-    return <div className="p-8 text-center">Loading...</div>;
+    return (
+      <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-gradient-to-br from-orange-50 via-purple-50 to-pink-50">
+        <p className="text-gray-600">Loading listings...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
+    <div className="min-h-[calc(100vh-140px)] p-4 md:p-8 bg-gradient-to-br from-orange-50 via-purple-50 to-pink-50">
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold">My Listings</h1>
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                <Map className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">My Listings</h1>
+                <p className="text-gray-600">Manage your active, pending, and past Yardit listings</p>
+              </div>
+            </div>
 
-          <Button
-            onClick={() => navigate(createPageUrl("CreateListing"))}
-            className="bg-amber-600 hover:bg-amber-700 text-white w-full sm:w-auto"
-          >
-            Create New Listing
-          </Button>
+            <Button
+              onClick={() => navigate(createPageUrl("CreateListing"))}
+              className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold w-full sm:w-auto"
+            >
+              Create New Listing
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 flex-wrap mb-6">
+        <div className="flex gap-2 flex-wrap mb-6 rounded-xl border bg-white/70 p-2 shadow-sm max-w-4xl">
           <Button
             variant={tab === "active" ? "default" : "outline"}
             onClick={() => setTab("active")}
@@ -950,7 +964,7 @@ export default function MyListingsPage() {
 
         {/* Tabs Content */}
         {tab === "billing" ? (
-          <Card>
+          <Card className="rounded-xl border bg-white/80 shadow">
             <CardContent className="p-8">
               <h2 className="text-xl font-semibold mb-2">Billing / Payments</h2>
               <p className="text-slate-600">
@@ -959,13 +973,13 @@ export default function MyListingsPage() {
             </CardContent>
           </Card>
         ) : isLoading ? (
-          <Card>
+          <Card className="rounded-xl border bg-white/80 shadow">
             <CardContent className="p-12 text-center">
               <p className="text-slate-500">Loading listings...</p>
             </CardContent>
           </Card>
         ) : shownListings.length === 0 ? (
-          <Card>
+          <Card className="rounded-xl border bg-white/80 shadow">
             <CardContent className="p-12 text-center">
               <p className="text-slate-500 mb-4">
                 {tab === "past"
@@ -988,7 +1002,7 @@ export default function MyListingsPage() {
         ) : (
           <div className="grid gap-4">
             {shownListings.map((listing) => (
-              <Card key={listing.id}>
+              <Card key={listing.id} className="rounded-xl border bg-white/85 shadow hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3">
                     <div className="min-w-0">
@@ -1030,7 +1044,7 @@ export default function MyListingsPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:flex gap-2 sm:flex-wrap sm:justify-end">
+                    <div className="grid grid-cols-2 sm:flex gap-2 sm:flex-wrap sm:justify-end bg-white/60 rounded-xl p-2 border border-gray-100">
                       <Button
                         size="sm"
                         disabled={!hasCoords(listing)}
@@ -1111,12 +1125,12 @@ export default function MyListingsPage() {
                   </div>
 
                   {/* Description */}
-                  <p className="text-slate-600 mb-4 whitespace-pre-wrap">
+                  <p className="text-gray-600 mb-4 whitespace-pre-wrap">
                     {listing.description || "(No description)"}
                   </p>
 
                   {/* Address + Dates */}
-                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div className="grid md:grid-cols-2 gap-4 text-sm rounded-xl bg-orange-50/60 border border-orange-100 p-4">
                     <div className="flex items-center gap-2 text-slate-600">
                       <MapPin className="w-4 h-4" />
                       <span className="break-words">{getListingAddressLine(listing)}</span>
