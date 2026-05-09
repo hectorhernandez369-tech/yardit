@@ -51,6 +51,33 @@
       "default": "unconfirmed",
       "description": "Address confirmation state"
     },
+    "has_primary_address": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user has verified a primary physical address"
+    },
+    "primary_address": {
+      "type": "string",
+      "description": "Verified formatted primary address"
+    },
+    "primary_latitude": {
+      "type": "number",
+      "description": "Verified primary address latitude"
+    },
+    "primary_longitude": {
+      "type": "number",
+      "description": "Verified primary address longitude"
+    },
+    "primary_address_verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the primary address was verified"
+    },
+    "address_verification_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether address verification is required before posting a listing"
+    },
     "address": {
       "type": "string",
       "description": "Legacy combined address field"

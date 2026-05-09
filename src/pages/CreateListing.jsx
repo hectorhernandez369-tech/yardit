@@ -16,6 +16,7 @@ import StepThree from "../components/create/StepThree";
 import ResidentialPaymentStep from "../components/payment/ResidentialPaymentStep";
 import NeighborhoodSetupStep from "../components/payment/NeighborhoodSetupStep";
 import FormScrollHelper from "../components/create/FormScrollHelper";
+import PrimaryAddressVerificationModal from "../components/create/PrimaryAddressVerificationModal";
 import EventDetailsStep from "../components/create/event/EventDetailsStep";
 import EventLocationStep from "../components/create/event/EventLocationStep";
 import EventScheduleStep from "../components/create/event/EventScheduleStep";
@@ -486,8 +487,14 @@ export default function CreateListingPage() {
 
   const { isDemoMode: isGlobalDemoMode } = useAppMode();
   const profileIdentityIncomplete = !user?.first_name || !user?.last_name || !user?.phone;
-  const profileAddressMissing = !user?.street_address || !user?.city || !user?.state || !user?.zip_code;
-  const profileAddressUnconfirmed = profileAddressMissing || user?.address_confirmation_status !== "confirmed" || !user?.address_lat || !user?.address_lng;
+  const hasVerifiedPrimaryAddress = !!(
+    user?.has_primary_address &&
+    user?.primary_address &&
+    typeof user?.primary_latitude === "number" &&
+    typeof user?.primary_longitude === "number"
+  );
+  const profileAddressMissing = !hasVerifiedPrimaryAddress;
+  const profileAddressUnconfirmed = !hasVerifiedPrimaryAddress;
   const profileIncomplete = profileIdentityIncomplete || profileAddressUnconfirmed;
   const regularAddressIncomplete = !formData.addressText || !formData.city || !formData.state || !formData.zip;
 
@@ -973,12 +980,12 @@ export default function CreateListingPage() {
 
         const nextData = buildResolvedListingLocation({
           ...formData,
-          addressText: user.street_address,
+          addressText: user.primary_address || user.street_address,
           city: user.city,
           state: (user.state || "").toUpperCase().slice(0, 2),
           zip: user.zip_code,
-          lat: user.address_lat,
-          lng: user.address_lng,
+          lat: user.primary_latitude ?? user.address_lat,
+          lng: user.primary_longitude ?? user.address_lng,
           timeZoneId: resolvedProfileTimeZoneId,
           locationMethod: "profile"
         });
@@ -1087,12 +1094,12 @@ export default function CreateListingPage() {
     if (payload.listingType === "yard_sale" && !isGlobalDemoMode && !isAdminCreate) {
     payload = {
       ...payload,
-      addressText: user?.street_address || payload.addressText,
+      addressText: user?.primary_address || user?.street_address || payload.addressText,
       city: user?.city || payload.city,
       state: getStateAbbreviation(user?.state || payload.state || ""),
       zip: user?.zip_code || payload.zip,
-      lat: user?.address_lat ?? payload.lat,
-      lng: user?.address_lng ?? payload.lng,
+      lat: user?.primary_latitude ?? user?.address_lat ?? payload.lat,
+      lng: user?.primary_longitude ?? user?.address_lng ?? payload.lng,
       timeZoneId: user?.timeZoneId || payload.timeZoneId || "",
     };
     }
@@ -1523,9 +1530,17 @@ export default function CreateListingPage() {
     return <div className="p-8 text-center">Loading...</div>;
   }
 
+  const shouldRequirePrimaryAddress = !isAdminCreate && !isGlobalDemoMode && !hasVerifiedPrimaryAddress;
+
   return (
     <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
+        <PrimaryAddressVerificationModal
+          open={shouldRequirePrimaryAddress}
+          initialUser={user}
+          onVerified={(updatedUser) => setUser((prev) => ({ ...prev, ...updatedUser }))}
+        />
+
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
