@@ -288,7 +288,7 @@ export const AuthProvider = ({ children }) => {
     clearGuestMode();
     setIsGuest(false);
     saveAuthReturnTo(window.location.href);
-    base44.auth.redirectToLogin(window.location.href);
+    window.location.href = `${appParams.serverUrl}/login?redirect_url=${encodeURIComponent(window.location.href)}`;
   };
 
   return (

@@ -8,12 +8,16 @@ import { Store, UserPlus } from "lucide-react";
 export default function AccountOptions() {
   const navigate = useNavigate();
 
+  const redirectToLogin = (returnUrl) => {
+    window.location.href = `/login?redirect_url=${encodeURIComponent(returnUrl)}`;
+  };
+
   const handlePersonalSignup = () => {
-    base44.auth.redirectToLogin(window.location.origin);
+    redirectToLogin(window.location.origin);
   };
 
   const handleVendorSignup = () => {
-    base44.auth.redirectToLogin(`${window.location.origin}/VendorSignup`);
+    redirectToLogin(`${window.location.origin}/VendorSignup`);
   };
 
   return (
