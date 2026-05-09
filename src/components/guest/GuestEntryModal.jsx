@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { logUserActivity, logUserActivityOncePerSession } from "@/lib/logUserActivity";
 
 export default function GuestEntryModal({ open, onLogin, onGuestEnter }) {
-  const navigate = useNavigate();
   const [tosChecked, setTosChecked] = useState(false);
   const [showTosError, setShowTosError] = useState(false);
   const [showTosModal, setShowTosModal] = useState(false);
@@ -66,7 +64,7 @@ export default function GuestEntryModal({ open, onLogin, onGuestEnter }) {
           </DialogHeader>
 
           <div className="space-y-4">
-            <Button onClick={() => navigate("/AccountOptions")} className="w-full">
+            <Button onClick={onLogin} className="w-full">
               Log In / Sign Up
             </Button>
 
