@@ -17,7 +17,9 @@ export default function VendorPortalGate({ account, authorizedUser, user, onUnlo
     const enteredHash = await hashVendorPasscode(passcode);
     setChecking(false);
 
-    if (!authorizedUser || authorizedUser.status !== "active") {
+    const isOwner = account.owner_user_id === user?.id || account.owner_user_id === user?.email;
+
+    if (!isOwner && (!authorizedUser || authorizedUser.status !== "active")) {
       setError("Access denied. Your Yardit account is not authorized for this business.");
       return;
     }
