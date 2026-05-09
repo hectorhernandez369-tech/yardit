@@ -4,14 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import EventFlagCard from "@/components/vendor/events/EventFlagCard";
-import EventFlagIconPicker from "@/components/vendor/events/EventFlagIconPicker";
-import FlagScheduleEditor from "@/components/vendor/events/FlagScheduleEditor";
-import { getEventFlagIcon } from "@/lib/eventFlagIcons";
+import EventFlagQuickEditPanel from "@/components/vendor/events/EventFlagQuickEditPanel";
 import { safeBack } from "@/utils";
 import { toast } from "sonner";
 
@@ -22,6 +17,7 @@ export default function VendorEventFlags() {
   const [selectedSpotId, setSelectedSpotId] = useState(null);
   const [draftSpot, setDraftSpot] = useState(null);
   const [timeBetweenMinutes, setTimeBetweenMinutes] = useState("90");
+  const [isSavingSpot, setIsSavingSpot] = useState(false);
 
   const { data: user } = useQuery({ queryKey: ["flagManagerUser"], queryFn: () => base44.auth.me() });
   const { data: events = [], isLoading: loadingEvent } = useQuery({ queryKey: ["flagManagerEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
@@ -29,12 +25,8 @@ export default function VendorEventFlags() {
   const { data: spots = [], isLoading: loadingSpots } = useQuery({ queryKey: ["flagManagerSpots", eventId], queryFn: () => base44.entities.EventSpot.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
 
   const sortedSpots = useMemo(() => [...spots].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)), [spots]);
-  const selectedSpot = sortedSpots.find((spot) => spot.id === selectedSpotId) || sortedSpots[0];
+  const selectedSpot = sortedSpots.find((spot) => spot.id === selectedSpotId) || null;
   const canManage = !!event && !!user && event.organizer_user_id === user.id;
-
-  useEffect(() => {
-    if (!selectedSpotId && sortedSpots[0]?.id) setSelectedSpotId(sortedSpots[0].id);
-  }, [sortedSpots, selectedSpotId]);
 
   useEffect(() => {
     if (selectedSpot) {
@@ -47,16 +39,39 @@ export default function VendorEventFlags() {
     }
   }, [selectedSpot?.id]);
 
-  const saveSpot = async () => {
+  const saveSpot = async ({ applyToAll, originalSpot }) => {
+    setIsSavingSpot(true);
+    const now = new Date().toISOString();
+    const changedSharedFields = {};
+
+    if ((draftSpot.icon_key || "flag") !== (originalSpot.icon_key || "flag")) {
+      changedSharedFields.icon_key = draftSpot.icon_key || "flag";
+    }
+    if ((draftSpot.description || "") !== (originalSpot.description || "")) {
+      changedSharedFields.description = draftSpot.description || "";
+    }
+
     await base44.entities.EventSpot.update(draftSpot.id, {
       title: draftSpot.title,
       label: draftSpot.title,
       icon_key: draftSpot.icon_key || "flag",
       description: draftSpot.description || "",
       schedule_entries: (draftSpot.schedule_entries || []).map((entry, index) => ({ ...entry, sort_order: index })),
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     });
-    toast.success("Flag updated");
+
+    if (applyToAll && Object.keys(changedSharedFields).length > 0) {
+      await Promise.all(
+        sortedSpots
+          .filter((spot) => spot.id !== draftSpot.id)
+          .map((spot) => base44.entities.EventSpot.update(spot.id, { ...changedSharedFields, updated_at: now }))
+      );
+    }
+
+    toast.success(applyToAll && Object.keys(changedSharedFields).length > 0 ? "Flag updated and shared settings applied" : "Flag updated");
+    setSelectedSpotId(null);
+    setDraftSpot(null);
+    setIsSavingSpot(false);
     queryClient.invalidateQueries({ queryKey: ["flagManagerSpots", eventId] });
   };
 
@@ -78,54 +93,29 @@ export default function VendorEventFlags() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
-        <div className="space-y-3">
-          {sortedSpots.length ? sortedSpots.map((spot) => (
-            <EventFlagCard key={spot.id} spot={spot} selected={spot.id === selectedSpot?.id} onEdit={() => setSelectedSpotId(spot.id)} />
-          )) : (
-            <Card><CardContent className="p-6 text-center text-slate-500">No flags found. Place flags from the event location editor first.</CardContent></Card>
-          )}
-        </div>
-
-        {draftSpot && (
-          <Card className="rounded-3xl bg-white">
-            <CardContent className="p-5 space-y-5">
-              <div className="flex items-center gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#2C4F4E] bg-[#F4A849] text-2xl">{getEventFlagIcon(draftSpot.icon_key)}</span>
-                <div>
-                  <h2 className="text-2xl font-black text-[#2C4F4E]">Flag Detail Editor</h2>
-                  <p className="text-sm text-slate-500">This name appears publicly on the map.</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-bold text-[#2C4F4E]">Flag Name</Label>
-                <Input value={draftSpot.title || ""} onChange={(e) => setDraftSpot((prev) => ({ ...prev, title: e.target.value }))} placeholder="Field 1, Main Stage, Food Court" />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-bold text-[#2C4F4E]">Icon</Label>
-                <EventFlagIconPicker value={draftSpot.icon_key || "flag"} onChange={(iconKey) => setDraftSpot((prev) => ({ ...prev, icon_key: iconKey }))} />
-              </div>
-
-              <FlagScheduleEditor
-                entries={draftSpot.schedule_entries || []}
+      <div className="space-y-3">
+        {sortedSpots.length ? sortedSpots.map((spot) => (
+          <div key={spot.id}>
+            <EventFlagCard spot={spot} selected={spot.id === selectedSpot?.id} onEdit={() => setSelectedSpotId((current) => current === spot.id ? null : spot.id)} />
+            {draftSpot && selectedSpot?.id === spot.id && (
+              <EventFlagQuickEditPanel
+                draftSpot={draftSpot}
+                setDraftSpot={setDraftSpot}
+                originalSpot={selectedSpot}
                 eventDate={event.startDateTime}
                 timeBetweenMinutes={timeBetweenMinutes}
                 onTimeBetweenChange={setTimeBetweenMinutes}
-                onChange={(entries) => setDraftSpot((prev) => ({ ...prev, schedule_entries: entries }))}
+                onSave={saveSpot}
+                onCancel={() => {
+                  setSelectedSpotId(null);
+                  setDraftSpot(null);
+                }}
+                isSaving={isSavingSpot}
               />
-
-              <div className="space-y-2">
-                <Label className="font-bold text-[#2C4F4E]">Optional Description</Label>
-                <Textarea value={draftSpot.description || ""} onChange={(e) => setDraftSpot((prev) => ({ ...prev, description: e.target.value }))} placeholder="Optional details for this flag" />
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={saveSpot} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"><Save className="h-4 w-4" /> Save Flag</Button>
-              </div>
-            </CardContent>
-          </Card>
+            )}
+          </div>
+        )) : (
+          <Card><CardContent className="p-6 text-center text-slate-500">No flags found. Place flags from the event location editor first.</CardContent></Card>
         )}
       </div>
     </div>
