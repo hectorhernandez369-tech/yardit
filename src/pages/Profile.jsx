@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import SavedListingsTab from "../components/profile/SavedListingsTab";
 import { Bookmark } from "lucide-react";
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
@@ -101,7 +103,7 @@ export default function ProfilePage() {
               <h1 className="text-3xl font-bold text-gray-900">{`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email || "User"}</h1>
               <p className="text-gray-600">{user.email}</p>
             </div>
-            <Button onClick={() => window.location.href = "/VendorAccountIntro"} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
+            <Button onClick={() => navigate("/VendorAccountIntro")} className="hidden sm:inline-flex bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
               <Store className="w-4 h-4" />
               Open Vendor Account
             </Button>
@@ -109,17 +111,22 @@ export default function ProfilePage() {
             </div>
             </div>
 
-        {!user?.has_primary_address || !user?.primary_address ? (
+        {!user?.has_primary_address ? (
           <Card className="mb-6 border-orange-200 bg-orange-50">
             <CardContent className="p-4 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
               <div>
                 <p className="font-semibold text-orange-900">Complete your profile to start posting</p>
-                <p className="text-sm text-orange-800">You can browse Yardit now. We’ll ask you to verify your address only when you create listings or use other trusted actions.</p>
+                <p className="text-sm text-orange-800">You can keep browsing now. Yardit will ask you to verify your address only when you create a listing or use another trusted action.</p>
               </div>
             </CardContent>
           </Card>
         ) : null}
+
+        <Button onClick={() => navigate("/VendorAccountIntro")} className="sm:hidden mb-6 w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
+          <Store className="w-4 h-4" />
+          Open Vendor Account
+        </Button>
 
         {/* Tabs */}
         <Tabs defaultValue="info" className="space-y-6">

@@ -23,6 +23,7 @@ import EventTierStep from "../components/create/event/EventTierStep";
 import MarqueeSlotsEditor from "../components/create/event/MarqueeSlotsEditor";
 import AdminAssignUserStep from "../components/admin/AdminAssignUserStep";
 import PrimaryAddressVerificationGate from "../components/create/PrimaryAddressVerificationGate";
+import { canPerformTrustAction, hasVerifiedPrimaryAddress } from "@/lib/trustActions";
 import { useAppMode } from "../components/shared/DemoMode";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import {
@@ -486,15 +487,10 @@ export default function CreateListingPage() {
   }, [navigateToLogin]);
 
   const { isDemoMode: isGlobalDemoMode } = useAppMode();
-  const hasVerifiedPrimaryAddress = !!(
-    user?.has_primary_address &&
-    user?.primary_address &&
-    typeof user?.primary_latitude === "number" &&
-    typeof user?.primary_longitude === "number"
-  );
-  const profileAddressMissing = !hasVerifiedPrimaryAddress;
-  const profileAddressUnconfirmed = !hasVerifiedPrimaryAddress;
-  const profileIncomplete = profileAddressUnconfirmed;
+  const userHasVerifiedPrimaryAddress = hasVerifiedPrimaryAddress(user);
+  const profileAddressMissing = !userHasVerifiedPrimaryAddress;
+  const profileAddressUnconfirmed = !userHasVerifiedPrimaryAddress;
+  const profileIncomplete = !canPerformTrustAction(user);
   const regularAddressIncomplete = !formData.addressText || !formData.city || !formData.state || !formData.zip;
 
   // Pull all user listings (used for “1 active listing” rule)
@@ -949,7 +945,7 @@ export default function CreateListingPage() {
 
       if (!isGlobalDemoMode && !isAdminCreate) {
         if (profileIncomplete) {
-          toast.error("Complete My Profile with your name, phone number, and confirmed address before creating a listing.");
+          toast.error("Complete your profile to start posting.");
           navigate(createPageUrl("Profile"));
           return;
         }
@@ -1002,7 +998,7 @@ export default function CreateListingPage() {
       }
 
       if (profileIncomplete && !isAdminCreate) {
-        toast.error("Complete My Profile with your name, phone number, and confirmed address before creating a listing");
+        toast.error("Complete your profile to start posting.");
         navigate(createPageUrl("Profile"));
         return;
       }
@@ -1529,7 +1525,7 @@ export default function CreateListingPage() {
     return <div className="p-8 text-center">Loading...</div>;
   }
 
-  const shouldRequirePrimaryAddress = !isAdminCreate && !isGlobalDemoMode && !hasVerifiedPrimaryAddress;
+  const shouldRequirePrimaryAddress = !isAdminCreate && !isGlobalDemoMode && !canPerformTrustAction(user);
 
   if (shouldRequirePrimaryAddress) {
     return <PrimaryAddressVerificationGate user={user} onVerified={(updatedUser) => setUser((prev) => ({ ...prev, ...updatedUser }))} />;

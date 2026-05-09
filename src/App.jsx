@@ -114,8 +114,8 @@ const AuthenticatedApp = () => {
         ))}
         <Route path="/VendorDashboard" element={<LayoutWrapper currentPageName="VendorDashboard"><VendorDashboard /></LayoutWrapper>} />
         <Route path="/VendorSignup" element={<LayoutWrapper currentPageName="VendorSignup"><VendorSignup /></LayoutWrapper>} />
-        <Route path="/VendorAccountIntro" element={<LayoutWrapper currentPageName="VendorAccountIntro"><VendorAccountIntro /></LayoutWrapper>} />
         <Route path="/VendorSetup" element={<LayoutWrapper currentPageName="VendorSetup"><VendorSetup /></LayoutWrapper>} />
+        <Route path="/VendorAccountIntro" element={<LayoutWrapper currentPageName="VendorAccountIntro"><VendorAccountIntro /></LayoutWrapper>} />
         <Route path="/VendorEventDashboard" element={<LayoutWrapper currentPageName="VendorEventDashboard"><VendorEventDashboard /></LayoutWrapper>} />
         <Route path="/VendorEventFlags" element={<LayoutWrapper currentPageName="VendorEventFlags"><VendorEventFlags /></LayoutWrapper>} />
         <Route path="/VendorEventSchedule" element={<LayoutWrapper currentPageName="VendorEventSchedule"><VendorEventSchedule /></LayoutWrapper>} />

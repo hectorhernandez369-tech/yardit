@@ -19,6 +19,10 @@ export function isEmailVerified(user) {
   return user?.email_verified !== false;
 }
 
+export function hasAgreedToListingRules(user) {
+  return !!user?.listing_rules_agreed_at;
+}
+
 export function canPerformTrustAction(user) {
-  return isEmailVerified(user) && hasVerifiedPrimaryAddress(user);
+  return isEmailVerified(user) && hasVerifiedPrimaryAddress(user) && hasAgreedToListingRules(user);
 }

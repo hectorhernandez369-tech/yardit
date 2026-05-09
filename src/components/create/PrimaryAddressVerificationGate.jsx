@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import AddressFields from "@/components/shared/AddressFields";
 import { Loader2, MapPin, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
     zip_code: user?.zip_code || "",
   });
   const [isVerifying, setIsVerifying] = useState(false);
+  const [agreedToRules, setAgreedToRules] = useState(!!user?.listing_rules_agreed_at);
 
   const handleVerifyAddress = async () => {
     const query = [formData.street_address, formData.city, formData.state, formData.zip_code]
@@ -45,6 +47,11 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
 
     if (!formData.street_address || !formData.city || !formData.state || !formData.zip_code) {
       toast.error("Please enter your full physical address.");
+      return;
+    }
+
+    if (!agreedToRules) {
+      toast.error("Please agree to the Yardit listing rules before continuing.");
       return;
     }
 
@@ -73,6 +80,7 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
         primary_latitude: latitude,
         primary_longitude: longitude,
         primary_address_verified_at: verifiedAt,
+        listing_rules_agreed_at: user?.listing_rules_agreed_at || verifiedAt,
         address_verification_required: false,
         street_address: addressParts.street_address,
         city: addressParts.city,
@@ -113,6 +121,11 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
           <div className="space-y-4">
             <AddressFields formData={formData} setFormData={setFormData} />
           </div>
+
+          <label className="flex items-start gap-3 rounded-xl border border-[#2C4F4E]/20 bg-white p-4 text-sm text-[#2C4F4E]">
+            <Checkbox checked={agreedToRules} onCheckedChange={(checked) => setAgreedToRules(checked === true)} className="mt-0.5" />
+            <span>I agree to Yardit’s listing rules and will only post accurate, respectful, and up-to-date listings.</span>
+          </label>
 
           <Button
             type="button"
