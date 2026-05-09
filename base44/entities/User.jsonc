@@ -51,6 +51,10 @@
       "default": "unconfirmed",
       "description": "Address confirmation state"
     },
+    "address": {
+      "type": "string",
+      "description": "Legacy combined address field"
+    },
     "has_primary_address": {
       "type": "boolean",
       "default": false,
@@ -76,11 +80,7 @@
     "address_verification_required": {
       "type": "boolean",
       "default": false,
-      "description": "Whether address verification is required before posting a listing"
-    },
-    "address": {
-      "type": "string",
-      "description": "Legacy combined address field"
+      "description": "Whether the user must verify a primary address before posting"
     },
     "isAdmin": {
       "type": "boolean",

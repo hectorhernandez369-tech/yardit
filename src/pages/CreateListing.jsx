@@ -16,13 +16,13 @@ import StepThree from "../components/create/StepThree";
 import ResidentialPaymentStep from "../components/payment/ResidentialPaymentStep";
 import NeighborhoodSetupStep from "../components/payment/NeighborhoodSetupStep";
 import FormScrollHelper from "../components/create/FormScrollHelper";
-import PrimaryAddressVerificationModal from "../components/create/PrimaryAddressVerificationModal";
 import EventDetailsStep from "../components/create/event/EventDetailsStep";
 import EventLocationStep from "../components/create/event/EventLocationStep";
 import EventScheduleStep from "../components/create/event/EventScheduleStep";
 import EventTierStep from "../components/create/event/EventTierStep";
 import MarqueeSlotsEditor from "../components/create/event/MarqueeSlotsEditor";
 import AdminAssignUserStep from "../components/admin/AdminAssignUserStep";
+import PrimaryAddressVerificationGate from "../components/create/PrimaryAddressVerificationGate";
 import { useAppMode } from "../components/shared/DemoMode";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import {
@@ -486,7 +486,6 @@ export default function CreateListingPage() {
   }, [navigateToLogin]);
 
   const { isDemoMode: isGlobalDemoMode } = useAppMode();
-  const profileIdentityIncomplete = !user?.first_name || !user?.last_name || !user?.phone;
   const hasVerifiedPrimaryAddress = !!(
     user?.has_primary_address &&
     user?.primary_address &&
@@ -495,7 +494,7 @@ export default function CreateListingPage() {
   );
   const profileAddressMissing = !hasVerifiedPrimaryAddress;
   const profileAddressUnconfirmed = !hasVerifiedPrimaryAddress;
-  const profileIncomplete = profileIdentityIncomplete || profileAddressUnconfirmed;
+  const profileIncomplete = profileAddressUnconfirmed;
   const regularAddressIncomplete = !formData.addressText || !formData.city || !formData.state || !formData.zip;
 
   // Pull all user listings (used for “1 active listing” rule)
@@ -1532,15 +1531,13 @@ export default function CreateListingPage() {
 
   const shouldRequirePrimaryAddress = !isAdminCreate && !isGlobalDemoMode && !hasVerifiedPrimaryAddress;
 
+  if (shouldRequirePrimaryAddress) {
+    return <PrimaryAddressVerificationGate user={user} onVerified={(updatedUser) => setUser((prev) => ({ ...prev, ...updatedUser }))} />;
+  }
+
   return (
     <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <PrimaryAddressVerificationModal
-          open={shouldRequirePrimaryAddress}
-          initialUser={user}
-          onVerified={(updatedUser) => setUser((prev) => ({ ...prev, ...updatedUser }))}
-        />
-
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
