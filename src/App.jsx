@@ -17,6 +17,7 @@ import VendorPinPreview from './pages/VendorPinPreview';
 import VendorPublicPage from './pages/VendorPublicPage';
 import VendorSignup from './pages/VendorSignup';
 import VendorSetup from './pages/VendorSetup';
+import VendorAccountIntro from './pages/VendorAccountIntro';
 import VendorEventDashboard from './pages/VendorEventDashboard';
 import VendorEventFlags from './pages/VendorEventFlags';
 import VendorEventSchedule from './pages/VendorEventSchedule';
@@ -113,6 +114,7 @@ const AuthenticatedApp = () => {
         ))}
         <Route path="/VendorDashboard" element={<LayoutWrapper currentPageName="VendorDashboard"><VendorDashboard /></LayoutWrapper>} />
         <Route path="/VendorSignup" element={<LayoutWrapper currentPageName="VendorSignup"><VendorSignup /></LayoutWrapper>} />
+        <Route path="/VendorAccountIntro" element={<LayoutWrapper currentPageName="VendorAccountIntro"><VendorAccountIntro /></LayoutWrapper>} />
         <Route path="/VendorSetup" element={<LayoutWrapper currentPageName="VendorSetup"><VendorSetup /></LayoutWrapper>} />
         <Route path="/VendorEventDashboard" element={<LayoutWrapper currentPageName="VendorEventDashboard"><VendorEventDashboard /></LayoutWrapper>} />
         <Route path="/VendorEventFlags" element={<LayoutWrapper currentPageName="VendorEventFlags"><VendorEventFlags /></LayoutWrapper>} />

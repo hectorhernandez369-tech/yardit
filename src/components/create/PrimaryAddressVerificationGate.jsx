@@ -106,7 +106,7 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
         <CardContent className="p-6 space-y-5">
           <div className="rounded-xl border border-[#2C4F4E]/25 bg-[#E7D7B8] p-4 text-[#2C4F4E]">
             <p className="leading-relaxed">
-              Before you can post a listing, Yardit needs to verify your primary address. This helps keep map pins accurate, prevents fake listings, and protects buyers and sellers. Please use a real physical address connected to you. Temporary, random, or unrelated addresses may cause your listing to be removed.
+              Yardit requires a verified primary address before posting listings. This helps keep map pins accurate and prevents fake or spam listings.
             </p>
           </div>
 

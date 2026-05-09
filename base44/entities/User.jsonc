@@ -4,11 +4,11 @@
   "properties": {
     "first_name": {
       "type": "string",
-      "description": "Real first name"
+      "description": "Optional first name"
     },
     "last_name": {
       "type": "string",
-      "description": "Real last name"
+      "description": "Optional last name"
     },
     "username": {
       "type": "string",
@@ -16,7 +16,21 @@
     },
     "phone": {
       "type": "string",
-      "description": "Phone number"
+      "description": "Optional phone number"
+    },
+    "login_provider": {
+      "type": "string",
+      "description": "Authentication provider used for signup or login"
+    },
+    "email_verified": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the user's email is verified"
+    },
+    "trust_score": {
+      "type": "number",
+      "default": 0,
+      "description": "Internal trust score for progressive trust actions"
     },
     "street_address": {
       "type": "string",
@@ -81,6 +95,11 @@
       "type": "boolean",
       "default": false,
       "description": "Whether the user must verify a primary address before posting"
+    },
+    "listing_rules_agreed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the user agreed to listing rules"
     },
     "isAdmin": {
       "type": "boolean",

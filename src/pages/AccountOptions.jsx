@@ -1,23 +1,14 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Store, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 export default function AccountOptions() {
   const navigate = useNavigate();
 
-  const redirectToLogin = (returnUrl) => {
-    window.location.href = `/login?redirect_url=${encodeURIComponent(returnUrl)}`;
-  };
-
-  const handlePersonalSignup = () => {
-    redirectToLogin(window.location.origin);
-  };
-
-  const handleVendorSignup = () => {
-    redirectToLogin(`${window.location.origin}/VendorSignup`);
+  const handleSignup = () => {
+    window.location.href = `/login?redirect_url=${encodeURIComponent(window.location.origin)}`;
   };
 
   return (
@@ -25,16 +16,12 @@ export default function AccountOptions() {
       <Card className="w-full max-w-md border-2 border-[#2C4F4E]/20 bg-white shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-[#2C4F4E]">Join Yardit</CardTitle>
-          <CardDescription>Choose the account type that fits you best.</CardDescription>
+          <CardDescription>Create a free account to save listings, use Hunt features, and post when you’re ready.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button onClick={handlePersonalSignup} className="w-full bg-[#111827] hover:bg-[#1f2937]">
+          <Button onClick={handleSignup} className="w-full bg-[#111827] hover:bg-[#1f2937]">
             <UserPlus className="h-4 w-4" />
-            Personal Account
-          </Button>
-          <Button onClick={handleVendorSignup} variant="outline" className="w-full border-[#2C4F4E]/40 text-[#2C4F4E] hover:bg-[#F3E6CF]">
-            <Store className="h-4 w-4" />
-            Create Vendor Account
+            Log In / Sign Up
           </Button>
           <Button onClick={() => navigate(-1)} variant="ghost" className="w-full text-slate-600">
             Back
