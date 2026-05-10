@@ -19,11 +19,30 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
   const existingOrganizationIds = new Set((collaborators || []).filter((item) => item.status !== "removed").map((item) => item.organization_id));
 
   const filteredOrganizations = useMemo(() => {
-    const text = query.toLowerCase();
+    const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const searchableText = (organization) => [
+      organization.business_name,
+      organization.owner_name,
+      organization.email,
+      organization.phone,
+      organization.business_tax_id,
+      organization.business_category,
+      organization.business_street_address,
+      organization.business_city,
+      organization.business_state,
+      organization.business_zip_code,
+      organization.business_address,
+      organization.location,
+    ].filter(Boolean).join(" ").toLowerCase();
+
     return (organizations || [])
       .filter((organization) => organization.id !== event?.organizer_business_id)
       .filter((organization) => !existingOrganizationIds.has(organization.id))
-      .filter((organization) => !text || [organization.business_name, organization.owner_name, organization.business_category, organization.business_city, organization.email].join(" ").toLowerCase().includes(text))
+      .filter((organization) => {
+        if (!terms.length) return true;
+        const text = searchableText(organization);
+        return terms.every((term) => text.includes(term));
+      })
       .slice(0, 20);
   }, [organizations, event?.organizer_business_id, existingOrganizationIds, query]);
 
@@ -68,7 +87,7 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
           <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input className="pl-9" placeholder="Search organizations by name" value={query} onChange={(e) => setQuery(e.target.value)} />
+              <Input className="pl-9" placeholder="Search name, email, phone, address, business name, EIN" value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -81,9 +100,11 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
               <div key={organization.id} className="flex flex-col gap-3 rounded-2xl border bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3 min-w-0">
                   <img src={organization.business_logo || "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=120&h=120&fit=crop"} alt={organization.business_name} className="h-12 w-12 rounded-full object-cover" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 space-y-1">
                     <p className="font-bold text-[#2C4F4E] truncate">{organization.business_name}</p>
-                    <p className="text-sm text-slate-600 truncate">{organization.business_category || "Organization"} · {organization.business_city || organization.location || "Location not listed"}</p>
+                    <p className="text-sm text-slate-600 truncate">{organization.business_city || organization.location || "Location not listed"}{organization.business_state ? `, ${organization.business_state}` : ""}</p>
+                    <p className="text-xs text-slate-500 truncate">Owner: {organization.owner_name || "Not listed"}</p>
+                    <p className="text-xs text-slate-500 truncate">Email: {organization.email || "Not listed"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
