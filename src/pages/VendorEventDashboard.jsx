@@ -4,7 +4,8 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, CalendarClock, Flag, Loader2, Mail } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, CalendarClock, Flag, Loader2, Mail, Users } from "lucide-react";
 import { format } from "date-fns";
 import EventSpotManager from "@/components/vendor/events/EventSpotManager";
 import InviteVendorsModal from "@/components/vendor/events/InviteVendorsModal";
@@ -23,7 +24,7 @@ export default function VendorEventDashboard() {
   const queryClient = useQueryClient();
   const eventId = new URLSearchParams(window.location.search).get("id");
   const [showInviteVendors, setShowInviteVendors] = useState(false);
-  const [showInviteOrganization, setShowInviteOrganization] = useState(false);
+  const [showCollaborators, setShowCollaborators] = useState(false);
 
   const { data: currentUser } = useQuery({ queryKey: ["vendorEventDashboardUser"], queryFn: () => base44.auth.me() });
   const { data: events = [], isLoading } = useQuery({ queryKey: ["vendorEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
@@ -101,7 +102,7 @@ export default function VendorEventDashboard() {
               <p className="text-slate-600">{formatVendorEventType(event.event_type)} · {event.category}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {canCollaborators && <Button variant="outline" onClick={() => setShowInviteOrganization(true)}><Mail className="h-4 w-4" /> Invite Organization</Button>}
+              {canCollaborators && <Button variant="outline" onClick={() => setShowCollaborators(true)}><Users className="h-4 w-4" /> Collaborators</Button>}
               {canFlags && ["multi_spot", "multi_location"].includes(event.event_type) && <Button variant="outline" onClick={() => navigate(`/VendorEventFlags?id=${event.id}`)}><Flag className="h-4 w-4" /> Edit Flags</Button>}
               {canSchedule && <Button variant="outline" onClick={() => navigate(`/VendorEventSchedule?id=${event.id}`)}><CalendarClock className="h-4 w-4" /> Schedule</Button>}
               <Button variant="outline" onClick={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}>View Public Page</Button>
@@ -144,7 +145,14 @@ export default function VendorEventDashboard() {
         </CardContent>
       </Card>
 
-      <EventCollaboratorsPanel event={event} currentUser={currentUser} currentOrganizationIds={currentOrganizationIds} organizations={vendorAccounts} collaborators={collaborators} inviteOpen={showInviteOrganization} onInviteOpenChange={setShowInviteOrganization} onRefresh={refresh} />
+      <Dialog open={showCollaborators} onOpenChange={setShowCollaborators}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Collaborators</DialogTitle>
+          </DialogHeader>
+          <EventCollaboratorsPanel event={event} currentUser={currentUser} currentOrganizationIds={currentOrganizationIds} organizations={vendorAccounts} collaborators={collaborators} onRefresh={refresh} asPanel={false} />
+        </DialogContent>
+      </Dialog>
 
       <EventUpdatesManager event={event} updates={updates} onRefresh={refresh} canEdit={canEdit} />
 

@@ -9,7 +9,7 @@ import { COLLABORATOR_ROLES, canManageCollaborators, getRolePermissions, getHost
 import { Building2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
-export default function EventCollaboratorsPanel({ event, currentUser, currentOrganizationIds, organizations, collaborators, inviteOpen, onInviteOpenChange, onRefresh }) {
+export default function EventCollaboratorsPanel({ event, currentUser, currentOrganizationIds, organizations, collaborators, inviteOpen, onInviteOpenChange, onRefresh, asPanel = true }) {
   const [localShowInvite, setLocalShowInvite] = useState(false);
   const showInvite = inviteOpen ?? localShowInvite;
   const setShowInvite = onInviteOpenChange || setLocalShowInvite;
@@ -45,9 +45,8 @@ export default function EventCollaboratorsPanel({ event, currentUser, currentOrg
     await updateCollaborator(collaborator, { status: "removed" });
   };
 
-  return (
-    <CollapsiblePanel title="Collaborators" description="Attach other Event Organizer organizations to this single master event." count={eventCollaborators.length} defaultOpen>
-      <div className="space-y-4">
+  const content = (
+    <div className="space-y-4">
         <div className="rounded-2xl border bg-[#FBFAF7] p-3 text-sm text-slate-700">
           <p><strong>Hosted By:</strong> {labels.hostedBy}</p>
           <p><strong>Co-Hosted By:</strong> {labels.coHostedBy.length ? labels.coHostedBy.join(", ") : "None yet"}</p>
@@ -98,7 +97,14 @@ export default function EventCollaboratorsPanel({ event, currentUser, currentOrg
         </div>
 
         <InviteOrganizationModal open={showInvite} onOpenChange={setShowInvite} event={event} currentUser={currentUser} organizations={organizations} collaborators={eventCollaborators} onInvited={() => { setShowInvite(false); onRefresh?.(); }} />
-      </div>
+    </div>
+  );
+
+  if (!asPanel) return content;
+
+  return (
+    <CollapsiblePanel title="Collaborators" description="Attach other Event Organizer organizations to this single master event." count={eventCollaborators.length} defaultOpen>
+      {content}
     </CollapsiblePanel>
   );
 }
