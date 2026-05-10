@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import VendorEventCard from "./VendorEventCard";
 import VendorEventForm from "./VendorEventForm";
 import { calculateMiles, getVendorEventPermission, getVendorEventStatus } from "@/lib/vendorEvents";
+import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
 
 export default function VendorEventsTab({ account, user }) {
   const navigate = useNavigate();
@@ -54,9 +55,11 @@ export default function VendorEventsTab({ account, user }) {
     });
   };
 
+  const usageSnapshot = getVendorUsageSnapshot({ account, events });
   const currentSinglePermission = getVendorEventPermission({ account, events, eventType: "single" });
   const currentMultifieldPermission = getVendorEventPermission({ account, events, eventType: "multi_spot" });
-  const canCreateAnyEvent = currentSinglePermission.allowed || currentMultifieldPermission.allowed;
+  const currentMultiLocationPermission = getVendorEventPermission({ account, events, eventType: "multi_location" });
+  const canCreateAnyEvent = currentSinglePermission.allowed || currentMultifieldPermission.allowed || currentMultiLocationPermission.allowed;
 
   const filteredEvents = useMemo(() => {
     const now = new Date();
@@ -98,10 +101,10 @@ export default function VendorEventsTab({ account, user }) {
         </div>
 
         <div className="grid gap-2 rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3 text-xs text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
-          <div><strong>Single Events:</strong> {currentSinglePermission.usage.single} / {currentSinglePermission.limit}</div>
-          <div><strong>Multi-Spot Events:</strong> {currentMultifieldPermission.usage.multi_spot} used</div>
-          <div><strong>Multi-Location Events:</strong> {currentMultifieldPermission.usage.multi_location} used</div>
-          <div><strong>Multi-Field Total:</strong> {currentMultifieldPermission.usage.multifield} / {currentMultifieldPermission.limit}</div>
+          <div><strong>Single Events:</strong> {usageSnapshot.used.singleEvents} / {usageSnapshot.allowed.singleEvents}</div>
+          <div><strong>Multi-Spot Events:</strong> {usageSnapshot.used.multiSpotEvents} / {usageSnapshot.allowed.multiSpotEvents}</div>
+          <div><strong>Multi-Location Events:</strong> {usageSnapshot.used.multiLocationEvents} / {usageSnapshot.allowed.multiLocationEvents}</div>
+          <div><strong>Multi-Field Total:</strong> {usageSnapshot.used.multiFieldEvents} / {usageSnapshot.allowed.multiFieldEvents}</div>
         </div>
 
         <div className="grid gap-2 md:grid-cols-[1fr_auto_180px_auto]">

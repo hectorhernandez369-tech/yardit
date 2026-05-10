@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { getVendorUserLimit } from "@/lib/vendorTiers";
+import { getVendorUsageLimitStatus } from "@/lib/vendorUsage";
 import { hashVendorPasscode } from "@/lib/vendorPasscode";
 import { toast } from "sonner";
 
@@ -12,7 +12,8 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
   const [form, setForm] = useState({ authorized_email: "", first_name: "", last_name: "", phone: "" });
   const [passcode, setPasscode] = useState("");
   const [savingPasscode, setSavingPasscode] = useState(false);
-  const canAddUser = isOwner && users.length < getVendorUserLimit(account);
+  const usageStatus = getVendorUsageLimitStatus({ account, users });
+  const canAddUser = isOwner && usageStatus.canAddUser;
 
   const addUser = async () => {
     if (!form.authorized_email.trim()) return;

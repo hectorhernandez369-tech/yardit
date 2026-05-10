@@ -10,7 +10,8 @@ import { Truck, Plus, Loader2, Trash2, MapPin, AlertCircle, Edit2, Clock, Histor
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
-import { getTierLimits, TIER_CONFIG } from "@/lib/tierConfig";
+import { TIER_CONFIG } from "@/lib/tierConfig";
+import { getVendorUsageLimitStatus } from "@/lib/vendorUsage";
 import TruckLogoEditor from "./TruckLogoEditor";
 
 export default function MyTrucksSection({ vendorAccount: providedVendorAccount, currentUser: providedCurrentUser, onRefresh }) {
@@ -46,7 +47,8 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   const hasVendorAccount = !!vendorAccount?.id;
   const vendorTier = vendorAccount?.vendor_tier || "free";
   const tierConfig = TIER_CONFIG[vendorTier] || TIER_CONFIG.free;
-  const { max_pins } = getTierLimits(vendorTier, vendorAccount?.extra_pins_count || 0);
+  const pinUsageStatus = getVendorUsageLimitStatus({ account: vendorAccount, pins: [] });
+  const max_pins = pinUsageStatus.allowed.pins;
 
   const { data: pins = [] } = useQuery({
     queryKey: ["vendorPins", vendorAccount?.id],
@@ -66,8 +68,9 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
     enabled: hasVendorAccount,
   });
 
-  const activePins = pins.filter((p) => p.is_active);
-  const canAddPin = hasVendorAccount && activePins.length < max_pins;
+  const activePins = pins.filter((p) => p.is_active === true);
+  const livePinUsageStatus = getVendorUsageLimitStatus({ account: vendorAccount, pins });
+  const canAddPin = hasVendorAccount && livePinUsageStatus.canAddPin;
   const isOwner = currentUser?.id === vendorAccount?.owner_user_id || currentUser?.email === vendorAccount?.owner_user_id;
   const currentAuthorizedUser = authorizedUsers.find((u) => u.authorized_email?.toLowerCase() === currentUser?.email?.toLowerCase());
   const getAssignedUsers = (pinId) => authorizedUsers.filter((u) => u.assigned_pin_ids?.includes(pinId));

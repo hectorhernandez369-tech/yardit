@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { VENDOR_TIERS, VENDOR_TIER_ORDER } from "@/lib/vendorTiers";
 import { getVendorTierDowngradeIssues } from "@/lib/vendorEvents";
+import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
 import VendorAddOnsSection from "@/components/vendor/billing/VendorAddOnsSection";
 import TierFeatureSummary from "@/components/vendor/TierFeatureSummary";
 import { toast } from "sonner";
@@ -34,6 +35,8 @@ export default function VendorBillingTab({ account, onRefresh }) {
     enabled: !!account?.id,
     initialData: [],
   });
+
+  const usageSnapshot = getVendorUsageSnapshot({ account, events, pins, users });
 
   const handleChangeTier = async (tierKey) => {
     if (!account?.id) return;
@@ -65,6 +68,14 @@ export default function VendorBillingTab({ account, onRefresh }) {
         <p className="font-bold">Event types explained</p>
         <p><strong>Single Event:</strong> One location event such as a pop-up, sale, or vendor setup.</p>
         <p><strong>Multi-Field Event:</strong> Large organized event with multiple internal locations or fields.</p>
+      </div>
+
+      <div className="grid gap-2 rounded-2xl border border-[#2C4F4E]/10 bg-white p-4 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-5">
+        <p><strong>{usageSnapshot.used.singleEvents} / {usageSnapshot.allowed.singleEvents}</strong> Single Events Used</p>
+        <p><strong>{usageSnapshot.used.multiSpotEvents} / {usageSnapshot.allowed.multiSpotEvents}</strong> Multi-Spot Events Used</p>
+        <p><strong>{usageSnapshot.used.multiLocationEvents} / {usageSnapshot.allowed.multiLocationEvents}</strong> Multi-Location Events Used</p>
+        <p><strong>{usageSnapshot.used.pins} / {usageSnapshot.allowed.pins}</strong> Truck/Pins Used</p>
+        <p><strong>{usageSnapshot.used.users} / {usageSnapshot.allowed.users}</strong> Vendor Users Used</p>
       </div>
 
       <div className="grid min-w-0 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-5">
