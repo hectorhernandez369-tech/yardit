@@ -101,22 +101,28 @@ export const ROLE_DEFAULT_CAPABILITIES = {
   master: AVAILABLE_ADMIN_CAPABILITIES.map((permission) => permission.key),
 };
 
-const CAPABILITIES = {
-  master: {
-    "admins.manage": true,
-    "logs.view": true,
-  },
-  supervisor: {
-    "admins.manage": false,
-    "logs.view": true,
-  },
-  admin_lite: {
-    "admins.manage": false,
-    "logs.view": false,
-  },
+const LEGACY_CAPABILITY_ALIASES = {
+  "admins.manage": "admin.permissions.edit",
+  "logs.view": "admin.logs.view",
+};
+
+const ROLE_FALLBACK_CAPABILITIES = {
+  master: ROLE_DEFAULT_CAPABILITIES.master,
+  supervisor: ROLE_DEFAULT_CAPABILITIES.supervisor,
+  admin_lite: [],
+  basic: ROLE_DEFAULT_CAPABILITIES.basic,
 };
 
 export function hasCapability(user, capability) {
-  const role = normalizeRole(user?.role);
-  return CAPABILITIES[role]?.[capability] ?? false;
+  const role = normalizeRole(user?.role_label || user?.role);
+  const normalizedCapability = LEGACY_CAPABILITY_ALIASES[capability] || capability;
+
+  if (role === "master") return true;
+
+  const savedCapabilities = Array.isArray(user?.capabilities) ? user.capabilities : null;
+  if (savedCapabilities) {
+    return savedCapabilities.includes(normalizedCapability) || savedCapabilities.includes(capability);
+  }
+
+  return (ROLE_FALLBACK_CAPABILITIES[role] || []).includes(normalizedCapability);
 }
