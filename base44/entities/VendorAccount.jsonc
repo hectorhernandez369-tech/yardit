@@ -122,7 +122,8 @@
         "free",
         "starter",
         "pro",
-        "growth"
+        "growth",
+        "event_organizer"
       ],
       "default": "free",
       "description": "Vendor subscription tier"
