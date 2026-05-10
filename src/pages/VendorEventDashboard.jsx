@@ -13,7 +13,7 @@ import CollapsiblePanel from "@/components/vendor/events/CollapsiblePanel";
 import EventUpdatesManager from "@/components/vendor/events/EventUpdatesManager";
 import EventCollaboratorsPanel from "@/components/vendor/events/EventCollaboratorsPanel";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
-import { canEditEvent, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
+import { canEditEvent, canManageCollaborators, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
 import { toast } from "sonner";
 import { safeBack } from "@/utils";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +23,7 @@ export default function VendorEventDashboard() {
   const queryClient = useQueryClient();
   const eventId = new URLSearchParams(window.location.search).get("id");
   const [showInviteVendors, setShowInviteVendors] = useState(false);
+  const [showInviteOrganization, setShowInviteOrganization] = useState(false);
 
   const { data: currentUser } = useQuery({ queryKey: ["vendorEventDashboardUser"], queryFn: () => base44.auth.me() });
   const { data: events = [], isLoading } = useQuery({ queryKey: ["vendorEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
@@ -43,6 +44,7 @@ export default function VendorEventDashboard() {
   const canVendors = canManageVendors(event, collaborators, currentOrganizationIds);
   const canSchedule = canManageSchedule(event, collaborators, currentOrganizationIds);
   const canFlags = canManageFlags(event, collaborators, currentOrganizationIds);
+  const canCollaborators = canManageCollaborators(event, collaborators, currentOrganizationIds);
 
   const pendingRequests = useMemo(() => requests.filter((request) => request.status === "pending"), [requests]);
   const invitedVendors = useMemo(() => vendorInvites.filter((invite) => invite.status === "invited"), [vendorInvites]);
@@ -99,6 +101,7 @@ export default function VendorEventDashboard() {
               <p className="text-slate-600">{formatVendorEventType(event.event_type)} · {event.category}</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              {canCollaborators && <Button variant="outline" onClick={() => setShowInviteOrganization(true)}><Mail className="h-4 w-4" /> Invite Organization</Button>}
               {canFlags && ["multi_spot", "multi_location"].includes(event.event_type) && <Button variant="outline" onClick={() => navigate(`/VendorEventFlags?id=${event.id}`)}><Flag className="h-4 w-4" /> Edit Flags</Button>}
               {canSchedule && <Button variant="outline" onClick={() => navigate(`/VendorEventSchedule?id=${event.id}`)}><CalendarClock className="h-4 w-4" /> Schedule</Button>}
               <Button variant="outline" onClick={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}>View Public Page</Button>
@@ -141,7 +144,7 @@ export default function VendorEventDashboard() {
         </CardContent>
       </Card>
 
-      <EventCollaboratorsPanel event={event} currentUser={currentUser} currentOrganizationIds={currentOrganizationIds} organizations={vendorAccounts} collaborators={collaborators} onRefresh={refresh} />
+      <EventCollaboratorsPanel event={event} currentUser={currentUser} currentOrganizationIds={currentOrganizationIds} organizations={vendorAccounts} collaborators={collaborators} inviteOpen={showInviteOrganization} onInviteOpenChange={setShowInviteOrganization} onRefresh={refresh} />
 
       <EventUpdatesManager event={event} updates={updates} onRefresh={refresh} canEdit={canEdit} />
 

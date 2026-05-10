@@ -9,8 +9,10 @@ import { COLLABORATOR_ROLES, canManageCollaborators, getRolePermissions, getHost
 import { Building2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
-export default function EventCollaboratorsPanel({ event, currentUser, currentOrganizationIds, organizations, collaborators, onRefresh }) {
-  const [showInvite, setShowInvite] = useState(false);
+export default function EventCollaboratorsPanel({ event, currentUser, currentOrganizationIds, organizations, collaborators, inviteOpen, onInviteOpenChange, onRefresh }) {
+  const [localShowInvite, setLocalShowInvite] = useState(false);
+  const showInvite = inviteOpen ?? localShowInvite;
+  const setShowInvite = onInviteOpenChange || setLocalShowInvite;
   const canManage = canManageCollaborators(event, collaborators, currentOrganizationIds);
   const eventCollaborators = useMemo(() => (collaborators || []).filter((item) => item.event_id === event.id && item.status !== "removed"), [collaborators, event.id]);
   const labels = getHostedByLabels(event, eventCollaborators, organizations);
@@ -51,9 +53,11 @@ export default function EventCollaboratorsPanel({ event, currentUser, currentOrg
           <p><strong>Co-Hosted By:</strong> {labels.coHostedBy.length ? labels.coHostedBy.join(", ") : "None yet"}</p>
         </div>
 
-        <div className="flex justify-end">
-          <Button variant="outline" disabled={!canManage} onClick={() => setShowInvite(true)}><UserPlus className="h-4 w-4" /> Invite Organization</Button>
-        </div>
+        {canManage && (
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setShowInvite(true)}><UserPlus className="h-4 w-4" /> Invite Organization</Button>
+          </div>
+        )}
 
         <div className="grid gap-3">
           <div className="flex items-center justify-between rounded-2xl border bg-white p-3">
