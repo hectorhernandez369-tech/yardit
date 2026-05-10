@@ -6,6 +6,8 @@ export const TIER_CONFIG = {
     max_users: 1,
     included_single_events: 0,
     included_multifield_events: 0,
+    included_multi_spot_events: 0,
+    included_multi_location_events: 0,
   },
   starter: {
     name: "Starter",
@@ -14,6 +16,8 @@ export const TIER_CONFIG = {
     max_users: 1,
     included_single_events: 1,
     included_multifield_events: 0,
+    included_multi_spot_events: 0,
+    included_multi_location_events: 0,
   },
   pro: {
     name: "Pro",
@@ -22,6 +26,8 @@ export const TIER_CONFIG = {
     max_users: 2,
     included_single_events: 3,
     included_multifield_events: 1,
+    included_multi_spot_events: 1,
+    included_multi_location_events: 1,
   },
   growth: {
     name: "Growth",
@@ -30,6 +36,8 @@ export const TIER_CONFIG = {
     max_users: 3,
     included_single_events: 8,
     included_multifield_events: 3,
+    included_multi_spot_events: 3,
+    included_multi_location_events: 3,
   },
   event_organizer: {
     name: "Event Organizer",
@@ -38,6 +46,8 @@ export const TIER_CONFIG = {
     max_users: 10,
     included_single_events: 20,
     included_multifield_events: 8,
+    included_multi_spot_events: 8,
+    included_multi_location_events: 8,
   },
 };
 
@@ -49,5 +59,7 @@ export function getTierLimits(tier = "free", extraPins = 0, extraUsers = 0) {
     max_users: config.max_users + (allowExtras ? Number(extraUsers || 0) : 0),
     included_single_events: config.included_single_events,
     included_multifield_events: config.included_multifield_events,
+    included_multi_spot_events: config.included_multi_spot_events,
+    included_multi_location_events: config.included_multi_location_events,
   };
 }

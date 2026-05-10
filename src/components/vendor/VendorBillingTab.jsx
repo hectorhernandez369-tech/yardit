@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { VENDOR_TIERS, VENDOR_TIER_ORDER } from "@/lib/vendorTiers";
+import { getVendorTierDowngradeIssues } from "@/lib/vendorEvents";
 import VendorAddOnsSection from "@/components/vendor/billing/VendorAddOnsSection";
 import TierFeatureSummary from "@/components/vendor/TierFeatureSummary";
 import { toast } from "sonner";
@@ -12,16 +14,46 @@ export default function VendorBillingTab({ account, onRefresh }) {
   const [changingTier, setChangingTier] = useState("");
   const currentTierIndex = Math.max(0, VENDOR_TIER_ORDER.indexOf(account?.vendor_tier || "free"));
 
+  const { data: events = [] } = useQuery({
+    queryKey: ["vendorBillingEvents", account?.id],
+    queryFn: () => base44.entities.VendorEvent.filter({ organizer_business_id: account.id }),
+    enabled: !!account?.id,
+    initialData: [],
+  });
+
+  const { data: pins = [] } = useQuery({
+    queryKey: ["vendorBillingPins", account?.id],
+    queryFn: () => base44.entities.VendorPin.filter({ vendor_account_id: account.id }),
+    enabled: !!account?.id,
+    initialData: [],
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ["vendorBillingUsers", account?.id],
+    queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: account.id, status: "active" }),
+    enabled: !!account?.id,
+    initialData: [],
+  });
+
   const handleChangeTier = async (tierKey) => {
     if (!account?.id) return;
     if (tierKey === account.vendor_tier) {
-      await base44.entities.VendorAccount.update(account.id, { vendor_tier_confirmed: true, vendor_setup_status: "in_progress" });
+      await base44.entities.VendorAccount.update(account.id, { setup_tier_confirmed: true, vendor_setup_status: "in_progress" });
       toast.success(`${VENDOR_TIERS[tierKey].label} plan confirmed`);
       await onRefresh?.();
       return;
     }
+    const targetTierIndex = VENDOR_TIER_ORDER.indexOf(tierKey);
+    if (targetTierIndex < currentTierIndex) {
+      const downgradeCheck = getVendorTierDowngradeIssues({ account, events, targetTierKey: tierKey, activePins: pins, activeUsers: users });
+      if (!downgradeCheck.allowed) {
+        toast.error(`Cannot downgrade yet: ${downgradeCheck.issues.join(" ")}`);
+        return;
+      }
+    }
+
     setChangingTier(tierKey);
-    await base44.entities.VendorAccount.update(account.id, { vendor_tier: tierKey, vendor_tier_confirmed: true, vendor_setup_status: "in_progress" });
+    await base44.entities.VendorAccount.update(account.id, { vendor_tier: tierKey, extra_users_count: 0, extra_pins_count: 0, setup_tier_confirmed: true, vendor_setup_status: "in_progress" });
     toast.success(`Plan changed to ${VENDOR_TIERS[tierKey].label}`);
     await onRefresh?.();
     setChangingTier("");
@@ -59,10 +91,10 @@ export default function VendorBillingTab({ account, onRefresh }) {
             {key !== "free" && key !== "starter" && <p>Extra users: {tier.extraUserPrice} each</p>}
             {key !== "free" && key !== "starter" && <p>Extra pins: {tier.extraPinPrice} each</p>}
             {account?.vendor_tier === key ? (
-              <Button onClick={() => handleChangeTier(key)} variant="outline" className="w-full mt-3">{account?.vendor_tier_confirmed ? "Current Plan" : "Confirm This Plan"}</Button>
+              <Button onClick={() => handleChangeTier(key)} variant="outline" className="w-full mt-3">{account?.setup_tier_confirmed ? "Current Plan" : "Confirm This Plan"}</Button>
             ) : (
               <Button onClick={() => handleChangeTier(key)} disabled={!!changingTier} className="w-full mt-3">
-                {changingTier === key ? "Updating..." : VENDOR_TIER_ORDER.indexOf(key) > currentTierIndex ? `Upgrade to ${tier.label}` : `Downgrade to ${tier.label}`}
+                {changingTier === key ? "Updating..." : Math.max(0, VENDOR_TIER_ORDER.indexOf(key)) > currentTierIndex ? `Upgrade to ${tier.label}` : `Downgrade to ${tier.label}`}
               </Button>
             )}
           </CardContent>

@@ -57,15 +57,20 @@ export function getVendorEventPermission({ account, events = [], eventType = "si
   }
 
   const limit = Number(tier.included_multifield_events || 0);
-  const allowed = limit > 0 && usage.multifield < limit;
+  const typeLimit = Number(eventType === "multi_location" ? tier.included_multi_location_events : tier.included_multi_spot_events || 0);
+  const typeUsage = eventType === "multi_location" ? usage.multi_location : usage.multi_spot;
+  const allowed = limit > 0 && usage.multifield < limit && typeUsage < typeLimit;
   return {
     allowed,
     usage,
     limit,
+    typeLimit,
     bucket,
     reason: allowed ? "" : limit === 0
       ? `${tier.label} does not include Multi-Spot or Multi-Location Events. Upgrade to Pro or higher.`
-      : `${tier.label} includes ${limit} Multi-Field Event${limit === 1 ? "" : "s"} per month. Upgrade or wait until next month to create another Multi-Field Event.`,
+      : typeUsage >= typeLimit
+        ? `${tier.label} includes ${typeLimit} ${formatVendorEventType(eventType)}${typeLimit === 1 ? "" : "s"} per month. Upgrade or wait until next month to create another one.`
+        : `${tier.label} includes ${limit} Multi-Field Event${limit === 1 ? "" : "s"} per month. Upgrade or wait until next month to create another Multi-Field Event.`,
     overagePrice: VENDOR_EVENT_OVERAGE_PRICES[eventType],
   };
 }
@@ -124,4 +129,37 @@ export function isPublishedVendorEvent(event, now = new Date()) {
   if (typeof event.latitude !== "number" || typeof event.longitude !== "number") return false;
   const end = new Date(event.endDateTime);
   return !Number.isNaN(end.getTime()) && now <= end;
+}
+
+export function getVendorTierDowngradeIssues({ account, events = [], targetTierKey, activePins = [], activeUsers = [] }) {
+  const tier = getVendorTierConfig(targetTierKey);
+  const now = new Date();
+  const usage = getVendorMonthlyEventUsage(events, account?.id, now);
+  const issues = [];
+
+  if ((activePins || []).filter((pin) => pin.is_active !== false).length > tier.includedPins) {
+    issues.push(`${tier.label} includes ${tier.includedPins} active pin${tier.includedPins === 1 ? "" : "s"}.`);
+  }
+
+  if ((activeUsers || []).filter((user) => user.status === "active").length > tier.includedUsers) {
+    issues.push(`${tier.label} includes ${tier.includedUsers} authorized user${tier.includedUsers === 1 ? "" : "s"}.`);
+  }
+
+  if (usage.single > Number(tier.included_single_events || 0)) {
+    issues.push(`${tier.label} includes ${tier.included_single_events} Single Event${tier.included_single_events === 1 ? "" : "s"} per month.`);
+  }
+
+  if (usage.multi_spot > Number(tier.included_multi_spot_events || 0)) {
+    issues.push(`${tier.label} includes ${tier.included_multi_spot_events} Multi-Spot Event${tier.included_multi_spot_events === 1 ? "" : "s"} per month.`);
+  }
+
+  if (usage.multi_location > Number(tier.included_multi_location_events || 0)) {
+    issues.push(`${tier.label} includes ${tier.included_multi_location_events} Multi-Location Event${tier.included_multi_location_events === 1 ? "" : "s"} per month.`);
+  }
+
+  if (usage.multifield > Number(tier.included_multifield_events || 0)) {
+    issues.push(`${tier.label} includes ${tier.included_multifield_events} total Multi-Field Event${tier.included_multifield_events === 1 ? "" : "s"} per month.`);
+  }
+
+  return { allowed: issues.length === 0, issues };
 }
