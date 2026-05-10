@@ -9,6 +9,7 @@ import EventFlagCard from "@/components/vendor/events/EventFlagCard";
 import EventFlagQuickEditPanel from "@/components/vendor/events/EventFlagQuickEditPanel";
 import { safeBack } from "@/utils";
 import { toast } from "sonner";
+import { canManageFlags } from "@/lib/eventCollaboration";
 
 export default function VendorEventFlags() {
   const navigate = useNavigate();
@@ -23,10 +24,13 @@ export default function VendorEventFlags() {
   const { data: events = [], isLoading: loadingEvent } = useQuery({ queryKey: ["flagManagerEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
   const event = events[0];
   const { data: spots = [], isLoading: loadingSpots } = useQuery({ queryKey: ["flagManagerSpots", eventId], queryFn: () => base44.entities.EventSpot.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
+  const { data: vendorAccounts = [] } = useQuery({ queryKey: ["flagManagerVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
+  const { data: collaborators = [] } = useQuery({ queryKey: ["flagManagerCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
 
   const sortedSpots = useMemo(() => [...spots].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)), [spots]);
   const selectedSpot = sortedSpots.find((spot) => spot.id === selectedSpotId) || null;
-  const canManage = !!event && !!user && event.organizer_user_id === user.id;
+  const currentOrganizationIds = vendorAccounts.filter((account) => account.owner_user_id === user?.id || account.owner_user_id === user?.email).map((account) => account.id);
+  const canManage = !!event && !!user && canManageFlags(event, collaborators, currentOrganizationIds);
 
   useEffect(() => {
     if (selectedSpot) {

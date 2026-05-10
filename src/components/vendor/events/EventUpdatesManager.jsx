@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import CollapsiblePanel from "./CollapsiblePanel";
 import { toast } from "sonner";
 
-export default function EventUpdatesManager({ event, updates, onRefresh }) {
+export default function EventUpdatesManager({ event, updates, onRefresh, canEdit = true }) {
   const [body, setBody] = useState("");
   const [photo, setPhoto] = useState("");
   const [saving, setSaving] = useState(false);
@@ -37,9 +37,11 @@ export default function EventUpdatesManager({ event, updates, onRefresh }) {
   return (
     <CollapsiblePanel title="Event Updates" description="Post updates that appear on the public vendor event page." count={updates.length} defaultOpen>
       <div className="space-y-3">
-        <Textarea placeholder="Share an update for attendees and vendors" value={body} onChange={(e) => setBody(e.target.value)} />
-        <Input placeholder="Optional photo URL" value={photo} onChange={(e) => setPhoto(e.target.value)} />
-        <Button disabled={saving} onClick={createUpdate} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Post Update</Button>
+        {canEdit && <>
+          <Textarea placeholder="Share an update for attendees and vendors" value={body} onChange={(e) => setBody(e.target.value)} />
+          <Input placeholder="Optional photo URL" value={photo} onChange={(e) => setPhoto(e.target.value)} />
+          <Button disabled={saving} onClick={createUpdate} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Post Update</Button>
+        </>}
         <div className="space-y-2 pt-2">
           {updates.length ? updates.map((update) => (
             <div key={update.id} className="rounded-xl border p-3">

@@ -13,6 +13,7 @@ import ScheduleImportPanel from "@/components/vendor/events/schedule/ScheduleImp
 import ScheduleRowsEditor from "@/components/vendor/events/schedule/ScheduleRowsEditor";
 import { buildBlankScheduleRows, cleanRowsForSave, normalizeScheduleRows } from "@/lib/vendorEventSchedule";
 import { safeBack } from "@/utils";
+import { canManageSchedule as hasSchedulePermission } from "@/lib/eventCollaboration";
 
 export default function VendorEventSchedule() {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function VendorEventSchedule() {
   const event = events[0];
   const { data: spots = [] } = useQuery({ queryKey: ["scheduleEventSpots", eventId], queryFn: () => base44.entities.EventSpot.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
   const { data: savedEntries = [], isLoading: isLoadingEntries } = useQuery({ queryKey: ["eventScheduleEntries", eventId], queryFn: () => base44.entities.EventScheduleEntry.filter({ event_id: eventId }, "sort_order"), enabled: !!eventId, initialData: [] });
+  const { data: collaborators = [] } = useQuery({ queryKey: ["scheduleEventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
 
   const fields = useMemo(() => {
     if (["multi_spot", "multi_location"].includes(event?.event_type) && spots.length) {
@@ -47,11 +49,13 @@ export default function VendorEventSchedule() {
         return;
       }
       const user = await base44.auth.me();
-      const accounts = await base44.entities.VendorAccount.filter({ owner_user_id: user.id });
-      setCanManageSchedule(user.role === "admin" || event.organizer_user_id === user.id || accounts.some((account) => account.id === event.organizer_business_id));
+      const byId = await base44.entities.VendorAccount.filter({ owner_user_id: user.id });
+      const byEmail = await base44.entities.VendorAccount.filter({ owner_user_id: user.email });
+      const organizationIds = [...byId, ...byEmail].map((account) => account.id);
+      setCanManageSchedule(user.role === "admin" || hasSchedulePermission(event, collaborators, organizationIds));
       setAccessChecked(true);
     });
-  }, [event]);
+  }, [event, collaborators]);
 
   useEffect(() => {
     if (!event || isLoadingEntries || rows.length) return;

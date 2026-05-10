@@ -1,0 +1,71 @@
+{
+  "name": "EventCollaborator",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "VendorEvent ID for the single master event record"
+    },
+    "organization_id": {
+      "type": "string",
+      "description": "Collaborating VendorAccount organization ID"
+    },
+    "organization_name": {
+      "type": "string",
+      "description": "Cached organization name for display"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "co_host",
+        "scheduler",
+        "vendor_manager",
+        "staff",
+        "viewer"
+      ],
+      "default": "co_host",
+      "description": "Collaborator role for this event"
+    },
+    "permissions": {
+      "type": "object",
+      "description": "Resolved permission flags for this collaborator role"
+    },
+    "invited_by_user_id": {
+      "type": "string",
+      "description": "User ID who invited this organization"
+    },
+    "invited_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Invitation timestamp"
+    },
+    "accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Acceptance timestamp"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined",
+        "removed"
+      ],
+      "default": "pending",
+      "description": "Collaborator invitation status"
+    },
+    "is_primary_owner": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this collaborator organization is the event primary owner"
+    }
+  },
+  "required": [
+    "event_id",
+    "organization_id",
+    "role",
+    "status"
+  ]
+}

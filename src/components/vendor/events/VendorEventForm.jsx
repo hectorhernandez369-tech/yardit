@@ -75,7 +75,7 @@ const buildInitialForm = (event) => event ? {
   status: event.status || "draft",
 } : initialForm;
 
-export default function VendorEventForm({ account, user, event = null, approvedVendorCount = 0, mode = "full", existingEvents = [], onCreated }) {
+export default function VendorEventForm({ account, user, event = null, approvedVendorCount = 0, mode = "full", existingEvents = [], onCreated, preserveOwner = false }) {
   const isEditing = !!event?.id;
   const showPublicFields = mode !== "vendor";
   const showVendorFields = mode !== "public";
@@ -195,10 +195,10 @@ export default function VendorEventForm({ account, user, event = null, approvedV
     setSaving(true);
     const now = new Date().toISOString();
     const eventData = {
-      organizer_user_id: user.id,
-      organizer_business_id: account.id,
-      organizer_business_name: account.business_name,
-      organizer_logo: account.business_logo,
+      organizer_user_id: preserveOwner && isEditing ? event.organizer_user_id : user.id,
+      organizer_business_id: preserveOwner && isEditing ? event.organizer_business_id : account.id,
+      organizer_business_name: preserveOwner && isEditing ? event.organizer_business_name : account.business_name,
+      organizer_logo: preserveOwner && isEditing ? event.organizer_logo : account.business_logo,
       title: form.title,
       description: form.description,
       category: form.category,

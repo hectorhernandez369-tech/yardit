@@ -11,7 +11,9 @@ import InviteVendorsModal from "@/components/vendor/events/InviteVendorsModal";
 import VendorEventForm from "@/components/vendor/events/VendorEventForm";
 import CollapsiblePanel from "@/components/vendor/events/CollapsiblePanel";
 import EventUpdatesManager from "@/components/vendor/events/EventUpdatesManager";
+import EventCollaboratorsPanel from "@/components/vendor/events/EventCollaboratorsPanel";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
+import { canEditEvent, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
 import { toast } from "sonner";
 import { safeBack } from "@/utils";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +24,7 @@ export default function VendorEventDashboard() {
   const eventId = new URLSearchParams(window.location.search).get("id");
   const [showInviteVendors, setShowInviteVendors] = useState(false);
 
+  const { data: currentUser } = useQuery({ queryKey: ["vendorEventDashboardUser"], queryFn: () => base44.auth.me() });
   const { data: events = [], isLoading } = useQuery({ queryKey: ["vendorEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: allVendorEvents = [] } = useQuery({ queryKey: ["vendorEventsForPermission"], queryFn: () => base44.entities.VendorEvent.list("startDateTime"), initialData: [] });
   const event = events[0];
@@ -31,8 +34,15 @@ export default function VendorEventDashboard() {
   const { data: invites = [] } = useQuery({ queryKey: ["eventInvites", eventId], queryFn: () => base44.entities.EventInviteCode.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: vendorInvites = [] } = useQuery({ queryKey: ["eventVendorInvites", eventId], queryFn: () => base44.entities.EventVendorInvite.filter({ event_id: eventId }, "-created_date"), enabled: !!eventId, initialData: [] });
   const { data: vendorAccounts = [] } = useQuery({ queryKey: ["eventInviteVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
+  const { data: collaborators = [] } = useQuery({ queryKey: ["eventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: updates = [] } = useQuery({ queryKey: ["eventUpdates", eventId], queryFn: () => base44.entities.EventUpdate.filter({ event_id: eventId, is_deleted: false }, "-created_at"), enabled: !!eventId, initialData: [] });
   const organizerAccount = vendorAccounts.find((account) => account.id === event?.organizer_business_id);
+  const currentOrganizationIds = vendorAccounts.filter((account) => account.owner_user_id === currentUser?.id || account.owner_user_id === currentUser?.email).map((account) => account.id);
+  const hostedLabels = getHostedByLabels(event, collaborators, vendorAccounts);
+  const canEdit = canEditEvent(event, collaborators, currentOrganizationIds);
+  const canVendors = canManageVendors(event, collaborators, currentOrganizationIds);
+  const canSchedule = canManageSchedule(event, collaborators, currentOrganizationIds);
+  const canFlags = canManageFlags(event, collaborators, currentOrganizationIds);
 
   const pendingRequests = useMemo(() => requests.filter((request) => request.status === "pending"), [requests]);
   const invitedVendors = useMemo(() => vendorInvites.filter((invite) => invite.status === "invited"), [vendorInvites]);
@@ -46,6 +56,7 @@ export default function VendorEventDashboard() {
     queryClient.invalidateQueries({ queryKey: ["eventVendorInvites", eventId] });
     queryClient.invalidateQueries({ queryKey: ["eventSpots", eventId] });
     queryClient.invalidateQueries({ queryKey: ["eventUpdates", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["eventCollaborators", eventId] });
   };
 
   const approveRequest = async (request) => {
@@ -88,8 +99,8 @@ export default function VendorEventDashboard() {
               <p className="text-slate-600">{formatVendorEventType(event.event_type)} · {event.category}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {["multi_spot", "multi_location"].includes(event.event_type) && <Button variant="outline" onClick={() => navigate(`/VendorEventFlags?id=${event.id}`)}><Flag className="h-4 w-4" /> Edit Flags</Button>}
-              <Button variant="outline" onClick={() => navigate(`/VendorEventSchedule?id=${event.id}`)}><CalendarClock className="h-4 w-4" /> Schedule</Button>
+              {canFlags && ["multi_spot", "multi_location"].includes(event.event_type) && <Button variant="outline" onClick={() => navigate(`/VendorEventFlags?id=${event.id}`)}><Flag className="h-4 w-4" /> Edit Flags</Button>}
+              {canSchedule && <Button variant="outline" onClick={() => navigate(`/VendorEventSchedule?id=${event.id}`)}><CalendarClock className="h-4 w-4" /> Schedule</Button>}
               <Button variant="outline" onClick={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}>View Public Page</Button>
             </div>
           </div>
@@ -97,7 +108,8 @@ export default function VendorEventDashboard() {
           <div className="grid gap-2 text-sm sm:grid-cols-2">
             <p><strong>Schedule:</strong> {format(new Date(event.startDateTime), "PPp")} - {format(new Date(event.endDateTime), "PPp")}</p>
             <p><strong>Location:</strong> {event.display_address}</p>
-            <p><strong>Organizer:</strong> {event.organizer_business_name}</p>
+            <p><strong>Hosted By:</strong> {hostedLabels.hostedBy}</p>
+            <p><strong>Co-Hosted By:</strong> {hostedLabels.coHostedBy.length ? hostedLabels.coHostedBy.join(", ") : "None yet"}</p>
             {event.open_to_vendors && <p><strong>Vendor setup:</strong> Open to vendors</p>}
             {event.max_vendors && <p><strong>Vendor capacity:</strong> {attendees.length} / {event.max_vendors} spots filled{spotsLeft !== null ? ` · ${spotsLeft} remaining` : ""}</p>}
           </div>
@@ -112,15 +124,16 @@ export default function VendorEventDashboard() {
               <h2 className="text-2xl font-black text-[#2C4F4E]">Vendor Management</h2>
               <p className="text-sm text-slate-600">Manage how vendors join, pay, reserve space, and get approved.</p>
             </div>
-            <Button variant="outline" disabled={isFull} onClick={() => setShowInviteVendors(true)}><Mail className="h-4 w-4" /> Invite Vendors</Button>
+            <Button variant="outline" disabled={isFull || !canVendors} onClick={() => setShowInviteVendors(true)}><Mail className="h-4 w-4" /> Invite Vendors</Button>
           </div>
-          {organizerAccount && (
+          {organizerAccount && canVendors && (
             <VendorEventForm
               account={organizerAccount}
               user={{ id: event.organizer_user_id }}
               event={event}
               approvedVendorCount={attendees.length}
               mode="vendor"
+              preserveOwner
               existingEvents={allVendorEvents}
               onCreated={() => queryClient.invalidateQueries({ queryKey: ["vendorEvent", eventId] })}
             />
@@ -128,13 +141,15 @@ export default function VendorEventDashboard() {
         </CardContent>
       </Card>
 
-      <EventUpdatesManager event={event} updates={updates} onRefresh={refresh} />
+      <EventCollaboratorsPanel event={event} currentUser={currentUser} currentOrganizationIds={currentOrganizationIds} organizations={vendorAccounts} collaborators={collaborators} onRefresh={refresh} />
 
-      {event.event_type === "multi_spot" && <EventSpotManager event={event} spots={spots} onRefresh={refresh} />}
+      <EventUpdatesManager event={event} updates={updates} onRefresh={refresh} canEdit={canEdit} />
+
+      {canFlags && event.event_type === "multi_spot" && <EventSpotManager event={event} spots={spots} onRefresh={refresh} />}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <CollapsiblePanel title="Invited Vendors" count={invitedVendors.length}>{invitedVendors.length ? invitedVendors.map((invite) => { const vendor = vendorById[invite.vendor_business_id]; return <div key={invite.id} className="flex items-center gap-3 rounded-xl border p-3 mb-2">{vendor?.business_logo && <img src={vendor.business_logo} alt={vendor.business_name} className="h-10 w-10 rounded-full object-cover" />}<div><p className="font-bold">{vendor?.business_name || "Vendor"}</p><p className="text-xs text-slate-500">Invited</p></div></div>; }) : <p className="text-sm text-slate-500">No invited vendors.</p>}</CollapsiblePanel>
-        <CollapsiblePanel title="Pending Vendors" count={pendingRequests.length + pendingInvites.length} defaultOpen>{pendingInvites.map((invite) => { const vendor = vendorById[invite.vendor_business_id]; return <div key={invite.id} className="rounded-xl border p-3 mb-2"><p className="font-bold">{vendor?.business_name || "Vendor"}</p><p className="text-xs text-slate-500">{invite.status.replace("_", " ")}</p></div>; })}{pendingRequests.length ? pendingRequests.map((request) => <div key={request.id} className="rounded-xl border p-3 space-y-2 mb-2"><p className="font-bold">{request.business_name}</p><p className="text-sm text-slate-600">{request.request_message}</p><div className="flex gap-2"><Button size="sm" disabled={isFull} onClick={() => approveRequest(request)}>Approve</Button><Button size="sm" variant="outline" onClick={() => denyRequest(request)}>Deny</Button></div></div>) : null}{!pendingRequests.length && !pendingInvites.length && <p className="text-sm text-slate-500">No pending vendors.</p>}</CollapsiblePanel>
+        <CollapsiblePanel title="Pending Vendors" count={pendingRequests.length + pendingInvites.length} defaultOpen>{pendingInvites.map((invite) => { const vendor = vendorById[invite.vendor_business_id]; return <div key={invite.id} className="rounded-xl border p-3 mb-2"><p className="font-bold">{vendor?.business_name || "Vendor"}</p><p className="text-xs text-slate-500">{invite.status.replace("_", " ")}</p></div>; })}{pendingRequests.length ? pendingRequests.map((request) => <div key={request.id} className="rounded-xl border p-3 space-y-2 mb-2"><p className="font-bold">{request.business_name}</p><p className="text-sm text-slate-600">{request.request_message}</p>{canVendors && <div className="flex gap-2"><Button size="sm" disabled={isFull} onClick={() => approveRequest(request)}>Approve</Button><Button size="sm" variant="outline" onClick={() => denyRequest(request)}>Deny</Button></div>}</div>) : null}{!pendingRequests.length && !pendingInvites.length && <p className="text-sm text-slate-500">No pending vendors.</p>}</CollapsiblePanel>
         <CollapsiblePanel title="Approved Vendors" count={attendees.length}>{attendees.length ? attendees.map((vendor) => <div key={vendor.id} className="flex items-center gap-3 rounded-xl border p-3 mb-2">{vendor.logo && <img src={vendor.logo} alt={vendor.business_name} className="h-10 w-10 rounded-full object-cover" />}<span className="font-bold">{vendor.business_name}</span></div>) : <p className="text-sm text-slate-500">No approved vendors yet.</p>}</CollapsiblePanel>
       </div>
 

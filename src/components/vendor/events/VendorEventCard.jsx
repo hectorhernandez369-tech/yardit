@@ -5,7 +5,7 @@ import { CalendarClock, CalendarDays, Flag, MapPin, Pencil, Users } from "lucide
 import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 
-export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, canManage = false, onView, onEdit, onManage, onEditFlags, onSchedule }) {
+export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, hostedLabels, canEdit = false, canManageVendors = false, canManageFlags = false, canManageSchedule = false, onView, onEdit, onManage, onEditFlags, onSchedule }) {
   const status = getVendorEventStatus(event);
 
   return (
@@ -24,6 +24,8 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
           <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#F4A849]" />{format(new Date(event.startDateTime), "MMM d, yyyy h:mm a")} - {format(new Date(event.endDateTime), "MMM d, yyyy h:mm a")}</div>
           {distanceMiles !== null && distanceMiles !== undefined && <p className="text-xs font-semibold text-slate-500">{distanceMiles.toFixed(1)} miles away</p>}
           {event.open_to_vendors && event.max_vendors && <p className="text-xs font-semibold text-emerald-700">Approved vendors: {approvedVendorCount} / {event.max_vendors}</p>}
+          {hostedLabels && <p className="text-xs text-slate-500"><strong>Hosted By:</strong> {hostedLabels.hostedBy}</p>}
+          {hostedLabels?.coHostedBy?.length > 0 && <p className="text-xs text-slate-500"><strong>Co-Hosted By:</strong> {hostedLabels.coHostedBy.join(", ")}</p>}
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
@@ -32,14 +34,10 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
             <Badge variant="outline" className="capitalize">{event.category || "Event"}</Badge>
           </div>
           <div className="flex flex-wrap gap-2">
-            {canManage && (
-              <>
-                <Button variant="outline" onClick={onEdit}><Pencil className="h-4 w-4" /> Edit Details</Button>
-                {["multi_spot", "multi_location"].includes(event.event_type) && <Button variant="outline" onClick={onEditFlags}><Flag className="h-4 w-4" /> Edit Flags</Button>}
-                <Button variant="outline" onClick={onSchedule}><CalendarClock className="h-4 w-4" /> Schedule</Button>
-                <Button variant="outline" onClick={onManage}><Users className="h-4 w-4" /> Vendor Management</Button>
-              </>
-            )}
+            {canEdit && <Button variant="outline" onClick={onEdit}><Pencil className="h-4 w-4" /> Edit Details</Button>}
+            {canManageFlags && ["multi_spot", "multi_location"].includes(event.event_type) && <Button variant="outline" onClick={onEditFlags}><Flag className="h-4 w-4" /> Edit Flags</Button>}
+            {canManageSchedule && <Button variant="outline" onClick={onSchedule}><CalendarClock className="h-4 w-4" /> Schedule</Button>}
+            {canManageVendors && <Button variant="outline" onClick={onManage}><Users className="h-4 w-4" /> Vendor Management</Button>}
             <Button onClick={onView} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">View Public Page</Button>
           </div>
         </div>

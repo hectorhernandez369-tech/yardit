@@ -13,6 +13,7 @@ import VendorEventCard from "./VendorEventCard";
 import VendorEventForm from "./VendorEventForm";
 import { calculateMiles, getVendorEventPermission, getVendorEventStatus } from "@/lib/vendorEvents";
 import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
+import { canAccessEvent, canEditEvent, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
 
 export default function VendorEventsTab({ account, user }) {
   const navigate = useNavigate();
@@ -41,6 +42,18 @@ export default function VendorEventsTab({ account, user }) {
     initialData: [],
   });
 
+  const { data: vendorAccounts = [] } = useQuery({
+    queryKey: ["eventCollaboratorVendorAccounts"],
+    queryFn: () => base44.entities.VendorAccount.list(),
+    initialData: [],
+  });
+
+  const { data: collaborators = [] } = useQuery({
+    queryKey: ["allEventCollaborators"],
+    queryFn: () => base44.entities.EventCollaborator.list(),
+    initialData: [],
+  });
+
   useEffect(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition((position) => {
@@ -55,6 +68,7 @@ export default function VendorEventsTab({ account, user }) {
     });
   };
 
+  const currentOrganizationIds = account?.id ? [account.id] : [];
   const usageSnapshot = getVendorUsageSnapshot({ account, events });
   const currentSinglePermission = getVendorEventPermission({ account, events, eventType: "single" });
   const currentMultifieldPermission = getVendorEventPermission({ account, events, eventType: "multi_spot" });
@@ -70,19 +84,19 @@ export default function VendorEventsTab({ account, user }) {
         computedStatus: getVendorEventStatus(event, now),
         approvedVendorCount: attendees.filter((attendee) => attendee.event_id === event.id).length,
       }))
-      .filter((event) => event.organizer_business_id === account.id || ["published", "active"].includes(event.status))
+      .filter((event) => canAccessEvent(event, collaborators, currentOrganizationIds) || ["published", "active"].includes(event.status))
       .filter((event) => tab === "history" ? ["completed", "cancelled"].includes(event.computedStatus) : !["completed", "cancelled"].includes(event.computedStatus))
       .filter((event) => !query || `${event.title} ${event.description} ${event.category}`.toLowerCase().includes(query.toLowerCase()))
       .filter((event) => !locationQuery || (event.display_address || "").toLowerCase().includes(locationQuery.toLowerCase()))
       .filter((event) => eventType === "all" || event.event_type === eventType)
-      .filter((event) => showOpenToVendors ? event.open_to_vendors || event.organizer_business_id === account.id : true)
+      .filter((event) => showOpenToVendors ? event.open_to_vendors || canAccessEvent(event, collaborators, currentOrganizationIds) : true)
       .filter((event) => !userLocation || distance === "any" || event.distanceMiles === null || event.distanceMiles <= Number(distance))
       .sort((a, b) => {
         if (sort === "latest") return new Date(b.startDateTime) - new Date(a.startDateTime);
         if (sort === "closest") return (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity);
         return new Date(a.startDateTime) - new Date(b.startDateTime);
       });
-  }, [events, attendees, account.id, tab, query, locationQuery, distance, eventType, showOpenToVendors, sort, userLocation]);
+  }, [events, attendees, account.id, tab, query, locationQuery, distance, eventType, showOpenToVendors, sort, userLocation, collaborators, currentOrganizationIds]);
 
   return (
     <div className="space-y-4">
@@ -133,7 +147,11 @@ export default function VendorEventsTab({ account, user }) {
               event={event}
               distanceMiles={event.distanceMiles}
               approvedVendorCount={event.approvedVendorCount}
-              canManage={event.organizer_business_id === account.id || user?.isAdmin || user?.role === "admin"}
+              hostedLabels={getHostedByLabels(event, collaborators, vendorAccounts)}
+              canEdit={canEditEvent(event, collaborators, currentOrganizationIds)}
+              canManageVendors={canManageVendors(event, collaborators, currentOrganizationIds)}
+              canManageFlags={canManageFlags(event, collaborators, currentOrganizationIds)}
+              canManageSchedule={canManageSchedule(event, collaborators, currentOrganizationIds)}
               onEdit={() => setEditingEvent(event)}
               onManage={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
               onEditFlags={() => navigate(`/VendorEventFlags?id=${event.id}`)}
