@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { VENDOR_EVENT_TYPES } from "@/lib/vendorEvents";
+import { VENDOR_EVENT_TYPES, getVendorEventPermission } from "@/lib/vendorEvents";
 import EventLocationPicker from "./EventLocationPicker";
 import InviteVendorsModal from "./InviteVendorsModal";
 import CollapsiblePanel from "./CollapsiblePanel";
@@ -75,7 +75,7 @@ const buildInitialForm = (event) => event ? {
   status: event.status || "draft",
 } : initialForm;
 
-export default function VendorEventForm({ account, user, event = null, approvedVendorCount = 0, mode = "full", onCreated }) {
+export default function VendorEventForm({ account, user, event = null, approvedVendorCount = 0, mode = "full", existingEvents = [], onCreated }) {
   const isEditing = !!event?.id;
   const showPublicFields = mode !== "vendor";
   const showVendorFields = mode !== "public";
@@ -176,6 +176,19 @@ export default function VendorEventForm({ account, user, event = null, approvedV
 
     if (showVendorFields && form.open_to_vendors && form.vendor_fee_type === "set_space_fee" && form.vendor_space_options.length === 0) {
       toast.error("Please add at least one space option.");
+      return;
+    }
+
+    const eventPermission = getVendorEventPermission({
+      account,
+      events: existingEvents,
+      eventType: form.event_type,
+      startDateTime: form.startDateTime,
+      excludeEventId: event?.id || null,
+    });
+
+    if (!eventPermission.allowed && (!isEditing || form.event_type !== event.event_type || form.startDateTime !== toLocalDateTimeValue(event.startDateTime))) {
+      toast.error(eventPermission.reason);
       return;
     }
 

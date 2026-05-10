@@ -1,8 +1,74 @@
+import { getVendorTierConfig } from "@/lib/vendorTiers";
+
 export const VENDOR_EVENT_TYPES = [
   { value: "single", label: "Single Event" },
   { value: "multi_spot", label: "Multi-Spot Event" },
   { value: "multi_location", label: "Multi-Location Event" },
 ];
+
+export const VENDOR_EVENT_OVERAGE_PRICES = {
+  single: null,
+  multi_spot: null,
+  multi_location: null,
+};
+
+export function getVendorEventBucket(eventType) {
+  return eventType === "single" ? "single" : "multifield";
+}
+
+export function isVendorEventInMonth(event, monthDate = new Date()) {
+  const eventDate = event?.startDateTime ? new Date(event.startDateTime) : null;
+  if (!eventDate || Number.isNaN(eventDate.getTime())) return false;
+  return eventDate.getFullYear() === monthDate.getFullYear() && eventDate.getMonth() === monthDate.getMonth();
+}
+
+export function getVendorMonthlyEventUsage(events = [], accountId, monthDate = new Date(), excludeEventId = null) {
+  const ownEvents = (events || []).filter((event) =>
+    event.organizer_business_id === accountId &&
+    event.id !== excludeEventId &&
+    event.status !== "cancelled" &&
+    isVendorEventInMonth(event, monthDate)
+  );
+
+  return {
+    single: ownEvents.filter((event) => event.event_type === "single").length,
+    multifield: ownEvents.filter((event) => ["multi_spot", "multi_location"].includes(event.event_type)).length,
+    multi_spot: ownEvents.filter((event) => event.event_type === "multi_spot").length,
+    multi_location: ownEvents.filter((event) => event.event_type === "multi_location").length,
+  };
+}
+
+export function getVendorEventPermission({ account, events = [], eventType = "single", startDateTime, excludeEventId = null }) {
+  const tier = getVendorTierConfig(account?.vendor_tier);
+  const usage = getVendorMonthlyEventUsage(events, account?.id, startDateTime ? new Date(startDateTime) : new Date(), excludeEventId);
+  const bucket = getVendorEventBucket(eventType);
+
+  if (bucket === "single") {
+    const limit = Number(tier.included_single_events || 0);
+    const allowed = usage.single < limit;
+    return {
+      allowed,
+      usage,
+      limit,
+      bucket,
+      reason: allowed ? "" : `${tier.label} includes ${limit} Single Event${limit === 1 ? "" : "s"} per month. Upgrade or wait until next month to create another Single Event.`,
+      overagePrice: VENDOR_EVENT_OVERAGE_PRICES.single,
+    };
+  }
+
+  const limit = Number(tier.included_multifield_events || 0);
+  const allowed = limit > 0 && usage.multifield < limit;
+  return {
+    allowed,
+    usage,
+    limit,
+    bucket,
+    reason: allowed ? "" : limit === 0
+      ? `${tier.label} does not include Multi-Spot or Multi-Location Events. Upgrade to Pro or higher.`
+      : `${tier.label} includes ${limit} Multi-Field Event${limit === 1 ? "" : "s"} per month. Upgrade or wait until next month to create another Multi-Field Event.`,
+    overagePrice: VENDOR_EVENT_OVERAGE_PRICES[eventType],
+  };
+}
 
 export function calculateMiles(lat1, lng1, lat2, lng2) {
   if ([lat1, lng1, lat2, lng2].some((value) => value === null || value === undefined || Number.isNaN(Number(value)))) return null;

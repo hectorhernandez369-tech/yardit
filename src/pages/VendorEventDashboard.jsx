@@ -23,6 +23,7 @@ export default function VendorEventDashboard() {
   const [showInviteVendors, setShowInviteVendors] = useState(false);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["vendorEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
+  const { data: allVendorEvents = [] } = useQuery({ queryKey: ["vendorEventsForPermission"], queryFn: () => base44.entities.VendorEvent.list("startDateTime"), initialData: [] });
   const event = events[0];
   const { data: requests = [] } = useQuery({ queryKey: ["eventVendorRequests", eventId], queryFn: () => base44.entities.EventVendorRequest.filter({ event_id: eventId }, "-created_date"), enabled: !!eventId, initialData: [] });
   const { data: attendees = [] } = useQuery({ queryKey: ["eventVendorAttendees", eventId], queryFn: () => base44.entities.EventVendorAttendee.filter({ event_id: eventId }, "-created_date"), enabled: !!eventId, initialData: [] });
@@ -120,6 +121,7 @@ export default function VendorEventDashboard() {
               event={event}
               approvedVendorCount={attendees.length}
               mode="vendor"
+              existingEvents={allVendorEvents}
               onCreated={() => queryClient.invalidateQueries({ queryKey: ["vendorEvent", eventId] })}
             />
           )}

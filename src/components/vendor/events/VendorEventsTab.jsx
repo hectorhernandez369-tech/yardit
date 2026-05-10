@@ -11,7 +11,7 @@ import { CalendarPlus, Search, SlidersHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import VendorEventCard from "./VendorEventCard";
 import VendorEventForm from "./VendorEventForm";
-import { calculateMiles, getVendorEventStatus } from "@/lib/vendorEvents";
+import { calculateMiles, getVendorEventPermission, getVendorEventStatus } from "@/lib/vendorEvents";
 
 export default function VendorEventsTab({ account, user }) {
   const navigate = useNavigate();
@@ -54,6 +54,10 @@ export default function VendorEventsTab({ account, user }) {
     });
   };
 
+  const currentSinglePermission = getVendorEventPermission({ account, events, eventType: "single" });
+  const currentMultifieldPermission = getVendorEventPermission({ account, events, eventType: "multi_spot" });
+  const canCreateAnyEvent = currentSinglePermission.allowed || currentMultifieldPermission.allowed;
+
   const filteredEvents = useMemo(() => {
     const now = new Date();
     return events
@@ -85,7 +89,19 @@ export default function VendorEventsTab({ account, user }) {
             <h2 className="text-2xl font-black text-[#2C4F4E]">Vendor Events</h2>
             <p className="text-sm text-slate-600">Create, search, manage, and join vendor-only events.</p>
           </div>
-          <Button onClick={() => setShowCreate(true)} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"><CalendarPlus className="h-4 w-4" /> Create Event</Button>
+          <Button
+            onClick={() => canCreateAnyEvent ? setShowCreate(true) : alert(`${currentSinglePermission.reason}\n${currentMultifieldPermission.reason}`)}
+            className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"
+          >
+            <CalendarPlus className="h-4 w-4" /> Create Event
+          </Button>
+        </div>
+
+        <div className="grid gap-2 rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3 text-xs text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
+          <div><strong>Single Events:</strong> {currentSinglePermission.usage.single} / {currentSinglePermission.limit}</div>
+          <div><strong>Multi-Spot Events:</strong> {currentMultifieldPermission.usage.multi_spot} used</div>
+          <div><strong>Multi-Location Events:</strong> {currentMultifieldPermission.usage.multi_location} used</div>
+          <div><strong>Multi-Field Total:</strong> {currentMultifieldPermission.usage.multifield} / {currentMultifieldPermission.limit}</div>
         </div>
 
         <div className="grid gap-2 md:grid-cols-[1fr_auto_180px_auto]">
@@ -130,7 +146,7 @@ export default function VendorEventsTab({ account, user }) {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Create Vendor Event</DialogTitle></DialogHeader>
-          <VendorEventForm account={account} user={user} onCreated={() => { queryClient.invalidateQueries({ queryKey: ["vendorEvents"] }); setShowCreate(false); }} />
+          <VendorEventForm account={account} user={user} existingEvents={events} onCreated={() => { queryClient.invalidateQueries({ queryKey: ["vendorEvents"] }); setShowCreate(false); }} />
         </DialogContent>
       </Dialog>
 
@@ -144,6 +160,7 @@ export default function VendorEventsTab({ account, user }) {
               event={editingEvent}
               approvedVendorCount={editingEvent.approvedVendorCount}
               mode="public"
+              existingEvents={events}
               onCreated={() => {
                 queryClient.invalidateQueries({ queryKey: ["vendorEvents"] });
                 setEditingEvent(null);
