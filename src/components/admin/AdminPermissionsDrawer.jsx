@@ -10,6 +10,35 @@ import { ADMIN_CAPABILITY_SECTIONS, AVAILABLE_ADMIN_CAPABILITIES, ROLE_DEFAULT_C
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+const CAPABILITY_ALIASES = {
+  "admins.manage": "admin.permissions.edit",
+  "logs.view": "admin.logs.view",
+};
+
+const capabilityKeyFromValue = (value) => {
+  if (typeof value === "string") return CAPABILITY_ALIASES[value] || value;
+  if (value && typeof value === "object") {
+    const key = value.key || value.capability || value.capability_key || value.id || value.name;
+    return typeof key === "string" ? (CAPABILITY_ALIASES[key] || key) : null;
+  }
+  return null;
+};
+
+const normalizeCapabilityList = (capabilities = []) => {
+  const validKeys = new Set(AVAILABLE_ADMIN_CAPABILITIES.map((capability) => capability.key));
+  return [...new Set((Array.isArray(capabilities) ? capabilities : [])
+    .map(capabilityKeyFromValue)
+    .filter((key) => key && validKeys.has(key)))];
+};
+
+const getRoleDefaultCapabilities = (roleLabel) => normalizeCapabilityList(ROLE_DEFAULT_CAPABILITIES[roleLabel || "basic"] || []);
+
+const getSelectedCapabilitiesForAdmin = (adminProfile) => {
+  const roleDefaults = getRoleDefaultCapabilities(adminProfile?.role_label);
+  const savedCapabilities = normalizeCapabilityList(adminProfile?.capabilities);
+  return [...new Set([...roleDefaults, ...savedCapabilities])];
+};
+
 export default function AdminPermissionsDrawer({ open, onClose, admin, currentUserProfile, onSaved }) {
   const [selected, setSelected] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -19,7 +48,9 @@ export default function AdminPermissionsDrawer({ open, onClose, admin, currentUs
 
   useEffect(() => {
     if (!open || !admin) return;
-    setSelected(Array.isArray(admin.capabilities) ? admin.capabilities : []);
+    setSelected(getSelectedCapabilitiesForAdmin(admin));
+    setSearch("");
+    setSectionFilter("all");
   }, [open, admin]);
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
@@ -44,7 +75,7 @@ export default function AdminPermissionsDrawer({ open, onClose, admin, currentUs
 
   const selectAll = () => setSelected(allKeys);
   const clearAll = () => setSelected([]);
-  const applyRoleDefaults = () => setSelected(ROLE_DEFAULT_CAPABILITIES[admin?.role_label || "basic"] || []);
+  const applyRoleDefaults = () => setSelected(getRoleDefaultCapabilities(admin?.role_label));
 
   const handleSave = async () => {
     if (!isMaster) {
@@ -52,7 +83,7 @@ export default function AdminPermissionsDrawer({ open, onClose, admin, currentUs
       return;
     }
 
-    const before = Array.isArray(admin.capabilities) ? admin.capabilities : [];
+    const before = getSelectedCapabilitiesForAdmin(admin);
     const added = selected.filter((capability) => !before.includes(capability));
     const removed = before.filter((capability) => !selected.includes(capability));
 
