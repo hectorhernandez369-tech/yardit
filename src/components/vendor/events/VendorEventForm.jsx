@@ -9,6 +9,8 @@ import { VENDOR_EVENT_TYPES, getVendorEventPermission } from "@/lib/vendorEvents
 import EventLocationPicker from "./EventLocationPicker";
 import InviteVendorsModal from "./InviteVendorsModal";
 import CollapsiblePanel from "./CollapsiblePanel";
+import CreateEventCollaboratorsSection from "./CreateEventCollaboratorsSection";
+import { getRolePermissions } from "@/lib/eventCollaboration";
 import { toast } from "sonner";
 
 const initialForm = {
@@ -86,8 +88,41 @@ export default function VendorEventForm({ account, user, event = null, approvedV
   const [createdEvent, setCreatedEvent] = useState(null);
   const [showInviteVendors, setShowInviteVendors] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [collaboratorInvitations, setCollaboratorInvitations] = useState([]);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const createCollaboratorInvitations = async (savedEvent, now) => {
+    if (isEditing || collaboratorInvitations.length === 0) return;
+
+    await Promise.all(collaboratorInvitations.map(async (invite) => {
+      await base44.entities.EventCollaborator.create({
+        event_id: savedEvent.id,
+        organization_id: invite.organization_id,
+        organization_name: invite.organization_name,
+        role: invite.role,
+        permissions: getRolePermissions(invite.role),
+        invited_by_user_id: user.id,
+        invited_at: now,
+        status: "pending",
+        is_primary_owner: false,
+      });
+
+      await base44.entities.Notification.create({
+        userId: invite.organization_owner_user_id,
+        user_id: invite.organization_owner_user_id,
+        user_email: invite.organization_email,
+        title: "Event Collaboration Invitation",
+        message: `${account.business_name || "An organizer"} invited ${invite.organization_name} to collaborate on ${savedEvent.title}.`,
+        type: "event_collaboration_invite",
+        related_entity_type: "VendorEvent",
+        related_entity_id: savedEvent.id,
+        metadata: { event_id: savedEvent.id, organization_id: invite.organization_id, role: invite.role },
+        read: false,
+        is_read: false,
+      });
+    }));
+  };
 
   const syncFlagsToEvent = async (eventId, flags) => {
     const existingSpots = await base44.entities.EventSpot.filter({ event_id: eventId });
@@ -236,6 +271,8 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       await syncFlagsToEvent(savedEvent.id, form.event_flags);
     }
 
+    await createCollaboratorInvitations(savedEvent, now);
+
     if (!isEditing && form.event_type === "multi_location") {
       const code = `VE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
       await base44.entities.EventInviteCode.create({
@@ -248,7 +285,10 @@ export default function VendorEventForm({ account, user, event = null, approvedV
     }
 
     setCreatedEvent(savedEvent);
-    if (!isEditing) setForm(initialForm);
+    if (!isEditing) {
+      setForm(initialForm);
+      setCollaboratorInvitations([]);
+    }
     setSaving(false);
     toast.success(isEditing ? "Event details updated" : status === "published" ? "Event published" : "Event saved as draft");
     onCreated?.(savedEvent);
@@ -413,6 +453,14 @@ export default function VendorEventForm({ account, user, event = null, approvedV
           </div>
         )}
       </div>}
+
+      {showPublicFields && !isEditing && (
+        <CreateEventCollaboratorsSection
+          account={account}
+          invitations={collaboratorInvitations}
+          onChange={setCollaboratorInvitations}
+        />
+      )}
 
       <div className="flex flex-wrap justify-end gap-2">
         {!isEditing && <Button variant="outline" disabled={saving} onClick={() => saveEvent("draft")}>Save Draft</Button>}
