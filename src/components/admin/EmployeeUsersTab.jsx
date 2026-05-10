@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, XCircle, Send, ToggleLeft, ToggleRight, Users, Activity, Pencil, Trash2 } from "lucide-react";
+import { Loader2, RefreshCw, XCircle, Send, ToggleLeft, ToggleRight, Users, Activity, Pencil, Trash2, ShieldCheck } from "lucide-react";
 import { logUserActivity } from "@/lib/logUserActivity";
 import EmployeeActivityDrawer from "./EmployeeActivityDrawer";
 import EditEmployeeDrawer from "./EditEmployeeDrawer";
+import AdminPermissionsDrawer from "./AdminPermissionsDrawer";
 import { format } from "date-fns";
 
 function PendingInvitesTable({ invites, onResend, onCancel, acting }) {
@@ -76,7 +77,7 @@ function PendingInvitesTable({ invites, onResend, onCancel, acting }) {
   );
 }
 
-function ActiveAdminsTable({ admins, onToggleActive, onDeleteAdmin, acting, onViewActivity, onEditUser, isMaster }) {
+function ActiveAdminsTable({ admins, onToggleActive, onDeleteAdmin, acting, onViewActivity, onEditUser, onEditPermissions, isMaster }) {
   if (admins.length === 0) {
     return <p className="text-sm text-gray-500 py-4 text-center">No admin profiles found.</p>;
   }
@@ -156,6 +157,15 @@ function ActiveAdminsTable({ admins, onToggleActive, onDeleteAdmin, acting, onVi
                     <Button
                       size="sm"
                       variant="outline"
+                      className="h-7 text-xs gap-1 text-purple-700 border-purple-200 hover:bg-purple-50"
+                      onClick={() => onEditPermissions(adm)}
+                    >
+                      <ShieldCheck className="w-3 h-3" />
+                      Permissions
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       className="h-7 text-xs gap-1 text-red-600 border-red-200 hover:bg-red-50"
                       disabled={acting === `delete-${adm.id}`}
                       onClick={() => onDeleteAdmin(adm)}
@@ -181,9 +191,10 @@ export default function EmployeeUsersTab({ currentUser }) {
   const [acting, setActing] = useState(null);
   const [activityAdmin, setActivityAdmin] = useState(null);
   const [editAdmin, setEditAdmin] = useState(null);
+  const [permissionsAdmin, setPermissionsAdmin] = useState(null);
   const [currentProfile, setCurrentProfile] = useState(null);
 
-  const isMaster = currentUser?.role === "master";
+  const isMaster = currentUser?.role === "master" || currentProfile?.role_label === "master";
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -386,7 +397,7 @@ export default function EmployeeUsersTab({ currentUser }) {
           <CardTitle className="text-base">Active Admins ({admins.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <ActiveAdminsTable admins={admins} onToggleActive={handleToggleActive} onDeleteAdmin={handleDeleteAdmin} acting={acting} onViewActivity={setActivityAdmin} onEditUser={setEditAdmin} isMaster={isMaster} />
+          <ActiveAdminsTable admins={admins} onToggleActive={handleToggleActive} onDeleteAdmin={handleDeleteAdmin} acting={acting} onViewActivity={setActivityAdmin} onEditUser={setEditAdmin} onEditPermissions={setPermissionsAdmin} isMaster={isMaster} />
         </CardContent>
       </Card>
 
@@ -400,6 +411,14 @@ export default function EmployeeUsersTab({ currentUser }) {
         open={!!editAdmin}
         onClose={() => setEditAdmin(null)}
         admin={editAdmin}
+        currentUserProfile={currentProfile}
+        onSaved={loadData}
+      />
+
+      <AdminPermissionsDrawer
+        open={!!permissionsAdmin}
+        onClose={() => setPermissionsAdmin(null)}
+        admin={permissionsAdmin}
         currentUserProfile={currentProfile}
         onSaved={loadData}
       />

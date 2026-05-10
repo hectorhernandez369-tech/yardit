@@ -8,6 +8,19 @@ function normalizeRole(role) {
   return role;
 }
 
+export const AVAILABLE_ADMIN_CAPABILITIES = [
+  {
+    key: "admins.manage",
+    label: "Manage Admins",
+    description: "Create, edit, deactivate, and manage employee admin accounts.",
+  },
+  {
+    key: "logs.view",
+    label: "View Logs",
+    description: "View admin logs and activity history.",
+  },
+];
+
 const CAPABILITIES = {
   master: {
     "admins.manage": true,
