@@ -2,15 +2,19 @@ import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { AVAILABLE_ADMIN_CAPABILITIES } from "./adminCapabilities";
+import { ADMIN_CAPABILITY_SECTIONS, AVAILABLE_ADMIN_CAPABILITIES, ROLE_DEFAULT_CAPABILITIES } from "./adminCapabilities";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminPermissionsDrawer({ open, onClose, admin, currentUserProfile, onSaved }) {
   const [selected, setSelected] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [sectionFilter, setSectionFilter] = useState("all");
   const isMaster = currentUserProfile?.role_label === "master";
 
   useEffect(() => {
@@ -19,6 +23,17 @@ export default function AdminPermissionsDrawer({ open, onClose, admin, currentUs
   }, [open, admin]);
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
+  const allKeys = useMemo(() => AVAILABLE_ADMIN_CAPABILITIES.map((permission) => permission.key), []);
+  const filteredSections = useMemo(() => {
+    const text = search.trim().toLowerCase();
+    return ADMIN_CAPABILITY_SECTIONS
+      .filter((section) => sectionFilter === "all" || section.title === sectionFilter)
+      .map((section) => ({
+        ...section,
+        permissions: section.permissions.filter((permission) => !text || [permission.label, permission.description, permission.key].join(" ").toLowerCase().includes(text)),
+      }))
+      .filter((section) => section.permissions.length > 0);
+  }, [search, sectionFilter]);
 
   const toggleCapability = (capability) => {
     setSelected((prev) => prev.includes(capability)
@@ -26,6 +41,10 @@ export default function AdminPermissionsDrawer({ open, onClose, admin, currentUs
       : [...prev, capability]
     );
   };
+
+  const selectAll = () => setSelected(allKeys);
+  const clearAll = () => setSelected([]);
+  const applyRoleDefaults = () => setSelected(ROLE_DEFAULT_CAPABILITIES[admin?.role_label || "basic"] || []);
 
   const handleSave = async () => {
     if (!isMaster) {
@@ -98,22 +117,50 @@ export default function AdminPermissionsDrawer({ open, onClose, admin, currentUs
               <p className="text-xs text-slate-500">Checked permissions are currently assigned to this employee.</p>
             </div>
 
-            <div className="grid gap-2">
-              {AVAILABLE_ADMIN_CAPABILITIES.map((capability) => (
-                <label key={capability.key} className="flex items-start gap-3 rounded-xl border bg-white p-3">
-                  <Checkbox
-                    checked={selectedSet.has(capability.key)}
-                    disabled={!isMaster || saving}
-                    onCheckedChange={() => toggleCapability(capability.key)}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold text-slate-900">{capability.label}</span>
-                    <span className="block text-xs text-slate-500">{capability.description}</span>
-                    <span className="block text-[11px] font-mono text-slate-400 mt-1">{capability.key}</span>
-                  </span>
-                </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input placeholder="Search permissions" value={search} onChange={(event) => setSearch(event.target.value)} />
+              <Select value={sectionFilter} onValueChange={setSectionFilter}>
+                <SelectTrigger><SelectValue placeholder="Filter by section" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sections</SelectItem>
+                  {ADMIN_CAPABILITY_SECTIONS.map((section) => <SelectItem key={section.title} value={section.title}>{section.title}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={selectAll} disabled={!isMaster || saving}>Select All</Button>
+              <Button type="button" size="sm" variant="outline" onClick={clearAll} disabled={!isMaster || saving}>Clear All</Button>
+              <Button type="button" size="sm" variant="outline" onClick={applyRoleDefaults} disabled={!isMaster || saving}>Apply Role Defaults</Button>
+            </div>
+
+            <div className="space-y-4">
+              {filteredSections.map((section) => (
+                <div key={section.title} className="rounded-2xl border bg-slate-50 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-xs font-black tracking-wide text-slate-700">{section.title}</h4>
+                    <Badge variant="outline">{section.permissions.filter((permission) => selectedSet.has(permission.key)).length}/{section.permissions.length}</Badge>
+                  </div>
+                  <div className="grid gap-2">
+                    {section.permissions.map((capability) => (
+                      <label key={capability.key} className="flex items-start gap-3 rounded-xl border bg-white p-3">
+                        <Checkbox
+                          checked={selectedSet.has(capability.key)}
+                          disabled={!isMaster || saving}
+                          onCheckedChange={() => toggleCapability(capability.key)}
+                          className="mt-0.5"
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold text-slate-900">{capability.label}</span>
+                          <span className="block text-xs text-slate-500">{capability.description}</span>
+                          <span className="block text-[11px] font-mono text-slate-400 mt-1">{capability.key}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               ))}
+              {filteredSections.length === 0 && <p className="rounded-xl border bg-white p-4 text-sm text-slate-500">No permissions match your search.</p>}
             </div>
           </div>
 
