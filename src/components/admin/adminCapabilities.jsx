@@ -19,6 +19,16 @@ export const AVAILABLE_ADMIN_CAPABILITIES = [
     label: "View Logs",
     description: "View admin logs and activity history.",
   },
+  {
+    key: "listings.admin_create",
+    label: "Add Listing From Admin Dashboard",
+    description: "Allows admin to create listings from the Admin Listings Dashboard using the existing admin-created listing flow.",
+  },
+  {
+    key: "promotions.manage",
+    label: "Manage Promotions",
+    description: "Allows admin to create, edit, approve, or manage Yardit promotions.",
+  },
 ];
 
 const CAPABILITIES = {
