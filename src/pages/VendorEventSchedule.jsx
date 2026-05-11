@@ -31,7 +31,7 @@ export default function VendorEventSchedule() {
   const event = events[0];
   const { data: spots = [] } = useQuery({ queryKey: ["scheduleEventSpots", eventId], queryFn: () => base44.entities.EventSpot.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
   const { data: savedEntries = [], isLoading: isLoadingEntries } = useQuery({ queryKey: ["eventScheduleEntries", eventId], queryFn: () => base44.entities.EventScheduleEntry.filter({ event_id: eventId }, "sort_order"), enabled: !!eventId, initialData: [] });
-  const { data: collaborators = [] } = useQuery({ queryKey: ["scheduleEventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
+  const { data: collaborators = [], isLoading: loadingCollaborators } = useQuery({ queryKey: ["scheduleEventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
 
   const fields = useMemo(() => {
     if (["multi_spot", "multi_location"].includes(event?.event_type) && spots.length) {
@@ -85,7 +85,7 @@ export default function VendorEventSchedule() {
     setSaving(false);
   };
 
-  if (isLoading || !accessChecked) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (isLoading || loadingCollaborators || !accessChecked) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (!event) return <div className="p-6 text-center">Event not found.</div>;
   if (!canManageSchedule) return <div className="p-6 text-center text-[#2C4F4E] font-bold">You do not have permission for this action.</div>;
 

@@ -26,7 +26,7 @@ export default function VendorEventDashboard() {
   const [showInviteVendors, setShowInviteVendors] = useState(false);
   const [showCollaborators, setShowCollaborators] = useState(false);
 
-  const { data: currentUser } = useQuery({ queryKey: ["vendorEventDashboardUser"], queryFn: () => base44.auth.me() });
+  const { data: currentUser, isLoading: loadingUser } = useQuery({ queryKey: ["vendorEventDashboardUser"], queryFn: () => base44.auth.me() });
   const { data: events = [], isLoading } = useQuery({ queryKey: ["vendorEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: allVendorEvents = [] } = useQuery({ queryKey: ["vendorEventsForPermission"], queryFn: () => base44.entities.VendorEvent.list("startDateTime"), initialData: [] });
   const event = events[0];
@@ -35,11 +35,11 @@ export default function VendorEventDashboard() {
   const { data: spots = [] } = useQuery({ queryKey: ["eventSpots", eventId], queryFn: () => base44.entities.EventSpot.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
   const { data: invites = [] } = useQuery({ queryKey: ["eventInvites", eventId], queryFn: () => base44.entities.EventInviteCode.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: vendorInvites = [] } = useQuery({ queryKey: ["eventVendorInvites", eventId], queryFn: () => base44.entities.EventVendorInvite.filter({ event_id: eventId }, "-created_date"), enabled: !!eventId, initialData: [] });
-  const { data: vendorAccounts = [] } = useQuery({ queryKey: ["eventInviteVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
+  const { data: vendorAccounts = [], isLoading: loadingVendorAccounts } = useQuery({ queryKey: ["eventInviteVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
   const { data: collaborators = [], isLoading: loadingCollaborators } = useQuery({ queryKey: ["eventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: updates = [] } = useQuery({ queryKey: ["eventUpdates", eventId], queryFn: () => base44.entities.EventUpdate.filter({ event_id: eventId, is_deleted: false }, "-created_at"), enabled: !!eventId, initialData: [] });
   const organizerAccount = vendorAccounts.find((account) => account.id === event?.organizer_business_id);
-  const currentOrganizationIds = vendorAccounts.filter((account) => account.owner_user_id === currentUser?.id || account.owner_user_id === currentUser?.email).map((account) => account.id);
+  const currentOrganizationIds = vendorAccounts.filter((account) => account.owner_user_id === currentUser?.id || account.owner_user_id === currentUser?.email || account.owner_email === currentUser?.email).map((account) => account.id);
   const hostedLabels = getHostedByLabels(event, collaborators, vendorAccounts);
   const canEdit = canEditEvent(event, collaborators, currentOrganizationIds);
   const canVendors = canManageVendors(event, collaborators, currentOrganizationIds);
@@ -86,7 +86,7 @@ export default function VendorEventDashboard() {
     refresh();
   };
 
-  if (isLoading || loadingCollaborators) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (isLoading || loadingUser || loadingVendorAccounts || loadingCollaborators) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (!event) return <div className="p-6 text-center">Event not found.</div>;
   if (!canAccessDashboard) return <div className="p-6 text-center text-[#2C4F4E] font-bold">You do not have permission for this action.</div>;
 
@@ -131,9 +131,11 @@ export default function VendorEventDashboard() {
               <h2 className="text-2xl font-black text-[#2C4F4E]">Vendor Management</h2>
               <p className="text-sm text-slate-600">Manage how vendors join, pay, reserve space, and get approved.</p>
             </div>
-            <Button variant="outline" disabled={isFull || !canVendors} onClick={() => canVendors ? setShowInviteVendors(true) : toast.error("You do not have permission for this action.")}><Mail className="h-4 w-4" /> Invite Vendors</Button>
+            <Button variant="outline" disabled={isFull || !canVendors} onClick={() => setShowInviteVendors(true)}><Mail className="h-4 w-4" /> Invite Vendors</Button>
           </div>
-          {organizerAccount && canVendors && (
+          {!canVendors && <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">You do not have permission for this action.</p>}
+          {canVendors && !canCollaborators && <p className="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">You can invite vendors, but payment and capacity settings are owner-only.</p>}
+          {organizerAccount && canCollaborators && (
             <VendorEventForm
               account={organizerAccount}
               user={{ id: event.organizer_user_id }}

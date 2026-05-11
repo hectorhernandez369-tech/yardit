@@ -290,6 +290,21 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                         </div>
                       )}
 
+                      {notification.type === "event_collaboration_invite" && (
+                        <div className="flex flex-wrap gap-2 mt-2 mb-3">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/VendorDashboard?tab=events&collabInvite=${notification.metadata?.collaborator_id || ""}&eventId=${notification.metadata?.event_id || notification.related_entity_id || ""}`);
+                            }}
+                          >
+                            Review Invite
+                          </Button>
+                        </div>
+                      )}
+
 
                       <div className="flex items-center justify-between mt-1">
                         <p className="text-xs text-gray-400">

@@ -25,7 +25,22 @@ export default function EventCollaboratorsPanel({ event, currentUser, currentOrg
 
   const acceptInvite = async (collaborator) => {
     const now = new Date().toISOString();
-    await updateCollaborator(collaborator, { status: "accepted", accepted_at: now, responded_at: now });
+    await base44.entities.EventCollaborator.update(collaborator.id, { status: "accepted", accepted_at: now, responded_at: now, permissions: collaborator.permissions });
+    const organization = organizations.find((item) => item.id === collaborator.organization_id);
+    await base44.entities.Notification.create({
+      userId: event.organizer_user_id,
+      user_id: event.organizer_user_id,
+      title: "Collaboration Invite Accepted",
+      message: `${organization?.business_name || collaborator.organization_name || "An organization"} accepted the collaboration invite for ${event.title}.`,
+      type: "event_collaboration_accepted",
+      related_entity_type: "VendorEvent",
+      related_entity_id: event.id,
+      metadata: { event_id: event.id, collaborator_id: collaborator.id, organization_id: collaborator.organization_id },
+      read: false,
+      is_read: false,
+    });
+    toast.success("Collaboration invite accepted");
+    onRefresh?.();
   };
 
   const transferOwnership = async (collaborator) => {

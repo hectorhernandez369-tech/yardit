@@ -23,6 +23,7 @@ export default function CollaborationInviteReview({ invite, event, receivingOrga
     await base44.entities.Notification.create({
       userId: event.organizer_user_id,
       user_id: event.organizer_user_id,
+      user_email: invitingOrganization?.owner_email || invitingOrganization?.email,
       title: status === "accepted" ? "Collaboration Invite Accepted" : "Collaboration Invite Declined",
       message: `${receivingOrganization?.business_name || invite.organization_name || "An organization"} ${status === "accepted" ? "accepted" : "declined"} the collaboration invite for ${event.title}.`,
       type: status === "accepted" ? "event_collaboration_accepted" : "event_collaboration_declined",

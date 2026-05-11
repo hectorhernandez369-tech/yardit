@@ -20,16 +20,16 @@ export default function VendorEventFlags() {
   const [timeBetweenMinutes, setTimeBetweenMinutes] = useState("90");
   const [isSavingSpot, setIsSavingSpot] = useState(false);
 
-  const { data: user } = useQuery({ queryKey: ["flagManagerUser"], queryFn: () => base44.auth.me() });
+  const { data: user, isLoading: loadingUser } = useQuery({ queryKey: ["flagManagerUser"], queryFn: () => base44.auth.me() });
   const { data: events = [], isLoading: loadingEvent } = useQuery({ queryKey: ["flagManagerEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
   const event = events[0];
   const { data: spots = [], isLoading: loadingSpots } = useQuery({ queryKey: ["flagManagerSpots", eventId], queryFn: () => base44.entities.EventSpot.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
-  const { data: vendorAccounts = [] } = useQuery({ queryKey: ["flagManagerVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
-  const { data: collaborators = [] } = useQuery({ queryKey: ["flagManagerCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
+  const { data: vendorAccounts = [], isLoading: loadingVendorAccounts } = useQuery({ queryKey: ["flagManagerVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
+  const { data: collaborators = [], isLoading: loadingCollaborators } = useQuery({ queryKey: ["flagManagerCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
 
   const sortedSpots = useMemo(() => [...spots].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)), [spots]);
   const selectedSpot = sortedSpots.find((spot) => spot.id === selectedSpotId) || null;
-  const currentOrganizationIds = vendorAccounts.filter((account) => account.owner_user_id === user?.id || account.owner_user_id === user?.email).map((account) => account.id);
+  const currentOrganizationIds = vendorAccounts.filter((account) => account.owner_user_id === user?.id || account.owner_user_id === user?.email || account.owner_email === user?.email).map((account) => account.id);
   const canManage = !!event && !!user && canManageFlags(event, collaborators, currentOrganizationIds);
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function VendorEventFlags() {
     queryClient.invalidateQueries({ queryKey: ["flagManagerSpots", eventId] });
   };
 
-  if (loadingEvent || loadingSpots) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (loadingEvent || loadingSpots || loadingUser || loadingVendorAccounts || loadingCollaborators) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (!event) return <div className="p-6 text-center">Event not found.</div>;
   if (!canManage) return <div className="p-6 text-center text-[#2C4F4E] font-bold">You do not have permission for this action.</div>;
 

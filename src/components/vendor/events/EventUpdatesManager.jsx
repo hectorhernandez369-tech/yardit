@@ -37,11 +37,11 @@ export default function EventUpdatesManager({ event, updates, onRefresh, canEdit
   return (
     <CollapsiblePanel title="Event Updates" description="Post updates that appear on the public vendor event page." count={updates.length} defaultOpen>
       <div className="space-y-3">
-        {canEdit && <>
+        {canEdit ? <>
           <Textarea placeholder="Share an update for attendees and vendors" value={body} onChange={(e) => setBody(e.target.value)} />
           <Input placeholder="Optional photo URL" value={photo} onChange={(e) => setPhoto(e.target.value)} />
           <Button disabled={saving} onClick={createUpdate} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Post Update</Button>
-        </>}
+        </> : <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">You do not have permission for this action.</p>}
         <div className="space-y-2 pt-2">
           {updates.length ? updates.map((update) => (
             <div key={update.id} className="rounded-xl border p-3">

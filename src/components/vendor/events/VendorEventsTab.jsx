@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarPlus, Search, SlidersHorizontal } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import VendorEventCard from "./VendorEventCard";
 import VendorEventForm from "./VendorEventForm";
 import EventCollaboratorsPanel from "./EventCollaboratorsPanel";
@@ -22,6 +22,7 @@ const normalizeVendorSearchText = (value) => String(value || "").toLowerCase().t
 
 export default function VendorEventsTab({ account, user }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -112,12 +113,12 @@ export default function VendorEventsTab({ account, user }) {
   }, [events, attendees, account?.id, tab, query, locationQuery, distance, eventType, showOpenToVendors, sort, userLocation, collaborators, currentOrganizationIds]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const inviteId = params.get("collabInvite");
     if (!inviteId || reviewInvite || !pendingCollaborationInvites.length) return;
     const invite = pendingCollaborationInvites.find((item) => item.id === inviteId);
     if (invite) setReviewInvite(invite);
-  }, [pendingCollaborationInvites, reviewInvite]);
+  }, [location.search, pendingCollaborationInvites, reviewInvite]);
 
   return (
     <div className="space-y-4">
