@@ -1,0 +1,93 @@
+{
+  "name": "SystemHealthIssue",
+  "type": "object",
+  "properties": {
+    "issue_key": {
+      "type": "string",
+      "description": "Stable unique key for this issue so repeated scans do not create duplicates"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "CRITICAL",
+        "WARNING",
+        "NOTICE"
+      ],
+      "description": "Issue severity"
+    },
+    "category": {
+      "type": "string",
+      "description": "Health category"
+    },
+    "title": {
+      "type": "string",
+      "description": "Short plain-English issue title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Plain-English explanation of the issue"
+    },
+    "affected_entity_type": {
+      "type": "string",
+      "description": "Entity type affected by this issue"
+    },
+    "affected_entity_id": {
+      "type": "string",
+      "description": "Entity record ID affected by this issue"
+    },
+    "affected_display_name": {
+      "type": "string",
+      "description": "Human-readable affected account, email, business, event, or listing name"
+    },
+    "suggested_fix": {
+      "type": "string",
+      "description": "Plain-English recommended next step"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "reviewed",
+        "resolved",
+        "ignored"
+      ],
+      "default": "open",
+      "description": "Review status"
+    },
+    "first_detected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this issue was first detected"
+    },
+    "last_detected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this issue was most recently detected"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this issue was resolved"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "Admin email or user ID that reviewed the issue"
+    },
+    "resolved_by": {
+      "type": "string",
+      "description": "Admin email or user ID that resolved the issue"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Extra scan context and safe repair flags"
+    }
+  },
+  "required": [
+    "issue_key",
+    "severity",
+    "category",
+    "title",
+    "description",
+    "status"
+  ]
+}
