@@ -185,7 +185,7 @@ function LayoutContent({ children, user, setUser }) {
               {!user && !isGuest && !isAuthenticated && (
                 <Button
                   size="sm"
-                  onClick={() => navigate("/AccountOptions")}
+                  onClick={navigateToLogin}
                   className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
                 >
                   <User className="w-4 h-4" />
