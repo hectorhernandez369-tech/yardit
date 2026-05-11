@@ -7,10 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { AlertTriangle, ChevronDown } from "lucide-react";
-import { getVendorAccountNumber } from "@/lib/vendorAccountIdentity";
+import { getVendorAccountNumber, getVendorIdentityWarnings } from "@/lib/vendorAccountIdentity";
 
 const fields = [
+  ["vendor_display_name", "Public Display Name"],
   ["business_name", "Business Name"],
+  ["legal_business_name", "Legal Business Name"],
+  ["organization_type", "Organization Type"],
   ["business_logo", "Business Logo URL"],
   ["business_category", "Business Category"],
   ["phone", "Phone"],
@@ -37,6 +40,9 @@ export default function VendorDetailsForm({ account, onRefresh }) {
     const businessAddress = [form.business_street_address, form.business_city, form.business_state, form.business_zip_code].filter(Boolean).join(", ");
     const payload = {
       business_name: form.business_name,
+      vendor_display_name: form.vendor_display_name || form.business_name,
+      legal_business_name: form.legal_business_name || form.business_name,
+      organization_type: form.organization_type || "vendor",
       business_logo: form.business_logo,
       business_category: form.business_category,
       description: form.description,
@@ -65,7 +71,11 @@ export default function VendorDetailsForm({ account, onRefresh }) {
       <CardHeader className="p-4 sm:p-6 space-y-3">
         <div className="grid gap-2 rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3 text-xs text-slate-700 sm:grid-cols-2">
           <p><strong>Vendor Account #:</strong> {getVendorAccountNumber(account) || "Not assigned"}</p>
-          <p><strong>Owner Email:</strong> {account.owner_email || <span className="inline-flex items-center gap-1 text-amber-700"><AlertTriangle className="h-3 w-3" /> Missing owner email</span>}</p>
+          <p><strong>Public URL:</strong> {account.vendor_slug ? `/vendor/${account.vendor_slug}` : "Not assigned"}</p>
+          <p><strong>Owner Email:</strong> {account.owner_email || "Not assigned"}</p>
+          {getVendorIdentityWarnings(account).map((warning) => (
+            <p key={warning} className="inline-flex items-center gap-1 text-amber-700"><AlertTriangle className="h-3 w-3" /> {warning}</p>
+          ))}
         </div>
         <button type="button" onClick={() => setExpanded((value) => !value)} className="flex w-full items-center justify-between gap-3 text-left">
           <div>

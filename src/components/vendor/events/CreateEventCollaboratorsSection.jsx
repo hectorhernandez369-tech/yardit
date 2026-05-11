@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { COLLABORATOR_ROLES } from "@/lib/eventCollaboration";
-import { getVendorAccountNumber, getVendorAccountSearchText, isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
+import { getVendorAccountNumber, isEligibleEventOrganizer, normalizeVendorSearchText, vendorSearchMatches } from "@/lib/vendorAccountIdentity";
 import { Search, Trash2, UserPlus } from "lucide-react";
 
 const CREATION_ROLES = ["co_host", "scheduler", "vendor_manager", "staff", "viewer"];
@@ -24,14 +24,13 @@ export default function CreateEventCollaboratorsSection({ account, invitations, 
   const invitedIds = useMemo(() => new Set(invitations.map((invite) => invite.organization_id)), [invitations]);
 
   const searchResults = useMemo(() => {
-    const text = query.trim().toLowerCase();
-    if (!text) return [];
+    if (!normalizeVendorSearchText(query)) return [];
 
     return organizations
       .filter(isEligibleEventOrganizer)
       .filter((organization) => organization.id !== account?.id)
       .filter((organization) => !invitedIds.has(organization.id))
-      .filter((organization) => getVendorAccountSearchText(organization).includes(text))
+      .filter((organization) => vendorSearchMatches(organization, query))
       .slice(0, 8);
   }, [organizations, account?.id, invitedIds, query]);
 

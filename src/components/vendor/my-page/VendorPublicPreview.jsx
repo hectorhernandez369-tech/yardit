@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronDown, ExternalLink, Facebook, Globe, Heart, Instagram, MapPin, MessageCircle, Music2, Send } from "lucide-react";
+import { BadgeCheck, ChevronDown, ExternalLink, Facebook, Globe, Heart, Instagram, MapPin, MessageCircle, Music2, Send } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import { format } from "date-fns";
@@ -110,6 +110,11 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
       <CardContent className="p-4 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
 
         <div className="flex flex-wrap gap-2">
+          {account.is_verified_vendor && (
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#5DADA5]/40 bg-[#E9FFFB] px-3 py-2 text-sm font-bold text-[#2C4F4E]">
+              <BadgeCheck className="h-4 w-4 text-[#5DADA5]" /> Verified Vendor
+            </span>
+          )}
           {socialLinks.filter(([key]) => account[key]).map(([key, Icon, label]) => (
             <a key={key} href={account[key]} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm text-[#2C4F4E] hover:bg-[#F3E6CF]">
               <Icon className="h-4 w-4" /> {label} <ExternalLink className="h-3 w-3" />

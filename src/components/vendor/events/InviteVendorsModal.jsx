@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calculateMiles } from "@/lib/vendorEvents";
+import { normalizeVendorSearchText, vendorMatchesSearch } from "@/lib/vendorAccountIdentity";
 import { ChevronDown, Mail, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,7 +32,6 @@ export default function InviteVendorsModal({ open, onOpenChange, event, organize
   const categories = useMemo(() => [...new Set(vendors.map((vendor) => vendor.business_category).filter(Boolean))].sort(), [vendors]);
 
   const filteredVendors = useMemo(() => {
-    const text = query.toLowerCase();
     return vendors
       .filter((vendor) => vendor.id !== event?.organizer_business_id)
       .map((vendor) => ({
@@ -44,8 +44,8 @@ export default function InviteVendorsModal({ open, onOpenChange, event, organize
       .filter((vendor) => !onlyActive || vendor.is_active !== false)
       .filter((vendor) => !onlyVerified || vendor.is_verified_vendor === true)
       .filter((vendor) => category === "all" || vendor.business_category === category)
-      .filter((vendor) => !city || (vendor.business_city || vendor.location || "").toLowerCase().includes(city.toLowerCase()))
-      .filter((vendor) => !text || [vendor.business_name, vendor.owner_name, vendor.phone, vendor.email, vendor.account_number, vendor.business_category, vendor.business_city, vendor.location].join(" ").toLowerCase().includes(text))
+      .filter((vendor) => !city || normalizeVendorSearchText(vendor.business_city || vendor.location).includes(normalizeVendorSearchText(city)))
+      .filter((vendor) => vendorMatchesSearch(vendor, query))
       .sort((a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity));
   }, [vendors, event, query, radius, onlyActive, onlyVerified, category, city]);
 
@@ -104,7 +104,7 @@ export default function InviteVendorsModal({ open, onOpenChange, event, organize
           {isFull && <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm font-semibold text-red-700">This event is full. New invitations are disabled.</div>}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input className="pl-9" placeholder="Search by business, owner, phone, email, account, category, or city" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <Input className="pl-9" placeholder="Search by account #, business, owner email, phone, category, or city" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
 
           <Button type="button" variant="outline" onClick={() => setFiltersOpen(!filtersOpen)} className="w-full justify-between">

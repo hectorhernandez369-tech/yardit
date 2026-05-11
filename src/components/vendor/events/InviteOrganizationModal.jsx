@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { COLLABORATOR_ROLES, getRolePermissions } from "@/lib/eventCollaboration";
-import { getVendorAccountNumber, getVendorAccountSearchText, isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
+import { getVendorAccountNumber, isEligibleEventOrganizer, vendorSearchMatches } from "@/lib/vendorAccountIdentity";
 import { Search, Send } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,18 +20,11 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
   const existingOrganizationIds = new Set((collaborators || []).filter((item) => item.status !== "removed").map((item) => item.organization_id));
 
   const filteredOrganizations = useMemo(() => {
-    const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-    const searchableText = getVendorAccountSearchText;
-
     return (organizations || [])
       .filter(isEligibleEventOrganizer)
       .filter((organization) => organization.id !== event?.organizer_business_id)
       .filter((organization) => !existingOrganizationIds.has(organization.id))
-      .filter((organization) => {
-        if (!terms.length) return true;
-        const text = searchableText(organization);
-        return terms.every((term) => text.includes(term));
-      })
+      .filter((organization) => vendorSearchMatches(organization, query))
       .slice(0, 20);
   }, [organizations, event?.organizer_business_id, existingOrganizationIds, query]);
 

@@ -15,7 +15,7 @@ import EventCollaboratorsPanel from "./EventCollaboratorsPanel";
 import { calculateMiles, getVendorEventPermission, getVendorEventStatus } from "@/lib/vendorEvents";
 import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
 import { canAccessEvent, canEditEvent, canManageCollaborators, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
-import { isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
+import { isEligibleEventOrganizer, normalizeVendorSearchText } from "@/lib/vendorAccountIdentity";
 
 export default function VendorEventsTab({ account, user }) {
   const navigate = useNavigate();
@@ -92,8 +92,8 @@ export default function VendorEventsTab({ account, user }) {
       }))
       .filter((event) => canAccessEvent(event, collaborators, currentOrganizationIds) || ["published", "active"].includes(event.status))
       .filter((event) => tab === "history" ? ["completed", "cancelled"].includes(event.computedStatus) : !["completed", "cancelled"].includes(event.computedStatus))
-      .filter((event) => !query || `${event.title} ${event.description} ${event.category}`.toLowerCase().includes(query.toLowerCase()))
-      .filter((event) => !locationQuery || (event.display_address || "").toLowerCase().includes(locationQuery.toLowerCase()))
+      .filter((event) => !query || normalizeVendorSearchText(`${event.title} ${event.description} ${event.category}`).includes(normalizeVendorSearchText(query)))
+      .filter((event) => !locationQuery || normalizeVendorSearchText(event.display_address).includes(normalizeVendorSearchText(locationQuery)))
       .filter((event) => eventType === "all" || event.event_type === eventType)
       .filter((event) => showOpenToVendors ? event.open_to_vendors || canAccessEvent(event, collaborators, currentOrganizationIds) : true)
       .filter((event) => !userLocation || distance === "any" || event.distanceMiles === null || event.distanceMiles <= Number(distance))

@@ -9,6 +9,9 @@ import { toast } from "sonner";
 
 export default function VendorProfileTab({ account, onRefresh }) {
   const [form, setForm] = useState({
+    vendor_display_name: account?.vendor_display_name || account?.business_name || "",
+    legal_business_name: account?.legal_business_name || account?.business_name || "",
+    organization_type: account?.organization_type || "vendor",
     business_name: account?.business_name || "",
     business_category: account?.business_category || "",
     description: account?.description || "",
@@ -34,7 +37,10 @@ export default function VendorProfileTab({ account, onRefresh }) {
   const saveProfile = async () => {
     if (!form.business_name.trim()) return toast.error("Business name is required");
     setSaving(true);
-    await base44.entities.VendorAccount.update(account.id, form);
+    await base44.entities.VendorAccount.update(account.id, {
+      ...form,
+      business_phone: form.phone,
+    });
     toast.success("Business profile updated");
     setSaving(false);
     onRefresh?.();
@@ -56,7 +62,10 @@ export default function VendorProfileTab({ account, onRefresh }) {
           </div>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
+          <Input placeholder="Public display name" value={form.vendor_display_name} onChange={(e) => updateField("vendor_display_name", e.target.value)} />
+          <Input placeholder="Legal business name" value={form.legal_business_name} onChange={(e) => updateField("legal_business_name", e.target.value)} />
           <Input placeholder="Business name" value={form.business_name} onChange={(e) => updateField("business_name", e.target.value)} />
+          <Input placeholder="Organization type" value={form.organization_type} onChange={(e) => updateField("organization_type", e.target.value)} />
           <Input placeholder="Category" value={form.business_category} onChange={(e) => updateField("business_category", e.target.value)} />
           <Input placeholder="Phone" value={form.phone} onChange={(e) => updateField("phone", e.target.value)} />
           <Input placeholder="Email" value={form.email} onChange={(e) => updateField("email", e.target.value)} />

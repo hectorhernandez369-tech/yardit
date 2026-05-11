@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Camera } from "lucide-react";
+import { Camera, CheckCircle2 } from "lucide-react";
 import { getVendorTierConfig } from "@/lib/vendorTiers";
 
 export default function VendorSummaryCards({ account }) {
@@ -20,8 +20,9 @@ export default function VendorSummaryCards({ account }) {
         </div>
         <div className="space-y-2 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-3xl font-bold text-[#2C4F4E]">{account?.business_name || "Vendor Business"}</h2>
+            <h2 className="text-3xl font-bold text-[#2C4F4E]">{account?.vendor_display_name || account?.business_name || "Vendor Business"}</h2>
             <Badge className="bg-[#F4A849] text-[#2C4F4E] border border-[#2C4F4E]/20">{tier.label}</Badge>
+            {account?.is_verified_vendor && <Badge className="bg-blue-100 text-blue-800 border border-blue-200"><CheckCircle2 className="h-3 w-3" /> Verified Vendor</Badge>}
           </div>
           <p className="text-sm font-semibold text-[#5DADA5]">{account?.business_category || "Vendor"}</p>
           <p className="max-w-3xl text-sm text-slate-600">{account?.description || "Manage your public Yardit vendor presence, check-ins, photos, and customer updates."}</p>

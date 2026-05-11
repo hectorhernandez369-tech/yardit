@@ -100,7 +100,17 @@ export default function VendorSignup() {
     setSaving(true);
     const businessAddress = [businessForm.business_street_address, businessForm.business_city, businessForm.business_state, businessForm.business_zip_code].filter(Boolean).join(", ");
     const existingAccounts = await base44.entities.VendorAccount.list();
-    const identityFields = buildVendorAccountIdentityFields(user, existingAccounts);
+    const existingReservations = await base44.entities.VendorAccountIdentityReservation.list();
+    const identityFields = buildVendorAccountIdentityFields(user, existingAccounts, existingReservations, businessForm.business_name.trim());
+    const reservation = await base44.entities.VendorAccountIdentityReservation.create({
+      vendor_account_number: identityFields.vendor_account_number,
+      vendor_slug: identityFields.vendor_slug,
+      business_name_at_assignment: businessForm.business_name.trim(),
+      owner_user_id: user?.id || "",
+      owner_email: user?.email || "",
+      status: "reserved",
+      reserved_at: new Date().toISOString(),
+    });
     const account = await base44.entities.VendorAccount.create({
       business_name: businessForm.business_name.trim(),
       business_category: businessForm.business_category.trim(),
@@ -127,6 +137,7 @@ export default function VendorSignup() {
       current_vendor_pins: 0,
       is_active: true,
     });
+    await base44.entities.VendorAccountIdentityReservation.update(reservation.id, { vendor_account_id: account.id, status: "assigned" });
     setCreatedAccount(account);
     setSaving(false);
     setStep(4);

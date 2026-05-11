@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Store } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -9,15 +9,20 @@ import VendorPublicPreview from "@/components/vendor/my-page/VendorPublicPreview
 
 export default function VendorPublicPage() {
   const navigate = useNavigate();
+  const { vendorSlug } = useParams();
   const accountId = new URLSearchParams(window.location.search).get("accountId");
 
   const { data: account, isLoading: loadingAccount } = useQuery({
-    queryKey: ["publicVendorAccount", accountId],
+    queryKey: ["publicVendorAccount", accountId, vendorSlug],
     queryFn: async () => {
+      if (vendorSlug) {
+        const accounts = await base44.entities.VendorAccount.filter({ vendor_slug: vendorSlug });
+        return accounts[0] || null;
+      }
       const accounts = await base44.entities.VendorAccount.filter({ id: accountId });
       return accounts[0] || null;
     },
-    enabled: !!accountId,
+    enabled: !!accountId || !!vendorSlug,
   });
 
   const { data: pins = [] } = useQuery({

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Camera, Loader2, MapPin, Palette, Phone, Pencil, Store, Tag } from "lucide-react";
+import { Camera, CheckCircle2, Loader2, MapPin, Palette, Phone, Pencil, Store, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 const categories = [
@@ -67,7 +67,9 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
   const saveEdit = async () => {
     if (!editing || !profile?.id) return;
     setSaving(true);
-    await base44.entities.VendorAccount.update(profile.id, { [fields[editing].entityField]: value });
+    const updatePayload = { [fields[editing].entityField]: value };
+    if (editing === "business_name") updatePayload.vendor_display_name = value;
+    await base44.entities.VendorAccount.update(profile.id, updatePayload);
     setSaving(false);
     setEditing(null);
     toast.success("Business profile updated");
@@ -136,6 +138,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
                 <EditableButton field="business_name" className="rounded-xl px-1.5 -mx-1.5 hover:bg-white/15">
                   <h1 className="inline text-xl sm:text-4xl font-black tracking-tight break-words leading-tight drop-shadow">{profile?.business_name || "My Business"}</h1>
                 </EditableButton>
+                {profile?.is_verified_vendor && <Badge className="bg-blue-100 text-blue-800 shadow-sm"><CheckCircle2 className="h-3 w-3" /> Verified Vendor</Badge>}
                 {activeCheckIn && <Badge className="bg-emerald-100 text-black shadow-sm">Live now</Badge>}
               </div>
               <EditableButton field="description" className="mt-0.5 sm:mt-1 rounded-xl px-2 py-0.5 sm:py-1 -mx-2 hover:bg-white/15">
