@@ -5,7 +5,7 @@ import { CalendarClock, CalendarDays, Flag, MapPin, Pencil, Users } from "lucide
 import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 
-export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, hostedLabels, canEdit = false, canManageVendors = false, canManageFlags = false, canManageSchedule = false, onView, onEdit, onManage, onEditFlags, onSchedule }) {
+export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, hostedLabels, canEdit = false, canManageVendors = false, canManageFlags = false, canManageSchedule = false, canManageCollaborators = false, onView, onEdit, onManage, onEditFlags, onSchedule, onCollaborators }) {
   const status = getVendorEventStatus(event);
 
   return (
@@ -37,6 +37,7 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
             {canEdit && <Button variant="outline" onClick={onEdit}><Pencil className="h-4 w-4" /> Edit Details</Button>}
             {canManageFlags && ["multi_spot", "multi_location"].includes(event.event_type) && <Button variant="outline" onClick={onEditFlags}><Flag className="h-4 w-4" /> Edit Flags</Button>}
             {canManageSchedule && <Button variant="outline" onClick={onSchedule}><CalendarClock className="h-4 w-4" /> Schedule</Button>}
+            {canManageCollaborators && <Button variant="outline" onClick={onCollaborators}><Users className="h-4 w-4" /> Collaborators</Button>}
             {canManageVendors && <Button variant="outline" onClick={onManage}><Users className="h-4 w-4" /> Vendor Management</Button>}
             <Button onClick={onView} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">View Public Page</Button>
           </div>

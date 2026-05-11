@@ -11,15 +11,17 @@ import { CalendarPlus, Search, SlidersHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import VendorEventCard from "./VendorEventCard";
 import VendorEventForm from "./VendorEventForm";
+import EventCollaboratorsPanel from "./EventCollaboratorsPanel";
 import { calculateMiles, getVendorEventPermission, getVendorEventStatus } from "@/lib/vendorEvents";
 import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
-import { canAccessEvent, canEditEvent, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
+import { canAccessEvent, canEditEvent, canManageCollaborators, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
 
 export default function VendorEventsTab({ account, user }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [collaboratorEvent, setCollaboratorEvent] = useState(null);
   const [tab, setTab] = useState("active");
   const [query, setQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
@@ -152,10 +154,12 @@ export default function VendorEventsTab({ account, user }) {
               canManageVendors={canManageVendors(event, collaborators, currentOrganizationIds)}
               canManageFlags={canManageFlags(event, collaborators, currentOrganizationIds)}
               canManageSchedule={canManageSchedule(event, collaborators, currentOrganizationIds)}
+              canManageCollaborators={canManageCollaborators(event, collaborators, currentOrganizationIds)}
               onEdit={() => setEditingEvent(event)}
               onManage={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
               onEditFlags={() => navigate(`/VendorEventFlags?id=${event.id}`)}
               onSchedule={() => navigate(`/VendorEventSchedule?id=${event.id}`)}
+              onCollaborators={() => setCollaboratorEvent(event)}
               onView={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}
             />
           )) : (
@@ -168,6 +172,26 @@ export default function VendorEventsTab({ account, user }) {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Create Vendor Event</DialogTitle></DialogHeader>
           <VendorEventForm account={account} user={user} existingEvents={events} onCreated={() => { queryClient.invalidateQueries({ queryKey: ["vendorEvents"] }); setShowCreate(false); }} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!collaboratorEvent} onOpenChange={(open) => !open && setCollaboratorEvent(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Collaborators</DialogTitle></DialogHeader>
+          {collaboratorEvent && (
+            <EventCollaboratorsPanel
+              event={collaboratorEvent}
+              currentUser={user}
+              currentOrganizationIds={currentOrganizationIds}
+              organizations={vendorAccounts}
+              collaborators={collaborators}
+              onRefresh={() => {
+                queryClient.invalidateQueries({ queryKey: ["allEventCollaborators"] });
+                queryClient.invalidateQueries({ queryKey: ["vendorEvents"] });
+              }}
+              asPanel={false}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
