@@ -27,7 +27,6 @@ export default function VendorDashboard() {
   const [activeTab, setActiveTab] = useState(requestedTab);
   const [portalUnlocked, setPortalUnlocked] = useState(false);
   const [showSetupReminder, setShowSetupReminder] = useState(true);
-  const forceBusinessLoginForDev = import.meta.env.DEV;
 
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ["vendorDashboardUser"],
@@ -104,17 +103,12 @@ export default function VendorDashboard() {
   };
 
   useEffect(() => {
-    if (forceBusinessLoginForDev) {
-      setPortalUnlocked(false);
-      return;
-    }
-
     if (isOwner || (account?.id && user?.email && hasValidVendorPortalSession(account.id, user.email))) {
       setPortalUnlocked(true);
     } else {
       setPortalUnlocked(false);
     }
-  }, [account?.id, user?.email, isOwner, forceBusinessLoginForDev]);
+  }, [account?.id, user?.email, isOwner]);
 
   useEffect(() => {
     if (!account?.id || !portalUnlocked || account.setup_dashboard_entered === true) return;
