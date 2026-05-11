@@ -7,7 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { COLLABORATOR_ROLES, getRolePermissions } from "@/lib/eventCollaboration";
-import { getVendorAccountNumber, isEligibleEventOrganizer, vendorSearchMatches } from "@/lib/vendorAccountIdentity";
+import { getVendorAccountNumber, getVendorAccountSearchText, isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
+
+const getVendorIdentityWarnings = (account) => {
+  const warnings = [];
+  if (!account?.owner_email) warnings.push("Missing Owner Email");
+  if (!getVendorAccountNumber(account)) warnings.push("Missing Account Number");
+  if (!account?.vendor_slug) warnings.push("Missing Vendor Slug");
+  return warnings;
+};
+const vendorMatchesSearch = (account, query) => {
+  const terms = String(query || "").toLowerCase().trim().replace(/\s+/g, " ").split(" ").filter(Boolean);
+  if (!terms.length) return true;
+  const text = getVendorAccountSearchText(account);
+  return terms.every((term) => text.includes(term));
+};
 import { Search, Send } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,7 +38,7 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
       .filter(isEligibleEventOrganizer)
       .filter((organization) => organization.id !== event?.organizer_business_id)
       .filter((organization) => !existingOrganizationIds.has(organization.id))
-      .filter((organization) => vendorSearchMatches(organization, query))
+      .filter((organization) => vendorMatchesSearch(organization, query))
       .slice(0, 20);
   }, [organizations, event?.organizer_business_id, existingOrganizationIds, query]);
 
@@ -91,7 +105,7 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {!organization.owner_email && <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Missing owner email</Badge>}
+                  {getVendorIdentityWarnings(organization).map((warning) => <Badge key={warning} className="bg-amber-100 text-amber-800 hover:bg-amber-100">{warning}</Badge>)}
                   <Badge variant="outline">{COLLABORATOR_ROLES[role]}</Badge>
                   <Button disabled={sendingId === organization.id} onClick={() => inviteOrganization(organization)} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"><Send className="h-4 w-4" /> Invite</Button>
                 </div>

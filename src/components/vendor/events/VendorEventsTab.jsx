@@ -15,7 +15,9 @@ import EventCollaboratorsPanel from "./EventCollaboratorsPanel";
 import { calculateMiles, getVendorEventPermission, getVendorEventStatus } from "@/lib/vendorEvents";
 import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
 import { canAccessEvent, canEditEvent, canManageCollaborators, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
-import { isEligibleEventOrganizer, normalizeVendorSearchText } from "@/lib/vendorAccountIdentity";
+import { isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
+
+const normalizeVendorSearchText = (value) => String(value || "").toLowerCase().trim().replace(/\s+/g, " ");
 
 export default function VendorEventsTab({ account, user }) {
   const navigate = useNavigate();

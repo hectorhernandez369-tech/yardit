@@ -7,9 +7,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calculateMiles } from "@/lib/vendorEvents";
-import { normalizeVendorSearchText, vendorMatchesSearch } from "@/lib/vendorAccountIdentity";
+
 import { ChevronDown, Mail, Search } from "lucide-react";
 import { toast } from "sonner";
+
+const normalizeSearchText = (value) => String(value || "").toLowerCase().trim().replace(/\s+/g, " ");
+const vendorSearchText = (vendor) => normalizeSearchText([
+  vendor.vendor_account_number,
+  vendor.account_number,
+  vendor.vendor_slug,
+  vendor.vendor_display_name,
+  vendor.business_name,
+  vendor.legal_business_name,
+  vendor.owner_name,
+  vendor.owner_email,
+  vendor.email,
+  vendor.phone,
+  vendor.business_phone,
+  vendor.business_category,
+  vendor.business_city,
+  vendor.location,
+].filter(Boolean).join(" "));
+const vendorMatchesSearch = (vendor, query) => {
+  const terms = normalizeSearchText(query).split(" ").filter(Boolean);
+  if (!terms.length) return true;
+  const text = vendorSearchText(vendor);
+  return terms.every((term) => text.includes(term));
+};
 
 export default function InviteVendorsModal({ open, onOpenChange, event, organizerUserId, approvedCount = 0, onInvited }) {
   const queryClient = useQueryClient();
@@ -44,7 +68,7 @@ export default function InviteVendorsModal({ open, onOpenChange, event, organize
       .filter((vendor) => !onlyActive || vendor.is_active !== false)
       .filter((vendor) => !onlyVerified || vendor.is_verified_vendor === true)
       .filter((vendor) => category === "all" || vendor.business_category === category)
-      .filter((vendor) => !city || normalizeVendorSearchText(vendor.business_city || vendor.location).includes(normalizeVendorSearchText(city)))
+      .filter((vendor) => !city || normalizeSearchText(vendor.business_city || vendor.location).includes(normalizeSearchText(city)))
       .filter((vendor) => vendorMatchesSearch(vendor, query))
       .sort((a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity));
   }, [vendors, event, query, radius, onlyActive, onlyVerified, category, city]);

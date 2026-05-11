@@ -9,7 +9,15 @@ import { AlertTriangle, Pencil, Save, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import PromotionModal from "../promotions/PromotionModal";
 import { getUserDisplayName, getUserIdentityFields } from "@/lib/userIdentity";
-import { getVendorAccountNumber, getVendorIdentityWarnings } from "@/lib/vendorAccountIdentity";
+import { getVendorAccountNumber } from "@/lib/vendorAccountIdentity";
+
+const getVendorIdentityWarnings = (account) => {
+  const warnings = [];
+  if (!account?.owner_email) warnings.push("Missing Owner Email");
+  if (!getVendorAccountNumber(account)) warnings.push("Missing Account Number");
+  if (!account?.vendor_slug) warnings.push("Missing Vendor Slug");
+  return warnings;
+};
 
 const statusColors = {
   active: "bg-green-600",
@@ -205,15 +213,11 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
                 <p><span className="text-gray-500">Vendor Account #:</span> {getVendorAccountNumber(account) || "Not assigned"}</p>
                 <p><span className="text-gray-500">Vendor Slug:</span> {account.vendor_slug || "Not assigned"}</p>
                 <p><span className="text-gray-500">Owner Email:</span> {account.owner_email || "Not assigned"}</p>
-                {getVendorIdentityWarnings(account).length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {getVendorIdentityWarnings(account).map((warning) => (
-                      <Badge key={warning} className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 hover:bg-amber-100">
-                        <AlertTriangle className="h-3 w-3" /> {warning}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {getVendorIdentityWarnings(account).map((warning) => (
+                    <Badge key={warning} className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 hover:bg-amber-100"><AlertTriangle className="h-3 w-3" /> {warning}</Badge>
+                  ))}
+                </div>
               </div>
             ))}
           </div>

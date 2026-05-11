@@ -6,7 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { COLLABORATOR_ROLES } from "@/lib/eventCollaboration";
-import { getVendorAccountNumber, isEligibleEventOrganizer, normalizeVendorSearchText, vendorSearchMatches } from "@/lib/vendorAccountIdentity";
+import { getVendorAccountNumber, getVendorAccountSearchText, isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
+
+const getVendorIdentityWarnings = (account) => {
+  const warnings = [];
+  if (!account?.owner_email) warnings.push("Missing Owner Email");
+  if (!getVendorAccountNumber(account)) warnings.push("Missing Account Number");
+  if (!account?.vendor_slug) warnings.push("Missing Vendor Slug");
+  return warnings;
+};
+const vendorMatchesSearch = (account, query) => {
+  const terms = String(query || "").toLowerCase().trim().replace(/\s+/g, " ").split(" ").filter(Boolean);
+  if (!terms.length) return true;
+  const text = getVendorAccountSearchText(account);
+  return terms.every((term) => text.includes(term));
+};
 import { Search, Trash2, UserPlus } from "lucide-react";
 
 const CREATION_ROLES = ["co_host", "scheduler", "vendor_manager", "staff", "viewer"];
@@ -24,13 +38,13 @@ export default function CreateEventCollaboratorsSection({ account, invitations, 
   const invitedIds = useMemo(() => new Set(invitations.map((invite) => invite.organization_id)), [invitations]);
 
   const searchResults = useMemo(() => {
-    if (!normalizeVendorSearchText(query)) return [];
+    if (!query.trim()) return [];
 
     return organizations
       .filter(isEligibleEventOrganizer)
       .filter((organization) => organization.id !== account?.id)
       .filter((organization) => !invitedIds.has(organization.id))
-      .filter((organization) => vendorSearchMatches(organization, query))
+      .filter((organization) => vendorMatchesSearch(organization, query))
       .slice(0, 8);
   }, [organizations, account?.id, invitedIds, query]);
 
@@ -78,6 +92,7 @@ export default function CreateEventCollaboratorsSection({ account, invitations, 
                 <p className="font-bold text-[#2C4F4E] truncate">{organization.business_name}</p>
                 <p className="text-xs text-slate-500 truncate">{getVendorAccountNumber(organization) || "No account #"} · {organization.owner_email || "Missing owner email"}</p>
                 <p className="text-xs text-slate-500 truncate">{organization.business_category || "Event Organizer"} · {organization.business_city || organization.location || "Location not listed"}</p>
+                <div className="mt-1 flex flex-wrap gap-1">{getVendorIdentityWarnings(organization).map((warning) => <Badge key={warning} className="bg-amber-100 text-amber-800 hover:bg-amber-100">{warning}</Badge>)}</div>
               </div>
               <Button type="button" size="sm" onClick={() => addInvitation(organization)} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">
                 <UserPlus className="h-4 w-4" /> Invite Organization

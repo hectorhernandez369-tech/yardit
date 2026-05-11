@@ -12,7 +12,8 @@ import { toast } from "sonner";
 import UserDetailDrawer from "./userDetail/UserDetailDrawer";
 import DeleteUserDialog from "./DeleteUserDialog";
 import { getUserDisplayName } from "@/lib/userIdentity";
-import { getVendorAccountSearchText, normalizeVendorSearchText } from "@/lib/vendorAccountIdentity";
+
+const normalizeVendorSearchText = (value) => String(value || "").toLowerCase().trim().replace(/\s+/g, " ");
 
 export default function UserManagement() {
   const location = useLocation();
@@ -32,12 +33,6 @@ export default function UserManagement() {
     initialData: [],
   });
 
-  const { data: vendorAccounts = [] } = useQuery({
-    queryKey: ["adminVendorAccountsSearch"],
-    queryFn: () => base44.entities.VendorAccount.list(),
-    initialData: [],
-  });
-
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, accountStatus }) => 
       base44.entities.User.update(id, { accountStatus }),
@@ -48,16 +43,11 @@ export default function UserManagement() {
   });
 
   const normalizedQuery = normalizeVendorSearchText(searchQuery);
-  const vendorSearchByUser = new Map();
-  vendorAccounts.forEach((account) => {
-    const keys = [account.owner_user_id, account.owner_email].filter(Boolean);
-    keys.forEach((key) => vendorSearchByUser.set(key, `${vendorSearchByUser.get(key) || ""} ${getVendorAccountSearchText(account)}`));
-  });
   const filteredUsers = users.filter(u => {
     const fullName = normalizeVendorSearchText(`${u.first_name || ""} ${u.last_name || ""}`);
     const email = normalizeVendorSearchText(u.email);
-    const vendorText = normalizeVendorSearchText(`${vendorSearchByUser.get(u.id) || ""} ${vendorSearchByUser.get(u.email) || ""}`);
-    return !normalizedQuery || email.includes(normalizedQuery) || fullName.includes(normalizedQuery) || vendorText.includes(normalizedQuery);
+    const phone = normalizeVendorSearchText(u.phone);
+    return email.includes(normalizedQuery) || fullName.includes(normalizedQuery) || phone.includes(normalizedQuery);
   });
 
   const statusColors = {
@@ -84,7 +74,7 @@ export default function UserManagement() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
-            placeholder="Search by email, name, vendor account #, business, or phone..."
+            placeholder="Search by email or name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
