@@ -30,6 +30,7 @@ export default function EventCollaboratorsPanel({ event, currentUser, currentOrg
   const transferOwnership = async (collaborator) => {
     if (collaborator.status !== "accepted") return toast.error("Only accepted collaborators can become primary owner.");
     const organization = organizations.find((item) => item.id === collaborator.organization_id);
+    if (organization?.is_active === false || organization?.vendor_tier !== "event_organizer" || organization?.subscription_status !== "active") return toast.error("Only active Event Organizer accounts can become primary owners.");
     await Promise.all(eventCollaborators.map((item) => base44.entities.EventCollaborator.update(item.id, { is_primary_owner: item.id === collaborator.id })));
     await base44.entities.VendorEvent.update(event.id, {
       organizer_business_id: collaborator.organization_id,

@@ -56,7 +56,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
     }
 
     setChangingTier(tierKey);
-    await base44.entities.VendorAccount.update(account.id, { vendor_tier: tierKey, extra_users_count: 0, extra_pins_count: 0, setup_tier_confirmed: true, vendor_setup_status: "in_progress" });
+    await base44.entities.VendorAccount.update(account.id, { vendor_tier: tierKey, subscription_status: "active", extra_users_count: 0, extra_pins_count: 0, setup_tier_confirmed: true, vendor_setup_status: "in_progress" });
     toast.success(`Plan changed to ${VENDOR_TIERS[tierKey].label}`);
     await onRefresh?.();
     setChangingTier("");

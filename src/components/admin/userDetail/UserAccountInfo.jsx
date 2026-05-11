@@ -1,13 +1,15 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Save, X, Loader2 } from "lucide-react";
+import { AlertTriangle, Pencil, Save, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import PromotionModal from "../promotions/PromotionModal";
 import { getUserDisplayName, getUserIdentityFields } from "@/lib/userIdentity";
+import { getVendorAccountNumber } from "@/lib/vendorAccountIdentity";
 
 const statusColors = {
   active: "bg-green-600",
@@ -28,6 +30,16 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
     phone: user.phone || "",
     address: user.address || "",
     accountStatus: user.accountStatus || "active",
+  });
+
+  const { data: vendorAccounts = [] } = useQuery({
+    queryKey: ["adminUserVendorAccounts", user.id, user.email],
+    queryFn: async () => {
+      const byId = await base44.entities.VendorAccount.filter({ owner_user_id: user.id });
+      const byEmail = user.email ? await base44.entities.VendorAccount.filter({ owner_email: user.email }) : [];
+      return [...byId, ...byEmail].filter((account, index, list) => list.findIndex((item) => item.id === account.id) === index);
+    },
+    enabled: !!user?.id,
   });
 
   const startEdit = () => {
@@ -183,6 +195,20 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
           <p className="font-medium capitalize">{user.role || "user"}</p>
         </div>
       </div>
+      {vendorAccounts.length > 0 && (
+        <div className="rounded-xl border bg-slate-50 p-3 text-sm">
+          <p className="mb-2 font-semibold text-gray-500 uppercase tracking-wide">Vendor Accounts</p>
+          <div className="space-y-2">
+            {vendorAccounts.map((account) => (
+              <div key={account.id} className="rounded-lg bg-white p-3 border">
+                <p className="font-semibold text-[#2C4F4E]">{account.business_name || "Unnamed vendor"}</p>
+                <p><span className="text-gray-500">Vendor Account #:</span> {getVendorAccountNumber(account) || "Not assigned"}</p>
+                <p><span className="text-gray-500">Owner Email:</span> {account.owner_email || <span className="inline-flex items-center gap-1 text-amber-700"><AlertTriangle className="h-3 w-3" /> Missing owner email</span>}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {showPromoModal && (
         <PromotionModal
           open={showPromoModal}

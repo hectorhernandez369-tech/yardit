@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ChevronDown } from "lucide-react";
+import { AlertTriangle, ChevronDown } from "lucide-react";
+import { getVendorAccountNumber } from "@/lib/vendorAccountIdentity";
 
 const fields = [
   ["business_name", "Business Name"],
@@ -40,6 +41,7 @@ export default function VendorDetailsForm({ account, onRefresh }) {
       business_category: form.business_category,
       description: form.description,
       phone: form.phone,
+      business_phone: form.phone,
       email: form.email,
       website: form.website,
       facebook_url: form.facebook_url,
@@ -60,7 +62,11 @@ export default function VendorDetailsForm({ account, onRefresh }) {
 
   return (
     <Card id="vendor-profile-editor" className="border-[#2C4F4E]/15 bg-white shadow-sm overflow-hidden">
-      <CardHeader className="p-4 sm:p-6">
+      <CardHeader className="p-4 sm:p-6 space-y-3">
+        <div className="grid gap-2 rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3 text-xs text-slate-700 sm:grid-cols-2">
+          <p><strong>Vendor Account #:</strong> {getVendorAccountNumber(account) || "Not assigned"}</p>
+          <p><strong>Owner Email:</strong> {account.owner_email || <span className="inline-flex items-center gap-1 text-amber-700"><AlertTriangle className="h-3 w-3" /> Missing owner email</span>}</p>
+        </div>
         <button type="button" onClick={() => setExpanded((value) => !value)} className="flex w-full items-center justify-between gap-3 text-left">
           <div>
             <CardTitle className="text-[#2C4F4E]">Business Details</CardTitle>

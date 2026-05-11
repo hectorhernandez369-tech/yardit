@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { COLLABORATOR_ROLES, getRolePermissions } from "@/lib/eventCollaboration";
+import { getVendorAccountNumber, getVendorAccountSearchText, isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
 import { Search, Send } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,22 +21,10 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
 
   const filteredOrganizations = useMemo(() => {
     const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-    const searchableText = (organization) => [
-      organization.business_name,
-      organization.owner_name,
-      organization.email,
-      organization.phone,
-      organization.business_tax_id,
-      organization.business_category,
-      organization.business_street_address,
-      organization.business_city,
-      organization.business_state,
-      organization.business_zip_code,
-      organization.business_address,
-      organization.location,
-    ].filter(Boolean).join(" ").toLowerCase();
+    const searchableText = getVendorAccountSearchText;
 
     return (organizations || [])
+      .filter(isEligibleEventOrganizer)
       .filter((organization) => organization.id !== event?.organizer_business_id)
       .filter((organization) => !existingOrganizationIds.has(organization.id))
       .filter((organization) => {
@@ -63,7 +52,7 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
     await base44.entities.Notification.create({
       userId: organization.owner_user_id,
       user_id: organization.owner_user_id,
-      user_email: organization.email,
+      user_email: organization.owner_email || organization.email,
       title: "Event Collaboration Invitation",
       message: `${event.organizer_business_name || "An organizer"} invited ${organization.business_name} to collaborate on ${event.title}.`,
       type: "event_collaboration_invite",
@@ -87,7 +76,7 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
           <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input className="pl-9" placeholder="Search name, email, phone, address, business name, EIN" value={query} onChange={(e) => setQuery(e.target.value)} />
+              <Input className="pl-9" placeholder="Search business, owner, email, account #, phone, city, state, ZIP" value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -103,11 +92,13 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
                   <div className="min-w-0 space-y-1">
                     <p className="font-bold text-[#2C4F4E] truncate">{organization.business_name}</p>
                     <p className="text-sm text-slate-600 truncate">{organization.business_city || organization.location || "Location not listed"}{organization.business_state ? `, ${organization.business_state}` : ""}</p>
+                    <p className="text-xs text-slate-500 truncate">Vendor Account #: {getVendorAccountNumber(organization) || "Not assigned"}</p>
                     <p className="text-xs text-slate-500 truncate">Owner: {organization.owner_name || "Not listed"}</p>
-                    <p className="text-xs text-slate-500 truncate">Email: {organization.email || "Not listed"}</p>
+                    <p className="text-xs text-slate-500 truncate">Owner Email: {organization.owner_email || "Not listed"}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {!organization.owner_email && <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Missing owner email</Badge>}
                   <Badge variant="outline">{COLLABORATOR_ROLES[role]}</Badge>
                   <Button disabled={sendingId === organization.id} onClick={() => inviteOrganization(organization)} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"><Send className="h-4 w-4" /> Invite</Button>
                 </div>

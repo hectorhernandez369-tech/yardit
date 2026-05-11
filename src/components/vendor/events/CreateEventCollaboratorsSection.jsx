@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { COLLABORATOR_ROLES } from "@/lib/eventCollaboration";
+import { getVendorAccountNumber, getVendorAccountSearchText, isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
 import { Search, Trash2, UserPlus } from "lucide-react";
 
 const CREATION_ROLES = ["co_host", "scheduler", "vendor_manager", "staff", "viewer"];
@@ -27,15 +28,10 @@ export default function CreateEventCollaboratorsSection({ account, invitations, 
     if (!text) return [];
 
     return organizations
+      .filter(isEligibleEventOrganizer)
       .filter((organization) => organization.id !== account?.id)
       .filter((organization) => !invitedIds.has(organization.id))
-      .filter((organization) => [
-        organization.business_name,
-        organization.owner_name,
-        organization.business_category,
-        organization.business_city,
-        organization.location,
-      ].join(" ").toLowerCase().includes(text))
+      .filter((organization) => getVendorAccountSearchText(organization).includes(text))
       .slice(0, 8);
   }, [organizations, account?.id, invitedIds, query]);
 
@@ -46,7 +42,7 @@ export default function CreateEventCollaboratorsSection({ account, invitations, 
         organization_id: organization.id,
         organization_name: organization.business_name,
         organization_owner_user_id: organization.owner_user_id,
-        organization_email: organization.email,
+        organization_email: organization.owner_email || organization.email,
         role,
       },
     ]);
@@ -67,7 +63,7 @@ export default function CreateEventCollaboratorsSection({ account, invitations, 
       <div className="grid gap-3 sm:grid-cols-[1fr_190px]">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input className="pl-9" placeholder="Search Event Organizer organizations by name" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <Input className="pl-9" placeholder="Search business, owner, email, account #, phone, city, state, ZIP" value={query} onChange={(event) => setQuery(event.target.value)} />
         </div>
         <Select value={role} onValueChange={setRole}>
           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -81,6 +77,7 @@ export default function CreateEventCollaboratorsSection({ account, invitations, 
             <div key={organization.id} className="flex flex-col gap-3 rounded-xl border bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="font-bold text-[#2C4F4E] truncate">{organization.business_name}</p>
+                <p className="text-xs text-slate-500 truncate">{getVendorAccountNumber(organization) || "No account #"} · {organization.owner_email || "Missing owner email"}</p>
                 <p className="text-xs text-slate-500 truncate">{organization.business_category || "Event Organizer"} · {organization.business_city || organization.location || "Location not listed"}</p>
               </div>
               <Button type="button" size="sm" onClick={() => addInvitation(organization)} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">

@@ -11,6 +11,7 @@ import InviteVendorsModal from "./InviteVendorsModal";
 import CollapsiblePanel from "./CollapsiblePanel";
 import CreateEventCollaboratorsSection from "./CreateEventCollaboratorsSection";
 import { getRolePermissions } from "@/lib/eventCollaboration";
+import { isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
 import { toast } from "sonner";
 
 const initialForm = {
@@ -224,6 +225,11 @@ export default function VendorEventForm({ account, user, event = null, approvedV
 
     if (!eventPermission.allowed && (!isEditing || form.event_type !== event.event_type || form.startDateTime !== toLocalDateTimeValue(event.startDateTime))) {
       toast.error(eventPermission.reason);
+      return;
+    }
+
+    if (!isEditing && !isEligibleEventOrganizer(account)) {
+      toast.error("Only active Event Organizer accounts can create vendor events.");
       return;
     }
 

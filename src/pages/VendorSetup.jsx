@@ -24,6 +24,8 @@ export default function VendorSetup() {
     queryFn: async () => {
       const byId = await base44.entities.VendorAccount.filter({ owner_user_id: user.id });
       if (byId.length) return byId;
+      const byOwnerEmail = await base44.entities.VendorAccount.filter({ owner_email: user.email });
+      if (byOwnerEmail.length) return byOwnerEmail;
       return base44.entities.VendorAccount.filter({ owner_user_id: user.email });
     },
     enabled: !!user?.id,

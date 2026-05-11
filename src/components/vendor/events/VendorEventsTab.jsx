@@ -15,6 +15,7 @@ import EventCollaboratorsPanel from "./EventCollaboratorsPanel";
 import { calculateMiles, getVendorEventPermission, getVendorEventStatus } from "@/lib/vendorEvents";
 import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
 import { canAccessEvent, canEditEvent, canManageCollaborators, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
+import { isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
 
 export default function VendorEventsTab({ account, user }) {
   const navigate = useNavigate();
@@ -46,7 +47,10 @@ export default function VendorEventsTab({ account, user }) {
 
   const { data: vendorAccounts = [] } = useQuery({
     queryKey: ["eventCollaboratorVendorAccounts"],
-    queryFn: () => base44.entities.VendorAccount.list(),
+    queryFn: async () => {
+      const accounts = await base44.entities.VendorAccount.list();
+      return accounts.filter(isEligibleEventOrganizer);
+    },
     initialData: [],
   });
 

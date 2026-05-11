@@ -38,6 +38,8 @@ export default function VendorDashboard() {
     queryFn: async () => {
       const byId = await base44.entities.VendorAccount.filter({ owner_user_id: user.id });
       if (byId.length) return byId;
+      const byOwnerEmail = await base44.entities.VendorAccount.filter({ owner_email: user.email });
+      if (byOwnerEmail.length) return byOwnerEmail;
       const byEmail = await base44.entities.VendorAccount.filter({ owner_user_id: user.email });
       if (byEmail.length) return byEmail;
       const authorizedRecords = await base44.entities.VendorAuthorizedUser.filter({ authorized_email: user.email, status: "active" });
@@ -49,7 +51,7 @@ export default function VendorDashboard() {
   });
 
   const account = accounts.find((item) => item.is_active !== false) || accounts[0];
-  const isOwner = !!account && (account.owner_user_id === user?.id || account.owner_user_id === user?.email);
+  const isOwner = !!account && (account.owner_user_id === user?.id || account.owner_user_id === user?.email || account.owner_email === user?.email);
 
   const { data: authorizedAccessRecords = [] } = useQuery({
     queryKey: ["vendorDashboardAuthorizedAccess", account?.id, user?.email],
@@ -148,6 +150,8 @@ export default function VendorDashboard() {
     phone: account.phone,
     location: account.location || account.service_area || account.city || account.address,
     hero_background_color: account.hero_background_color,
+    vendor_account_number: account.vendor_account_number || account.account_number,
+    owner_email: account.owner_email,
   };
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
   const activePin = activeCheckIn ? pins.find((pin) => pin.id === activeCheckIn.vendor_pin_id) : null;

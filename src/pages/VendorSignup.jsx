@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { AlertTriangle, Building2, CheckCircle2, Loader2, MapPin } from "lucide-react";
 import AddressFields from "@/components/shared/AddressFields";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
+import { buildVendorAccountIdentityFields } from "@/lib/vendorAccountIdentity";
 import { toast } from "sonner";
 
 const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
@@ -98,6 +99,8 @@ export default function VendorSignup() {
 
     setSaving(true);
     const businessAddress = [businessForm.business_street_address, businessForm.business_city, businessForm.business_state, businessForm.business_zip_code].filter(Boolean).join(", ");
+    const existingAccounts = await base44.entities.VendorAccount.list();
+    const identityFields = buildVendorAccountIdentityFields(user, existingAccounts);
     const account = await base44.entities.VendorAccount.create({
       business_name: businessForm.business_name.trim(),
       business_category: businessForm.business_category.trim(),
@@ -111,10 +114,11 @@ export default function VendorSignup() {
       location: businessAddress,
       website: businessForm.website.trim(),
       phone: businessForm.phone.trim(),
+      business_phone: businessForm.phone.trim(),
       facebook_url: businessForm.facebook_url.trim(),
       instagram_url: businessForm.instagram_url.trim(),
       tiktok_url: businessForm.tiktok_url.trim(),
-      owner_user_id: user.id,
+      ...identityFields,
       vendor_tier: "free",
       vendor_setup_status: "setup_required",
       extra_users_count: 0,

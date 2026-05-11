@@ -50,9 +50,33 @@
       "type": "string",
       "description": "Vendor owner name"
     },
+    "owner_email": {
+      "type": "string",
+      "description": "Email of the Yardit user who owns this vendor account"
+    },
+    "owner_user_id": {
+      "type": "string",
+      "description": "Owner user ID"
+    },
+    "vendor_account_number": {
+      "type": "string",
+      "description": "User-friendly vendor account number, e.g. VND-100001"
+    },
     "account_number": {
       "type": "string",
-      "description": "Vendor account number"
+      "description": "Legacy vendor account number alias"
+    },
+    "subscription_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "trialing",
+        "past_due",
+        "inactive",
+        "canceled"
+      ],
+      "default": "active",
+      "description": "Vendor subscription status"
     },
     "is_verified_vendor": {
       "type": "boolean",
@@ -71,6 +95,10 @@
     "phone": {
       "type": "string",
       "description": "Public business phone number"
+    },
+    "business_phone": {
+      "type": "string",
+      "description": "Business phone number used for search"
     },
     "location": {
       "type": "string",
@@ -111,10 +139,6 @@
     "featured_photo_url": {
       "type": "string",
       "description": "Featured public business photo URL"
-    },
-    "owner_user_id": {
-      "type": "string",
-      "description": "Owner user ID"
     },
     "vendor_tier": {
       "type": "string",
@@ -177,6 +201,10 @@
   "required": [
     "business_name",
     "owner_user_id",
-    "vendor_tier"
+    "owner_email",
+    "vendor_account_number",
+    "vendor_tier",
+    "subscription_status",
+    "is_active"
   ]
 }
