@@ -181,6 +181,17 @@ function LayoutContent({ children, user, setUser }) {
                   </Button>
                 </Link>
               )}
+
+              {!user && !isGuest && !isAuthenticated && (
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/AccountOptions")}
+                  className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Log In / Sign Up</span>
+                </Button>
+              )}
               
               <>
                 {!isGuest && user && <NotificationBell />}
