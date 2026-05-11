@@ -98,12 +98,18 @@ Deno.serve(async (req) => {
         if (owner?.email) updates.owner_email = owner.email;
       }
 
+      if (!updates.owner_email && !account.owner_email && account.email) {
+        updates.owner_email = account.email;
+      }
+
       if (!updates.owner_email && !account.owner_email) {
         warnings.push({ id: account.id, business_name: account.business_name, warning: 'Missing owner email' });
       }
 
       if (!account.vendor_display_name) updates.vendor_display_name = account.business_name || '';
       if (!account.legal_business_name) updates.legal_business_name = account.business_name || '';
+      if (!account.business_phone && account.phone) updates.business_phone = account.phone;
+      if (!account.email && (updates.owner_email || account.owner_email)) updates.email = updates.owner_email || account.owner_email;
       if (!account.organization_type) updates.organization_type = account.vendor_tier === 'event_organizer' ? 'event_organizer' : 'vendor';
       if (account.is_verified_vendor === undefined || account.is_verified_vendor === null) updates.is_verified_vendor = false;
       if (!account.vendor_tier) updates.vendor_tier = 'free';
