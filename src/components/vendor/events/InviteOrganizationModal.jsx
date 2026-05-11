@@ -29,6 +29,7 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [role, setRole] = useState("co_host");
+  const [note, setNote] = useState("");
   const [sendingId, setSendingId] = useState("");
 
   const existingOrganizationIds = new Set((collaborators || []).filter((item) => item.status !== "removed").map((item) => item.organization_id));
@@ -49,12 +50,13 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
   const inviteOrganization = async (organization) => {
     setSendingId(organization.id);
     const now = new Date().toISOString();
-    await base44.entities.EventCollaborator.create({
+    const collaborator = await base44.entities.EventCollaborator.create({
       event_id: event.id,
       organization_id: organization.id,
       organization_name: organization.business_name,
       role,
       permissions: getRolePermissions(role),
+      invitation_note: note.trim(),
       invited_by_user_id: currentUser?.id,
       invited_at: now,
       status: "pending",
@@ -69,7 +71,7 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
       type: "event_collaboration_invite",
       related_entity_type: "VendorEvent",
       related_entity_id: event.id,
-      metadata: { event_id: event.id, organization_id: organization.id, role },
+      metadata: { event_id: event.id, collaborator_id: collaborator.id, organization_id: organization.id, role },
       read: false,
       is_read: false,
     });
@@ -94,6 +96,7 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
               <SelectContent>{Object.entries(COLLABORATOR_ROLES).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+          <Input placeholder="Optional message to include with the invite" value={note} onChange={(e) => setNote(e.target.value)} />
 
           <div className="grid gap-3">
             {filteredOrganizations.map((organization) => (

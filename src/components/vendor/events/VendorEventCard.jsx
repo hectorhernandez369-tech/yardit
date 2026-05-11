@@ -5,7 +5,7 @@ import { CalendarClock, CalendarDays, Flag, MapPin, Pencil, Users } from "lucide
 import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 
-export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, hostedLabels, canEdit = false, canManageVendors = false, canManageFlags = false, canManageSchedule = false, canManageCollaborators = false, onView, onEdit, onManage, onEditFlags, onSchedule, onCollaborators }) {
+export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, hostedLabels, isCollaborating = false, ownerName = "", canEdit = false, canManageVendors = false, canManageFlags = false, canManageSchedule = false, canManageCollaborators = false, onView, onEdit, onManage, onEditFlags, onSchedule, onCollaborators }) {
   const status = getVendorEventStatus(event);
 
   return (
@@ -16,7 +16,10 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
             <h3 className="text-lg font-black text-[#2C4F4E] leading-tight">{event.title}</h3>
             <p className="text-sm text-slate-600">{formatVendorEventType(event.event_type)}</p>
           </div>
-          <Badge className="capitalize bg-[#5DADA5] text-white">{status}</Badge>
+          <div className="flex flex-wrap justify-end gap-2">
+            {isCollaborating && <Badge className="bg-purple-600 text-white">Collaborating</Badge>}
+            <Badge className="capitalize bg-[#5DADA5] text-white">{status}</Badge>
+          </div>
         </div>
 
         <div className="space-y-1.5 text-sm text-slate-600">
@@ -24,6 +27,7 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
           <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#F4A849]" />{format(new Date(event.startDateTime), "MMM d, yyyy h:mm a")} - {format(new Date(event.endDateTime), "MMM d, yyyy h:mm a")}</div>
           {distanceMiles !== null && distanceMiles !== undefined && <p className="text-xs font-semibold text-slate-500">{distanceMiles.toFixed(1)} miles away</p>}
           {event.open_to_vendors && event.max_vendors && <p className="text-xs font-semibold text-emerald-700">Approved vendors: {approvedVendorCount} / {event.max_vendors}</p>}
+          {isCollaborating && ownerName && <p className="text-xs font-bold text-purple-700">Owner: {ownerName}</p>}
           {hostedLabels && <p className="text-xs text-slate-500"><strong>Hosted By:</strong> {hostedLabels.hostedBy}</p>}
           {hostedLabels?.coHostedBy?.length > 0 && <p className="text-xs text-slate-500"><strong>Co-Hosted By:</strong> {hostedLabels.coHostedBy.join(", ")}</p>}
         </div>

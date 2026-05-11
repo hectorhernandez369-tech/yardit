@@ -24,7 +24,8 @@ export default function EventCollaboratorsPanel({ event, currentUser, currentOrg
   };
 
   const acceptInvite = async (collaborator) => {
-    await updateCollaborator(collaborator, { status: "accepted", accepted_at: new Date().toISOString() });
+    const now = new Date().toISOString();
+    await updateCollaborator(collaborator, { status: "accepted", accepted_at: now, responded_at: now });
   };
 
   const transferOwnership = async (collaborator) => {
@@ -85,7 +86,6 @@ export default function EventCollaboratorsPanel({ event, currentUser, currentOrg
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {canManage && collaborator.status !== "accepted" && <Button size="sm" variant="outline" onClick={() => acceptInvite(collaborator)}>Mark Accepted</Button>}
                     {belongsToCurrentOrg && collaborator.status === "pending" && <Button size="sm" onClick={() => acceptInvite(collaborator)}>Accept</Button>}
                     {canManage && <Select value={collaborator.role} onValueChange={(role) => updateCollaborator(collaborator, { role })}><SelectTrigger className="w-40"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(COLLABORATOR_ROLES).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>}
                     {canManage && collaborator.status === "accepted" && !collaborator.is_primary_owner && <Button size="sm" variant="outline" onClick={() => transferOwnership(collaborator)}>Make Primary Owner</Button>}

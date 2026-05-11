@@ -9,19 +9,13 @@ export const COLLABORATOR_ROLES = {
 
 export const ROLE_PERMISSIONS = {
   owner: {
-    editEvent: true,
-    manageVendors: true,
-    manageSchedule: true,
-    manageFlags: true,
-    manageStaff: true,
-    manageCollaborators: true,
-    deleteEvent: false,
-    manageVisibility: true,
-    managePayments: true,
-    removePrimaryOwner: false,
-    readOnly: false,
-  },
-  co_host: {
+    can_view_event: true,
+    can_edit_event: true,
+    can_manage_schedule: true,
+    can_manage_flags: true,
+    can_invite_vendors: true,
+    can_post_updates: true,
+    can_view_reports: true,
     editEvent: true,
     manageVendors: true,
     manageSchedule: true,
@@ -29,12 +23,39 @@ export const ROLE_PERMISSIONS = {
     manageStaff: true,
     manageCollaborators: false,
     deleteEvent: false,
-    manageVisibility: true,
+    manageVisibility: false,
+    managePayments: false,
+    removePrimaryOwner: false,
+    readOnly: false,
+  },
+  co_host: {
+    can_view_event: true,
+    can_edit_event: true,
+    can_manage_schedule: true,
+    can_manage_flags: true,
+    can_invite_vendors: true,
+    can_post_updates: true,
+    can_view_reports: false,
+    editEvent: true,
+    manageVendors: true,
+    manageSchedule: true,
+    manageFlags: true,
+    manageStaff: true,
+    manageCollaborators: false,
+    deleteEvent: false,
+    manageVisibility: false,
     managePayments: false,
     removePrimaryOwner: false,
     readOnly: false,
   },
   scheduler: {
+    can_view_event: true,
+    can_edit_event: false,
+    can_manage_schedule: true,
+    can_manage_flags: true,
+    can_invite_vendors: false,
+    can_post_updates: false,
+    can_view_reports: false,
     editEvent: false,
     manageVendors: false,
     manageSchedule: true,
@@ -48,6 +69,13 @@ export const ROLE_PERMISSIONS = {
     readOnly: false,
   },
   vendor_manager: {
+    can_view_event: true,
+    can_edit_event: false,
+    can_manage_schedule: false,
+    can_manage_flags: false,
+    can_invite_vendors: true,
+    can_post_updates: false,
+    can_view_reports: false,
     editEvent: false,
     manageVendors: true,
     manageSchedule: false,
@@ -56,11 +84,18 @@ export const ROLE_PERMISSIONS = {
     manageCollaborators: false,
     deleteEvent: false,
     manageVisibility: false,
-    managePayments: true,
+    managePayments: false,
     removePrimaryOwner: false,
     readOnly: false,
   },
   staff: {
+    can_view_event: true,
+    can_edit_event: true,
+    can_manage_schedule: true,
+    can_manage_flags: false,
+    can_invite_vendors: false,
+    can_post_updates: true,
+    can_view_reports: false,
     editEvent: true,
     manageVendors: false,
     manageSchedule: true,
@@ -74,6 +109,13 @@ export const ROLE_PERMISSIONS = {
     readOnly: false,
   },
   viewer: {
+    can_view_event: true,
+    can_edit_event: false,
+    can_manage_schedule: false,
+    can_manage_flags: false,
+    can_invite_vendors: false,
+    can_post_updates: false,
+    can_view_reports: false,
     editEvent: false,
     manageVendors: false,
     manageSchedule: false,
@@ -86,6 +128,16 @@ export const ROLE_PERMISSIONS = {
     removePrimaryOwner: false,
     readOnly: true,
   },
+};
+
+export const PERMISSION_LABELS = {
+  can_view_event: "View event",
+  can_edit_event: "Edit event details",
+  can_manage_schedule: "Manage schedule",
+  can_manage_flags: "Manage flags",
+  can_invite_vendors: "Invite vendors",
+  can_post_updates: "Post updates",
+  can_view_reports: "View reports",
 };
 
 export function getRolePermissions(role) {
@@ -128,6 +180,13 @@ export function getEventPermissionContext(event, collaborators = [], organizatio
   const primaryOwner = isPrimaryOwnerForEvent(event, collaborators, organizationIds);
   const collaboration = getOrganizationEventCollaboration(event, collaborators, organizationIds);
   const permissions = primaryOwner ? {
+    can_view_event: true,
+    can_edit_event: true,
+    can_manage_schedule: true,
+    can_manage_flags: true,
+    can_invite_vendors: true,
+    can_post_updates: true,
+    can_view_reports: true,
     editEvent: true,
     manageVendors: true,
     manageSchedule: true,
@@ -150,23 +209,31 @@ function hasPermission(event, collaborators, organizationIds, key) {
 }
 
 export function canEditEvent(event, collaborators = [], organizationIds = []) {
-  return hasPermission(event, collaborators, organizationIds, "editEvent");
+  return hasPermission(event, collaborators, organizationIds, "can_edit_event");
 }
 
 export function canManageVendors(event, collaborators = [], organizationIds = []) {
-  return hasPermission(event, collaborators, organizationIds, "manageVendors");
+  return hasPermission(event, collaborators, organizationIds, "can_invite_vendors");
 }
 
 export function canManageSchedule(event, collaborators = [], organizationIds = []) {
-  return hasPermission(event, collaborators, organizationIds, "manageSchedule");
+  return hasPermission(event, collaborators, organizationIds, "can_manage_schedule");
 }
 
 export function canManageFlags(event, collaborators = [], organizationIds = []) {
-  return hasPermission(event, collaborators, organizationIds, "manageFlags");
+  return hasPermission(event, collaborators, organizationIds, "can_manage_flags");
+}
+
+export function canPostUpdates(event, collaborators = [], organizationIds = []) {
+  return hasPermission(event, collaborators, organizationIds, "can_post_updates");
+}
+
+export function canViewReports(event, collaborators = [], organizationIds = []) {
+  return hasPermission(event, collaborators, organizationIds, "can_view_reports");
 }
 
 export function canManageCollaborators(event, collaborators = [], organizationIds = []) {
-  return hasPermission(event, collaborators, organizationIds, "manageCollaborators");
+  return isPrimaryOwnerForEvent(event, collaborators, organizationIds);
 }
 
 export function canDeleteEvent(event, collaborators = [], organizationIds = []) {

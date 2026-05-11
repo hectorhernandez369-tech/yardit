@@ -97,7 +97,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
     if (isEditing || collaboratorInvitations.length === 0) return;
 
     await Promise.all(collaboratorInvitations.map(async (invite) => {
-      await base44.entities.EventCollaborator.create({
+      const collaborator = await base44.entities.EventCollaborator.create({
         event_id: savedEvent.id,
         organization_id: invite.organization_id,
         organization_name: invite.organization_name,
@@ -118,7 +118,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
         type: "event_collaboration_invite",
         related_entity_type: "VendorEvent",
         related_entity_id: savedEvent.id,
-        metadata: { event_id: savedEvent.id, organization_id: invite.organization_id, role: invite.role },
+        metadata: { event_id: savedEvent.id, collaborator_id: collaborator.id, organization_id: invite.organization_id, role: invite.role },
         read: false,
         is_read: false,
       });

@@ -81,7 +81,7 @@ export default function VendorEventFlags() {
 
   if (loadingEvent || loadingSpots) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (!event) return <div className="p-6 text-center">Event not found.</div>;
-  if (!canManage) return <div className="p-6 text-center">You do not have access to edit these flags.</div>;
+  if (!canManage) return <div className="p-6 text-center text-[#2C4F4E] font-bold">You do not have permission for this action.</div>;
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4">

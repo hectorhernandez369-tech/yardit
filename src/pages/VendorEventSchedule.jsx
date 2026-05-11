@@ -87,7 +87,7 @@ export default function VendorEventSchedule() {
 
   if (isLoading || !accessChecked) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (!event) return <div className="p-6 text-center">Event not found.</div>;
-  if (!canManageSchedule) return <div className="p-6 text-center text-[#2C4F4E] font-bold">You do not have access to manage this event schedule.</div>;
+  if (!canManageSchedule) return <div className="p-6 text-center text-[#2C4F4E] font-bold">You do not have permission for this action.</div>;
 
   return (
     <div className="max-w-7xl mx-auto w-full min-w-0 overflow-x-hidden p-3 sm:p-6 space-y-4">

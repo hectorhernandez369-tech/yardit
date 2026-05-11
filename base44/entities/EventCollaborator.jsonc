@@ -31,6 +31,10 @@
       "type": "object",
       "description": "Resolved permission flags for this collaborator role"
     },
+    "invitation_note": {
+      "type": "string",
+      "description": "Optional message or note sent with the collaboration invitation"
+    },
     "invited_by_user_id": {
       "type": "string",
       "description": "User ID who invited this organization"
@@ -44,6 +48,16 @@
       "type": "string",
       "format": "date-time",
       "description": "Acceptance timestamp"
+    },
+    "declined_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Decline timestamp"
+    },
+    "responded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the receiving organization responded"
     },
     "status": {
       "type": "string",

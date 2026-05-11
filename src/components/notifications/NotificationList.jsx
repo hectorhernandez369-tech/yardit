@@ -147,7 +147,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
   });
 
   const getIcon = (type) => {
-    if (type === "vendor_event_invite") return <Users className="w-4 h-4 text-emerald-600" />;
+    if (type === "vendor_event_invite" || type === "event_collaboration_invite") return <Users className="w-4 h-4 text-emerald-600" />;
     if (type?.startsWith("join_")) return <Users className="w-4 h-4 text-purple-600" />;
     if (type?.startsWith("report_")) return <AlertTriangle className="w-4 h-4 text-red-600" />;
     if (type?.startsWith("support_")) return <LifeBuoy className="w-4 h-4 text-blue-600" />;
@@ -184,6 +184,8 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
         url = createPageUrl("JoinNeighborhoodSale") + `?code=${encodeURIComponent(notification.metadata.invite_code)}`;
       } else if (notification.type === "vendor_event_invite") {
         url = `/VendorEventDetail?id=${notification.metadata?.event_id || entityId}`;
+      } else if (notification.type === "event_collaboration_invite") {
+        url = `/VendorDashboard?tab=events&collabInvite=${notification.metadata?.collaborator_id || ""}&eventId=${notification.metadata?.event_id || entityId || ""}`;
       } else if (notification.type?.startsWith("join_")) {
         if (entityId) {
           url = createPageUrl("ListingDetail") + "?id=" + entityId;

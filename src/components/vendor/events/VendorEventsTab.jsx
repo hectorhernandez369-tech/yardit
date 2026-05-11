@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import VendorEventCard from "./VendorEventCard";
 import VendorEventForm from "./VendorEventForm";
 import EventCollaboratorsPanel from "./EventCollaboratorsPanel";
+import CollaborationInviteReview from "./CollaborationInviteReview";
 import { calculateMiles, getVendorEventPermission, getVendorEventStatus } from "@/lib/vendorEvents";
 import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
 import { canAccessEvent, canEditEvent, canManageCollaborators, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
@@ -25,6 +26,7 @@ export default function VendorEventsTab({ account, user }) {
   const [showCreate, setShowCreate] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [collaboratorEvent, setCollaboratorEvent] = useState(null);
+  const [reviewInvite, setReviewInvite] = useState(null);
   const [tab, setTab] = useState("active");
   const [query, setQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
@@ -77,6 +79,9 @@ export default function VendorEventsTab({ account, user }) {
   };
 
   const currentOrganizationIds = account?.id ? [account.id] : [];
+  const pendingCollaborationInvites = collaborators.filter((item) => item.organization_id === account?.id && item.status === "pending");
+  const collaborationByEventId = Object.fromEntries(collaborators.filter((item) => item.organization_id === account?.id && item.status === "accepted").map((item) => [item.event_id, item]));
+  const organizationById = Object.fromEntries(vendorAccounts.map((item) => [item.id, item]));
   const usageSnapshot = getVendorUsageSnapshot({ account, events });
   const currentSinglePermission = getVendorEventPermission({ account, events, eventType: "single" });
   const currentMultifieldPermission = getVendorEventPermission({ account, events, eventType: "multi_spot" });
@@ -104,7 +109,15 @@ export default function VendorEventsTab({ account, user }) {
         if (sort === "closest") return (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity);
         return new Date(a.startDateTime) - new Date(b.startDateTime);
       });
-  }, [events, attendees, account.id, tab, query, locationQuery, distance, eventType, showOpenToVendors, sort, userLocation, collaborators, currentOrganizationIds]);
+  }, [events, attendees, account?.id, tab, query, locationQuery, distance, eventType, showOpenToVendors, sort, userLocation, collaborators, currentOrganizationIds]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const inviteId = params.get("collabInvite");
+    if (!inviteId || reviewInvite || !pendingCollaborationInvites.length) return;
+    const invite = pendingCollaborationInvites.find((item) => item.id === inviteId);
+    if (invite) setReviewInvite(invite);
+  }, [pendingCollaborationInvites, reviewInvite]);
 
   return (
     <div className="space-y-4">
@@ -146,6 +159,31 @@ export default function VendorEventsTab({ account, user }) {
         )}
       </div>
 
+      {pendingCollaborationInvites.length > 0 && (
+        <Card className="rounded-3xl border-amber-200 bg-amber-50">
+          <CardContent className="p-4 space-y-3">
+            <div>
+              <h3 className="text-lg font-black text-[#2C4F4E]">Collaboration Invites</h3>
+              <p className="text-sm text-slate-600">Review pending Event Organizer collaboration invites.</p>
+            </div>
+            <div className="grid gap-2">
+              {pendingCollaborationInvites.map((invite) => {
+                const invitedEvent = events.find((event) => event.id === invite.event_id);
+                return (
+                  <div key={invite.id} className="flex flex-col gap-2 rounded-2xl border bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-bold text-[#2C4F4E]">{invitedEvent?.title || "Event invite"}</p>
+                      <p className="text-xs text-slate-500">From: {invitedEvent?.organizer_business_name || "Event owner"}</p>
+                    </div>
+                    <Button size="sm" onClick={() => setReviewInvite(invite)}>Review Invite</Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList><TabsTrigger value="active">Active Events</TabsTrigger><TabsTrigger value="history">History</TabsTrigger></TabsList>
         <TabsContent value={tab} className="space-y-3">
@@ -156,6 +194,8 @@ export default function VendorEventsTab({ account, user }) {
               distanceMiles={event.distanceMiles}
               approvedVendorCount={event.approvedVendorCount}
               hostedLabels={getHostedByLabels(event, collaborators, vendorAccounts)}
+              isCollaborating={!!collaborationByEventId[event.id]}
+              ownerName={organizationById[event.organizer_business_id]?.business_name || event.organizer_business_name}
               canEdit={canEditEvent(event, collaborators, currentOrganizationIds)}
               canManageVendors={canManageVendors(event, collaborators, currentOrganizationIds)}
               canManageFlags={canManageFlags(event, collaborators, currentOrganizationIds)}
@@ -201,6 +241,25 @@ export default function VendorEventsTab({ account, user }) {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!reviewInvite} onOpenChange={(open) => !open && setReviewInvite(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Review Collaboration Invite</DialogTitle></DialogHeader>
+          {reviewInvite && (
+            <CollaborationInviteReview
+              invite={reviewInvite}
+              event={events.find((event) => event.id === reviewInvite.event_id)}
+              receivingOrganization={account}
+              invitingOrganization={organizationById[events.find((event) => event.id === reviewInvite.event_id)?.organizer_business_id]}
+              onRespond={() => {
+                queryClient.invalidateQueries({ queryKey: ["allEventCollaborators"] });
+                queryClient.invalidateQueries({ queryKey: ["vendorEvents"] });
+                setReviewInvite(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!editingEvent} onOpenChange={(open) => !open && setEditingEvent(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Details — Public Page Details</DialogTitle></DialogHeader>
@@ -212,6 +271,7 @@ export default function VendorEventsTab({ account, user }) {
               approvedVendorCount={editingEvent.approvedVendorCount}
               mode="public"
               existingEvents={events}
+              preserveOwner
               onCreated={() => {
                 queryClient.invalidateQueries({ queryKey: ["vendorEvents"] });
                 setEditingEvent(null);

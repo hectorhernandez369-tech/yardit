@@ -14,7 +14,7 @@ import CollapsiblePanel from "@/components/vendor/events/CollapsiblePanel";
 import EventUpdatesManager from "@/components/vendor/events/EventUpdatesManager";
 import EventCollaboratorsPanel from "@/components/vendor/events/EventCollaboratorsPanel";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
-import { canEditEvent, canManageCollaborators, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
+import { canAccessEvent, canEditEvent, canManageCollaborators, canManageFlags, canManageSchedule, canManageVendors, canPostUpdates, getHostedByLabels } from "@/lib/eventCollaboration";
 import { toast } from "sonner";
 import { safeBack } from "@/utils";
 import { useNavigate } from "react-router-dom";
@@ -36,7 +36,7 @@ export default function VendorEventDashboard() {
   const { data: invites = [] } = useQuery({ queryKey: ["eventInvites", eventId], queryFn: () => base44.entities.EventInviteCode.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: vendorInvites = [] } = useQuery({ queryKey: ["eventVendorInvites", eventId], queryFn: () => base44.entities.EventVendorInvite.filter({ event_id: eventId }, "-created_date"), enabled: !!eventId, initialData: [] });
   const { data: vendorAccounts = [] } = useQuery({ queryKey: ["eventInviteVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
-  const { data: collaborators = [] } = useQuery({ queryKey: ["eventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
+  const { data: collaborators = [], isLoading: loadingCollaborators } = useQuery({ queryKey: ["eventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: updates = [] } = useQuery({ queryKey: ["eventUpdates", eventId], queryFn: () => base44.entities.EventUpdate.filter({ event_id: eventId, is_deleted: false }, "-created_at"), enabled: !!eventId, initialData: [] });
   const organizerAccount = vendorAccounts.find((account) => account.id === event?.organizer_business_id);
   const currentOrganizationIds = vendorAccounts.filter((account) => account.owner_user_id === currentUser?.id || account.owner_user_id === currentUser?.email).map((account) => account.id);
@@ -46,6 +46,8 @@ export default function VendorEventDashboard() {
   const canSchedule = canManageSchedule(event, collaborators, currentOrganizationIds);
   const canFlags = canManageFlags(event, collaborators, currentOrganizationIds);
   const canCollaborators = canManageCollaborators(event, collaborators, currentOrganizationIds);
+  const canUpdates = canPostUpdates(event, collaborators, currentOrganizationIds);
+  const canAccessDashboard = canAccessEvent(event, collaborators, currentOrganizationIds);
 
   const pendingRequests = useMemo(() => requests.filter((request) => request.status === "pending"), [requests]);
   const invitedVendors = useMemo(() => vendorInvites.filter((invite) => invite.status === "invited"), [vendorInvites]);
@@ -84,8 +86,9 @@ export default function VendorEventDashboard() {
     refresh();
   };
 
-  if (isLoading) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (isLoading || loadingCollaborators) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (!event) return <div className="p-6 text-center">Event not found.</div>;
+  if (!canAccessDashboard) return <div className="p-6 text-center text-[#2C4F4E] font-bold">You do not have permission for this action.</div>;
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-4">
@@ -128,7 +131,7 @@ export default function VendorEventDashboard() {
               <h2 className="text-2xl font-black text-[#2C4F4E]">Vendor Management</h2>
               <p className="text-sm text-slate-600">Manage how vendors join, pay, reserve space, and get approved.</p>
             </div>
-            <Button variant="outline" disabled={isFull || !canVendors} onClick={() => setShowInviteVendors(true)}><Mail className="h-4 w-4" /> Invite Vendors</Button>
+            <Button variant="outline" disabled={isFull || !canVendors} onClick={() => canVendors ? setShowInviteVendors(true) : toast.error("You do not have permission for this action.")}><Mail className="h-4 w-4" /> Invite Vendors</Button>
           </div>
           {organizerAccount && canVendors && (
             <VendorEventForm
@@ -154,7 +157,7 @@ export default function VendorEventDashboard() {
         </DialogContent>
       </Dialog>
 
-      <EventUpdatesManager event={event} updates={updates} onRefresh={refresh} canEdit={canEdit} />
+      <EventUpdatesManager event={event} updates={updates} onRefresh={refresh} canEdit={canUpdates} />
 
       {canFlags && event.event_type === "multi_spot" && <EventSpotManager event={event} spots={spots} onRefresh={refresh} />}
 
