@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { COLLABORATOR_ROLES, getRolePermissions } from "@/lib/eventCollaboration";
 import { getVendorAccountNumber, getVendorAccountSearchText, isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
+import { Search, Send } from "lucide-react";
+import { toast } from "sonner";
 
 const getVendorIdentityWarnings = (account) => {
   const warnings = [];
@@ -22,8 +24,6 @@ const vendorMatchesSearch = (account, query) => {
   const text = getVendorAccountSearchText(account);
   return terms.every((term) => text.includes(term));
 };
-import { Search, Send } from "lucide-react";
-import { toast } from "sonner";
 
 export default function InviteOrganizationModal({ open, onOpenChange, event, currentUser, organizations, collaborators, onInvited }) {
   const queryClient = useQueryClient();
@@ -33,14 +33,18 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
 
   const existingOrganizationIds = new Set((collaborators || []).filter((item) => item.status !== "removed").map((item) => item.organization_id));
 
-  const filteredOrganizations = useMemo(() => {
+  const availableOrganizations = useMemo(() => {
     return (organizations || [])
       .filter(isEligibleEventOrganizer)
       .filter((organization) => organization.id !== event?.organizer_business_id)
-      .filter((organization) => !existingOrganizationIds.has(organization.id))
+      .filter((organization) => !existingOrganizationIds.has(organization.id));
+  }, [organizations, event?.organizer_business_id, existingOrganizationIds]);
+
+  const filteredOrganizations = useMemo(() => {
+    return availableOrganizations
       .filter((organization) => vendorMatchesSearch(organization, query))
       .slice(0, 20);
-  }, [organizations, event?.organizer_business_id, existingOrganizationIds, query]);
+  }, [availableOrganizations, query]);
 
   const inviteOrganization = async (organization) => {
     setSendingId(organization.id);
@@ -111,7 +115,13 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
                 </div>
               </div>
             ))}
-            {!filteredOrganizations.length && <div className="rounded-2xl border p-6 text-center text-slate-500">No available organizations found.</div>}
+            {!filteredOrganizations.length && (
+              <div className="rounded-2xl border p-6 text-center text-slate-500">
+                {availableOrganizations.length
+                  ? "No organizations match your search."
+                  : "No other eligible Event Organizer organizations are available to invite yet."}
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
