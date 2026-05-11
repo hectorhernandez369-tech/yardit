@@ -8,6 +8,7 @@ import { logUserActivity, logUserActivityOncePerSession } from './logUserActivit
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
 const AUTH_RETURN_TO_MAX_AGE_MS = 30 * 60 * 1000;
+const RETURNING_USER_KEY = 'yardit_returning_user_v1';
 
 const saveAuthReturnTo = (url) => {
   try {
@@ -77,6 +78,9 @@ export const AuthProvider = ({ children }) => {
         email: currentUser?.email,
       });
       clearGuestMode();
+      try {
+        localStorage.setItem(RETURNING_USER_KEY, "true");
+      } catch {}
       setIsGuest(false);
       setUser(currentUser);
       setIsAuthenticated(true);
@@ -240,6 +244,9 @@ export const AuthProvider = ({ children }) => {
 
     clearAuthReturnTo();
     clearGuestMode();
+    try {
+      localStorage.setItem(RETURNING_USER_KEY, "true");
+    } catch {}
     setUser(null);
     setIsAuthenticated(false);
     setIsGuest(false);

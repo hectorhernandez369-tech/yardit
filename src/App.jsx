@@ -37,7 +37,14 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isGuest, enterGuestMode, isAuthenticated } = useAuth();
-  const showGuestEntry = !isLoadingAuth && !isLoadingPublicSettings && !isAuthenticated && !isGuest && (!authError || authError.type === 'auth_required');
+  const isReturningUser = (() => {
+    try {
+      return localStorage.getItem('yardit_returning_user_v1') === 'true' || localStorage.getItem('yardit_has_seen_startup_guide') === 'true';
+    } catch {
+      return false;
+    }
+  })();
+  const showGuestEntry = !isReturningUser && !isLoadingAuth && !isLoadingPublicSettings && !isAuthenticated && !isGuest && (!authError || authError.type === 'auth_required');
 
   const { data: appSettings = [], isLoading: isLoadingAppSettings } = useQuery({
     queryKey: ["appSettings"],
