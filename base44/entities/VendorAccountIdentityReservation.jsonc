@@ -1,0 +1,63 @@
+{
+  "name": "VendorAccountIdentityReservation",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "vendor_account_number",
+        "vendor_slug"
+      ],
+      "description": "The kind of vendor identity value being reserved"
+    },
+    "value": {
+      "type": "string",
+      "description": "The reserved account number or slug"
+    },
+    "vendor_account_id": {
+      "type": "string",
+      "description": "VendorAccount ID this reservation belongs to"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "reserved",
+        "assigned",
+        "retired"
+      ],
+      "default": "reserved",
+      "description": "Reservation lifecycle status"
+    },
+    "reserved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the identity was reserved"
+    },
+    "vendor_account_number": {
+      "type": "string",
+      "description": "Legacy reserved vendor account number"
+    },
+    "vendor_slug": {
+      "type": "string",
+      "description": "Legacy reserved public vendor slug"
+    },
+    "business_name_at_assignment": {
+      "type": "string",
+      "description": "Business name used when identity was assigned"
+    },
+    "owner_user_id": {
+      "type": "string",
+      "description": "Owner user ID at assignment time"
+    },
+    "owner_email": {
+      "type": "string",
+      "description": "Owner email at assignment time"
+    }
+  },
+  "required": [
+    "type",
+    "value",
+    "vendor_account_id",
+    "status"
+  ]
+}
