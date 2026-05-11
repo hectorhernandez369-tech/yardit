@@ -117,5 +117,5 @@ export function getVendorIdentityWarnings(account) {
 }
 
 export function isEligibleEventOrganizer(account) {
-  return account?.is_active !== false && account?.vendor_tier === "event_organizer" && account?.subscription_status === "active";
+  return account?.is_active !== false && account?.vendor_tier === "event_organizer" && (account?.subscription_status || "active") === "active";
 }
