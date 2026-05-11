@@ -128,7 +128,7 @@ function LayoutContent({ children, user, setUser }) {
   };
 
   const handleLogout = async () => {
-    await logout?.();
+    await logout?.(createPageUrl("Home"));
   };
 
   return (
