@@ -1,6 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import Stripe from 'npm:stripe@18.5.0';
 
 const Deno = globalThis.Deno;
+
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+  apiVersion: '2025-02-24.acacia',
+});
 
 Deno.serve(async (req) => {
   try {
@@ -14,9 +19,18 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const listingId = body?.listing_id;
     const targetTier = body?.target_tier;
+    const sessionId = body?.stripe_session_id || body?.session_id;
 
-    if (!listingId || !targetTier) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!listingId || !targetTier || !sessionId) {
+      return Response.json({ error: 'Missing required Stripe confirmation fields' }, { status: 400 });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const sessionListingId = session.metadata?.listing_id;
+    const sessionTargetTier = session.metadata?.target_tier;
+
+    if (session.payment_status !== 'paid' || sessionListingId !== listingId || sessionTargetTier !== targetTier) {
+      return Response.json({ error: 'Stripe payment has not confirmed this upgrade' }, { status: 402 });
     }
 
     const listings = await base44.entities.Listing.filter({ id: listingId });

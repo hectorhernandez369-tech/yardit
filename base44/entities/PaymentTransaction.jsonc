@@ -1,0 +1,114 @@
+{
+  "name": "PaymentTransaction",
+  "type": "object",
+  "properties": {
+    "stripe_event_id": {
+      "type": "string",
+      "description": "Stripe webhook event ID used for idempotency"
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Stripe webhook event type"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "listing_payment",
+        "listing_upgrade",
+        "vendor_subscription",
+        "vendor_tier_upgrade",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Yardit payment category determined from Stripe metadata"
+    },
+    "yardit_record_type": {
+      "type": "string",
+      "description": "Yardit entity type affected by this transaction"
+    },
+    "yardit_record_id": {
+      "type": "string",
+      "description": "Yardit entity ID affected by this transaction"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "processing",
+        "succeeded",
+        "failed",
+        "refunded",
+        "subscription_active",
+        "subscription_past_due",
+        "subscription_canceled",
+        "ignored",
+        "error"
+      ],
+      "default": "received",
+      "description": "Server-side Stripe-confirmed processing status"
+    },
+    "amount_cents": {
+      "type": "number",
+      "description": "Stripe amount in cents"
+    },
+    "currency": {
+      "type": "string",
+      "description": "Stripe currency"
+    },
+    "stripe_checkout_session_id": {
+      "type": "string",
+      "description": "Stripe Checkout Session ID"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string",
+      "description": "Stripe PaymentIntent ID"
+    },
+    "stripe_charge_id": {
+      "type": "string",
+      "description": "Stripe Charge ID"
+    },
+    "stripe_invoice_id": {
+      "type": "string",
+      "description": "Stripe Invoice ID"
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "description": "Stripe Subscription ID"
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "Stripe Customer ID"
+    },
+    "payment_status": {
+      "type": "string",
+      "description": "Raw Stripe payment or subscription status"
+    },
+    "failure_message": {
+      "type": "string",
+      "description": "Safe failure reason from Stripe when available"
+    },
+    "metadata_json": {
+      "type": "string",
+      "description": "Stringified Stripe metadata snapshot"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Yardit received the webhook"
+    },
+    "processed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Yardit finished processing the webhook"
+    },
+    "processing_error": {
+      "type": "string",
+      "description": "Safe internal processing error message"
+    }
+  },
+  "required": [
+    "stripe_event_id",
+    "event_type",
+    "status"
+  ]
+}
