@@ -9,10 +9,12 @@ import { getVendorTierDowngradeIssues } from "@/lib/vendorEvents";
 import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
 import VendorAddOnsSection from "@/components/vendor/billing/VendorAddOnsSection";
 import TierFeatureSummary from "@/components/vendor/TierFeatureSummary";
+import ReviewPayContent from "@/components/payment/ReviewPayContent";
 import { toast } from "sonner";
 
 export default function VendorBillingTab({ account, onRefresh }) {
   const [changingTier, setChangingTier] = useState("");
+  const [reviewTier, setReviewTier] = useState("");
   const currentTierIndex = Math.max(0, VENDOR_TIER_ORDER.indexOf(account?.vendor_tier || "free"));
 
   const { data: events = [] } = useQuery({
@@ -38,6 +40,32 @@ export default function VendorBillingTab({ account, onRefresh }) {
 
   const usageSnapshot = getVendorUsageSnapshot({ account, events, pins, users });
 
+  const getTierPriceAmount = (tierKey) => Number(String(VENDOR_TIERS[tierKey]?.price || "0").replace(/[^0-9.]/g, "")) || 0;
+
+  const startTierCheckout = async (tierKey) => {
+    setReviewTier("");
+    setChangingTier(tierKey);
+
+    if (window.self !== window.top) {
+      toast.error("Checkout works only from the published app.");
+      setChangingTier("");
+      return;
+    }
+
+    const response = await base44.functions.invoke("createVendorSubscriptionCheckout", {
+      vendor_account_id: account.id,
+      target_tier: tierKey,
+      return_url: `${window.location.origin}/VendorDashboard?tab=tier`,
+    });
+
+    const checkoutUrl = response?.data?.checkoutUrl;
+    if (!checkoutUrl) {
+      throw new Error("Vendor subscription checkout could not start.");
+    }
+
+    window.location.assign(checkoutUrl);
+  };
+
   const handleChangeTier = async (tierKey) => {
     if (!account?.id) return;
     if (tierKey === account.vendor_tier) {
@@ -55,35 +83,41 @@ export default function VendorBillingTab({ account, onRefresh }) {
       }
     }
 
-    setChangingTier(tierKey);
-
     if (targetTierIndex > currentTierIndex && tierKey !== "free") {
-      if (window.self !== window.top) {
-        toast.error("Checkout works only from the published app.");
-        setChangingTier("");
-        return;
-      }
-
-      const response = await base44.functions.invoke("createVendorSubscriptionCheckout", {
-        vendor_account_id: account.id,
-        target_tier: tierKey,
-        return_url: `${window.location.origin}/VendorDashboard?tab=tier`,
-      });
-
-      const checkoutUrl = response?.data?.checkoutUrl;
-      if (!checkoutUrl) {
-        throw new Error("Vendor subscription checkout could not start.");
-      }
-
-      window.location.assign(checkoutUrl);
+      setReviewTier(tierKey);
       return;
     }
+
+    setChangingTier(tierKey);
 
     await base44.entities.VendorAccount.update(account.id, { vendor_tier: tierKey, subscription_status: tierKey === "free" ? "inactive" : "active", extra_users_count: 0, extra_pins_count: 0, setup_tier_confirmed: true, vendor_setup_status: "in_progress" });
     toast.success(`Plan changed to ${VENDOR_TIERS[tierKey].label}`);
     await onRefresh?.();
     setChangingTier("");
   };
+
+  if (reviewTier) {
+    const tier = VENDOR_TIERS[reviewTier];
+    return (
+      <div id="vendor-tier-section" className="space-y-4">
+        <ReviewPayContent
+          purchaseName={tier.label}
+          badge={reviewTier === "event_organizer" ? "Event Organizer" : `Vendor ${tier.label}`}
+          purchaseType={reviewTier}
+          tier={reviewTier}
+          price={getTierPriceAmount(reviewTier)}
+          summaryTitle="Account Summary"
+          summaryItems={[
+            { label: "Business", value: account?.vendor_display_name || account?.business_name || "Vendor account" },
+            { label: "Selected Tier", value: tier.label },
+          ]}
+          isProcessing={changingTier === reviewTier}
+          onBack={() => setReviewTier("")}
+          onPay={() => startTierCheckout(reviewTier)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div id="vendor-tier-section" className="space-y-6">

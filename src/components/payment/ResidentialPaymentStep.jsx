@@ -18,7 +18,7 @@ export default function ResidentialPaymentStep({
         <ReviewPayContent
           listing={listing}
           tier={tier}
-          amount={amount}
+          price={amount}
           isDemoMode={isDemoMode}
           isProcessing={isProcessing}
           errorMessage={errorMessage}

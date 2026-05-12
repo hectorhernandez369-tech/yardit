@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import ReviewPayDetails from "@/components/payment/ReviewPayDetails";
-import { RESIDENTIAL_UPGRADE_PRICES, getListingCurrentTier, getTierLabel, getUpgradeOptions, getUpgradePriceDifference } from "@/lib/listingUpgradeConfig";
+import ReviewPayContent from "@/components/payment/ReviewPayContent";
+import { getListingCurrentTier, getUpgradeOptions, getUpgradePriceDifference } from "@/lib/listingUpgradeConfig";
 
 const UPGRADE_CHECKOUT_KEY = "yardit_listing_upgrade_checkout_v1";
 
@@ -28,9 +26,6 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
     if (!listing || !selectedTier) return 0;
     return getUpgradePriceDifference(listing, selectedTier);
   }, [listing, selectedTier]);
-
-  const originalPrice = RESIDENTIAL_UPGRADE_PRICES[selectedTier] || 0;
-  const amountPaid = Number(listing?.pricePaid || 0) * 100 || (RESIDENTIAL_UPGRADE_PRICES[currentTier] || 0);
 
   useEffect(() => {
     if (!open || !listing) return;
@@ -132,46 +127,31 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
             </Select>
           </div>
 
-          <ReviewPayDetails
-            listing={listing}
+          <ReviewPayContent
+            purchaseName="Listing Upgrade"
+            badge={selectedTier ? `${selectedTier.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())}` : "Upgrade"}
+            purchaseType="listing_upgrade"
             tier={selectedTier}
-            amount={amountDue / 100}
-            upgrade={{
-              currentTier,
-              newTier: selectedTier,
-              originalPrice: originalPrice / 100,
-              amountPaid: amountPaid / 100,
-              amountDue: amountDue / 100,
-            }}
+            price={amountDue / 100}
+            listing={listing}
+            summaryTitle="Upgrade Summary"
+            summaryItems={[
+              { label: "Current Tier", value: currentTier?.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) },
+              { label: "Upgraded Tier", value: selectedTier?.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) },
+              { label: "Amount Due Today", value: formatMoney(amountDue) },
+            ]}
+            isProcessing={isStartingPayment}
+            onBack={onClose}
+            onPay={handleConfirmUpgrade}
           />
 
-          <Card>
-            <CardContent className="p-4 space-y-2">
-              <div className="flex items-center gap-2 text-slate-900">
-                <CreditCard className="w-4 h-4" />
-                <p className="font-semibold">Saved Payment Method</p>
-              </div>
-              {isRefreshingPaymentMethod ? (
-                <p className="text-sm text-slate-500">Checking saved card...</p>
-              ) : savedPaymentMethod ? (
-                <p className="text-sm text-slate-700">
-                  {savedPaymentMethod.brand} ending in {savedPaymentMethod.last4}
-                </p>
-              ) : (
-                <p className="text-sm text-slate-500">No saved card found. You can add one in checkout.</p>
-              )}
-              <p className="text-xs text-slate-500">Your card is never charged without your confirmation.</p>
-            </CardContent>
-          </Card>
-
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isStartingPayment} className="flex-1 border-[#2C4F4E]/40">
-              Back to Tier Selection
-            </Button>
-            <Button type="button" onClick={handleConfirmUpgrade} disabled={!selectedTier || amountDue <= 0 || isStartingPayment} className="flex-1 bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
-              {isStartingPayment ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Starting...</> : "Continue to Stripe"}
-            </Button>
-          </div>
+          {savedPaymentMethod && (
+            <Card>
+              <CardContent className="p-3 text-xs text-slate-500">
+                Saved card: {savedPaymentMethod.brand} ending in {savedPaymentMethod.last4}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </DialogContent>
     </Dialog>
