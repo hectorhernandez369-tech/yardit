@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, RefreshCw, ShieldAlert } from "lucide-react";
+import { Loader2, RefreshCw, ShieldAlert, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import HealthSummaryCards from "./HealthSummaryCards";
 import SystemHealthIssueCard from "./SystemHealthIssueCard";
@@ -28,6 +28,7 @@ export default function SystemHealthDashboard({ user }) {
   const [severity, setSeverity] = useState("all");
   const [search, setSearch] = useState("");
   const [lastScan, setLastScan] = useState(null);
+  const [lastRepair, setLastRepair] = useState(null);
 
   const isMaster = user?.role === "master" || user?.role_label === "master";
 
@@ -69,9 +70,10 @@ export default function SystemHealthDashboard({ user }) {
   });
 
   const repairMutation = useMutation({
-    mutationFn: (issue) => base44.functions.invoke("runSystemHealthScan", { action: "repairIssue", issue_id: issue.id }),
+    mutationFn: () => base44.functions.invoke("runSafeLegacyRepair", {}),
     onSuccess: (res) => {
-      toast.success(res.data?.message || "Repair action completed");
+      setLastRepair(res.data);
+      toast.success(res.data?.message || "Safe repair batch completed");
       queryClient.invalidateQueries({ queryKey: ["systemHealthIssues"] });
     },
   });
@@ -94,13 +96,32 @@ export default function SystemHealthDashboard({ user }) {
           <p className="text-sm text-slate-600">Detects bad data, missing fields, permission conflicts, notification issues, and legacy migration problems without blocking users.</p>
           <p className="text-xs text-slate-500 mt-1">Last scan: {lastScan ? new Date(lastScan).toLocaleString() : "Not run in this session"}</p>
         </div>
-        <Button onClick={() => scanMutation.mutate()} disabled={scanMutation.isPending} className="bg-[#5DADA5] hover:bg-[#4A9B93]">
-          {scanMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          Run Health Scan
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => scanMutation.mutate()} disabled={scanMutation.isPending} className="bg-[#5DADA5] hover:bg-[#4A9B93]">
+            {scanMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Run Health Scan
+          </Button>
+          <Button onClick={() => repairMutation.mutate()} disabled={repairMutation.isPending} variant="outline" className="border-[#2C4F4E] text-[#2C4F4E]">
+            {repairMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
+            Run Next Batch
+          </Button>
+        </div>
       </div>
 
       <HealthSummaryCards summary={summary} />
+
+      {lastRepair && (
+        <div className="bg-white border rounded-xl p-4">
+          <h3 className="font-bold text-[#2C4F4E] mb-2">Last Safe Repair Batch</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+            <div><span className="font-semibold">Scanned:</span> {lastRepair.scanned || 0}</div>
+            <div><span className="font-semibold">Repaired:</span> {lastRepair.repaired || 0}</div>
+            <div><span className="font-semibold">Skipped:</span> {lastRepair.skipped || 0}</div>
+            <div><span className="font-semibold">Failed:</span> {lastRepair.failed || 0}</div>
+            <div><span className="font-semibold">Manual review:</span> {lastRepair.needs_manual_review || 0}</div>
+          </div>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-3 gap-3 bg-white rounded-xl border p-3">
         <Input placeholder="Search user, email, vendor number, event, listing ID..." value={search} onChange={(event) => setSearch(event.target.value)} />
@@ -130,7 +151,7 @@ export default function SystemHealthDashboard({ user }) {
               key={issue.id}
               issue={issue}
               onReviewed={(item) => reviewedMutation.mutate(item)}
-              onRepair={(item) => repairMutation.mutate(item)}
+              onRepair={() => repairMutation.mutate()}
             />
           ))}
         </div>
