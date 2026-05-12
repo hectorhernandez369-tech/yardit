@@ -346,6 +346,30 @@
       "format": "date-time",
       "description": "Deadline for the payment hold"
     },
+    "stripe_checkout_session_id": {
+      "type": "string",
+      "description": "Confirmed Stripe Checkout Session ID"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string",
+      "description": "Confirmed Stripe PaymentIntent ID"
+    },
+    "pending_checkout_session_id": {
+      "type": "string",
+      "description": "Pending Stripe Checkout Session ID for initial paid listing checkout"
+    },
+    "pending_payment_tier": {
+      "type": "string",
+      "description": "Pending paid listing tier waiting for webhook confirmation"
+    },
+    "pending_upgrade_tier": {
+      "type": "string",
+      "description": "Pending upgrade tier waiting for webhook confirmation"
+    },
+    "pending_upgrade_checkout_session_id": {
+      "type": "string",
+      "description": "Pending Stripe Checkout Session ID for listing upgrade"
+    },
     "neighborhood_sale_id": {
       "type": "string",
       "description": "ID of the associated neighborhood sale"

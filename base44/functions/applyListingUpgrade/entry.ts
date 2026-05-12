@@ -1,8 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@18.5.0';
 
-const Deno = globalThis.Deno;
-
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2025-02-24.acacia',
 });
@@ -12,11 +10,9 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const listingId = body?.listing_id;
     const targetTier = body?.target_tier;
     const sessionId = body?.stripe_session_id || body?.session_id;
@@ -41,30 +37,17 @@ Deno.serve(async (req) => {
 
     const listings = await base44.entities.Listing.filter({ id: listingId });
     const listing = listings?.[0];
-
-    if (!listing) {
-      return Response.json({ error: 'Listing not found' }, { status: 404 });
-    }
-
-    if (listing.ownerUserId !== user.id) {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    if (!listing) return Response.json({ error: 'Listing not found' }, { status: 404 });
+    if (listing.ownerUserId !== user.id) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const updateData = listing.listingType === 'event'
-      ? {
-          tier: targetTier,
-          event_tier: targetTier,
-          pricePaid: listing.pricePaid,
-        }
-      : {
-          tier: targetTier,
-          pricePaid: listing.pricePaid,
-        };
+      ? { tier: targetTier, event_tier: targetTier, status: session.metadata?.previous_status || 'active' }
+      : { tier: targetTier, status: session.metadata?.previous_status || 'active' };
 
     const updated = await base44.entities.Listing.update(listingId, updateData);
     return Response.json({ success: true, listing: updated });
   } catch (error) {
-    console.error('applyListingUpgrade error', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('applyListingUpgrade error', error?.message || error);
+    return Response.json({ error: error?.message || 'Apply upgrade failed' }, { status: 500 });
   }
 });

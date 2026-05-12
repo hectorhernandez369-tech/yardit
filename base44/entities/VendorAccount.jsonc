@@ -6,6 +6,28 @@
       "type": "string",
       "description": "Vendor business name"
     },
+    "vendor_display_name": {
+      "type": "string",
+      "description": "Public-facing business name"
+    },
+    "legal_business_name": {
+      "type": "string",
+      "description": "Legal or billing business name"
+    },
+    "organization_type": {
+      "type": "string",
+      "enum": [
+        "vendor",
+        "event_organizer",
+        "nonprofit",
+        "food_truck",
+        "retail",
+        "service",
+        "other"
+      ],
+      "default": "vendor",
+      "description": "Organization category for future permissions and workflows"
+    },
     "business_logo": {
       "type": "string",
       "description": "Business logo URL"
@@ -60,11 +82,15 @@
     },
     "vendor_account_number": {
       "type": "string",
-      "description": "User-friendly vendor account number, e.g. VND-100001"
+      "description": "Primary public support/search vendor account number, e.g. VND-100001"
     },
     "account_number": {
       "type": "string",
       "description": "Legacy vendor account number alias"
+    },
+    "vendor_slug": {
+      "type": "string",
+      "description": "Stable unique public URL slug for vendor pages"
     },
     "subscription_status": {
       "type": "string",
@@ -82,6 +108,44 @@
       "type": "boolean",
       "default": false,
       "description": "Whether the vendor has been verified"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this vendor was verified"
+    },
+    "verified_by": {
+      "type": "string",
+      "description": "Admin user ID or system actor that verified this vendor"
+    },
+    "organization_user_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Future-ready organization member user IDs"
+    },
+    "organization_staff_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Future-ready organization staff emails"
+    },
+    "organization_permissions": {
+      "type": "object",
+      "description": "Future-ready organization permission configuration"
+    },
+    "assigned_pin_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Future-ready assigned vendor pin IDs"
+    },
+    "team_settings": {
+      "type": "object",
+      "description": "Future-ready team and event staff settings"
     },
     "is_demo_vendor": {
       "type": "boolean",
@@ -191,6 +255,22 @@
       "type": "number",
       "default": 0,
       "description": "Current vendor pin count"
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "Stripe Customer ID for vendor billing"
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "description": "Active Stripe Subscription ID for vendor billing"
+    },
+    "pending_vendor_tier": {
+      "type": "string",
+      "description": "Pending vendor tier awaiting Stripe webhook confirmation"
+    },
+    "pending_subscription_checkout_session_id": {
+      "type": "string",
+      "description": "Pending Stripe Checkout Session ID for vendor subscription"
     },
     "is_active": {
       "type": "boolean",

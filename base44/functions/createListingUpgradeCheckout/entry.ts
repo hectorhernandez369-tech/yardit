@@ -1,0 +1,155 @@
+import Stripe from 'npm:stripe@18.5.0';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+  apiVersion: '2025-02-24.acacia',
+});
+
+const RESIDENTIAL_PRICES = { free: 0, featured: 499, premium: 799 };
+const nowIso = () => new Date().toISOString();
+const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
+
+function residentialUpgradeAmount(currentTier, targetTier) {
+  return Math.max(0, (RESIDENTIAL_PRICES[targetTier] || 0) - (RESIDENTIAL_PRICES[currentTier] || 0));
+}
+
+async function webhookConfirmed(base44, sessionId) {
+  const records = await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_checkout_session_id: sessionId });
+  return (records || []).some((record) => record.event_type !== 'checkout.session.created' && record.status === 'succeeded');
+}
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const body = await req.json().catch(() => ({}));
+    const action = body?.action || 'create';
+
+    if (action === 'payment_method') {
+      const customerId = body?.customer_id;
+      if (!customerId) return Response.json({ paymentMethod: null });
+
+      const paymentMethods = await stripe.paymentMethods.list({ customer: customerId, type: 'card', limit: 1 });
+      const card = paymentMethods.data?.[0]?.card;
+      if (!card) return Response.json({ paymentMethod: null });
+      return Response.json({ paymentMethod: { brand: String(card.brand || 'card').toUpperCase(), last4: card.last4 } });
+    }
+
+    if (action === 'verify') {
+      const sessionId = body?.session_id || body?.sessionId;
+      if (!sessionId) return Response.json({ error: 'Missing session_id' }, { status: 400 });
+
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const confirmed = await webhookConfirmed(base44, session.id);
+      return Response.json({
+        paid: session.payment_status === 'paid' && confirmed,
+        stripe_paid: session.payment_status === 'paid',
+        webhook_confirmed: confirmed,
+        pending_webhook: session.payment_status === 'paid' && !confirmed,
+        sessionId: session.id,
+      });
+    }
+
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const listingId = body?.listing_id;
+    const targetTier = String(body?.target_tier || '').toLowerCase();
+    const returnUrl = body?.return_url;
+    const customerEmail = body?.customer_email || user.email;
+    const customerId = body?.customer_id || undefined;
+    const listingKind = body?.listing_kind || 'residential';
+
+    if (!listingId || !targetTier || !returnUrl) {
+      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const listings = await base44.asServiceRole.entities.Listing.filter({ id: listingId });
+    const listing = listings?.[0];
+    if (!listing) return Response.json({ error: 'Listing not found' }, { status: 404 });
+    if (listing.ownerUserId !== user.id) return Response.json({ error: 'Forbidden' }, { status: 403 });
+
+    if (listing.is_demo_listing === true) {
+      await base44.asServiceRole.entities.Listing.update(listingId, listing.listingType === 'event'
+        ? { tier: targetTier, event_tier: targetTier }
+        : { tier: targetTier });
+      return Response.json({ ok: true, demo: true, checkoutUrl: null, sessionId: `demo_${Date.now()}` });
+    }
+
+    const currentTier = listingKind === 'event' ? (listing.event_tier || listing.tier || 'basic') : (listing.tier || 'free');
+    const expectedAmount = listingKind === 'residential'
+      ? residentialUpgradeAmount(currentTier, targetTier)
+      : Number(body?.amount_cents || 0);
+    const amountCents = Number(body?.amount_cents || expectedAmount || 0);
+
+    if (!amountCents || amountCents < 50) return Response.json({ error: 'Invalid upgrade amount' }, { status: 400 });
+    if (listingKind === 'residential' && amountCents !== expectedAmount) {
+      return Response.json({ error: 'Invalid residential upgrade amount' }, { status: 400 });
+    }
+
+    const separator = String(returnUrl).includes('?') ? '&' : '?';
+    const successUrl = `${returnUrl}${separator}payment=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${returnUrl}${separator}payment=cancel`;
+    const metadata = {
+      base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
+      purpose: 'listing_upgrade',
+      transaction_type: 'listing_upgrade',
+      listing_id: listingId,
+      current_tier: currentTier,
+      target_tier: targetTier,
+      tier: targetTier,
+      listing_kind: listingKind,
+      previous_status: listing.status || 'active',
+    };
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer: customerId,
+      customer_email: customerId ? undefined : customerEmail,
+      payment_method_types: ['card'],
+      payment_method_collection: 'always',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: { name: `${listingKind === 'event' ? 'Event' : 'Listing'} Upgrade to ${targetTier}` },
+          unit_amount: amountCents,
+        },
+        quantity: 1,
+      }],
+      metadata,
+      payment_intent_data: { metadata },
+    });
+
+    await base44.asServiceRole.entities.Listing.update(listingId, {
+      status: 'payment_pending_adjustment',
+      pending_upgrade_tier: targetTier,
+      pending_upgrade_checkout_session_id: session.id,
+      payment_intent_status: 'hold_requested',
+    });
+
+    await base44.asServiceRole.entities.PaymentTransaction.create({
+      stripe_event_id: `checkout_created_${session.id}`,
+      event_type: 'checkout.session.created',
+      transaction_type: 'listing_upgrade',
+      yardit_record_type: 'Listing',
+      yardit_record_id: listingId,
+      status: 'received',
+      amount_cents: amountCents,
+      currency: 'usd',
+      stripe_checkout_session_id: session.id,
+      stripe_payment_intent_id: asId(session.payment_intent),
+      stripe_customer_id: asId(session.customer),
+      payment_status: session.payment_status || session.status || '',
+      metadata_json: JSON.stringify(metadata),
+      received_at: nowIso(),
+      processed_at: nowIso(),
+    });
+
+    console.log('Listing upgrade checkout created', { sessionId: session.id, listingId, currentTier, targetTier, amountCents });
+    return Response.json({ checkoutUrl: session.url, sessionId: session.id });
+  } catch (error) {
+    console.error('createListingUpgradeCheckout error', error?.message || error);
+    return Response.json({ error: error?.message || 'Upgrade checkout failed' }, { status: 500 });
+  }
+});
