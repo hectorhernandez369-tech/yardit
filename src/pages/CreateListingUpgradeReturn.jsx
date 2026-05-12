@@ -34,8 +34,7 @@ export default function CreateListingUpgradeReturn() {
       const stored = JSON.parse(raw);
 
       if (paymentState === "cancel") {
-        localStorage.removeItem(UPGRADE_CHECKOUT_KEY);
-        setMessage("Upgrade canceled.");
+        setMessage("Payment was canceled. Your listing has not been upgraded or activated as a paid listing.");
         setIsLoading(false);
         return;
       }

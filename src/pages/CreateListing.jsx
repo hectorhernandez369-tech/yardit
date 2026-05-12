@@ -1534,8 +1534,8 @@ export default function CreateListingPage() {
       if (paymentState === "cancel") {
         console.log("Return from Stripe cancel");
         setIsStartingPayment(false);
-        setPaymentError("Payment was canceled. No listing was created.");
-        toast.error("Payment was canceled. No listing was created.");
+        setPaymentError("Payment was canceled. Your listing has not been upgraded or activated as a paid listing.");
+        toast.error("Payment was canceled. Your listing has not been upgraded or activated as a paid listing.");
         return;
       }
 
@@ -1677,6 +1677,7 @@ export default function CreateListingPage() {
               <ResidentialPaymentStep
                 tier={formData.tier}
                 amount={(RESIDENTIAL_TIER_PRICES[formData.tier] || 0) / 100}
+                listing={formData}
                 isDemoMode={isGlobalDemoMode}
                 isProcessing={isStartingPayment}
                 errorMessage={paymentError}
@@ -1695,6 +1696,7 @@ export default function CreateListingPage() {
               <ResidentialPaymentStep
                 tier={formData.event_tier}
                 amount={(EVENT_TIER_PRICES[formData.event_tier] || 0) / 100}
+                listing={formData}
                 isDemoMode={isGlobalDemoMode}
                 isProcessing={isStartingPayment}
                 errorMessage={paymentError}

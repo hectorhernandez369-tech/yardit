@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { getListingCurrentTier, getTierLabel, getUpgradeOptions, getUpgradePriceDifference } from "@/lib/listingUpgradeConfig";
+import ReviewPayDetails from "@/components/payment/ReviewPayDetails";
+import { RESIDENTIAL_UPGRADE_PRICES, getListingCurrentTier, getTierLabel, getUpgradeOptions, getUpgradePriceDifference } from "@/lib/listingUpgradeConfig";
 
 const UPGRADE_CHECKOUT_KEY = "yardit_listing_upgrade_checkout_v1";
 
@@ -27,6 +28,9 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
     if (!listing || !selectedTier) return 0;
     return getUpgradePriceDifference(listing, selectedTier);
   }, [listing, selectedTier]);
+
+  const originalPrice = RESIDENTIAL_UPGRADE_PRICES[selectedTier] || 0;
+  const amountPaid = Number(listing?.pricePaid || 0) * 100 || (RESIDENTIAL_UPGRADE_PRICES[currentTier] || 0);
 
   useEffect(() => {
     if (!open || !listing) return;
@@ -106,41 +110,40 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Upgrade Listing</DialogTitle>
+          <DialogTitle className="sr-only">Review & Pay</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Current Tier</p>
-                <p className="font-semibold text-slate-900">{getTierLabel(listing, currentTier)}</p>
-              </div>
+          <div>
+            <Label className="mb-2 block text-[#2C4F4E] font-semibold">Upgrade To</Label>
+            <Select value={selectedTier} onValueChange={setSelectedTier}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select upgrade tier" />
+              </SelectTrigger>
+              <SelectContent>
+                {upgradeOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              <div>
-                <Label className="mb-2 block">Upgrade To</Label>
-                <Select value={selectedTier} onValueChange={setSelectedTier}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select upgrade tier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {upgradeOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Charge Today</p>
-                <p className="font-semibold text-slate-900">{formatMoney(amountDue)}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <ReviewPayDetails
+            listing={listing}
+            tier={selectedTier}
+            amount={amountDue / 100}
+            upgrade={{
+              currentTier,
+              newTier: selectedTier,
+              originalPrice: originalPrice / 100,
+              amountPaid: amountPaid / 100,
+              amountDue: amountDue / 100,
+            }}
+          />
 
           <Card>
             <CardContent className="p-4 space-y-2">
@@ -161,12 +164,12 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
             </CardContent>
           </Card>
 
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isStartingPayment} className="flex-1">
-              Cancel
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isStartingPayment} className="flex-1 border-[#2C4F4E]/40">
+              Back to Tier Selection
             </Button>
-            <Button type="button" onClick={handleConfirmUpgrade} disabled={!selectedTier || amountDue <= 0 || isStartingPayment} className="flex-1 bg-amber-600 hover:bg-amber-700 text-white">
-              {isStartingPayment ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Starting...</> : `Confirm Upgrade ${formatMoney(amountDue)}`}
+            <Button type="button" onClick={handleConfirmUpgrade} disabled={!selectedTier || amountDue <= 0 || isStartingPayment} className="flex-1 bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
+              {isStartingPayment ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Starting...</> : "Continue to Stripe"}
             </Button>
           </div>
         </div>
