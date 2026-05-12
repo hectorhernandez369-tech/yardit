@@ -12,11 +12,9 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const listingId = body?.listing_id;
     const targetTier = body?.target_tier;
     const sessionId = body?.stripe_session_id || body?.session_id;
@@ -33,32 +31,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Stripe payment has not confirmed this upgrade' }, { status: 402 });
     }
 
+    const transactions = await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_checkout_session_id: sessionId });
+    const confirmedTransaction = transactions?.find((item) => item.status === 'succeeded' && item.transaction_type === 'listing_upgrade');
+
+    if (!confirmedTransaction) {
+      return Response.json({ error: 'Waiting for Stripe webhook confirmation before unlocking this upgrade' }, { status: 202 });
+    }
+
     const listings = await base44.entities.Listing.filter({ id: listingId });
     const listing = listings?.[0];
-
-    if (!listing) {
-      return Response.json({ error: 'Listing not found' }, { status: 404 });
-    }
-
-    if (listing.ownerUserId !== user.id) {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    if (!listing) return Response.json({ error: 'Listing not found' }, { status: 404 });
+    if (listing.ownerUserId !== user.id) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const updateData = listing.listingType === 'event'
-      ? {
-          tier: targetTier,
-          event_tier: targetTier,
-          pricePaid: listing.pricePaid,
-        }
-      : {
-          tier: targetTier,
-          pricePaid: listing.pricePaid,
-        };
+      ? { tier: targetTier, event_tier: targetTier, status: 'active', payment_intent_status: 'captured', pending_upgrade_tier: '' }
+      : { tier: targetTier, status: listing.status === 'payment_pending_adjustment' ? 'active' : listing.status, payment_intent_status: 'captured', pending_upgrade_tier: '' };
 
     const updated = await base44.entities.Listing.update(listingId, updateData);
     return Response.json({ success: true, listing: updated });
   } catch (error) {
-    console.error('applyListingUpgrade error', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('applyListingUpgrade error', error?.message || error);
+    return Response.json({ error: error?.message || 'Upgrade confirmation failed' }, { status: 500 });
   }
 });

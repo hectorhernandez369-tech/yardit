@@ -129,11 +129,14 @@ async function updateListing(base44, metadata, object, transactionType) {
   const patch = {
     payment_intent_status: 'captured',
     pricePaid: centsToDollars(getAmountCents(object)),
+    stripe_checkout_session_id: object.object === 'checkout.session' ? object.id : '',
+    stripe_payment_intent_id: getPaymentIntentId(object),
   };
 
   if (tier) patch.tier = tier;
   if (listingKind === 'event' && tier) patch.event_tier = tier;
-  if (transactionType === 'listing_payment') patch.status = 'active';
+  if (transactionType === 'listing_payment') patch.status = metadata.final_status || (listingKind === 'residential' ? 'scheduled' : 'active');
+  if (transactionType === 'listing_upgrade') patch.status = metadata.previous_status || 'active';
 
   await base44.asServiceRole.entities.Listing.update(metadata.listing_id, patch);
 }
@@ -145,10 +148,14 @@ async function updateVendorSubscription(base44, metadata, object, statusOverride
   const activeStatuses = new Set(['active', 'trialing']);
   const patch = {
     subscription_status: activeStatuses.has(stripeStatus) ? stripeStatus : stripeStatus === 'past_due' ? 'past_due' : stripeStatus === 'canceled' ? 'canceled' : 'inactive',
+    stripe_subscription_id: object.object === 'subscription' ? object.id : asId(object.subscription),
+    stripe_customer_id: asId(object.customer),
   };
 
   if (activeStatuses.has(stripeStatus) && metadata.target_tier) {
     patch.vendor_tier = metadata.target_tier;
+    patch.setup_tier_confirmed = true;
+    patch.vendor_setup_status = 'in_progress';
   }
 
   await base44.asServiceRole.entities.VendorAccount.update(metadata.vendor_account_id, patch);

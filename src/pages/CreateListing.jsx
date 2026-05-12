@@ -1300,6 +1300,8 @@ export default function CreateListingPage() {
     if (actionStr === "paid_success" && ["featured", "premium"].includes(payload.tier) && payload.listingType !== "event") {
       payload.status = "scheduled";
       payload.pricePaid = (RESIDENTIAL_TIER_PRICES[payload.tier] || 0) / 100;
+      payload.stripe_checkout_session_id = sourceFormData.stripe_checkout_session_id || "";
+      payload.payment_intent_status = sourceFormData.payment_intent_status || "captured";
     }
 
     if (isGlobalDemoMode) {
@@ -1550,11 +1552,16 @@ export default function CreateListingPage() {
           if (response?.data?.paid) {
             setPaymentError("");
             toast.success("Payment successful.");
-            executeSubmit("paid_success", stored.formData);
+            executeSubmit("paid_success", {
+              ...stored.formData,
+              stripe_checkout_session_id: sessionId,
+              payment_intent_status: "captured",
+            });
           } else {
             setIsStartingPayment(false);
-            setPaymentError("Payment could not be confirmed. No listing was created.");
-            toast.error("Payment could not be confirmed. No listing was created.");
+            const pendingMessage = response?.data?.pending_webhook ? "Payment received. Final confirmation is still processing — please try again shortly." : "Payment could not be confirmed. No listing was created.";
+            setPaymentError(pendingMessage);
+            toast.error(pendingMessage);
           }
         }).catch((error) => {
           setIsStartingPayment(false);

@@ -7,43 +7,37 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 Deno.serve(async (req) => {
   try {
     const origin = req.headers.get('origin') || 'https://example.com';
+    const metadata = {
+      base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
+      purpose: 'stripe_setup_verification',
+      mode: 'test',
+    };
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: 100,
       currency: 'usd',
       automatic_payment_methods: { enabled: true },
-      metadata: {
-        base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
-        purpose: 'stripe_setup_verification',
-        mode: 'test',
-      },
+      metadata,
     });
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Yardit Stripe Test Payment',
-              description: 'Sandbox checkout verification',
-            },
-            unit_amount: 100,
-          },
-          quantity: 1,
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: { name: 'Yardit Stripe Test Payment', description: 'Sandbox checkout verification' },
+          unit_amount: 100,
         },
-      ],
-      success_url: `${origin}/?stripe_test=success`,
+        quantity: 1,
+      }],
+      success_url: `${origin}/?stripe_test=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/?stripe_test=cancel`,
-      metadata: {
-        base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
-        purpose: 'stripe_setup_verification',
-        mode: 'test',
-      },
+      metadata,
+      payment_intent_data: { metadata },
     });
 
+    console.log('Stripe setup verification created', { paymentIntentId: paymentIntent.id, checkoutSessionId: checkoutSession.id });
     return Response.json({
       ok: true,
       test_mode: true,
@@ -55,9 +49,6 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('Stripe verification failed:', error?.message || error);
-    return Response.json({
-      ok: false,
-      error: error?.message || 'Stripe verification failed',
-    }, { status: 500 });
+    return Response.json({ ok: false, error: error?.message || 'Stripe verification failed' }, { status: 500 });
   }
 });

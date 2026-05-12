@@ -53,16 +53,11 @@ export default function CreateListingUpgradeReturn() {
         });
 
         if (!verifyResponse?.data?.paid) {
-          throw new Error("Payment could not be confirmed.");
+          throw new Error(verifyResponse?.data?.pending_webhook ? "Payment received. Final confirmation is still processing — please check My Listings shortly." : "Payment could not be confirmed.");
         }
 
-        await base44.functions.invoke("applyListingUpgrade", {
-          listing_id: stored.listingId,
-          target_tier: stored.targetTier,
-        });
-
         localStorage.removeItem(UPGRADE_CHECKOUT_KEY);
-        toast.success("Upgrade complete.");
+        toast.success("Upgrade confirmed.");
         navigate(createPageUrl("MyListings"));
       } catch (error) {
         setMessage(error?.response?.data?.error || error?.message || "Upgrade failed.");

@@ -56,7 +56,30 @@ export default function VendorBillingTab({ account, onRefresh }) {
     }
 
     setChangingTier(tierKey);
-    await base44.entities.VendorAccount.update(account.id, { vendor_tier: tierKey, subscription_status: "active", extra_users_count: 0, extra_pins_count: 0, setup_tier_confirmed: true, vendor_setup_status: "in_progress" });
+
+    if (targetTierIndex > currentTierIndex && tierKey !== "free") {
+      if (window.self !== window.top) {
+        toast.error("Checkout works only from the published app.");
+        setChangingTier("");
+        return;
+      }
+
+      const response = await base44.functions.invoke("createVendorSubscriptionCheckout", {
+        vendor_account_id: account.id,
+        target_tier: tierKey,
+        return_url: `${window.location.origin}/VendorDashboard?tab=tier`,
+      });
+
+      const checkoutUrl = response?.data?.checkoutUrl;
+      if (!checkoutUrl) {
+        throw new Error("Vendor subscription checkout could not start.");
+      }
+
+      window.location.assign(checkoutUrl);
+      return;
+    }
+
+    await base44.entities.VendorAccount.update(account.id, { vendor_tier: tierKey, subscription_status: tierKey === "free" ? "inactive" : "active", extra_users_count: 0, extra_pins_count: 0, setup_tier_confirmed: true, vendor_setup_status: "in_progress" });
     toast.success(`Plan changed to ${VENDOR_TIERS[tierKey].label}`);
     await onRefresh?.();
     setChangingTier("");
