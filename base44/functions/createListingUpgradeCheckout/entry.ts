@@ -106,7 +106,6 @@ Deno.serve(async (req) => {
       customer: customerId,
       customer_email: customerId ? undefined : customerEmail,
       payment_method_types: ['card'],
-      payment_method_collection: 'always',
       success_url: successUrl,
       cancel_url: cancelUrl,
       line_items: [{
