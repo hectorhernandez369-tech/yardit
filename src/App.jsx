@@ -11,6 +11,7 @@ import { isComingSoonModeEnabled, getTesterBypass, shouldBypassComingSoonForCurr
 import PageNotFound from './lib/PageNotFound';
 import ComingSoon from './pages/ComingSoon';
 import VendorDashboard from './pages/VendorDashboard';
+import AssistedListingApproval from './pages/AssistedListingApproval';
 import CreateListingUpgradeReturn from './pages/CreateListingUpgradeReturn';
 import PrintableChecklist from './pages/PrintableChecklist';
 import VendorPinPreview from './pages/VendorPinPreview';
@@ -135,6 +136,7 @@ const AuthenticatedApp = () => {
         <Route path="/CreateListingUpgradeReturn" element={<LayoutWrapper currentPageName="CreateListingUpgradeReturn"><CreateListingUpgradeReturn /></LayoutWrapper>} />
         <Route path="/PrintableChecklist" element={<PrintableChecklist />} />
         <Route path="/ComingSoon" element={<ComingSoon />} />
+        <Route path="/assisted-listing" element={<AssistedListingApproval />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
       <GuestEntryModal open={showGuestEntry} onLogin={navigateToLogin} onGuestEnter={enterGuestMode} />

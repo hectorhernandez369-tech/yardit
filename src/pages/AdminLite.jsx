@@ -22,6 +22,7 @@ import EmployeeUsersTab from "../components/admin/EmployeeUsersTab";
 import MySettingsTab from "../components/admin/MySettingsTab";
 import { getAdminSession, clearAdminSession } from "../components/admin/AdminLoginModal";
 import AdminLoginModal from "../components/admin/AdminLoginModal";
+import AdminAssistedListingsTab from "../components/admin/assisted/AdminAssistedListingsTab";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -262,6 +263,7 @@ export default function AdminLitePage() {
             {canManageAdmins && <TabsTrigger value="create-admin" className="whitespace-nowrap">Create Admin</TabsTrigger>}
             {canManageAdmins && <TabsTrigger value="employee-users" className="whitespace-nowrap">Employee Users</TabsTrigger>}
             {canViewLogs && <TabsTrigger value="logs" className="whitespace-nowrap">Logs</TabsTrigger>}
+            <TabsTrigger value="assisted" className="whitespace-nowrap">Assisted Listings</TabsTrigger>
             <TabsTrigger value="settings" className="whitespace-nowrap">My Settings</TabsTrigger>
             
             <div className="flex-1" />
@@ -364,6 +366,11 @@ export default function AdminLitePage() {
               <AdminLogsTab />
             </TabsContent>
           )}
+
+          {/* ─── Assisted Listings ─── */}
+          <TabsContent value="assisted">
+            <AdminAssistedListingsTab adminUser={user} />
+          </TabsContent>
 
           {/* ─── My Settings ─── */}
           <TabsContent value="settings">
