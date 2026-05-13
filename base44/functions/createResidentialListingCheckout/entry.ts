@@ -6,6 +6,55 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 });
 
 const RESIDENTIAL_PRICES = { featured: 499, premium: 799 };
+
+const RESERVED_STATUSES = new Set([
+  'active', 'under_review', 'pending_payment', 'scheduled',
+  'activated_locked', 'coming_soon', 'payment_pending', 'payment_pending_adjustment',
+]);
+
+function expandDateRange(startDate, endDate) {
+  const dates = [];
+  if (!startDate || !endDate) return dates;
+  const [sy, sm, sd] = startDate.split('-').map(Number);
+  const [ey, em, ed] = endDate.split('-').map(Number);
+  const startMs = Date.UTC(sy, sm - 1, sd);
+  const endMs = Date.UTC(ey, em - 1, ed);
+  const one = 86400000;
+  let cur = startMs;
+  let guard = 0;
+  while (cur <= endMs && guard++ < 40) {
+    const d = new Date(cur);
+    const y = d.getUTCFullYear();
+    const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const da = String(d.getUTCDate()).padStart(2, '0');
+    dates.push(`${y}-${mo}-${da}`);
+    cur += one;
+  }
+  return dates;
+}
+
+async function checkResidentialDateConflict(base44, ownerUserId, lat, lng, startDate, endDate) {
+  if (!ownerUserId || !lat || !lng || !startDate || !endDate) return false;
+  const listings = await base44.asServiceRole.entities.Listing.filter({ ownerUserId });
+  const now = new Date();
+  const proposed = new Set(expandDateRange(startDate, endDate));
+  for (const l of listings || []) {
+    if (l.listingType !== 'yard_sale') continue;
+    if (l.is_demo_listing) continue;
+    if (!RESERVED_STATUSES.has(l.status)) continue;
+    if (l.endDateTime && new Date(l.endDateTime) < now) continue;
+    // coordinate match ~100ft
+    const dLat = Math.abs((l.lat || 0) - lat);
+    const dLng = Math.abs((l.lng || 0) - lng);
+    if (dLat >= 0.0003 || dLng >= 0.0003) continue;
+    const existing = [...expandDateRange(l.selectedRangeStartDate, l.selectedRangeEndDate),
+                     ...(l.earlyVisibilityDates || [])];
+    for (const d of existing) {
+      if (proposed.has(d)) return true;
+    }
+  }
+  return false;
+}
 const nowIso = () => new Date().toISOString();
 const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
 
@@ -69,6 +118,23 @@ Deno.serve(async (req) => {
 
     if (listingKind === 'residential' && expectedResidentialAmount && amountCents !== expectedResidentialAmount) {
       return Response.json({ error: 'Invalid residential tier amount' }, { status: 400 });
+    }
+
+    // ✅ Backend date-overlap guard: prevent paying for already-reserved dates
+    if (listingKind === 'residential' && payload.owner_user_id && payload.lat && payload.lng &&
+        payload.selected_range_start_date && payload.selected_range_end_date) {
+      const conflict = await checkResidentialDateConflict(
+        base44,
+        payload.owner_user_id,
+        Number(payload.lat),
+        Number(payload.lng),
+        payload.selected_range_start_date,
+        payload.selected_range_end_date
+      );
+      if (conflict) {
+        console.warn('Date conflict detected, blocking checkout', { owner: payload.owner_user_id, start: payload.selected_range_start_date, end: payload.selected_range_end_date });
+        return Response.json({ error: 'These dates are already reserved for this address. Please choose different dates.' }, { status: 409 });
+      }
     }
 
     if (payload.listing_id) {

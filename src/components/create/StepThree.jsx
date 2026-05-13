@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { hasDateConflict } from "@/lib/residentialDateConflict";
 
 function makeId() {
   try {
@@ -20,7 +21,7 @@ function addDays(dateStr, delta) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export default function StepThree({ formData, setFormData }) {
+export default function StepThree({ formData, setFormData, reservedDates = new Set() }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
 
@@ -131,6 +132,14 @@ export default function StepThree({ formData, setFormData }) {
     return null;
   }, [formData.tier, formData.earlyVisibilityDays, formData.selectedRangeStartDate]);
 
+  const dateConflict = useMemo(() => {
+    if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) return false;
+    return hasDateConflict(formData.selectedRangeStartDate, formData.selectedRangeEndDate, reservedDates);
+  }, [formData.selectedRangeStartDate, formData.selectedRangeEndDate, reservedDates]);
+
+  // Build a set of YYYY-MM-DD strings that are reserved, for min/max disabling hints
+  const reservedSortedList = useMemo(() => Array.from(reservedDates).sort(), [reservedDates]);
+
   return (
     <div className="space-y-6">
       {!isNeighborhoodSale && (
@@ -224,7 +233,18 @@ export default function StepThree({ formData, setFormData }) {
                     ? "Featured listings must run exactly 3 consecutive days." 
                     : "Premium listings can run up to 5 consecutive days."}
                 </p>
+                {reservedSortedList.length > 0 && (
+                  <p className="text-xs text-amber-700 mt-2 font-medium">
+                    ⚠ Reserved dates for your address: {reservedSortedList.slice(0, 6).join(", ")}{reservedSortedList.length > 6 ? ` +${reservedSortedList.length - 6} more` : ""}
+                  </p>
+                )}
               </div>
+
+              {dateConflict && (
+                <div className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700 font-medium">
+                  These dates are already reserved for this address. Please choose different dates or edit your existing listing.
+                </div>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

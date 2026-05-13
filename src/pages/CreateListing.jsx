@@ -41,6 +41,11 @@ import {
   enforcePhotoLimit,
   getPhotoLimitByTier
 } from "../components/shared/listingTierEngine";
+import {
+  getReservedDatesForAddress,
+  hasDateConflict,
+  getConflictingDates,
+} from "@/lib/residentialDateConflict";
 import { EVENT_TIER_PRICES } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
 import { buildResolvedListingLocation, isLocationReadyForSubmission, resolveTimeZoneFromCoordinates, getStateAbbreviation } from "@/lib/listingLocation";
@@ -522,21 +527,28 @@ export default function CreateListingPage() {
   const paymentStepNumber = isEventFlow ? 5 : 4;
   const entryStepNumber = isEventFlow ? 4 : 3;
 
-  const getActiveResidentialListing = () => {
-    if (isGlobalDemoMode) return null;
-    if (isDevBypassUser(user)) return null;
+  // Compute reserved dates for user's verified primary address (drives calendar blocking)
+  const addressRef = user ? { lat: user.primary_latitude, lng: user.primary_longitude } : null;
+  const reservedDates = React.useMemo(
+    () => (!isGlobalDemoMode && !isDevBypassUser(user) && addressRef
+      ? getReservedDatesForAddress(userListings, null, addressRef)
+      : new Set()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userListings, user?.primary_latitude, user?.primary_longitude, isGlobalDemoMode]
+  );
 
-    const now = Date.now();
-    return (userListings || []).find((l) => {
-      if (l.status === "completed" || l.status === "suspended" || l.status === "expired") return false;
-      if (l.endDateTime && new Date(l.endDateTime).getTime() < now) return false;
-
-      return l.status === "active" || l.status === "under_review";
-    }) || null;
+  // Returns true if the proposed dates conflict with any reserved listing for this address
+  const hasResidentialDateConflict = (startDate, endDate) => {
+    if (!startDate || !endDate || isGlobalDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
+    return hasDateConflict(startDate, endDate, reservedDates);
   };
 
-  const hasActiveResidentialListing = () => {
-    return !!getActiveResidentialListing();
+  // Live-fetch version used in mutation and Stripe-return handler (avoids stale cache)
+  const checkDateConflictLive = async (startDate, endDate) => {
+    if (!startDate || !endDate || isGlobalDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
+    const freshListings = await base44.entities.Listing.filter({ ownerUserId: user.id });
+    const freshReserved = getReservedDatesForAddress(freshListings, null, addressRef);
+    return hasDateConflict(startDate, endDate, freshReserved);
   };
 
   const startPaidListingCheckout = async () => {
@@ -567,6 +579,12 @@ export default function CreateListingPage() {
         listing_kind: formData.listingType === "event" ? "event" : "residential",
         customer_email: user?.email,
         return_url: returnUrl,
+        // For backend date-conflict guard
+        owner_user_id: user?.id,
+        lat: user?.primary_latitude,
+        lng: user?.primary_longitude,
+        selected_range_start_date: formData.selectedRangeStartDate || "",
+        selected_range_end_date: formData.selectedRangeEndDate || "",
       });
 
       console.log("Stripe session created", response?.data);
@@ -651,12 +669,12 @@ export default function CreateListingPage() {
 
   const createListingMutation = useMutation({
     mutationFn: async (data) => {
-      // ✅ Enforce 1 active listing per account (residential Phase 1)
-      if (!isAdminCreate && data.listingType === "yard_sale" && hasActiveResidentialListing()) {
-        const activeListing = getActiveResidentialListing();
-        const listingTitle = activeListing?.title || "Untitled";
-        const listingId = activeListing?.listingNumber || activeListing?.id || "Unknown ID";
-        throw new Error(`You already have an active listing. End it before creating another. Active listing: ${listingTitle} (${listingId}).`);
+      // ✅ Enforce date-overlap rule: same address cannot have overlapping active listing dates
+      if (!isAdminCreate && data.listingType === "yard_sale" && data.selectedRangeStartDate && data.selectedRangeEndDate) {
+        const conflict = await checkDateConflictLive(data.selectedRangeStartDate, data.selectedRangeEndDate);
+        if (conflict) {
+          throw new Error("These dates are already reserved for this address. Please choose different dates or edit your existing listing.");
+        }
       }
 
       const demoPrefix = isGlobalDemoMode ? "Demo listing: " : "";
@@ -992,14 +1010,6 @@ export default function CreateListingPage() {
         if (profileIncomplete) {
           toast.error("Complete your profile to start posting.");
           navigate(createPageUrl("Profile"));
-          return;
-        }
-
-        if (!isAdminCreate && formData.listingType === "yard_sale" && hasActiveResidentialListing()) {
-          const activeListing = getActiveResidentialListing();
-          const listingTitle = activeListing?.title || "Untitled";
-          const listingId = activeListing?.listingNumber || activeListing?.id || "Unknown ID";
-          toast.error(`You already have an active listing: ${listingTitle} (${listingId})`);
           return;
         }
 
@@ -1363,8 +1373,11 @@ export default function CreateListingPage() {
   };
 
   const handleSubmit = async () => {
-    if (!isAdminCreate && formData.listingType === "yard_sale" && hasActiveResidentialListing()) {
-      toast.error("You already have an active listing. End it before creating another.");
+    // Date-overlap check at submit time (for featured/premium with explicit dates)
+    if (!isAdminCreate && formData.listingType === "yard_sale" &&
+        formData.selectedRangeStartDate && formData.selectedRangeEndDate &&
+        hasResidentialDateConflict(formData.selectedRangeStartDate, formData.selectedRangeEndDate)) {
+      toast.error("These dates are already reserved for this address. Please choose different dates or edit your existing listing.");
       return;
     }
 
@@ -1548,8 +1561,18 @@ export default function CreateListingPage() {
         base44.functions.invoke("createResidentialListingCheckout", {
           action: "verify",
           session_id: sessionId,
-        }).then((response) => {
+        }).then(async (response) => {
           if (response?.data?.paid) {
+            // Live date-overlap check on Stripe return (prevents stale-cache race condition)
+            if (stored.formData?.listingType === "yard_sale" && stored.formData?.selectedRangeStartDate) {
+              const conflict = await checkDateConflictLive(stored.formData.selectedRangeStartDate, stored.formData.selectedRangeEndDate);
+              if (conflict) {
+                setIsStartingPayment(false);
+                setPaymentError("These dates are already reserved for this address. Please choose different dates or edit your existing listing.");
+                toast.error("These dates are already reserved for this address.");
+                return;
+              }
+            }
             setPaymentError("");
             toast.success("Payment successful.");
             executeSubmit("paid_success", {
@@ -1656,7 +1679,7 @@ export default function CreateListingPage() {
                 ? <EventLocationStep formData={formData} setFormData={setFormData} />
                 : <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} />
             )}
-            {step === 3 && (formData.listingType === "event" ? <EventScheduleStep formData={formData} setFormData={setFormData} /> : <StepThree formData={formData} setFormData={setFormData} />)}
+            {step === 3 && (formData.listingType === "event" ? <EventScheduleStep formData={formData} setFormData={setFormData} /> : <StepThree formData={formData} setFormData={setFormData} reservedDates={reservedDates} />)}
             {step === 4 && formData.listingType === "event" && (
               <div className="space-y-6">
                 <EventTierStep formData={formData} setFormData={setFormData} />
