@@ -9,7 +9,7 @@ import { getVendorTierDowngradeIssues } from "@/lib/vendorEvents";
 import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
 import VendorAddOnsSection from "@/components/vendor/billing/VendorAddOnsSection";
 import TierFeatureSummary from "@/components/vendor/TierFeatureSummary";
-import ReviewPayContent from "@/components/payment/ReviewPayContent";
+import VendorTierReviewPanel from "@/components/vendor/billing/VendorTierReviewPanel";
 import { toast } from "sonner";
 
 export default function VendorBillingTab({ account, onRefresh }) {
@@ -97,20 +97,12 @@ export default function VendorBillingTab({ account, onRefresh }) {
   };
 
   if (reviewTier) {
-    const tier = VENDOR_TIERS[reviewTier];
     return (
       <div id="vendor-tier-section" className="space-y-4">
-        <ReviewPayContent
-          purchaseName={tier.label}
-          badge={reviewTier === "event_organizer" ? "Event Organizer" : `Vendor ${tier.label}`}
-          purchaseType={reviewTier}
-          tier={reviewTier}
-          price={getTierPriceAmount(reviewTier)}
-          summaryTitle="Account Summary"
-          summaryItems={[
-            { label: "Business", value: account?.vendor_display_name || account?.business_name || "Vendor account" },
-            { label: "Selected Tier", value: tier.label },
-          ]}
+        <VendorTierReviewPanel
+          targetTierKey={reviewTier}
+          currentTierKey={account?.vendor_tier || "free"}
+          account={account}
           isProcessing={changingTier === reviewTier}
           onBack={() => setReviewTier("")}
           onPay={() => startTierCheckout(reviewTier)}
