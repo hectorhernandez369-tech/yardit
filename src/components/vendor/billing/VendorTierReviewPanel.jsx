@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Shield, CheckCircle2, AlertCircle, ArrowRight, Lock, Loader2, Info } from "lucide-react";
@@ -65,6 +65,14 @@ export default function VendorTierReviewPanel({
   onBack,
   onPay,
 }) {
+  const topRef = useRef(null);
+
+  useEffect(() => {
+    if (topRef.current) {
+      topRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
   const tier = VENDOR_TIERS[targetTierKey];
   const currentTier = VENDOR_TIERS[currentTierKey] || VENDOR_TIERS.free;
   const priceNum = Number(String(tier?.price || "0").replace(/[^0-9.]/g, "")) || 0;
@@ -92,7 +100,7 @@ export default function VendorTierReviewPanel({
   const headerGradient = isOrganizer ? "from-blue-700 to-blue-900" : "from-[#5DADA5] to-[#2C4F4E]";
 
   return (
-    <div className="space-y-4 max-w-2xl mx-auto">
+    <div ref={topRef} className="space-y-4 max-w-2xl mx-auto">
 
       {/* Hero header */}
       <div className={`rounded-2xl bg-gradient-to-br ${headerGradient} p-5 text-white shadow-md`}>

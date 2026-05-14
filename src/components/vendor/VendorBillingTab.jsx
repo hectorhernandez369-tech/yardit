@@ -347,7 +347,16 @@ export default function VendorBillingTab({ account, onRefresh }) {
               </Button>
               <Button
                 className="flex-1 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] font-semibold gap-2"
-                onClick={() => { setReviewAddOns({ extraUsers, extraPins }); setReviewTier(selectedTier); }}
+                onClick={() => {
+                  setReviewAddOns({ extraUsers, extraPins });
+                  setReviewTier(selectedTier);
+                  // Scroll to top of the section so review starts at the top
+                  setTimeout(() => {
+                    const el = document.getElementById("vendor-tier-section");
+                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    else window.scrollTo({ top: 0, behavior: "smooth" });
+                  }, 50);
+                }}
               >
                 Continue to Payment <ArrowRight className="w-4 h-4" />
               </Button>
