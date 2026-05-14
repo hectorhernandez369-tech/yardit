@@ -182,7 +182,7 @@ function LayoutContent({ children, user, setUser }) {
                 </Link>
               )}
 
-              {!user && !isGuest && !isAuthenticated && (
+              {!isAuthenticated && (
                 <Button
                   size="sm"
                   onClick={navigateToLogin}
@@ -194,10 +194,10 @@ function LayoutContent({ children, user, setUser }) {
               )}
               
               <>
-                {!isGuest && user && <NotificationBell />}
+                {user && <NotificationBell />}
 
 
-                {(user || isGuest) && (
+                {user && (
                   <>
                     <Button
                     size="sm"
