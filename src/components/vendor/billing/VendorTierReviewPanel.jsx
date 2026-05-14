@@ -47,6 +47,7 @@ export default function VendorTierReviewPanel({
   targetTierKey,
   currentTierKey,
   account,
+  pendingAddOns = { extraUsers: 0, extraPins: 0 },
   isProcessing,
   onBack,
   onPay,
@@ -54,6 +55,8 @@ export default function VendorTierReviewPanel({
   const tier = VENDOR_TIERS[targetTierKey];
   const currentTier = VENDOR_TIERS[currentTierKey] || VENDOR_TIERS.free;
   const priceNum = Number(String(tier?.price || "0").replace(/[^0-9.]/g, "")) || 0;
+  const addOnsCost = (pendingAddOns.extraUsers * 5) + (pendingAddOns.extraPins * 10);
+  const totalMonthly = priceNum + addOnsCost;
   const isOrganizer = targetTierKey === "event_organizer";
 
   const renewalDate = (() => {
@@ -87,7 +90,7 @@ export default function VendorTierReviewPanel({
           </div>
           <div className="shrink-0 text-right bg-white/15 rounded-xl px-4 py-3">
             <p className="text-xs text-white/70">Monthly</p>
-            <p className="text-2xl font-bold">{money(priceNum)}</p>
+            <p className="text-2xl font-bold">{money(totalMonthly)}</p>
             <p className="text-xs text-white/60">/ month</p>
           </div>
         </div>
@@ -114,7 +117,10 @@ export default function VendorTierReviewPanel({
             { label: "Business", value: account?.vendor_display_name || account?.business_name || "Vendor Account" },
             { label: "Current Tier", value: currentTier.label },
             { label: "New Tier", value: tier?.label },
-            { label: "Monthly Cost", value: `${money(priceNum)}/month` },
+            { label: "Base Plan Cost", value: `${money(priceNum)}/month` },
+            ...(pendingAddOns.extraUsers > 0 ? [{ label: "Extra Users", value: `+${pendingAddOns.extraUsers} × $5 = ${money(pendingAddOns.extraUsers * 5)}/mo` }] : []),
+            ...(pendingAddOns.extraPins > 0 ? [{ label: "Extra Pins", value: `+${pendingAddOns.extraPins} × $10 = ${money(pendingAddOns.extraPins * 10)}/mo` }] : []),
+            { label: "Total Monthly Cost", value: `${money(totalMonthly)}/month` },
             { label: "Billing Starts", value: "Today after payment confirmation" },
             { label: "Next Renewal", value: renewalDate },
           ].map(({ label, value }) => (

@@ -10,11 +10,14 @@ import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
 import VendorAddOnsSection from "@/components/vendor/billing/VendorAddOnsSection";
 import TierFeatureSummary from "@/components/vendor/TierFeatureSummary";
 import VendorTierReviewPanel from "@/components/vendor/billing/VendorTierReviewPanel";
+import UpgradeAddOnsStep from "@/components/vendor/billing/UpgradeAddOnsStep";
 import { toast } from "sonner";
 
 export default function VendorBillingTab({ account, onRefresh }) {
   const [changingTier, setChangingTier] = useState("");
   const [reviewTier, setReviewTier] = useState("");
+  const [addOnsTier, setAddOnsTier] = useState(""); // intermediate add-ons step
+  const [pendingAddOns, setPendingAddOns] = useState({ extraUsers: 0, extraPins: 0 });
   const currentTierIndex = Math.max(0, VENDOR_TIER_ORDER.indexOf(account?.vendor_tier || "free"));
 
   const { data: events = [] } = useQuery({
@@ -84,7 +87,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
     }
 
     if (targetTierIndex > currentTierIndex && tierKey !== "free") {
-      setReviewTier(tierKey);
+      setAddOnsTier(tierKey); // show add-ons step first
       return;
     }
 
@@ -96,6 +99,22 @@ export default function VendorBillingTab({ account, onRefresh }) {
     setChangingTier("");
   };
 
+  if (addOnsTier) {
+    return (
+      <div id="vendor-tier-section" className="space-y-4">
+        <UpgradeAddOnsStep
+          targetTierKey={addOnsTier}
+          onBack={() => setAddOnsTier("")}
+          onContinue={(addOns) => {
+            setPendingAddOns(addOns);
+            setReviewTier(addOnsTier);
+            setAddOnsTier("");
+          }}
+        />
+      </div>
+    );
+  }
+
   if (reviewTier) {
     return (
       <div id="vendor-tier-section" className="space-y-4">
@@ -103,8 +122,9 @@ export default function VendorBillingTab({ account, onRefresh }) {
           targetTierKey={reviewTier}
           currentTierKey={account?.vendor_tier || "free"}
           account={account}
+          pendingAddOns={pendingAddOns}
           isProcessing={changingTier === reviewTier}
-          onBack={() => setReviewTier("")}
+          onBack={() => { setReviewTier(""); setAddOnsTier(reviewTier); }}
           onPay={() => startTierCheckout(reviewTier)}
         />
       </div>
