@@ -1,11 +1,23 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Shield, CheckCircle2, AlertCircle, ArrowRight, Lock, Loader2 } from "lucide-react";
+import { CreditCard, Shield, CheckCircle2, AlertCircle, ArrowRight, Lock, Loader2, Info } from "lucide-react";
 import { VENDOR_TIERS, VENDOR_TIER_ORDER } from "@/lib/vendorTiers";
 
 function money(amount) {
   return `$${Number(amount || 0).toFixed(2)}`;
+}
+
+// Calculate prorated amount for add-ons added today
+// Assumes billing renews on the same day next month
+function calcProration(monthlyAmount) {
+  const today = new Date();
+  const renewalDate = new Date(today);
+  renewalDate.setMonth(renewalDate.getMonth() + 1);
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const daysRemaining = Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24));
+  const dailyRate = monthlyAmount / daysInMonth;
+  return dailyRate * daysRemaining;
 }
 
 const UNLOCK_FEATURES = {
@@ -47,6 +59,8 @@ export default function VendorTierReviewPanel({
   targetTierKey,
   currentTierKey,
   account,
+  extraUsers = 0,
+  extraPins = 0,
   isProcessing,
   onBack,
   onPay,
@@ -56,6 +70,17 @@ export default function VendorTierReviewPanel({
   const priceNum = Number(String(tier?.price || "0").replace(/[^0-9.]/g, "")) || 0;
   const isOrganizer = targetTierKey === "event_organizer";
 
+  const addOnUsersCost = extraUsers * 5;
+  const addOnPinsCost = extraPins * 10;
+  const totalAddOnsCost = addOnUsersCost + addOnPinsCost;
+  const estimatedMonthlyTotal = priceNum + totalAddOnsCost;
+
+  // Proration: new subscription starts today, so full month is due now
+  // Add-ons on a new sub are included in first charge — proration shown as informational
+  const proratedAddOnCost = totalAddOnsCost > 0 ? calcProration(totalAddOnsCost) : 0;
+  // For a brand-new subscription, due today = full tier price + prorated add-ons
+  const dueToday = priceNum + (totalAddOnsCost > 0 ? proratedAddOnCost : 0);
+
   const renewalDate = (() => {
     const d = new Date();
     d.setMonth(d.getMonth() + 1);
@@ -64,9 +89,7 @@ export default function VendorTierReviewPanel({
 
   const unlockItems = UNLOCK_FEATURES[targetTierKey] || [];
   const accentColor = isOrganizer ? "text-blue-700" : "text-[#2C4F4E]";
-  const headerGradient = isOrganizer
-    ? "from-blue-700 to-blue-900"
-    : "from-[#5DADA5] to-[#2C4F4E]";
+  const headerGradient = isOrganizer ? "from-blue-700 to-blue-900" : "from-[#5DADA5] to-[#2C4F4E]";
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
@@ -95,7 +118,7 @@ export default function VendorTierReviewPanel({
 
       {/* Plan Change Summary */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-700 mb-3">Plan Change Summary</h3>
+        <h3 className="text-sm font-bold text-slate-700 mb-3">Plan Change</h3>
         <div className="flex items-center gap-3 text-sm">
           <span className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 font-medium">{currentTier.label}</span>
           <ArrowRight className="w-4 h-4 text-slate-400 shrink-0" />
@@ -109,26 +132,89 @@ export default function VendorTierReviewPanel({
       {/* Billing Summary */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h3 className="text-sm font-bold text-slate-700 mb-3">Billing Summary</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {[
-            { label: "Business", value: account?.vendor_display_name || account?.business_name || "Vendor Account" },
-            { label: "Current Tier", value: currentTier.label },
-            { label: "New Tier", value: tier?.label },
-            { label: "Monthly Cost", value: `${money(priceNum)}/month` },
-            { label: "Billing Starts", value: "Today after payment confirmation" },
-            { label: "Next Renewal", value: renewalDate },
-          ].map(({ label, value }) => (
-            <div key={label} className="rounded-xl bg-slate-50 px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-              <p className="text-sm font-semibold text-slate-800 mt-0.5">{value}</p>
-            </div>
-          ))}
+
+        {/* Plan line */}
+        <div className="rounded-xl bg-slate-50 px-3 py-2.5 mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Plan</p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-sm font-semibold text-slate-800">{tier?.label}</p>
+            <p className="text-sm font-semibold text-slate-800">{money(priceNum)}/mo</p>
+          </div>
         </div>
+
+        {/* Included */}
+        <div className="rounded-xl bg-slate-50 px-3 py-2.5 mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Included</p>
+          <p className="text-sm text-slate-700 mt-0.5">{tier?.includedUsers} user{tier?.includedUsers !== 1 ? "s" : ""} · {tier?.includedPins} pin{tier?.includedPins !== 1 ? "s" : ""}</p>
+        </div>
+
+        {/* Add-ons (if any) */}
+        {totalAddOnsCost > 0 && (
+          <div className="rounded-xl bg-slate-50 px-3 py-2.5 mb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Add-ons</p>
+            <div className="mt-0.5 space-y-1">
+              {extraUsers > 0 && (
+                <div className="flex items-center justify-between text-sm text-slate-700">
+                  <span>+{extraUsers} additional user{extraUsers !== 1 ? "s" : ""}</span>
+                  <span className="font-semibold">{money(addOnUsersCost)}/mo</span>
+                </div>
+              )}
+              {extraPins > 0 && (
+                <div className="flex items-center justify-between text-sm text-slate-700">
+                  <span>+{extraPins} additional pin{extraPins !== 1 ? "s" : ""}</span>
+                  <span className="font-semibold">{money(addOnPinsCost)}/mo</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Totals */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+          <div className="rounded-xl bg-[#F3E6CF]/60 border border-[#F4A849]/30 px-3 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Estimated Monthly Total</p>
+            <p className="text-lg font-bold text-[#2C4F4E] mt-0.5">{money(estimatedMonthlyTotal)}<span className="text-xs font-normal text-slate-500">/mo</span></p>
+          </div>
+          <div className="rounded-xl bg-[#F3E6CF]/60 border border-[#F4A849]/30 px-3 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Due Today</p>
+            <p className="text-lg font-bold text-[#2C4F4E] mt-0.5">{money(dueToday)}</p>
+            {totalAddOnsCost > 0 && (
+              <p className="text-[10px] text-slate-500 mt-0.5">Tier + prorated add-ons</p>
+            )}
+          </div>
+        </div>
+
+        {/* Billing dates */}
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Billing Starts</p>
+            <p className="text-sm font-semibold text-slate-800 mt-0.5">Today after payment</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Next Renewal</p>
+            <p className="text-sm font-semibold text-slate-800 mt-0.5">{renewalDate}</p>
+          </div>
+        </div>
+
         <p className="text-xs text-slate-500 mt-3 flex items-start gap-1.5">
           <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-green-500" />
           Upgrade activates immediately after successful Stripe confirmation.
         </p>
       </div>
+
+      {/* Proration / add-on billing note */}
+      {totalAddOnsCost > 0 && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+          <div className="flex items-start gap-2">
+            <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-blue-900 space-y-1">
+              <p className="font-semibold">Add-on Billing</p>
+              <p>Add-ons added today are prorated to your next billing date ({renewalDate}). You pay only for the remaining days in this billing cycle.</p>
+              <p className="text-xs text-blue-700 mt-1">Removed add-ons stay active until your next billing date. Your monthly total will update on the next cycle.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* What You Unlock */}
       {unlockItems.length > 0 && (
@@ -155,6 +241,8 @@ export default function VendorTierReviewPanel({
           {[
             "Subscription renews automatically every month",
             `Cancel anytime before ${renewalDate} to avoid the next charge`,
+            "Add-ons added mid-cycle are prorated to your next billing date",
+            "Removed add-ons take effect on the next billing cycle — no mid-cycle refunds",
             "Failed payments may pause paid features on your account",
             "Stripe securely processes all payments — Yardit does not store card data",
           ].map((note) => (
