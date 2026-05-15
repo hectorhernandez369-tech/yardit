@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import ReportModal from "../components/ReportModal";
 import PromotionModal from "../components/admin/promotions/PromotionModal";
+import { getAdminSession } from "@/components/admin/AdminLoginModal";
 import { useAppMode } from "../components/shared/DemoMode";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
@@ -564,13 +565,17 @@ export default function ListingDetailPage() {
                   
                   <p className="text-xs text-slate-500">
                     Owner:{" "}
-                    <button
-                      type="button"
-                      onClick={() => navigate(createPageUrl("AdminLite") + `?tab=lite&liteTab=users&openUserId=${listing.ownerUserId}`)}
-                      className="font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2"
-                    >
-                      {getOwnerDisplayName(ownerUser, listing)}
-                    </button>
+                    {user?.isAdmin && getAdminSession() ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate(createPageUrl("AdminLite") + `?tab=lite&liteTab=users&openUserId=${listing.ownerUserId}`)}
+                        className="font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                      >
+                        {getOwnerDisplayName(ownerUser, listing)}
+                      </button>
+                    ) : (
+                      <span className="font-medium text-slate-700">{getOwnerDisplayName(ownerUser, listing)}</span>
+                    )}
                   </p>
                 </div>
 
