@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ExternalLink } from "lucide-react";
+import { Search, ExternalLink, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import VendorPromoModal from "./promos/VendorPromoModal";
+import VendorActivePromos from "./promos/VendorActivePromos";
 
 const TIER_COLORS = {
   free: "bg-slate-100 text-slate-700",
@@ -25,9 +26,16 @@ const STATUS_COLORS = {
   canceled: "bg-red-200 text-red-900",
 };
 
+function canApplyPromo(user) {
+  const role = user?.role || user?.role_label;
+  return role === "master" || role === "supervisor";
+}
+
 export default function VendorAccountsTable({ user }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [promoAccount, setPromoAccount] = useState(null);
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ["vendorAccountsAdmin"],
@@ -45,14 +53,10 @@ export default function VendorAccountsTable({ user }) {
   });
 
   const pinCountByAccount = {};
-  pins.forEach(p => {
-    pinCountByAccount[p.vendor_account_id] = (pinCountByAccount[p.vendor_account_id] || 0) + 1;
-  });
+  pins.forEach(p => { pinCountByAccount[p.vendor_account_id] = (pinCountByAccount[p.vendor_account_id] || 0) + 1; });
 
   const eventCountByAccount = {};
-  events.forEach(e => {
-    eventCountByAccount[e.organizer_business_id] = (eventCountByAccount[e.organizer_business_id] || 0) + 1;
-  });
+  events.forEach(e => { eventCountByAccount[e.organizer_business_id] = (eventCountByAccount[e.organizer_business_id] || 0) + 1; });
 
   const filtered = accounts.filter(a => {
     if (!search.trim()) return true;
@@ -64,6 +68,8 @@ export default function VendorAccountsTable({ user }) {
       (a.owner_email || "").toLowerCase().includes(q)
     );
   });
+
+  const promoAllowed = canApplyPromo(user);
 
   if (isLoading) return <div className="p-8 text-center text-slate-500">Loading vendor accounts...</div>;
 
@@ -113,8 +119,12 @@ export default function VendorAccountsTable({ user }) {
                         <span>📅 {eventCountByAccount[account.id] || 0} event(s)</span>
                       </p>
                     </div>
+
+                    {/* Active promotions inline */}
+                    <VendorActivePromos vendorAccountId={account.id} user={user} />
                   </div>
-                  <div className="shrink-0">
+
+                  <div className="shrink-0 flex flex-col gap-2">
                     <Button
                       size="sm"
                       variant="outline"
@@ -123,6 +133,15 @@ export default function VendorAccountsTable({ user }) {
                     >
                       <ExternalLink className="w-3.5 h-3.5" /> View Page
                     </Button>
+                    {promoAllowed && (
+                      <Button
+                        size="sm"
+                        className="gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white border-0"
+                        onClick={() => setPromoAccount(account)}
+                      >
+                        <Zap className="w-3.5 h-3.5" /> Apply Promo
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -133,6 +152,17 @@ export default function VendorAccountsTable({ user }) {
           )}
         </div>
       )}
+
+      {/* Promo Modal */}
+      <VendorPromoModal
+        open={!!promoAccount}
+        onClose={() => setPromoAccount(null)}
+        account={promoAccount}
+        user={user}
+        onPromoCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ["vendorPromos", promoAccount?.id] });
+        }}
+      />
     </div>
   );
 }

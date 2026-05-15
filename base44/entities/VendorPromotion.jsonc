@@ -1,0 +1,129 @@
+{
+  "name": "VendorPromotion",
+  "type": "object",
+  "properties": {
+    "vendor_account_id": {
+      "type": "string",
+      "description": "VendorAccount ID"
+    },
+    "vendor_account_number": {
+      "type": "string",
+      "description": "Vendor account number for display"
+    },
+    "business_name": {
+      "type": "string",
+      "description": "Cached business name"
+    },
+    "owner_user_id": {
+      "type": "string",
+      "description": "Vendor owner user ID"
+    },
+    "promo_type": {
+      "type": "string",
+      "enum": [
+        "percentage_discount",
+        "free_events",
+        "free_checkins",
+        "bonus_pins",
+        "tier_comp"
+      ],
+      "description": "Type of promotion"
+    },
+    "promo_value": {
+      "type": "number",
+      "description": "Numeric value: discount %, event count, checkin count, pin count, or N/A for tier comp"
+    },
+    "promo_tier": {
+      "type": "string",
+      "description": "For tier_comp: which tier is comped (starter, pro, growth, event_organizer)"
+    },
+    "event_type_limit": {
+      "type": "string",
+      "enum": [
+        "any",
+        "single",
+        "multi_spot",
+        "multi_location"
+      ],
+      "default": "any",
+      "description": "For free_events: which event types are covered"
+    },
+    "promo_description": {
+      "type": "string",
+      "description": "Human-readable promo description"
+    },
+    "duration_type": {
+      "type": "string",
+      "enum": [
+        "days",
+        "months",
+        "billing_cycles",
+        "until_date",
+        "unlimited"
+      ],
+      "description": "How duration is expressed"
+    },
+    "duration_value": {
+      "type": "number",
+      "description": "Numeric duration (days, months, cycles)"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the promo becomes active"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the promo expires (null = no expiry)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "canceled",
+        "fully_used"
+      ],
+      "default": "active",
+      "description": "Current promo status"
+    },
+    "granted_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total units granted (for event/checkin/pin promos)"
+    },
+    "used_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Units consumed so far"
+    },
+    "reason_note": {
+      "type": "string",
+      "description": "Internal admin note explaining the promo"
+    },
+    "created_by_admin_id": {
+      "type": "string",
+      "description": "Admin user ID who created the promo"
+    },
+    "created_by_admin_name": {
+      "type": "string",
+      "description": "Admin name for display"
+    },
+    "canceled_by_admin_id": {
+      "type": "string",
+      "description": "Admin who canceled the promo"
+    },
+    "canceled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cancellation timestamp"
+    }
+  },
+  "required": [
+    "vendor_account_id",
+    "promo_type",
+    "status",
+    "start_date"
+  ]
+}

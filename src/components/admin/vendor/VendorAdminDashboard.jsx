@@ -5,6 +5,7 @@ import VendorAccountsTable from "./VendorAccountsTable";
 import VendorPinsTable from "./VendorPinsTable";
 import VendorEventsTable from "./VendorEventsTable";
 import SupportTicketQueue from "../SupportTicketQueue";
+import VendorPromosAdminList from "./promos/VendorPromosAdminList";
 
 export default function VendorAdminDashboard({ user }) {
   const [activeTab, setActiveTab] = useState("summary");
@@ -24,6 +25,7 @@ export default function VendorAdminDashboard({ user }) {
           <TabsTrigger value="accounts" className="whitespace-nowrap">Vendor Accounts</TabsTrigger>
           <TabsTrigger value="pins" className="whitespace-nowrap">Vendor Pins</TabsTrigger>
           <TabsTrigger value="events" className="whitespace-nowrap">Vendor Events</TabsTrigger>
+          <TabsTrigger value="promotions" className="whitespace-nowrap">Promotions</TabsTrigger>
           <TabsTrigger value="tickets" className="whitespace-nowrap">Support Tickets</TabsTrigger>
         </TabsList>
 
@@ -41,6 +43,10 @@ export default function VendorAdminDashboard({ user }) {
 
         <TabsContent value="events">
           <VendorEventsTable user={user} />
+        </TabsContent>
+
+        <TabsContent value="promotions">
+          <VendorPromosAdminList user={user} />
         </TabsContent>
 
         <TabsContent value="tickets">
