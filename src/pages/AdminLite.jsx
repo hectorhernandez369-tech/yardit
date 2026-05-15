@@ -235,50 +235,48 @@ export default function AdminLitePage() {
       <div className="max-w-7xl mx-auto w-full overflow-x-hidden">
 
         {/* ── Primary Section Header ── */}
-        <div className="flex flex-wrap items-center gap-2 pt-4 pb-3 border-b border-slate-200 mb-4">
+        <div className="flex flex-wrap items-center gap-2 pt-4 pb-3 border-b border-slate-200 mb-4 w-full">
           {/* Role badge */}
           <span className="flex items-center gap-1.5 text-sm font-semibold text-[#2C4F4E] mr-2">
             🛡️ Admin – {roleLabel}
           </span>
 
-          {/* 3 primary section tabs */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+          {/* 3 primary section tabs — full width on mobile */}
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 flex-1 sm:flex-none">
             <button
               onClick={() => setPrimarySection("residential")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 primarySection === "residential"
                   ? "bg-white text-[#2C4F4E] shadow-sm border border-slate-200"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              <Home className="w-3.5 h-3.5" />
-              Residential
+              <Home className="w-3.5 h-3.5 shrink-0" />
+              <span>Residential</span>
             </button>
             <button
               onClick={() => setPrimarySection("vendor")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 primarySection === "vendor"
                   ? "bg-[#2C4F4E] text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              <Building2 className="w-3.5 h-3.5" />
-              Vendor / Events
+              <Building2 className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden xs:inline">Vendor /</span><span>&nbsp;Events</span>
             </button>
             <button
               onClick={() => setPrimarySection("admin")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 primarySection === "admin"
                   ? "bg-slate-700 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Admin
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+              <span>Admin</span>
             </button>
           </div>
-
-          <div className="flex-1" />
 
           {/* Logout */}
           <Button
@@ -289,7 +287,7 @@ export default function AdminLitePage() {
               toast.success("Admin Mode exited");
               navigate(createPageUrl("Home"));
             }}
-            className="text-red-600 border-red-200 hover:bg-red-50 h-8 gap-1.5"
+            className="text-red-600 border-red-200 hover:bg-red-50 h-8 gap-1.5 shrink-0"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Exit Admin</span>
