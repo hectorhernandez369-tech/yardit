@@ -13,7 +13,16 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Reply, Clock, History } from "lucide-react";
 import { toast } from "sonner";
 
-export default function SupportTicketQueue({ user }) {
+// Heuristic: vendor/event ticket categories or types
+const VENDOR_TICKET_KEYWORDS = ["vendor", "event", "pin", "check-in", "checkin", "truck", "subscription", "organizer"];
+
+function isVendorTicket(ticket) {
+  const fields = [ticket.ticket_type, ticket.category, ticket.subject, ticket.description]
+    .map(f => (f || "").toLowerCase());
+  return VENDOR_TICKET_KEYWORDS.some(kw => fields.some(f => f.includes(kw)));
+}
+
+export default function SupportTicketQueue({ user, mode }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -54,13 +63,17 @@ export default function SupportTicketQueue({ user }) {
 
   const filteredTickets = useMemo(() => {
     return tickets.filter(t => {
+      // Mode filtering
+      if (mode === "vendor" && !isVendorTicket(t)) return false;
+      if (mode === "residential" && isVendorTicket(t)) return false;
+
       if (filterTab === "open") return ["open", "in_review", "waiting_for_user"].includes(t.status);
       if (filterTab === "needs_supervisor") return t.status === "supervisor_review";
       if (filterTab === "needs_master") return t.status === "master_review";
       if (filterTab === "resolved_closed") return ["resolved", "closed"].includes(t.status);
       return true;
     });
-  }, [tickets, filterTab]);
+  }, [tickets, filterTab, mode]);
 
   const logAction = async (ticketId, actionStr, detailsStr = "") => {
     try {
@@ -267,7 +280,9 @@ export default function SupportTicketQueue({ user }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-        <h2 className="text-xl font-bold text-[#2C4F4E]">Support Ticket Queue</h2>
+        <h2 className="text-xl font-bold text-[#2C4F4E]">
+          {mode === "vendor" ? "Vendor / Event Support Tickets" : mode === "residential" ? "Residential Support Tickets" : "Support Ticket Queue"}
+        </h2>
         <Tabs value={filterTab} onValueChange={setFilterTab}>
           <TabsList>
             <TabsTrigger value="open">Open</TabsTrigger>

@@ -21,7 +21,10 @@ import {
   statusColors,
 } from "@/components/listing/listingDisplay";
 
-export default function ListingManagement() {
+// Vendor listing types to exclude from residential view
+const VENDOR_LISTING_TYPES = ["vendor", "vendor_event"];
+
+export default function ListingManagement({ mode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,6 +113,9 @@ export default function ListingManagement() {
   }));
 
   const filteredListings = normalizedListings.filter((listing) => {
+    // Mode filtering: residential excludes vendor listing types
+    if (mode === "residential" && VENDOR_LISTING_TYPES.includes(listing.listingType)) return false;
+
     const query = searchQuery.toLowerCase();
     return [listing.title, listing.city, listing.zip, listing.id]
       .some((value) => String(value || "").toLowerCase().includes(query));
