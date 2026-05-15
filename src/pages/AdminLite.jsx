@@ -4,10 +4,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, Shield, LogOut } from "lucide-react";
+import { Search, Loader2, Shield, LogOut, Home, Building2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { logAdminEvent, searchCases, isSupervisor } from "../components/caseManagement";
+import { logAdminEvent, searchCases } from "../components/caseManagement";
 import { hasCapability } from "../components/admin/adminCapabilities";
 
 import OpenCasesTab from "../components/caseManagement/ui/OpenCasesTab";
@@ -16,13 +16,10 @@ import SubmittedCasesTab from "../components/caseManagement/ui/SubmittedCasesTab
 import ClosedCasesTab from "../components/caseManagement/ui/ClosedCasesTab";
 import CaseDetailView from "../components/caseManagement/ui/CaseDetailView";
 import AdminLiteDashboard from "../components/admin/AdminLiteDashboard";
-import CreateAdminTab from "../components/admin/CreateAdminTab";
-import AdminLogsTab from "../components/admin/AdminLogsTab";
-import EmployeeUsersTab from "../components/admin/EmployeeUsersTab";
-import MySettingsTab from "../components/admin/MySettingsTab";
+import AdminInternalTab from "../components/admin/AdminInternalTab";
+import VendorAdminDashboard from "../components/admin/vendor/VendorAdminDashboard";
 import { getAdminSession, clearAdminSession } from "../components/admin/AdminLoginModal";
 import AdminLoginModal from "../components/admin/AdminLoginModal";
-import AdminAssistedListingsTab from "../components/admin/assisted/AdminAssistedListingsTab";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -36,12 +33,12 @@ export default function AdminLitePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [noAdminAccess, setNoAdminAccess] = useState(false);
 
-  // Top-level tab
+  // Primary top-level section: residential | vendor | admin
   const urlParams = new URLSearchParams(location.search);
-  const initialTopTab = urlParams.get("tab") || "cases";
-  const [topTab, setTopTab] = useState(initialTopTab);
+  const initialSection = urlParams.get("section") || "residential";
+  const [primarySection, setPrimarySection] = useState(initialSection);
 
-  // Case management state
+  // Case management state (used in Residential > Case queue)
   const [caseTab, setCaseTab] = useState("queue");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState(null);
@@ -76,7 +73,6 @@ export default function AdminLitePage() {
       try {
         const currentUser = await base44.auth.me();
 
-        // Look up AdminProfile — prefer by user_id, fallback to email
         const [profilesByUserId, profilesByEmail] = await Promise.all([
           base44.entities.AdminProfile.filter({ user_id: currentUser.id }),
           base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }),
@@ -85,36 +81,31 @@ export default function AdminLitePage() {
         let adminProfile = profilesByUserId[0] || profilesByEmail[0];
         const profileUserId = relId(adminProfile?.user_id);
 
-        // TEMPORARY DEBUG LOG
         console.log("ADMIN_DEBUG", {
           meId: currentUser.id,
           meEmail: currentUser.email,
           profilesByUserIdCount: profilesByUserId?.length,
           profilesByEmailCount: profilesByEmail?.length,
           profileUserIdRaw: adminProfile?.user_id,
-          profileUserId: profileUserId,
+          profileUserId,
           profileActive: adminProfile?.is_active,
           profileRole: adminProfile?.role_label,
         });
 
-        // Heal: if found by email but user_id doesn't match, fix it
         if (adminProfile && profileUserId !== currentUser.id) {
-          console.log("ADMIN_DEBUG - healing user_id", { oldRaw: adminProfile.user_id, old: profileUserId, new: currentUser.id });
+          console.log("ADMIN_DEBUG - healing user_id", { old: profileUserId, new: currentUser.id });
           await base44.entities.AdminProfile.update(adminProfile.id, { user_id: currentUser.id });
           adminProfile = { ...adminProfile, user_id: currentUser.id };
         }
 
-        // Gate: must have an active profile
         if (!adminProfile || adminProfile.is_active !== true) {
           setNoAdminAccess(true);
           setLoadingProfile(false);
           return;
         }
 
-        // Update last_login_at
         await base44.entities.AdminProfile.update(adminProfile.id, { last_login_at: new Date().toISOString() });
 
-        // Enrich currentUser with role from AdminProfile
         currentUser.role = adminProfile.role_label;
         currentUser.isAdmin = true;
         setUser(currentUser);
@@ -123,8 +114,7 @@ export default function AdminLitePage() {
           try {
             const users = await base44.entities.User.list();
             setAllAdminUsers(users.filter(u => ["admin", "admin_lite", "supervisor", "master"].includes(u.role)));
-          } catch (userListErr) {
-            console.warn("Could not fetch User list:", userListErr);
+          } catch {
             setAllAdminUsers([]);
           }
         }
@@ -143,20 +133,18 @@ export default function AdminLitePage() {
     const params = new URLSearchParams(location.search);
     const openCaseId = params.get("openCaseId");
     if (openCaseId && user) {
-      setTopTab("cases");
+      setPrimarySection("residential");
       setSelectedCaseId(openCaseId);
       logAdminEvent({ adminId: user.id, caseId: openCaseId, eventType: "opened_case", page: "AdminHub" });
     }
-    const tab = params.get("tab");
-    if (tab) setTopTab(tab);
+    const section = params.get("section");
+    if (section) setPrimarySection(section);
   }, [location.search, user]);
 
   const handleCaseTabChange = useCallback((tab) => {
     setCaseTab(tab);
     setSelectedCaseId(null);
-    if (user) {
-      logAdminEvent({ adminId: user.id, eventType: "changed_tab", payload: { tab }, page: "AdminHub" });
-    }
+    if (user) logAdminEvent({ adminId: user.id, eventType: "changed_tab", payload: { tab }, page: "AdminHub" });
   }, [user]);
 
   const handleSearch = useCallback(async () => {
@@ -177,6 +165,7 @@ export default function AdminLitePage() {
   const handleCloseCase = useCallback(() => { setSelectedCaseId(null); setRefreshKey(k => k + 1); }, []);
   const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), []);
 
+  // ── Loading / access guards ──────────────────────────────────────────────
 
   if (loadingProfile) return (
     <div className="p-8 text-center">
@@ -198,7 +187,6 @@ export default function AdminLitePage() {
 
   if (!user) return <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>;
 
-  // Admin Mode gate: require valid admin session (stays on page, no redirect)
   if (!adminSession) {
     return (
       <>
@@ -206,7 +194,7 @@ export default function AdminLitePage() {
           <Shield className="w-12 h-12 text-[#5DADA5] mx-auto mb-4" />
           <h2 className="text-xl font-bold text-[#2C4F4E] mb-2">Admin Mode Required</h2>
           <p className="text-gray-600 text-sm mb-2">You are already signed in as {user.email}.</p>
-          <p className="text-gray-600 mb-6 text-sm">This screen is a second admin verification step that requires your Employee ID and PIN.</p>
+          <p className="text-gray-600 mb-6 text-sm">This screen requires your Employee ID and PIN to proceed.</p>
           <Button onClick={() => setShowAdminLogin(true)} className="bg-[#5DADA5] hover:bg-[#4A9B93] gap-2">
             <Shield className="w-4 h-4" /> Enter Admin Mode
           </Button>
@@ -214,16 +202,13 @@ export default function AdminLitePage() {
         <AdminLoginModal
           open={showAdminLogin}
           onClose={() => setShowAdminLogin(false)}
-          onSuccess={(session) => {
-            setAdminSession(session);
-            setShowAdminLogin(false);
-          }}
+          onSuccess={(session) => { setAdminSession(session); setShowAdminLogin(false); }}
         />
       </>
     );
   }
 
-  // If viewing a specific case, show the detail view
+  // If a case is open, show its detail view
   if (selectedCaseId) {
     return (
       <CaseDetailView
@@ -237,9 +222,6 @@ export default function AdminLitePage() {
     );
   }
 
-  const canManageAdmins = hasCapability(user, "admins.manage");
-  const canViewLogs = hasCapability(user, "logs.view");
-
   const roleLabel = (() => {
     const r = user.role;
     if (r === "master") return "Master";
@@ -247,44 +229,78 @@ export default function AdminLitePage() {
     return "Basic";
   })();
 
+  // ── Main 3-tab dashboard ─────────────────────────────────────────────────
   return (
-    <div className="min-h-[calc(100vh-140px)] pt-0 px-3 sm:px-4 md:px-8 pb-3 sm:pb-4 md:pb-8 overflow-x-hidden w-full max-w-full">
+    <div className="min-h-[calc(100vh-140px)] pt-0 px-3 sm:px-4 md:px-8 pb-8 overflow-x-hidden w-full max-w-full">
+      <div className="max-w-7xl mx-auto w-full overflow-x-hidden">
 
-      <div className="max-w-7xl mx-auto w-full max-w-full overflow-x-hidden">
+        {/* ── Primary Section Header ── */}
+        <div className="flex flex-wrap items-center gap-2 pt-4 pb-3 border-b border-slate-200 mb-4">
+          {/* Role badge */}
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-[#2C4F4E] mr-2">
+            🛡️ Admin – {roleLabel}
+          </span>
 
-        {/* Top-level admin tabs */}
-        <Tabs value={topTab} onValueChange={setTopTab}>
-          <TabsList className="flex flex-wrap gap-1 h-auto w-full mb-4 p-1">
-            <span className="flex items-center gap-1.5 px-3 py-1 text-sm font-semibold text-[#2C4F4E] whitespace-nowrap pointer-events-none select-none">
-              🛡️ Admin – {roleLabel}
-            </span>
-            <TabsTrigger value="cases" className="whitespace-nowrap">Case Management</TabsTrigger>
-            <TabsTrigger value="lite" className="whitespace-nowrap">Admin Lite</TabsTrigger>
-            {canManageAdmins && <TabsTrigger value="create-admin" className="whitespace-nowrap">Create Admin</TabsTrigger>}
-            {canManageAdmins && <TabsTrigger value="employee-users" className="whitespace-nowrap">Employee Users</TabsTrigger>}
-            {canViewLogs && <TabsTrigger value="logs" className="whitespace-nowrap">Logs</TabsTrigger>}
-            <TabsTrigger value="assisted" className="whitespace-nowrap">Assisted Listings</TabsTrigger>
-            <TabsTrigger value="settings" className="whitespace-nowrap">My Settings</TabsTrigger>
-            
-            <div className="flex-1" />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                clearAdminSession();
-                toast.success("Admin Mode exited");
-                navigate(createPageUrl("Home"));
-              }}
-              className="ml-auto text-red-600 border-red-200 hover:bg-red-50 h-8 gap-1.5"
+          {/* 3 primary section tabs */}
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+            <button
+              onClick={() => setPrimarySection("residential")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                primarySection === "residential"
+                  ? "bg-white text-[#2C4F4E] shadow-sm border border-slate-200"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Logout Admin</span>
-            </Button>
-          </TabsList>
+              <Home className="w-3.5 h-3.5" />
+              Residential
+            </button>
+            <button
+              onClick={() => setPrimarySection("vendor")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                primarySection === "vendor"
+                  ? "bg-[#2C4F4E] text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              Vendor / Events
+            </button>
+            <button
+              onClick={() => setPrimarySection("admin")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                primarySection === "admin"
+                  ? "bg-slate-700 text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Admin
+            </button>
+          </div>
 
-          {/* ─── Case Management ─── */}
-          <TabsContent value="cases">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-6 w-full max-w-xl">
+          <div className="flex-1" />
+
+          {/* Logout */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              clearAdminSession();
+              toast.success("Admin Mode exited");
+              navigate(createPageUrl("Home"));
+            }}
+            className="text-red-600 border-red-200 hover:bg-red-50 h-8 gap-1.5"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Exit Admin</span>
+          </Button>
+        </div>
+
+        {/* ── RESIDENTIAL SECTION ── */}
+        {primarySection === "residential" && (
+          <>
+            {/* Case search bar (residential only) */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4 w-full max-w-xl">
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
@@ -305,38 +321,37 @@ export default function AdminLitePage() {
               </div>
             </div>
             {searchResults && (
-              <p className="text-sm text-gray-600 mb-2">
-                Showing {searchResults.length} search result(s).
-              </p>
+              <p className="text-sm text-gray-600 mb-2">Showing {searchResults.length} search result(s).</p>
             )}
 
-            <Tabs value={caseTab} onValueChange={handleCaseTabChange}>
-              <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-3xl p-1">
-                <TabsTrigger value="queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Queue ({counts.assigned})</TabsTrigger>
-                <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Open ({counts.open})</TabsTrigger>
-                <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Submitted ({counts.submitted})</TabsTrigger>
-                <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
-              </TabsList>
+            {/* Case queue sub-tabs */}
+            <div className="mb-4">
+              <Tabs value={caseTab} onValueChange={handleCaseTabChange}>
+                <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-3xl p-1">
+                  <TabsTrigger value="queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Queue ({counts.assigned})</TabsTrigger>
+                  <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Open ({counts.open})</TabsTrigger>
+                  <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Submitted ({counts.submitted})</TabsTrigger>
+                  <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="queue">
-                <OpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} triggerRefresh={triggerRefresh} />
-              </TabsContent>
-              <TabsContent value="open">
-                <ActiveOpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
-              </TabsContent>
-              <TabsContent value="submitted">
-                <SubmittedCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
-              </TabsContent>
-              <TabsContent value="closed">
-                <ClosedCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
+                <TabsContent value="queue">
+                  <OpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} triggerRefresh={triggerRefresh} />
+                </TabsContent>
+                <TabsContent value="open">
+                  <ActiveOpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
+                </TabsContent>
+                <TabsContent value="submitted">
+                  <SubmittedCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
+                </TabsContent>
+                <TabsContent value="closed">
+                  <ClosedCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
+                </TabsContent>
+              </Tabs>
+            </div>
 
-          {/* ─── Admin Lite Dashboard ─── */}
-          <TabsContent value="lite">
-            <AdminLiteDashboard 
-              user={user} 
+            {/* Residential ops dashboard (listings, users, tickets, etc.) */}
+            <AdminLiteDashboard
+              user={user}
               counts={counts}
               allAdminUsers={allAdminUsers}
               searchResults={searchResults}
@@ -344,39 +359,19 @@ export default function AdminLitePage() {
               refreshKey={refreshKey}
               triggerRefresh={triggerRefresh}
             />
-          </TabsContent>
+          </>
+        )}
 
-          {/* ─── Create Admin ─── */}
-          {canManageAdmins && (
-            <TabsContent value="create-admin">
-              <CreateAdminTab />
-            </TabsContent>
-          )}
+        {/* ── VENDOR / EVENTS SECTION ── */}
+        {primarySection === "vendor" && (
+          <VendorAdminDashboard user={user} />
+        )}
 
-          {/* ─── Employee Users ─── */}
-          {canManageAdmins && (
-            <TabsContent value="employee-users">
-              <EmployeeUsersTab currentUser={user} />
-            </TabsContent>
-          )}
+        {/* ── ADMIN INTERNAL SECTION ── */}
+        {primarySection === "admin" && (
+          <AdminInternalTab user={user} adminSession={adminSession} />
+        )}
 
-          {/* ─── Logs ─── */}
-          {canViewLogs && (
-            <TabsContent value="logs">
-              <AdminLogsTab />
-            </TabsContent>
-          )}
-
-          {/* ─── Assisted Listings ─── */}
-          <TabsContent value="assisted">
-            <AdminAssistedListingsTab adminUser={user} />
-          </TabsContent>
-
-          {/* ─── My Settings ─── */}
-          <TabsContent value="settings">
-            <MySettingsTab user={user} session={adminSession} />
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
   );
