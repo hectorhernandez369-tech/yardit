@@ -20,6 +20,7 @@ import AdminInternalTab from "../components/admin/AdminInternalTab";
 import VendorAdminDashboard from "../components/admin/vendor/VendorAdminDashboard";
 import { getAdminSession, clearAdminSession } from "../components/admin/AdminLoginModal";
 import AdminLoginModal from "../components/admin/AdminLoginModal";
+import { ensureAdminVendorAccount, isMasterAdminRole } from "../lib/ensureAdminVendorAccount";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -109,6 +110,11 @@ export default function AdminLitePage() {
         currentUser.role = adminProfile.role_label;
         currentUser.isAdmin = true;
         setUser(currentUser);
+
+        // Auto-provision vendor account for master admins (silent, non-blocking)
+        if (isMasterAdminRole(adminProfile.role_label)) {
+          ensureAdminVendorAccount({ ...currentUser, role: adminProfile.role_label }).catch(() => {});
+        }
 
         if (adminSession) {
           try {

@@ -77,11 +77,17 @@ function LayoutContent({ children, user, setUser }) {
       }
 
       if (user?.id) {
+      // Master admins always get vendor dashboard access (auto-provisioned)
+      const masterRoles = new Set(["master", "super_master"]);
+      if (masterRoles.has(user.role)) {
+        setHasVendorAccount(true);
+      } else {
         base44.entities.VendorAccount.filter({ owner_user_id: user.id }).then((accounts) => {
           setHasVendorAccount(accounts.some((account) => account.is_active !== false));
         }).catch(() => setHasVendorAccount(false));
+      }
       } else {
-        setHasVendorAccount(false);
+      setHasVendorAccount(false);
       }
   }, [user]);
 

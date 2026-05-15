@@ -152,6 +152,22 @@
       "default": false,
       "description": "Whether this is a demo vendor account"
     },
+    "is_internal_admin_vendor": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this vendor account was auto-created for a master admin user"
+    },
+    "vendor_origin": {
+      "type": "string",
+      "enum": [
+        "public_signup",
+        "admin_auto_created",
+        "migration",
+        "other"
+      ],
+      "default": "public_signup",
+      "description": "How this vendor account was originally created"
+    },
     "description": {
       "type": "string",
       "description": "Short public vendor bio or business description"

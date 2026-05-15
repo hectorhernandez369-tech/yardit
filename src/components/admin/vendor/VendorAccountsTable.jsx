@@ -110,6 +110,9 @@ export default function VendorAccountsTable({ user }) {
                       {account.is_active === false && (
                         <Badge className="bg-red-100 text-red-800">Inactive</Badge>
                       )}
+                      {account.is_internal_admin_vendor && (
+                        <Badge className="bg-slate-700 text-white text-[10px]">🛡️ Admin Account</Badge>
+                      )}
                     </div>
                     <div className="text-xs text-slate-500 space-y-0.5">
                       <p>Account #: <span className="font-mono text-slate-700">{account.vendor_account_number || "—"}</span></p>
