@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, QrCode, RefreshCw } from "lucide-react";
+import AdminQRViewModal from "@/components/admin/assisted/AdminQRViewModal";
 
 const QR_CDN = "https://api.qrserver.com/v1/create-qr-code/";
 
@@ -19,6 +20,7 @@ export default function AdminAssistedListingHistory({ adminUser }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [qrModalRecord, setQrModalRecord] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -57,6 +59,17 @@ export default function AdminAssistedListingHistory({ adminUser }) {
           <RefreshCw className="w-3.5 h-3.5" /> Refresh
         </Button>
       </div>
+      {qrModalRecord && (
+        <AdminQRViewModal
+          record={qrModalRecord}
+          onClose={() => setQrModalRecord(null)}
+          onRefreshed={(updated) => {
+            setRecords((prev) => prev.map((r) => r.id === updated.id ? updated : r));
+            setQrModalRecord(updated);
+          }}
+        />
+      )}
+
       {records.map((rec) => {
         const approvalUrl = `${window.location.origin}/assisted-listing?token=${rec.assisted_qr_token}`;
         const qrUrl = `${QR_CDN}?size=120x120&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
@@ -82,7 +95,14 @@ export default function AdminAssistedListingHistory({ adminUser }) {
                   Created {new Date(rec.created_date || rec.assisted_qr_created_at).toLocaleDateString()} · Scans: {rec.qr_scan_count || 0}
                 </p>
               </div>
-              <QrCode className="w-5 h-5 text-gray-300 shrink-0" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 gap-1.5 text-xs border-amber-300 text-amber-700 hover:bg-amber-50"
+                onClick={(e) => { e.stopPropagation(); setQrModalRecord(rec); }}
+              >
+                <QrCode className="w-3.5 h-3.5" /> View QR
+              </Button>
             </button>
 
             {isExpanded && (
