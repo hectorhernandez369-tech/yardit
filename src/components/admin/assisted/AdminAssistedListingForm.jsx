@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { MapPin, Loader2, CheckCircle, Camera, X } from "lucide-react";
+import { Loader2, Camera, X } from "lucide-react";
 import AssistedListingQRPanel from "@/components/admin/assisted/AssistedListingQRPanel";
+import AdminAddressSearch from "@/components/admin/assisted/AdminAddressSearch";
 
 const FALLBACK_TZ = "America/Los_Angeles";
 
@@ -41,21 +42,6 @@ const DEFAULT_TITLES = {
   event: "Community Event",
 };
 
-function tryGeocodeAddress(address) {
-  return new Promise((resolve) => {
-    if (!window.google?.maps) { resolve(null); return; }
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode({ address }, (results, status) => {
-      if (status === "OK" && results[0]) {
-        const loc = results[0].geometry.location;
-        resolve({ lat: loc.lat(), lng: loc.lng() });
-      } else {
-        resolve(null);
-      }
-    });
-  });
-}
-
 const EMPTY_FORM = {
   listingType: "yard_sale",
   tier: "free",
@@ -79,7 +65,7 @@ const EMPTY_FORM = {
 
 export default function AdminAssistedListingForm({ adminUser }) {
   const [form, setForm] = useState({ ...EMPTY_FORM });
-  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [created, setCreated] = useState(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -96,21 +82,20 @@ export default function AdminAssistedListingForm({ adminUser }) {
     }));
   };
 
-  const handleGeocode = async () => {
-    if (!form.addressText || !form.city || !form.state) {
-      toast.error("Enter address, city, and state first");
-      return;
-    }
-    setIsGeocoding(true);
-    const fullAddr = `${form.addressText}, ${form.city}, ${form.state} ${form.zip}`;
-    const result = await tryGeocodeAddress(fullAddr);
-    setIsGeocoding(false);
-    if (result) {
-      update("lat", String(result.lat));
-      update("lng", String(result.lng));
-      toast.success("Location pinned");
+  const handleAddressSelected = (parsed) => {
+    setSelectedAddress(parsed);
+    if (parsed) {
+      setForm((p) => ({
+        ...p,
+        addressText: parsed.street || parsed.formatted,
+        city: parsed.city,
+        state: parsed.state,
+        zip: parsed.zip,
+        lat: String(parsed.lat),
+        lng: String(parsed.lng),
+      }));
     } else {
-      toast.error("Could not geocode address. Enter lat/lng manually.");
+      setForm((p) => ({ ...p, addressText: "", city: "", state: "", zip: "", lat: "", lng: "" }));
     }
   };
 
@@ -133,12 +118,8 @@ export default function AdminAssistedListingForm({ adminUser }) {
   };
 
   const handleSubmit = async () => {
-    if (!form.addressText || !form.city || !form.state || !form.zip) {
-      toast.error("Complete the address fields.");
-      return;
-    }
-    if (!form.lat || !form.lng) {
-      toast.error("Pin the location before creating the listing.");
+    if (!selectedAddress) {
+      toast.error("Search and select an address before creating the listing.");
       return;
     }
     if (!form.title) {
@@ -194,6 +175,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
   const handleReset = () => {
     setCreated(null);
     setForm({ ...EMPTY_FORM });
+    setSelectedAddress(null);
   };
 
   if (created) {
@@ -244,25 +226,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
       {/* Address */}
       <div className="space-y-3">
         <h3 className="font-semibold text-[#2C4F4E]">Address</h3>
-        <Input placeholder="Street address" value={form.addressText} onChange={e => update("addressText", e.target.value)} />
-        <div className="grid grid-cols-3 gap-2 min-w-0">
-          <Input placeholder="City" value={form.city} onChange={e => update("city", e.target.value)} className="min-w-0" />
-          <Input placeholder="ST" value={form.state} onChange={e => update("state", e.target.value)} maxLength={2} className="min-w-0" />
-          <Input placeholder="ZIP" value={form.zip} onChange={e => update("zip", e.target.value)} className="min-w-0" />
-        </div>
-        <div className="grid grid-cols-2 gap-2 min-w-0">
-          <Input placeholder="Latitude" value={form.lat} onChange={e => update("lat", e.target.value)} className="min-w-0" />
-          <Input placeholder="Longitude" value={form.lng} onChange={e => update("lng", e.target.value)} className="min-w-0" />
-        </div>
-        <Button variant="outline" size="sm" onClick={handleGeocode} disabled={isGeocoding} className="w-full">
-          {isGeocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-          <span className="ml-1">{isGeocoding ? "Pinning..." : "Pin Location from Address"}</span>
-        </Button>
-        {form.lat && form.lng && (
-          <p className="text-xs text-green-700 flex items-center gap-1">
-            <CheckCircle className="w-3.5 h-3.5" /> Location pinned: {parseFloat(form.lat).toFixed(5)}, {parseFloat(form.lng).toFixed(5)}
-          </p>
-        )}
+        <AdminAddressSearch onAddressSelected={handleAddressSelected} selectedAddress={selectedAddress} />
       </div>
 
       {/* Listing Details */}
