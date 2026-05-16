@@ -6,10 +6,37 @@ import { Search, Loader2, MapPin, CheckCircle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 async function searchNominatim(query) {
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=8&countrycodes=us`;
-  const res = await fetch(url, { headers: { "Accept-Language": "en" } });
+  const params = new URLSearchParams({
+    q: query,
+    format: "json",
+    addressdetails: "1",
+    limit: "8",
+    countrycodes: "us",
+    // Bias results toward California
+    viewbox: "-124.5,32.5,-114.1,42.1",
+    bounded: "0",
+  });
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+    headers: { "Accept-Language": "en" },
+  });
   if (!res.ok) throw new Error("Search failed");
   return res.json();
+}
+
+async function fuzzySearch(rawQuery) {
+  const q = rawQuery.trim().replace(/\s+/g, " ");
+  const attempts = [
+    q,
+    `${q}, California`,
+    `${q}, Tulare County, CA`,
+    `${q}, CA`,
+  ];
+
+  for (const attempt of attempts) {
+    const data = await searchNominatim(attempt);
+    if (data && data.length > 0) return data;
+  }
+  return [];
 }
 
 function parseResult(result) {
@@ -51,7 +78,7 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
     setIsSearching(true);
     setNoResults(false);
     try {
-      const data = await searchNominatim(q);
+      const data = await fuzzySearch(q);
       if (!data || data.length === 0) {
         setNoResults(true);
         setIsSearching(false);
@@ -119,7 +146,7 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
 
       {noResults && (
         <p className="text-sm text-red-600 flex items-center gap-1.5 px-1">
-          We couldn't find that address. Try adding city, state, or ZIP.
+          No matching address found. Try street number + street + city.
         </p>
       )}
 
