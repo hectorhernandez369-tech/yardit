@@ -3,7 +3,6 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -75,7 +74,7 @@ const EMPTY_FORM = {
   sellerPhone: "",
   sellerEmail: "",
   adminNotes: "",
-  sellerPermissionConfirmed: false,
+  sellerPermissionConfirmed: true,
 };
 
 export default function AdminAssistedListingForm({ adminUser }) {
@@ -134,10 +133,6 @@ export default function AdminAssistedListingForm({ adminUser }) {
   };
 
   const handleSubmit = async () => {
-    if (!form.sellerPermissionConfirmed) {
-      toast.error("You must confirm seller permission before creating the listing.");
-      return;
-    }
     if (!form.addressText || !form.city || !form.state || !form.zip) {
       toast.error("Complete the address fields.");
       return;
@@ -332,24 +327,9 @@ export default function AdminAssistedListingForm({ adminUser }) {
         <Textarea placeholder="Internal notes about this listing (not shown to seller)" value={form.adminNotes} onChange={e => update("adminNotes", e.target.value)} rows={2} />
       </div>
 
-      {/* Permission checkbox */}
-      <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg">
-        <div className="flex items-start gap-3">
-          <Checkbox
-            id="perm"
-            checked={form.sellerPermissionConfirmed}
-            onCheckedChange={v => update("sellerPermissionConfirmed", v)}
-            className="mt-0.5"
-          />
-          <Label htmlFor="perm" className="text-sm text-red-800 font-medium leading-snug cursor-pointer">
-            ✅ I confirm that the seller gave permission to create this promotional listing on their behalf.
-          </Label>
-        </div>
-      </div>
-
       <Button
         onClick={handleSubmit}
-        disabled={isSubmitting || !form.sellerPermissionConfirmed}
+        disabled={isSubmitting}
         className="w-full bg-amber-600 hover:bg-amber-700 text-white"
         size="lg"
       >
