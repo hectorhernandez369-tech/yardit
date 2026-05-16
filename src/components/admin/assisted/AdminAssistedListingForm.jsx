@@ -5,11 +5,42 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { MapPin, Loader2, CheckCircle, Camera, X } from "lucide-react";
 import AssistedListingQRPanel from "@/components/admin/assisted/AssistedListingQRPanel";
 
 const FALLBACK_TZ = "America/Los_Angeles";
+
+// Tiers per listing type
+const TIER_OPTIONS = {
+  yard_sale: [
+    { value: "free", label: "Free" },
+    { value: "featured", label: "Featured ($4.99)" },
+    { value: "premium", label: "Premium ($7.99)" },
+  ],
+  neighborhood_sale: [
+    { value: "neighborhood_tier", label: "Neighborhood Sale" },
+  ],
+  event: [
+    { value: "basic", label: "Basic (Free)" },
+    { value: "featured", label: "Featured ($9.99)" },
+    { value: "premium", label: "Premium ($19.99)" },
+    { value: "marquee", label: "Marquee ($49.99)" },
+  ],
+};
+
+const DEFAULT_TIERS = {
+  yard_sale: "free",
+  neighborhood_sale: "neighborhood_tier",
+  event: "basic",
+};
+
+const DEFAULT_TITLES = {
+  yard_sale: "Yard Sale",
+  neighborhood_sale: "Neighborhood Sale",
+  event: "Community Event",
+};
 
 function tryGeocodeAddress(address) {
   return new Promise((resolve) => {
@@ -26,32 +57,45 @@ function tryGeocodeAddress(address) {
   });
 }
 
+const EMPTY_FORM = {
+  listingType: "yard_sale",
+  tier: "free",
+  addressText: "",
+  city: "",
+  state: "",
+  zip: "",
+  lat: "",
+  lng: "",
+  title: "Yard Sale",
+  description: "",
+  photoUrls: [],
+  startDateTime: "",
+  endDateTime: "",
+  sellerName: "",
+  sellerPhone: "",
+  sellerEmail: "",
+  adminNotes: "",
+  sellerPermissionConfirmed: false,
+};
+
 export default function AdminAssistedListingForm({ adminUser }) {
-  const [form, setForm] = useState({
-    addressText: "",
-    city: "",
-    state: "",
-    zip: "",
-    lat: "",
-    lng: "",
-    title: "Yard Sale",
-    description: "",
-    photoUrls: [],
-    startDateTime: "",
-    endDateTime: "",
-    sellerName: "",
-    sellerPhone: "",
-    sellerEmail: "",
-    adminNotes: "",
-    sellerPermissionConfirmed: false,
-  });
+  const [form, setForm] = useState({ ...EMPTY_FORM });
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [created, setCreated] = useState(null); // { token, listingId, assistedId, expiresAt }
+  const [created, setCreated] = useState(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const photoInputRef = useRef(null);
 
   const update = (field, value) => setForm((p) => ({ ...p, [field]: value }));
+
+  const handleListingTypeChange = (value) => {
+    setForm((p) => ({
+      ...p,
+      listingType: value,
+      tier: DEFAULT_TIERS[value] || "free",
+      title: p.title === DEFAULT_TITLES[p.listingType] ? DEFAULT_TITLES[value] : p.title,
+    }));
+  };
 
   const handleGeocode = async () => {
     if (!form.addressText || !form.city || !form.state) {
@@ -107,13 +151,15 @@ export default function AdminAssistedListingForm({ adminUser }) {
       return;
     }
     if (!form.startDateTime || !form.endDateTime) {
-      toast.error("Sale start and end date/time are required.");
+      toast.error("Start and end date/time are required.");
       return;
     }
 
     setIsSubmitting(true);
     try {
       const response = await base44.functions.invoke("createAssistedListing", {
+        listingType: form.listingType,
+        tier: form.tier,
         addressText: form.addressText,
         city: form.city,
         state: form.state,
@@ -152,18 +198,14 @@ export default function AdminAssistedListingForm({ adminUser }) {
 
   const handleReset = () => {
     setCreated(null);
-    setForm({
-      addressText: "", city: "", state: "", zip: "", lat: "", lng: "",
-      title: "Yard Sale", description: "", photoUrls: [],
-      startDateTime: "", endDateTime: "",
-      sellerName: "", sellerPhone: "", sellerEmail: "",
-      adminNotes: "", sellerPermissionConfirmed: false,
-    });
+    setForm({ ...EMPTY_FORM });
   };
 
   if (created) {
     return <AssistedListingQRPanel created={created} onCreateAnother={handleReset} />;
   }
+
+  const tierOptions = TIER_OPTIONS[form.listingType] || TIER_OPTIONS.yard_sale;
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -171,12 +213,45 @@ export default function AdminAssistedListingForm({ adminUser }) {
         <strong>Admin Only:</strong> This creates a free promotional listing on behalf of a seller who has given verbal permission. A QR code will be generated for the seller to approve and claim.
       </div>
 
+      {/* Listing Type & Tier */}
+      <div className="space-y-3">
+        <h3 className="font-semibold text-[#2C4F4E]">Listing Type & Tier</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs text-gray-500">Listing Type</Label>
+            <Select value={form.listingType} onValueChange={handleListingTypeChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="yard_sale">Yard Sale</SelectItem>
+                <SelectItem value="neighborhood_sale">Neighborhood Sale</SelectItem>
+                <SelectItem value="event">Event</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-gray-500">Tier (Admin Override)</Label>
+            <Select value={form.tier} onValueChange={(v) => update("tier", v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {tierOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
       {/* Address */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-[#2C4F4E]">Sale Address</h3>
+        <h3 className="font-semibold text-[#2C4F4E]">Address</h3>
         <Input placeholder="Street address" value={form.addressText} onChange={e => update("addressText", e.target.value)} />
         <div className="grid grid-cols-3 gap-2">
-          <Input placeholder="City" value={form.city} onChange={e => update("city", e.target.value)} className="col-span-1" />
+          <Input placeholder="City" value={form.city} onChange={e => update("city", e.target.value)} />
           <Input placeholder="State" value={form.state} onChange={e => update("state", e.target.value)} />
           <Input placeholder="ZIP" value={form.zip} onChange={e => update("zip", e.target.value)} />
         </div>
@@ -198,7 +273,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
       {/* Listing Details */}
       <div className="space-y-3">
         <h3 className="font-semibold text-[#2C4F4E]">Listing Details</h3>
-        <Input placeholder="Title (e.g. Yard Sale)" value={form.title} onChange={e => update("title", e.target.value)} />
+        <Input placeholder="Title" value={form.title} onChange={e => update("title", e.target.value)} />
         <Textarea placeholder="Description (optional)" value={form.description} onChange={e => update("description", e.target.value)} rows={3} />
       </div>
 
@@ -226,7 +301,9 @@ export default function AdminAssistedListingForm({ adminUser }) {
 
       {/* Date & Time */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-[#2C4F4E]">Sale Date & Time</h3>
+        <h3 className="font-semibold text-[#2C4F4E]">
+          {form.listingType === "event" ? "Event" : "Sale"} Date & Time
+        </h3>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs text-gray-500 mb-1">Start</Label>

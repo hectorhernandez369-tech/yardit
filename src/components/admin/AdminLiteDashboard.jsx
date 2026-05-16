@@ -49,7 +49,7 @@ export default function AdminLiteDashboard({ user, counts, allAdminUsers, search
         </TabsContent>
 
         <TabsContent value="listings">
-          <ListingManagement mode="residential" />
+          <ListingManagement mode="residential" adminUser={user} />
         </TabsContent>
 
         <TabsContent value="users">

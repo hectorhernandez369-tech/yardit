@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Calendar, MapPin } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search, Calendar, MapPin, Plus } from "lucide-react";
 import { toast } from "sonner";
 import PromotionModal from "./promotions/PromotionModal";
+import AdminAssistedListingForm from "@/components/admin/assisted/AdminAssistedListingForm";
 import {
   formatListingDateRange,
   formatListingStatusLabel,
@@ -24,11 +26,12 @@ import {
 // Vendor listing types to exclude from residential view
 const VENDOR_LISTING_TYPES = ["vendor", "vendor_event"];
 
-export default function ListingManagement({ mode }) {
+export default function ListingManagement({ mode, adminUser }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [promoListing, setPromoListing] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data: listings } = useQuery({
     queryKey: ["allListings"],
@@ -134,10 +137,10 @@ export default function ListingManagement({ mode }) {
           />
         </div>
         <Button 
-          className="bg-amber-600 hover:bg-amber-700 whitespace-nowrap"
-          onClick={() => navigate(createPageUrl("CreateListing") + "?adminCreate=1")}
+          className="bg-amber-600 hover:bg-amber-700 whitespace-nowrap gap-2"
+          onClick={() => setShowCreateModal(true)}
         >
-          Create Listing (Admin)
+          <Plus className="w-4 h-4" /> Create Listing (Admin)
         </Button>
       </div>
 
@@ -241,6 +244,15 @@ export default function ListingManagement({ mode }) {
           listing={promoListing}
         />
       )}
+
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#2C4F4E]">Create Assisted Listing (Admin Only)</DialogTitle>
+          </DialogHeader>
+          <AdminAssistedListingForm adminUser={adminUser} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
