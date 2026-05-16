@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, Copy, RefreshCw, Loader2, AlertTriangle, X } from "lucide-react";
+import { Download, Copy, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 
@@ -34,28 +34,23 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     toast.success("Link copied to clipboard");
   };
 
-  const handlePrint = () => {
-    if (!approvalUrl) return;
-    const win = window.open("", "_blank");
-    win.document.write(`
-      <html><head><title>Yardit QR Code</title>
-      <style>
-        body { font-family: sans-serif; text-align: center; padding: 40px; }
-        h2 { color: #2C4F4E; }
-        p { color: #666; font-size: 14px; }
-        img { margin: 20px auto; display: block; }
-        .url { font-size: 11px; color: #999; word-break: break-all; max-width: 400px; margin: 0 auto; }
-      </style>
-      </head><body>
-        <h2>Yardit – Your Yard Sale Is Listed!</h2>
-        <p>Scan this QR code to approve your free listing</p>
-        <img src="${qrUrl}" width="220" height="220" />
-        <p class="url">${approvalUrl}</p>
-        <p style="margin-top:24px;font-size:12px;color:#aaa;">QR code expires: ${new Date(liveRecord.assisted_qr_expires_at).toLocaleString()}</p>
-      </body></html>
-    `);
-    win.document.close();
-    win.print();
+  const handleDownload = async () => {
+    if (!qrUrl) return;
+    try {
+      const response = await fetch(qrUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      const slug = liveRecord.listing_number || liveRecord.listing_id || liveRecord.id || "code";
+      a.download = `yardit-qr-${slug}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error("Failed to download QR code.");
+    }
   };
 
   const handleRegenerate = async () => {
@@ -143,8 +138,8 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
 
               {/* Actions */}
               <div className="flex flex-col gap-2">
-                <Button onClick={handlePrint} className="w-full gap-2 bg-[#2C4F4E] text-white hover:bg-[#1e3b3a]">
-                  <Printer className="w-4 h-4" /> Print QR Code
+                <Button onClick={handleDownload} className="w-full gap-2 bg-[#2C4F4E] text-white hover:bg-[#1e3b3a]">
+                  <Download className="w-4 h-4" /> Download QR Code
                 </Button>
                 <Button variant="outline" onClick={handleCopyLink} className="w-full gap-2 border-[#2C4F4E] text-[#2C4F4E]">
                   <Copy className="w-4 h-4" /> Copy Link
