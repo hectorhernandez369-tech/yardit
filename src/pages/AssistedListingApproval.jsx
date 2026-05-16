@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, Clock, XCircle, MapPin, Calendar } from "lucide-react";
+import { Loader2, CheckCircle, Clock, XCircle, MapPin, Calendar, Share2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -19,8 +19,12 @@ function DeclinedScreen({ navigate }) {
     <div className="text-center py-12 px-4">
       <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
       <h2 className="text-xl font-bold text-gray-800 mb-2">Listing Declined</h2>
-      <p className="text-gray-600 mb-6">This promotional listing was declined. You can still create your own Yardit listing.</p>
-      <Button onClick={() => navigate(createPageUrl("CreateListing"))} className="bg-[#5DADA5] hover:bg-[#4A9B93]">
+      <p className="text-gray-600 mb-4">This promotional listing has been declined and is no longer accessible.</p>
+      <p className="text-sm text-gray-500 mb-6">Want to get your sale on the map? You can create your own free Yardit listing anytime.</p>
+      <Button
+        onClick={() => navigate(createPageUrl("CreateListing"))}
+        className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white font-semibold py-3"
+      >
         Create Your Own Listing
       </Button>
     </div>
@@ -31,11 +35,21 @@ function ExpiredScreen({ navigate }) {
   return (
     <div className="text-center py-12 px-4">
       <Clock className="w-16 h-16 text-amber-400 mx-auto mb-4" />
-      <h2 className="text-xl font-bold text-gray-800 mb-2">Link Expired</h2>
-      <p className="text-gray-600 mb-6">This promotional listing link has expired. You can still create your own Yardit listing.</p>
-      <Button onClick={() => navigate(createPageUrl("CreateListing"))} className="bg-[#5DADA5] hover:bg-[#4A9B93]">
-        Create Your Own Listing
+      <h2 className="text-xl font-bold text-gray-800 mb-2">This Link Has Expired</h2>
+      <p className="text-gray-600 mb-4">The 24-hour window for this promotional listing has passed.</p>
+      <p className="text-sm text-gray-500 mb-6">You can still get your sale on the map — create your own free Yardit listing in minutes.</p>
+      <Button
+        onClick={() => navigate(createPageUrl("CreateListing"))}
+        className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white font-semibold py-3"
+      >
+        Create Your Own Free Listing
       </Button>
+      <button
+        onClick={() => navigate(createPageUrl("Home"))}
+        className="mt-3 text-sm text-gray-500 underline"
+      >
+        Browse Yardit instead
+      </button>
     </div>
   );
 }
@@ -192,17 +206,28 @@ export default function AssistedListingApprovalPage() {
     try {
       const res = await base44.functions.invoke("resolveAssistedListing", { token, action });
       const d = res.data;
-      setState(d.status === "approved" ? "approved" : d.status === "claim_pending" ? "claim_pending" : d.status);
+
       if (d.listing) setListing(d.listing);
       if (d.assisted) setAssisted(d.assisted);
 
-      if (action === "claim_pending") {
-        // Store token in session so post-login we can complete claim
+      if (action === "approve") {
+        // Show the live listing view, then navigate to listing detail
+        setState("approved");
+        const listingId = d.listing?.id || listing?.id;
+        if (listingId) {
+          setTimeout(() => {
+            navigate(`${createPageUrl("ListingDetail")}?id=${listingId}`);
+          }, 1200);
+        }
+      } else if (action === "claim_pending") {
+        // Counts as approval — store token and redirect to login/signup
         sessionStorage.setItem("assisted_claim_token", token);
+        setState("claim_pending");
         base44.auth.redirectToLogin(`${window.location.origin}/assisted-listing?token=${token}`);
-      }
-      if (action === "decline") {
+      } else if (action === "decline") {
         setState("declined");
+      } else {
+        setState(d.status);
       }
     } catch (err) {
       alert("Something went wrong. Please try again.");
@@ -254,60 +279,57 @@ export default function AssistedListingApprovalPage() {
             {listing && <ListingCard listing={listing} />}
 
             <div className="space-y-3">
-              {/* Large primary actions */}
+              {/* 1 — Large primary: Approve & View Listing */}
               <Button
                 onClick={() => doAction("approve")}
                 disabled={isActing}
                 size="lg"
-                className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white py-4 text-base font-semibold"
+                className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white py-4 text-base font-semibold shadow-md"
               >
                 {isActing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle className="w-5 h-5 mr-2" />}
-                Approve & View Listing
+                Approve &amp; View Listing
               </Button>
 
+              {/* 2 — Large secondary: Decide Later (local only, no backend) */}
               <Button
                 disabled={isActing}
                 size="lg"
                 variant="outline"
-                className="w-full py-4 text-base border-2 border-[#2C4F4E] text-[#2C4F4E]"
+                className="w-full py-4 text-base border-2 border-[#2C4F4E] text-[#2C4F4E] hover:bg-[#2C4F4E]/5"
                 onClick={() => setState("decide_later")}
               >
                 <Clock className="w-5 h-5 mr-2" />
                 Decide Later
               </Button>
 
-              <div className="border-t pt-3 flex gap-3">
-                {/* Small secondary actions */}
-                <Button
+              {/* 3 & 4 — Small subtle text buttons */}
+              <div className="border-t pt-3 flex flex-col items-center gap-1">
+                <button
                   onClick={() => doAction("claim_pending")}
                   disabled={isActing}
-                  variant="ghost"
-                  size="sm"
-                  className="flex-1 text-[#5DADA5] hover:bg-[#5DADA5]/10"
+                  className="text-sm text-[#5DADA5] underline hover:text-[#4A9B93] disabled:opacity-50 py-1"
                 >
                   Sign Up to Edit
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={() => doAction("decline")}
                   disabled={isActing}
-                  variant="ghost"
-                  size="sm"
-                  className="flex-1 text-red-500 hover:bg-red-50"
+                  className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-50 py-1"
                 >
                   Decline Listing
-                </Button>
+                </button>
               </div>
             </div>
           </div>
         )}
 
         {state === "decide_later" && (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div className="bg-white rounded-2xl p-5 shadow-sm text-center border border-amber-200">
               <Clock className="w-12 h-12 text-amber-500 mx-auto mb-3" />
               <h2 className="text-lg font-bold text-[#2C4F4E] mb-2">No Problem!</h2>
               <p className="text-sm text-gray-600 leading-relaxed">
-                This promotional listing will be saved temporarily. You have 24 hours from the time it was created to approve and view it.
+                Your listing will stay on hold for 24 hours. Scan this QR code again before it expires to approve or manage it.
               </p>
               {assisted?.assisted_qr_expires_at && (
                 <p className="text-xs text-amber-700 mt-3 font-medium">
@@ -315,6 +337,9 @@ export default function AssistedListingApprovalPage() {
                 </p>
               )}
             </div>
+            <Button onClick={() => setState("ok")} className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white font-semibold">
+              ← Back to Listing
+            </Button>
             <Button onClick={() => navigate(createPageUrl("Home"))} variant="outline" className="w-full">
               Go to Yardit
             </Button>
@@ -322,11 +347,17 @@ export default function AssistedListingApprovalPage() {
         )}
 
         {state === "approved" && listing && (
-          <ApprovedUnclaimedView
-            listing={listing}
-            onSignUpToEdit={() => doAction("claim_pending")}
-            navigate={navigate}
-          />
+          <div className="space-y-4">
+            <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
+              <CheckCircle className="w-6 h-6 text-green-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-green-800">Approved! Taking you to your listing…</p>
+                <p className="text-sm text-green-700 mt-0.5">Your sale is now visible to local shoppers on Yardit.</p>
+              </div>
+            </div>
+            <ListingCard listing={listing} />
+            <Loader2 className="w-6 h-6 animate-spin text-[#5DADA5] mx-auto" />
+          </div>
         )}
 
         {state === "claim_pending" && (
