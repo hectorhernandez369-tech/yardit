@@ -6,64 +6,69 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Search, Loader2, MapPin, CheckCircle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
-async function searchNominatim(query) {
-  const params = new URLSearchParams({
-    q: query,
-    format: "json",
-    addressdetails: "1",
-    limit: "8",
-    countrycodes: "us",
-    viewbox: "-124.5,32.5,-114.1,42.1",
-    bounded: "0",
-  });
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-    headers: { "Accept-Language": "en" },
-  });
-  if (!res.ok) throw new Error("Search failed");
-  return res.json();
+// Same Mapbox token used by StepTwo and the rest of Yardit's geocoding
+const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
+
+async function mapboxGeocode(query) {
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=us&limit=5`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Geocode request failed");
+  const data = await res.json();
+  return data.features || [];
 }
 
-async function fuzzySearch(street, city, state, zip) {
-  const parts = [street, city, state, zip].filter(Boolean);
-  const base = parts.join(", ");
-
-  const attempts = [
-    base,
-    `${base}, California`,
-    `${base}, Tulare County, CA`,
-    [street, city, "CA"].filter(Boolean).join(", "),
+async function geocodeWithFallbacks(street, city, state, zip) {
+  const queries = [
+    [street, city, state, zip].filter(Boolean).join(", "),
+    [street, city, state].filter(Boolean).join(", "),
+    [street, city].filter(Boolean).join(", "),
+    [city, state, zip].filter(Boolean).join(", "),
   ];
 
-  for (const attempt of attempts) {
-    const data = await searchNominatim(attempt);
-    if (data && data.length > 0) return data;
+  for (const q of queries) {
+    if (!q.trim()) continue;
+    const features = await mapboxGeocode(q);
+    if (features.length > 0) return features;
   }
   return [];
 }
 
-function parseResult(result) {
-  const a = result.address || {};
-  const street = [a.house_number, a.road].filter(Boolean).join(" ");
-  const city = a.city || a.town || a.village || a.county || "";
-  const state = a.state || "";
-  const zip = a.postcode || "";
-  const formatted = result.display_name || "";
-  const lat = parseFloat(result.lat);
-  const lng = parseFloat(result.lon);
+function parseFeature(feature) {
+  let street = "", city = "", state = "", zip = "";
+
+  // The feature text/address is the street number + name
+  if (feature.address) {
+    street = `${feature.address} ${feature.text}`;
+  } else {
+    street = feature.text || "";
+  }
+
+  feature.context?.forEach((c) => {
+    if (c.id.startsWith("place")) city = c.text;
+    if (c.id.startsWith("region")) state = c.short_code?.replace("US-", "") || c.text;
+    if (c.id.startsWith("postcode")) zip = c.text;
+    if (c.id.startsWith("neighborhood") && !city) city = c.text;
+  });
+
+  const lat = feature.center[1];
+  const lng = feature.center[0];
+  const formatted = feature.place_name || "";
+
   return { street, city, state, zip, formatted, lat, lng };
 }
 
-function ResultItem({ result, onSelect }) {
-  const parsed = parseResult(result);
+function ResultItem({ feature, onSelect }) {
+  const parsed = parseFeature(feature);
+  const cityStateZip = [parsed.city, parsed.state, parsed.zip].filter(Boolean).join(", ");
   return (
     <button
       onClick={() => onSelect(parsed)}
       className="w-full text-left px-4 py-3 hover:bg-amber-50 border-b last:border-0 transition-colors"
     >
-      <p className="text-sm font-medium text-gray-800 leading-snug">{parsed.street || parsed.formatted.split(",")[0]}</p>
-      <p className="text-xs text-gray-500 mt-0.5">
-        {[parsed.city, parsed.state, parsed.zip].filter(Boolean).join(", ")}
+      <p className="text-sm font-medium text-gray-800 leading-snug">
+        {parsed.street || feature.place_name?.split(",")[0]}
       </p>
+      {cityStateZip && <p className="text-xs text-gray-500 mt-0.5">{cityStateZip}</p>}
     </button>
   );
 }
@@ -84,17 +89,21 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
     if (!canSearch) return;
     setIsSearching(true);
     setNoResults(false);
+    setResults([]);
     try {
-      const data = await fuzzySearch(street.trim(), city.trim(), state.trim(), zip.trim());
-      if (!data || data.length === 0) {
+      const features = await geocodeWithFallbacks(
+        street.trim(),
+        city.trim(),
+        state.trim(),
+        zip.trim()
+      );
+
+      if (!features || features.length === 0) {
         setNoResults(true);
-        setIsSearching(false);
-        return;
-      }
-      if (data.length === 1) {
-        handleSelect(parseResult(data[0]));
+      } else if (features.length === 1) {
+        handleSelect(parseFeature(features[0]));
       } else {
-        setResults(data);
+        setResults(features);
         setShowModal(true);
       }
     } catch {
@@ -105,7 +114,7 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
 
   const handleSelect = (parsed) => {
     onAddressSelected(parsed);
-    // Fill fields from the selected result
+    // Populate fields from geocoded result
     setStreet(parsed.street || "");
     setCity(parsed.city || "");
     setState(parsed.state || "");
@@ -129,6 +138,11 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
     if (e.key === "Enter") handleSearch();
   };
 
+  const markDirty = () => {
+    if (selectedAddress) onAddressSelected(null);
+    setNoResults(false);
+  };
+
   return (
     <div className="space-y-3">
       {/* Street */}
@@ -137,7 +151,7 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
         <Input
           placeholder="e.g. 874 Asheville Ave"
           value={street}
-          onChange={(e) => { setStreet(e.target.value); setNoResults(false); onAddressSelected(null); }}
+          onChange={(e) => { setStreet(e.target.value); markDirty(); }}
           onKeyDown={handleKeyDown}
         />
       </div>
@@ -149,7 +163,7 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
           <Input
             placeholder="Lindsay"
             value={city}
-            onChange={(e) => { setCity(e.target.value); setNoResults(false); onAddressSelected(null); }}
+            onChange={(e) => { setCity(e.target.value); markDirty(); }}
             onKeyDown={handleKeyDown}
             className="min-w-0"
           />
@@ -159,7 +173,7 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
           <Input
             placeholder="CA"
             value={state}
-            onChange={(e) => { setState(e.target.value.toUpperCase()); setNoResults(false); onAddressSelected(null); }}
+            onChange={(e) => { setState(e.target.value.toUpperCase()); markDirty(); }}
             onKeyDown={handleKeyDown}
             maxLength={2}
             className="min-w-0"
@@ -170,7 +184,7 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
           <Input
             placeholder="93247"
             value={zip}
-            onChange={(e) => { setZip(e.target.value); setNoResults(false); onAddressSelected(null); }}
+            onChange={(e) => { setZip(e.target.value); markDirty(); }}
             onKeyDown={handleKeyDown}
             maxLength={5}
             className="min-w-0"
@@ -203,19 +217,16 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
         </p>
       )}
 
-      {/* Selected address confirmation */}
+      {/* Selected address confirmation (no lat/lng shown) */}
       {selectedAddress && (
         <div className="flex items-start gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
           <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-medium text-green-800 leading-snug">
-              {selectedAddress.street || selectedAddress.formatted.split(",")[0]}
+              {selectedAddress.street || selectedAddress.formatted?.split(",")[0]}
             </p>
             <p className="text-xs text-green-700">
               {[selectedAddress.city, selectedAddress.state, selectedAddress.zip].filter(Boolean).join(", ")}
-            </p>
-            <p className="text-xs text-green-600 font-mono mt-0.5">
-              📍 {selectedAddress.lat.toFixed(5)}, {selectedAddress.lng.toFixed(5)}
             </p>
           </div>
         </div>
@@ -231,8 +242,8 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 divide-y border-t">
-            {results.map((r) => (
-              <ResultItem key={r.place_id} result={r} onSelect={handleSelect} />
+            {results.map((r, i) => (
+              <ResultItem key={r.id || i} feature={r} onSelect={handleSelect} />
             ))}
           </div>
         </DialogContent>
