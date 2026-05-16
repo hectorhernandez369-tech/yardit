@@ -79,8 +79,8 @@ export default function AdminAssistedListingHistory({ adminUser }) {
 
         return (
           <div key={rec.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <button
-              className="w-full text-left p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+            <div
+              className="w-full text-left p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer"
               onClick={() => setExpandedId(isExpanded ? null : rec.id)}
             >
               <div className="flex-1 min-w-0">
@@ -103,7 +103,7 @@ export default function AdminAssistedListingHistory({ adminUser }) {
               >
                 <QrCode className="w-3.5 h-3.5" /> View QR
               </Button>
-            </button>
+            </div>
 
             {isExpanded && (
               <div className="border-t border-gray-100 p-4 bg-gray-50 flex gap-4 flex-wrap items-start">
