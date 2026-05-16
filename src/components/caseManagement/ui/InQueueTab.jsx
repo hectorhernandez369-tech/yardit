@@ -28,19 +28,25 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
 
     const listingIds = [...new Set(allCases.map(c => c.listing_id).filter(Boolean))];
     if (listingIds.length > 0) {
-      const allListings = await base44.entities.Listing.list();
+      const listingResults = await Promise.all(
+        listingIds.map(id => base44.entities.Listing.filter({ id }))
+      );
       const map = {};
-      allListings.forEach(l => { map[l.id] = l; });
+      listingResults.flat().forEach(l => { map[l.id] = l; });
       setListings(map);
     }
 
-    const allReports = await base44.entities.Report.list();
-    const reportMap = {};
-    allReports.forEach(r => {
-      if (!reportMap[r.listingId]) reportMap[r.listingId] = [];
-      reportMap[r.listingId].push(r);
-    });
-    setReports(reportMap);
+    if (listingIds.length > 0) {
+      const reportResults = await Promise.all(
+        listingIds.map(id => base44.entities.Report.filter({ listingId: id }))
+      );
+      const reportMap = {};
+      reportResults.flat().forEach(r => {
+        if (!reportMap[r.listingId]) reportMap[r.listingId] = [];
+        reportMap[r.listingId].push(r);
+      });
+      setReports(reportMap);
+    }
     setLoading(false);
   };
 
