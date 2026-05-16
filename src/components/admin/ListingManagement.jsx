@@ -246,7 +246,7 @@ export default function ListingManagement({ mode, adminUser }) {
       )}
 
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="w-[calc(100vw-16px)] max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="w-[calc(100vw-32px)] max-w-2xl max-h-[90vh] overflow-x-hidden overflow-y-auto p-4 sm:p-6 box-border">
           <DialogHeader>
             <DialogTitle className="text-[#2C4F4E] text-base leading-snug pr-6">Create Assisted Listing (Admin Only)</DialogTitle>
           </DialogHeader>

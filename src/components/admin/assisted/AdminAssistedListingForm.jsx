@@ -208,7 +208,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
   const tierOptions = TIER_OPTIONS[form.listingType] || TIER_OPTIONS.yard_sale;
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="w-full max-w-full overflow-x-hidden box-border space-y-6">
       <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
         <strong>Admin Only:</strong> This creates a free promotional listing on behalf of a seller who has given verbal permission. A QR code will be generated for the seller to approve and claim.
       </div>
@@ -216,11 +216,11 @@ export default function AdminAssistedListingForm({ adminUser }) {
       {/* Listing Type & Tier */}
       <div className="space-y-3">
         <h3 className="font-semibold text-[#2C4F4E]">Listing Type & Tier</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+          <div className="space-y-1 min-w-0">
             <Label className="text-xs text-gray-500">Listing Type</Label>
             <Select value={form.listingType} onValueChange={handleListingTypeChange}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -230,10 +230,10 @@ export default function AdminAssistedListingForm({ adminUser }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <Label className="text-xs text-gray-500">Tier (Admin Override)</Label>
             <Select value={form.tier} onValueChange={(v) => update("tier", v)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -250,14 +250,14 @@ export default function AdminAssistedListingForm({ adminUser }) {
       <div className="space-y-3">
         <h3 className="font-semibold text-[#2C4F4E]">Address</h3>
         <Input placeholder="Street address" value={form.addressText} onChange={e => update("addressText", e.target.value)} />
-        <div className="grid grid-cols-3 gap-2">
-          <Input placeholder="City" value={form.city} onChange={e => update("city", e.target.value)} />
-          <Input placeholder="ST" value={form.state} onChange={e => update("state", e.target.value)} maxLength={2} />
-          <Input placeholder="ZIP" value={form.zip} onChange={e => update("zip", e.target.value)} />
+        <div className="grid grid-cols-3 gap-2 min-w-0">
+          <Input placeholder="City" value={form.city} onChange={e => update("city", e.target.value)} className="min-w-0" />
+          <Input placeholder="ST" value={form.state} onChange={e => update("state", e.target.value)} maxLength={2} className="min-w-0" />
+          <Input placeholder="ZIP" value={form.zip} onChange={e => update("zip", e.target.value)} className="min-w-0" />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Input placeholder="Latitude" value={form.lat} onChange={e => update("lat", e.target.value)} />
-          <Input placeholder="Longitude" value={form.lng} onChange={e => update("lng", e.target.value)} />
+        <div className="grid grid-cols-2 gap-2 min-w-0">
+          <Input placeholder="Latitude" value={form.lat} onChange={e => update("lat", e.target.value)} className="min-w-0" />
+          <Input placeholder="Longitude" value={form.lng} onChange={e => update("lng", e.target.value)} className="min-w-0" />
         </div>
         <Button variant="outline" size="sm" onClick={handleGeocode} disabled={isGeocoding} className="w-full">
           {isGeocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
@@ -304,14 +304,14 @@ export default function AdminAssistedListingForm({ adminUser }) {
         <h3 className="font-semibold text-[#2C4F4E]">
           {form.listingType === "event" ? "Event" : "Sale"} Date & Time
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+          <div className="min-w-0">
             <Label className="text-xs text-gray-500 mb-1">Start</Label>
-            <Input type="datetime-local" value={form.startDateTime} onChange={e => update("startDateTime", e.target.value)} className="w-full" />
+            <Input type="datetime-local" value={form.startDateTime} onChange={e => update("startDateTime", e.target.value)} className="w-full min-w-0" />
           </div>
-          <div>
+          <div className="min-w-0">
             <Label className="text-xs text-gray-500 mb-1">End</Label>
-            <Input type="datetime-local" value={form.endDateTime} onChange={e => update("endDateTime", e.target.value)} className="w-full" />
+            <Input type="datetime-local" value={form.endDateTime} onChange={e => update("endDateTime", e.target.value)} className="w-full min-w-0" />
           </div>
         </div>
       </div>
@@ -320,9 +320,9 @@ export default function AdminAssistedListingForm({ adminUser }) {
       <div className="space-y-3">
         <h3 className="font-semibold text-[#2C4F4E]">Seller Info (optional)</h3>
         <Input placeholder="Seller name" value={form.sellerName} onChange={e => update("sellerName", e.target.value)} />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Input placeholder="Phone" value={form.sellerPhone} onChange={e => update("sellerPhone", e.target.value)} />
-          <Input placeholder="Email" value={form.sellerEmail} onChange={e => update("sellerEmail", e.target.value)} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-0">
+          <Input placeholder="Phone" value={form.sellerPhone} onChange={e => update("sellerPhone", e.target.value)} className="min-w-0" />
+          <Input placeholder="Email" value={form.sellerEmail} onChange={e => update("sellerEmail", e.target.value)} className="min-w-0" />
         </div>
       </div>
 
