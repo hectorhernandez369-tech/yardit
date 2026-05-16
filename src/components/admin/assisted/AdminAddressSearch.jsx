@@ -26,14 +26,15 @@ async function searchNominatim(query) {
 async function fuzzySearch(street, city, state, zip) {
   const parts = [street, city, state, zip].filter(Boolean);
   const base = parts.join(", ");
+
   const attempts = [
     base,
     `${base}, California`,
     `${base}, Tulare County, CA`,
-    [street, city, state].filter(Boolean).join(", "),
+    [street, city, "CA"].filter(Boolean).join(", "),
   ];
+
   for (const attempt of attempts) {
-    if (!attempt.trim()) continue;
     const data = await searchNominatim(attempt);
     if (data && data.length > 0) return data;
   }
@@ -54,16 +55,15 @@ function parseResult(result) {
 
 function ResultItem({ result, onSelect }) {
   const parsed = parseResult(result);
-  const cityStateZip = [parsed.city, parsed.state, parsed.zip].filter(Boolean).join(", ");
   return (
     <button
       onClick={() => onSelect(parsed)}
       className="w-full text-left px-4 py-3 hover:bg-amber-50 border-b last:border-0 transition-colors"
     >
-      <p className="text-sm font-medium text-gray-800 leading-snug">
-        {parsed.formatted.split(",").slice(0, 3).join(",")}
+      <p className="text-sm font-medium text-gray-800 leading-snug">{parsed.street || parsed.formatted.split(",")[0]}</p>
+      <p className="text-xs text-gray-500 mt-0.5">
+        {[parsed.city, parsed.state, parsed.zip].filter(Boolean).join(", ")}
       </p>
-      {cityStateZip && <p className="text-xs text-gray-500 mt-0.5">{cityStateZip}</p>}
     </button>
   );
 }
@@ -88,9 +88,11 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
       const data = await fuzzySearch(street.trim(), city.trim(), state.trim(), zip.trim());
       if (!data || data.length === 0) {
         setNoResults(true);
-      } else if (data.length === 1) {
-        const parsed = parseResult(data[0]);
-        onAddressSelected(parsed);
+        setIsSearching(false);
+        return;
+      }
+      if (data.length === 1) {
+        handleSelect(parseResult(data[0]));
       } else {
         setResults(data);
         setShowModal(true);
@@ -103,8 +105,14 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
 
   const handleSelect = (parsed) => {
     onAddressSelected(parsed);
+    // Fill fields from the selected result
+    setStreet(parsed.street || "");
+    setCity(parsed.city || "");
+    setState(parsed.state || "");
+    setZip(parsed.zip || "");
     setShowModal(false);
     setResults([]);
+    setNoResults(false);
   };
 
   const handleReset = () => {
@@ -113,6 +121,7 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
     setState("");
     setZip("");
     setNoResults(false);
+    setResults([]);
     onAddressSelected(null);
   };
 
@@ -128,48 +137,49 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
         <Input
           placeholder="e.g. 874 Asheville Ave"
           value={street}
-          onChange={(e) => { setStreet(e.target.value); setNoResults(false); }}
+          onChange={(e) => { setStreet(e.target.value); setNoResults(false); onAddressSelected(null); }}
           onKeyDown={handleKeyDown}
         />
       </div>
 
-      {/* City + State */}
-      <div className="grid grid-cols-3 gap-2 min-w-0">
-        <div className="col-span-2 space-y-1">
+      {/* City / State / ZIP */}
+      <div className="grid grid-cols-5 gap-2 min-w-0">
+        <div className="col-span-2 space-y-1 min-w-0">
           <Label className="text-xs text-gray-500">City</Label>
           <Input
-            placeholder="e.g. Lindsay"
+            placeholder="Lindsay"
             value={city}
-            onChange={(e) => { setCity(e.target.value); setNoResults(false); }}
+            onChange={(e) => { setCity(e.target.value); setNoResults(false); onAddressSelected(null); }}
             onKeyDown={handleKeyDown}
+            className="min-w-0"
           />
         </div>
-        <div className="space-y-1">
+        <div className="col-span-1 space-y-1 min-w-0">
           <Label className="text-xs text-gray-500">State</Label>
           <Input
             placeholder="CA"
             value={state}
-            maxLength={2}
-            onChange={(e) => { setState(e.target.value.toUpperCase()); setNoResults(false); }}
+            onChange={(e) => { setState(e.target.value.toUpperCase()); setNoResults(false); onAddressSelected(null); }}
             onKeyDown={handleKeyDown}
+            maxLength={2}
+            className="min-w-0"
+          />
+        </div>
+        <div className="col-span-2 space-y-1 min-w-0">
+          <Label className="text-xs text-gray-500">ZIP (optional)</Label>
+          <Input
+            placeholder="93247"
+            value={zip}
+            onChange={(e) => { setZip(e.target.value); setNoResults(false); onAddressSelected(null); }}
+            onKeyDown={handleKeyDown}
+            maxLength={5}
+            className="min-w-0"
           />
         </div>
       </div>
 
-      {/* ZIP */}
-      <div className="space-y-1">
-        <Label className="text-xs text-gray-500">ZIP Code <span className="text-gray-400">(optional)</span></Label>
-        <Input
-          placeholder="e.g. 93247"
-          value={zip}
-          onChange={(e) => { setZip(e.target.value); setNoResults(false); }}
-          onKeyDown={handleKeyDown}
-          className="max-w-[140px]"
-        />
-      </div>
-
       {/* Search button */}
-      <div className="flex items-center gap-2">
+      <div className="flex gap-2 items-center">
         <Button
           variant="outline"
           onClick={handleSearch}
@@ -198,19 +208,20 @@ export default function AdminAddressSearch({ onAddressSelected, selectedAddress 
         <div className="flex items-start gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
           <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
           <div className="min-w-0">
-            <p className="text-sm font-medium text-green-800 leading-snug truncate">
-              {selectedAddress.street || selectedAddress.formatted}
+            <p className="text-sm font-medium text-green-800 leading-snug">
+              {selectedAddress.street || selectedAddress.formatted.split(",")[0]}
             </p>
             <p className="text-xs text-green-700">
               {[selectedAddress.city, selectedAddress.state, selectedAddress.zip].filter(Boolean).join(", ")}
-              {" · "}
-              <span className="font-mono">{selectedAddress.lat?.toFixed(5)}, {selectedAddress.lng?.toFixed(5)}</span>
+            </p>
+            <p className="text-xs text-green-600 font-mono mt-0.5">
+              📍 {selectedAddress.lat.toFixed(5)}, {selectedAddress.lng.toFixed(5)}
             </p>
           </div>
         </div>
       )}
 
-      {/* Results picker modal */}
+      {/* Results modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="max-w-md max-h-[70vh] flex flex-col p-0">
           <DialogHeader className="px-4 pt-4 pb-2">
