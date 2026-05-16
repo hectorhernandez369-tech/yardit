@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Calendar, MapPin, Plus } from "lucide-react";
+import { Search, Calendar, MapPin, Plus, QrCode, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import PromotionModal from "./promotions/PromotionModal";
 import AdminAssistedListingForm from "@/components/admin/assisted/AdminAssistedListingForm";
+import AdminQRViewModal from "@/components/admin/assisted/AdminQRViewModal";
 import {
   formatListingDateRange,
   formatListingStatusLabel,
@@ -32,6 +33,7 @@ export default function ListingManagement({ mode, adminUser }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [promoListing, setPromoListing] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [qrModalRecord, setQrModalRecord] = useState(null);
 
   const { data: listings } = useQuery({
     queryKey: ["allListings"],
@@ -44,6 +46,18 @@ export default function ListingManagement({ mode, adminUser }) {
     queryFn: () => base44.entities.User.list(),
     initialData: [],
   });
+
+  const { data: assistedListings } = useQuery({
+    queryKey: ["assistedListings"],
+    queryFn: () => base44.entities.AssistedListing.list("-created_date", 500),
+    initialData: [],
+  });
+
+  const assistedMap = useMemo(() => {
+    const map = {};
+    assistedListings.forEach((a) => { map[a.listing_id] = a; });
+    return map;
+  }, [assistedListings]);
 
   const ownerMap = useMemo(() => {
     const map = {};
@@ -147,6 +161,8 @@ export default function ListingManagement({ mode, adminUser }) {
       <div className="space-y-4">
         {filteredListings.slice(0, 20).map((listing) => {
           const owner = ownerMap[listing.ownerUserId];
+          const assistedRecord = assistedMap[listing.id];
+          const isAssisted = listing.assisted_listing === true || !!assistedRecord;
           return (
             <Card key={listing.id}>
               <CardContent className="p-6">
@@ -194,6 +210,21 @@ export default function ListingManagement({ mode, adminUser }) {
                     >
                       View More Details
                     </Button>
+                    {isAssisted && assistedRecord && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50"
+                        onClick={() => setQrModalRecord(assistedRecord)}
+                      >
+                        <QrCode className="w-3.5 h-3.5" /> View QR
+                      </Button>
+                    )}
+                    {isAssisted && !assistedRecord && (
+                      <Button size="sm" variant="outline" disabled className="gap-1.5 border-red-200 text-red-400 cursor-not-allowed">
+                        <AlertTriangle className="w-3.5 h-3.5" /> QR Missing
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       className="bg-purple-600 hover:bg-purple-700 text-white"
@@ -236,6 +267,14 @@ export default function ListingManagement({ mode, adminUser }) {
           );
         })}
       </div>
+
+      {qrModalRecord && (
+        <AdminQRViewModal
+          record={qrModalRecord}
+          onClose={() => setQrModalRecord(null)}
+          onRefreshed={(updated) => setQrModalRecord(updated)}
+        />
+      )}
 
       {promoListing && (
         <PromotionModal
