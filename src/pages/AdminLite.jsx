@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, Shield, LogOut, Home, Building2, ShieldCheck } from "lucide-react";
+import { Search, Loader2, Shield, LogOut, Home, Building2, ShieldCheck, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logAdminEvent, searchCases } from "../components/caseManagement";
@@ -21,6 +21,8 @@ import VendorAdminDashboard from "../components/admin/vendor/VendorAdminDashboar
 import { getAdminSession, clearAdminSession } from "../components/admin/AdminLoginModal";
 import AdminLoginModal from "../components/admin/AdminLoginModal";
 import { ensureAdminVendorAccount, isMasterAdminRole } from "../lib/ensureAdminVendorAccount";
+import SupportTicketQueue from "../components/admin/SupportTicketQueue";
+import InQueueTab from "../components/caseManagement/ui/InQueueTab";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -34,10 +36,11 @@ export default function AdminLitePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [noAdminAccess, setNoAdminAccess] = useState(false);
 
-  // Primary top-level section: residential | vendor | admin
+  // Primary top-level section: residential | vendor | admin | case_management
   const urlParams = new URLSearchParams(location.search);
   const initialSection = urlParams.get("section") || "residential";
   const [primarySection, setPrimarySection] = useState(initialSection);
+  const [caseManagementTab, setCaseManagementTab] = useState("reports_queue");
 
   // Case management state (used in Residential > Case queue)
   const [caseTab, setCaseTab] = useState("queue");
@@ -282,6 +285,17 @@ export default function AdminLitePage() {
               <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
               <span>Admin</span>
             </button>
+            <button
+              onClick={() => setPrimarySection("case_management")}
+              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                primarySection === "case_management"
+                  ? "bg-orange-600 text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+              <span>Case Mgmt</span>
+            </button>
           </div>
 
           {/* Logout */}
@@ -374,6 +388,33 @@ export default function AdminLitePage() {
         {/* ── ADMIN INTERNAL SECTION ── */}
         {primarySection === "admin" && (
           <AdminInternalTab user={user} adminSession={adminSession} />
+        )}
+
+        {/* ── CASE MANAGEMENT SECTION ── */}
+        {primarySection === "case_management" && (
+          <div className="mt-4">
+            <Tabs value={caseManagementTab} onValueChange={setCaseManagementTab}>
+              <TabsList className="flex flex-wrap gap-1 h-auto w-full p-1">
+                <TabsTrigger value="reports_queue" className="whitespace-nowrap">
+                  Reports Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
+                </TabsTrigger>
+                <TabsTrigger value="support_tickets" className="whitespace-nowrap">Support Tickets</TabsTrigger>
+              </TabsList>
+              <TabsContent value="reports_queue">
+                <InQueueTab
+                  user={user}
+                  allAdminUsers={allAdminUsers || []}
+                  searchResults={searchResults}
+                  onOpenCase={handleOpenCase}
+                  onRefresh={triggerRefresh}
+                  refreshKey={refreshKey}
+                />
+              </TabsContent>
+              <TabsContent value="support_tickets">
+                <SupportTicketQueue user={user} mode="residential" />
+              </TabsContent>
+            </Tabs>
+          </div>
         )}
 
       </div>
