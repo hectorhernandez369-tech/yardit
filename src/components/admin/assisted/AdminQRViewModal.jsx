@@ -7,12 +7,18 @@ import { base44 } from "@/api/base44Client";
 
 const QR_CDN = "https://api.qrserver.com/v1/create-qr-code/";
 
-function buildQrLabel(assistedRecord, listing, fallbackId) {
-  if (assistedRecord?.assisted_sale_formatted_address) return assistedRecord.assisted_sale_formatted_address;
-  if (assistedRecord?.assisted_sale_address && assistedRecord?.assisted_sale_city)
-    return `${assistedRecord.assisted_sale_address}, ${assistedRecord.assisted_sale_city}`;
-  if (listing?.addressText && listing?.city) return `${listing.addressText}, ${listing.city}`;
+function buildQrLabel(assisted, listing, fallbackId) {
+  // Priority 1-2: fresh AssistedListing address fields
+  if (assisted?.assisted_sale_formatted_address) return assisted.assisted_sale_formatted_address;
+  if (assisted?.assisted_sale_address) {
+    const parts = [assisted.assisted_sale_address, assisted.assisted_sale_city, assisted.assisted_sale_state, assisted.assisted_sale_zip].filter(Boolean);
+    if (parts.length > 1) return parts.join(", ");
+  }
+  // Priority 3-8: Listing fallbacks (no user/admin profile addresses)
+  if (listing?.assisted_sale_formatted_address) return listing.assisted_sale_formatted_address;
+  if (listing?.assisted_sale_address) return listing.assisted_sale_address;
   if (listing?.display_address) return listing.display_address;
+  if (listing?.addressText && listing?.city) return `${listing.addressText}, ${listing.city}`;
   if (listing?.address_text) return listing.address_text;
   if (listing?.title) return listing.title;
   return fallbackId || "Listing QR";
@@ -35,21 +41,32 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
   const [listing, setListing] = useState(null);
 
   useEffect(() => {
-    // Load the AssistedListing to get assisted_sale_formatted_address
-    if (liveRecord.id) {
-      base44.entities.AssistedListing.filter({ id: liveRecord.id })
-        .then((results) => {
-          if (results?.[0]) setLiveRecord(prev => ({ ...prev, ...results[0] }));
+    const recordId = record.id;
+    const listingId = record.listing_id;
+
+    // Load fresh AssistedListing by ID to get assisted_sale_formatted_address
+    if (recordId) {
+      base44.entities.AssistedListing.list()
+        .then((all) => {
+          const fresh = all.find((r) => r.id === recordId);
+          console.log("[AdminQRViewModal] assisted listing id:", recordId);
+          console.log("[AdminQRViewModal] assisted_sale_formatted_address:", fresh?.assisted_sale_formatted_address);
+          if (fresh) setLiveRecord(fresh);
         })
         .catch(() => {});
     }
-    // Also load the Listing as a final fallback
-    if (liveRecord.listing_id) {
-      base44.entities.Listing.filter({ id: liveRecord.listing_id })
-        .then((results) => { if (results?.[0]) setListing(results[0]); })
+
+    // Load Listing as fallback
+    if (listingId) {
+      base44.entities.Listing.list()
+        .then((all) => {
+          const found = all.find((r) => r.id === listingId);
+          console.log("[AdminQRViewModal] related listing id:", listingId);
+          if (found) setListing(found);
+        })
         .catch(() => {});
     }
-  }, []);
+  }, [record.id, record.listing_id]);
 
   const isDeclined = liveRecord.assisted_status === "assisted_declined";
   const isExpired =
@@ -66,6 +83,7 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     : null;
 
   const qrLabel = buildQrLabel(liveRecord, listing, liveRecord.listing_id);
+  console.log("[AdminQRViewModal] final qrLabel:", qrLabel);
 
   const handleCopyLink = () => {
     if (!approvalUrl) return;
