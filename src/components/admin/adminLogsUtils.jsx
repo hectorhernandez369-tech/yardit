@@ -7,7 +7,7 @@ const ACTION_LABELS = {
   supervisor_comment: "Added Supervisor Note",
   deactivate_admin: "Deactivated Admin",
   reactivate_admin: "Reactivated Admin",
-  opened_case: "Opened Case",
+  opened_case: "Reviewed Case",
   assign_case: "Assigned Case",
   reassign_case: "Reassigned Case",
   submit_case: "Submitted Case",
