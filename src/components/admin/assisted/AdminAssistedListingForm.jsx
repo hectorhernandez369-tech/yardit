@@ -162,7 +162,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
         listingId: response.data.listingId,
         assistedId: response.data.assistedId,
         expiresAt: response.data.expiresAt,
-        address: `${form.addressText}, ${form.city}, ${form.state}`,
+        saleAddress: response.data.saleFormattedAddress || `${form.addressText}, ${form.city}, ${form.state}`,
         title: form.title,
       });
 

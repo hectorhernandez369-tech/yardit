@@ -7,12 +7,14 @@ import { base44 } from "@/api/base44Client";
 
 const QR_CDN = "https://api.qrserver.com/v1/create-qr-code/";
 
-function buildQrLabel(listing, fallbackId) {
-  if (!listing) return fallbackId || "Listing QR";
-  if (listing.addressText && listing.city) return `${listing.addressText}, ${listing.city}`;
-  if (listing.display_address) return listing.display_address;
-  if (listing.address_text) return listing.address_text;
-  if (listing.title) return listing.title;
+function buildQrLabel(assistedRecord, listing, fallbackId) {
+  if (assistedRecord?.assisted_sale_formatted_address) return assistedRecord.assisted_sale_formatted_address;
+  if (assistedRecord?.assisted_sale_address && assistedRecord?.assisted_sale_city)
+    return `${assistedRecord.assisted_sale_address}, ${assistedRecord.assisted_sale_city}`;
+  if (listing?.addressText && listing?.city) return `${listing.addressText}, ${listing.city}`;
+  if (listing?.display_address) return listing.display_address;
+  if (listing?.address_text) return listing.address_text;
+  if (listing?.title) return listing.title;
   return fallbackId || "Listing QR";
 }
 
@@ -33,12 +35,21 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
   const [listing, setListing] = useState(null);
 
   useEffect(() => {
+    // Load the AssistedListing to get assisted_sale_formatted_address
+    if (liveRecord.id) {
+      base44.entities.AssistedListing.filter({ id: liveRecord.id })
+        .then((results) => {
+          if (results?.[0]) setLiveRecord(prev => ({ ...prev, ...results[0] }));
+        })
+        .catch(() => {});
+    }
+    // Also load the Listing as a final fallback
     if (liveRecord.listing_id) {
       base44.entities.Listing.filter({ id: liveRecord.listing_id })
         .then((results) => { if (results?.[0]) setListing(results[0]); })
         .catch(() => {});
     }
-  }, [liveRecord.listing_id]);
+  }, []);
 
   const isDeclined = liveRecord.assisted_status === "assisted_declined";
   const isExpired =
@@ -54,7 +65,7 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`
     : null;
 
-  const qrLabel = buildQrLabel(listing, liveRecord.listing_id);
+  const qrLabel = buildQrLabel(liveRecord, listing, liveRecord.listing_id);
 
   const handleCopyLink = () => {
     if (!approvalUrl) return;

@@ -121,6 +121,9 @@ Deno.serve(async (req) => {
 
     console.log('Created assisted listing:', listing.id);
 
+    // Build the sale address string from admin-entered fields
+    const saleFormattedAddress = `${addressText}, ${city}, ${state} ${zip}`.trim();
+
     // Create the AssistedListing record
     const assisted = await base44.asServiceRole.entities.AssistedListing.create({
       listing_id: listing.id,
@@ -136,6 +139,12 @@ Deno.serve(async (req) => {
       seller_email: sellerEmail,
       admin_notes: adminNotes,
       qr_scan_count: 0,
+      // Admin-entered sale address — used as the QR label
+      assisted_sale_address: addressText,
+      assisted_sale_city: city,
+      assisted_sale_state: state,
+      assisted_sale_zip: zip,
+      assisted_sale_formatted_address: saleFormattedAddress,
     });
 
     console.log('Created assisted record:', assisted.id, 'token:', token);
@@ -146,6 +155,7 @@ Deno.serve(async (req) => {
       assistedId: assisted.id,
       token,
       expiresAt: expiresAt.toISOString(),
+      saleFormattedAddress,
     });
   } catch (error) {
     console.error('createAssistedListing error:', error?.message || error);

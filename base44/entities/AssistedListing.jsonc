@@ -1,0 +1,118 @@
+{
+  "name": "AssistedListing",
+  "type": "object",
+  "properties": {
+    "listing_id": {
+      "type": "string",
+      "description": "The Listing entity ID this assisted record wraps"
+    },
+    "assisted_status": {
+      "type": "string",
+      "enum": [
+        "pending_seller_approval",
+        "assisted_active_unclaimed",
+        "assisted_active_claim_pending",
+        "claimed_active",
+        "assisted_declined",
+        "assisted_expired"
+      ],
+      "default": "pending_seller_approval",
+      "description": "Lifecycle state of the assisted listing"
+    },
+    "assisted_qr_token": {
+      "type": "string",
+      "description": "Secure random token embedded in the QR code URL"
+    },
+    "assisted_qr_created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the QR token was generated"
+    },
+    "assisted_qr_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "24 hours after creation \u2014 when the QR token expires"
+    },
+    "seller_approved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of seller approval"
+    },
+    "seller_declined_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of seller decline"
+    },
+    "claimed_by_user_id": {
+      "type": "string",
+      "description": "User ID of the seller who claimed the listing"
+    },
+    "claimed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the listing was claimed"
+    },
+    "admin_creator_id": {
+      "type": "string",
+      "description": "User ID of the admin who created the assisted listing"
+    },
+    "admin_creator_email": {
+      "type": "string",
+      "description": "Email of the admin who created the assisted listing"
+    },
+    "seller_permission_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Admin confirmed seller gave verbal/in-person permission"
+    },
+    "seller_name": {
+      "type": "string",
+      "description": "Optional seller name entered by admin"
+    },
+    "seller_phone": {
+      "type": "string",
+      "description": "Optional seller phone entered by admin"
+    },
+    "seller_email": {
+      "type": "string",
+      "description": "Optional seller email entered by admin"
+    },
+    "admin_notes": {
+      "type": "string",
+      "description": "Private admin notes about this assisted listing"
+    },
+    "qr_scan_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of times the QR code has been scanned"
+    },
+    "assisted_sale_address": {
+      "type": "string",
+      "description": "Street address entered by admin for the yard sale location"
+    },
+    "assisted_sale_city": {
+      "type": "string",
+      "description": "City entered by admin for the yard sale location"
+    },
+    "assisted_sale_state": {
+      "type": "string",
+      "description": "State entered by admin for the yard sale location"
+    },
+    "assisted_sale_zip": {
+      "type": "string",
+      "description": "ZIP code entered by admin for the yard sale location"
+    },
+    "assisted_sale_formatted_address": {
+      "type": "string",
+      "description": "Full formatted address of the yard sale, entered by admin \u2014 used as the QR code label"
+    }
+  },
+  "required": [
+    "listing_id",
+    "assisted_status",
+    "assisted_qr_token",
+    "assisted_qr_expires_at",
+    "admin_creator_id",
+    "seller_permission_confirmed"
+  ]
+}

@@ -8,7 +8,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
   const approvalUrl = `${window.location.origin}/assisted-listing?token=${created.token}`;
   const qrUrl = `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
 
-  const qrLabel = created.address || created.display_address || created.title || "Listing QR";
+  const qrLabel = created.saleAddress || created.address || created.display_address || created.title || "Listing QR";
 
   const buildFilename = () => {
     return qrLabel
