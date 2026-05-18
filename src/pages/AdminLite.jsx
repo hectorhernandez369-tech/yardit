@@ -272,7 +272,7 @@ export default function AdminLitePage() {
               }`}
             >
               <Building2 className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden xs:inline">Vendor /</span><span>&nbsp;Events</span>
+              <span>Vendors</span>
             </button>
             <button
               onClick={() => setPrimarySection("admin")}
