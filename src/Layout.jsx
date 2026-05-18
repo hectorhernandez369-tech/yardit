@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Plus, Home, User, Settings, Shield, MoreVertical, LogOut, HelpCircle, MapPin, Download } from "lucide-react";
+import { Plus, Home, User, Settings, Shield, MoreVertical, LogOut, HelpCircle, MapPin, Download, Store } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -176,17 +176,7 @@ function LayoutContent({ children, user, setUser }) {
                 </Button>
               </Link>
 
-              {hasVendorAccount && (
-                <Link to="/VendorDashboard">
-                  <Button
-                    variant={location.pathname === "/VendorDashboard" ? "secondary" : "ghost"}
-                    size="sm"
-                    className={`gap-2 ${location.pathname === "/VendorDashboard" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
-                  >
-                    Vendor Dashboard
-                  </Button>
-                </Link>
-              )}
+
 
               {!isAuthenticated && (
                 <Button
@@ -231,6 +221,12 @@ function LayoutContent({ children, user, setUser }) {
                           <DropdownMenuItem onClick={() => navigate(createPageUrl("Profile"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
                             <User className="w-3.5 h-3.5 text-[#5DADA5]" /> My Profile
                           </DropdownMenuItem>
+
+                          {hasVendorAccount && (
+                            <DropdownMenuItem onClick={() => navigate("/VendorDashboard")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+                              <Store className="w-3.5 h-3.5 text-[#5DADA5]" /> Vendor Tools
+                            </DropdownMenuItem>
+                          )}
 
                           <div className="h-px bg-gray-100 my-0.5"></div>
 
