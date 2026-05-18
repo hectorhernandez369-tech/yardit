@@ -40,7 +40,7 @@ export default function AdminLitePage() {
   const urlParams = new URLSearchParams(location.search);
   const initialSection = urlParams.get("section") || "residential";
   const [primarySection, setPrimarySection] = useState(initialSection);
-  const [caseManagementTab, setCaseManagementTab] = useState("reports_queue");
+  const [caseManagementTab, setCaseManagementTab] = useState("pending_review");
 
   // Case management state (used in Residential > Case queue)
   const [caseTab, setCaseTab] = useState("queue");
@@ -317,56 +317,6 @@ export default function AdminLitePage() {
         {/* ── RESIDENTIAL SECTION ── */}
         {primarySection === "residential" && (
           <>
-            {/* Case search bar (residential only) */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4 w-full max-w-xl">
-              <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Search by Account # or Listing ID..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleSearch()}
-                  className="pl-10 w-full"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button onClick={handleSearch} disabled={searching} className="btn-primary px-4 py-2 text-sm rounded-lg flex-1 sm:flex-none">
-                  {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
-                </button>
-                {searchResults && (
-                  <button onClick={handleClearSearch} className="text-sm text-gray-500 underline">Clear</button>
-                )}
-              </div>
-            </div>
-            {searchResults && (
-              <p className="text-sm text-gray-600 mb-2">Showing {searchResults.length} search result(s).</p>
-            )}
-
-            {/* Case queue sub-tabs */}
-            <div className="mb-4">
-              <Tabs value={caseTab} onValueChange={handleCaseTabChange}>
-                <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-3xl p-1">
-                  <TabsTrigger value="queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Queue ({counts.assigned})</TabsTrigger>
-                  <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Open ({counts.open})</TabsTrigger>
-                  <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Submitted ({counts.submitted})</TabsTrigger>
-                  <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="queue">
-                  <OpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} triggerRefresh={triggerRefresh} />
-                </TabsContent>
-                <TabsContent value="open">
-                  <ActiveOpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
-                </TabsContent>
-                <TabsContent value="submitted">
-                  <SubmittedCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
-                </TabsContent>
-                <TabsContent value="closed">
-                  <ClosedCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
-                </TabsContent>
-              </Tabs>
-            </div>
-
             {/* Residential ops dashboard (listings, users, tickets, etc.) */}
             <AdminLiteDashboard
               user={user}
@@ -393,13 +343,65 @@ export default function AdminLitePage() {
         {/* ── CASE MANAGEMENT SECTION ── */}
         {primarySection === "case_management" && (
           <div className="mt-4">
+            {/* Case search bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4 w-full max-w-xl">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Search by Account # or Listing ID..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSearch()}
+                  className="pl-10 w-full"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleSearch} disabled={searching} className="btn-primary px-4 py-2 text-sm rounded-lg flex-1 sm:flex-none">
+                  {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+                </button>
+                {searchResults && (
+                  <button onClick={handleClearSearch} className="text-sm text-gray-500 underline">Clear</button>
+                )}
+              </div>
+            </div>
+            {searchResults && (
+              <p className="text-sm text-gray-600 mb-2">Showing {searchResults.length} search result(s).</p>
+            )}
+
             <Tabs value={caseManagementTab} onValueChange={setCaseManagementTab}>
               <TabsList className="flex flex-wrap gap-1 h-auto w-full p-1">
+                <TabsTrigger value="pending_review" className="whitespace-nowrap">
+                  Pending Review
+                </TabsTrigger>
                 <TabsTrigger value="reports_queue" className="whitespace-nowrap">
                   Reports Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
                 </TabsTrigger>
                 <TabsTrigger value="support_tickets" className="whitespace-nowrap">Support Tickets</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="pending_review">
+                <Tabs value={caseTab} onValueChange={handleCaseTabChange}>
+                  <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-3xl p-1 mt-2">
+                    <TabsTrigger value="queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Queue ({counts.assigned})</TabsTrigger>
+                    <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Open ({counts.open})</TabsTrigger>
+                    <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Submitted ({counts.submitted})</TabsTrigger>
+                    <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="queue">
+                    <OpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} triggerRefresh={triggerRefresh} />
+                  </TabsContent>
+                  <TabsContent value="open">
+                    <ActiveOpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
+                  </TabsContent>
+                  <TabsContent value="submitted">
+                    <SubmittedCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
+                  </TabsContent>
+                  <TabsContent value="closed">
+                    <ClosedCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
+
               <TabsContent value="reports_queue">
                 <InQueueTab
                   user={user}
