@@ -398,6 +398,9 @@ export default function AdminLitePage() {
                 <TabsTrigger value="reports_queue" className="whitespace-nowrap">
                   Reports Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
                 </TabsTrigger>
+                <TabsTrigger value="pending_review" className="whitespace-nowrap">
+                  Pending Review {counts?.submitted > 0 ? `(${counts.submitted})` : ""}
+                </TabsTrigger>
                 <TabsTrigger value="support_tickets" className="whitespace-nowrap">Support Tickets</TabsTrigger>
               </TabsList>
               <TabsContent value="reports_queue">
@@ -407,6 +410,14 @@ export default function AdminLitePage() {
                   searchResults={searchResults}
                   onOpenCase={handleOpenCase}
                   onRefresh={triggerRefresh}
+                  refreshKey={refreshKey}
+                />
+              </TabsContent>
+              <TabsContent value="pending_review">
+                <SubmittedCasesTab
+                  user={user}
+                  searchResults={searchResults}
+                  onOpenCase={handleOpenCase}
                   refreshKey={refreshKey}
                 />
               </TabsContent>
