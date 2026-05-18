@@ -1,12 +1,58 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Printer, QrCode, Plus } from "lucide-react";
+import { CheckCircle, Printer, Download, Plus } from "lucide-react";
 
 const QR_CDN = "https://api.qrserver.com/v1/create-qr-code/";
 
 export default function AssistedListingQRPanel({ created, onCreateAnother }) {
   const approvalUrl = `${window.location.origin}/assisted-listing?token=${created.token}`;
   const qrUrl = `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
+
+  const buildFilename = () => {
+    const raw = created.address || created.title || "yardit-qr";
+    const slug = raw
+      .toLowerCase()
+      .replace(/,/g, "")
+      .replace(/[^a-z0-9\s]/g, "")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 4)
+      .join("-");
+    return `${slug}.png`;
+  };
+
+  const handleDownload = () => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = `${QR_CDN}?size=300x300&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
+    img.onload = () => {
+      const label = (created.address || created.title || "").split(",").slice(0, 2).join(",").trim();
+      const padding = 16;
+      const labelHeight = 28;
+      const canvas = document.createElement("canvas");
+      canvas.width = 300 + padding * 2;
+      canvas.height = 300 + padding * 2 + labelHeight;
+      const ctx = canvas.getContext("2d");
+
+      // White background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Address label
+      ctx.fillStyle = "#111111";
+      ctx.font = "bold 14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(label, canvas.width / 2, padding + 18);
+
+      // QR image
+      ctx.drawImage(img, padding, padding + labelHeight, 300, 300);
+
+      const link = document.createElement("a");
+      link.download = buildFilename();
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    };
+  };
 
   const handlePrint = () => {
     const win = window.open("", "_blank");
@@ -59,10 +105,13 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
       </p>
 
       <div className="flex flex-col gap-3">
-        <Button onClick={handlePrint} className="w-full gap-2 bg-[#2C4F4E] text-white hover:bg-[#1e3b3a]">
+        <Button onClick={handleDownload} className="w-full gap-2 bg-[#2C4F4E] text-white hover:bg-[#1e3b3a]">
+          <Download className="w-4 h-4" /> Download QR Image
+        </Button>
+        <Button onClick={handlePrint} variant="outline" className="w-full gap-2 border-[#2C4F4E] text-[#2C4F4E]">
           <Printer className="w-4 h-4" /> Print QR Code
         </Button>
-        <Button variant="outline" onClick={onCreateAnother} className="w-full gap-2 border-[#2C4F4E] text-[#2C4F4E]">
+        <Button variant="ghost" onClick={onCreateAnother} className="w-full gap-2 text-[#2C4F4E]">
           <Plus className="w-4 h-4" /> Create Another Listing
         </Button>
       </div>
