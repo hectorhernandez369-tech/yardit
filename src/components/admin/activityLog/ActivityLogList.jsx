@@ -167,25 +167,44 @@ function ActivityCard({ log, references, onViewCase }) {
                 }}
                 className="flex w-full items-center justify-between px-3 py-2 text-left font-semibold text-slate-700"
               >
-                <span>Technical Details</span>
+                <span>More Details</span>
                 {showTechnical ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               </button>
               {showTechnical && (
-                <div className="border-t border-slate-200 p-3 space-y-3">
-                  <div className="rounded-lg bg-slate-50 p-3 space-y-2">
-                    {Object.entries(rawData)
-                      .filter(([, value]) => value !== null && value !== undefined)
-                      .map(([key, value]) => (
-                        <div key={key} className="break-words">
-                          <div className="font-medium text-slate-800">{formatPlainEnglishLabel(key)}</div>
-                          <div className="text-slate-600 whitespace-pre-wrap">{formatPlainEnglishValue(value)}</div>
-                        </div>
-                      ))}
-                  </div>
-                  <div>
-                    <div className="font-medium text-slate-800 mb-2">Raw system record</div>
-                    <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2">{JSON.stringify(rawData.raw_json, null, 2)}</pre>
-                  </div>
+                <div className="border-t border-slate-200 p-3 space-y-2">
+                  {[
+                    { label: "Action Type", value: log.event_type || log.action_type },
+                    { label: "Performed By", value: log.admin_employee_id || log.created_by },
+                    { label: "Date & Time", value: formatYarditDateTime(log.created_at || log.created_date, { includeSeconds: true }) },
+                    { label: "Case ID", value: caseId },
+                    { label: "Listing ID", value: log.listing_id },
+                    { label: "User Affected", value: log.target_id },
+                    { label: "Screen / Area", value: log.page ? log.page.replaceAll("_", " ") : null },
+                    { label: "Notes", value: log.comment },
+                  ]
+                    .filter(({ value }) => value !== null && value !== undefined && value !== "")
+                    .map(({ label, value }) => (
+                      <div key={label} className="rounded-lg bg-slate-50 px-3 py-2 break-words">
+                        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-0.5">{label}</div>
+                        <div className="text-slate-800 text-xs">{String(value)}</div>
+                      </div>
+                    ))}
+                  {payload && typeof payload === "object" && Object.keys(payload).length > 0 && (
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Additional Info</div>
+                      <div className="space-y-1">
+                        {Object.entries(payload)
+                          .filter(([, v]) => v !== null && v !== undefined && v !== "")
+                          .slice(0, 8)
+                          .map(([key, value]) => (
+                            <div key={key} className="text-xs text-slate-700 break-words">
+                              <span className="font-medium text-slate-600">{String(key).replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase())}:</span>{" "}
+                              {typeof value === "object" ? Object.entries(value).map(([k, v]) => `${k}: ${v}`).join(", ") : String(value)}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
