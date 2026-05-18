@@ -253,33 +253,60 @@ export default function AdminLogsTab() {
                   {expanded && (
                     <div className="rounded-lg border border-dashed border-slate-300 bg-white p-3 space-y-3">
                       <div className="text-sm text-slate-700 space-y-1">
-                        <p><span className="font-medium text-slate-900">Technical Event:</span> {log.event_type || log.action_type || "—"}</p>
-                        <p><span className="font-medium text-slate-900">Admin ID:</span> {log.admin_id || "—"}</p>
-                        <p><span className="font-medium text-slate-900">Case ID:</span> {log.case_id || "—"}</p>
-                        <p><span className="font-medium text-slate-900">Listing ID:</span> {log.listing_id || "—"}</p>
+                        <p><span className="font-medium text-slate-900">Event Type:</span> {(log.event_type || log.action_type || "—").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</p>
+                        <p><span className="font-medium text-slate-900">Admin:</span> {actorLabel}</p>
+                        {log.case_id && <p><span className="font-medium text-slate-900">Case:</span> {references.cases[log.case_id] || log.case_id}</p>}
+                        {log.listing_id && <p><span className="font-medium text-slate-900">Listing:</span> {references.listings[log.listing_id] || log.listing_id}</p>}
                         {log.comment && <p><span className="font-medium text-slate-900">Comment:</span> {log.comment}</p>}
                       </div>
 
-                      {(log.old_value || log.new_value || technicalPayload) && (
-                        <div className="grid md:grid-cols-2 gap-3">
-                          {(log.old_value || log.new_value) && (
-                            <div className="rounded-md bg-slate-50 p-3 border border-slate-200">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Raw Change Data</p>
-                              <pre className="text-xs text-slate-700 whitespace-pre-wrap break-words">
-{JSON.stringify({ old_value: parseJsonSafe(log.old_value), new_value: parseJsonSafe(log.new_value) }, null, 2)}
-                              </pre>
+                      {(log.old_value || log.new_value) && (() => {
+                        const oldVal = parseJsonSafe(log.old_value);
+                        const newVal = parseJsonSafe(log.new_value);
+                        const allKeys = Array.from(new Set([
+                          ...Object.keys(oldVal && typeof oldVal === "object" ? oldVal : {}),
+                          ...Object.keys(newVal && typeof newVal === "object" ? newVal : {}),
+                        ]));
+                        if (allKeys.length === 0) return null;
+                        return (
+                          <div className="rounded-md bg-slate-50 p-3 border border-slate-200">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">What Changed</p>
+                            <div className="space-y-1.5 text-sm">
+                              {allKeys.map(key => {
+                                const before = oldVal?.[key];
+                                const after = newVal?.[key];
+                                const label = key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+                                return (
+                                  <div key={key} className="flex flex-wrap items-start gap-1">
+                                    <span className="font-medium text-slate-700 shrink-0">{label}:</span>
+                                    {before !== undefined && <span className="text-red-600 line-through">{String(before)}</span>}
+                                    {before !== undefined && after !== undefined && <span className="text-slate-400">→</span>}
+                                    {after !== undefined && <span className="text-green-700">{String(after)}</span>}
+                                  </div>
+                                );
+                              })}
                             </div>
-                          )}
-                          {technicalPayload && (
-                            <div className="rounded-md bg-slate-50 p-3 border border-slate-200">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Event Payload</p>
-                              <pre className="text-xs text-slate-700 whitespace-pre-wrap break-words">
-{JSON.stringify(technicalPayload, null, 2)}
-                              </pre>
+                          </div>
+                        );
+                      })()}
+
+                      {technicalPayload && (() => {
+                        const keys = Object.keys(technicalPayload);
+                        if (keys.length === 0) return null;
+                        return (
+                          <div className="rounded-md bg-slate-50 p-3 border border-slate-200">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Additional Info</p>
+                            <div className="space-y-1.5 text-sm text-slate-700">
+                              {keys.map(key => (
+                                <div key={key} className="flex flex-wrap gap-1">
+                                  <span className="font-medium text-slate-900 shrink-0">{key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}:</span>
+                                  <span className="break-all">{typeof technicalPayload[key] === "object" ? JSON.stringify(technicalPayload[key]) : String(technicalPayload[key])}</span>
+                                </div>
+                              ))}
                             </div>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </CardContent>
