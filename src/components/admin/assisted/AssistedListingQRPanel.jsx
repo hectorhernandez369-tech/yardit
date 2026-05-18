@@ -8,8 +8,6 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
   const approvalUrl = `${window.location.origin}/assisted-listing?token=${created.token}`;
   const qrUrl = `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
 
-  const label = (created.address || created.title || "").split(",").slice(0, 2).join(",").trim();
-
   const buildFilename = () => {
     const raw = created.address || created.title || "yardit-qr";
     const slug = raw
@@ -23,21 +21,17 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
     return `${slug}.png`;
   };
 
-  const handleDownload = async () => {
-    // Fetch the QR image as a blob to avoid CORS canvas taint on mobile
-    const qrFetchUrl = `${QR_CDN}?size=300x300&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
-    const response = await fetch(qrFetchUrl);
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-
+  const handleDownload = () => {
     const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = `${QR_CDN}?size=300x300&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
     img.onload = () => {
+      const label = (created.address || created.title || "").split(",").slice(0, 2).join(",").trim();
       const padding = 16;
-      const labelHeight = 30;
-      const qrSize = 300;
+      const labelHeight = 28;
       const canvas = document.createElement("canvas");
-      canvas.width = qrSize + padding * 2;
-      canvas.height = qrSize + padding * 2 + labelHeight;
+      canvas.width = 300 + padding * 2;
+      canvas.height = 300 + padding * 2 + labelHeight;
       const ctx = canvas.getContext("2d");
 
       // White background
@@ -50,17 +44,14 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
       ctx.textAlign = "center";
       ctx.fillText(label, canvas.width / 2, padding + 18);
 
-      // QR image below label
-      ctx.drawImage(img, padding, padding + labelHeight, qrSize, qrSize);
-
-      URL.revokeObjectURL(blobUrl);
+      // QR image
+      ctx.drawImage(img, padding, padding + labelHeight, 300, 300);
 
       const link = document.createElement("a");
       link.download = buildFilename();
       link.href = canvas.toDataURL("image/png");
       link.click();
     };
-    img.src = blobUrl;
   };
 
   const handlePrint = () => {
@@ -94,12 +85,13 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
         <h3 className="text-lg font-bold">Listing Created!</h3>
       </div>
 
-      <div className="bg-white border-2 border-[#2C4F4E] rounded-2xl p-6 shadow-sm flex flex-col items-center">
-        <p className="text-sm font-semibold text-gray-800 mb-3 text-center">{label}</p>
+      <div className="bg-white border-2 border-[#2C4F4E] rounded-2xl p-6 shadow-sm">
+        <p className="text-sm text-gray-600 mb-1 font-medium">{created.title}</p>
+        <p className="text-xs text-gray-400 mb-4">{created.address}</p>
         <img
           src={qrUrl}
           alt="QR Code"
-          className="rounded border border-gray-200"
+          className="mx-auto rounded-xl border border-gray-200"
           width={220}
           height={220}
         />
