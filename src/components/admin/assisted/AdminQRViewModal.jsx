@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, Copy, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
@@ -7,9 +7,38 @@ import { base44 } from "@/api/base44Client";
 
 const QR_CDN = "https://api.qrserver.com/v1/create-qr-code/";
 
+function buildQrLabel(listing, fallbackId) {
+  if (!listing) return fallbackId || "Listing QR";
+  if (listing.addressText && listing.city) return `${listing.addressText}, ${listing.city}`;
+  if (listing.display_address) return listing.display_address;
+  if (listing.address_text) return listing.address_text;
+  if (listing.title) return listing.title;
+  return fallbackId || "Listing QR";
+}
+
+function buildFilename(label) {
+  return label
+    .toLowerCase()
+    .replace(/,/g, "")
+    .replace(/[^a-z0-9\s]/g, "")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 4)
+    .join("-") + ".png";
+}
+
 export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [liveRecord, setLiveRecord] = useState(record);
+  const [listing, setListing] = useState(null);
+
+  useEffect(() => {
+    if (liveRecord.listing_id) {
+      base44.entities.Listing.filter({ id: liveRecord.listing_id })
+        .then((results) => { if (results?.[0]) setListing(results[0]); })
+        .catch(() => {});
+    }
+  }, [liveRecord.listing_id]);
 
   const isDeclined = liveRecord.assisted_status === "assisted_declined";
   const isExpired =
@@ -25,8 +54,7 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`
     : null;
 
-  // Build a display address from the listing if available
-  const displayAddress = liveRecord.seller_name || "Unnamed Seller";
+  const qrLabel = buildQrLabel(listing, liveRecord.listing_id);
 
   const handleCopyLink = () => {
     if (!approvalUrl) return;
@@ -34,23 +62,35 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     toast.success("Link copied to clipboard");
   };
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (!qrUrl) return;
-    try {
-      const response = await fetch(qrUrl);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      const slug = liveRecord.listing_number || liveRecord.listing_id || liveRecord.id || "code";
-      a.download = `yardit-qr-${slug}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    } catch {
-      toast.error("Failed to download QR code.");
-    }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = `${QR_CDN}?size=300x300&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
+    img.onload = () => {
+      const padding = 16;
+      const labelHeight = 28;
+      const canvas = document.createElement("canvas");
+      canvas.width = 300 + padding * 2;
+      canvas.height = 300 + padding * 2 + labelHeight;
+      const ctx = canvas.getContext("2d");
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#111111";
+      ctx.font = "bold 14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(qrLabel, canvas.width / 2, padding + 18);
+
+      ctx.drawImage(img, padding, padding + labelHeight, 300, 300);
+
+      const link = document.createElement("a");
+      link.download = buildFilename(qrLabel);
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    };
+    img.onerror = () => toast.error("Failed to download QR code.");
   };
 
   const handleRegenerate = async () => {
@@ -78,7 +118,7 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-[#2C4F4E]">
-            QR Code — {displayAddress}
+            QR Code
           </DialogTitle>
         </DialogHeader>
 
@@ -113,9 +153,9 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
             </div>
           ) : (
             <div className="space-y-3">
-              {/* QR Code */}
               {qrUrl && (
                 <div className="text-center">
+                  <p className="text-sm font-semibold text-gray-800 mb-2">{qrLabel}</p>
                   <img
                     src={qrUrl}
                     alt="QR Code"
@@ -129,14 +169,12 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
                 </div>
               )}
 
-              {/* Approval URL */}
               {approvalUrl && (
                 <p className="text-xs text-gray-400 break-all bg-gray-50 rounded-lg p-2 border">
                   {approvalUrl}
                 </p>
               )}
 
-              {/* Actions */}
               <div className="flex flex-col gap-2">
                 <Button onClick={handleDownload} className="w-full gap-2 bg-[#2C4F4E] text-white hover:bg-[#1e3b3a]">
                   <Download className="w-4 h-4" /> Download QR Code

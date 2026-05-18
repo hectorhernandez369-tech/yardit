@@ -8,17 +8,17 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
   const approvalUrl = `${window.location.origin}/assisted-listing?token=${created.token}`;
   const qrUrl = `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
 
+  const qrLabel = created.address || created.display_address || created.title || "Listing QR";
+
   const buildFilename = () => {
-    const raw = created.address || created.title || "yardit-qr";
-    const slug = raw
+    return qrLabel
       .toLowerCase()
       .replace(/,/g, "")
       .replace(/[^a-z0-9\s]/g, "")
       .trim()
       .split(/\s+/)
       .slice(0, 4)
-      .join("-");
-    return `${slug}.png`;
+      .join("-") + ".png";
   };
 
   const handleDownload = () => {
@@ -26,7 +26,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
     img.crossOrigin = "anonymous";
     img.src = `${QR_CDN}?size=300x300&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
     img.onload = () => {
-      const label = (created.address || created.title || "").split(",").slice(0, 2).join(",").trim();
+      const label = qrLabel;
       const padding = 16;
       const labelHeight = 28;
       const canvas = document.createElement("canvas");
@@ -86,8 +86,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
       </div>
 
       <div className="bg-white border-2 border-[#2C4F4E] rounded-2xl p-6 shadow-sm">
-        <p className="text-sm text-gray-600 mb-1 font-medium">{created.title}</p>
-        <p className="text-xs text-gray-400 mb-4">{created.address}</p>
+        <p className="text-sm font-semibold text-gray-800 mb-3">{qrLabel}</p>
         <img
           src={qrUrl}
           alt="QR Code"
