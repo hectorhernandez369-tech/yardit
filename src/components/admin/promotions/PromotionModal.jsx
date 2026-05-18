@@ -128,6 +128,41 @@ export default function PromotionModal({ open, onClose, user, listing, adminUser
           })
         )
       );
+
+      // Determine action_type per promo
+      const resolveActionType = (promoType) => {
+        if (["Free Listings", "Free Event"].includes(promoType)) return "admin_granted_free_listing";
+        if (["Discounted Listing", "Discounted Event"].includes(promoType)) return "admin_applied_discount";
+        if (promoType === "Credit Full Listing Amount") return "admin_granted_credit";
+        if (promoType === "Partial Credit") return "admin_granted_credit";
+        if (promoType === "Upgrade Tier") return "admin_granted_premium_upgrade";
+        return "admin_used_override";
+      };
+
+      await Promise.all(
+        validPromotions.map((promo) =>
+          base44.entities.AdminAuditLog.create({
+            admin_id: adminUser?.id,
+            admin_employee_id: adminUser?.employee_id || adminUser?.id,
+            action_type: resolveActionType(promo.promoType),
+            target_type: scope === "listing" ? "Listing" : "User",
+            target_id: listing?.id || targetUserId || "",
+            success: true,
+            metadata: JSON.stringify({
+              affected_user_id: targetUserId,
+              affected_user_email: targetUser?.email,
+              listing_id: listing?.id || null,
+              promotion_type: promo.promoType,
+              promotion_value: buildPromotionValue(promo),
+              discount_amount: ["Discounted Listing", "Discounted Event"].includes(promo.promoType) ? promo.promoValue : null,
+              credit_amount: ["Credit Full Listing Amount", "Partial Credit"].includes(promo.promoType) ? promo.promoValue : null,
+              reason,
+              admin_notes: adminNotes,
+              created_at: new Date().toISOString(),
+            }),
+          }).catch(() => {})
+        )
+      );
     },
     onSuccess: () => {
       toast.success("Promotions granted successfully");

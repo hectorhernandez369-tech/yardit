@@ -112,12 +112,24 @@ export default function VendorPromoModal({ open, onClose, account, user, onPromo
       // Write to AdminAuditLog
       await base44.entities.AdminAuditLog.create({
         admin_id: user?.id,
-        admin_email: user?.email,
-        action_type: "vendor_promo_created",
-        target_entity_type: "VendorAccount",
-        target_entity_id: account.id,
-        description: `Applied promo "${promo.promo_description}" to ${account.business_name} (${account.vendor_account_number}). Expires: ${computedEndDate ? format(computedEndDate, "MMM d, yyyy") : "Never"}.`,
-        metadata: { promo_id: created.id, promo_type: form.promo_type, end_date: promo.end_date },
+        admin_employee_id: user?.employee_id || user?.id,
+        action_type: "admin_granted_vendor_promotion",
+        target_type: "VendorAccount",
+        target_id: account.id,
+        success: true,
+        metadata: JSON.stringify({
+          affected_user_id: account.owner_user_id,
+          vendor_id: account.id,
+          vendor_account_number: account.vendor_account_number,
+          business_name: account.business_name,
+          promo_id: created.id,
+          promo_type: form.promo_type,
+          promo_description: promo.promo_description,
+          estimated_value: form.promo_type === "percentage_discount" ? `${form.promo_value}% off` : (form.promo_type === "tier_comp" ? `Free ${form.promo_tier} tier` : `${form.promo_value} ${form.promo_type}`),
+          end_date: promo.end_date,
+          reason: form.reason_note || null,
+          created_at: new Date().toISOString(),
+        }),
       }).catch(() => {}); // audit log failure should not block
 
       toast.success(`Promo applied to ${account.business_name}`);

@@ -165,6 +165,29 @@ export default function AdminAssistedListingForm({ adminUser }) {
         address: `${form.addressText}, ${form.city}, ${form.state}`,
         title: form.title,
       });
+
+      // Audit log
+      base44.entities.AdminAuditLog.create({
+        admin_id: adminUser?.id,
+        admin_employee_id: adminUser?.employee_id || adminUser?.id,
+        action_type: "admin_created_listing",
+        target_type: "Listing",
+        target_id: response.data.listingId || "",
+        success: true,
+        metadata: JSON.stringify({
+          affected_user_email: form.sellerEmail || null,
+          listing_id: response.data.listingId,
+          new_tier: form.tier,
+          listing_type: form.listingType,
+          title: form.title,
+          address: `${form.addressText}, ${form.city}, ${form.state}`,
+          seller_name: form.sellerName || null,
+          seller_phone: form.sellerPhone || null,
+          reason: form.adminNotes || "Admin assisted listing creation",
+          created_at: new Date().toISOString(),
+        }),
+      }).catch(() => {});
+
       toast.success("Assisted listing created! Show the QR code to the seller.");
     } catch (err) {
       toast.error(err?.response?.data?.error || err.message || "Failed to create listing");
