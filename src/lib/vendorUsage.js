@@ -1,4 +1,5 @@
 import { getVendorTierConfig } from "@/lib/vendorTiers";
+import { getVendorAccountCapabilities } from "@/lib/getVendorAccountCapabilities";
 
 export const COUNTED_VENDOR_EVENT_STATUSES = ["draft", "pending_payment", "published", "active"];
 
@@ -13,16 +14,15 @@ export function isVendorUsageEventActive(event, monthDate = new Date()) {
 }
 
 export function getVendorTierAllowance(account) {
-  const tier = getVendorTierConfig(account?.vendor_tier);
-  const allowAddOns = (account?.vendor_tier || "free") !== "free";
-
+  // Always derive limits from the account's own tier — never from a user-level tier.
+  const caps = getVendorAccountCapabilities(account);
   return {
-    singleEvents: Number(tier.included_single_events || 0),
-    multiSpotEvents: Number(tier.included_multi_spot_events || 0),
-    multiLocationEvents: Number(tier.included_multi_location_events || 0),
-    multiFieldEvents: Number(tier.included_multifield_events || 0),
-    pins: Number(tier.includedPins || 0) + (allowAddOns ? Number(account?.extra_pins_count || 0) : 0),
-    users: Number(tier.includedUsers || 0) + (allowAddOns ? Number(account?.extra_users_count || 0) : 0),
+    singleEvents: caps.includedSingleEvents,
+    multiSpotEvents: caps.includedMultiSpotEvents,
+    multiLocationEvents: caps.includedMultiLocationEvents,
+    multiFieldEvents: caps.includedMultiFieldEvents,
+    pins: caps.maxPins,
+    users: caps.maxUsers,
   };
 }
 
@@ -35,7 +35,8 @@ export function getVendorTierUsage({ account, events = [], pins = [], users = []
   );
 
   const activePins = (pins || []).filter((pin) => pin.is_active === true);
-  const activeUsers = (users || []).filter((user) => user.status === "active");
+  // Count users with active OR accepted status — both grant dashboard access.
+  const activeUsers = (users || []).filter((user) => user.status === "active" || user.status === "accepted");
 
   const singleEvents = activeEvents.filter((event) => event.event_type === "single").length;
   const multiSpotEvents = activeEvents.filter((event) => event.event_type === "multi_spot").length;

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Minus, Plus, Users, MapPin, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { VENDOR_TIERS, VENDOR_TIER_ORDER } from "@/lib/vendorTiers";
+import { getVendorAccountCapabilities } from "@/lib/getVendorAccountCapabilities";
 import { getVendorTierDowngradeIssues } from "@/lib/vendorEvents";
 import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
 import TierFeatureSummary from "@/components/vendor/TierFeatureSummary";
@@ -47,7 +48,8 @@ export default function VendorBillingTab({ account, onRefresh }) {
   });
   const { data: users = [] } = useQuery({
     queryKey: ["vendorBillingUsers", account?.id],
-    queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: account.id, status: "active" }),
+    // Include both active and accepted users for accurate usage counting
+    queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: account.id }),
     enabled: !!account?.id,
     initialData: [],
   });
@@ -162,6 +164,15 @@ export default function VendorBillingTab({ account, onRefresh }) {
 
   return (
     <div id="vendor-tier-section" className="space-y-4">
+      {/* Business-scoped billing notice */}
+      <div className="rounded-2xl border border-[#5DADA5]/40 bg-[#5DADA5]/8 p-3 flex items-start gap-3 text-sm text-[#2C4F4E]">
+        <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-[#5DADA5] flex items-center justify-center text-white text-[11px] font-bold">i</div>
+        <div>
+          <p className="font-semibold">Billing applies to this business only.</p>
+          <p className="text-xs text-slate-600 mt-0.5">Current business: <span className="font-medium">{account?.business_name}</span>. Upgrading or changing the plan here only affects this business, not any other businesses linked to your account.</p>
+        </div>
+      </div>
+
       {/* Event type info */}
       <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
         <p className="font-bold">Event types explained</p>

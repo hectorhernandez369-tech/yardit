@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getVendorUsageLimitStatus } from "@/lib/vendorUsage";
+import { getVendorAccountCapabilities } from "@/lib/getVendorAccountCapabilities";
 import { hashVendorPasscode } from "@/lib/vendorPasscode";
 import { toast } from "sonner";
 
@@ -12,8 +13,10 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
   const [form, setForm] = useState({ authorized_email: "", first_name: "", last_name: "", phone: "" });
   const [passcode, setPasscode] = useState("");
   const [savingPasscode, setSavingPasscode] = useState(false);
-  const usageStatus = getVendorUsageLimitStatus({ account, users });
-  const canAddUser = isOwner && usageStatus.canAddUser;
+  // Capabilities always come from the selected business account — never from a user-level tier.
+  const caps = getVendorAccountCapabilities(account);
+  const activeUserCount = users.filter((u) => u.status === "active" || u.status === "accepted").length;
+  const canAddUser = isOwner && activeUserCount < caps.maxUsers;
 
   const addUser = async () => {
     if (!form.authorized_email.trim()) return;
@@ -100,7 +103,7 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
           <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} disabled={!isOwner} />
           <Button onClick={addUser} disabled={!canAddUser} className="w-full bg-[#5DADA5] hover:bg-[#4A9B93]">Add User</Button>
           {!isOwner && <p className="text-sm text-muted-foreground">Only the business owner can add users.</p>}
-          {isOwner && !canAddUser && <p className="text-sm text-amber-700">User limit reached for your tier.</p>}
+          {isOwner && !canAddUser && <p className="text-sm text-amber-700">User limit reached ({activeUserCount}/{caps.maxUsers}) for {caps.tierLabel} plan on this business.</p>}
         </CardContent></Card>
       </div>
       <div className="grid min-w-0 gap-2.5 sm:gap-3">

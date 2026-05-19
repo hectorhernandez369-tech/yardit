@@ -83,6 +83,7 @@ export default function VendorEventsTab({ account, user }) {
   const pendingCollaborationInvites = collaborators.filter((item) => item.organization_id === account?.id && item.status === "pending");
   const collaborationByEventId = Object.fromEntries(collaborators.filter((item) => item.organization_id === account?.id && item.status === "accepted").map((item) => [item.event_id, item]));
   const organizationById = Object.fromEntries(vendorAccounts.map((item) => [item.id, item]));
+  // All usage/permission checks use the selected business account — not user-level tier.
   const usageSnapshot = getVendorUsageSnapshot({ account, events });
   const currentSinglePermission = getVendorEventPermission({ account, events, eventType: "single" });
   const currentMultifieldPermission = getVendorEventPermission({ account, events, eventType: "multi_spot" });
