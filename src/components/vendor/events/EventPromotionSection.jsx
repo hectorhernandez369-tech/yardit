@@ -1,5 +1,5 @@
 import { useMemo, useEffect } from "react";
-import { format, addDays, differenceInDays } from "date-fns";
+import { format, differenceInCalendarDays, isSameDay } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -19,49 +19,60 @@ import { getVendorTierConfig } from "@/lib/vendorTiers";
 export default function EventPromotionSection({ tierKey, eventStartDate, comingSoonDate, onComingSoonDate }) {
   const rule = getPromotionRule(tierKey);
   const tierConfig = getVendorTierConfig(tierKey);
-  const isFree = tierKey === "free" || (rule.includedDays === 0 && rule.maxDays === 0);
+  const isFree = rule.includedDays === 0 && rule.maxDays === 0;
 
-  const { includedDate, earliestDate } = useMemo(() => {
-    if (!eventStartDate) return { includedDate: null, earliestDate: null };
+  const { includedDate, rawIncludedDate, earliestSelectableDate, defaultComingSoonDate, eventStartsToday } = useMemo(() => {
+    if (!eventStartDate) return {};
     return getPromotionDates(eventStartDate, tierKey);
   }, [eventStartDate, tierKey]);
 
+  // Auto-fill default when start date is set and no date chosen yet (or date became invalid)
+  useEffect(() => {
+    if (isFree || !eventStartDate || eventStartsToday || !defaultComingSoonDate) return;
+
+    if (!comingSoonDate) {
+      // No date selected yet → set default
+      onComingSoonDate(defaultComingSoonDate.toISOString());
+      return;
+    }
+
+    // If currently-selected date is now before the earliest selectable date, reset it
+    if (earliestSelectableDate && new Date(comingSoonDate) < earliestSelectableDate) {
+      onComingSoonDate(defaultComingSoonDate.toISOString());
+    }
+  }, [eventStartDate, isFree, eventStartsToday]);
+
+  // Use rawIncludedDate for upgrade comparison (tier-based threshold, not clamped)
   const { upgradeRequired, additionalDays } = useMemo(() => {
-    if (!comingSoonDate || !includedDate) return { upgradeRequired: false, additionalDays: 0 };
-    return calcPromotionUpgrade(comingSoonDate, includedDate);
-  }, [comingSoonDate, includedDate]);
+    if (!comingSoonDate || !rawIncludedDate) return { upgradeRequired: false, additionalDays: 0 };
+    return calcPromotionUpgrade(comingSoonDate, rawIncludedDate);
+  }, [comingSoonDate, rawIncludedDate]);
 
   const selectedDays = useMemo(() => {
     if (!comingSoonDate || !eventStartDate) return 0;
-    return Math.max(0, differenceInDays(new Date(eventStartDate), new Date(comingSoonDate)));
+    return Math.max(0, differenceInCalendarDays(new Date(eventStartDate), new Date(comingSoonDate)));
   }, [comingSoonDate, eventStartDate]);
 
-  // Auto-set the default coming soon date when a start date is available but no date selected yet.
-  useEffect(() => {
-    if (!isFree && eventStartDate && !comingSoonDate && includedDate) {
-      onComingSoonDate(includedDate.toISOString());
-    }
-  }, [eventStartDate, includedDate, comingSoonDate, isFree]);
+  const isToday = useMemo(() => {
+    if (!comingSoonDate) return false;
+    return isSameDay(new Date(comingSoonDate), new Date());
+  }, [comingSoonDate]);
 
-  // Date input min/max (yyyy-MM-dd strings for <input type="date">)
-  const minDateStr = earliestDate ? format(earliestDate, "yyyy-MM-dd") : "";
-  const maxDateStr = eventStartDate ? format(addDays(new Date(eventStartDate), -1), "yyyy-MM-dd") : "";
+  // Date picker min/max as yyyy-MM-dd strings
+  const minDateStr = earliestSelectableDate ? format(earliestSelectableDate, "yyyy-MM-dd") : "";
+  const maxDateStr = eventStartDate
+    ? format(new Date(new Date(eventStartDate).setDate(new Date(eventStartDate).getDate() - 1)), "yyyy-MM-dd")
+    : "";
 
   const handleDateChange = (e) => {
     const val = e.target.value;
-    if (!val) {
-      onComingSoonDate("");
-      return;
-    }
-    // Store as ISO date-time (start of day)
+    if (!val) { onComingSoonDate(""); return; }
     onComingSoonDate(new Date(val + "T00:00:00").toISOString());
   };
 
   const comingSoonDateValue = comingSoonDate
     ? format(new Date(comingSoonDate), "yyyy-MM-dd")
-    : includedDate
-      ? format(includedDate, "yyyy-MM-dd")
-      : "";
+    : "";
 
   return (
     <div className="rounded-2xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-4 space-y-4">
@@ -70,7 +81,7 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
         <div>
           <h3 className="font-black text-[#2C4F4E]">Event Promotion</h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Your event can appear as <strong>Coming Soon</strong> before it starts. Higher vendor tiers include longer promotion windows.
+            Your event can appear as <strong>Coming Soon</strong> before it starts.
           </p>
         </div>
       </div>
@@ -84,7 +95,7 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
         </div>
       ) : (
         <>
-          {/* Tier summary */}
+          {/* Tier summary cards */}
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-xl bg-white border border-[#2C4F4E]/10 p-3 space-y-0.5">
               <p className="text-xs text-slate-500 uppercase font-semibold tracking-wide">Your Tier</p>
@@ -92,11 +103,15 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
             </div>
             <div className="rounded-xl bg-white border border-[#2C4F4E]/10 p-3 space-y-0.5">
               <p className="text-xs text-slate-500 uppercase font-semibold tracking-wide">Included Promotion</p>
-              <p className="font-bold text-[#2C4F4E]">{rule.includedDays} days</p>
+              <p className="font-bold text-[#2C4F4E]">
+                {rule.includedDays} {rule.includedDays === 1 ? "day" : "days"}
+              </p>
             </div>
             <div className="rounded-xl bg-white border border-[#2C4F4E]/10 p-3 space-y-0.5">
               <p className="text-xs text-slate-500 uppercase font-semibold tracking-wide">Maximum Available</p>
-              <p className="font-bold text-[#2C4F4E]">{rule.maxDays} days</p>
+              <p className="font-bold text-[#2C4F4E]">
+                {rule.maxDays} {rule.maxDays === 1 ? "day" : "days"}
+              </p>
             </div>
             {eventStartDate && (
               <div className="rounded-xl bg-white border border-[#2C4F4E]/10 p-3 space-y-0.5">
@@ -106,15 +121,35 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
             )}
           </div>
 
-          {/* Date picker */}
-          {eventStartDate ? (
+          {/* No start date yet */}
+          {!eventStartDate && (
+            <p className="text-sm text-slate-500 italic">Set an event start date above to configure promotion.</p>
+          )}
+
+          {/* Event starts today or in the past — no promotion available */}
+          {eventStartDate && eventStartsToday && (
+            <div className="flex items-start gap-2 rounded-xl bg-slate-50 border border-slate-200 p-3">
+              <Info className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
+              <p className="text-sm text-slate-600">
+                This event starts today or has already started, so Coming Soon promotion is no longer available.
+              </p>
+            </div>
+          )}
+
+          {/* Date picker — only when event is in the future */}
+          {eventStartDate && !eventStartsToday && (
             <div className="space-y-3">
               <div className="space-y-1">
                 <Label className="text-sm font-bold text-[#2C4F4E]">Coming Soon Start Date</Label>
                 <p className="text-xs text-slate-500">
-                  Earliest available: <strong>{earliestDate ? format(earliestDate, "MMM d, yyyy") : "—"}</strong>
-                  {" "}· Included up to: <strong>{includedDate ? format(includedDate, "MMM d, yyyy") : "—"}</strong>
+                  Your {tierConfig.label} tier includes <strong>{rule.includedDays} days</strong> of promotion.
+                  {" "}You can promote this event up to <strong>{rule.maxDays} days</strong> before it starts.
                 </p>
+                {earliestSelectableDate && (
+                  <p className="text-xs text-slate-500">
+                    Earliest available: <strong>{format(earliestSelectableDate, "MMM d, yyyy")}</strong>
+                  </p>
+                )}
                 <Input
                   type="date"
                   min={minDateStr}
@@ -127,14 +162,20 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
               {/* Summary row */}
               {comingSoonDate && (
                 <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
-                  <Badge className="bg-[#5DADA5] text-white">{selectedDays} days before event</Badge>
+                  {isToday ? (
+                    <Badge className="bg-[#5DADA5] text-white">Promotion starts immediately</Badge>
+                  ) : (
+                    selectedDays > 0 && (
+                      <Badge className="bg-[#5DADA5] text-white">{selectedDays} {selectedDays === 1 ? "day" : "days"} before event</Badge>
+                    )
+                  )}
                   {!upgradeRequired && (
                     <Badge className="bg-emerald-600 text-white">Included in {tierConfig.label}</Badge>
                   )}
                   {upgradeRequired && (
                     <Badge className="bg-amber-500 text-white">
                       <ArrowUpCircle className="h-3 w-3 mr-1" />
-                      Upgrade required (+{additionalDays} days)
+                      Upgrade required (+{additionalDays} extra {additionalDays === 1 ? "day" : "days"})
                     </Badge>
                   )}
                 </div>
@@ -147,11 +188,10 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
                   <div className="text-sm text-amber-800 space-y-1">
                     <p>
                       <strong>Promotion upgrade required.</strong> Your {tierConfig.label} tier includes {rule.includedDays} days.
-                      You selected {selectedDays} days, so this event requires a <strong>{selectedDays}-Day Event Boost</strong> promotion upgrade.
+                      You selected {selectedDays} days, so a promotion upgrade is required.
                     </p>
                     <p className="text-xs text-amber-700">
-                      Promotion upgrade payment will be required before this event can use the selected Coming Soon date.
-                      {/* TODO: Connect payment flow when available */}
+                      Promotion upgrade payment will be required before this event can be published with the selected Coming Soon date.
                     </p>
                   </div>
                 </div>
@@ -162,8 +202,6 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
                 Coming Soon events may appear behind active events at the same location to keep the map clean.
               </p>
             </div>
-          ) : (
-            <p className="text-sm text-slate-500 italic">Set an event start date above to configure promotion.</p>
           )}
         </>
       )}

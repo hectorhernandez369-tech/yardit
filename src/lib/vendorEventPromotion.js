@@ -19,28 +19,64 @@ export function getPromotionRule(tierKey) {
 /**
  * Given an event start date and a vendor tier, return the relevant dates.
  * All dates are Date objects.
+ *
+ * - earliestSelectableDate: the later of (today) and (start - maxDays). Never in the past.
+ * - defaultComingSoonDate:  the later of (today) and (start - includedDays). Clamped so it
+ *                           cannot equal or exceed the event start date.
+ * - eventStartsToday:       true when the event starts today or in the past — no promo available.
  */
 export function getPromotionDates(eventStartDate, tierKey) {
   const rule = getPromotionRule(tierKey);
   const start = new Date(eventStartDate);
 
-  const includedDate = new Date(start);
-  includedDate.setDate(includedDate.getDate() - rule.includedDays);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
 
-  const earliestDate = new Date(start);
-  earliestDate.setDate(earliestDate.getDate() - rule.maxDays);
+  const startDay = new Date(start);
+  startDay.setHours(0, 0, 0, 0);
 
-  return { includedDate, earliestDate, rule };
+  // Event starts today or has already started → no promotion window
+  const eventStartsToday = startDay <= todayStart;
+
+  // Raw included / max dates (may be in the past)
+  const rawIncludedDate = new Date(startDay);
+  rawIncludedDate.setDate(rawIncludedDate.getDate() - rule.includedDays);
+
+  const rawEarliestDate = new Date(startDay);
+  rawEarliestDate.setDate(rawEarliestDate.getDate() - rule.maxDays);
+
+  // Clamp both to today (never show past dates in the UI)
+  const includedDate = rawIncludedDate < todayStart ? new Date(todayStart) : rawIncludedDate;
+  const earliestSelectableDate = rawEarliestDate < todayStart ? new Date(todayStart) : rawEarliestDate;
+
+  // defaultComingSoonDate must be < event start
+  const dayBeforeStart = new Date(startDay);
+  dayBeforeStart.setDate(dayBeforeStart.getDate() - 1);
+  const defaultComingSoonDate = includedDate > dayBeforeStart ? dayBeforeStart : includedDate;
+
+  return {
+    includedDate,          // clamped to today — use for UI display
+    rawIncludedDate,       // raw (may be past) — use for upgrade threshold comparison
+    earliestSelectableDate,
+    defaultComingSoonDate,
+    eventStartsToday,
+    rule,
+  };
 }
 
 /**
  * Calculate how many additional days beyond the included window the user selected,
  * and whether an upgrade is required.
+ *
+ * selectedDate  - the user-chosen (or auto-set) Coming Soon date
+ * includedDate  - the raw (un-clamped) date representing the end of the included window
+ *                 (eventStart - includedDays). Compare against this to detect upgrade need.
  */
 export function calcPromotionUpgrade(selectedDate, includedDate) {
   if (!selectedDate || !includedDate) return { upgradeRequired: false, additionalDays: 0 };
-  const sel = new Date(selectedDate);
-  const inc = new Date(includedDate);
+  // Normalise both to midnight for a clean day-based comparison
+  const sel = new Date(selectedDate); sel.setHours(0, 0, 0, 0);
+  const inc = new Date(includedDate); inc.setHours(0, 0, 0, 0);
   if (sel >= inc) return { upgradeRequired: false, additionalDays: 0 };
   const msPerDay = 1000 * 60 * 60 * 24;
   const additionalDays = Math.ceil((inc - sel) / msPerDay);

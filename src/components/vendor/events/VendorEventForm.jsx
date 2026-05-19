@@ -198,8 +198,8 @@ export default function VendorEventForm({ account, user, event = null, approvedV
     const rule = getPromotionRule(tierKey);
     if (rule.maxDays === 0) return false;
     const resolvedStart = datesLocked && event ? event.startDateTime : new Date(form.startDateTime).toISOString();
-    const { includedDate } = getPromotionDates(resolvedStart, tierKey);
-    const { upgradeRequired } = calcPromotionUpgrade(form.coming_soon_start_date, includedDate);
+    const { rawIncludedDate } = getPromotionDates(resolvedStart, tierKey);
+    const { upgradeRequired } = calcPromotionUpgrade(form.coming_soon_start_date, rawIncludedDate);
     return upgradeRequired;
   }, [form.coming_soon_start_date, form.startDateTime, account?.vendor_tier, datesLocked, event]);
 
@@ -260,8 +260,8 @@ export default function VendorEventForm({ account, user, event = null, approvedV
     // If no date was explicitly chosen but tier includes promotion, default to the included date.
     let effectiveComingSoonDate = form.coming_soon_start_date;
     if (!effectiveComingSoonDate && rule.includedDays > 0 && resolvedStart) {
-      const { includedDate } = getPromotionDates(resolvedStart, tierKey);
-      effectiveComingSoonDate = includedDate.toISOString();
+      const { defaultComingSoonDate: defDate, eventStartsToday } = getPromotionDates(resolvedStart, tierKey);
+      if (!eventStartsToday) effectiveComingSoonDate = defDate.toISOString();
     }
 
     let promotionFields = {
@@ -275,18 +275,21 @@ export default function VendorEventForm({ account, user, event = null, approvedV
     };
 
     if (effectiveComingSoonDate && rule.maxDays > 0) {
-      const { includedDate } = getPromotionDates(resolvedStart, tierKey);
-      const { upgradeRequired, additionalDays } = calcPromotionUpgrade(effectiveComingSoonDate, includedDate);
-      const selectedDays = Math.max(0, differenceInDays(new Date(resolvedStart), new Date(effectiveComingSoonDate)));
-      promotionFields = {
-        promotion_included_days: rule.includedDays,
-        promotion_max_days: rule.maxDays,
-        coming_soon_start_date: new Date(effectiveComingSoonDate).toISOString(),
-        promotion_selected_days: selectedDays,
-        promotion_upgrade_days: additionalDays,
-        promotion_upgrade_required: upgradeRequired,
-        promotion_status: upgradeRequired ? "upgrade_required" : "included",
-      };
+      const { rawIncludedDate, eventStartsToday } = getPromotionDates(resolvedStart, tierKey);
+      if (eventStartsToday) effectiveComingSoonDate = null;
+      if (!eventStartsToday && effectiveComingSoonDate) {
+        const { upgradeRequired, additionalDays } = calcPromotionUpgrade(effectiveComingSoonDate, rawIncludedDate);
+        const selectedDays = Math.max(0, differenceInDays(new Date(resolvedStart), new Date(effectiveComingSoonDate)));
+        promotionFields = {
+          promotion_included_days: rule.includedDays,
+          promotion_max_days: rule.maxDays,
+          coming_soon_start_date: new Date(effectiveComingSoonDate).toISOString(),
+          promotion_selected_days: selectedDays,
+          promotion_upgrade_days: additionalDays,
+          promotion_upgrade_required: upgradeRequired,
+          promotion_status: upgradeRequired ? "upgrade_required" : "included",
+        };
+      }
     }
     // --- End promotion fields ---
 
