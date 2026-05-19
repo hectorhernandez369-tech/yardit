@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Store } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import MobileVendorHeader from "@/components/vendor/MobileVendorHeader";
 import MyTrucksSection from "@/components/vendor/MyTrucksSection";
@@ -13,11 +12,12 @@ import VendorUsersTab from "@/components/vendor/VendorUsersTab";
 import VendorPinStatusBar from "@/components/vendor/VendorPinStatusBar";
 import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
-import VendorPortalGate from "@/components/vendor/VendorPortalGate";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
 import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
+import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
+import VendorAccessDenied from "@/components/vendor/VendorAccessDenied";
 import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
-import { hasValidVendorPortalSession } from "@/lib/vendorPasscode";
+import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
@@ -25,41 +25,40 @@ export default function VendorDashboard() {
   const urlParams = new URLSearchParams(window.location.search);
   const requestedTab = urlParams.get("tab") || "profile";
   const [activeTab, setActiveTab] = useState(requestedTab);
-  const [portalUnlocked, setPortalUnlocked] = useState(false);
   const [showSetupReminder, setShowSetupReminder] = useState(true);
+  // Multi-business: which account is currently active
+  const [activeAccountId, setActiveAccountId] = useState(null);
 
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ["vendorDashboardUser"],
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: accounts = [], isLoading: loadingAccount } = useQuery({
-    queryKey: ["vendorDashboardAccount", user?.id, user?.email],
-    queryFn: async () => {
-      const byId = await base44.entities.VendorAccount.filter({ owner_user_id: user.id });
-      if (byId.length) return byId;
-      const byOwnerEmail = await base44.entities.VendorAccount.filter({ owner_email: user.email });
-      if (byOwnerEmail.length) return byOwnerEmail;
-      const byEmail = await base44.entities.VendorAccount.filter({ owner_user_id: user.email });
-      if (byEmail.length) return byEmail;
-      const authorizedRecords = await base44.entities.VendorAuthorizedUser.filter({ authorized_email: user.email, status: "active" });
-      if (!authorizedRecords.length) return [];
-      const allAccounts = await base44.entities.VendorAccount.list();
-      return allAccounts.filter((vendorAccount) => authorizedRecords.some((record) => record.vendor_account_id === vendorAccount.id));
-    },
-    enabled: !!user?.id,
+  // Use shared helper for consistent account detection
+  const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
+    queryKey: ["vendorDashboardAccounts", user?.id, user?.email],
+    queryFn: () => getUserVendorAccounts(user),
+    enabled: !!user?.id || !!user?.email,
   });
 
-  const account = accounts.find((item) => item.is_active !== false) || accounts[0];
-  const isOwner = !!account && (account.owner_user_id === user?.id || account.owner_user_id === user?.email || account.owner_email === user?.email);
+  // Set active account: prefer URL param, then previously selected, then first
+  useEffect(() => {
+    if (!accounts.length) return;
+    const paramId = new URLSearchParams(window.location.search).get("account");
+    if (paramId && accounts.find((a) => a.id === paramId)) {
+      setActiveAccountId(paramId);
+    } else if (!activeAccountId || !accounts.find((a) => a.id === activeAccountId)) {
+      setActiveAccountId(accounts[0].id);
+    }
+  }, [accounts]);
 
-  const { data: authorizedAccessRecords = [] } = useQuery({
-    queryKey: ["vendorDashboardAuthorizedAccess", account?.id, user?.email],
-    queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: account.id, authorized_email: user.email, status: "active" }),
-    enabled: !!account?.id && !!user?.email && !isOwner,
-  });
+  const account = accounts.find((a) => a.id === activeAccountId) || accounts[0] || null;
 
-  const authorizedAccessRecord = authorizedAccessRecords[0];
+  const isOwner = !!account && (
+    account.owner_user_id === user?.id ||
+    account.owner_user_id === user?.email ||
+    account.owner_email === user?.email
+  );
 
   const { data: pins = [] } = useQuery({
     queryKey: ["vendorDashboardPins", account?.id],
@@ -86,7 +85,7 @@ export default function VendorDashboard() {
   });
 
   const refreshDashboard = () => {
-    queryClient.invalidateQueries({ queryKey: ["vendorDashboardAccount"] });
+    queryClient.invalidateQueries({ queryKey: ["vendorDashboardAccounts"] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardPins"] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardCheckIns"] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardUsers"] });
@@ -101,43 +100,45 @@ export default function VendorDashboard() {
 
   const handleTabChange = (nextTab) => {
     setActiveTab(nextTab);
-    navigate(`/VendorDashboard?tab=${nextTab}`, { replace: true });
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", nextTab);
+    navigate(`/VendorDashboard?${params.toString()}`, { replace: true });
   };
 
-  useEffect(() => {
-    if (isOwner || (account?.id && user?.email && hasValidVendorPortalSession(account.id, user.email))) {
-      setPortalUnlocked(true);
-    } else {
-      setPortalUnlocked(false);
-    }
-  }, [account?.id, user?.email, isOwner]);
+  const handleSelectBusiness = (acc) => {
+    setActiveAccountId(acc.id);
+    navigate(`/VendorDashboard?tab=${activeTab}&account=${acc.id}`, { replace: true });
+    queryClient.invalidateQueries({ queryKey: ["vendorDashboardPins", acc.id] });
+    queryClient.invalidateQueries({ queryKey: ["vendorDashboardCheckIns", acc.id] });
+    queryClient.invalidateQueries({ queryKey: ["vendorDashboardUsers", acc.id] });
+    queryClient.invalidateQueries({ queryKey: ["vendorDashboardUpdates", acc.id] });
+  };
 
+  // Mark dashboard as entered for setup tracking
   useEffect(() => {
-    if (!account?.id || !portalUnlocked || account.setup_dashboard_entered === true) return;
-    base44.entities.VendorAccount.update(account.id, { setup_dashboard_entered: true, vendor_setup_status: setupProgress.isComplete ? "complete" : "in_progress" }).then(refreshDashboard);
-  }, [account?.id, portalUnlocked]);
+    if (!account?.id || account.setup_dashboard_entered === true) return;
+    base44.entities.VendorAccount.update(account.id, {
+      setup_dashboard_entered: true,
+      vendor_setup_status: setupProgress.isComplete ? "complete" : "in_progress",
+    }).then(refreshDashboard);
+  }, [account?.id]);
 
   useEffect(() => {
     if (!account?.id || account.vendor_setup_status === "complete" || !setupProgress.isComplete) return;
     base44.entities.VendorAccount.update(account.id, { vendor_setup_status: "complete" }).then(refreshDashboard);
   }, [account?.id, setupProgress.isComplete]);
 
-  if (loadingUser || loadingAccount) {
-    return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" /></div>;
-  }
-
-  if (!account) {
+  if (loadingUser || loadingAccounts) {
     return (
-      <div className="max-w-4xl mx-auto w-full p-4 sm:p-6">
-        <Card className="rounded-3xl">
-          <CardContent className="p-8 text-center space-y-3">
-            <Store className="h-10 w-10 mx-auto text-muted-foreground" />
-            <h1 className="text-2xl font-bold text-[#2C4F4E]">No vendor account found</h1>
-            <p className="text-sm text-muted-foreground">Once your vendor account is created, your dashboard tabs will appear here.</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" />
       </div>
     );
+  }
+
+  // No vendor access — show access denied (no passcode prompt)
+  if (!account) {
+    return <VendorAccessDenied />;
   }
 
   const heroProfile = {
@@ -153,15 +154,19 @@ export default function VendorDashboard() {
     vendor_account_number: account.vendor_account_number || account.account_number,
     owner_email: account.owner_email,
   };
+
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
   const activePin = activeCheckIn ? pins.find((pin) => pin.id === activeCheckIn.vendor_pin_id) : null;
 
-  if (!portalUnlocked) {
-    return <VendorPortalGate account={account} authorizedUser={authorizedAccessRecord} user={user} onUnlock={() => setPortalUnlocked(true)} />;
-  }
-
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-[#FBFAF7]">
+      {/* Multi-business selector bar */}
+      <BusinessSelectorBar
+        accounts={accounts}
+        activeAccount={account}
+        onSelect={handleSelectBusiness}
+      />
+
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0 min-w-0">
         <div className="bg-[#5DADA5] text-white">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-5">

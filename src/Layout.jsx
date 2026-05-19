@@ -363,6 +363,13 @@ export default function Layout({ children }) {
 
         base44.functions.invoke("syncNeighborhoodCoHostInvite", {}).catch(() => {});
 
+        // Startup page redirect
+        const startupPage = localStorage.getItem("yardit_startup_page");
+        const isRoot = window.location.pathname === "/" || window.location.pathname === createPageUrl("Home");
+        if (startupPage === "vendor" && isRoot) {
+          window.location.replace("/VendorDashboard");
+        }
+
       } catch (error) {
         console.error("Error fetching user:", error);
       }

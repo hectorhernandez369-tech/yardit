@@ -7,12 +7,16 @@ import { base44 } from "@/api/base44Client";
 export async function getUserVendorAccounts(user) {
   if (!user?.id && !user?.email) return [];
 
-  const [byUserId, byEmail, authorizedLinks] = await Promise.all([
+  const [byUserId, byEmail, byLegacyEmail, authorizedLinks] = await Promise.all([
     user?.id
       ? base44.entities.VendorAccount.filter({ owner_user_id: user.id }).catch(() => [])
       : Promise.resolve([]),
     user?.email
       ? base44.entities.VendorAccount.filter({ owner_email: user.email }).catch(() => [])
+      : Promise.resolve([]),
+    // Legacy: some old records stored email in owner_user_id
+    user?.email
+      ? base44.entities.VendorAccount.filter({ owner_user_id: user.email }).catch(() => [])
       : Promise.resolve([]),
     user?.email
       ? base44.entities.VendorAuthorizedUser.filter({ authorized_email: user.email }).catch(() => [])
@@ -25,7 +29,7 @@ export async function getUserVendorAccounts(user) {
   // Merge all results, deduplicate by id
   const seen = new Set();
   const all = [];
-  for (const acct of [...byUserId, ...byEmail]) {
+  for (const acct of [...byUserId, ...byEmail, ...byLegacyEmail]) {
     if (acct?.id && !seen.has(acct.id)) {
       seen.add(acct.id);
       all.push(acct);

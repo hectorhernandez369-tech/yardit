@@ -8,26 +8,38 @@ import { clearAdminSession } from "../components/admin/AdminLoginModal";
 import { useAuth } from "@/lib/AuthContext";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
+import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
+
+const STARTUP_PAGE_KEY = "yardit_startup_page";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [user, setUser] = useState(null);
+  const [hasVendorAccount, setHasVendorAccount] = useState(false);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [canInstallApp, setCanInstallApp] = useState(false);
+  const [startupPage, setStartupPage] = useState(() => localStorage.getItem(STARTUP_PAGE_KEY) || "map");
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const currentUser = await base44.auth.me();
         setUser(currentUser);
+        const accounts = await getUserVendorAccounts(currentUser);
+        setHasVendorAccount(accounts.length > 0);
       } catch (error) {
         navigate(createPageUrl("Home"));
       }
     };
     fetchUser();
   }, []);
+
+  const handleStartupPageChange = (value) => {
+    setStartupPage(value);
+    localStorage.setItem(STARTUP_PAGE_KEY, value);
+  };
 
 
   const handleLogout = () => {
@@ -95,6 +107,31 @@ export default function SettingsPage() {
                 className="w-full justify-start text-left font-normal"
               >
                 Install Yardit
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {hasVendorAccount && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Startup Page</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-sm text-slate-500 mb-3">Choose which page opens when you launch Yardit.</p>
+              <Button
+                onClick={() => handleStartupPageChange("map")}
+                variant={startupPage === "map" ? "default" : "outline"}
+                className={`w-full justify-start font-normal ${startupPage === "map" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : ""}`}
+              >
+                {startupPage === "map" ? "✓ " : ""}Open to Map
+              </Button>
+              <Button
+                onClick={() => handleStartupPageChange("vendor")}
+                variant={startupPage === "vendor" ? "default" : "outline"}
+                className={`w-full justify-start font-normal ${startupPage === "vendor" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : ""}`}
+              >
+                {startupPage === "vendor" ? "✓ " : ""}Open to Vendor Dashboard
               </Button>
             </CardContent>
           </Card>
