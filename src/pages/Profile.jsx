@@ -110,9 +110,12 @@ export default function ProfilePage() {
               <h1 className="text-3xl font-bold text-gray-900">{`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email || "User"}</h1>
               <p className="text-gray-600">{user.email}</p>
             </div>
-            <Button onClick={() => navigate("/VendorAccountIntro")} className="hidden sm:inline-flex bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
+            <Button
+              onClick={() => navigate(hasVendorAccount ? "/VendorDashboard" : "/VendorAccountIntro")}
+              className="hidden sm:inline-flex bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold"
+            >
               <Store className="w-4 h-4" />
-              Open Vendor Account
+              {hasVendorAccount ? "Open Vendor Dashboard" : "Open Vendor Account"}
             </Button>
 
             </div>
@@ -140,9 +143,12 @@ export default function ProfilePage() {
           </Card>
         ) : null}
 
-        <Button onClick={() => navigate("/VendorAccountIntro")} className="sm:hidden mb-6 w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
+        <Button
+          onClick={() => navigate(hasVendorAccount ? "/VendorDashboard" : "/VendorAccountIntro")}
+          className="sm:hidden mb-6 w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold"
+        >
           <Store className="w-4 h-4" />
-          Open Vendor Account
+          {hasVendorAccount ? "Open Vendor Dashboard" : "Open Vendor Account"}
         </Button>
 
         {/* Tabs */}
