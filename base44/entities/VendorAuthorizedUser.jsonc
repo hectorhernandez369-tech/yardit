@@ -32,16 +32,43 @@
     "status": {
       "type": "string",
       "enum": [
+        "pending",
+        "accepted",
         "active",
+        "denied",
         "inactive",
         "removed"
       ],
-      "default": "active",
-      "description": "Authorized user status"
+      "default": "pending",
+      "description": "Authorized user status. pending = invite sent, accepted/active = has access, denied/removed/inactive = no access"
     },
     "added_by_owner_user_id": {
       "type": "string",
       "description": "Owner user ID who added this user"
+    },
+    "invited_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the invite was sent"
+    },
+    "accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the user accepted the invite"
+    },
+    "denied_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the user denied the invite"
+    },
+    "removed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the user was removed by the owner"
+    },
+    "invite_notification_id": {
+      "type": "string",
+      "description": "Notification ID sent to the invited user"
     }
   },
   "required": [

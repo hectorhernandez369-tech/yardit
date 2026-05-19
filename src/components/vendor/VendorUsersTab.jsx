@@ -21,14 +21,41 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
       toast.error("You reached your user limit. Upgrade or add extra users.");
       return;
     }
-    await base44.entities.VendorAuthorizedUser.create({ ...form, authorized_email: form.authorized_email.trim().toLowerCase(), vendor_account_id: account.id, assigned_pin_ids: [], status: "active", added_by_owner_user_id: user?.id });
+    const now = new Date().toISOString();
+    const authUser = await base44.entities.VendorAuthorizedUser.create({
+      ...form,
+      authorized_email: form.authorized_email.trim().toLowerCase(),
+      vendor_account_id: account.id,
+      assigned_pin_ids: [],
+      status: "pending",
+      added_by_owner_user_id: user?.id,
+      invited_at: now,
+    });
+    // Send invite notification to the invited user
+    const notif = await base44.entities.Notification.create({
+      user_email: form.authorized_email.trim().toLowerCase(),
+      title: "Vendor Dashboard Invitation",
+      message: `You've been invited to access ${account.business_name} on Yardit.`,
+      type: "vendor_access_invite",
+      related_entity_type: "VendorAuthorizedUser",
+      related_entity_id: authUser.id,
+      read: false,
+      is_read: false,
+      metadata: {
+        authorized_user_id: authUser.id,
+        vendor_account_id: account.id,
+        business_name: account.business_name,
+      },
+    });
+    // Store notification ID on the record for reference
+    await base44.entities.VendorAuthorizedUser.update(authUser.id, { invite_notification_id: notif.id });
     setForm({ authorized_email: "", first_name: "", last_name: "", phone: "" });
-    toast.success("User added");
+    toast.success("Invite sent — user must accept before gaining access.");
     onRefresh();
   };
 
   const removeUser = async (item) => {
-    await base44.entities.VendorAuthorizedUser.update(item.id, { ...item, status: "removed" });
+    await base44.entities.VendorAuthorizedUser.update(item.id, { status: "removed", removed_at: new Date().toISOString() });
     onRefresh();
   };
 
@@ -77,7 +104,49 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
         </CardContent></Card>
       </div>
       <div className="grid min-w-0 gap-2.5 sm:gap-3">
-        {users.map((item) => <Card key={item.id} className="rounded-2xl overflow-hidden bg-white shadow-sm"><CardContent className="p-3 space-y-2.5"><div className="flex items-start justify-between gap-2 min-w-0"><div className="min-w-0"><p className="text-sm font-semibold break-words">{item.first_name} {item.last_name}</p><p className="text-xs text-slate-600 break-all">{item.authorized_email}</p></div><div className="flex shrink-0 flex-wrap items-center gap-1.5"><Badge className="text-[11px]">{item.status}</Badge><Button variant="outline" size="sm" disabled={!isOwner} onClick={() => removeUser(item)} className="h-7 rounded-full px-2 text-[11px]">Remove</Button></div></div>{pins.length > 0 && <div className="border-t pt-2"><p className="mb-1.5 text-[11px] font-semibold text-slate-500 uppercase">Assigned trucks</p><div className="flex flex-wrap gap-1.5">{pins.filter((pin) => pin.is_active !== false).map((pin) => <label key={pin.id} className="flex max-w-full items-center gap-1.5 rounded-full border px-2 py-1 text-[11px]"><input type="checkbox" disabled={!isOwner} checked={(item.assigned_pin_ids || []).includes(pin.id)} onChange={() => toggleAssignedPin(item, pin.id)} /><span className="break-words">{pin.pin_name}</span></label>)}</div></div>}</CardContent></Card>)}
+        {users.map((item) => {
+          const statusColors = {
+            pending: "bg-yellow-100 text-yellow-800",
+            accepted: "bg-green-100 text-green-800",
+            active: "bg-green-100 text-green-800",
+            denied: "bg-red-100 text-red-700",
+            removed: "bg-slate-100 text-slate-500",
+            inactive: "bg-slate-100 text-slate-500",
+          };
+          const canAssignPins = item.status === "accepted" || item.status === "active";
+          const canRemove = item.status !== "removed";
+          return (
+            <Card key={item.id} className="rounded-2xl overflow-hidden bg-white shadow-sm">
+              <CardContent className="p-3 space-y-2.5">
+                <div className="flex items-start justify-between gap-2 min-w-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold break-words">{item.first_name} {item.last_name}</p>
+                    <p className="text-xs text-slate-600 break-all">{item.authorized_email}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                    <Badge className={`text-[11px] capitalize ${statusColors[item.status] || ""}`}>{item.status}</Badge>
+                    {canRemove && (
+                      <Button variant="outline" size="sm" disabled={!isOwner} onClick={() => removeUser(item)} className="h-7 rounded-full px-2 text-[11px]">Remove</Button>
+                    )}
+                  </div>
+                </div>
+                {pins.length > 0 && canAssignPins && (
+                  <div className="border-t pt-2">
+                    <p className="mb-1.5 text-[11px] font-semibold text-slate-500 uppercase">Assigned trucks</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {pins.filter((pin) => pin.is_active !== false).map((pin) => (
+                        <label key={pin.id} className="flex max-w-full items-center gap-1.5 rounded-full border px-2 py-1 text-[11px]">
+                          <input type="checkbox" disabled={!isOwner} checked={(item.assigned_pin_ids || []).includes(pin.id)} onChange={() => toggleAssignedPin(item, pin.id)} />
+                          <span className="break-words">{pin.pin_name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

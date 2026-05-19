@@ -82,7 +82,7 @@ export default function VendorDashboard() {
 
   const { data: users = [] } = useQuery({
     queryKey: ["vendorDashboardUsers", account?.id],
-    queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: account.id, status: "active" }, "-created_date"),
+    queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: account.id }, "-created_date"),
     enabled: !!account?.id,
   });
 

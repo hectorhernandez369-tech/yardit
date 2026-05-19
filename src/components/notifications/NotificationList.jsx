@@ -126,6 +126,37 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
     }
   });
 
+  const vendorAccessInviteMutation = useMutation({
+    mutationFn: async ({ notification, action }) => {
+      const authorizedUserId = notification.metadata?.authorized_user_id;
+      if (!authorizedUserId) return;
+      const now = new Date().toISOString();
+      if (action === "accept") {
+        await base44.entities.VendorAuthorizedUser.update(authorizedUserId, {
+          status: "accepted",
+          accepted_at: now,
+        });
+      } else {
+        await base44.entities.VendorAuthorizedUser.update(authorizedUserId, {
+          status: "denied",
+          denied_at: now,
+        });
+      }
+      await base44.entities.Notification.update(notification.id, {
+        read: true,
+        is_read: true,
+        message: action === "accept"
+          ? `You accepted access to ${notification.metadata?.business_name || "the vendor dashboard"}.`
+          : `You declined access to ${notification.metadata?.business_name || "the vendor dashboard"}.`,
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success(variables.action === "accept" ? "Access accepted! Vendor Tools is now available." : "Invite declined.");
+    },
+    onError: () => toast.error("Could not respond to invite."),
+  });
+
   const vendorEventInviteMutation = useMutation({
     mutationFn: async ({ notification, action }) => {
       const inviteId = notification.metadata?.invite_id;
@@ -147,6 +178,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
   });
 
   const getIcon = (type) => {
+    if (type === "vendor_access_invite") return <Users className="w-4 h-4 text-teal-600" />;
     if (type === "vendor_event_invite" || type === "event_collaboration_invite") return <Users className="w-4 h-4 text-emerald-600" />;
     if (type?.startsWith("join_")) return <Users className="w-4 h-4 text-purple-600" />;
     if (type?.startsWith("report_")) return <AlertTriangle className="w-4 h-4 text-red-600" />;
@@ -275,6 +307,32 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                             onClick={(e) => {
                               e.stopPropagation();
                               coHostInviteMutation.mutate({ notification, action: "decline" });
+                            }}
+                          >
+                            <X className="w-3 h-3 mr-1" /> Deny
+                          </Button>
+                        </div>
+                      )}
+
+                      {notification.type === "vendor_access_invite" && !notification.read && !notification.is_read && (
+                        <div className="flex gap-2 mt-2 mb-3">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs bg-[#5DADA5] hover:bg-[#4A9B93]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              vendorAccessInviteMutation.mutate({ notification, action: "accept" });
+                            }}
+                          >
+                            <Check className="w-3 h-3 mr-1" /> Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              vendorAccessInviteMutation.mutate({ notification, action: "deny" });
                             }}
                           >
                             <X className="w-3 h-3 mr-1" /> Deny
