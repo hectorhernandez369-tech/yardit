@@ -53,6 +53,7 @@ import { isLiveVendorCheckIn } from "@/lib/vendorTiers";
 import { isPublishedVendorEvent, toVendorEventListing } from "@/lib/vendorEvents";
 import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map/vendorMarkerIcons";
 import QuickMapFilters from "@/components/map/QuickMapFilters";
+import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 
@@ -885,8 +886,8 @@ export default function HomePage() {
       })
       .filter(Boolean);
 
-    const vendorEventListings = vendorEvents.filter((event) => isPublishedVendorEvent(event, now)).map((e) => toVendorEventListing(e, now));
-    const combinedListings = [...baseListings, ...vendorEventListings];
+    // Vendor events shown separately on map via VendorEventMapMarkers; include in list view only
+    const combinedListings = [...baseListings];
 
     const strictMatches = combinedListings.filter(l => listingMatchesQuery(l, searchQuery, false));
     if (strictMatches.length > 0 || !searchQuery) {
@@ -948,7 +949,7 @@ export default function HomePage() {
       };
     });
 
-    const vendorEventListings = vendorEvents.filter((event) => isPublishedVendorEvent(event, now)).map(toVendorEventListing);
+    const vendorEventListings = vendorEvents.filter((event) => isPublishedVendorEvent(event, now)).map((e) => toVendorEventListing(e, now));
     const combinedListings = [...baseListings, ...vendorEventListings];
 
     const strictMatches = combinedListings.filter(l => listingMatchesQuery(l, searchQuery, false));
@@ -1607,6 +1608,12 @@ const stats = useMemo(() => {
                   </Marker>
                 );
               })}
+
+              {/* Vendor Event Stacked Markers (Coming Soon + Active, with stacking) */}
+              <VendorEventMapMarkers
+                vendorEvents={vendorEvents}
+                showVendorEvents={quickMapFilters.events}
+              />
 
               {liveVendorPins.map(({ checkIn, pin, account }) => {
                 const vendorStopId = `vendor-${checkIn.id}`;
