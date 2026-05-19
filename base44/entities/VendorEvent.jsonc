@@ -53,6 +53,18 @@
       "default": "draft",
       "description": "Vendor event status"
     },
+    "visibility_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "scheduled",
+        "coming_soon",
+        "active",
+        "completed",
+        "cancelled"
+      ],
+      "description": "Computed visibility/lifecycle status for display and map logic"
+    },
     "open_to_vendors": {
       "type": "boolean",
       "default": false,
@@ -179,6 +191,10 @@
       },
       "description": "Event photo URLs"
     },
+    "flyer_url": {
+      "type": "string",
+      "description": "Public event flyer image or PDF URL"
+    },
     "logo": {
       "type": "string",
       "description": "Event logo URL"
@@ -186,6 +202,44 @@
     "icon": {
       "type": "string",
       "description": "Event icon key or URL"
+    },
+    "coming_soon_start_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date/time when the event starts appearing as Coming Soon on the map"
+    },
+    "promotion_included_days": {
+      "type": "number",
+      "description": "Number of promotion days included in the vendor tier at time of creation"
+    },
+    "promotion_max_days": {
+      "type": "number",
+      "description": "Maximum promotion days allowed by the vendor tier at time of creation"
+    },
+    "promotion_selected_days": {
+      "type": "number",
+      "description": "Number of days before event start that the user selected for Coming Soon"
+    },
+    "promotion_upgrade_days": {
+      "type": "number",
+      "default": 0,
+      "description": "Additional days beyond included promotion that require an upgrade"
+    },
+    "promotion_upgrade_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether a promotion upgrade is required for the selected Coming Soon date"
+    },
+    "promotion_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "included",
+        "upgrade_required",
+        "paid"
+      ],
+      "default": "none",
+      "description": "Current state of the promotion/Coming Soon setup"
     },
     "created_at": {
       "type": "string",

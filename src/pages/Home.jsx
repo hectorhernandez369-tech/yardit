@@ -885,7 +885,7 @@ export default function HomePage() {
       })
       .filter(Boolean);
 
-    const vendorEventListings = vendorEvents.filter((event) => isPublishedVendorEvent(event, now)).map(toVendorEventListing);
+    const vendorEventListings = vendorEvents.filter((event) => isPublishedVendorEvent(event, now)).map((e) => toVendorEventListing(e, now));
     const combinedListings = [...baseListings, ...vendorEventListings];
 
     const strictMatches = combinedListings.filter(l => listingMatchesQuery(l, searchQuery, false));

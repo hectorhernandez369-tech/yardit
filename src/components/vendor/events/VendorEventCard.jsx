@@ -1,15 +1,29 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarClock, CalendarDays, Flag, MapPin, Pencil, Users } from "lucide-react";
+import { CalendarClock, CalendarDays, Flag, MapPin, Pencil, Users, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 
+const STATUS_BADGE = {
+  active:        { label: "Active",       className: "bg-emerald-600 text-white" },
+  coming_soon:   { label: "Coming Soon",  className: "bg-amber-500 text-white" },
+  scheduled:     { label: "Upcoming",     className: "bg-[#5DADA5] text-white" },
+  upcoming:      { label: "Upcoming",     className: "bg-[#5DADA5] text-white" },
+  draft:         { label: "Draft",        className: "bg-slate-400 text-white" },
+  completed:     { label: "Completed",    className: "bg-slate-500 text-white" },
+  cancelled:     { label: "Cancelled",    className: "bg-red-500 text-white" },
+  pending_payment: { label: "Pending Payment", className: "bg-amber-600 text-white" },
+};
+
 export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, hostedLabels, isCollaborating = false, ownerName = "", canEdit = false, canManageVendors = false, canManageFlags = false, canManageSchedule = false, canManageCollaborators = false, onView, onEdit, onManage, onEditFlags, onSchedule, onCollaborators }) {
   const status = getVendorEventStatus(event);
+  const isComingSoon = status === "coming_soon";
+
+  const statusBadge = STATUS_BADGE[status] || { label: status, className: "bg-[#5DADA5] text-white" };
 
   return (
-    <Card className="rounded-2xl border-[#2C4F4E]/15 bg-white shadow-sm hover:shadow-md transition-shadow">
+    <Card className={`rounded-2xl border-[#2C4F4E]/15 shadow-sm hover:shadow-md transition-shadow ${isComingSoon ? "bg-slate-50 opacity-90" : "bg-white"}`}>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -18,7 +32,10 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             {isCollaborating && <Badge className="bg-purple-600 text-white">Collaborating</Badge>}
-            <Badge className="capitalize bg-[#5DADA5] text-white">{status}</Badge>
+            <Badge className={statusBadge.className}>{statusBadge.label}</Badge>
+            {event.promotion_upgrade_required && (
+              <Badge className="bg-amber-100 text-amber-800 border border-amber-300">Upgrade Required</Badge>
+            )}
           </div>
         </div>
 
@@ -26,6 +43,12 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
           <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#F4A849]" />{event.display_address || "Address not set"}</div>
           <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#F4A849]" />{format(new Date(event.startDateTime), "MMM d, yyyy h:mm a")} - {format(new Date(event.endDateTime), "MMM d, yyyy h:mm a")}</div>
           {distanceMiles !== null && distanceMiles !== undefined && <p className="text-xs font-semibold text-slate-500">{distanceMiles.toFixed(1)} miles away</p>}
+          {isComingSoon && event.coming_soon_start_date && (
+            <div className="flex items-center gap-2 text-xs font-semibold text-amber-700">
+              <Clock className="h-3 w-3" />
+              Coming Soon from {format(new Date(event.coming_soon_start_date), "MMM d, yyyy")}
+            </div>
+          )}
           {event.open_to_vendors && event.max_vendors && <p className="text-xs font-semibold text-emerald-700">Approved vendors: {approvedVendorCount} / {event.max_vendors}</p>}
           {isCollaborating && ownerName && <p className="text-xs font-bold text-purple-700">Owner: {ownerName}</p>}
           {hostedLabels && <p className="text-xs text-slate-500"><strong>Hosted By:</strong> {hostedLabels.hostedBy}</p>}

@@ -10,8 +10,11 @@ import EventLocationPicker from "./EventLocationPicker";
 import InviteVendorsModal from "./InviteVendorsModal";
 import CollapsiblePanel from "./CollapsiblePanel";
 import CreateEventCollaboratorsSection from "./CreateEventCollaboratorsSection";
+import EventPromotionSection from "./EventPromotionSection";
 import { getRolePermissions } from "@/lib/eventCollaboration";
 import { isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
+import { getPromotionRule, calcPromotionUpgrade, getPromotionDates } from "@/lib/vendorEventPromotion";
+import { differenceInDays } from "date-fns";
 import { toast } from "sonner";
 
 const initialForm = {
@@ -40,6 +43,7 @@ const initialForm = {
   flyer_url: "",
   event_flags: [],
   status: "draft",
+  coming_soon_start_date: "",
 };
 
 const toLocalDateTimeValue = (value) => {
@@ -76,6 +80,7 @@ const buildInitialForm = (event) => event ? {
   flyer_url: event.flyer_url || "",
   event_flags: [],
   status: event.status || "draft",
+  coming_soon_start_date: event.coming_soon_start_date || "",
 } : initialForm;
 
 export default function VendorEventForm({ account, user, event = null, approvedVendorCount = 0, mode = "full", existingEvents = [], onCreated, preserveOwner = false }) {
@@ -235,6 +240,36 @@ export default function VendorEventForm({ account, user, event = null, approvedV
 
     setSaving(true);
     const now = new Date().toISOString();
+    // --- Promotion fields ---
+    const tierKey = account?.vendor_tier || "free";
+    const rule = getPromotionRule(tierKey);
+    const resolvedStart = datesLocked ? event.startDateTime : new Date(form.startDateTime).toISOString();
+    let promotionFields = {
+      promotion_included_days: rule.includedDays,
+      promotion_max_days: rule.maxDays,
+      coming_soon_start_date: null,
+      promotion_selected_days: 0,
+      promotion_upgrade_days: 0,
+      promotion_upgrade_required: false,
+      promotion_status: "none",
+    };
+
+    if (form.coming_soon_start_date && rule.maxDays > 0) {
+      const { includedDate } = getPromotionDates(resolvedStart, tierKey);
+      const { upgradeRequired, additionalDays } = calcPromotionUpgrade(form.coming_soon_start_date, includedDate);
+      const selectedDays = Math.max(0, differenceInDays(new Date(resolvedStart), new Date(form.coming_soon_start_date)));
+      promotionFields = {
+        promotion_included_days: rule.includedDays,
+        promotion_max_days: rule.maxDays,
+        coming_soon_start_date: new Date(form.coming_soon_start_date).toISOString(),
+        promotion_selected_days: selectedDays,
+        promotion_upgrade_days: additionalDays,
+        promotion_upgrade_required: upgradeRequired,
+        promotion_status: upgradeRequired ? "upgrade_required" : "included",
+      };
+    }
+    // --- End promotion fields ---
+
     const eventData = {
       organizer_user_id: preserveOwner && isEditing ? event.organizer_user_id : user.id,
       organizer_business_id: preserveOwner && isEditing ? event.organizer_business_id : account.id,
@@ -251,8 +286,9 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       longitude: Number(form.longitude),
       timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
       radius_feet: Number(form.radius_feet || 0),
-      startDateTime: datesLocked ? event.startDateTime : new Date(form.startDateTime).toISOString(),
+      startDateTime: resolvedStart,
       endDateTime: datesLocked ? event.endDateTime : new Date(form.endDateTime).toISOString(),
+      ...promotionFields,
       open_to_vendors: form.open_to_vendors,
       vendor_invitation_description: form.vendor_invitation_description,
       vendor_fee_type: form.open_to_vendors ? "set_space_fee" : "none",
@@ -292,7 +328,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
 
     setCreatedEvent(savedEvent);
     if (!isEditing) {
-      setForm(initialForm);
+      setForm({ ...initialForm });
       setCollaboratorInvitations([]);
     }
     setSaving(false);
@@ -459,6 +495,16 @@ export default function VendorEventForm({ account, user, event = null, approvedV
           </div>
         )}
       </div>}
+
+      {/* Event Promotion — only shown in full mode on the public fields section */}
+      {showPublicFields && (
+        <EventPromotionSection
+          tierKey={account?.vendor_tier || "free"}
+          eventStartDate={form.startDateTime ? new Date(form.startDateTime).toISOString() : ""}
+          comingSoonDate={form.coming_soon_start_date}
+          onComingSoonDate={(val) => update("coming_soon_start_date", val)}
+        />
+      )}
 
       {showPublicFields && !isEditing && (
         <CreateEventCollaboratorsSection

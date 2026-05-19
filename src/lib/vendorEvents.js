@@ -1,5 +1,6 @@
 import { getVendorTierConfig } from "@/lib/vendorTiers";
 import { getVendorTierUsage, getVendorUsageLimitStatus, getVendorUsageSnapshot } from "@/lib/vendorUsage";
+import { getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
 
 export const VENDOR_EVENT_TYPES = [
   { value: "single", label: "Single Event" },
@@ -89,20 +90,21 @@ export function calculateMiles(lat1, lng1, lat2, lng2) {
 }
 
 export function getVendorEventStatus(event, now = new Date()) {
-  if (["draft", "pending_payment", "cancelled", "completed"].includes(event?.status)) return event.status;
-  const start = new Date(event?.startDateTime);
-  const end = new Date(event?.endDateTime);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return event?.status || "draft";
-  if (now > end) return "completed";
-  if (now >= start && now <= end) return "active";
-  return event?.status === "published" ? "upcoming" : event?.status || "upcoming";
+  // Delegate to the shared visibility status helper for consistent logic
+  const visStatus = getVendorEventVisibilityStatus(event, now);
+  // Map coming_soon / scheduled → "upcoming" for backwards compatibility with existing card UI
+  if (visStatus === "coming_soon") return "coming_soon";
+  if (visStatus === "scheduled") return "upcoming";
+  return visStatus;
 }
 
 export function formatVendorEventType(type) {
   return VENDOR_EVENT_TYPES.find((item) => item.value === type)?.label || "Vendor Event";
 }
 
-export function toVendorEventListing(event) {
+export function toVendorEventListing(event, now = new Date()) {
+  const visStatus = getVendorEventVisibilityStatus(event, now);
+  const isComingSoon = visStatus === "coming_soon";
   return {
     id: `vendor-event-${event.id}`,
     vendor_event_id: event.id,
@@ -111,10 +113,12 @@ export function toVendorEventListing(event) {
     description: event.description,
     listingType: "event",
     is_vendor_event: true,
+    is_coming_soon: isComingSoon,
+    vendor_visibility_status: visStatus,
     event_category: event.category || formatVendorEventType(event.event_type),
-    event_tier: "featured",
-    tier: "featured",
-    status: "active",
+    event_tier: isComingSoon ? "basic" : "featured",
+    tier: isComingSoon ? "basic" : "featured",
+    status: isComingSoon ? "coming_soon" : "active",
     lat: event.latitude,
     lng: event.longitude,
     display_address: event.display_address,
@@ -122,6 +126,7 @@ export function toVendorEventListing(event) {
     city: event.display_address,
     startDateTime: event.startDateTime,
     endDateTime: event.endDateTime,
+    coming_soon_start_date: event.coming_soon_start_date,
     timeZoneId: event.timeZoneId || "America/Los_Angeles",
     photoUrls: event.photos || [],
     open_to_vendors: event.open_to_vendors,
@@ -132,7 +137,10 @@ export function isPublishedVendorEvent(event, now = new Date()) {
   if (!event || !["published", "active"].includes(event.status)) return false;
   if (typeof event.latitude !== "number" || typeof event.longitude !== "number") return false;
   const end = new Date(event.endDateTime);
-  return !Number.isNaN(end.getTime()) && now <= end;
+  if (Number.isNaN(end.getTime()) || now > end) return false;
+  // Include coming_soon events in the visible set
+  const visStatus = getVendorEventVisibilityStatus(event, now);
+  return ["active", "coming_soon"].includes(visStatus);
 }
 
 export function getVendorTierDowngradeIssues({ account, events = [], targetTierKey, activePins = [], activeUsers = [] }) {
