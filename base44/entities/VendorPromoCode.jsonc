@@ -1,0 +1,90 @@
+{
+  "name": "VendorPromoCode",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Promotional code string (uppercase)"
+    },
+    "promo_name": {
+      "type": "string",
+      "description": "Display name for this promotion"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description shown to the vendor"
+    },
+    "discount_type": {
+      "type": "string",
+      "enum": [
+        "percentage",
+        "fixed_amount",
+        "free_trial",
+        "custom"
+      ],
+      "description": "Type of discount"
+    },
+    "discount_value": {
+      "type": "number",
+      "description": "Numeric value: percentage (0-100), fixed amount in dollars, or trial days"
+    },
+    "valid_start_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the promo code becomes valid"
+    },
+    "valid_end_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the promo code expires"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the promo code is active"
+    },
+    "applies_to_tiers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of vendor tier keys this code applies to"
+    },
+    "max_redemptions": {
+      "type": "number",
+      "description": "Maximum number of times this code can be used (null = unlimited)"
+    },
+    "redemptions_used": {
+      "type": "number",
+      "default": 0,
+      "description": "How many times this code has been redeemed"
+    },
+    "one_use_per_user": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether each user can only use this code once"
+    },
+    "created_by_admin_id": {
+      "type": "string",
+      "description": "Admin user ID who created this code"
+    },
+    "created_by_admin_email": {
+      "type": "string",
+      "description": "Admin email for display"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "code",
+    "promo_name",
+    "discount_type",
+    "active"
+  ]
+}

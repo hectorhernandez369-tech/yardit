@@ -76,7 +76,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
     return selectedBasePrice + extraUsers * 5 + extraPins * 10;
   }, [selectedBasePrice, extraUsers, extraPins, selectedTier]);
 
-  const startTierCheckout = async (tierKey) => {
+  const startTierCheckout = async (tierKey, promoData = {}) => {
     setReviewTier("");
     setChangingTier(tierKey);
     if (window.self !== window.top) {
@@ -89,8 +89,24 @@ export default function VendorBillingTab({ account, onRefresh }) {
       target_tier: tierKey,
       return_url: `${window.location.origin}/VendorDashboard?tab=tier`,
     });
-    const checkoutUrl = response?.data?.checkoutUrl;
+    const { checkoutUrl, sessionId } = response?.data || {};
     if (!checkoutUrl) throw new Error("Vendor subscription checkout could not start.");
+
+    // Record promo redemption if a promo was applied
+    const { appliedPromo, discountAmount } = promoData;
+    if (appliedPromo?.id) {
+      await base44.functions.invoke("recordVendorPromoRedemption", {
+        promo_code_id: appliedPromo.id,
+        promo_code: appliedPromo.code,
+        vendor_account_id: account.id,
+        tier_selected: tierKey,
+        discount_type: appliedPromo.discount_type,
+        discount_value: appliedPromo.discount_value,
+        discount_applied_dollars: discountAmount || 0,
+        checkout_session_id: sessionId || null,
+      }).catch(() => {});
+    }
+
     window.location.assign(checkoutUrl);
   };
 
@@ -138,7 +154,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
           extraPins={reviewAddOns.extraPins}
           isProcessing={changingTier === reviewTier}
           onBack={() => { setReviewTier(""); setSelectedTier(reviewTier); setExtraUsers(reviewAddOns.extraUsers); setExtraPins(reviewAddOns.extraPins); }}
-          onPay={() => startTierCheckout(reviewTier)}
+          onPay={(promoData) => startTierCheckout(reviewTier, promoData)}
         />
       </div>
     );

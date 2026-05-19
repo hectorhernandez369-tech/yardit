@@ -1,0 +1,57 @@
+{
+  "name": "VendorPromoRedemption",
+  "type": "object",
+  "properties": {
+    "promo_code_id": {
+      "type": "string",
+      "description": "VendorPromoCode ID"
+    },
+    "promo_code": {
+      "type": "string",
+      "description": "The code string (cached)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User ID who redeemed the code"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "User email (cached)"
+    },
+    "vendor_account_id": {
+      "type": "string",
+      "description": "VendorAccount ID"
+    },
+    "tier_selected": {
+      "type": "string",
+      "description": "Tier key the promo was applied to"
+    },
+    "discount_type": {
+      "type": "string",
+      "description": "Type of discount applied"
+    },
+    "discount_value": {
+      "type": "number",
+      "description": "Discount value applied"
+    },
+    "discount_applied_dollars": {
+      "type": "number",
+      "description": "Actual dollar discount applied"
+    },
+    "redeemed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "checkout_session_id": {
+      "type": "string",
+      "description": "Stripe checkout session ID if available"
+    }
+  },
+  "required": [
+    "promo_code_id",
+    "user_id",
+    "vendor_account_id",
+    "tier_selected",
+    "redeemed_at"
+  ]
+}

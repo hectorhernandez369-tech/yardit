@@ -1,15 +1,14 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Shield, CheckCircle2, AlertCircle, ArrowRight, Lock, Loader2, Info } from "lucide-react";
 import { VENDOR_TIERS, VENDOR_TIER_ORDER } from "@/lib/vendorTiers";
+import PromoCodeInput from "./PromoCodeInput";
 
 function money(amount) {
   return `$${Number(amount || 0).toFixed(2)}`;
 }
 
-// Calculate prorated amount for add-ons added today
-// Assumes billing renews on the same day next month
 function calcProration(monthlyAmount) {
   const today = new Date();
   const renewalDate = new Date(today);
@@ -18,6 +17,19 @@ function calcProration(monthlyAmount) {
   const daysRemaining = Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24));
   const dailyRate = monthlyAmount / daysInMonth;
   return dailyRate * daysRemaining;
+}
+
+// Calculate the dollar discount amount given a promo + base price
+function calcDiscount(promo, basePrice) {
+  if (!promo) return 0;
+  if (promo.discount_type === "percentage") {
+    return (basePrice * Number(promo.discount_value)) / 100;
+  }
+  if (promo.discount_type === "fixed_amount") {
+    return Math.min(Number(promo.discount_value), basePrice);
+  }
+  // free_trial and custom don't affect the dollar amount shown
+  return 0;
 }
 
 const UNLOCK_FEATURES = {
@@ -66,6 +78,7 @@ export default function VendorTierReviewPanel({
   onPay,
 }) {
   const topRef = useRef(null);
+  const [appliedPromo, setAppliedPromo] = useState(null);
 
   useEffect(() => {
     if (topRef.current) {
@@ -81,13 +94,14 @@ export default function VendorTierReviewPanel({
   const addOnUsersCost = extraUsers * 5;
   const addOnPinsCost = extraPins * 10;
   const totalAddOnsCost = addOnUsersCost + addOnPinsCost;
-  const estimatedMonthlyTotal = priceNum + totalAddOnsCost;
+  const subtotal = priceNum + totalAddOnsCost;
 
-  // Proration: new subscription starts today, so full month is due now
-  // Add-ons on a new sub are included in first charge — proration shown as informational
+  const discountAmount = calcDiscount(appliedPromo, priceNum);
+  const discountedPriceNum = Math.max(0, priceNum - discountAmount);
+  const estimatedMonthlyTotal = discountedPriceNum + totalAddOnsCost;
+
   const proratedAddOnCost = totalAddOnsCost > 0 ? calcProration(totalAddOnsCost) : 0;
-  // For a brand-new subscription, due today = full tier price + prorated add-ons
-  const dueToday = priceNum + (totalAddOnsCost > 0 ? proratedAddOnCost : 0);
+  const dueToday = discountedPriceNum + (totalAddOnsCost > 0 ? proratedAddOnCost : 0);
 
   const renewalDate = (() => {
     const d = new Date();
@@ -98,6 +112,8 @@ export default function VendorTierReviewPanel({
   const unlockItems = UNLOCK_FEATURES[targetTierKey] || [];
   const accentColor = isOrganizer ? "text-blue-700" : "text-[#2C4F4E]";
   const headerGradient = isOrganizer ? "from-blue-700 to-blue-900" : "from-[#5DADA5] to-[#2C4F4E]";
+
+  const isFreeTrialPromo = appliedPromo?.discount_type === "free_trial";
 
   return (
     <div ref={topRef} className="space-y-4 max-w-2xl mx-auto">
@@ -177,16 +193,58 @@ export default function VendorTierReviewPanel({
           </div>
         )}
 
+        {/* Promo Code Input */}
+        <div className="mb-2">
+          <PromoCodeInput
+            tier={targetTierKey}
+            appliedPromo={appliedPromo}
+            onPromoApplied={setAppliedPromo}
+            onPromoRemoved={() => setAppliedPromo(null)}
+          />
+        </div>
+
+        {/* Discount line (if promo applied and has dollar value) */}
+        {appliedPromo && discountAmount > 0 && (
+          <div className="rounded-xl bg-green-50 border border-green-200 px-3 py-2.5 mb-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-green-700 font-semibold flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Promo: {appliedPromo.code}
+              </span>
+              <span className="text-green-700 font-bold">−{money(discountAmount)}/mo</span>
+            </div>
+            {appliedPromo.description && <p className="text-[11px] text-green-600 mt-0.5">{appliedPromo.description}</p>}
+          </div>
+        )}
+
+        {/* Free trial banner */}
+        {isFreeTrialPromo && (
+          <div className="rounded-xl bg-blue-50 border border-blue-200 px-3 py-2.5 mb-2">
+            <div className="flex items-center gap-2 text-sm text-blue-800 font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+              Free Trial: {appliedPromo.discount_value} days free on {tier?.label}
+            </div>
+            {appliedPromo.description && <p className="text-[11px] text-blue-600 mt-0.5">{appliedPromo.description}</p>}
+          </div>
+        )}
+
         {/* Totals */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
           <div className="rounded-xl bg-[#F3E6CF]/60 border border-[#F4A849]/30 px-3 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Estimated Monthly Total</p>
-            <p className="text-lg font-bold text-[#2C4F4E] mt-0.5">{money(estimatedMonthlyTotal)}<span className="text-xs font-normal text-slate-500">/mo</span></p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Est. Monthly Total</p>
+            {discountAmount > 0 && (
+              <p className="text-xs text-slate-400 line-through">{money(subtotal)}/mo</p>
+            )}
+            <p className="text-lg font-bold text-[#2C4F4E] mt-0.5">
+              {isFreeTrialPromo ? <span className="text-blue-700">Free Trial</span> : <>{money(estimatedMonthlyTotal)}<span className="text-xs font-normal text-slate-500">/mo</span></>}
+            </p>
           </div>
           <div className="rounded-xl bg-[#F3E6CF]/60 border border-[#F4A849]/30 px-3 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Due Today</p>
-            <p className="text-lg font-bold text-[#2C4F4E] mt-0.5">{money(dueToday)}</p>
-            {totalAddOnsCost > 0 && (
+            <p className="text-lg font-bold text-[#2C4F4E] mt-0.5">
+              {isFreeTrialPromo ? <span className="text-blue-700">$0.00</span> : money(dueToday)}
+            </p>
+            {totalAddOnsCost > 0 && !isFreeTrialPromo && (
               <p className="text-[10px] text-slate-500 mt-0.5">Tier + prorated add-ons</p>
             )}
           </div>
@@ -283,7 +341,7 @@ export default function VendorTierReviewPanel({
         </Button>
         <Button
           type="button"
-          onClick={onPay}
+          onClick={() => onPay({ appliedPromo, discountAmount })}
           disabled={isProcessing}
           className={`font-semibold border-2 ${isOrganizer ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-800" : "bg-[#F4A849] text-[#2C4F4E] border-[#2C4F4E] hover:bg-[#E39635]"}`}
         >
