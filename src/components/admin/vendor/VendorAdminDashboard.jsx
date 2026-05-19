@@ -21,15 +21,17 @@ export default function VendorAdminDashboard({ user }) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap gap-1 h-auto w-full p-1">
-          <TabsTrigger value="summary" className="whitespace-nowrap">Overview</TabsTrigger>
-          <TabsTrigger value="accounts" className="whitespace-nowrap">Vendor Accounts</TabsTrigger>
-          <TabsTrigger value="pins" className="whitespace-nowrap">Vendor Pins</TabsTrigger>
-          <TabsTrigger value="events" className="whitespace-nowrap">Vendor Events</TabsTrigger>
-          <TabsTrigger value="promotions" className="whitespace-nowrap">Vendor Promos</TabsTrigger>
-          <TabsTrigger value="promo_codes" className="whitespace-nowrap">Promo Codes</TabsTrigger>
-          <TabsTrigger value="tickets" className="whitespace-nowrap">Support Tickets</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList className="flex gap-1 h-auto w-max min-w-full p-1">
+            <TabsTrigger value="summary" className="whitespace-nowrap text-xs px-3 py-1.5">Overview</TabsTrigger>
+            <TabsTrigger value="accounts" className="whitespace-nowrap text-xs px-3 py-1.5">Accounts</TabsTrigger>
+            <TabsTrigger value="pins" className="whitespace-nowrap text-xs px-3 py-1.5">Pins</TabsTrigger>
+            <TabsTrigger value="events" className="whitespace-nowrap text-xs px-3 py-1.5">Events</TabsTrigger>
+            <TabsTrigger value="promotions" className="whitespace-nowrap text-xs px-3 py-1.5">Promos</TabsTrigger>
+            <TabsTrigger value="promo_codes" className="whitespace-nowrap text-xs px-3 py-1.5">Promo Codes</TabsTrigger>
+            <TabsTrigger value="tickets" className="whitespace-nowrap text-xs px-3 py-1.5">Support</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="summary">
           <VendorAdminSummaryCards />
