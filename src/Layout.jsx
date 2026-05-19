@@ -363,11 +363,17 @@ export default function Layout({ children }) {
 
         base44.functions.invoke("syncNeighborhoodCoHostInvite", {}).catch(() => {});
 
-        // Startup page redirect
+        // Startup page redirect — only if user still has vendor access
         const startupPage = localStorage.getItem("yardit_startup_page");
         const isRoot = window.location.pathname === "/" || window.location.pathname === createPageUrl("Home");
         if (startupPage === "vendor" && isRoot) {
-          window.location.replace("/VendorDashboard");
+          const vendorAccounts = await getUserVendorAccounts(currentUser).catch(() => []);
+          if (vendorAccounts.length > 0) {
+            window.location.replace("/VendorDashboard");
+          } else {
+            // User lost vendor access — clear the stale preference
+            localStorage.removeItem("yardit_startup_page");
+          }
         }
 
       } catch (error) {

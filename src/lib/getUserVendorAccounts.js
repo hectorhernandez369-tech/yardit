@@ -23,8 +23,9 @@ export async function getUserVendorAccounts(user) {
       : Promise.resolve([]),
   ]);
 
-  // Collect all unique account IDs from authorized user links
-  const authorizedAccountIds = authorizedLinks.map((a) => a.vendor_account_id).filter(Boolean);
+  // Only include authorized links where the user is still active (not removed/inactive)
+  const activeAuthorizedLinks = authorizedLinks.filter((a) => a.status === "active" || a.status === "accepted");
+  const authorizedAccountIds = activeAuthorizedLinks.map((a) => a.vendor_account_id).filter(Boolean);
 
   // Merge all results, deduplicate by id
   const seen = new Set();

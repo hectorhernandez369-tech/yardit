@@ -42,15 +42,23 @@ export default function VendorDashboard() {
   });
 
   // Set active account: prefer URL param, then previously selected, then first
+  // Also clears stale selection if account is no longer accessible
   useEffect(() => {
-    if (!accounts.length) return;
+    if (loadingAccounts) return;
+    if (!accounts.length) {
+      setActiveAccountId(null);
+      return;
+    }
     const paramId = new URLSearchParams(window.location.search).get("account");
     if (paramId && accounts.find((a) => a.id === paramId)) {
       setActiveAccountId(paramId);
-    } else if (!activeAccountId || !accounts.find((a) => a.id === activeAccountId)) {
+    } else if (activeAccountId && accounts.find((a) => a.id === activeAccountId)) {
+      // keep current selection — still valid
+    } else {
+      // stale or unset — fall back to first accessible account
       setActiveAccountId(accounts[0].id);
     }
-  }, [accounts]);
+  }, [accounts, loadingAccounts]);
 
   const account = accounts.find((a) => a.id === activeAccountId) || accounts[0] || null;
 
@@ -136,8 +144,12 @@ export default function VendorDashboard() {
     );
   }
 
-  // No vendor access — show access denied (no passcode prompt)
-  if (!account) {
+  // No vendor access — either no accounts at all, or selected account is no longer accessible
+  if (!loadingAccounts && !account) {
+    // Clear stale startup preference if user has lost all vendor access
+    if (!accounts.length) {
+      localStorage.removeItem("yardit_startup_page");
+    }
     return <VendorAccessDenied />;
   }
 
