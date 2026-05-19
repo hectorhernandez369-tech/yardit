@@ -14,17 +14,21 @@ import MyCoinsPanel from "../components/jth/MyCoinsPanel";
 import SavedListingsTab from "../components/profile/SavedListingsTab";
 import { Bookmark } from "lucide-react";
 import { getTrustStatus } from "@/lib/trustActions";
+import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [hasVendorAccount, setHasVendorAccount] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const currentUser = await base44.auth.me();
         setUser(currentUser);
+        const vendorAccounts = await getUserVendorAccounts(currentUser);
+        setHasVendorAccount(vendorAccounts.length > 0);
       } catch (error) {
         console.error("Error fetching user:", error);
       } finally {

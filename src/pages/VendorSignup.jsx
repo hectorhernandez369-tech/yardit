@@ -9,6 +9,7 @@ import { AlertTriangle, Building2, CheckCircle2, Loader2, MapPin } from "lucide-
 import AddressFields from "@/components/shared/AddressFields";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
 import { buildVendorAccountIdentityFields } from "@/lib/vendorAccountIdentity";
+import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import { toast } from "sonner";
 
 const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
@@ -50,7 +51,12 @@ export default function VendorSignup() {
   const [createdAccount, setCreatedAccount] = useState(null);
 
   useEffect(() => {
-    base44.auth.me().then((currentUser) => {
+    base44.auth.me().then(async (currentUser) => {
+      const existing = await getUserVendorAccounts(currentUser);
+      if (existing.length > 0) {
+        navigate("/VendorDashboard");
+        return;
+      }
       setUser(currentUser);
       setResidentialForm({
         street_address: currentUser.street_address || "",

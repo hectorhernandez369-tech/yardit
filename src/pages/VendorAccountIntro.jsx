@@ -1,11 +1,50 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Store, MapPin, Users, Megaphone } from "lucide-react";
+import { Store, MapPin, Users, Megaphone, Loader2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 
 export default function VendorAccountIntro() {
   const navigate = useNavigate();
+  const [checking, setChecking] = useState(true);
+  const [alreadyHasAccount, setAlreadyHasAccount] = useState(false);
+
+  useEffect(() => {
+    base44.auth.me().then(async (user) => {
+      const accounts = await getUserVendorAccounts(user);
+      if (accounts.length > 0) {
+        setAlreadyHasAccount(true);
+        setTimeout(() => navigate("/VendorDashboard"), 2500);
+      }
+    }).catch(() => {}).finally(() => setChecking(false));
+  }, []);
+
+  if (checking) {
+    return (
+      <div className="min-h-[calc(100vh-140px)] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" />
+      </div>
+    );
+  }
+
+  if (alreadyHasAccount) {
+    return (
+      <div className="min-h-[calc(100vh-140px)] bg-[#F3E6CF] flex items-center justify-center p-4">
+        <Card className="border-2 border-[#2C4F4E] bg-white shadow-xl max-w-md w-full">
+          <CardContent className="p-8 text-center space-y-4">
+            <Store className="w-12 h-12 text-[#5DADA5] mx-auto" />
+            <h2 className="text-xl font-bold text-[#2C4F4E]">You already have a Vendor account.</h2>
+            <p className="text-slate-500 text-sm">Redirecting you to your Vendor Dashboard...</p>
+            <Button onClick={() => navigate("/VendorDashboard")} className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white">
+              Go to Vendor Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-140px)] bg-[#F3E6CF] p-4 md:p-8">

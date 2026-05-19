@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { HuntProvider, useHunt, HUNT_ENABLED } from "./components/hunt/HuntContext";
 import { Map as MapIcon, Crosshair } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { useAppMode } from "./components/shared/DemoMode";
@@ -82,8 +83,8 @@ function LayoutContent({ children, user, setUser }) {
       if (masterRoles.has(user.role)) {
         setHasVendorAccount(true);
       } else {
-        base44.entities.VendorAccount.filter({ owner_user_id: user.id }).then((accounts) => {
-          setHasVendorAccount(accounts.some((account) => account.is_active !== false));
+        getUserVendorAccounts(user).then((accounts) => {
+          setHasVendorAccount(accounts.length > 0);
         }).catch(() => setHasVendorAccount(false));
       }
       } else {
