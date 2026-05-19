@@ -102,15 +102,33 @@ export default function VendorSignup() {
     const existingAccounts = await base44.entities.VendorAccount.list();
     const existingReservations = await base44.entities.VendorAccountIdentityReservation.list();
     const identityFields = buildVendorAccountIdentityFields(user, existingAccounts, existingReservations, businessForm.business_name.trim());
-    const reservation = await base44.entities.VendorAccountIdentityReservation.create({
-      vendor_account_number: identityFields.vendor_account_number,
-      vendor_slug: identityFields.vendor_slug,
-      business_name_at_assignment: businessForm.business_name.trim(),
-      owner_user_id: user?.id || "",
-      owner_email: user?.email || "",
-      status: "reserved",
-      reserved_at: new Date().toISOString(),
-    });
+    const now = new Date().toISOString();
+    const [reservationNum, reservationSlug] = await Promise.all([
+      base44.entities.VendorAccountIdentityReservation.create({
+        type: "vendor_account_number",
+        value: identityFields.vendor_account_number,
+        vendor_account_id: "pending",
+        vendor_account_number: identityFields.vendor_account_number,
+        vendor_slug: identityFields.vendor_slug,
+        business_name_at_assignment: businessForm.business_name.trim(),
+        owner_user_id: user?.id || "",
+        owner_email: user?.email || "",
+        status: "reserved",
+        reserved_at: now,
+      }),
+      base44.entities.VendorAccountIdentityReservation.create({
+        type: "vendor_slug",
+        value: identityFields.vendor_slug,
+        vendor_account_id: "pending",
+        vendor_account_number: identityFields.vendor_account_number,
+        vendor_slug: identityFields.vendor_slug,
+        business_name_at_assignment: businessForm.business_name.trim(),
+        owner_user_id: user?.id || "",
+        owner_email: user?.email || "",
+        status: "reserved",
+        reserved_at: now,
+      }),
+    ]);
     const account = await base44.entities.VendorAccount.create({
       business_name: businessForm.business_name.trim(),
       business_category: businessForm.business_category.trim(),
@@ -137,7 +155,10 @@ export default function VendorSignup() {
       current_vendor_pins: 0,
       is_active: true,
     });
-    await base44.entities.VendorAccountIdentityReservation.update(reservation.id, { vendor_account_id: account.id, status: "assigned" });
+    await Promise.all([
+      base44.entities.VendorAccountIdentityReservation.update(reservationNum.id, { vendor_account_id: account.id, status: "assigned" }),
+      base44.entities.VendorAccountIdentityReservation.update(reservationSlug.id, { vendor_account_id: account.id, status: "assigned" }),
+    ]);
     setCreatedAccount(account);
     setSaving(false);
     setStep(4);
