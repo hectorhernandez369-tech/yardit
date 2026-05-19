@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -191,6 +191,18 @@ export default function VendorEventForm({ account, user, event = null, approvedV
   const addSpaceOption = () => update("vendor_space_options", [...form.vendor_space_options, { label: "", width: "", depth: "", price: "", quantity: "" }]);
   const updateSpaceOption = (index, key, value) => update("vendor_space_options", form.vendor_space_options.map((option, optionIndex) => optionIndex === index ? { ...option, [key]: value } : option));
   const removeSpaceOption = (index) => update("vendor_space_options", form.vendor_space_options.filter((_, optionIndex) => optionIndex !== index));
+  // Compute whether a promotion upgrade is currently required (for UI blocking)
+  const promotionUpgradeRequired = useMemo(() => {
+    if (!form.coming_soon_start_date || !form.startDateTime) return false;
+    const tierKey = account?.vendor_tier || "free";
+    const rule = getPromotionRule(tierKey);
+    if (rule.maxDays === 0) return false;
+    const resolvedStart = datesLocked && event ? event.startDateTime : new Date(form.startDateTime).toISOString();
+    const { includedDate } = getPromotionDates(resolvedStart, tierKey);
+    const { upgradeRequired } = calcPromotionUpgrade(form.coming_soon_start_date, includedDate);
+    return upgradeRequired;
+  }, [form.coming_soon_start_date, form.startDateTime, account?.vendor_tier, datesLocked, event]);
+
   const formatMoney = (value) => `$${Number(value || 0).toFixed(0)}`;
   const previewSpace = form.vendor_space_options.find((option) => Number(option.price) > 0);
   const previewPrice = Number(previewSpace?.price || 0);
@@ -244,6 +256,14 @@ export default function VendorEventForm({ account, user, event = null, approvedV
     const tierKey = account?.vendor_tier || "free";
     const rule = getPromotionRule(tierKey);
     const resolvedStart = datesLocked ? event.startDateTime : new Date(form.startDateTime).toISOString();
+
+    // If no date was explicitly chosen but tier includes promotion, default to the included date.
+    let effectiveComingSoonDate = form.coming_soon_start_date;
+    if (!effectiveComingSoonDate && rule.includedDays > 0 && resolvedStart) {
+      const { includedDate } = getPromotionDates(resolvedStart, tierKey);
+      effectiveComingSoonDate = includedDate.toISOString();
+    }
+
     let promotionFields = {
       promotion_included_days: rule.includedDays,
       promotion_max_days: rule.maxDays,
@@ -254,14 +274,14 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       promotion_status: "none",
     };
 
-    if (form.coming_soon_start_date && rule.maxDays > 0) {
+    if (effectiveComingSoonDate && rule.maxDays > 0) {
       const { includedDate } = getPromotionDates(resolvedStart, tierKey);
-      const { upgradeRequired, additionalDays } = calcPromotionUpgrade(form.coming_soon_start_date, includedDate);
-      const selectedDays = Math.max(0, differenceInDays(new Date(resolvedStart), new Date(form.coming_soon_start_date)));
+      const { upgradeRequired, additionalDays } = calcPromotionUpgrade(effectiveComingSoonDate, includedDate);
+      const selectedDays = Math.max(0, differenceInDays(new Date(resolvedStart), new Date(effectiveComingSoonDate)));
       promotionFields = {
         promotion_included_days: rule.includedDays,
         promotion_max_days: rule.maxDays,
-        coming_soon_start_date: new Date(form.coming_soon_start_date).toISOString(),
+        coming_soon_start_date: new Date(effectiveComingSoonDate).toISOString(),
         promotion_selected_days: selectedDays,
         promotion_upgrade_days: additionalDays,
         promotion_upgrade_required: upgradeRequired,
@@ -269,6 +289,13 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       };
     }
     // --- End promotion fields ---
+
+    // Block publish if a promotion upgrade is required and not yet paid.
+    if (status === "published" && promotionFields.promotion_upgrade_required && promotionFields.promotion_status !== "paid") {
+      toast.error("Promotion upgrade payment is required before publishing with this Coming Soon date.");
+      setSaving(false);
+      return;
+    }
 
     const eventData = {
       organizer_user_id: preserveOwner && isEditing ? event.organizer_user_id : user.id,
@@ -512,6 +539,16 @@ export default function VendorEventForm({ account, user, event = null, approvedV
           invitations={collaboratorInvitations}
           onChange={setCollaboratorInvitations}
         />
+      )}
+
+      {promotionUpgradeRequired && (
+        <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-300 p-3 text-sm text-amber-800">
+          <span className="shrink-0 mt-0.5">⚠️</span>
+          <p>
+            <strong>Promotion upgrade payment is required before publishing with this Coming Soon date.</strong>
+            {" "}You can still save as a draft.
+          </p>
+        </div>
       )}
 
       <div className="flex flex-wrap justify-end gap-2">

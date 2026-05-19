@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { format, addDays, differenceInDays } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,13 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
     if (!comingSoonDate || !eventStartDate) return 0;
     return Math.max(0, differenceInDays(new Date(eventStartDate), new Date(comingSoonDate)));
   }, [comingSoonDate, eventStartDate]);
+
+  // Auto-set the default coming soon date when a start date is available but no date selected yet.
+  useEffect(() => {
+    if (!isFree && eventStartDate && !comingSoonDate && includedDate) {
+      onComingSoonDate(includedDate.toISOString());
+    }
+  }, [eventStartDate, includedDate, comingSoonDate, isFree]);
 
   // Date input min/max (yyyy-MM-dd strings for <input type="date">)
   const minDateStr = earliestDate ? format(earliestDate, "yyyy-MM-dd") : "";
