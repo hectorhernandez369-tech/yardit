@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, ExternalLink } from "lucide-react";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import MobileVendorHeader from "@/components/vendor/MobileVendorHeader";
 import MyTrucksSection from "@/components/vendor/MyTrucksSection";
@@ -185,6 +185,17 @@ export default function VendorDashboard() {
             <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} />
             <div className="hidden sm:block">
               <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
+            </div>
+
+            {/* Dev button to view landing page */}
+            <div className="mt-4 mb-2">
+              <button
+                onClick={() => window.open("/events", "_blank")}
+                className="inline-flex items-center gap-2 bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] font-semibold px-4 py-2 rounded-lg text-sm transition-all"
+              >
+                <ExternalLink className="w-4 h-4" />
+                View Events Landing Page (Dev)
+              </button>
             </div>
 
             <div className="mt-0 sm:mt-6 sm:mx-0 overflow-x-auto">
