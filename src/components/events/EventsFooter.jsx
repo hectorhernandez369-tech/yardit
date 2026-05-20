@@ -11,9 +11,9 @@ export default function EventsFooter() {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <img
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/aa5288319_file_00000000c1b871f5aeb839b78344a9a4.png"
-              alt="Yardit Logo"
-              className="w-10 h-10 rounded-lg object-cover"
+              src="https://media.base44.com/images/public/690f554506edf795e5d84121/4b5d05a11_file_000000008c6871fdbab262129d9590f6.png"
+              alt="Yardit Events Logo"
+              className="w-10 h-10 object-contain"
             />
             <span className="text-xl font-bold text-[#D4A849] tracking-widest font-[cursive]">
               YARDIT

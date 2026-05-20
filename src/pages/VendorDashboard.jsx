@@ -182,6 +182,14 @@ export default function VendorDashboard() {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0 min-w-0">
         <div className="bg-[#5DADA5] text-white">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-5">
+            <div className="flex items-center gap-3 px-4 py-3 sm:hidden">
+              <img 
+                src="https://media.base44.com/images/public/690f554506edf795e5d84121/4b5d05a11_file_000000008c6871fdbab262129d9590f6.png"
+                alt="Yardit Events Logo"
+                className="w-8 h-8 object-contain"
+              />
+              <h1 className="text-lg font-bold text-white">Vendor Dashboard</h1>
+            </div>
             <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} />
             <div className="hidden sm:block">
               <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />

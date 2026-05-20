@@ -150,11 +150,10 @@ function LayoutContent({ children, user, setUser }) {
                 className="flex flex-col items-center justify-center group select-none touch-none"
               >
                 <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/aa5288319_file_00000000c1b871f5aeb839b78344a9a4.png" 
-                  alt="Yardit Logo" 
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover"
+                  src="https://media.base44.com/images/public/690f554506edf795e5d84121/4b5d05a11_file_000000008c6871fdbab262129d9590f6.png" 
+                  alt="Yardit Events Logo" 
+                  className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
                 />
-                <span className="text-[10px] sm:text-xs font-bold text-[#F4A849] tracking-widest font-[cursive] leading-none mt-0.5 [-webkit-text-stroke:0.5px_white]">YARDIT</span>
               </Link>
               {demoActive && (
                 <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider animate-pulse">
