@@ -63,6 +63,9 @@ export default function MyListingsPage() {
   const [editDescription, setEditDescription] = useState("");
   const [editCategories, setEditCategories] = useState([]);
   const [editStartDate, setEditStartDate] = useState("");
+  const [editEndDate, setEditEndDate] = useState("");
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
   const [editEventIcon, setEditEventIcon] = useState("");
   const [editEventLogoUrl, setEditEventLogoUrl] = useState("");
   const [editPhotoUrls, setEditPhotoUrls] = useState([]);
@@ -403,10 +406,18 @@ export default function MyListingsPage() {
     }
 
     if (latestListing?.listingType === "neighborhood_sale") {
-      setEditStartDate(latestListing.selectedRangeStartDate || (latestListing.startDateTime ? new Date(latestListing.startDateTime).toISOString().split("T")[0] : ""));
+      const nsStart = latestListing.startDateTime ? new Date(latestListing.startDateTime) : null;
+      const nsEnd = latestListing.endDateTime ? new Date(latestListing.endDateTime) : null;
+      setEditStartDate(latestListing.selectedRangeStartDate || (nsStart ? nsStart.toISOString().slice(0, 10) : ""));
+      setEditEndDate(latestListing.selectedRangeEndDate || (nsEnd ? nsEnd.toISOString().slice(0, 10) : ""));
+      setEditStartTime(nsStart ? nsStart.toTimeString().slice(0, 5) : "08:00");
+      setEditEndTime(nsEnd ? nsEnd.toTimeString().slice(0, 5) : "14:00");
       setSelectedCoHostUserId(latestListing.co_host_user_id || "");
     } else {
       setEditStartDate("");
+      setEditEndDate("");
+      setEditStartTime("");
+      setEditEndTime("");
     }
   };
 
@@ -416,6 +427,9 @@ export default function MyListingsPage() {
     setEditDescription("");
     setEditCategories([]);
     setEditStartDate("");
+    setEditEndDate("");
+    setEditStartTime("");
+    setEditEndTime("");
     setEditEventIcon("");
     setEditEventLogoUrl("");
     setEditPhotoUrls([]);
@@ -675,24 +689,40 @@ export default function MyListingsPage() {
       }
     }
 
-    if (editingListing.listingType === "neighborhood_sale" && editStartDate) {
+    if (editingListing.listingType === "neighborhood_sale") {
       const oldStartStr = editingListing.selectedRangeStartDate || (editingListing.startDateTime ? new Date(editingListing.startDateTime).toISOString().split("T")[0] : "");
-      if (oldStartStr !== editStartDate) {
-        const leadTimeError = getNeighborhoodCreationLeadTimeError(editStartDate);
-        if (leadTimeError) {
-          toast.error(leadTimeError);
+      const oldEndStr = editingListing.selectedRangeEndDate || (editingListing.endDateTime ? new Date(editingListing.endDateTime).toISOString().split("T")[0] : "");
+      const oldStartTime = editingListing.startDateTime ? new Date(editingListing.startDateTime).toTimeString().slice(0, 5) : "";
+      const oldEndTime = editingListing.endDateTime ? new Date(editingListing.endDateTime).toTimeString().slice(0, 5) : "";
+
+      const startDateChanged = editStartDate && editStartDate !== oldStartStr;
+      const endDateChanged = editEndDate && editEndDate !== oldEndStr;
+      const startTimeChanged = editStartTime && editStartTime !== oldStartTime;
+      const endTimeChanged = editEndTime && editEndTime !== oldEndTime;
+
+      if (startDateChanged || endDateChanged || startTimeChanged || endTimeChanged) {
+        if (startDateChanged) {
+          const leadTimeError = getNeighborhoodCreationLeadTimeError(editStartDate);
+          if (leadTimeError) {
+            toast.error(leadTimeError);
+            return;
+          }
+        }
+
+        const newStartDate = editStartDate || oldStartStr;
+        const newEndDate = editEndDate || oldEndStr;
+        const newStartTime = editStartTime || oldStartTime || "08:00";
+        const newEndTime = editEndTime || oldEndTime || "14:00";
+
+        if (newEndDate < newStartDate) {
+          toast.error("End date cannot be before start date.");
           return;
         }
 
-        const newStart = new Date(editStartDate + "T00:00:00Z").toISOString();
-        updateData.startDateTime = newStart;
-        updateData.selectedRangeStartDate = editStartDate;
-
-        // Ensure end date is not before start date
-        if (editingListing.endDateTime && new Date(editingListing.endDateTime) < new Date(newStart)) {
-          updateData.endDateTime = new Date(editStartDate + "T23:59:59Z").toISOString();
-          updateData.selectedRangeEndDate = editStartDate;
-        }
+        updateData.startDateTime = `${newStartDate}T${newStartTime}:00`;
+        updateData.endDateTime = `${newEndDate}T${newEndTime}:00`;
+        updateData.selectedRangeStartDate = newStartDate;
+        updateData.selectedRangeEndDate = newEndDate;
 
         dateChanged = true;
       }
@@ -1189,16 +1219,49 @@ export default function MyListingsPage() {
                     className="bg-[#F3E6CF] border-[#2C4F4E]"
                   />
                 </div>
-                <div>
-                  <Label className="text-[#2C4F4E] mb-2 block">Start Date</Label>
-                  <Input
-                    type="date"
-                    min={new Date().toISOString().split("T")[0]}
-                    value={editStartDate}
-                    onChange={(e) => setEditStartDate(e.target.value)}
-                    className="bg-[#F3E6CF] border-[#2C4F4E]"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">Must be at least 7 days in the future. Changing this updates your event deadline rules and charge date.</p>
+                <div className="space-y-3">
+                  <Label className="text-[#2C4F4E] font-semibold block">Event Date &amp; Time</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-slate-500 mb-1 block">Start Date</Label>
+                      <Input
+                        type="date"
+                        min={new Date().toISOString().split("T")[0]}
+                        value={editStartDate}
+                        onChange={(e) => setEditStartDate(e.target.value)}
+                        className="bg-[#F3E6CF] border-[#2C4F4E]"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500 mb-1 block">Start Time</Label>
+                      <Input
+                        type="time"
+                        value={editStartTime}
+                        onChange={(e) => setEditStartTime(e.target.value)}
+                        className="bg-[#F3E6CF] border-[#2C4F4E]"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500 mb-1 block">End Date</Label>
+                      <Input
+                        type="date"
+                        min={editStartDate || new Date().toISOString().split("T")[0]}
+                        value={editEndDate}
+                        onChange={(e) => setEditEndDate(e.target.value)}
+                        className="bg-[#F3E6CF] border-[#2C4F4E]"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500 mb-1 block">End Time</Label>
+                      <Input
+                        type="time"
+                        value={editEndTime}
+                        onChange={(e) => setEditEndTime(e.target.value)}
+                        className="bg-[#F3E6CF] border-[#2C4F4E]"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500">Changing the start date must be at least 7 days in the future. Time changes take effect immediately for all participants.</p>
                 </div>
 
                 <div className="rounded-lg border border-slate-200 p-4 space-y-3">

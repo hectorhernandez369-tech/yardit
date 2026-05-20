@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
+import { normalizeNeighborhoodJoinStatus, doesListingOverlapNeighborhoodSale } from "@/lib/neighborhoodSaleState";
 import NeighborhoodSalePreviewMap from "@/components/neighborhood/NeighborhoodSalePreviewMap";
 
 function buildListingNumber(state = "XX", zip = "0000") {
@@ -88,6 +88,11 @@ export default function JoinNeighborhoodSale() {
         throw new Error("You already have a join request for this Neighborhood Sale.");
       }
 
+      // Participant listing keeps its OWN dates — do not copy sale dates.
+      // Visibility inside the sale is governed by the overlap window.
+      const saleStartDate = sale.selectedRangeStartDate || sale.startDateTime?.slice(0, 10);
+      const saleEndDate = sale.selectedRangeEndDate || sale.endDateTime?.slice(0, 10);
+
       const inviteListing = await base44.entities.Listing.create({
         ownerUserId: user.id,
         listingType: "yard_sale",
@@ -105,10 +110,12 @@ export default function JoinNeighborhoodSale() {
         status: "active",
         category: "Neighborhood Sale",
         categories: [],
+        // Use sale dates as default so participant is visible during the sale.
+        // The participant can have their own broader date range — overlap logic handles visibility.
         startDateTime: sale.startDateTime,
         endDateTime: sale.endDateTime,
-        selectedRangeStartDate: sale.selectedRangeStartDate || sale.startDateTime?.slice(0, 10),
-        selectedRangeEndDate: sale.selectedRangeEndDate || sale.endDateTime?.slice(0, 10),
+        selectedRangeStartDate: saleStartDate,
+        selectedRangeEndDate: saleEndDate,
         neighborhood_join_status: "pending",
         payment_intent_status: "none",
         neighborhood_sale_id: sale.id,
@@ -193,9 +200,29 @@ export default function JoinNeighborhoodSale() {
   const endDate = sale.endDateTime ? new Date(sale.endDateTime).toLocaleDateString() : "";
   const activeRequest = existingRequests.find((request) => ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status)));
   const missingConfirmedAddress = user && (!user.street_address || !user.city || !user.state || !user.zip_code || !user.address_lat || !user.address_lng);
-  const hasBlockingResidentialListing = existingListings.some((listing) => listing.listingType !== "neighborhood_sale" && listing.status === "active" && !listing.neighborhood_sale_id && normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "none");
+  // A listing only blocks joining if it is active, standalone, AND overlaps the sale's date range
+  const hasBlockingResidentialListing = sale && existingListings.some((listing) =>
+    listing.listingType !== "neighborhood_sale" &&
+    listing.status === "active" &&
+    !listing.neighborhood_sale_id &&
+    normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "none" &&
+    doesListingOverlapNeighborhoodSale(listing, sale)
+  );
   const organizerCount = sale.organizer_participation === "organizing_only" ? 0 : 1;
-  const approvedHomesCount = organizerCount + participantRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === "approved" && request.removed_by_eo !== true).length;
+  // Only count approved participants whose listing overlaps the sale date range
+  const approvedHomesCount = organizerCount + participantRequests.filter((request) => {
+    if (normalizeNeighborhoodJoinStatus(request.status) !== "approved") return false;
+    if (request.removed_by_eo === true) return false;
+    // Check overlap using the listing dates stored on the request's linked listing
+    // Fall back to counting if we don't have listing dates (conservative)
+    const pStart = request.participant_start_date || request.selectedRangeStartDate;
+    const pEnd = request.participant_end_date || request.selectedRangeEndDate;
+    if (!pStart || !pEnd) return true;
+    const sStart = sale.selectedRangeStartDate || sale.startDateTime?.slice(0, 10);
+    const sEnd = sale.selectedRangeEndDate || sale.endDateTime?.slice(0, 10);
+    if (!sStart || !sEnd) return true;
+    return pStart <= sEnd && pEnd >= sStart;
+  }).length;
   const availableSpots = Math.max(0, 25 - approvedHomesCount);
   const isFull = availableSpots === 0;
 

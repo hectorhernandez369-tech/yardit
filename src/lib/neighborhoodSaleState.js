@@ -109,6 +109,50 @@ export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
   return true;
 }
 
+/**
+ * Returns true if the participant listing's date range overlaps the neighborhood sale's date range.
+ * Overlap = participant start <= sale end AND participant end >= sale start (date-level comparison).
+ */
+export function doesListingOverlapNeighborhoodSale(participantListing, eventListing) {
+  const pStart = participantListing?.selectedRangeStartDate || participantListing?.startDateTime?.slice(0, 10);
+  const pEnd = participantListing?.selectedRangeEndDate || participantListing?.endDateTime?.slice(0, 10);
+  const sStart = eventListing?.selectedRangeStartDate || eventListing?.startDateTime?.slice(0, 10);
+  const sEnd = eventListing?.selectedRangeEndDate || eventListing?.endDateTime?.slice(0, 10);
+
+  if (!pStart || !pEnd || !sStart || !sEnd) return false;
+
+  return pStart <= sEnd && pEnd >= sStart;
+}
+
+/**
+ * Returns the overlapping date window between a participant listing and neighborhood sale.
+ * Returns { start: "YYYY-MM-DD", end: "YYYY-MM-DD" } or null if no overlap.
+ */
+export function getParticipationOverlapWindow(participantListing, eventListing) {
+  const pStart = participantListing?.selectedRangeStartDate || participantListing?.startDateTime?.slice(0, 10);
+  const pEnd = participantListing?.selectedRangeEndDate || participantListing?.endDateTime?.slice(0, 10);
+  const sStart = eventListing?.selectedRangeStartDate || eventListing?.startDateTime?.slice(0, 10);
+  const sEnd = eventListing?.selectedRangeEndDate || eventListing?.endDateTime?.slice(0, 10);
+
+  if (!pStart || !pEnd || !sStart || !sEnd) return null;
+
+  const overlapStart = pStart > sStart ? pStart : sStart;
+  const overlapEnd = pEnd < sEnd ? pEnd : sEnd;
+
+  if (overlapStart > overlapEnd) return null;
+  return { start: overlapStart, end: overlapEnd };
+}
+
+/**
+ * Returns true if today falls within the participation overlap window.
+ */
+export function isWithinParticipationWindow(participantListing, eventListing, nowInput = new Date()) {
+  const window = getParticipationOverlapWindow(participantListing, eventListing);
+  if (!window) return false;
+  const today = (nowInput instanceof Date ? nowInput : new Date(nowInput)).toISOString().slice(0, 10);
+  return today >= window.start && today <= window.end;
+}
+
 export function shouldShowListingInNeighborhoodParticipantView(participantListing, eventListing, request, nowInput = new Date()) {
   if (!participantListing || !eventListing || eventListing.listingType !== "neighborhood_sale") return false;
   if (!isNeighborhoodVisibleOnMap(eventListing, nowInput)) return false;
@@ -116,6 +160,9 @@ export function shouldShowListingInNeighborhoodParticipantView(participantListin
   if (participantListing.neighborhood_sale_id !== eventListing.id) return false;
   if (normalizeNeighborhoodJoinStatus(participantListing.neighborhood_join_status) !== "approved") return false;
   if (request?.removed_by_eo === true || normalizeNeighborhoodJoinStatus(request?.status) !== "approved") return false;
+
+  // Only show participant during the overlap window between their listing dates and the sale dates
+  if (!isWithinParticipationWindow(participantListing, eventListing, nowInput)) return false;
 
   return true;
 }
