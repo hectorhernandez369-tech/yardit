@@ -23,7 +23,6 @@ import VendorEventDashboard from './pages/VendorEventDashboard';
 import VendorEventFlags from './pages/VendorEventFlags';
 import VendorEventSchedule from './pages/VendorEventSchedule';
 import VendorEventDetail from './pages/VendorEventDetail';
-import VendorEvents from './pages/VendorEvents';
 import AccountOptions from './pages/AccountOptions';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -130,7 +129,6 @@ const AuthenticatedApp = () => {
         <Route path="/VendorEventSchedule" element={<LayoutWrapper currentPageName="VendorEventSchedule"><VendorEventSchedule /></LayoutWrapper>} />
         <Route path="/VendorEventPublicPage" element={<LayoutWrapper currentPageName="VendorEventPublicPage"><VendorEventDetail /></LayoutWrapper>} />
         <Route path="/VendorEventDetail" element={<LayoutWrapper currentPageName="VendorEventDetail"><VendorEventDetail /></LayoutWrapper>} />
-        <Route path="/VendorEvents" element={<LayoutWrapper currentPageName="VendorEvents"><VendorEvents /></LayoutWrapper>} />
         <Route path="/AccountOptions" element={<LayoutWrapper currentPageName="AccountOptions"><AccountOptions /></LayoutWrapper>} />
         <Route path="/VendorPinPreview" element={<LayoutWrapper currentPageName="VendorPinPreview"><VendorPinPreview /></LayoutWrapper>} />
         <Route path="/VendorPublicPage" element={<LayoutWrapper currentPageName="VendorPublicPage"><VendorPublicPage /></LayoutWrapper>} />
