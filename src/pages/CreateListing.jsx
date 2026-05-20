@@ -28,6 +28,7 @@ import { useAppMode } from "../components/shared/DemoMode";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import {
   deriveNeighborhoodEventState,
+  doesListingOverlapNeighborhoodSale,
   getNeighborhoodCreationLeadTimeError,
   isNeighborhoodJoinAllowed,
   normalizeNeighborhoodJoinStatus,
@@ -1042,13 +1043,7 @@ export default function CreateListingPage() {
         });
         setFormData(nextData);
 
-        const nearbySale = await findNearbyNeighborhoodSale(nextData);
-        if (nearbySale) {
-          setMatchedSale(nearbySale);
-          setSaleModalStep(1);
-          return;
-        }
-
+        // Do NOT show Ask-to-Join yet — wait until after dates are selected (handled at handleSubmit)
         setStep(3);
         return;
       }
@@ -1085,13 +1080,7 @@ export default function CreateListingPage() {
 
       setFormData(normalizedNextData);
 
-      const nearbySale = await findNearbyNeighborhoodSale(normalizedNextData);
-      if (nearbySale) {
-        setMatchedSale(nearbySale);
-        setSaleModalStep(1);
-        return;
-      }
-
+      // Do NOT show Ask-to-Join yet — wait until after dates are selected (handled at handleSubmit)
       setStep(3);
       return;
     }
@@ -1456,6 +1445,23 @@ export default function CreateListingPage() {
       setPaymentError("");
       setStep(4);
       return;
+    }
+
+    // Ask-to-Join check: run AFTER dates are confirmed, only for yard_sale
+    if (formData.listingType === "yard_sale" && !isAdminCreate && !isGlobalDemoMode) {
+      const nearbySale = await findNearbyNeighborhoodSale();
+      if (nearbySale) {
+        // Only prompt if the user's selected dates overlap the sale
+        const selectedListing = {
+          selectedRangeStartDate: formData.selectedRangeStartDate || formData.startDateTime?.slice(0, 10),
+          selectedRangeEndDate: formData.selectedRangeEndDate || formData.endDateTime?.slice(0, 10),
+        };
+        if (doesListingOverlapNeighborhoodSale(selectedListing, nearbySale)) {
+          setMatchedSale(nearbySale);
+          setSaleModalStep(1);
+          return;
+        }
+      }
     }
 
     executeSubmit();

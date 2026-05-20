@@ -209,10 +209,12 @@ export default function JoinNeighborhoodSale() {
     doesListingOverlapNeighborhoodSale(listing, sale)
   );
   const organizerCount = sale.organizer_participation === "organizing_only" ? 0 : 1;
-  // Only count approved participants whose listing overlaps the sale date range
+  // Only count approved participants whose listing overlaps the sale date range and haven't been removed
   const approvedHomesCount = organizerCount + participantRequests.filter((request) => {
     if (normalizeNeighborhoodJoinStatus(request.status) !== "approved") return false;
+    if (request.status === "canceled" || request.status === "cancelled") return false;
     if (request.removed_by_eo === true) return false;
+    if (request.removed_by_listing_owner === true) return false;
     // Check overlap using the listing dates stored on the request's linked listing
     // Fall back to counting if we don't have listing dates (conservative)
     const pStart = request.participant_start_date || request.selectedRangeStartDate;

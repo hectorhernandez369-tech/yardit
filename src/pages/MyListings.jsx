@@ -871,6 +871,30 @@ export default function MyListingsPage() {
           status: "cancelled",
           statusReason: isActive ? "Canceled by owner" : "Canceled by owner before activation",
         });
+
+        // Clean up any JoinRequests tied to this participant listing
+        if (listing.neighborhood_sale_id || listing.neighborhood_join_status !== "none") {
+          try {
+            const reqs = await base44.entities.JoinRequest.filter({ listingId: listing.id });
+            for (const req of reqs) {
+              await base44.entities.JoinRequest.update(req.id, {
+                removed_by_listing_owner: true,
+                removed_at: new Date().toISOString(),
+                removal_reason: "listing_canceled",
+                status: "canceled",
+              });
+            }
+            // Dismiss any pending join-request notifications for this listing
+            const notifs = await base44.entities.Notification.filter({ user_id: listing.ownerUserId });
+            for (const n of notifs) {
+              if (n.metadata?.requester_listing_id === listing.id) {
+                await base44.entities.Notification.delete(n.id);
+              }
+            }
+          } catch (cleanupErr) {
+            console.error("JoinRequest cleanup error on cancel", cleanupErr);
+          }
+        }
       }
 
       toast.success("Listing canceled");
@@ -890,11 +914,17 @@ export default function MyListingsPage() {
         await base44.entities.Listing.delete(listing.id);
       }
 
-      // Notification Cleanup
+      // Cleanup JoinRequests and Notifications
       try {
+        // Mark any JoinRequests for this listing as canceled (not hard-deleted, for audit trail)
         const requesterReqs = await base44.entities.JoinRequest.filter({ listingId: listing.id });
         for (const req of requesterReqs) {
-          await base44.entities.JoinRequest.delete(req.id);
+          await base44.entities.JoinRequest.update(req.id, {
+            removed_by_listing_owner: true,
+            removed_at: new Date().toISOString(),
+            removal_reason: "listing_deleted",
+            status: "canceled",
+          });
         }
 
         if (listing.listingType === "neighborhood_sale") {
@@ -906,6 +936,7 @@ export default function MyListingsPage() {
           });
         }
 
+        // Delete notifications tied to this listing
         const allNotifs = await base44.entities.Notification.filter({});
         const toDelete = allNotifs.filter(n => 
           n.metadata?.requester_listing_id === listing.id || 

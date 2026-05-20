@@ -21,7 +21,13 @@ export function normalizeNeighborhoodJoinStatus(status) {
 
 export function getNeighborhoodApprovedHomesCount(requests = [], options = {}) {
   const { includeOrganizer = true } = options;
-  const activeRequests = (requests || []).filter((request) => request?.removed_by_eo !== true);
+  const activeRequests = (requests || []).filter(
+    (request) =>
+      request?.removed_by_eo !== true &&
+      request?.removed_by_listing_owner !== true &&
+      request?.status !== "canceled" &&
+      request?.status !== "cancelled"
+  );
   const approvedRequests = activeRequests.filter((request) => normalizeNeighborhoodJoinStatus(request.status) === "approved");
   return approvedRequests.length + (includeOrganizer ? 1 : 0);
 }
@@ -159,7 +165,9 @@ export function shouldShowListingInNeighborhoodParticipantView(participantListin
   if (participantListing.status !== "active") return false;
   if (participantListing.neighborhood_sale_id !== eventListing.id) return false;
   if (normalizeNeighborhoodJoinStatus(participantListing.neighborhood_join_status) !== "approved") return false;
-  if (request?.removed_by_eo === true || normalizeNeighborhoodJoinStatus(request?.status) !== "approved") return false;
+  if (request?.removed_by_eo === true || request?.removed_by_listing_owner === true) return false;
+  if (request?.status === "canceled" || request?.status === "cancelled") return false;
+  if (normalizeNeighborhoodJoinStatus(request?.status) !== "approved") return false;
 
   // Only show participant during the overlap window between their listing dates and the sale dates
   if (!isWithinParticipationWindow(participantListing, eventListing, nowInput)) return false;
