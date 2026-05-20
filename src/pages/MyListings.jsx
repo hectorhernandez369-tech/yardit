@@ -36,6 +36,7 @@ import EventIconManager from "@/components/events/EventIconManager";
 import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
 import ImageCropEditor from "@/components/admin/ImageCropEditor";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
+import EditParticipantSaleTime from "@/components/listing/EditParticipantSaleTime";
 import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
 import { canSelfServeUpgrade } from "@/lib/listingUpgradeConfig";
 import { getDefaultEventIconForCategory, EVENT_BASIC_ICON_LIBRARY, getEventIconEmoji } from "@/lib/eventListingConfig";
@@ -413,6 +414,18 @@ export default function MyListingsPage() {
       setEditStartTime(nsStart ? nsStart.toTimeString().slice(0, 5) : "08:00");
       setEditEndTime(nsEnd ? nsEnd.toTimeString().slice(0, 5) : "14:00");
       setSelectedCoHostUserId(latestListing.co_host_user_id || "");
+    } else if (
+      latestListing?.listingType === "yard_sale" &&
+      latestListing?.neighborhood_sale_id &&
+      ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(latestListing?.neighborhood_join_status))
+    ) {
+      // Participant yard_sale listing — allow editing sale time within the NS window
+      const pStart = latestListing.startDateTime ? new Date(latestListing.startDateTime) : null;
+      const pEnd = latestListing.endDateTime ? new Date(latestListing.endDateTime) : null;
+      setEditStartDate(latestListing.selectedRangeStartDate || (pStart ? pStart.toISOString().slice(0, 10) : ""));
+      setEditEndDate(latestListing.selectedRangeEndDate || (pEnd ? pEnd.toISOString().slice(0, 10) : ""));
+      setEditStartTime(pStart ? pStart.toTimeString().slice(0, 5) : "08:00");
+      setEditEndTime(pEnd ? pEnd.toTimeString().slice(0, 5) : "14:00");
     } else {
       setEditStartDate("");
       setEditEndDate("");
@@ -726,6 +739,55 @@ export default function MyListingsPage() {
 
         dateChanged = true;
       }
+    }
+
+    // Participant yard_sale listing — allow editing sale time within the NS window
+    const isParticipantYardSale =
+      editingListing.listingType === "yard_sale" &&
+      editingListing.neighborhood_sale_id &&
+      ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(editingListing.neighborhood_join_status));
+
+    if (isParticipantYardSale && (editStartDate || editStartTime || editEndDate || editEndTime)) {
+      const oldStartStr = editingListing.selectedRangeStartDate || editingListing.startDateTime?.slice(0, 10) || "";
+      const oldEndStr = editingListing.selectedRangeEndDate || editingListing.endDateTime?.slice(0, 10) || "";
+      const oldStartTime = editingListing.startDateTime ? new Date(editingListing.startDateTime).toTimeString().slice(0, 5) : "08:00";
+      const oldEndTime = editingListing.endDateTime ? new Date(editingListing.endDateTime).toTimeString().slice(0, 5) : "14:00";
+
+      const newStartDate = editStartDate || oldStartStr;
+      const newEndDate = editEndDate || oldEndStr;
+      const newStartTime = editStartTime || oldStartTime;
+      const newEndTime = editEndTime || oldEndTime;
+
+      // Validate end is after start
+      const newStart = new Date(`${newStartDate}T${newStartTime}`);
+      const newEnd = new Date(`${newEndDate}T${newEndTime}`);
+      if (newEnd <= newStart) {
+        toast.error("End time must be after start time.");
+        return;
+      }
+
+      // Validate that the new dates overlap the Neighborhood Sale
+      const nsStart = editingListing.neighborhood_sale_id;
+      // Fetch the parent sale to validate overlap
+      let parentSale = null;
+      try {
+        const results = await base44.entities.Listing.filter({ id: editingListing.neighborhood_sale_id });
+        parentSale = results[0] || null;
+      } catch (_) {}
+
+      if (parentSale) {
+        const nsStartDate = parentSale.selectedRangeStartDate || parentSale.startDateTime?.slice(0, 10);
+        const nsEndDate = parentSale.selectedRangeEndDate || parentSale.endDateTime?.slice(0, 10);
+        if (!nsStartDate || !nsEndDate || newStartDate > nsEndDate || newEndDate < nsStartDate) {
+          toast.error(`Your sale dates must overlap the Neighborhood Sale window (${nsStartDate} – ${nsEndDate}).`);
+          return;
+        }
+      }
+
+      updateData.startDateTime = new Date(`${newStartDate}T${newStartTime}`).toISOString();
+      updateData.endDateTime = new Date(`${newEndDate}T${newEndTime}`).toISOString();
+      updateData.selectedRangeStartDate = newStartDate;
+      updateData.selectedRangeEndDate = newEndDate;
     }
 
     setIsSaving(true);
@@ -1843,6 +1905,14 @@ export default function MyListingsPage() {
               </div>
             )}
 
+            <EditParticipantSaleTime
+              listing={editingListing}
+              startDate={editStartDate} setStartDate={setEditStartDate}
+              startTime={editStartTime} setStartTime={setEditStartTime}
+              endDate={editEndDate} setEndDate={setEditEndDate}
+              endTime={editEndTime} setEndTime={setEditEndTime}
+            />
+
             {editingListing?.listingType === "yard_sale" && (
               <EditListingPhotos
                 label="Listing Photos"
@@ -1906,19 +1976,10 @@ export default function MyListingsPage() {
         onClose={() => setCropEditorOpen(false)}
         onApply={async (file) => {
           try {
-            console.log("DEBUG: onApply - uploading file...");
             const result = await base44.integrations.Core.UploadFile({ file });
-            console.log("DEBUG: onApply - upload result:", result.file_url);
-            
             setEditMarqueeBackgroundUrl(result.file_url);
-            
-            // Auto-save the background URL to the listing
             if (editingListing?.id) {
-              console.log("DEBUG: onApply - saving to listing:", editingListing.id, result.file_url);
-              await base44.entities.Listing.update(editingListing.id, {
-                marquee_background_url: result.file_url
-              });
-              console.log("DEBUG: onApply - update complete, invalidating queries");
+              await base44.entities.Listing.update(editingListing.id, { marquee_background_url: result.file_url });
               await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
             }
             
