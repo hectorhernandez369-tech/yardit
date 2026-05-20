@@ -24,6 +24,7 @@ import VendorEventFlags from './pages/VendorEventFlags';
 import VendorEventSchedule from './pages/VendorEventSchedule';
 import VendorEventDetail from './pages/VendorEventDetail';
 import AccountOptions from './pages/AccountOptions';
+import Events from './pages/Events';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import GuestEntryModal from '@/components/guest/GuestEntryModal';
@@ -137,6 +138,7 @@ const AuthenticatedApp = () => {
         <Route path="/PrintableChecklist" element={<PrintableChecklist />} />
         <Route path="/ComingSoon" element={<ComingSoon />} />
         <Route path="/assisted-listing" element={<AssistedListingApproval />} />
+        <Route path="/events" element={<Events />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
       <GuestEntryModal open={showGuestEntry} onLogin={navigateToLogin} onGuestEnter={enterGuestMode} />
