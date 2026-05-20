@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarPlus, Search, SlidersHorizontal } from "lucide-react";
+import { CalendarPlus, Search, SlidersHorizontal, Info } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import VendorEventCard from "./VendorEventCard";
 import VendorEventForm from "./VendorEventForm";
@@ -37,6 +37,7 @@ export default function VendorEventsTab({ account, user }) {
   const [sort, setSort] = useState("soonest");
   const [userLocation, setUserLocation] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [showEventTypeInfo, setShowEventTypeInfo] = useState(false);
 
   const { data: events = [] } = useQuery({
     queryKey: ["vendorEvents"],
@@ -137,11 +138,20 @@ export default function VendorEventsTab({ account, user }) {
           </Button>
         </div>
 
-        <div className="grid gap-2 rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3 text-xs text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
-          <div><strong>Single Events:</strong> {usageSnapshot.used.singleEvents} / {usageSnapshot.allowed.singleEvents}</div>
-          <div><strong>Multi-Spot Events:</strong> {usageSnapshot.used.multiSpotEvents} / {usageSnapshot.allowed.multiSpotEvents}</div>
-          <div><strong>Multi-Location Events:</strong> {usageSnapshot.used.multiLocationEvents} / {usageSnapshot.allowed.multiLocationEvents}</div>
-          <div><strong>Multi-Field Total:</strong> {usageSnapshot.used.multiFieldEvents} / {usageSnapshot.allowed.multiFieldEvents}</div>
+        <div className="flex items-center gap-2">
+          <div className="grid gap-2 rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3 text-xs text-slate-700 sm:grid-cols-2 lg:grid-cols-4 flex-1">
+            <div><strong>Single Events:</strong> {usageSnapshot.used.singleEvents} / {usageSnapshot.allowed.singleEvents}</div>
+            <div><strong>Multi-Spot Events:</strong> {usageSnapshot.used.multiSpotEvents} / {usageSnapshot.allowed.multiSpotEvents}</div>
+            <div><strong>Multi-Location Events:</strong> {usageSnapshot.used.multiLocationEvents} / {usageSnapshot.allowed.multiLocationEvents}</div>
+            <div><strong>Multi-Field Total:</strong> {usageSnapshot.used.multiFieldEvents} / {usageSnapshot.allowed.multiFieldEvents}</div>
+          </div>
+          <button
+            onClick={() => setShowEventTypeInfo(true)}
+            className="flex items-center justify-center w-8 h-8 rounded-full border border-[#5DADA5] text-[#5DADA5] hover:bg-[#5DADA5]/10 transition"
+            title="Event types explained"
+          >
+            <Info className="w-4 h-4" />
+          </button>
         </div>
 
         <div className="grid gap-2 md:grid-cols-[1fr_auto_180px_auto]">
@@ -280,6 +290,26 @@ export default function VendorEventsTab({ account, user }) {
               }}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEventTypeInfo} onOpenChange={setShowEventTypeInfo}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Event Types Explained</DialogTitle></DialogHeader>
+          <div className="space-y-3 text-sm text-slate-700">
+            <div>
+              <p className="font-semibold text-[#2C4F4E]">Single Event</p>
+              <p className="text-slate-600 mt-1">One location event such as a pop-up, sale, or vendor setup.</p>
+            </div>
+            <div>
+              <p className="font-semibold text-[#2C4F4E]">Multi-Spot Event</p>
+              <p className="text-slate-600 mt-1">Large organized event with multiple internal locations or fields.</p>
+            </div>
+            <div>
+              <p className="font-semibold text-[#2C4F4E]">Multi-Location Event</p>
+              <p className="text-slate-600 mt-1">Event spanning multiple separate locations.</p>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
