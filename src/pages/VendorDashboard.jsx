@@ -4,17 +4,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ExternalLink } from "lucide-react";
-import BusinessHero from "@/components/vendor/BusinessHero";
-import MobileVendorHeader from "@/components/vendor/MobileVendorHeader";
+import CompactVendorHeader from "@/components/vendor/CompactVendorHeader";
 import MyTrucksSection from "@/components/vendor/MyTrucksSection";
 import VendorBillingTab from "@/components/vendor/VendorBillingTab";
 import VendorUsersTab from "@/components/vendor/VendorUsersTab";
-import VendorPinStatusBar from "@/components/vendor/VendorPinStatusBar";
 import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
 import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
-import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import VendorAccessDenied from "@/components/vendor/VendorAccessDenied";
 import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
 import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
@@ -153,73 +150,39 @@ export default function VendorDashboard() {
     return <VendorAccessDenied />;
   }
 
-  const heroProfile = {
-    id: account.id,
-    business_name: account.business_name,
-    logo_url: account.business_logo,
-    tier: account.vendor_tier,
-    category: account.business_category,
-    description: account.description,
-    phone: account.phone,
-    location: account.location || account.service_area || account.city || account.address,
-    hero_background_color: account.hero_background_color,
-    vendor_account_number: account.vendor_account_number || account.account_number,
-    owner_email: account.owner_email,
-  };
-
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
   const activePin = activeCheckIn ? pins.find((pin) => pin.id === activeCheckIn.vendor_pin_id) : null;
 
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-[#FBFAF7]">
-      {/* Multi-business selector bar */}
-      <BusinessSelectorBar
-        accounts={accounts}
-        activeAccount={account}
-        onSelect={handleSelectBusiness}
-      />
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="min-w-0">
+        {/* Compact unified header */}
+        <CompactVendorHeader
+          accounts={accounts}
+          activeAccount={account}
+          activeCheckIn={activeCheckIn}
+          activePin={activePin}
+          onSwitch={handleSelectBusiness}
+        />
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0 min-w-0">
-        <div className="bg-[#5DADA5] text-white">
-          <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-5">
-            <div className="flex items-center gap-3 px-4 py-3 sm:hidden">
-              <img 
-                src="https://media.base44.com/images/public/690f554506edf795e5d84121/9df715fab_file_0000000005b4722fb02f43a8db334d53.png"
-                alt="Yardit Events Logo"
-                className="w-8 h-8 object-contain"
-              />
-              <h1 className="text-lg font-bold text-white">Vendor Dashboard</h1>
-            </div>
-            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} />
-            <div className="hidden sm:block">
-              <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
-            </div>
-
-            {/* Dev button to view landing page */}
-            <div className="mt-4 mb-2">
-              <button
-                onClick={() => window.open("/events", "_blank")}
-                className="inline-flex items-center gap-2 bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] font-semibold px-4 py-2 rounded-lg text-sm transition-all"
-              >
-                <ExternalLink className="w-4 h-4" />
-                View Events Landing Page (Dev)
-              </button>
-            </div>
-
-            <div className="mt-0 sm:mt-6 sm:mx-0 overflow-x-auto">
+        {/* Tabs - moved higher, cleaner styling */}
+        <div className="bg-white border-b border-[#2C4F4E]/10">
+          <div className="max-w-7xl mx-auto w-full px-3 sm:px-5 lg:px-6">
+            <div className="overflow-x-auto">
               <TabsList className="flex w-max min-w-full bg-transparent p-0 h-auto justify-start rounded-none">
-                <TabsTrigger value="profile" className="min-w-[5.75rem] sm:min-w-[7.5rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">My Page</TabsTrigger>
-                <TabsTrigger value="pins" className="min-w-[7.25rem] sm:min-w-[9rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Trucks / Pins</TabsTrigger>
-                <TabsTrigger value="events" className="min-w-[5.25rem] sm:min-w-[7.5rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Events</TabsTrigger>
-                <TabsTrigger value="history" className="min-w-[5.75rem] sm:min-w-[7.5rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">History</TabsTrigger>
-                <TabsTrigger value="tier" className="min-w-[4.5rem] sm:min-w-[7rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Tier</TabsTrigger>
-                <TabsTrigger value="users" className="min-w-[6.75rem] sm:min-w-[11rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Users</TabsTrigger>
+                <TabsTrigger value="profile" className="min-w-[5.75rem] sm:min-w-[7.5rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">My Page</TabsTrigger>
+                <TabsTrigger value="pins" className="min-w-[7.25rem] sm:min-w-[9rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">Trucks / Pins</TabsTrigger>
+                <TabsTrigger value="events" className="min-w-[5.25rem] sm:min-w-[7.5rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">Events</TabsTrigger>
+                <TabsTrigger value="history" className="min-w-[5.75rem] sm:min-w-[7.5rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">History</TabsTrigger>
+                <TabsTrigger value="tier" className="min-w-[4.5rem] sm:min-w-[7rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">Tier</TabsTrigger>
+                <TabsTrigger value="users" className="min-w-[6.75rem] sm:min-w-[11rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">Users</TabsTrigger>
               </TabsList>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-2 sm:space-y-6">
+        {/* Content area - reduced spacing */}
+        <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-4 sm:pb-24 lg:p-6 lg:pb-24 space-y-3 sm:space-y-4">
           {showSetupReminder && !setupProgress.isComplete && (
             <VendorSetupProgress
               account={account}
@@ -233,8 +196,15 @@ export default function VendorDashboard() {
             />
           )}
 
-          <div className="hidden sm:block">
-            <VendorPinStatusBar pins={pins} checkIns={checkIns} />
+          {/* Utility row - dev button moved here, less prominent */}
+          <div className="flex justify-end">
+            <button
+              onClick={() => window.open("/events", "_blank")}
+              className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#5DADA5] transition"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Events Page (Dev)
+            </button>
           </div>
 
           <TabsContent value="profile" className="mt-0 min-w-0"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
