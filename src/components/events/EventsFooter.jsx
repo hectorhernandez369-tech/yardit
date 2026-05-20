@@ -11,7 +11,7 @@ export default function EventsFooter() {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <img
-              src="https://media.base44.com/images/public/690f554506edf795e5d84121/4b5d05a11_file_000000008c6871fdbab262129d9590f6.png"
+              src="https://media.base44.com/images/public/690f554506edf795e5d84121/9df715fab_file_0000000005b4722fb02f43a8db334d53.png"
               alt="Yardit Events Logo"
               className="w-10 h-10 object-contain"
             />

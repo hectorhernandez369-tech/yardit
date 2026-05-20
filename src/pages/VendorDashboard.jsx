@@ -184,7 +184,7 @@ export default function VendorDashboard() {
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-5">
             <div className="flex items-center gap-3 px-4 py-3 sm:hidden">
               <img 
-                src="https://media.base44.com/images/public/690f554506edf795e5d84121/4b5d05a11_file_000000008c6871fdbab262129d9590f6.png"
+                src="https://media.base44.com/images/public/690f554506edf795e5d84121/9df715fab_file_0000000005b4722fb02f43a8db334d53.png"
                 alt="Yardit Events Logo"
                 className="w-8 h-8 object-contain"
               />
