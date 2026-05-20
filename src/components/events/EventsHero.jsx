@@ -5,11 +5,11 @@ import { Sparkles } from "lucide-react";
 
 export default function EventsHero({ onPrimaryCta, onSecondaryCta }) {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#0A1628] via-[#0D1A33] to-[#0F1F3D]">
       {/* Subtle background pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(244,168,73,0.15),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(244,168,73,0.1),transparent_50%)]" />
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(212,168,73,0.12),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(212,168,73,0.08),transparent_50%)]" />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-6 py-20 text-center">
@@ -20,7 +20,7 @@ export default function EventsHero({ onPrimaryCta, onSecondaryCta }) {
         >
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight tracking-tight mb-6">
             EVENT ORGANIZERS ARE{" "}
-            <span className="text-[#F4A849]">LOOKING FOR</span>{" "}
+            <span className="text-[#D4A849]">LOOKING FOR</span>{" "}
             VENDORS
           </h1>
 
@@ -35,33 +35,33 @@ export default function EventsHero({ onPrimaryCta, onSecondaryCta }) {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="mb-12"
           >
-            <div className="inline-block bg-gradient-to-br from-[#F4A849] to-orange-600 rounded-2xl p-1 shadow-2xl shadow-orange-500/20">
-              <div className="bg-gray-950 rounded-xl px-6 sm:px-10 py-6 sm:py-8">
+            <div className="inline-block bg-gradient-to-br from-[#D4A849] to-[#C99635] rounded-2xl p-1 shadow-2xl shadow-[#D4A849]/25">
+              <div className="bg-[#0A1628] rounded-xl px-6 sm:px-10 py-6 sm:py-8 border border-[#1A2F4D]">
                 <div className="flex items-center justify-center gap-2 mb-4">
-                  <Sparkles className="w-5 h-5 text-[#F4A849]" />
+                  <Sparkles className="w-5 h-5 text-[#D4A849]" />
                   <span className="text-3xl sm:text-4xl font-black text-white tracking-wider">
                     FIRST50
                   </span>
-                  <Sparkles className="w-5 h-5 text-[#F4A849]" />
+                  <Sparkles className="w-5 h-5 text-[#D4A849]" />
                 </div>
                 <h3 className="text-lg sm:text-xl font-bold text-white mb-4">
-                  The First 50 Vendors Receive:
+                  The First 50 Approved Vendors Receive:
                 </h3>
                 <ul className="text-left space-y-2 text-gray-300 mb-4">
                   <li className="flex items-start gap-2">
-                    <span className="text-[#F4A849] mt-1">•</span>
-                    <span>30 Days Free Pro Vendor Access</span>
+                    <span className="text-[#D4A849] mt-1">•</span>
+                    <span>60 Days Free Pro Vendor Access</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-[#F4A849] mt-1">•</span>
+                    <span className="text-[#D4A849] mt-1">•</span>
                     <span>Early Access To Local Events</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-[#F4A849] mt-1">•</span>
+                    <span className="text-[#D4A849] mt-1">•</span>
                     <span>Founding Vendor Status</span>
                   </li>
                 </ul>
-                <p className="text-sm text-orange-400 font-semibold uppercase tracking-wide">
+                <p className="text-sm text-[#D4A849] font-semibold uppercase tracking-wide">
                   Limited Founding Vendor Access
                 </p>
               </div>
@@ -77,14 +77,14 @@ export default function EventsHero({ onPrimaryCta, onSecondaryCta }) {
           >
             <Button
               onClick={onPrimaryCta}
-              className="bg-[#F4A849] hover:bg-[#E39635] text-gray-950 font-bold text-lg px-8 py-6 h-auto rounded-xl shadow-lg shadow-orange-500/25 transition-all hover:scale-105"
+              className="bg-gradient-to-r from-[#D4A849] to-[#C99635] hover:from-[#E3B859] hover:to-[#D9A645] text-[#0A1628] font-bold text-lg px-8 py-6 h-auto rounded-xl shadow-lg shadow-[#D4A849]/25 transition-all hover:scale-105"
             >
               Become A Founding Vendor
             </Button>
             <Button
               onClick={onSecondaryCta}
               variant="outline"
-              className="border-2 border-gray-700 text-white hover:bg-gray-800 font-semibold text-lg px-8 py-6 h-auto rounded-xl transition-all"
+              className="border-2 border-[#1A2F4D] text-gray-300 hover:bg-[#0D1A33] hover:border-[#2A3F5D] font-semibold text-lg px-8 py-6 h-auto rounded-xl transition-all"
             >
               Learn More
             </Button>

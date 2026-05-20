@@ -27,7 +27,7 @@ export default function FomoSection() {
   ];
 
   return (
-    <section className="py-20 sm:py-28 bg-gray-950">
+    <section className="py-20 sm:py-28 bg-gradient-to-b from-[#0D1A33] to-[#0A1628]">
       <div className="max-w-6xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -52,10 +52,10 @@ export default function FomoSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 border border-gray-800 hover:border-[#F4A849]/50 transition-all"
+              className="bg-gradient-to-br from-[#0D1A33] to-[#0F1F3D] rounded-2xl p-6 border border-[#1A2F4D] hover:border-[#D4A849]/50 transition-all"
             >
               <div className="flex flex-col items-center text-center">
-                <stat.icon className="w-10 h-10 text-[#F4A849] mb-4" />
+                <stat.icon className="w-10 h-10 text-[#D4A849] mb-4" />
                 <div className="text-2xl sm:text-3xl font-bold text-white mb-2">
                   {stat.value}
                 </div>

@@ -22,7 +22,7 @@ export default function HowItWorksSection() {
   ];
 
   return (
-    <section className="py-20 sm:py-28 bg-gradient-to-b from-gray-950 to-gray-900">
+    <section className="py-20 sm:py-28 bg-gradient-to-b from-[#0A1628] to-[#0D1A33]">
       <div className="max-w-6xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -46,12 +46,12 @@ export default function HowItWorksSection() {
               transition={{ duration: 0.5, delay: index * 0.15 }}
               className="relative"
             >
-              <div className="bg-gray-800/50 rounded-2xl p-8 border border-gray-800 hover:border-[#F4A849]/30 transition-all">
+              <div className="bg-[#0D1A33]/50 rounded-2xl p-8 border border-[#1A2F4D] hover:border-[#D4A849]/30 transition-all">
                 <div className="flex flex-col items-center text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-[#F4A849] to-orange-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-orange-500/20">
-                    <step.icon className="w-8 h-8 text-gray-950" />
+                  <div className="w-16 h-16 bg-gradient-to-br from-[#D4A849] to-[#C99635] rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-[#D4A849]/25">
+                    <step.icon className="w-8 h-8 text-[#0A1628]" />
                   </div>
-                  <div className="text-5xl font-black text-gray-800 absolute top-4 right-6">
+                  <div className="text-5xl font-black text-[#1A2F4D] absolute top-4 right-6">
                     {index + 1}
                   </div>
                   <h3 className="text-xl font-bold text-white mb-3">

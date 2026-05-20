@@ -3,19 +3,19 @@ import EventsHero from "@/components/events/EventsHero";
 import FomoSection from "@/components/events/FomoSection";
 import HowItWorksSection from "@/components/events/HowItWorksSection";
 import FoundingVendorSection from "@/components/events/FoundingVendorSection";
-import SignupSection from "@/components/events/SignupSection";
+import CallToActionSection from "@/components/events/CallToActionSection";
 import BottomCTA from "@/components/events/BottomCTA";
 import EventsFooter from "@/components/events/EventsFooter";
 
 export default function Events() {
-  const scrollToSignup = () => {
-    document.getElementById("signup")?.scrollIntoView({ behavior: "smooth" });
+  const scrollToCTA = () => {
+    document.getElementById("cta")?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-[#0A1628]">
       <EventsHero
-        onPrimaryCta={scrollToSignup}
+        onPrimaryCta={scrollToCTA}
         onSecondaryCta={() => {
           document.getElementById("fomo")?.scrollIntoView({ behavior: "smooth" });
         }}
@@ -24,9 +24,9 @@ export default function Events() {
         <FomoSection />
       </div>
       <HowItWorksSection />
-      <FoundingVendorSection onCta={scrollToSignup} />
-      <div id="signup">
-        <SignupSection />
+      <FoundingVendorSection onCta={scrollToCTA} />
+      <div id="cta">
+        <CallToActionSection />
       </div>
       <BottomCTA />
       <EventsFooter />
