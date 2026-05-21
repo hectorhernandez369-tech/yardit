@@ -143,6 +143,10 @@ export default function VendorPinPreview() {
   }, [pinId, accountId, checkInId]);
 
   const handleCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser.");
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const nextLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
@@ -150,7 +154,15 @@ export default function VendorPinPreview() {
         setPinLocation((current) => current || nextLocation);
         toast.success("GPS location found");
       },
-      () => toast.error("Could not get your GPS location."),
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          toast.error("Location access denied. Please allow location access in your browser settings, then try again.");
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          toast.error("Location unavailable. Please check your device's location settings.");
+        } else {
+          toast.error("Could not get your GPS location. Please try again or enter your address manually.");
+        }
+      },
       { enableHighAccuracy: true, timeout: 12000 }
     );
   };
