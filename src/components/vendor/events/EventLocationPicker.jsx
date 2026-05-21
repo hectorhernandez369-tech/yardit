@@ -20,65 +20,48 @@ function distanceFrom(lat1, lng1, lat2, lng2) {
 }
 
 function formatPhotonAddress(p) {
-  return [
-    p.name,
-    p.housenumber && p.street ? `${p.housenumber} ${p.street}` : p.street,
-    p.city || p.county,
-    p.state,
-    p.postcode,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  // Prefer named place first (venue, school, park, etc.)
+  const name = p.name;
+  const street = p.housenumber && p.street ? `${p.housenumber} ${p.street}` : p.street;
+  const city = p.city || p.town || p.village || p.county;
+  const state = p.state;
+
+  if (name && city) return [name, city, state].filter(Boolean).join(", ");
+  return [street, city, state].filter(Boolean).join(", ");
 }
 
-/**
- * Improved reverse geocode: prefers named place/venue over raw street address.
- * Uses Nominatim with addressdetails + namedetails.
- * Returns: { suggestedAddress, namedPlace }
- */
+// Enhanced reverse geocode: tries Nominatim with named place priority
 async function reverseGeocode(lat, lng) {
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&namedetails=1`
     );
     const data = await res.json();
-    if (!data || data.error) return { suggestedAddress: null, namedPlace: null };
+    if (!data || data.error) return null;
 
     const a = data.address || {};
-    const name = data.namedetails?.name || data.name || null;
+    const placeName = data.name || data.namedetails?.name;
 
-    // Named place: amenity, tourism, leisure, building, shop, etc.
-    const isNamedPlace = !!(
-      a.amenity || a.tourism || a.leisure || a.building || a.shop ||
-      a.office || a.historic || a.aeroway || a.man_made || a.landuse
-    );
+    // 1. Named place/venue
+    if (placeName) {
+      const city = a.city || a.town || a.village || a.county;
+      const state = a.state;
+      return [placeName, city, state].filter(Boolean).join(", ");
+    }
 
-    // Clean street address
-    const streetParts = [
-      a.house_number && a.road ? `${a.house_number} ${a.road}` : a.road,
-      a.city || a.town || a.village || a.county,
-      a.state,
-    ].filter(Boolean);
+    // 2. Street address
+    const street = a.house_number && a.road
+      ? `${a.house_number} ${a.road}`
+      : a.road;
+    const city = a.city || a.town || a.village || a.county;
+    const state = a.state;
 
-    const streetAddress = streetParts.length >= 2 ? streetParts.join(", ") : null;
+    if (street && city) return [street, city, state].filter(Boolean).join(", ");
+    if (city && state) return [city, state].join(", ");
 
-    // For named places: "Place Name, City, State"
-    const namedPlaceParts = [
-      name || a.amenity || a.tourism || a.leisure || a.building,
-      a.city || a.town || a.village || a.county,
-      a.state,
-    ].filter(Boolean);
-
-    const namedPlaceAddress = isNamedPlace && namedPlaceParts.length >= 2
-      ? namedPlaceParts.join(", ")
-      : null;
-
-    const suggestedAddress = namedPlaceAddress || streetAddress || null;
-    const namedPlace = (isNamedPlace && name) ? name : null;
-
-    return { suggestedAddress, namedPlace };
+    return null;
   } catch {
-    return { suggestedAddress: null, namedPlace: null };
+    return null;
   }
 }
 
@@ -91,24 +74,28 @@ async function geocodeAddress(address, biasCenter) {
 
   const [photonResult, nominatimResult] = await Promise.allSettled([
     fetch(`https://photon.komoot.io/api/?q=${enc}&limit=8${photonBias}`).then((r) => r.json()),
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8${viewBox}&q=${enc}`).then((r) => r.json()),
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&namedetails=1&limit=8${viewBox}&q=${enc}`).then((r) => r.json()),
   ]);
 
   const photonSuggestions =
     photonResult.status === "fulfilled"
       ? (photonResult.value.features || []).map((f) => {
-          const [lng, lat] = f.geometry.coordinates;
-          return { latitude: Number(lat), longitude: Number(lng), address: formatPhotonAddress(f.properties) };
+          const [longitude, latitude] = f.geometry.coordinates;
+          return { latitude: Number(latitude), longitude: Number(longitude), address: formatPhotonAddress(f.properties) };
         })
       : [];
 
   const nominatimSuggestions =
     nominatimResult.status === "fulfilled"
-      ? (nominatimResult.value || []).map((r) => ({
-          latitude: Number(r.lat),
-          longitude: Number(r.lon),
-          address: r.display_name,
-        }))
+      ? (nominatimResult.value || []).map((r) => {
+          const name = r.namedetails?.name || r.name;
+          const a = r.address || {};
+          const city = a.city || a.town || a.village || a.county;
+          const state = a.state;
+          const street = a.house_number && a.road ? `${a.house_number} ${a.road}` : a.road;
+          const label = name && city ? [name, city, state].filter(Boolean).join(", ") : [street, city, state].filter(Boolean).join(", ") || r.display_name;
+          return { latitude: Number(r.lat), longitude: Number(r.lon), address: label };
+        })
       : [];
 
   const seen = new Set();
@@ -122,10 +109,7 @@ async function geocodeAddress(address, biasCenter) {
     })
     .sort((a, b) => {
       if (!biasCenter) return 0;
-      return (
-        distanceFrom(a.latitude, a.longitude, biasCenter[0], biasCenter[1]) -
-        distanceFrom(b.latitude, b.longitude, biasCenter[0], biasCenter[1])
-      );
+      return distanceFrom(a.latitude, a.longitude, biasCenter[0], biasCenter[1]) - distanceFrom(b.latitude, b.longitude, biasCenter[0], biasCenter[1]);
     })
     .slice(0, 6);
 }
@@ -151,19 +135,17 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const hasValidValue = value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
 
   const [selected, setSelected] = useState(hasValidValue ? { latitude: value.latitude, longitude: value.longitude } : null);
-  // geocoded_address = system suggested (internal reference)
   const [geocodedAddress, setGeocodedAddress] = useState(value?.geocoded_address || "");
-  // displayAddress = what customers see (always editable)
   const [displayAddress, setDisplayAddress] = useState(value?.display_address || value?.geocoded_address || "");
-  // track whether user has manually edited displayAddress so we don't overwrite it on re-geocode
-  const [userEditedDisplay, setUserEditedDisplay] = useState(false);
+  // Track whether user has manually edited the display address field
+  const [displayAddressEdited, setDisplayAddressEdited] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [searching, setSearching] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [userCoords, setUserCoords] = useState(null);
-  const [geocoding, setGeocoding] = useState(false);
+  const [reverseGeocoding, setReverseGeocoding] = useState(false);
 
   const [radius, setRadius] = useState(value?.radius_feet || 500);
   const [flags, setFlags] = useState(value?.flags || []);
@@ -183,14 +165,14 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     setSelected(hasValid ? { latitude: value.latitude, longitude: value.longitude } : null);
     setGeocodedAddress(geo);
     setDisplayAddress(disp);
-    setUserEditedDisplay(false);
+    setDisplayAddressEdited(!!disp && disp !== geo); // already customized if different
     setSearchQuery("");
     setAddressSuggestions([]);
     setSearchFocused(false);
     setRadius(value?.radius_feet || 500);
     setFlags(value?.flags || []);
     setMapStyle("standard");
-  }, [open]); // intentionally not including value to avoid re-reset mid-session
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get user GPS for search bias
   useEffect(() => {
@@ -212,7 +194,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     return () => document.removeEventListener("pointerdown", handler);
   }, []);
 
-  // Search suggestions
+  // Search autocomplete
   useEffect(() => {
     if (!open || !searchFocused || searchQuery.trim().length < 3) {
       setAddressSuggestions([]);
@@ -220,10 +202,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     }
     const timer = setTimeout(async () => {
       setSearching(true);
-      const biasCenter = selected
-        ? [selected.latitude, selected.longitude]
-        : userCoords || DEFAULT_CENTER;
-      const results = await geocodeAddress(searchQuery.trim(), biasCenter);
+      const bias = selected ? [selected.latitude, selected.longitude] : userCoords || DEFAULT_CENTER;
+      const results = await geocodeAddress(searchQuery.trim(), bias);
       setAddressSuggestions(results);
       setSearching(false);
     }, 350);
@@ -236,29 +216,43 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     searchInputRef.current?.blur();
   };
 
-  // Pin drop on map — reverse geocode, never touch search bar
+  // Pin dropped on map
   const selectMapLocation = async (lat, lng) => {
-    closeSuggestions();
+    // Do NOT touch the search bar at all
     setSelected({ latitude: lat, longitude: lng });
-    setGeocoding(true);
-    const { suggestedAddress } = await reverseGeocode(lat, lng);
-    const geo = suggestedAddress || "";
-    setGeocodedAddress(geo);
-    // Only auto-fill display if user hasn't manually typed something
-    if (!userEditedDisplay) {
-      setDisplayAddress(geo);
+    setReverseGeocoding(true);
+
+    const address = await reverseGeocode(lat, lng);
+    const suggested = address || "Location selected";
+
+    setGeocodedAddress(suggested);
+
+    // Only auto-fill display address if user hasn't manually typed something
+    if (!displayAddressEdited) {
+      setDisplayAddress(suggested);
     }
-    setGeocoding(false);
+
+    setReverseGeocoding(false);
   };
 
-  // Suggestion chosen from search dropdown
+  // Search suggestion chosen
   const chooseSuggestion = (suggestion) => {
-    const address = suggestion.address;
     setSelected({ latitude: suggestion.latitude, longitude: suggestion.longitude });
-    setGeocodedAddress(address);
-    if (!userEditedDisplay) setDisplayAddress(address);
-    setSearchQuery(address);
+    setGeocodedAddress(suggestion.address);
+
+    // Auto-fill display address only if not manually edited
+    if (!displayAddressEdited) {
+      setDisplayAddress(suggestion.address);
+    }
+
+    // Update search bar with chosen address
+    setSearchQuery(suggestion.address);
     closeSuggestions();
+  };
+
+  const handleDisplayAddressChange = (e) => {
+    setDisplayAddress(e.target.value);
+    setDisplayAddressEdited(true);
   };
 
   const saveLocation = () => {
@@ -283,8 +277,9 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
         <DialogHeader>
           <DialogTitle>Choose Event Location</DialogTitle>
         </DialogHeader>
+
         <div className="space-y-4">
-          {/* Search bar — search only, does not update after map tap */}
+          {/* Search bar — search only, never updated by map taps */}
           <div ref={searchWrapRef} className="space-y-2">
             <Input
               ref={searchInputRef}
@@ -337,37 +332,32 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
                 {selected && <Marker position={[selected.latitude, selected.longitude]} />}
               </MapContainer>
             </div>
-            {!selected && (
-              <p className="text-xs text-slate-500 text-center">Tap the map or search above to set the event location.</p>
-            )}
+            <p className="text-xs text-slate-500 text-center">Tap the map or search above to set the pin location.</p>
           </div>
 
-          {/* Location fields — always shown once a pin is selected */}
+          {/* Location info — always shown when a pin exists */}
           {selected && (
-            <div className="space-y-3 rounded-xl bg-[#FBFAF7] border border-[#2C4F4E]/10 p-4">
-              {/* Suggested Address (system, read-only) */}
-              <div className="space-y-1">
-                <Label className="text-xs text-slate-500 font-normal uppercase tracking-wide">Suggested Address</Label>
+            <div className="space-y-3 rounded-xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-4">
+              {/* Suggested Address (read-only, system generated) */}
+              <div className="space-y-0.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Suggested Address</p>
                 <p className="text-sm text-slate-700">
-                  {geocoding ? (
-                    <span className="text-slate-400 italic">Looking up address…</span>
+                  {reverseGeocoding ? (
+                    <span className="text-slate-400 italic">Finding address...</span>
                   ) : (
-                    geocodedAddress || <span className="text-slate-400 italic">Location selected</span>
+                    geocodedAddress || "Location selected"
                   )}
                 </p>
               </div>
 
               <div className="h-px bg-[#2C4F4E]/10" />
 
-              {/* Public Display Location (always editable) */}
+              {/* Public Display Location — always editable */}
               <div className="space-y-1.5">
-                <Label>Public Display Location</Label>
+                <Label className="text-sm font-semibold text-[#2C4F4E]">Public Display Location</Label>
                 <Input
                   value={displayAddress}
-                  onChange={(e) => {
-                    setDisplayAddress(e.target.value);
-                    setUserEditedDisplay(true);
-                  }}
+                  onChange={handleDisplayAddressChange}
                   placeholder="e.g. Porterville Courthouse, Main Parking Lot, Field 2 Entrance"
                 />
                 <p className="text-xs text-slate-500">
@@ -377,7 +367,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             </div>
           )}
 
-          {/* Radius & Flags */}
+          {/* Radius & Flags (multi-spot/multi-location only) */}
           {showRadius && (
             <div className="space-y-2 rounded-xl bg-[#FBFAF7] p-3">
               <div className="flex items-center justify-between gap-3">
@@ -386,33 +376,21 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
               </div>
               <input
                 className="w-full accent-[#5DADA5]"
-                type="range"
-                min="100"
-                max="5000"
-                step="100"
+                type="range" min="100" max="5000" step="100"
                 value={radius}
                 onChange={(e) => setRadius(e.target.value)}
               />
               <p className="text-xs text-slate-600">Spots/fields must be placed inside this circle.</p>
               <div className="flex flex-wrap items-center gap-3 pt-2">
-                <Button type="button" variant="outline" disabled={!selected} onClick={() => setShowFlagPlacement(true)}>
-                  Add Flags
-                </Button>
-                {flags.length > 0 && (
-                  <span className="text-sm font-semibold text-[#2C4F4E]">{flags.length} flags selected</span>
-                )}
+                <Button type="button" variant="outline" disabled={!selected} onClick={() => setShowFlagPlacement(true)}>Add Flags</Button>
+                {flags.length > 0 && <span className="text-sm font-semibold text-[#2C4F4E]">{flags.length} flags selected</span>}
               </div>
             </div>
           )}
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button
-              type="button"
-              disabled={!selected}
-              onClick={saveLocation}
-              className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"
-            >
+            <Button type="button" disabled={!selected} onClick={saveLocation} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">
               Save Location
             </Button>
           </div>
