@@ -151,7 +151,7 @@ export default function VendorPinPreview() {
       (position) => {
         const nextLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
         setGpsLocation(nextLocation);
-        setPinLocation((current) => current || nextLocation);
+        setPinLocation(nextLocation);
         toast.success("GPS location found");
       },
       (err) => {
@@ -168,8 +168,8 @@ export default function VendorPinPreview() {
   };
 
   useEffect(() => {
-    if (!gpsLocation) handleCurrentLocation();
-  }, [gpsLocation]);
+    handleCurrentLocation();
+  }, []);
 
   const endDate = useMemo(() => {
     if (selectedHours === "custom" && customEndTime) {
