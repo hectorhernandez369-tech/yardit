@@ -22,6 +22,10 @@
       "type": "string",
       "description": "VendorAccount ID"
     },
+    "vendor_business_name": {
+      "type": "string",
+      "description": "Cached vendor business name at time of redemption"
+    },
     "tier_selected": {
       "type": "string",
       "description": "Tier key the promo was applied to"
@@ -41,6 +45,40 @@
     "redeemed_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "benefits_expire_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Computed expiration of promo benefits (null = no expiration)"
+    },
+    "redemption_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "removed",
+        "canceled",
+        "forfeited"
+      ],
+      "default": "active",
+      "description": "Current lifecycle status of this redemption"
+    },
+    "removed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When admin removed this promo from the account"
+    },
+    "removed_by_admin_id": {
+      "type": "string",
+      "description": "Admin who removed it"
+    },
+    "removed_by_admin_email": {
+      "type": "string"
+    },
+    "slot_recovered": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether removal re-opened a redemption slot"
     },
     "checkout_session_id": {
       "type": "string",

@@ -219,12 +219,53 @@ export default function VendorTierReviewPanel({
 
         {/* Free trial banner */}
         {isFreeTrialPromo && (
-          <div className="rounded-xl bg-blue-50 border border-blue-200 px-3 py-2.5 mb-2">
+          <div className="rounded-xl bg-blue-50 border border-blue-200 px-3 py-2.5 mb-2 space-y-1">
             <div className="flex items-center gap-2 text-sm text-blue-800 font-semibold">
               <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
               Free Trial: {appliedPromo.discount_value} days free on {tier?.label}
             </div>
-            {appliedPromo.description && <p className="text-[11px] text-blue-600 mt-0.5">{appliedPromo.description}</p>}
+            {appliedPromo.description && <p className="text-[11px] text-blue-600">{appliedPromo.description}</p>}
+            {appliedPromo.is_founding_vendor && appliedPromo.founding_recurring_price != null ? (
+              <p className="text-[11px] text-blue-700 font-semibold">
+                Then ${appliedPromo.founding_recurring_price}/month while subscription remains active
+                {appliedPromo.founding_forfeits_on_cancel && " · Canceling subscription permanently forfeits this rate"}
+              </p>
+            ) : (
+              <p className="text-[11px] text-blue-600">
+                Then {money(priceNum)}/month after trial ends
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Founding vendor locked rate banner */}
+        {appliedPromo?.is_founding_vendor && !isFreeTrialPromo && appliedPromo.founding_recurring_price != null && (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 mb-2">
+            <div className="flex items-center gap-2 text-sm text-amber-800 font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
+              Founding Vendor Rate: ${appliedPromo.founding_recurring_price}/month locked in
+            </div>
+            {appliedPromo.founding_forfeits_on_cancel && (
+              <p className="text-[11px] text-amber-700 mt-0.5">Canceling your subscription permanently forfeits this grandfathered price</p>
+            )}
+          </div>
+        )}
+
+        {/* Benefit expiration notice */}
+        {appliedPromo?.benefits_expire_at && (
+          <div className="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 mb-2">
+            <p className="text-[11px] text-slate-600">
+              Promo benefits expire: <strong>{new Date(appliedPromo.benefits_expire_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</strong>
+            </p>
+          </div>
+        )}
+
+        {/* Redeem window notice */}
+        {appliedPromo?.redeem_by_date && (
+          <div className="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 mb-2">
+            <p className="text-[11px] text-slate-500">
+              Code redeemable until {new Date(appliedPromo.redeem_by_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} · your benefits are not affected by the redeem window
+            </p>
           </div>
         )}
 
@@ -236,8 +277,15 @@ export default function VendorTierReviewPanel({
               <p className="text-xs text-slate-400 line-through">{money(subtotal)}/mo</p>
             )}
             <p className="text-lg font-bold text-[#2C4F4E] mt-0.5">
-              {isFreeTrialPromo ? <span className="text-blue-700">Free Trial</span> : <>{money(estimatedMonthlyTotal)}<span className="text-xs font-normal text-slate-500">/mo</span></>}
+              {isFreeTrialPromo
+                ? <span className="text-blue-700">Free Trial</span>
+                : appliedPromo?.is_founding_vendor && appliedPromo.founding_recurring_price != null
+                  ? <>{money(appliedPromo.founding_recurring_price)}<span className="text-xs font-normal text-slate-500">/mo (locked)</span></>
+                  : <>{money(estimatedMonthlyTotal)}<span className="text-xs font-normal text-slate-500">/mo</span></>}
             </p>
+            {isFreeTrialPromo && appliedPromo?.is_founding_vendor && appliedPromo.founding_recurring_price != null && (
+              <p className="text-[11px] text-blue-600 mt-0.5">Then ${appliedPromo.founding_recurring_price}/mo after trial</p>
+            )}
           </div>
           <div className="rounded-xl bg-[#F3E6CF]/60 border border-[#F4A849]/30 px-3 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Due Today</p>
@@ -246,6 +294,9 @@ export default function VendorTierReviewPanel({
             </p>
             {totalAddOnsCost > 0 && !isFreeTrialPromo && (
               <p className="text-[10px] text-slate-500 mt-0.5">Tier + prorated add-ons</p>
+            )}
+            {isFreeTrialPromo && (
+              <p className="text-[10px] text-blue-600 mt-0.5">{appliedPromo.discount_value} days free</p>
             )}
           </div>
         </div>

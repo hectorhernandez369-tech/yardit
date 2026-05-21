@@ -31,12 +31,17 @@
     "valid_start_date": {
       "type": "string",
       "format": "date-time",
-      "description": "When the promo code becomes valid"
+      "description": "When the promo code becomes valid (redeem window start)"
     },
     "valid_end_date": {
       "type": "string",
       "format": "date-time",
-      "description": "When the promo code expires"
+      "description": "Legacy: when the promo code expires for redemption"
+    },
+    "redeem_by_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "After this date, no new users can redeem this code. Existing redemptions keep their benefits."
     },
     "active": {
       "type": "boolean",
@@ -54,15 +59,58 @@
       "type": "number",
       "description": "Maximum number of times this code can be used (null = unlimited)"
     },
+    "current_redemptions": {
+      "type": "number",
+      "default": 0,
+      "description": "Current active redemption count (can be decreased on slot recovery)"
+    },
     "redemptions_used": {
       "type": "number",
       "default": 0,
-      "description": "How many times this code has been redeemed"
+      "description": "Total historical redemption count (never decreases)"
+    },
+    "allow_slot_recovery": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether removing a redemption from an account can reopen a slot (decrease current_redemptions)"
     },
     "one_use_per_user": {
       "type": "boolean",
       "default": true,
       "description": "Whether each user can only use this code once"
+    },
+    "promotion_duration_type": {
+      "type": "string",
+      "enum": [
+        "preset_days",
+        "fixed_end_date",
+        "no_expiration"
+      ],
+      "default": "no_expiration",
+      "description": "How long the promo benefits last after redemption"
+    },
+    "promotion_duration_days": {
+      "type": "number",
+      "description": "If preset_days: number of days the promo benefits last after redemption"
+    },
+    "promotion_end_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "If fixed_end_date: absolute date when all benefits expire regardless of redemption date"
+    },
+    "is_founding_vendor": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a founding vendor promo with locked recurring pricing"
+    },
+    "founding_recurring_price": {
+      "type": "number",
+      "description": "Locked monthly price after the founding trial ends (e.g. 9.99)"
+    },
+    "founding_forfeits_on_cancel": {
+      "type": "boolean",
+      "default": true,
+      "description": "If true, canceling subscription permanently forfeits the grandfathered pricing"
     },
     "created_by_admin_id": {
       "type": "string",
