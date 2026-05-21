@@ -26,9 +26,21 @@ function formatPhotonAddress(properties) {
 }
 
 async function reverseGeocode(lat, lng) {
-  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-  const data = await response.json();
-  return data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`);
+    const data = await response.json();
+    if (!data || data.error) return null;
+    const a = data.address || {};
+    // Build a clean short address: house number + road, city, state
+    const parts = [
+      a.house_number && a.road ? `${a.house_number} ${a.road}` : a.road,
+      a.city || a.town || a.village || a.county,
+      a.state,
+    ].filter(Boolean);
+    return parts.length >= 2 ? parts.join(", ") : null;
+  } catch {
+    return null;
+  }
 }
 
 async function geocodeAddress(address, biasCenter) {
@@ -171,8 +183,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     closeSuggestions();
     setSelected({ latitude: lat, longitude: lng });
     const address = await reverseGeocode(lat, lng);
-    setSelectedAddress(address);
-    if (!displayAddressIsDifferent) setDisplayAddress(address);
+    setSelectedAddress(address || "");
+    if (!displayAddressIsDifferent) setDisplayAddress(address || "");
   };
 
   const chooseSuggestion = (suggestion) => {
@@ -186,7 +198,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
 
   const saveLocation = () => {
     if (!selected) return;
-    const finalDisplayAddress = displayAddressIsDifferent && displayAddress.trim() ? displayAddress.trim() : selectedAddress;
+    const finalDisplayAddress = (displayAddressIsDifferent && displayAddress.trim()) ? displayAddress.trim() : (selectedAddress || displayAddress.trim());
 
     onChange({
       latitude: selected.latitude,
@@ -256,10 +268,10 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             </div>
           </div>
 
-          {selectedAddress && (
+          {selected && (
             <div className="rounded-xl bg-[#FBFAF7] p-3 text-sm text-slate-700">
-              <p className="font-bold text-[#2C4F4E]">Selected location:</p>
-              <p>{selectedAddress}</p>
+              <p className="font-bold text-[#2C4F4E] mb-0.5">Suggested location:</p>
+              <p>{selectedAddress || "Location selected — enter a display name below."}</p>
             </div>
           )}
 
@@ -275,17 +287,28 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
                   }}
                   className="mt-1 accent-[#5DADA5]"
                 />
-                <span>Display address is different</span>
+                <span>Display name / address is different</span>
               </label>
               {displayAddressIsDifferent && (
                 <div className="space-y-1">
-                  <Label>Public Display Address</Label>
+                  <Label>Public Display Location</Label>
                   <Input
                     value={displayAddress}
                     onChange={(e) => setDisplayAddress(e.target.value)}
-                    placeholder="Enter the address customers should see"
+                    placeholder="e.g. Porterville Courthouse, Front Gate, Vendor Check-In Area"
                   />
-                  <p className="text-xs text-slate-600">Directions will still use the map pin location.</p>
+                  <p className="text-xs text-slate-500">This is what customers will see. Directions still use the map pin.</p>
+                </div>
+              )}
+              {!displayAddressIsDifferent && !selectedAddress && (
+                <div className="space-y-1 mt-2">
+                  <Label>Public Display Location</Label>
+                  <Input
+                    value={displayAddress}
+                    onChange={(e) => setDisplayAddress(e.target.value)}
+                    placeholder="Enter a location name for customers"
+                  />
+                  <p className="text-xs text-slate-500">No address found — enter one manually. Directions still use the map pin.</p>
                 </div>
               )}
             </div>
