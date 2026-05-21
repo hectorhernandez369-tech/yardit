@@ -135,8 +135,8 @@ export default function VendorDashboard() {
 
   if (loadingUser || loadingAccounts) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" />
+      <div className="min-h-screen flex items-center justify-center bg-[#0A1628]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#D4A849]" />
       </div>
     );
   }
@@ -154,9 +154,9 @@ export default function VendorDashboard() {
   const activePin = activeCheckIn ? pins.find((pin) => pin.id === activeCheckIn.vendor_pin_id) : null;
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-[#FBFAF7]">
+    <div className="w-full min-h-screen overflow-x-hidden bg-[#0A1628]">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="min-w-0">
-        {/* Compact unified header */}
+        {/* Dark professional header */}
         <CompactVendorHeader
           accounts={accounts}
           activeAccount={account}
@@ -165,24 +165,24 @@ export default function VendorDashboard() {
           onSwitch={handleSelectBusiness}
         />
 
-        {/* Tabs - moved higher, cleaner styling */}
-        <div className="bg-white border-b border-[#2C4F4E]/10">
-          <div className="max-w-7xl mx-auto w-full px-3 sm:px-5 lg:px-6">
+        {/* Tabs — dark nav bar */}
+        <div className="bg-[#0D1A33] border-b border-[#1A2F4D] sticky top-0 z-30">
+          <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
             <div className="overflow-x-auto">
               <TabsList className="flex w-max min-w-full bg-transparent p-0 h-auto justify-start rounded-none">
-                <TabsTrigger value="profile" className="min-w-[5.75rem] sm:min-w-[7.5rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">My Page</TabsTrigger>
-                <TabsTrigger value="pins" className="min-w-[7.25rem] sm:min-w-[9rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">Trucks / Pins</TabsTrigger>
-                <TabsTrigger value="events" className="min-w-[5.25rem] sm:min-w-[7.5rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">Events</TabsTrigger>
-                <TabsTrigger value="history" className="min-w-[5.75rem] sm:min-w-[7.5rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">History</TabsTrigger>
-                <TabsTrigger value="tier" className="min-w-[4.5rem] sm:min-w-[7rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">Tier</TabsTrigger>
-                <TabsTrigger value="users" className="min-w-[6.75rem] sm:min-w-[11rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm text-slate-600 data-[state=active]:text-[#5DADA5] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#5DADA5]">Users</TabsTrigger>
+                <TabsTrigger value="profile"  className="min-w-[5.75rem] sm:min-w-[7rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm font-medium text-slate-400 hover:text-slate-200 data-[state=active]:text-[#D4A849] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#D4A849] transition-colors">My Page</TabsTrigger>
+                <TabsTrigger value="pins"     className="min-w-[7.25rem] sm:min-w-[8.5rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm font-medium text-slate-400 hover:text-slate-200 data-[state=active]:text-[#D4A849] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#D4A849] transition-colors">Trucks / Pins</TabsTrigger>
+                <TabsTrigger value="events"   className="min-w-[5.25rem] sm:min-w-[7rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm font-medium text-slate-400 hover:text-slate-200 data-[state=active]:text-[#D4A849] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#D4A849] transition-colors">Events</TabsTrigger>
+                <TabsTrigger value="history"  className="min-w-[5.75rem] sm:min-w-[7rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm font-medium text-slate-400 hover:text-slate-200 data-[state=active]:text-[#D4A849] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#D4A849] transition-colors">History</TabsTrigger>
+                <TabsTrigger value="tier"     className="min-w-[4.5rem] sm:min-w-[6rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm font-medium text-slate-400 hover:text-slate-200 data-[state=active]:text-[#D4A849] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#D4A849] transition-colors">Tier</TabsTrigger>
+                <TabsTrigger value="users"    className="min-w-[6.75rem] sm:min-w-[8rem] flex-1 rounded-none px-3 sm:px-4 py-3 text-[11px] sm:text-sm font-medium text-slate-400 hover:text-slate-200 data-[state=active]:text-[#D4A849] data-[state=active]:font-bold data-[state=active]:border-b-2 data-[state=active]:border-[#D4A849] transition-colors">Users</TabsTrigger>
               </TabsList>
             </div>
           </div>
         </div>
 
-        {/* Content area - reduced spacing */}
-        <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-4 sm:pb-24 lg:p-6 lg:pb-24 space-y-3 sm:space-y-4">
+        {/* Content area */}
+        <div className="max-w-7xl mx-auto w-full min-w-0 p-3 pb-24 sm:p-5 sm:pb-24 lg:p-8 lg:pb-24 space-y-4 sm:space-y-6">
           {showSetupReminder && !setupProgress.isComplete && (
             <VendorSetupProgress
               account={account}
@@ -196,11 +196,11 @@ export default function VendorDashboard() {
             />
           )}
 
-          {/* Utility row - dev button moved here, less prominent */}
+          {/* Utility row */}
           <div className="flex justify-end">
             <button
               onClick={() => window.open("/events", "_blank")}
-              className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#5DADA5] transition"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#D4A849] transition"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               Events Page (Dev)
