@@ -71,10 +71,12 @@ function clampToRadius(center, point) {
   return { lat: toDegrees(lat2), lng: toDegrees(lng2) };
 }
 
-function ClickToMove({ gpsLocation, onMove }) {
+function ClickToMove({ gpsLocation, onMove, onMoveEnd }) {
   useMapEvents({
     click(event) {
-      onMove(clampToRadius(gpsLocation, event.latlng));
+      const clamped = clampToRadius(gpsLocation, event.latlng);
+      onMove(clamped);
+      onMoveEnd(clamped);
     },
   });
   return null;
@@ -303,7 +305,7 @@ export default function VendorPinPreview() {
                    <VendorEventMapboxTileLayer mapStyle="standard" />
                     <Circle center={gpsLocation} radius={MAX_DISTANCE_METERS} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12 }} />
                     <Marker position={pinLocation} draggable icon={previewIcon} eventHandlers={{ dragend: handleMarkerDrag }} />
-                    <ClickToMove gpsLocation={gpsLocation} onMove={setPinLocation} />
+                    <ClickToMove gpsLocation={gpsLocation} onMove={setPinLocation} onMoveEnd={updatePinWithGeocode} />
                   </MapContainer>
                   <Button onClick={handleCurrentLocation} className="absolute right-3 top-3 z-[1000] rounded-full bg-white text-[#2C4F4E] shadow-lg hover:bg-[#F3E6CF]">
                     <Navigation className="h-4 w-4" /> My Location
