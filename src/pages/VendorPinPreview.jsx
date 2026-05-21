@@ -258,7 +258,7 @@ export default function VendorPinPreview() {
             <div className="h-[420px] bg-slate-100">
               {gpsLocation && pinLocation ? (
                 <div className="relative h-full w-full">
-                  <MapContainer center={gpsLocation} zoom={19} className="h-full w-full" scrollWheelZoom>
+                  <MapContainer center={pinLocation} zoom={19} className="h-full w-full" scrollWheelZoom>
                     <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <Circle center={gpsLocation} radius={MAX_DISTANCE_METERS} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12 }} />
                     <Marker position={pinLocation} draggable icon={previewIcon} eventHandlers={{ dragend: handleMarkerDrag }} />
