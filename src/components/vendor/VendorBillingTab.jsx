@@ -3,8 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Minus, Plus, Users, MapPin, ArrowRight, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { Minus, Plus, Users, MapPin, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { VENDOR_TIERS, VENDOR_TIER_ORDER } from "@/lib/vendorTiers";
 import { getVendorAccountCapabilities } from "@/lib/getVendorAccountCapabilities";
@@ -31,7 +30,6 @@ export default function VendorBillingTab({ account, onRefresh }) {
   const [extraUsers, setExtraUsers] = useState(0);
   const [extraPins, setExtraPins] = useState(0);
   const [addOnsOpen, setAddOnsOpen] = useState(false);
-  const [showTierInfo, setShowTierInfo] = useState(false);
   const configRef = useRef(null);
 
   const currentTierIndex = Math.max(0, VENDOR_TIER_ORDER.indexOf(account?.vendor_tier || "free"));
@@ -166,54 +164,30 @@ export default function VendorBillingTab({ account, onRefresh }) {
 
   return (
     <div id="vendor-tier-section" className="space-y-4">
-      {/* Business-scoped billing notice with tier info icon */}
-      <div className="flex items-start gap-3">
-        <div className="flex-1 rounded-2xl border border-[#5DADA5]/40 bg-[#5DADA5]/8 p-3 text-sm text-[#2C4F4E]">
-          <div className="flex items-start gap-2">
-            <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-[#5DADA5] flex items-center justify-center text-white text-[11px] font-bold">i</div>
-            <div>
-              <p className="font-semibold">Billing applies to this business only.</p>
-              <p className="text-xs text-slate-600 mt-0.5">Current business: <span className="font-medium">{account?.business_name}</span>. Upgrading or changing the plan here only affects this business, not any other businesses linked to your account.</p>
-            </div>
-          </div>
+      {/* Business-scoped billing notice */}
+      <div className="rounded-2xl border border-[#5DADA5]/40 bg-[#5DADA5]/8 p-3 flex items-start gap-3 text-sm text-[#2C4F4E]">
+        <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-[#5DADA5] flex items-center justify-center text-white text-[11px] font-bold">i</div>
+        <div>
+          <p className="font-semibold">Billing applies to this business only.</p>
+          <p className="text-xs text-slate-600 mt-0.5">Current business: <span className="font-medium">{account?.business_name}</span>. Upgrading or changing the plan here only affects this business, not any other businesses linked to your account.</p>
         </div>
-        <button
-          onClick={() => setShowTierInfo(true)}
-          className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full border border-[#5DADA5] text-[#5DADA5] hover:bg-[#5DADA5]/10 transition"
-          title="Tier information"
-        >
-          <Info className="w-4 h-4" />
-        </button>
       </div>
 
-      {/* Tier info dialog */}
-      <Dialog open={showTierInfo} onOpenChange={setShowTierInfo}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Tier Information</DialogTitle></DialogHeader>
-          <div className="space-y-3 text-sm text-slate-700">
-            <div>
-              <p className="font-semibold text-[#2C4F4E]">Free Tier</p>
-              <p className="text-slate-600 mt-1">Trial/casual vendor usage with basic features.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-[#2C4F4E]">Starter Tier</p>
-              <p className="text-slate-600 mt-1">Simple/basic vendor tools for small businesses.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-[#2C4F4E]">Pro Tier</p>
-              <p className="text-slate-600 mt-1">Most popular for active vendors with enhanced features.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-[#2C4F4E]">Growth Tier</p>
-              <p className="text-slate-600 mt-1">Premium business growth tools and expanded capabilities.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-[#2C4F4E]">Event Organizer Tier</p>
-              <p className="text-slate-600 mt-1">Built for recurring events with multi-location support.</p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Event type info */}
+      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+        <p className="font-bold">Event types explained</p>
+        <p><strong>Single Event:</strong> One location event such as a pop-up, sale, or vendor setup.</p>
+        <p><strong>Multi-Field Event:</strong> Large organized event with multiple internal locations or fields.</p>
+      </div>
+
+      {/* Usage bar */}
+      <div className="grid gap-2 rounded-2xl border border-[#2C4F4E]/10 bg-white p-4 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-5">
+        <p><strong>{usageSnapshot.used.singleEvents} / {usageSnapshot.allowed.singleEvents}</strong> Single Events</p>
+        <p><strong>{usageSnapshot.used.multiSpotEvents} / {usageSnapshot.allowed.multiSpotEvents}</strong> Multi-Spot Events</p>
+        <p><strong>{usageSnapshot.used.multiLocationEvents} / {usageSnapshot.allowed.multiLocationEvents}</strong> Multi-Location Events</p>
+        <p><strong>{usageSnapshot.used.pins} / {usageSnapshot.allowed.pins}</strong> Truck/Pins</p>
+        <p><strong>{usageSnapshot.used.users} / {usageSnapshot.allowed.users}</strong> Vendor Users</p>
+      </div>
 
       {/* Collapsed Tier Cards */}
       <div className="space-y-2">
