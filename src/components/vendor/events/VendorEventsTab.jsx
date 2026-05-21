@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarPlus, Search, SlidersHorizontal } from "lucide-react";
+import { CalendarPlus, Search, SlidersHorizontal, CalendarDays, Users, TrendingUp, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import VendorEventCard from "./VendorEventCard";
 import VendorEventForm from "./VendorEventForm";
@@ -121,35 +121,64 @@ export default function VendorEventsTab({ account, user }) {
     if (invite) setReviewInvite(invite);
   }, [location.search, pendingCollaborationInvites, reviewInvite]);
 
+  const activeEvents = events.filter((e) => !["completed", "cancelled"].includes(getVendorEventStatus(e, new Date())));
+  const totalVendors = attendees.length;
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-3xl bg-white p-4 shadow-sm border border-[#2C4F4E]/10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-2xl font-black text-[#2C4F4E]">Vendor Events</h2>
-            <p className="text-sm text-slate-600">Create, search, manage, and join vendor-only events.</p>
+    <div className="space-y-5">
+      {/* Page header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Events</h2>
+          <p className="text-sm text-slate-500 mt-0.5">Manage your vendor events and track attendance.</p>
+        </div>
+        <Button
+          onClick={() => canCreateAnyEvent ? setShowCreate(true) : alert(`${currentSinglePermission.reason}\n${currentMultifieldPermission.reason}`)}
+          className="bg-[#2C4F4E] text-white hover:bg-[#3d6b6a] shadow-sm h-10 px-5 gap-2 font-semibold"
+        >
+          <CalendarPlus className="h-4 w-4" /> Create New Event
+        </Button>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl bg-white border border-slate-200 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-[#5DADA5]/10 flex items-center justify-center"><CalendarDays className="h-4 w-4 text-[#5DADA5]" /></div>
+            <div><p className="text-2xl font-bold text-slate-900">{activeEvents.length}</p><p className="text-xs text-slate-500">Active Events</p></div>
           </div>
-          <Button
-            onClick={() => canCreateAnyEvent ? setShowCreate(true) : alert(`${currentSinglePermission.reason}\n${currentMultifieldPermission.reason}`)}
-            className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"
-          >
-            <CalendarPlus className="h-4 w-4" /> Create Event
-          </Button>
         </div>
-
-        <div className="grid gap-2 md:grid-cols-[1fr_auto_180px_auto]">
-          <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" /><Input className="pl-9" placeholder="Search events" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
-          <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm bg-white"><input type="checkbox" checked={showOpenToVendors} onChange={(e) => setShowOpenToVendors(e.target.checked)} />Open to Vendors Only</label>
-          <Select value={sort} onValueChange={setSort}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="soonest">Soonest</SelectItem><SelectItem value="latest">Latest</SelectItem><SelectItem value="closest">Closest</SelectItem></SelectContent></Select>
-          <Button variant="outline" onClick={() => setFiltersOpen(!filtersOpen)}><SlidersHorizontal className="h-4 w-4" /> Filters</Button>
+        <div className="rounded-xl bg-white border border-slate-200 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-[#F4A849]/10 flex items-center justify-center"><Users className="h-4 w-4 text-[#F4A849]" /></div>
+            <div><p className="text-2xl font-bold text-slate-900">{totalVendors}</p><p className="text-xs text-slate-500">Total Vendors</p></div>
+          </div>
         </div>
+        <div className="rounded-xl bg-white border border-slate-200 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-purple-100 flex items-center justify-center"><TrendingUp className="h-4 w-4 text-purple-600" /></div>
+            <div><p className="text-2xl font-bold text-slate-900">{pendingCollaborationInvites.length}</p><p className="text-xs text-slate-500">Pending Invites</p></div>
+          </div>
+        </div>
+      </div>
 
+      {/* Search & filter bar */}
+      <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" /><Input className="pl-9 bg-slate-50 border-slate-200" placeholder="Search by event name, category..." value={query} onChange={(e) => setQuery(e.target.value)} /></div>
+          <Select value={sort} onValueChange={setSort}><SelectTrigger className="w-44 bg-slate-50"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="soonest">Soonest First</SelectItem><SelectItem value="latest">Latest First</SelectItem><SelectItem value="closest">Closest First</SelectItem></SelectContent></Select>
+          <Button variant="outline" onClick={() => setFiltersOpen(!filtersOpen)} className={filtersOpen ? "bg-slate-100" : ""}><SlidersHorizontal className="h-4 w-4 mr-1.5" /> Filters {filtersOpen && <X className="h-3.5 w-3.5 ml-1" />}</Button>
+        </div>
+        <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+          <input type="checkbox" checked={showOpenToVendors} onChange={(e) => setShowOpenToVendors(e.target.checked)} className="rounded" />
+          <span>Show only events open to vendors</span>
+        </label>
         {filtersOpen && (
-          <div className="grid gap-2 md:grid-cols-[1fr_140px_180px_auto] rounded-2xl bg-[#FBFAF7] p-3">
-            <Input placeholder="Location override" value={locationQuery} onChange={(e) => setLocationQuery(e.target.value)} />
-            <Select value={distance} onValueChange={setDistance}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="100">100 miles</SelectItem><SelectItem value="25">25 miles</SelectItem><SelectItem value="50">50 miles</SelectItem><SelectItem value="any">Any distance</SelectItem></SelectContent></Select>
-            <Select value={eventType} onValueChange={setEventType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All types</SelectItem><SelectItem value="single">Single</SelectItem><SelectItem value="multi_spot">Multi-Spot</SelectItem><SelectItem value="multi_location">Multi-Location</SelectItem></SelectContent></Select>
-            <Button variant="outline" size="sm" onClick={useMyLocation}>Use my location</Button>
+          <div className="grid gap-3 md:grid-cols-[1fr_160px_200px_auto] pt-2 border-t border-slate-100">
+            <Input placeholder="Filter by location..." value={locationQuery} onChange={(e) => setLocationQuery(e.target.value)} className="bg-slate-50" />
+            <Select value={distance} onValueChange={setDistance}><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="25">Within 25 mi</SelectItem><SelectItem value="50">Within 50 mi</SelectItem><SelectItem value="100">Within 100 mi</SelectItem><SelectItem value="any">Any distance</SelectItem></SelectContent></Select>
+            <Select value={eventType} onValueChange={setEventType}><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Event Types</SelectItem><SelectItem value="single">Single Location</SelectItem><SelectItem value="multi_spot">Multi-Spot</SelectItem><SelectItem value="multi_location">Multi-Location</SelectItem></SelectContent></Select>
+            <Button variant="outline" size="sm" onClick={useMyLocation} className="whitespace-nowrap">Use My Location</Button>
           </div>
         )}
       </div>
@@ -204,15 +233,28 @@ export default function VendorEventsTab({ account, user }) {
               onView={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}
             />
           )) : (
-            <Card><CardContent className="p-8 text-center text-slate-500">No vendor events found.</CardContent></Card>
+            <Card className="border-dashed border-slate-300 bg-white shadow-none">
+              <CardContent className="p-12 flex flex-col items-center justify-center text-center gap-3">
+                <div className="h-14 w-14 rounded-full bg-slate-100 flex items-center justify-center"><CalendarDays className="h-6 w-6 text-slate-400" /></div>
+                <div><p className="font-semibold text-slate-700">No events found</p><p className="text-sm text-slate-500 mt-1">{tab === "active" ? "Create your first event to get started." : "No past events to show."}</p></div>
+                {tab === "active" && canCreateAnyEvent && <Button onClick={() => setShowCreate(true)} className="mt-2 bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]"><CalendarPlus className="h-4 w-4 mr-2" />Create Your First Event</Button>}
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
       </Tabs>
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Create Vendor Event</DialogTitle></DialogHeader>
-          <VendorEventForm account={account} user={user} existingEvents={events} onCreated={() => { queryClient.invalidateQueries({ queryKey: ["vendorEvents"] }); setShowCreate(false); }} />
+        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0">
+          <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 rounded-t-lg">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-slate-900">Create New Event</DialogTitle>
+              <p className="text-sm text-slate-500 mt-0.5">Fill in the details below to publish your vendor event on the map.</p>
+            </DialogHeader>
+          </div>
+          <div className="px-6 py-5">
+            <VendorEventForm account={account} user={user} existingEvents={events} onCreated={() => { queryClient.invalidateQueries({ queryKey: ["vendorEvents"] }); setShowCreate(false); }} />
+          </div>
         </DialogContent>
       </Dialog>
 

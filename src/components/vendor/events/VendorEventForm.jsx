@@ -367,64 +367,106 @@ export default function VendorEventForm({ account, user, event = null, approvedV
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {showPublicFields && (
         <>
-          <div className="rounded-xl bg-[#FBFAF7] border border-[#2C4F4E]/10 p-3 text-sm text-slate-600">
-            <strong className="text-[#2C4F4E]">Edit Details</strong> controls what customers and attendees see on the public event page.
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input placeholder="Event name" value={form.title} onChange={(e) => update("title", e.target.value)} />
-            <Input placeholder="Category" value={form.category} onChange={(e) => update("category", e.target.value)} />
-            <Select value={form.event_type} onValueChange={(value) => update("event_type", value)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{VENDOR_EVENT_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent>
-            </Select>
-            <div className="sm:col-span-2 rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold text-[#2C4F4E]">Public location / display address</p>
-                <p className="text-sm text-slate-600">{form.display_address || "No location selected yet"}</p>
+          {/* Section 1: Basic Info */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-full bg-[#2C4F4E] text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>
+              <div><h3 className="text-base font-bold text-slate-900">Event Details</h3><p className="text-xs text-slate-500">Public information shown to vendors and attendees.</p></div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 pl-0 sm:pl-10">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Event Name *</Label>
+                <Input placeholder="e.g. Summer Vendor Market 2026" value={form.title} onChange={(e) => update("title", e.target.value)} className="bg-white" />
               </div>
-              <Button type="button" variant="outline" onClick={openLocationPicker}>Choose Event Location</Button>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-bold text-[#2C4F4E]">Start date & time</Label>
-              <Input type="datetime-local" value={form.startDateTime} disabled={datesLocked} onChange={(e) => update("startDateTime", e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-sm font-bold text-[#2C4F4E]">End date & time</Label>
-              <Input type="datetime-local" value={form.endDateTime} disabled={datesLocked} onChange={(e) => update("endDateTime", e.target.value)} />
-              {datesLocked && <p className="text-xs text-amber-700">Dates cannot be changed once at least one vendor is approved.</p>}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Category</Label>
+                <Input placeholder="e.g. Farmers Market, Craft Fair..." value={form.category} onChange={(e) => update("category", e.target.value)} className="bg-white" />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Event Type *</Label>
+                <Select value={form.event_type} onValueChange={(value) => update("event_type", value)}>
+                  <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                  <SelectContent>{VENDOR_EVENT_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Description</Label>
+                <Textarea placeholder="Describe your event — what vendors and attendees can expect..." className="resize-none h-24 bg-white" value={form.description} onChange={(e) => update("description", e.target.value)} />
+              </div>
             </div>
           </div>
 
-          <Textarea placeholder="Event description" value={form.description} onChange={(e) => update("description", e.target.value)} />
-
-          <div className="rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-3 space-y-3">
-            <div>
-              <Label className="text-sm font-bold text-[#2C4F4E]">Public event flyer</Label>
-              <p className="text-xs text-slate-500">Upload an image or PDF flyer to show on the public event page.</p>
+          {/* Section 2: Location & Schedule */}
+          <div className="space-y-4 border-t border-slate-100 pt-6">
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-full bg-[#2C4F4E] text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
+              <div><h3 className="text-base font-bold text-slate-900">Location & Schedule</h3><p className="text-xs text-slate-500">When and where your event takes place.</p></div>
             </div>
-            {form.flyer_url && (
-              <div className="rounded-xl bg-white p-3 text-sm space-y-3">
-                <a href={form.flyer_url} target="_blank" rel="noreferrer" className="font-semibold text-[#5DADA5] underline">View uploaded flyer</a>
-                {!form.flyer_url.toLowerCase().includes(".pdf") && <img src={form.flyer_url} alt="Uploaded event flyer" className="max-h-80 w-full rounded-xl border object-contain bg-[#FBFAF7]" />}
+            <div className="grid gap-3 sm:grid-cols-2 sm:pl-10">
+              <div className="sm:col-span-2">
+                <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-[#5DADA5] transition-colors">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">{form.display_address ? "📍 " + form.display_address : "No location selected yet"}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">This address appears publicly on the event page and map.</p>
+                  </div>
+                  <Button type="button" variant="outline" onClick={openLocationPicker} className="shrink-0 border-[#5DADA5] text-[#5DADA5] hover:bg-[#5DADA5]/5">
+                    {form.display_address ? "Change Location" : "Set Event Location"}
+                  </Button>
+                </div>
               </div>
-            )}
-            <Input type="file" accept="image/*,.pdf" onChange={uploadFlyer} disabled={uploadingFlyer} />
-            {uploadingFlyer && <p className="text-xs text-slate-500">Uploading flyer...</p>}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Start Date & Time *</Label>
+                <Input type="datetime-local" value={form.startDateTime} disabled={datesLocked} onChange={(e) => update("startDateTime", e.target.value)} className="bg-white" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">End Date & Time *</Label>
+                <Input type="datetime-local" value={form.endDateTime} disabled={datesLocked} onChange={(e) => update("endDateTime", e.target.value)} className="bg-white" />
+                {datesLocked && <p className="text-xs text-amber-600 flex items-center gap-1">⚠ Locked — vendors already approved.</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Flyer */}
+          <div className="space-y-4 border-t border-slate-100 pt-6">
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-full bg-[#2C4F4E] text-white flex items-center justify-center text-xs font-bold shrink-0">3</div>
+              <div><h3 className="text-base font-bold text-slate-900">Event Flyer</h3><p className="text-xs text-slate-500">Optional — shown on the public event page.</p></div>
+            </div>
+            <div className="sm:pl-10 space-y-3">
+              {form.flyer_url ? (
+                <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <a href={form.flyer_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#5DADA5] underline">View uploaded flyer ↗</a>
+                    <Button type="button" variant="ghost" size="sm" className="text-red-500 h-7" onClick={() => update("flyer_url", "")}>Remove</Button>
+                  </div>
+                  {!form.flyer_url.toLowerCase().includes(".pdf") && <img src={form.flyer_url} alt="Event flyer" className="max-h-64 w-full rounded-lg border object-contain bg-slate-50" />}
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 cursor-pointer hover:border-[#5DADA5] hover:bg-[#5DADA5]/5 transition-colors">
+                  <span className="text-2xl mb-2">🖼️</span>
+                  <span className="text-sm font-semibold text-slate-700">Upload Flyer</span>
+                  <span className="text-xs text-slate-500 mt-1">Image or PDF · Click to browse</span>
+                  <input type="file" accept="image/*,.pdf" onChange={uploadFlyer} disabled={uploadingFlyer} className="hidden" />
+                </label>
+              )}
+              {uploadingFlyer && <p className="text-xs text-slate-500 flex items-center gap-1.5"><span className="animate-spin">⏳</span> Uploading flyer...</p>}
+            </div>
           </div>
         </>
       )}
 
-      {showVendorFields && <div className="rounded-2xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-4 space-y-3">
-        <div>
-          <h3 className="font-black text-[#2C4F4E]">Vendor Management</h3>
-          <p className="text-xs text-slate-500">Vendor Management controls how vendors join, pay, and get approved.</p>
+      {showVendorFields && <div className="border-t border-slate-100 pt-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="h-7 w-7 rounded-full bg-[#2C4F4E] text-white flex items-center justify-center text-xs font-bold shrink-0">{showPublicFields ? "4" : "1"}</div>
+          <div><h3 className="text-base font-bold text-slate-900">Vendor Setup</h3><p className="text-xs text-slate-500">Control how vendors join, pay, and get approved.</p></div>
         </div>
-        <label className="flex items-center gap-2 text-sm font-bold text-[#2C4F4E]">
-          <input type="checkbox" checked={form.open_to_vendors} onChange={(e) => update("open_to_vendors", e.target.checked)} />
-          Open to Vendors
+        <div className="sm:pl-10">
+        <label className="flex items-center gap-2.5 cursor-pointer rounded-xl border border-slate-200 bg-white p-3 hover:bg-slate-50 transition-colors text-sm font-semibold text-slate-800 w-fit">
+          <input type="checkbox" checked={form.open_to_vendors} onChange={(e) => update("open_to_vendors", e.target.checked)} className="w-4 h-4 rounded" />
+          Open this event to vendors
         </label>
 
         {form.open_to_vendors && (
@@ -524,6 +566,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
             </CollapsiblePanel>
           </div>
         )}
+        </div>
       </div>}
 
       {/* Event Promotion — only shown in full mode on the public fields section */}
@@ -554,10 +597,14 @@ export default function VendorEventForm({ account, user, event = null, approvedV
         </div>
       )}
 
-      <div className="flex flex-wrap justify-end gap-2">
-        {!isEditing && <Button variant="outline" disabled={saving} onClick={() => saveEvent("draft")}>Save Draft</Button>}
-        {mode === "full" && <Button variant="outline" disabled={!createdEvent && !isEditing} onClick={() => setShowInviteVendors(true)}>Invite Vendors</Button>}
-        <Button disabled={saving} onClick={() => saveEvent(isEditing ? form.status || event.status : "published")} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">{isEditing ? "Save Changes" : "Publish Event"}</Button>
+      <div className="border-t border-slate-100 pt-5 flex flex-wrap justify-between gap-3">
+        <div className="flex gap-2">
+          {!isEditing && <Button variant="outline" disabled={saving} onClick={() => saveEvent("draft")} className="text-slate-600">Save as Draft</Button>}
+          {mode === "full" && <Button variant="outline" disabled={!createdEvent && !isEditing} onClick={() => setShowInviteVendors(true)}>Invite Vendors</Button>}
+        </div>
+        <Button disabled={saving} onClick={() => saveEvent(isEditing ? form.status || event.status : "published")} className="bg-[#2C4F4E] text-white hover:bg-[#3d6b6a] font-semibold px-6 shadow-sm">
+          {saving ? "Saving..." : isEditing ? "Save Changes" : "Publish Event"}
+        </Button>
       </div>
 
       <EventLocationPicker

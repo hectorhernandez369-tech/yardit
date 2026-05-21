@@ -170,29 +170,41 @@ export default function VendorDashboard() {
   const activePin = activeCheckIn ? pins.find((pin) => pin.id === activeCheckIn.vendor_pin_id) : null;
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-[#FBFAF7]">
+    <div className="w-full min-h-screen overflow-x-hidden bg-slate-50">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0 min-w-0">
-        <div className="bg-[#5DADA5] text-white">
-          <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-5">
+        {/* Dashboard header */}
+        <div className="bg-gradient-to-br from-[#2C4F4E] to-[#3d6b6a] text-white shadow-lg">
+          <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
             <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={accounts} onSelectBusiness={handleSelectBusiness} />
             <div className="hidden sm:block">
               <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
             </div>
 
-            <div className="mt-0 sm:mt-6 sm:mx-0 overflow-x-auto">
-              <TabsList className="flex w-max min-w-full bg-transparent p-0 h-auto justify-start rounded-none">
-                <TabsTrigger value="profile" className="min-w-[5.75rem] sm:min-w-[7.5rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">My Page</TabsTrigger>
-                <TabsTrigger value="pins" className="min-w-[7.25rem] sm:min-w-[9rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Trucks / Pins</TabsTrigger>
-                <TabsTrigger value="events" className="min-w-[5.25rem] sm:min-w-[7.5rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Events</TabsTrigger>
-                <TabsTrigger value="history" className="min-w-[5.75rem] sm:min-w-[7.5rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">History</TabsTrigger>
-                <TabsTrigger value="tier" className="min-w-[4.5rem] sm:min-w-[7rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Tier</TabsTrigger>
-                <TabsTrigger value="users" className="min-w-[6.75rem] sm:min-w-[11rem] flex-1 rounded-none sm:rounded-t-2xl px-2 sm:px-4 py-2 sm:py-3 text-[11px] sm:text-sm text-white/80 data-[state=active]:bg-[#FBFAF7] data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-none">Users</TabsTrigger>
+            {/* Tab navigation */}
+            <div className="mt-0 sm:mt-5 overflow-x-auto">
+              <TabsList className="flex w-max min-w-full bg-transparent p-0 h-auto justify-start rounded-none gap-0.5 sm:gap-1">
+                {[
+                  { value: "profile", label: "My Page" },
+                  { value: "pins", label: "Trucks & Pins" },
+                  { value: "events", label: "Events" },
+                  { value: "history", label: "History" },
+                  { value: "tier", label: "Plan & Billing" },
+                  { value: "users", label: "Team" },
+                ].map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="min-w-fit px-3 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-sm font-semibold rounded-none sm:rounded-t-xl text-white/70 hover:text-white hover:bg-white/10 transition-all data-[state=active]:bg-slate-50 data-[state=active]:text-[#2C4F4E] data-[state=active]:shadow-none data-[state=active]:font-bold"
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
               </TabsList>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-2 sm:space-y-6">
+        <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-3 sm:space-y-6">
           {showSetupReminder && !setupProgress.isComplete && (
             <VendorSetupProgress
               account={account}
