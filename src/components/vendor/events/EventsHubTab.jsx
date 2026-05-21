@@ -46,6 +46,7 @@ export default function EventsHubTab({ events, attendees, vendorAccounts, collab
 
   const discoveryEvents = events
     .filter((e) => !["completed", "cancelled"].includes(e.status) && ["published", "active"].includes(e.status))
+    .filter((e) => new Date(e.startDateTime) >= now)
     .map((e) => ({
       ...e,
       distanceMiles: userLocation ? calcMiles(userLocation.lat, userLocation.lng, e.latitude, e.longitude) : null,
