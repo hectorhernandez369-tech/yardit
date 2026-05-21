@@ -164,30 +164,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
 
   return (
     <div id="vendor-tier-section" className="space-y-4">
-      {/* Business-scoped billing notice */}
-      <div className="rounded-2xl border border-[#5DADA5]/40 bg-[#5DADA5]/8 p-3 flex items-start gap-3 text-sm text-[#2C4F4E]">
-        <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-[#5DADA5] flex items-center justify-center text-white text-[11px] font-bold">i</div>
-        <div>
-          <p className="font-semibold">Billing applies to this business only.</p>
-          <p className="text-xs text-slate-600 mt-0.5">Current business: <span className="font-medium">{account?.business_name}</span>. Upgrading or changing the plan here only affects this business, not any other businesses linked to your account.</p>
-        </div>
-      </div>
 
-      {/* Event type info */}
-      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-        <p className="font-bold">Event types explained</p>
-        <p><strong>Single Event:</strong> One location event such as a pop-up, sale, or vendor setup.</p>
-        <p><strong>Multi-Field Event:</strong> Large organized event with multiple internal locations or fields.</p>
-      </div>
-
-      {/* Usage bar */}
-      <div className="grid gap-2 rounded-2xl border border-[#2C4F4E]/10 bg-white p-4 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-5">
-        <p><strong>{usageSnapshot.used.singleEvents} / {usageSnapshot.allowed.singleEvents}</strong> Single Events</p>
-        <p><strong>{usageSnapshot.used.multiSpotEvents} / {usageSnapshot.allowed.multiSpotEvents}</strong> Multi-Spot Events</p>
-        <p><strong>{usageSnapshot.used.multiLocationEvents} / {usageSnapshot.allowed.multiLocationEvents}</strong> Multi-Location Events</p>
-        <p><strong>{usageSnapshot.used.pins} / {usageSnapshot.allowed.pins}</strong> Truck/Pins</p>
-        <p><strong>{usageSnapshot.used.users} / {usageSnapshot.allowed.users}</strong> Vendor Users</p>
-      </div>
 
       {/* Collapsed Tier Cards */}
       <div className="space-y-2">

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import MobileVendorHeader from "@/components/vendor/MobileVendorHeader";
 import MyTrucksSection from "@/components/vendor/MyTrucksSection";
@@ -14,7 +14,6 @@ import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
 import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
-import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import VendorAccessDenied from "@/components/vendor/VendorAccessDenied";
 import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
 import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
@@ -172,38 +171,12 @@ export default function VendorDashboard() {
 
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-[#FBFAF7]">
-      {/* Multi-business selector bar */}
-      <BusinessSelectorBar
-        accounts={accounts}
-        activeAccount={account}
-        onSelect={handleSelectBusiness}
-      />
-
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0 min-w-0">
         <div className="bg-[#5DADA5] text-white">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-5">
-            <div className="flex items-center gap-3 px-4 py-3 sm:hidden">
-              <img 
-                src="https://media.base44.com/images/public/690f554506edf795e5d84121/9df715fab_file_0000000005b4722fb02f43a8db334d53.png"
-                alt="Yardit Events Logo"
-                className="w-8 h-8 object-contain"
-              />
-              <h1 className="text-lg font-bold text-white">Vendor Dashboard</h1>
-            </div>
-            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} />
+            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={accounts} onSelectBusiness={handleSelectBusiness} />
             <div className="hidden sm:block">
               <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
-            </div>
-
-            {/* Dev button to view landing page */}
-            <div className="mt-4 mb-2">
-              <button
-                onClick={() => window.open("/events", "_blank")}
-                className="inline-flex items-center gap-2 bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] font-semibold px-4 py-2 rounded-lg text-sm transition-all"
-              >
-                <ExternalLink className="w-4 h-4" />
-                View Events Landing Page (Dev)
-              </button>
             </div>
 
             <div className="mt-0 sm:mt-6 sm:mx-0 overflow-x-auto">

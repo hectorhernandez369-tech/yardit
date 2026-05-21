@@ -137,13 +137,6 @@ export default function VendorEventsTab({ account, user }) {
           </Button>
         </div>
 
-        <div className="grid gap-2 rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3 text-xs text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
-          <div><strong>Single Events:</strong> {usageSnapshot.used.singleEvents} / {usageSnapshot.allowed.singleEvents}</div>
-          <div><strong>Multi-Spot Events:</strong> {usageSnapshot.used.multiSpotEvents} / {usageSnapshot.allowed.multiSpotEvents}</div>
-          <div><strong>Multi-Location Events:</strong> {usageSnapshot.used.multiLocationEvents} / {usageSnapshot.allowed.multiLocationEvents}</div>
-          <div><strong>Multi-Field Total:</strong> {usageSnapshot.used.multiFieldEvents} / {usageSnapshot.allowed.multiFieldEvents}</div>
-        </div>
-
         <div className="grid gap-2 md:grid-cols-[1fr_auto_180px_auto]">
           <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" /><Input className="pl-9" placeholder="Search events" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
           <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm bg-white"><input type="checkbox" checked={showOpenToVendors} onChange={(e) => setShowOpenToVendors(e.target.checked)} />Open to Vendors Only</label>
