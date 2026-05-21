@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
@@ -15,6 +16,10 @@ const TIERS = [
   { key: "growth", label: "Growth" },
   { key: "event_organizer", label: "Event Organizer" },
 ];
+
+const TIER_LABELS = {
+  starter: "Starter", pro: "Pro", growth: "Growth", event_organizer: "Event Organizer",
+};
 
 const DISCOUNT_TYPES = [
   { value: "percentage", label: "Percentage Off" },
@@ -49,6 +54,7 @@ const EMPTY = {
 export default function VendorPromoCodeModal({ open, onClose, existingCode, user, onSaved }) {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [showTierModal, setShowTierModal] = useState(false);
 
   useEffect(() => {
     if (existingCode) {
@@ -164,176 +170,174 @@ export default function VendorPromoCodeModal({ open, onClose, existingCode, user
         <DialogHeader>
           <DialogTitle>{existingCode ? "Edit Promo Code" : "Create Promo Code"}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-5 pt-2">
+        <div className="space-y-4 pt-2 text-sm">
 
-          {/* Code & Name */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Code <span className="text-red-500">*</span></Label>
-              <Input placeholder="SUMMER30" value={form.code} onChange={e => update("code", e.target.value.toUpperCase())} className="uppercase font-mono" />
+          {/* Line 1: Code & Name */}
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex-1 min-w-[140px] space-y-1">
+              <Label className="text-xs">Promo Code <span className="text-red-500">*</span></Label>
+              <Input placeholder="SUMMER30" value={form.code} onChange={e => update("code", e.target.value.toUpperCase())} className="uppercase font-mono text-base" />
             </div>
-            <div className="space-y-1">
-              <Label>Promo Name <span className="text-red-500">*</span></Label>
+            <span className="text-slate-500 mb-2">named</span>
+            <div className="flex-1 min-w-[160px] space-y-1">
+              <Label className="text-xs">Promo Name <span className="text-red-500">*</span></Label>
               <Input placeholder="Summer Discount" value={form.promo_name} onChange={e => update("promo_name", e.target.value)} />
             </div>
           </div>
 
+          {/* Line 2: Description */}
           <div className="space-y-1">
-            <Label>Description (shown to vendor)</Label>
-            <Input placeholder="Get 30% off your first month" value={form.description} onChange={e => update("description", e.target.value)} />
+            <Label className="text-xs">Description (shown to vendor)</Label>
+            <Input placeholder="e.g. Get a special introductory rate" value={form.description} onChange={e => update("description", e.target.value)} />
           </div>
 
-          {/* Discount */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Discount Type <span className="text-red-500">*</span></Label>
+          {/* Line 3: Discount offer */}
+          <div className="flex flex-wrap items-end gap-2">
+            <span className="text-slate-600 font-medium">Offer</span>
+            <div className="flex-1 min-w-[120px] space-y-1">
               <Select value={form.discount_type} onValueChange={v => update("discount_type", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {DISCOUNT_TYPES.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             {form.discount_type !== "custom" && (
-              <div className="space-y-1">
-                <Label>{discountLabel} Value <span className="text-red-500">*</span></Label>
-                <Input type="number" min={0} max={form.discount_type === "percentage" ? 100 : undefined} placeholder={form.discount_type === "percentage" ? "30" : "30"} value={form.discount_value} onChange={e => update("discount_value", e.target.value)} />
+              <div className="flex-1 min-w-[80px] space-y-1">
+                <Input type="number" min={0} max={form.discount_type === "percentage" ? 100 : undefined} placeholder="30" value={form.discount_value} onChange={e => update("discount_value", e.target.value)} className="text-sm" />
               </div>
             )}
-          </div>
-
-          {/* Redeem Window */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Redeem Window</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Valid From</Label>
-                <Input type="date" value={form.valid_start_date} onChange={e => update("valid_start_date", e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label>Redeem By Date</Label>
-                <Input type="date" value={form.redeem_by_date} onChange={e => update("redeem_by_date", e.target.value)} />
-                <p className="text-[10px] text-slate-400">New users cannot redeem after this date</p>
-              </div>
+            {form.discount_type === "percentage" && <span className="text-slate-500 mb-1">%</span>}
+            {form.discount_type === "fixed_amount" && <span className="text-slate-500 mb-1">$ off</span>}
+            {form.discount_type === "free_trial" && <span className="text-slate-500 mb-1">days free</span>}
+            <span className="text-slate-500 mb-1">to</span>
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {form.applies_to_tiers.length === 0 ? (
+                <span className="text-slate-600 font-medium">all tiers</span>
+              ) : (
+                form.applies_to_tiers.map(t => <Badge key={t} className="bg-slate-100 text-slate-700 text-[11px]">{TIER_LABELS[t]}</Badge>)
+              )}
+              <button onClick={() => setShowTierModal(!showTierModal)} className="text-[#5DADA5] hover:text-[#2C4F4E] text-xs font-semibold underline">
+                {form.applies_to_tiers.length === 0 ? "choose" : "change"}
+              </button>
             </div>
           </div>
 
-          {/* Promotion Duration */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Benefit Duration</p>
-            <div className="space-y-1">
-              <Label>Duration Type</Label>
+          {/* Tier selector modal inline */}
+          {showTierModal && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-semibold text-slate-600 mb-2">Which tiers?</p>
+              <div className="flex flex-wrap gap-2">
+                {TIERS.map(t => (
+                  <label key={t.key} className="flex items-center gap-2 cursor-pointer text-xs">
+                    <Checkbox checked={form.applies_to_tiers.includes(t.key)} onCheckedChange={() => toggleTier(t.key)} />
+                    {t.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Line 4: Dates */}
+          <div className="flex flex-wrap items-end gap-2">
+            <span className="text-slate-600 font-medium">Valid</span>
+            <div className="flex-1 min-w-[120px] space-y-1">
+              <Input type="date" value={form.valid_start_date} onChange={e => update("valid_start_date", e.target.value)} className="text-xs" />
+            </div>
+            <span className="text-slate-500 mb-1">to</span>
+            <div className="flex-1 min-w-[120px] space-y-1">
+              <Input type="date" value={form.redeem_by_date} onChange={e => update("redeem_by_date", e.target.value)} className="text-xs" />
+              <p className="text-[10px] text-slate-400">new redemptions only</p>
+            </div>
+          </div>
+
+          {/* Line 5: Benefit Duration */}
+          <div className="flex flex-wrap items-end gap-2">
+            <span className="text-slate-600 font-medium">Benefits last</span>
+            <div className="flex-1 min-w-[140px] space-y-1">
               <Select value={form.promotion_duration_type} onValueChange={v => update("promotion_duration_type", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="no_expiration">No Expiration</SelectItem>
-                  <SelectItem value="preset_days">Preset Days (from redemption date)</SelectItem>
-                  <SelectItem value="fixed_end_date">Fixed End Date (same for all)</SelectItem>
+                  <SelectItem value="no_expiration">forever</SelectItem>
+                  <SelectItem value="preset_days">for X days</SelectItem>
+                  <SelectItem value="fixed_end_date">until a date</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
             {form.promotion_duration_type === "preset_days" && (
-              <div className="space-y-2">
-                <Label>Duration Days <span className="text-red-500">*</span></Label>
-                <div className="flex flex-wrap gap-2 mb-2">
+              <>
+                <div className="flex flex-wrap gap-1.5 items-center">
                   {DURATION_PRESETS.map(d => (
                     <button key={d} type="button" onClick={() => update("promotion_duration_days", d)}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors ${Number(form.promotion_duration_days) === d ? "bg-[#2C4F4E] text-white border-[#2C4F4E]" : "bg-white text-slate-600 border-slate-200 hover:border-[#2C4F4E]"}`}>
+                      className={`px-2 py-1 rounded text-xs font-semibold border transition-colors ${Number(form.promotion_duration_days) === d ? "bg-[#2C4F4E] text-white border-[#2C4F4E]" : "bg-white text-slate-600 border-slate-200 hover:border-[#2C4F4E]"}`}>
                       {d}d
                     </button>
                   ))}
-                  <button type="button" onClick={() => update("promotion_duration_days", "")}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors ${!DURATION_PRESETS.includes(Number(form.promotion_duration_days)) && form.promotion_duration_days !== "" ? "bg-[#2C4F4E] text-white border-[#2C4F4E]" : "bg-white text-slate-600 border-slate-200 hover:border-[#2C4F4E]"}`}>
-                    Custom
-                  </button>
+                  <input type="number" min={1} placeholder="other" value={form.promotion_duration_days} onChange={e => update("promotion_duration_days", e.target.value)} className="w-12 px-1.5 py-1 rounded border border-slate-200 text-xs text-center" />
                 </div>
-                <Input type="number" min={1} placeholder="e.g. 30" value={form.promotion_duration_days} onChange={e => update("promotion_duration_days", e.target.value)} />
-                <p className="text-[10px] text-slate-400">Benefits expire X days after the vendor redeems the code</p>
-              </div>
+              </>
             )}
-
             {form.promotion_duration_type === "fixed_end_date" && (
-              <div className="space-y-1">
-                <Label>Benefits End Date <span className="text-red-500">*</span></Label>
-                <Input type="date" value={form.promotion_end_date} onChange={e => update("promotion_end_date", e.target.value)} />
-                <p className="text-[10px] text-slate-400">All vendors' benefits expire on this date regardless of when they redeemed</p>
+              <div className="flex-1 min-w-[120px] space-y-1">
+                <Input type="date" value={form.promotion_end_date} onChange={e => update("promotion_end_date", e.target.value)} className="text-xs" />
               </div>
             )}
           </div>
 
-          {/* Eligible Tiers */}
-          <div className="space-y-2">
-            <Label>Eligible Tiers <span className="text-xs text-slate-400">(empty = all tiers)</span></Label>
-            <div className="flex flex-wrap gap-3">
-              {TIERS.map(t => (
-                <label key={t.key} className="flex items-center gap-2 cursor-pointer text-sm">
-                  <Checkbox checked={form.applies_to_tiers.includes(t.key)} onCheckedChange={() => toggleTier(t.key)} />
-                  {t.label}
-                </label>
-              ))}
+          {/* Line 6: Redemption limits */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-slate-600 font-medium">Limit to</span>
+            <div className="w-16 space-y-1">
+              <Input type="number" min={1} placeholder="∞" value={form.max_redemptions} onChange={e => update("max_redemptions", e.target.value)} className="text-xs text-center" />
             </div>
-          </div>
-
-          {/* Redemption Limits */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Redemption Limits</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Max Redemptions <span className="text-xs text-slate-400">(blank = unlimited)</span></Label>
-                <Input type="number" min={1} placeholder="Unlimited" value={form.max_redemptions} onChange={e => update("max_redemptions", e.target.value)} />
-              </div>
-              <div className="space-y-2 flex flex-col justify-end pb-1">
-                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                  <Switch checked={form.one_use_per_user} onCheckedChange={v => update("one_use_per_user", v)} />
-                  One use per user
-                </label>
-              </div>
-            </div>
+            <span className="text-slate-500">uses total</span>
             {form.max_redemptions !== "" && (
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <Switch checked={form.allow_slot_recovery} onCheckedChange={v => update("allow_slot_recovery", v)} />
-                <div>
-                  <span className="font-medium">Allow slot recovery</span>
-                  <p className="text-[10px] text-slate-400">When admin removes a redemption, they can reopen the slot</p>
-                </div>
+              <label className="flex items-center gap-1.5 cursor-pointer ml-2">
+                <Switch checked={form.allow_slot_recovery} onCheckedChange={v => update("allow_slot_recovery", v)} size="sm" />
+                <span className="text-[10px] text-slate-600">recover slots on removal</span>
               </label>
             )}
+            <label className="flex items-center gap-1.5 cursor-pointer ml-2">
+              <Switch checked={form.one_use_per_user} onCheckedChange={v => update("one_use_per_user", v)} size="sm" />
+              <span className="text-[10px] text-slate-600">one per user</span>
+            </label>
           </div>
 
-          {/* Founding Vendor */}
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Founding Vendor</p>
-                <p className="text-[11px] text-amber-600 mt-0.5">Lock in special recurring pricing after trial</p>
-              </div>
+          {/* Divider */}
+          <div className="h-px bg-slate-200 my-2" />
+
+          {/* Founding Vendor Section */}
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
               <Switch checked={form.is_founding_vendor} onCheckedChange={v => update("is_founding_vendor", v)} />
-            </div>
+              <span className="text-xs font-semibold text-amber-900">Lock in founding pricing after trial</span>
+            </label>
             {form.is_founding_vendor && (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label>Locked Monthly Price ($ / mo)</Label>
-                  <Input type="number" min={0} step={0.01} placeholder="9.99" value={form.founding_recurring_price} onChange={e => update("founding_recurring_price", e.target.value)} />
-                  <p className="text-[10px] text-amber-600">Vendor pays this price/month after trial ends (while subscription is active)</p>
+              <div className="flex flex-wrap items-end gap-2 pl-6 text-xs">
+                <span className="text-amber-800 font-medium">Recurring rate:</span>
+                <span className="text-amber-700">$</span>
+                <div className="w-20 space-y-1">
+                  <Input type="number" min={0} step={0.01} placeholder="9.99" value={form.founding_recurring_price} onChange={e => update("founding_recurring_price", e.target.value)} className="text-xs text-center" />
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <span className="text-amber-700">/month</span>
+                <label className="flex items-center gap-1.5 cursor-pointer ml-2">
                   <Switch checked={form.founding_forfeits_on_cancel} onCheckedChange={v => update("founding_forfeits_on_cancel", v)} />
-                  <span>Forfeit grandfathered pricing if subscription is canceled</span>
+                  <span className="text-[10px] text-amber-700">forfeit on cancel</span>
                 </label>
               </div>
             )}
           </div>
 
-          {/* Active */}
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border">
+          {/* Status toggle */}
+          <div className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200 bg-white">
             <Switch checked={form.active} onCheckedChange={v => update("active", v)} />
-            <div>
-              <p className="text-sm font-medium">{form.active ? "Active" : "Inactive"}</p>
-              <p className="text-xs text-slate-400">{form.active ? "Vendors can apply this code at checkout" : "Code is disabled"}</p>
+            <div className="text-xs">
+              <p className="font-semibold text-slate-700">{form.active ? "Active" : "Inactive"}</p>
+              <p className="text-slate-500">{form.active ? "Vendors can apply at checkout" : "Disabled"}</p>
             </div>
           </div>
 
+          {/* Actions */}
           <div className="flex gap-2 pt-2">
             <Button variant="outline" onClick={onClose} disabled={saving} className="flex-1">Cancel</Button>
             <Button onClick={handleSave} disabled={saving} className="flex-1 bg-[#5DADA5] hover:bg-[#4A9B93] text-white">
