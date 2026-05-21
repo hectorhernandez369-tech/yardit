@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, Circle, useMapEvents } from "react-leaflet";
+import VendorEventMapboxTileLayer from "@/components/vendor/events/VendorEventMapboxTileLayer";
 import L from "leaflet";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -94,7 +95,10 @@ export default function VendorPinPreview() {
   const [latestCheckIn, setLatestCheckIn] = useState(null);
   const [gpsLocation, setGpsLocation] = useState(null);
   const [pinLocation, setPinLocation] = useState(null);
-  const [address, setAddress] = useState("");
+  const [suggestedAddress, setSuggestedAddress] = useState("");
+  const [displayAddress, setDisplayAddress] = useState("");
+  const [displayAddressEdited, setDisplayAddressEdited] = useState(false);
+  const [reverseGeocoding, setReverseGeocoding] = useState(false);
   const [selectedHours, setSelectedHours] = useState(4);
   const [customEndTime, setCustomEndTime] = useState("");
   const [iconStyle, setIconStyle] = useState("default");
@@ -119,7 +123,11 @@ export default function VendorPinPreview() {
       setIconStyle(pins[0]?.pin_icon_style || "default");
       setAccount(accounts[0] || null);
       setLatestCheckIn(activeCheckIn || null);
-      setAddress(activeCheckIn?.checkin_display_address || "");
+      const savedDisplay = activeCheckIn?.checkin_display_address || "";
+      const savedGeo = activeCheckIn?.checkin_geocoded_address || activeCheckIn?.suggested_address || "";
+      setSuggestedAddress(savedGeo);
+      setDisplayAddress(savedDisplay);
+      setDisplayAddressEdited(!!savedDisplay);
 
       if (typeof activeCheckIn?.checkin_latitude === "number" && typeof activeCheckIn?.checkin_longitude === "number") {
         setPinLocation({ lat: activeCheckIn.checkin_latitude, lng: activeCheckIn.checkin_longitude });
@@ -142,6 +150,38 @@ export default function VendorPinPreview() {
     loadData();
   }, [pinId, accountId, checkInId]);
 
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&namedetails=1`
+      );
+      const data = await res.json();
+      if (!data || data.error) return null;
+      const a = data.address || {};
+      const placeName = data.name || data.namedetails?.name;
+      if (placeName) {
+        const city = a.city || a.town || a.village || a.county;
+        return [placeName, city, a.state].filter(Boolean).join(", ");
+      }
+      const street = a.house_number && a.road ? `${a.house_number} ${a.road}` : a.road;
+      const city = a.city || a.town || a.village || a.county;
+      if (street && city) return [street, city, a.state].filter(Boolean).join(", ");
+      if (city && a.state) return `${city}, ${a.state}`;
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const updatePinWithGeocode = async (location) => {
+    setReverseGeocoding(true);
+    const found = await reverseGeocode(location.lat, location.lng);
+    const suggested = found || "Location selected";
+    setSuggestedAddress(suggested);
+    if (!displayAddressEdited) setDisplayAddress(suggested);
+    setReverseGeocoding(false);
+  };
+
   const handleCurrentLocation = () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by your browser.");
@@ -152,7 +192,7 @@ export default function VendorPinPreview() {
         const nextLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
         setGpsLocation(nextLocation);
         setPinLocation(nextLocation);
-        toast.success("GPS location found");
+        updatePinWithGeocode(nextLocation);
       },
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
@@ -160,7 +200,7 @@ export default function VendorPinPreview() {
         } else if (err.code === err.POSITION_UNAVAILABLE) {
           toast.error("Location unavailable. Please check your device's location settings.");
         } else {
-          toast.error("Could not get your GPS location. Please try again or enter your address manually.");
+          toast.error("Could not get your GPS location. Please try again.");
         }
       },
       { enableHighAccuracy: true, timeout: 12000 }
@@ -186,8 +226,6 @@ export default function VendorPinPreview() {
   const endTime = useMemo(() => endDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }), [endDate]);
 
   const distanceFeet = gpsLocation && pinLocation ? Math.round(getDistanceMeters(gpsLocation, pinLocation) * 3.28084) : 0;
-  const coordinateDisplayAddress = pinLocation ? `${pinLocation.lat.toFixed(5)}, ${pinLocation.lng.toFixed(5)}` : "";
-  const displayAddress = address || coordinateDisplayAddress;
   const isGrowthPlan = account?.vendor_tier === "growth";
   const previewAnimation = isGrowthPlan && animationEnabled ? selectedAnimation : "none";
   const canUseTruckLogoIcon = !!(pin?.pin_logo_url || pin?.pin_icon_url || account?.business_logo);
@@ -196,7 +234,9 @@ export default function VendorPinPreview() {
 
   const handleMarkerDrag = (event) => {
     const next = event.target.getLatLng();
-    setPinLocation(clampToRadius(gpsLocation, next));
+    const clamped = clampToRadius(gpsLocation, next);
+    setPinLocation(clamped);
+    updatePinWithGeocode(clamped);
   };
 
   const upgradeToGrowth = async () => {
@@ -220,7 +260,8 @@ export default function VendorPinPreview() {
       checked_in_by_email: user?.email || "",
       checkin_latitude: pinLocation.lat,
       checkin_longitude: pinLocation.lng,
-      checkin_display_address: displayAddress,
+      checkin_geocoded_address: suggestedAddress,
+      checkin_display_address: displayAddress.trim() || suggestedAddress,
       checkin_start_time: start.toISOString(),
       checkin_end_time: end.toISOString(),
       pin_animation: previewAnimation,
@@ -259,7 +300,7 @@ export default function VendorPinPreview() {
               {gpsLocation && pinLocation ? (
                 <div className="relative h-full w-full">
                   <MapContainer center={pinLocation} zoom={19} className="h-full w-full" scrollWheelZoom>
-                    <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                   <VendorEventMapboxTileLayer mapStyle="standard" />
                     <Circle center={gpsLocation} radius={MAX_DISTANCE_METERS} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12 }} />
                     <Marker position={pinLocation} draggable icon={previewIcon} eventHandlers={{ dragend: handleMarkerDrag }} />
                     <ClickToMove gpsLocation={gpsLocation} onMove={setPinLocation} />
@@ -281,8 +322,24 @@ export default function VendorPinPreview() {
 
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
           <Card className="rounded-3xl"><CardContent className="p-5 space-y-3">
-            <p className="text-sm font-semibold text-[#2C4F4E]">Pin address</p>
-            <Input value={displayAddress} onChange={(e) => setAddress(e.target.value)} placeholder="Enter the address customers should see" />
+            <div className="rounded-xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3 space-y-3">
+              <div className="space-y-0.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Suggested Address</p>
+                <p className="text-sm text-slate-700">
+                  {reverseGeocoding ? <span className="text-slate-400 italic">Finding address…</span> : (suggestedAddress || "Drop a pin to find address")}
+                </p>
+              </div>
+              <div className="h-px bg-[#2C4F4E]/10" />
+              <div className="space-y-1.5">
+                <p className="text-sm font-semibold text-[#2C4F4E]">Public Display Location</p>
+                <Input
+                  value={displayAddress}
+                  onChange={(e) => { setDisplayAddress(e.target.value); setDisplayAddressEdited(true); }}
+                  placeholder="e.g. Main Street Market, Parking Lot B, Front Gate"
+                />
+                <p className="text-xs text-slate-500">This is what customers will see. Directions still use the map pin.</p>
+              </div>
+            </div>
             <p className="text-xs text-muted-foreground">Current adjustment from GPS: {distanceFeet} ft / 350 ft max.</p>
             <div className="rounded-2xl border p-4 space-y-3">
               <div className="flex items-center justify-between gap-3">
