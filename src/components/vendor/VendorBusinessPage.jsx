@@ -47,15 +47,11 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
         </div>
       </div>
 
-      <div className="grid min-w-0 gap-2 sm:gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.75fr)]">
-        <div className="space-y-2 sm:space-y-5 min-w-0">
-          <VendorDetailsForm account={account} onRefresh={onRefresh} />
-          <VendorUpdatesPanel account={account} updates={updates} onRefresh={onRefresh} />
-        </div>
-        <div className="space-y-2 sm:space-y-5 min-w-0">
-          <VendorActivePinPreview pins={pins} checkIns={checkIns} />
-          <VendorPhotoGallery account={account} onRefresh={onRefresh} />
-        </div>
+      <div className="space-y-2 sm:space-y-5 min-w-0">
+        <VendorActivePinPreview pins={pins} checkIns={checkIns} />
+        <VendorPhotoGallery account={account} onRefresh={onRefresh} />
+        <VendorUpdatesPanel account={account} updates={updates} onRefresh={onRefresh} />
+        <VendorDetailsForm account={account} onRefresh={onRefresh} />
       </div>
     </div>
   );
