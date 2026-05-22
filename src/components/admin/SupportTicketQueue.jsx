@@ -13,10 +13,26 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Reply, Clock, History } from "lucide-react";
 import { toast } from "sonner";
 
-// Heuristic: vendor/event ticket categories or types
-const VENDOR_TICKET_KEYWORDS = ["vendor", "event", "pin", "check-in", "checkin", "truck", "subscription", "organizer"];
+const QUEUE_LABELS = {
+  residential_support: "Residential",
+  vendor_support: "Vendor",
+  event_support: "Event",
+  billing_support: "Billing",
+  technical_support: "Technical",
+};
 
+const QUEUE_COLORS = {
+  residential_support: "bg-green-100 text-green-800",
+  vendor_support: "bg-blue-100 text-blue-800",
+  event_support: "bg-purple-100 text-purple-800",
+  billing_support: "bg-orange-100 text-orange-800",
+  technical_support: "bg-slate-100 text-slate-700",
+};
+
+// Legacy heuristic for tickets without support_area
+const VENDOR_TICKET_KEYWORDS = ["vendor", "event", "pin", "check-in", "checkin", "truck", "subscription", "organizer"];
 function isVendorTicket(ticket) {
+  if (ticket.support_area) return ["vendor", "event"].includes(ticket.support_area);
   const fields = [ticket.ticket_type, ticket.category, ticket.subject, ticket.description]
     .map(f => (f || "").toLowerCase());
   return VENDOR_TICKET_KEYWORDS.some(kw => fields.some(f => f.includes(kw)));
@@ -27,6 +43,7 @@ export default function SupportTicketQueue({ user, mode }) {
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [filterTab, setFilterTab] = useState("open");
+  const [queueFilter, setQueueFilter] = useState("all");
 
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [promoModalOpen, setPromoModalOpen] = useState(false);
@@ -67,13 +84,19 @@ export default function SupportTicketQueue({ user, mode }) {
       if (mode === "vendor" && !isVendorTicket(t)) return false;
       if (mode === "residential" && isVendorTicket(t)) return false;
 
+      // Queue filter
+      if (queueFilter !== "all") {
+        const tQueue = t.assigned_queue || (isVendorTicket(t) ? "vendor_support" : "residential_support");
+        if (tQueue !== queueFilter) return false;
+      }
+
       if (filterTab === "open") return ["open", "in_review", "waiting_for_user"].includes(t.status);
       if (filterTab === "needs_supervisor") return t.status === "supervisor_review";
       if (filterTab === "needs_master") return t.status === "master_review";
       if (filterTab === "resolved_closed") return ["resolved", "closed"].includes(t.status);
       return true;
     });
-  }, [tickets, filterTab, mode]);
+  }, [tickets, filterTab, queueFilter, mode]);
 
   const logAction = async (ticketId, actionStr, detailsStr = "") => {
     try {
@@ -283,14 +306,32 @@ export default function SupportTicketQueue({ user, mode }) {
         <h2 className="text-xl font-bold text-[#2C4F4E]">
           {mode === "vendor" ? "Vendor / Event Support Tickets" : mode === "residential" ? "Residential Support Tickets" : "Support Ticket Queue"}
         </h2>
-        <Tabs value={filterTab} onValueChange={setFilterTab}>
-          <TabsList>
-            <TabsTrigger value="open">Open</TabsTrigger>
-            <TabsTrigger value="needs_supervisor">Needs Supervisor</TabsTrigger>
-            <TabsTrigger value="needs_master">Needs Master</TabsTrigger>
-            <TabsTrigger value="resolved_closed">Resolved/Closed</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Queue filter — only show when not in a specific mode */}
+          {!mode && (
+            <Select value={queueFilter} onValueChange={setQueueFilter}>
+              <SelectTrigger className="h-8 text-xs w-44 bg-white">
+                <SelectValue placeholder="All Queues" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Queues</SelectItem>
+                <SelectItem value="residential_support">Residential</SelectItem>
+                <SelectItem value="vendor_support">Vendor</SelectItem>
+                <SelectItem value="event_support">Event</SelectItem>
+                <SelectItem value="billing_support">Billing</SelectItem>
+                <SelectItem value="technical_support">Technical</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          <Tabs value={filterTab} onValueChange={setFilterTab}>
+            <TabsList>
+              <TabsTrigger value="open">Open</TabsTrigger>
+              <TabsTrigger value="needs_supervisor">Needs Supervisor</TabsTrigger>
+              <TabsTrigger value="needs_master">Needs Master</TabsTrigger>
+              <TabsTrigger value="resolved_closed">Resolved/Closed</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
       
       {loading ? (
@@ -303,12 +344,13 @@ export default function SupportTicketQueue({ user, mode }) {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50 text-slate-600 border-b">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Ticket Number</th>
+                  <th className="px-4 py-3 font-medium">Ticket #</th>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Email</th>
-                  <th className="px-4 py-3 font-medium">Date Created</th>
+                  <th className="px-4 py-3 font-medium hidden md:table-cell">Queue</th>
+                  <th className="px-4 py-3 font-medium">Date</th>
                   <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Badges</th>
+                  <th className="px-4 py-3 font-medium">Flags</th>
                 </tr>
               </thead>
               <tbody>
@@ -320,8 +362,17 @@ export default function SupportTicketQueue({ user, mode }) {
                   >
                     <td className="px-4 py-3 font-medium text-[#2C4F4E]">{ticket.ticket_number}</td>
                     <td className="px-4 py-3">{ticket.name || "-"}</td>
-                    <td className="px-4 py-3">{ticket.email}</td>
-                    <td className="px-4 py-3">{format(new Date(ticket.created_date), "MMM d, yyyy")}</td>
+                    <td className="px-4 py-3 text-sm">{ticket.email}</td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {ticket.assigned_queue ? (
+                        <Badge className={`text-[10px] ${QUEUE_COLORS[ticket.assigned_queue] || "bg-slate-100 text-slate-600"}`}>
+                          {QUEUE_LABELS[ticket.assigned_queue] || ticket.assigned_queue}
+                        </Badge>
+                      ) : (
+                        <span className="text-slate-400 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm">{format(new Date(ticket.created_date), "MMM d, yyyy")}</td>
                     <td className="px-4 py-3">
                       <Badge className={getStatusColor(ticket.status)} variant="outline">
                         {formatStatus(ticket.status)}
@@ -383,6 +434,20 @@ export default function SupportTicketQueue({ user, mode }) {
                       <span className="font-semibold text-slate-500 block mb-1">Created At</span>
                       <span className="text-slate-800">{format(new Date(selectedTicket.created_date), "MMM d, yyyy h:mm a")}</span>
                     </div>
+                    {selectedTicket.support_area && (
+                      <div>
+                        <span className="font-semibold text-slate-500 block mb-1">Support Area</span>
+                        <Badge className={QUEUE_COLORS[selectedTicket.assigned_queue] || "bg-slate-100 text-slate-600"}>
+                          {QUEUE_LABELS[selectedTicket.assigned_queue] || selectedTicket.support_area}
+                        </Badge>
+                      </div>
+                    )}
+                    {selectedTicket.source_type && selectedTicket.source_type !== "general" && (
+                      <div>
+                        <span className="font-semibold text-slate-500 block mb-1">Source</span>
+                        <span className="text-slate-800 capitalize">{selectedTicket.source_type.replace(/_/g, " ")}{selectedTicket.source_id ? ` · ${selectedTicket.source_id}` : ""}</span>
+                      </div>
+                    )}
                     {selectedTicket.address && (
                       <div className="col-span-2">
                         <span className="font-semibold text-slate-500 block mb-1">Physical Address</span>

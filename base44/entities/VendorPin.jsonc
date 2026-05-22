@@ -42,6 +42,55 @@
         "type": "string"
       },
       "description": "Authorized user emails assigned to this pin"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Planned date for this pin's scheduled appearance"
+    },
+    "scheduled_start_time": {
+      "type": "string",
+      "description": "Scheduled start time (HH:MM local)"
+    },
+    "scheduled_end_time": {
+      "type": "string",
+      "description": "Scheduled end time (HH:MM local)"
+    },
+    "scheduled_location_label": {
+      "type": "string",
+      "description": "Human-readable location label for the scheduled appearance"
+    },
+    "scheduled_lat": {
+      "type": "number",
+      "description": "Latitude of the scheduled location"
+    },
+    "scheduled_lng": {
+      "type": "number",
+      "description": "Longitude of the scheduled location"
+    },
+    "scheduled_by_user_id": {
+      "type": "string",
+      "description": "User ID who set up this schedule"
+    },
+    "scheduled_by_name": {
+      "type": "string",
+      "description": "Display name of whoever scheduled this pin"
+    },
+    "schedule_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "scheduled",
+        "active",
+        "completed",
+        "canceled"
+      ],
+      "default": "draft",
+      "description": "Lifecycle status of the current schedule slot. Does NOT affect pin visibility \u2014 user must still manually check in within radius."
+    },
+    "schedule_notes": {
+      "type": "string",
+      "description": "Optional internal notes about this schedule slot"
     }
   },
   "required": [

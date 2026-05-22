@@ -33,6 +33,55 @@
       },
       "description": "Array of uploaded photo URLs"
     },
+    "support_area": {
+      "type": "string",
+      "enum": [
+        "residential",
+        "vendor",
+        "event",
+        "billing",
+        "technical"
+      ],
+      "default": "residential",
+      "description": "Primary support area for routing"
+    },
+    "assigned_queue": {
+      "type": "string",
+      "enum": [
+        "residential_support",
+        "vendor_support",
+        "event_support",
+        "billing_support",
+        "technical_support"
+      ],
+      "default": "residential_support",
+      "description": "Queue this ticket is routed to"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "listing",
+        "vendor_account",
+        "vendor_event",
+        "vendor_pin",
+        "neighborhood_sale",
+        "general"
+      ],
+      "default": "general",
+      "description": "What entity type this ticket is about"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "ID of the source entity (listing ID, vendor account ID, event ID, etc.)"
+    },
+    "requester_user_id": {
+      "type": "string",
+      "description": "User ID of the person who submitted the ticket"
+    },
+    "requester_email": {
+      "type": "string",
+      "description": "Email of the person who submitted the ticket"
+    },
     "status": {
       "type": "string",
       "enum": [

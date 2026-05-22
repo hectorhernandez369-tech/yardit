@@ -6,18 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Truck, Plus, Loader2, Trash2, MapPin, AlertCircle, Edit2, Clock, History, PauseCircle, PlayCircle, XCircle } from "lucide-react";
+import { Truck, Plus, Loader2, Trash2, MapPin, AlertCircle, Edit2, Clock, History, PauseCircle, PlayCircle, XCircle, CalendarClock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { TIER_CONFIG } from "@/lib/tierConfig";
 import { getVendorUsageLimitStatus } from "@/lib/vendorUsage";
 import TruckLogoEditor from "./TruckLogoEditor";
+import VendorPinScheduleDrawer from "./VendorPinScheduleDrawer";
 
 export default function MyTrucksSection({ vendorAccount: providedVendorAccount, currentUser: providedCurrentUser, onRefresh }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPin, setEditingPin] = useState(null);
   const [selectedPinHistory, setSelectedPinHistory] = useState(null);
+  const [schedulingPin, setSchedulingPin] = useState(null);
   const [formData, setFormData] = useState({ pin_name: "", description: "", is_active: true, pin_logo_url: "", pin_icon_style: "default", assigned_users: [] });
   const [saving, setSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
@@ -231,10 +233,20 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
                 <div className="min-w-0 flex-1"><p className="font-heading font-bold text-sm truncate">{pin.pin_name}</p>{pin.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{pin.description}</p>}<p className="mt-1 text-[11px] text-muted-foreground">{status}{lastCheckIn ? ` • ${formatDistanceToNow(new Date(lastCheckIn.created_date), { addSuffix: true })}` : ""}</p></div>
                 <div className="flex gap-0.5 shrink-0">
                   <Button size="icon" variant="ghost" onClick={() => setSelectedPinHistory(pin)} className="h-8 w-8"><History className="w-3.5 h-3.5" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => setSchedulingPin(pin)} title="Schedule" className="h-8 w-8"><CalendarClock className="w-3.5 h-3.5" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(pin)} className="h-8 w-8"><Edit2 className="w-3.5 h-3.5" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => handleDeletePin(pin.id)} className="h-8 w-8"><Trash2 className="w-3.5 h-3.5" /></Button>
                 </div>
               </div>
+              {/* Schedule summary pill */}
+              {pin.scheduled_date && pin.schedule_status === "scheduled" && (
+                <button onClick={() => setSchedulingPin(pin)} className="w-full text-left rounded-xl border border-blue-100 bg-blue-50 px-3 py-1.5 text-[11px] text-blue-700 flex items-center gap-1.5 hover:bg-blue-100 transition-colors">
+                  <CalendarClock className="w-3 h-3 shrink-0" />
+                  <span className="truncate">
+                    Scheduled {pin.scheduled_date}{pin.scheduled_start_time ? ` · ${pin.scheduled_start_time}` : ""}{pin.scheduled_location_label ? ` — ${pin.scheduled_location_label}` : ""}
+                  </span>
+                </button>
+              )}
               <Button size="sm" onClick={() => navigate(`/VendorPinPreview?pinId=${pin.id}&accountId=${vendorAccount.id}`)} disabled={!canCurrentUserCheckIn(pin.id)} className="w-full h-9 rounded-xl gap-1.5 text-xs"><MapPin className="w-3.5 h-3.5" />{canCurrentUserCheckIn(pin.id) ? (status === "Live Now" || status === "Paused" ? "Update Pin" : "Drop Pin") : "Not Assigned"}</Button>
               {(status === "Live Now" || status === "Paused") && <div className="flex gap-1.5">{status === "Live Now" ? <Button size="sm" variant="outline" onClick={() => handlePause(lastCheckIn)} className="h-8 flex-1 rounded-xl text-xs"><PauseCircle className="w-3.5 h-3.5" /> Pause</Button> : <Button size="sm" variant="outline" onClick={() => handleResume(lastCheckIn)} className="h-8 flex-1 rounded-xl text-xs"><PlayCircle className="w-3.5 h-3.5" /> Resume</Button>}<Button size="sm" variant="outline" onClick={() => handleTakeOffline(lastCheckIn)} className="h-8 flex-1 rounded-xl text-xs"><XCircle className="w-3.5 h-3.5" /> Offline</Button></div>}
               {assignedUsers.length > 0 && <p className="text-[11px] text-muted-foreground truncate">Assigned: {assignedUsers.map((u) => u.authorized_email).join(", ")}</p>}
@@ -245,6 +257,15 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
 
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>{editingPin ? "Edit Truck Profile" : "Create Truck Profile"}</DialogTitle></DialogHeader><div className="space-y-4"><Input value={formData.pin_name} onChange={(e) => setFormData({ ...formData, pin_name: e.target.value })} placeholder="Truck/Pin name" />{!formData.pin_logo_url && <Input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={handleLogoUpload} disabled={logoUploading} />}{logoUploading && <p className="text-xs text-muted-foreground">Uploading edited photo...</p>}{formData.pin_logo_url && <div className="relative w-fit"><img src={formData.pin_logo_url} alt="Truck logo preview" className="h-16 w-16 rounded-xl object-contain border bg-white p-1" /><button type="button" onClick={() => setFormData({ ...formData, pin_logo_url: "" })} className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-red-600 text-white text-xs font-bold shadow-md hover:bg-red-700">×</button></div>}<Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Description" /><div className="rounded-2xl border p-3 space-y-2"><p className="text-sm font-semibold">Assigned authorized users</p>{accessibleAuthorizedUsers.length ? accessibleAuthorizedUsers.map((authorizedUser) => <label key={authorizedUser.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.assigned_users.includes(authorizedUser.id)} onChange={(e) => setFormData({ ...formData, assigned_users: e.target.checked ? [...formData.assigned_users, authorizedUser.id] : formData.assigned_users.filter((id) => id !== authorizedUser.id) })} />{authorizedUser.first_name || authorizedUser.last_name ? `${authorizedUser.first_name || ""} ${authorizedUser.last_name || ""}`.trim() : authorizedUser.authorized_email}<span className="text-xs text-muted-foreground">{authorizedUser.authorized_email}</span></label>) : <p className="text-xs text-muted-foreground">Add authorized users before assigning them to this truck.</p>}</div><div className="flex items-center justify-between"><span className="text-sm">Active</span><Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} /></div><Button onClick={handleSavePin} disabled={saving} className="w-full">{saving ? "Saving..." : "Save"}</Button></div></DialogContent></Dialog>
       <TruckLogoEditor imageUrl={logoEditorUrl} open={!!logoEditorUrl} onClose={() => setLogoEditorUrl("")} onApply={handleEditedLogoUpload} />
+      {schedulingPin && (
+        <VendorPinScheduleDrawer
+          open={!!schedulingPin}
+          onOpenChange={(open) => !open && setSchedulingPin(null)}
+          pin={schedulingPin}
+          user={currentUser}
+          onSaved={() => queryClient.invalidateQueries({ queryKey: ["vendorPins"] })}
+        />
+      )}
       {selectedPinHistory && <Dialog open onOpenChange={() => setSelectedPinHistory(null)}><DialogContent className="rounded-2xl max-w-md"><DialogHeader><DialogTitle>Check-In History: {selectedPinHistory.pin_name}</DialogTitle></DialogHeader>{allCheckIns.filter((c) => c.vendor_pin_id === selectedPinHistory.id).map((checkIn) => <div key={checkIn.id} className="bg-muted/30 rounded-xl p-3 text-xs"><Clock className="w-4 h-4 inline mr-1" /> {checkIn.status} • {checkIn.checkin_display_address || `${checkIn.checkin_latitude}, ${checkIn.checkin_longitude}`}</div>)}</DialogContent></Dialog>}
     </div>
   );

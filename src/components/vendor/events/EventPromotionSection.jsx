@@ -3,7 +3,8 @@ import { format, differenceInCalendarDays, isSameDay } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CalendarClock, Info, AlertTriangle, ArrowUpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CalendarClock, Info, AlertTriangle, ArrowUpCircle, CreditCard } from "lucide-react";
 import { getPromotionRule, getPromotionDates, calcPromotionUpgrade } from "@/lib/vendorEventPromotion";
 import { getVendorTierConfig } from "@/lib/vendorTiers";
 
@@ -16,7 +17,7 @@ import { getVendorTierConfig } from "@/lib/vendorTiers";
  *   comingSoonDate   - ISO string (or "") of selected coming soon date
  *   onComingSoonDate - (isoString) => void
  */
-export default function EventPromotionSection({ tierKey, eventStartDate, comingSoonDate, onComingSoonDate }) {
+export default function EventPromotionSection({ tierKey, eventStartDate, comingSoonDate, onComingSoonDate, draftState, onSaveDraft }) {
   const rule = getPromotionRule(tierKey);
   const tierConfig = getVendorTierConfig(tierKey);
   const isFree = rule.includedDays === 0 && rule.maxDays === 0;
@@ -181,18 +182,36 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
                 </div>
               )}
 
-              {/* Upgrade notice */}
+              {/* Upgrade notice + checkout CTA */}
               {upgradeRequired && (
                 <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3">
                   <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                  <div className="text-sm text-amber-800 space-y-1">
+                  <div className="text-sm text-amber-800 space-y-2 flex-1">
                     <p>
                       <strong>Promotion upgrade required.</strong> Your {tierConfig.label} tier includes {rule.includedDays} days.
-                      You selected {selectedDays} days, so a promotion upgrade is required.
+                      You selected {selectedDays} days (+{additionalDays} extra), so a promotion upgrade payment is required before publishing.
                     </p>
-                    <p className="text-xs text-amber-700">
-                      Promotion upgrade payment will be required before this event can be published with the selected Coming Soon date.
-                    </p>
+                    {draftState && onSaveDraft && (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          // Save current draft state to sessionStorage so we can restore it after checkout
+                          sessionStorage.setItem("vendor_event_draft_restore", JSON.stringify({
+                            ...draftState,
+                            _restore_timestamp: Date.now(),
+                            _restore_step: "promotion_upgrade",
+                          }));
+                          onSaveDraft("promotion_upgrade_pending");
+                        }}
+                        className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+                      >
+                        <CreditCard className="h-3.5 w-3.5" />
+                        Save Draft & Go to Checkout
+                      </Button>
+                    )}
+                    {(!draftState || !onSaveDraft) && (
+                      <p className="text-xs text-amber-700">Save the event as a draft first, then complete the promotion upgrade checkout from your event dashboard.</p>
+                    )}
                   </div>
                 </div>
               )}
