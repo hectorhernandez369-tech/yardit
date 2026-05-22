@@ -1,5 +1,5 @@
 import React from "react";
-import { Ban, CalendarDays, Eye, MapPin, Sparkles, Users } from "lucide-react";
+import { CalendarDays, Eye, MapPin, Sparkles, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 function FeatureRow({ icon, label, value }) {
@@ -24,7 +24,7 @@ export default function TierFeatureSummary({ tier, compact = false }) {
         <FeatureRow icon={Users} label="Included users" value={`${tier.includedUsers} user login${tier.includedUsers === 1 ? "" : "s"}`} />
         <FeatureRow icon={MapPin} label="Included pins" value={`${tier.includedPins} active pin${tier.includedPins === 1 ? "" : "s"}`} />
         <FeatureRow icon={CalendarDays} label="Included events" value={tier.eventAllowanceLabel} />
-        <FeatureRow icon={Eye} label="Visibility" value={`${tier.visibilityRange} · Zoom level ${tier.mapZoom}+`} />
+        <FeatureRow icon={Eye} label="Visibility" value={tier.visibilityRange} />
       </div>
 
       {!compact && (
@@ -46,7 +46,7 @@ export default function TierFeatureSummary({ tier, compact = false }) {
       {tier.restrictions?.length > 0 && (
         <div className="space-y-1 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
           {tier.restrictions.map((restriction) => (
-            <p key={restriction} className="flex gap-2"><Ban className="mt-0.5 h-3.5 w-3.5 shrink-0" />{restriction}</p>
+            <p key={restriction} className="flex gap-2 items-start"><span className="mt-0.5 shrink-0">•</span>{restriction}</p>
           ))}
         </div>
       )}

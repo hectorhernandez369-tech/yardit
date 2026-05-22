@@ -167,11 +167,18 @@ export default function VendorEventsTab({ account, user }) {
       {/* Create event dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0">
-          <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 rounded-t-lg">
-            <DialogHeader>
+          <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 rounded-t-lg flex items-start justify-between gap-3">
+            <div>
               <DialogTitle className="text-xl font-bold text-slate-900">Create New Event</DialogTitle>
               <p className="text-sm text-slate-500 mt-0.5">Fill in the details below to publish your vendor event.</p>
-            </DialogHeader>
+            </div>
+            <button
+              onClick={() => setShowCreate(false)}
+              className="mt-0.5 shrink-0 rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+              aria-label="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
           <div className="px-6 py-5">
             <VendorEventForm account={account} user={user} existingEvents={events} onCreated={() => { invalidate(); setShowCreate(false); }} />

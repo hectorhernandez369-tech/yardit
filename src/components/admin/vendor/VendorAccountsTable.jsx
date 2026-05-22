@@ -5,10 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ExternalLink, Zap } from "lucide-react";
+import { Search, ExternalLink, Zap, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import VendorPromoModal from "./promos/VendorPromoModal";
 import VendorActivePromos from "./promos/VendorActivePromos";
+import AdminCreateVendorModal from "./AdminCreateVendorModal";
 
 const TIER_COLORS = {
   free: "bg-slate-100 text-slate-700",
@@ -36,6 +37,8 @@ export default function VendorAccountsTable({ user }) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [promoAccount, setPromoAccount] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const isMasterAdmin = user?.role === "master" || user?.role === "super_master";
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ["vendorAccountsAdmin"],
@@ -75,14 +78,25 @@ export default function VendorAccountsTable({ user }) {
 
   return (
     <div className="mt-4 space-y-4">
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <Input
-          placeholder="Search by name, account #, email..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            placeholder="Search by name, account #, email..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        {isMasterAdmin && (
+          <Button
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+            className="gap-1.5 bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]"
+          >
+            <Plus className="w-3.5 h-3.5" /> Create Vendor Account
+          </Button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -155,6 +169,14 @@ export default function VendorAccountsTable({ user }) {
           )}
         </div>
       )}
+
+      {/* Create Vendor Modal */}
+      <AdminCreateVendorModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        adminUser={user}
+        onCreated={() => queryClient.invalidateQueries({ queryKey: ["vendorAccountsAdmin"] })}
+      />
 
       {/* Promo Modal */}
       <VendorPromoModal

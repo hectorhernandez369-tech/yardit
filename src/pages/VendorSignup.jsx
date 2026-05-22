@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Building2, CheckCircle2, Loader2, MapPin } from "lucide-react";
+import { AlertTriangle, Building2, CheckCircle2, Loader2, MapPin, Store } from "lucide-react";
 import AddressFields from "@/components/shared/AddressFields";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
 import { buildVendorAccountIdentityFields } from "@/lib/vendorAccountIdentity";
@@ -32,6 +32,8 @@ export default function VendorSignup() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [claimableAccounts, setClaimableAccounts] = useState([]);
   const [residentialForm, setResidentialForm] = useState({ street_address: "", city: "", state: "", zip_code: "" });
   const [businessForm, setBusinessForm] = useState({
     business_name: "",
@@ -50,14 +52,31 @@ export default function VendorSignup() {
   });
   const [createdAccount, setCreatedAccount] = useState(null);
 
+  const handleClaimAccount = async (accountToClaim) => {
+    setClaiming(true);
+    await base44.entities.VendorAccount.update(accountToClaim.id, {
+      owner_user_id: user.id,
+      owner_email: user.email,
+      owner_name: user.full_name || user.email,
+    });
+    toast.success("Vendor account claimed! Redirecting to your dashboard...");
+    navigate("/VendorDashboard");
+  };
+
   useEffect(() => {
     base44.auth.me().then(async (currentUser) => {
+      setUser(currentUser);
       const existing = await getUserVendorAccounts(currentUser);
       if (existing.length > 0) {
         navigate("/VendorDashboard");
         return;
       }
-      setUser(currentUser);
+      // Check for admin-pre-created accounts matching this email
+      const byEmail = await base44.entities.VendorAccount.filter({ owner_email: currentUser.email }).catch(() => []);
+      const unclaimed = byEmail.filter((a) => a.is_active !== false && (a.vendor_origin === "admin_auto_created" || !a.owner_user_id || a.owner_user_id === a.owner_email));
+      if (unclaimed.length > 0) {
+        setClaimableAccounts(unclaimed);
+      }
       setResidentialForm({
         street_address: currentUser.street_address || "",
         city: currentUser.city || "",
@@ -195,11 +214,41 @@ export default function VendorSignup() {
               ))}
             </div>
 
-            {step === 1 && (
+            {/* Account claim flow for admin-pre-created accounts */}
+            {step === 1 && claimableAccounts.length > 0 && (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-[#5DADA5]/40 bg-[#5DADA5]/5 p-4">
+                  <div className="flex items-start gap-3">
+                    <Store className="h-5 w-5 text-[#5DADA5] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-bold text-[#2C4F4E]">A vendor account already exists for your email</p>
+                      <p className="mt-1 text-sm text-slate-600">An account was pre-created for <strong>{user?.email}</strong>. Claim it to get immediate access to the Vendor Dashboard.</p>
+                    </div>
+                  </div>
+                </div>
+                {claimableAccounts.map((acct) => (
+                  <div key={acct.id} className="rounded-2xl border border-slate-200 bg-white p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[#2C4F4E]">{acct.business_name}</p>
+                      <p className="text-xs text-slate-500">{acct.business_category || "Vendor Account"} · {(acct.vendor_tier || "free").replace("_", " ")} tier</p>
+                    </div>
+                    <Button onClick={() => handleClaimAccount(acct)} disabled={claiming} className="shrink-0 bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635] font-semibold">
+                      {claiming ? <Loader2 className="h-4 w-4 animate-spin" /> : "Claim Account"}
+                    </Button>
+                  </div>
+                ))}
+                <div className="border-t border-slate-100 pt-3">
+                  <p className="text-xs text-slate-500 mb-2">Want to create a different account instead?</p>
+                  <Button variant="outline" onClick={() => setStep(2)} className="w-full rounded-xl text-slate-600">Create a New Vendor Account</Button>
+                </div>
+              </div>
+            )}
+
+            {step === 1 && claimableAccounts.length === 0 && (
               <div className="space-y-4">
                 <div className="rounded-2xl border bg-slate-50 p-4">
                   <p className="text-sm font-semibold text-[#2C4F4E]">Basic account info</p>
-                  <p className="mt-1 text-sm text-slate-600">You’ll use the same Yardit login for residential listings and vendor features.</p>
+                  <p className="mt-1 text-sm text-slate-600">You'll use the same Yardit login for residential listings and vendor features.</p>
                   <p className="mt-3 text-sm text-slate-700"><strong>Email:</strong> {user.email}</p>
                 </div>
                 <Button onClick={() => setStep(2)} className="w-full rounded-xl bg-[#5DADA5] hover:bg-[#4A9B93]">Continue</Button>
@@ -252,7 +301,7 @@ export default function VendorSignup() {
 
             {step === 4 && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-800"><CheckCircle2 className="mb-2 h-5 w-5" /><p className="font-bold">Complete Your Vendor Setup</p><p className="text-sm">Your vendor account is ready on the Free tier. Finish setup when you’re ready.</p></div>
+                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-800"><CheckCircle2 className="mb-2 h-5 w-5" /><p className="font-bold">Complete Your Vendor Setup</p><p className="text-sm">Your vendor account is ready on the Free tier. Finish setup when you're ready.</p></div>
                 <VendorSetupProgress
                   account={createdAccount}
                   pins={[]}
