@@ -48,6 +48,7 @@ function classifyTransaction(metadata, object, eventType) {
   const hasListing = !!metadata.listing_id;
   const hasVendor = !!metadata.vendor_account_id;
 
+  if (purpose.includes('vendor_event_promotion_upgrade') || !!metadata.vendor_event_id) return 'vendor_event_promotion_upgrade';
   if (purpose.includes('listing_upgrade') || (hasListing && metadata.target_tier)) return 'listing_upgrade';
   if (purpose.includes('listing') || purpose.includes('residential') || purpose.includes('event_paid_listing') || hasListing) return 'listing_payment';
   if (purpose.includes('vendor_tier_upgrade') || (hasVendor && metadata.target_tier)) return 'vendor_tier_upgrade';
@@ -62,6 +63,9 @@ function recordTarget(transactionType, metadata) {
   }
   if (transactionType === 'vendor_subscription' || transactionType === 'vendor_tier_upgrade') {
     return { type: 'VendorAccount', id: metadata.vendor_account_id || '' };
+  }
+  if (transactionType === 'vendor_event_promotion_upgrade') {
+    return { type: 'VendorEvent', id: metadata.vendor_event_id || '' };
   }
   return { type: '', id: '' };
 }
@@ -161,6 +165,27 @@ async function updateVendorSubscription(base44, metadata, object, statusOverride
   await base44.asServiceRole.entities.VendorAccount.update(metadata.vendor_account_id, patch);
 }
 
+async function applyVendorEventPromotionUpgrade(base44, metadata, object) {
+  const eventId = metadata.vendor_event_id;
+  if (!eventId) {
+    console.error('[applyVendorEventPromotionUpgrade] Missing vendor_event_id in metadata');
+    return;
+  }
+
+  // Only flip to "paid" here — never from the frontend
+  const patch = {
+    promotion_status: 'paid',
+    promotion_upgrade_required: false,
+    pending_upgrade_checkout_session_id: null,
+    stripe_checkout_session_id: object.object === 'checkout.session' ? object.id : '',
+    stripe_payment_intent_id: getPaymentIntentId(object),
+    pricePaid: centsToDollars(getAmountCents(object)),
+  };
+
+  await base44.asServiceRole.entities.VendorEvent.update(eventId, patch);
+  console.log(`[applyVendorEventPromotionUpgrade] Applied promotion upgrade for event ${eventId}, session ${object.id}`);
+}
+
 async function processVerifiedEvent(base44, event) {
   if (!SUPPORTED_EVENTS.has(event.type)) {
     return { status: 'ignored', reason: 'Unsupported event type' };
@@ -179,6 +204,10 @@ async function processVerifiedEvent(base44, event) {
 
     if (transactionType === 'listing_payment' || transactionType === 'listing_upgrade') {
       await updateListing(base44, metadata, object, transactionType);
+    }
+
+    if (transactionType === 'vendor_event_promotion_upgrade') {
+      await applyVendorEventPromotionUpgrade(base44, metadata, object);
     }
 
     await saveTransaction(base44, event, object, metadata, transactionType, 'succeeded');

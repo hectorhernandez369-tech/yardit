@@ -1,12 +1,14 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { format, differenceInCalendarDays, isSameDay } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, Info, AlertTriangle, ArrowUpCircle, CreditCard } from "lucide-react";
+import { CalendarClock, Info, AlertTriangle, ArrowUpCircle, CreditCard, Loader2 } from "lucide-react";
 import { getPromotionRule, getPromotionDates, calcPromotionUpgrade } from "@/lib/vendorEventPromotion";
 import { getVendorTierConfig } from "@/lib/vendorTiers";
+import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 
 /**
  * EventPromotionSection
@@ -17,7 +19,8 @@ import { getVendorTierConfig } from "@/lib/vendorTiers";
  *   comingSoonDate   - ISO string (or "") of selected coming soon date
  *   onComingSoonDate - (isoString) => void
  */
-export default function EventPromotionSection({ tierKey, eventStartDate, comingSoonDate, onComingSoonDate, draftState, onSaveDraft }) {
+export default function EventPromotionSection({ tierKey, eventStartDate, comingSoonDate, onComingSoonDate, savedEventId, vendorAccountId, onSaveDraft }) {
+  const [checkingOut, setCheckingOut] = useState(false);
   const rule = getPromotionRule(tierKey);
   const tierConfig = getVendorTierConfig(tierKey);
   const isFree = rule.includedDays === 0 && rule.maxDays === 0;
@@ -191,25 +194,58 @@ export default function EventPromotionSection({ tierKey, eventStartDate, comingS
                       <strong>Promotion upgrade required.</strong> Your {tierConfig.label} tier includes {rule.includedDays} days.
                       You selected {selectedDays} days (+{additionalDays} extra), so a promotion upgrade payment is required before publishing.
                     </p>
-                    {draftState && onSaveDraft && (
+                    {/* Case 1: Draft not yet saved — must save first */}
+                    {!savedEventId && onSaveDraft && (
                       <Button
                         size="sm"
-                        onClick={() => {
-                          // Save current draft state to sessionStorage so we can restore it after checkout
-                          sessionStorage.setItem("vendor_event_draft_restore", JSON.stringify({
-                            ...draftState,
-                            _restore_timestamp: Date.now(),
-                            _restore_step: "promotion_upgrade",
-                          }));
-                          onSaveDraft("promotion_upgrade_pending");
+                        disabled={checkingOut}
+                        onClick={async () => {
+                          setCheckingOut(true);
+                          await onSaveDraft();
+                          setCheckingOut(false);
+                          // onSaveDraft is expected to save the draft; savedEventId will be set by parent after save
                         }}
                         className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
                       >
-                        <CreditCard className="h-3.5 w-3.5" />
-                        Save Draft & Go to Checkout
+                        {checkingOut ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CreditCard className="h-3.5 w-3.5" />}
+                        Save Draft First
                       </Button>
                     )}
-                    {(!draftState || !onSaveDraft) && (
+                    {/* Case 2: Draft saved — go to checkout */}
+                    {savedEventId && vendorAccountId && (
+                      <Button
+                        size="sm"
+                        disabled={checkingOut}
+                        onClick={async () => {
+                          // Block if running inside an iframe (published preview)
+                          if (window.self !== window.top) {
+                            alert("Checkout is only available from the published app, not the preview.");
+                            return;
+                          }
+                          setCheckingOut(true);
+                          const res = await base44.functions.invoke("createVendorEventPromotionCheckout", {
+                            vendor_event_id: savedEventId,
+                            vendor_account_id: vendorAccountId,
+                            additional_days: additionalDays,
+                            price_per_day: 500, // cents per extra day ($5)
+                          });
+                          const { checkout_url, error } = res?.data || {};
+                          if (error || !checkout_url) {
+                            toast.error(error || "Could not start checkout. Please try again.");
+                            setCheckingOut(false);
+                            return;
+                          }
+                          // Redirect to Stripe — upgrade remains locked until webhook confirms
+                          window.location.href = checkout_url;
+                          // No setCheckingOut(false) here — page is navigating away
+                        }}
+                        className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+                      >
+                        {checkingOut ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CreditCard className="h-3.5 w-3.5" />}
+                        Pay for Promotion Upgrade
+                      </Button>
+                    )}
+                    {!savedEventId && !onSaveDraft && (
                       <p className="text-xs text-amber-700">Save the event as a draft first, then complete the promotion upgrade checkout from your event dashboard.</p>
                     )}
                   </div>

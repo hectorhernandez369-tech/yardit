@@ -88,21 +88,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
   const showPublicFields = mode !== "vendor";
   const showVendorFields = mode !== "public";
   const datesLocked = isEditing && approvedVendorCount > 0;
-  const [form, setForm] = useState(() => {
-    // Restore draft if returning from promotion upgrade checkout
-    if (!event?.id) {
-      const raw = sessionStorage.getItem("vendor_event_draft_restore");
-      if (raw) {
-        sessionStorage.removeItem("vendor_event_draft_restore");
-        const restored = JSON.parse(raw);
-        if (Date.now() - (restored._restore_timestamp || 0) < 30 * 60 * 1000) {
-          const { _restore_timestamp, _restore_step, ...formData } = restored;
-          return formData;
-        }
-      }
-    }
-    return buildInitialForm(event);
-  });
+  const [form, setForm] = useState(() => buildInitialForm(event));
   const [saving, setSaving] = useState(false);
   const [uploadingFlyer, setUploadingFlyer] = useState(false);
   const [createdEvent, setCreatedEvent] = useState(null);
@@ -590,11 +576,12 @@ export default function VendorEventForm({ account, user, event = null, approvedV
           eventStartDate={form.startDateTime ? new Date(form.startDateTime).toISOString() : ""}
           comingSoonDate={form.coming_soon_start_date}
           onComingSoonDate={(val) => update("coming_soon_start_date", val)}
-          draftState={!isEditing ? form : null}
-          onSaveDraft={!isEditing ? async (reason) => {
-            // Save as draft first, then navigate to event dashboard for checkout
+          savedEventId={createdEvent?.id || (isEditing ? event?.id : null)}
+          vendorAccountId={account?.id}
+          onSaveDraft={!isEditing && !createdEvent ? async () => {
             await saveEvent("draft");
-            toast.info("Draft saved. Complete the promotion upgrade payment from your event dashboard.");
+            // After saveEvent, createdEvent state is set — the EventPromotionSection
+            // will re-render with savedEventId populated, showing the "Pay for Upgrade" button.
           } : null}
         />
       )}

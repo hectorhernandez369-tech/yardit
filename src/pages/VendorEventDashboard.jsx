@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,8 @@ import { useNavigate } from "react-router-dom";
 export default function VendorEventDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const eventId = new URLSearchParams(window.location.search).get("id");
+  const urlParams = new URLSearchParams(window.location.search);
+  const eventId = urlParams.get("id") || urlParams.get("event_id");
   const [showInviteVendors, setShowInviteVendors] = useState(false);
   const [showCollaborators, setShowCollaborators] = useState(false);
 
@@ -55,6 +56,25 @@ export default function VendorEventDashboard() {
   const vendorById = useMemo(() => Object.fromEntries(vendorAccounts.map((vendor) => [vendor.id, vendor])), [vendorAccounts]);
   const spotsLeft = event?.max_vendors ? Math.max(Number(event.max_vendors) - attendees.length, 0) : null;
   const isFull = spotsLeft === 0;
+  // Show feedback banners when returning from Stripe checkout
+  useEffect(() => {
+    const promoCheckout = urlParams.get("promo_checkout");
+    if (promoCheckout === "return") {
+      // Payment may be processing — webhook will confirm. Refresh event data.
+      queryClient.invalidateQueries({ queryKey: ["vendorEvent", eventId] });
+      toast.success("Payment received! Your promotion upgrade will be confirmed shortly.");
+      // Clean URL
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete("promo_checkout");
+      window.history.replaceState({}, "", clean.toString());
+    } else if (promoCheckout === "cancel") {
+      toast.info("Checkout canceled. Your event draft is unchanged — the upgrade is still required.");
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete("promo_checkout");
+      window.history.replaceState({}, "", clean.toString());
+    }
+  }, []);
+
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["eventVendorRequests", eventId] });
     queryClient.invalidateQueries({ queryKey: ["eventVendorAttendees", eventId] });
