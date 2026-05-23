@@ -313,9 +313,6 @@ export default function ListingManagement({ mode, adminUser }) {
             return (
               <div className="space-y-3 text-sm">
                 <div className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-2">
-                  <span className="text-slate-500 font-medium">Listing ID:</span>
-                  <span className="text-slate-800 break-all">{listing.id}</span>
-
                   <span className="text-slate-500 font-medium">Created by:</span>
                   <span className="text-slate-800 break-all">{creatorName}</span>
 
@@ -328,6 +325,9 @@ export default function ListingManagement({ mode, adminUser }) {
 
                   <span className="text-slate-500 font-medium">Created:</span>
                   <span className="text-slate-800">{listing.created_date ? format(new Date(listing.created_date), "MMM d, yyyy h:mm a") : "—"}</span>
+
+                  <span className="text-slate-500 font-medium">Listing ID:</span>
+                  <span className="text-slate-800 break-all">{listing.id}</span>
 
                   <span className="text-slate-500 font-medium">Assisted status:</span>
                   <span className="text-slate-800 capitalize">{assisted?.assisted_status?.replace(/_/g, " ") || "—"}</span>
