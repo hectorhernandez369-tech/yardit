@@ -148,6 +148,7 @@ Deno.serve(async (req) => {
     // Create the AssistedListing record
     const assisted = await base44.asServiceRole.entities.AssistedListing.create({
       listing_id: listing.id,
+      listing_number: listingNumber,
       assisted_status: 'pending_seller_approval',
       assisted_qr_token: token,
       assisted_qr_created_at: now.toISOString(),

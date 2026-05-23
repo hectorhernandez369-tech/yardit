@@ -6,6 +6,10 @@
       "type": "string",
       "description": "The Listing entity ID this assisted record wraps"
     },
+    "listing_number": {
+      "type": "string",
+      "description": "The listing number (e.g. AD-CA9021-x7k2m) for easy search and display"
+    },
     "assisted_status": {
       "type": "string",
       "enum": [

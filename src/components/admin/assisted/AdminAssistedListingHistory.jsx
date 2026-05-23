@@ -85,14 +85,14 @@ export default function AdminAssistedListingHistory({ adminUser }) {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-[#2C4F4E] text-sm">{rec.seller_name || "Unnamed Seller"}</span>
+                  <span className="font-medium text-[#2C4F4E] text-sm">{rec.listing_number || "N/A"}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusInfo.color}`}>{statusInfo.label}</span>
                   {expired && rec.assisted_status === "pending_seller_approval" && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">QR Expired</span>
                   )}
                 </div>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Created {new Date(rec.created_date || rec.assisted_qr_created_at).toLocaleDateString()} · Scans: {rec.qr_scan_count || 0}
+                  {rec.seller_name || "Unnamed Seller"} · Created {new Date(rec.created_date || rec.assisted_qr_created_at).toLocaleDateString()} · Scans: {rec.qr_scan_count || 0}
                 </p>
               </div>
               <Button
