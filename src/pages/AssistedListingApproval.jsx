@@ -276,6 +276,16 @@ export default function AssistedListingApprovalPage() {
               </p>
             </div>
 
+            {/* Map-pin specific confirmation message */}
+            {listing?.location_source === "map_pin" && (
+              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-blue-800">
+                  <span className="font-semibold">This location was selected by a Yardit team member.</span> Please confirm this is your sale location before approving.
+                </p>
+              </div>
+            )}
+
             {listing && <ListingCard listing={listing} />}
 
             <div className="space-y-3">
