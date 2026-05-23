@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Calendar, MapPin, Plus, QrCode, AlertTriangle } from "lucide-react";
+import { Search, Calendar, MapPin, Plus, QrCode, AlertTriangle, Star } from "lucide-react";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import PromotionModal from "./promotions/PromotionModal";
 import AdminAssistedListingForm from "@/components/admin/assisted/AdminAssistedListingForm";
@@ -34,6 +35,7 @@ export default function ListingManagement({ mode, adminUser }) {
   const [promoListing, setPromoListing] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [qrModalRecord, setQrModalRecord] = useState(null);
+  const [starInfoListing, setStarInfoListing] = useState(null);
 
   const { data: listings } = useQuery({
     queryKey: ["allListings"],
@@ -168,9 +170,19 @@ export default function ListingManagement({ mode, adminUser }) {
               <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                   <div className="flex-1 min-w-0 space-y-3">
-                    <div>
-                      <h3 className="font-semibold text-lg break-words">{listing.title || "Untitled"}</h3>
+                    <div className="relative">
+                      <h3 className="font-semibold text-lg break-words pr-8">{listing.title || "Untitled"}</h3>
                       <p className="text-xs text-slate-500 break-all">Listing ID: {listing.id}</p>
+                      {(listing.created_by_admin === true || listing.assisted_listing === true) && (
+                        <button
+                          type="button"
+                          title="Admin-created listing — click for details"
+                          onClick={() => setStarInfoListing({ listing, assisted: assistedRecord })}
+                          className="absolute top-0 right-0 text-amber-500 hover:text-amber-600 transition-colors"
+                        >
+                          <Star className="w-5 h-5 fill-amber-400 stroke-amber-500" />
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex gap-2 flex-wrap">
@@ -283,6 +295,62 @@ export default function ListingManagement({ mode, adminUser }) {
           listing={promoListing}
         />
       )}
+
+      {/* Admin Star Info Modal */}
+      <Dialog open={!!starInfoListing} onOpenChange={(open) => !open && setStarInfoListing(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <Star className="w-4 h-4 fill-amber-400 stroke-amber-500" /> Admin-Created Listing
+            </DialogTitle>
+          </DialogHeader>
+          {starInfoListing && (() => {
+            const { listing, assisted } = starInfoListing;
+            const creatorId = assisted?.admin_creator_id || listing.ownerUserId;
+            const creatorEmail = assisted?.admin_creator_email || "";
+            const creatorUser = ownerMap[creatorId];
+            const creatorName = creatorUser ? `${creatorUser.first_name || ""} ${creatorUser.last_name || ""}`.trim() || creatorUser.email : (creatorEmail || creatorId || "Unknown");
+            return (
+              <div className="space-y-3 text-sm">
+                <div className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-2">
+                  <span className="text-slate-500 font-medium">Created by:</span>
+                  <span className="text-slate-800 break-all">{creatorName}</span>
+
+                  {creatorEmail && (
+                    <>
+                      <span className="text-slate-500 font-medium">Admin email:</span>
+                      <span className="text-slate-800 break-all">{creatorEmail}</span>
+                    </>
+                  )}
+
+                  <span className="text-slate-500 font-medium">Created:</span>
+                  <span className="text-slate-800">{listing.created_date ? format(new Date(listing.created_date), "MMM d, yyyy h:mm a") : "—"}</span>
+
+                  <span className="text-slate-500 font-medium">Assisted status:</span>
+                  <span className="text-slate-800 capitalize">{assisted?.assisted_status?.replace(/_/g, " ") || "—"}</span>
+
+                  <span className="text-slate-500 font-medium">Approved:</span>
+                  <span className="text-slate-800">
+                    {assisted?.seller_approved_at ? format(new Date(assisted.seller_approved_at), "MMM d, yyyy h:mm a") : "Not yet"}
+                  </span>
+
+                  <span className="text-slate-500 font-medium">Claimed by:</span>
+                  <span className="text-slate-800 break-all">
+                    {assisted?.claimed_by_user_id ? (ownerMap[assisted.claimed_by_user_id]?.email || assisted.claimed_by_user_id) : "Unclaimed"}
+                  </span>
+
+                  {assisted?.claimed_at && (
+                    <>
+                      <span className="text-slate-500 font-medium">Claimed at:</span>
+                      <span className="text-slate-800">{format(new Date(assisted.claimed_at), "MMM d, yyyy h:mm a")}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
         <DialogContent className="w-[calc(100vw-32px)] max-w-2xl max-h-[90vh] overflow-x-hidden overflow-y-auto p-4 sm:p-6 box-border">

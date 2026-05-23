@@ -118,6 +118,10 @@ export default function MyListingsPage() {
       return merged.filter((listing) => {
         if (seen.has(listing.id)) return false;
         seen.add(listing.id);
+        // Hide unclaimed admin-created assisted listings — managed from Admin Dashboard
+        if ((listing.created_by_admin === true || listing.assisted_listing === true) && listing.owner_type === "guest_assisted") {
+          return false;
+        }
         return true;
       });
     },
