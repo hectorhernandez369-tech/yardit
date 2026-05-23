@@ -105,6 +105,22 @@
     "assisted_sale_formatted_address": {
       "type": "string",
       "description": "Full formatted address of the yard sale, entered by admin \u2014 used as the QR code label"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Latitude of the sale location (for admin/QR verification)"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Longitude of the sale location (for admin/QR verification)"
+    },
+    "location_source": {
+      "type": "string",
+      "enum": [
+        "address_search",
+        "map_pin"
+      ],
+      "description": "Source of the location data"
     }
   },
   "required": [

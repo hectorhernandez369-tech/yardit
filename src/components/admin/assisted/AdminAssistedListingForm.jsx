@@ -172,7 +172,8 @@ export default function AdminAssistedListingForm({ adminUser }) {
         city: form.city,
         state: form.state,
         zip: form.zip,
-        location_source: "search",
+        location_source: "address_search",
+        saleFormattedAddress: selectedAddress?.formatted || `${form.addressText}, ${form.city}, ${form.state} ${form.zip}`.trim(),
       };
     }
 

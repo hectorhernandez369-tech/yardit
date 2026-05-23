@@ -157,6 +157,10 @@ Deno.serve(async (req) => {
       assisted_sale_state: state || '',
       assisted_sale_zip: zip || '',
       assisted_sale_formatted_address: saleFormattedAddress,
+      // Coordinates for admin/QR verification
+      latitude: parseFloat(lat),
+      longitude: parseFloat(lng),
+      location_source,
     });
 
     console.log('Created assisted record:', assisted.id, 'token:', token);
