@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, Clock, XCircle, MapPin, Calendar, Share2 } from "lucide-react";
+import { Loader2, CheckCircle, Clock, XCircle, MapPin, Calendar, Share2, Map, Navigation, ExternalLink, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -101,6 +101,12 @@ function LockedActionModal({ open, onClose }) {
 function ApprovedUnclaimedView({ listing, onSignUpToEdit, navigate }) {
   const [showLockedModal, setShowLockedModal] = useState(false);
   const shareUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing?.id}`;
+  const mapUrl = listing?.lat && listing?.lng
+    ? `${window.location.origin}${createPageUrl("Home")}?listingId=${listing.id}`
+    : null;
+  const directionsUrl = listing?.lat && listing?.lng
+    ? `https://maps.google.com/?q=${listing.lat},${listing.lng}`
+    : null;
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -111,41 +117,85 @@ function ApprovedUnclaimedView({ listing, onSignUpToEdit, navigate }) {
     }
   };
 
+  const LOCKED_ACTIONS = ["Edit Details", "Add Photos", "Change Dates", "Relist / Upgrade", "Manage Photos"];
+
   return (
     <div className="space-y-5">
+      {/* Live confirmation banner */}
       <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
         <CheckCircle className="w-6 h-6 text-green-600 mt-0.5 shrink-0" />
         <div>
           <p className="font-semibold text-green-800">Your listing is live!</p>
-          <p className="text-sm text-green-700 mt-0.5">Share this with friends, neighbors, and shoppers nearby.</p>
+          <p className="text-sm text-green-700 mt-0.5">Shoppers nearby can now find your sale on Yardit.</p>
         </div>
       </div>
 
       <ListingCard listing={listing} />
 
-      <Button onClick={handleShare} className="w-full bg-[#5DADA5] hover:bg-[#4A9B93]">
-        Share Listing
-      </Button>
-
-      {/* Locked actions */}
+      {/* Viewer actions — no account required */}
       <div className="space-y-2">
-        {["Edit Details", "Add Photos", "Relist / Upgrade"].map((action) => (
+        <Button
+          onClick={() => navigate(`${createPageUrl("ListingDetail")}?id=${listing.id}`)}
+          className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white font-semibold gap-2"
+        >
+          <ExternalLink className="w-4 h-4" />
+          View Full Listing Details
+        </Button>
+
+        <div className="grid grid-cols-2 gap-2">
+          {mapUrl && (
+            <Button
+              variant="outline"
+              onClick={() => navigate(mapUrl)}
+              className="gap-2 border-[#5DADA5] text-[#5DADA5] hover:bg-[#5DADA5]/5"
+            >
+              <Map className="w-4 h-4" />
+              Show on Map
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={handleShare}
+            className="gap-2 border-[#5DADA5] text-[#5DADA5] hover:bg-[#5DADA5]/5"
+          >
+            <Share2 className="w-4 h-4" />
+            Share
+          </Button>
+        </div>
+
+        {directionsUrl && (
+          <Button
+            variant="outline"
+            onClick={() => window.open(directionsUrl, "_blank")}
+            className="w-full gap-2 border-slate-300 text-slate-600 hover:bg-slate-50"
+          >
+            <Navigation className="w-4 h-4" />
+            Get Directions
+          </Button>
+        )}
+      </div>
+
+      {/* Locked owner actions */}
+      <div className="border-t pt-4 space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Manage This Listing</p>
+        {LOCKED_ACTIONS.map((action) => (
           <button
             key={action}
             onClick={() => setShowLockedModal(true)}
-            className="w-full text-left p-3 rounded-lg border border-gray-200 text-sm text-gray-500 flex items-center justify-between hover:bg-gray-50"
+            className="w-full text-left p-3 rounded-lg border border-gray-200 text-sm text-gray-500 flex items-center justify-between hover:bg-gray-50 transition"
           >
-            🔒 {action}
+            <span className="flex items-center gap-2">
+              <Lock className="w-3.5 h-3.5 text-gray-400" />
+              {action}
+            </span>
             <span className="text-xs text-gray-400">Account required</span>
           </button>
         ))}
       </div>
 
-      <div className="border-t pt-4">
-        <Button onClick={onSignUpToEdit} variant="outline" className="w-full border-[#5DADA5] text-[#5DADA5] hover:bg-[#5DADA5]/5">
-          Sign Up to Claim & Edit This Listing
-        </Button>
-      </div>
+      <Button onClick={onSignUpToEdit} className="w-full bg-[#2C4F4E] hover:bg-[#1e3837] text-white font-semibold">
+        Create Account to Claim & Manage
+      </Button>
 
       <LockedActionModal open={showLockedModal} onClose={() => setShowLockedModal(false)} />
     </div>
@@ -211,14 +261,8 @@ export default function AssistedListingApprovalPage() {
       if (d.assisted) setAssisted(d.assisted);
 
       if (action === "approve") {
-        // Show the live listing view, then navigate to listing detail
+        // Show the approved unclaimed view immediately — no auto-redirect
         setState("approved");
-        const listingId = d.listing?.id || listing?.id;
-        if (listingId) {
-          setTimeout(() => {
-            navigate(`${createPageUrl("ListingDetail")}?id=${listingId}`);
-          }, 1200);
-        }
       } else if (action === "claim_pending") {
         // Counts as approval — store token and redirect to login/signup
         sessionStorage.setItem("assisted_claim_token", token);
@@ -357,17 +401,14 @@ export default function AssistedListingApprovalPage() {
         )}
 
         {state === "approved" && listing && (
-          <div className="space-y-4">
-            <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
-              <CheckCircle className="w-6 h-6 text-green-600 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold text-green-800">Approved! Taking you to your listing…</p>
-                <p className="text-sm text-green-700 mt-0.5">Your sale is now visible to local shoppers on Yardit.</p>
-              </div>
-            </div>
-            <ListingCard listing={listing} />
-            <Loader2 className="w-6 h-6 animate-spin text-[#5DADA5] mx-auto" />
-          </div>
+          <ApprovedUnclaimedView
+            listing={listing}
+            navigate={navigate}
+            onSignUpToEdit={() => {
+              sessionStorage.setItem("assisted_claim_token", token);
+              base44.auth.redirectToLogin(`${window.location.origin}/assisted-listing?token=${token}`);
+            }}
+          />
         )}
 
         {state === "claim_pending" && (
@@ -376,6 +417,8 @@ export default function AssistedListingApprovalPage() {
             <p className="text-gray-600">Redirecting to sign up…</p>
           </div>
         )}
+
+        {/* already-approved unclaimed state also uses ApprovedUnclaimedView via "approved" — handled above */}
 
         {state === "claimed" && (
           <div className="text-center py-12">
