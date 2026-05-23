@@ -47,36 +47,16 @@ Deno.serve(async (req) => {
         console.error('claim_complete called without claimUserId');
         return Response.json({ error: 'claimUserId is required', status: 'error' }, { status: 400 });
       }
-      const claimableStatuses = ['assisted_active_unclaimed', 'pending_seller_approval', 'assisted_active_claim_pending'];
-      if (!claimableStatuses.includes(assisted.assisted_status)) {
+      // Only allow claim when status is assisted_active_unclaimed (after seller approval)
+      if (assisted.assisted_status !== 'assisted_active_unclaimed') {
         console.error('claim_complete: invalid assisted_status for claim:', assisted.assisted_status);
-        return Response.json({ error: `Cannot claim listing in status: ${assisted.assisted_status}`, status: 'error' }, { status: 400 });
+        return Response.json({ error: `Cannot claim listing in status: ${assisted.assisted_status}. Seller must approve first.`, status: 'error' }, { status: 400 });
       }
       const claimNow = new Date().toISOString();
 
-      // Ensure startDateTime/endDateTime are valid ISO strings so the listing passes map filters.
-      // The admin may have entered partial formats (e.g. "2026-05-23T11:12"); normalize them on claim.
-      const listingStartRaw = listing?.startDateTime;
-      const listingEndRaw = listing?.endDateTime;
-      const parsedStart = listingStartRaw ? new Date(listingStartRaw) : null;
-      const parsedEnd = listingEndRaw ? new Date(listingEndRaw) : null;
-
-      // If startDateTime is missing, invalid, or in the future → set to now so it shows immediately
-      const normalizedStart = (!parsedStart || isNaN(parsedStart.getTime()) || parsedStart > new Date())
-        ? claimNow
-        : parsedStart.toISOString();
-
-      // If endDateTime is missing, invalid, or already past → default to end of today (24h from now)
-      const fallbackEnd = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      const normalizedEnd = (!parsedEnd || isNaN(parsedEnd.getTime()) || parsedEnd < new Date())
-        ? fallbackEnd
-        : parsedEnd.toISOString();
-
+      // Claim only attaches ownership and unlocks management tools — do NOT change dates
       await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
         ownerUserId: claimUserId,
-        status: 'active',
-        startDateTime: normalizedStart,
-        endDateTime: normalizedEnd,
       });
       await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
         assisted_status: 'claimed_active',

@@ -80,6 +80,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Start and end date/time are required' }, { status: 400 });
     }
 
+    // Normalize datetimes to full ISO UTC strings
+    const normalizedStartDateTime = new Date(startDateTime).toISOString();
+    const normalizedEndDateTime = new Date(endDateTime).toISOString();
+
     const listingType = normalizeListingType(rawListingType);
     const token = generateToken();
     const now = new Date();
@@ -114,8 +118,8 @@ Deno.serve(async (req) => {
       lat: parseFloat(lat),
       lng: parseFloat(lng),
       timeZoneId,
-      startDateTime,
-      endDateTime,
+      startDateTime: normalizedStartDateTime,
+      endDateTime: normalizedEndDateTime,
       activeDates: [],
       earlyVisibilityDates: [],
       selectedRangeStartDate: selectedRangeStartDate || startDateTime.slice(0, 10),
