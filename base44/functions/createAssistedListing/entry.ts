@@ -44,6 +44,8 @@ Deno.serve(async (req) => {
       zip,
       lat,
       lng,
+      location_source = 'search',
+      saleFormattedAddress: clientFormattedAddress,
       timeZoneId = 'America/Los_Angeles',
       title,
       description = '',
@@ -59,10 +61,13 @@ Deno.serve(async (req) => {
       sellerPermissionConfirmed = false,
     } = payload;
 
+    const isMapPin = location_source === 'map_pin';
+
     if (!sellerPermissionConfirmed) {
       return Response.json({ error: 'Seller permission confirmation is required' }, { status: 400 });
     }
-    if (!addressText || !city || !state || !zip) {
+    // For map pin mode, we only need lat/lng. For search mode, full address is required.
+    if (!isMapPin && (!addressText || !city || !state || !zip)) {
       return Response.json({ error: 'Address fields are required' }, { status: 400 });
     }
     if (!lat || !lng) {
@@ -80,6 +85,11 @@ Deno.serve(async (req) => {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
 
+    // Build the sale address string early — used in both Listing and AssistedListing
+    const saleFormattedAddress = isMapPin
+      ? (clientFormattedAddress || 'Approximate Yard Sale Location')
+      : `${addressText}, ${city}, ${state} ${zip}`.trim();
+
     // Determine the effective tier field for event listings
     const isEvent = listingType === 'event';
     const listingTier = isEvent ? 'basic' : (tier === 'neighborhood_tier' ? 'neighborhood_tier' : tier);
@@ -95,11 +105,12 @@ Deno.serve(async (req) => {
       title,
       description,
       photoUrls,
-      addressText,
-      display_address: `${addressText}, ${city}, ${state} ${zip}`,
-      city,
-      state,
-      zip,
+      addressText: addressText || 'Approximate Yard Sale Location',
+      display_address: saleFormattedAddress,
+      city: city || '',
+      state: state || '',
+      zip: zip || '',
+      location_source,
       lat: parseFloat(lat),
       lng: parseFloat(lng),
       timeZoneId,
@@ -121,9 +132,6 @@ Deno.serve(async (req) => {
 
     console.log('Created assisted listing:', listing.id);
 
-    // Build the sale address string from admin-entered fields
-    const saleFormattedAddress = `${addressText}, ${city}, ${state} ${zip}`.trim();
-
     // Create the AssistedListing record
     const assisted = await base44.asServiceRole.entities.AssistedListing.create({
       listing_id: listing.id,
@@ -140,10 +148,10 @@ Deno.serve(async (req) => {
       admin_notes: adminNotes,
       qr_scan_count: 0,
       // Admin-entered sale address — used as the QR label
-      assisted_sale_address: addressText,
-      assisted_sale_city: city,
-      assisted_sale_state: state,
-      assisted_sale_zip: zip,
+      assisted_sale_address: addressText || (isMapPin ? 'Approximate Yard Sale Location' : ''),
+      assisted_sale_city: city || '',
+      assisted_sale_state: state || '',
+      assisted_sale_zip: zip || '',
       assisted_sale_formatted_address: saleFormattedAddress,
     });
 

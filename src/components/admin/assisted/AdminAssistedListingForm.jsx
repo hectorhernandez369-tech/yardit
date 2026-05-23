@@ -6,9 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Camera, X } from "lucide-react";
+import { Loader2, Camera, X, Search, MapPin } from "lucide-react";
 import AssistedListingQRPanel from "@/components/admin/assisted/AssistedListingQRPanel";
 import AdminAddressSearch from "@/components/admin/assisted/AdminAddressSearch";
+import AdminPinDropMap from "@/components/admin/assisted/AdminPinDropMap";
 
 const FALLBACK_TZ = "America/Los_Angeles";
 
@@ -65,7 +66,9 @@ const EMPTY_FORM = {
 
 export default function AdminAssistedListingForm({ adminUser }) {
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [addressMethod, setAddressMethod] = useState("search"); // "search" | "pin"
   const [selectedAddress, setSelectedAddress] = useState(null);
+  const [pinLocation, setPinLocation] = useState(null); // { lat, lng, street, city, state, zip, formatted, hasFullAddress }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [created, setCreated] = useState(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -99,6 +102,18 @@ export default function AdminAssistedListingForm({ adminUser }) {
     }
   };
 
+  const handlePinLocation = (loc) => {
+    setPinLocation(loc);
+  };
+
+  const handleAddressMethodChange = (method) => {
+    setAddressMethod(method);
+    // Reset location state when switching methods
+    setSelectedAddress(null);
+    setPinLocation(null);
+    setForm((p) => ({ ...p, addressText: "", city: "", state: "", zip: "", lat: "", lng: "" }));
+  };
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -118,8 +133,12 @@ export default function AdminAssistedListingForm({ adminUser }) {
   };
 
   const handleSubmit = async () => {
-    if (!selectedAddress) {
+    if (addressMethod === "search" && !selectedAddress) {
       toast.error("Search and select an address before creating the listing.");
+      return;
+    }
+    if (addressMethod === "pin" && !pinLocation) {
+      toast.error("Drop a pin on the map to set the location.");
       return;
     }
     if (!form.title) {
@@ -131,17 +150,38 @@ export default function AdminAssistedListingForm({ adminUser }) {
       return;
     }
 
+    // Build address payload depending on method
+    let addrPayload;
+    if (addressMethod === "pin") {
+      const p = pinLocation;
+      addrPayload = {
+        lat: p.lat,
+        lng: p.lng,
+        addressText: p.street || "Approximate Yard Sale Location",
+        city: p.city || "",
+        state: p.state || "",
+        zip: p.zip || "",
+        location_source: "map_pin",
+        saleFormattedAddress: p.formatted || "Approximate Yard Sale Location",
+      };
+    } else {
+      addrPayload = {
+        lat: parseFloat(form.lat),
+        lng: parseFloat(form.lng),
+        addressText: form.addressText,
+        city: form.city,
+        state: form.state,
+        zip: form.zip,
+        location_source: "search",
+      };
+    }
+
     setIsSubmitting(true);
     try {
       const response = await base44.functions.invoke("createAssistedListing", {
         listingType: form.listingType,
         tier: form.tier,
-        addressText: form.addressText,
-        city: form.city,
-        state: form.state,
-        zip: form.zip,
-        lat: parseFloat(form.lat),
-        lng: parseFloat(form.lng),
+        ...addrPayload,
         timeZoneId: FALLBACK_TZ,
         title: form.title,
         description: form.description,
@@ -199,6 +239,8 @@ export default function AdminAssistedListingForm({ adminUser }) {
     setCreated(null);
     setForm({ ...EMPTY_FORM });
     setSelectedAddress(null);
+    setPinLocation(null);
+    setAddressMethod("search");
   };
 
   if (created) {
@@ -249,7 +291,40 @@ export default function AdminAssistedListingForm({ adminUser }) {
       {/* Address */}
       <div className="space-y-3">
         <h3 className="font-semibold text-[#2C4F4E]">Address</h3>
-        <AdminAddressSearch onAddressSelected={handleAddressSelected} selectedAddress={selectedAddress} />
+
+        {/* Method Toggle */}
+        <div className="flex rounded-lg border border-slate-200 overflow-hidden w-fit">
+          <button
+            type="button"
+            onClick={() => handleAddressMethodChange("search")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
+              addressMethod === "search"
+                ? "bg-[#5DADA5] text-white"
+                : "bg-white text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            <Search className="w-3.5 h-3.5" /> Search Address
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAddressMethodChange("pin")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
+              addressMethod === "pin"
+                ? "bg-[#5DADA5] text-white"
+                : "bg-white text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            <MapPin className="w-3.5 h-3.5" /> Drop Pin on Map
+          </button>
+        </div>
+
+        {addressMethod === "search" && (
+          <AdminAddressSearch onAddressSelected={handleAddressSelected} selectedAddress={selectedAddress} />
+        )}
+
+        {addressMethod === "pin" && (
+          <AdminPinDropMap onLocationSelected={handlePinLocation} />
+        )}
       </div>
 
       {/* Listing Details */}
