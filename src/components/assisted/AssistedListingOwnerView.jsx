@@ -116,12 +116,16 @@ export default function AssistedListingOwnerView({ listing, token }) {
           action: "claim_complete",
           claimUserId: user.id,
         });
+        console.log("claim_complete response:", res.data);
         if (res.data?.status === "claimed") {
           navigate(createPageUrl("MyListings"));
         } else {
-          setClaimError("Could not complete claim. Please try again.");
+          const msg = res.data?.error || `Unexpected status: ${res.data?.status}`;
+          console.error("claim_complete failed:", msg);
+          setClaimError(`Could not complete claim: ${msg}`);
         }
-      } catch {
+      } catch (err) {
+        console.error("claim_complete exception:", err);
         setClaimError("Something went wrong. Please try again.");
       }
       setIsClaiming(false);

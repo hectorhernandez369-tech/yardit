@@ -39,6 +39,35 @@ Deno.serve(async (req) => {
     const listings = await base44.asServiceRole.entities.Listing.filter({ id: assisted.listing_id });
     const listing = listings[0] || null;
 
+    // --- Actions (checked FIRST before any early returns) ---
+
+    // Logged-in user claims ownership — must run before status early-returns
+    if (action === 'claim_complete') {
+      if (!claimUserId) {
+        console.error('claim_complete called without claimUserId');
+        return Response.json({ error: 'claimUserId is required', status: 'error' }, { status: 400 });
+      }
+      const claimableStatuses = ['assisted_active_unclaimed', 'pending_seller_approval', 'assisted_active_claim_pending'];
+      if (!claimableStatuses.includes(assisted.assisted_status)) {
+        console.error('claim_complete: invalid assisted_status for claim:', assisted.assisted_status);
+        return Response.json({ error: `Cannot claim listing in status: ${assisted.assisted_status}`, status: 'error' }, { status: 400 });
+      }
+      const claimNow = new Date().toISOString();
+      await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
+        ownerUserId: claimUserId,
+        status: 'active',
+      });
+      await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
+        assisted_status: 'claimed_active',
+        claimed_by_user_id: claimUserId,
+        claimed_at: claimNow,
+      });
+      const updatedListings = await base44.asServiceRole.entities.Listing.filter({ id: assisted.listing_id });
+      const updatedListing = updatedListings[0] || listing;
+      console.log('claim_complete: success for user', claimUserId, 'listing', assisted.listing_id);
+      return Response.json({ status: 'claimed', listing: updatedListing, assisted });
+    }
+
     // Handle completed states — return them directly without checking expiry
     if (assisted.assisted_status === 'assisted_declined') {
       return Response.json({ status: 'declined', listing, assisted });
@@ -64,8 +93,6 @@ Deno.serve(async (req) => {
       return Response.json({ status: 'ok', listing, assisted });
     }
 
-    // --- Actions ---
-
     // Seller approves: listing goes public, status = assisted_active_unclaimed
     if (action === 'approve') {
       await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
@@ -89,22 +116,6 @@ Deno.serve(async (req) => {
         status: 'hidden',
       });
       return Response.json({ status: 'declined', listing: null, assisted });
-    }
-
-    // Logged-in user scans QR and claims ownership
-    if (action === 'claim_complete' && claimUserId) {
-      await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
-        ownerUserId: claimUserId,
-        owner_type: null,
-        assisted_listing: null,
-        status: 'active',
-      });
-      await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
-        assisted_status: 'claimed_active',
-        claimed_by_user_id: claimUserId,
-        claimed_at: now.toISOString(),
-      });
-      return Response.json({ status: 'claimed', listing, assisted });
     }
 
     return Response.json({ status: 'ok', listing, assisted });
