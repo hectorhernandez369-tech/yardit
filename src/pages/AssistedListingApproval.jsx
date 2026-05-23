@@ -46,14 +46,13 @@ function ExpiredScreen({ navigate }) {
   );
 }
 
-
 export default function AssistedListingApprovalPage() {
   const navigate = useNavigate();
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token");
 
   const [loading, setLoading] = useState(true);
-  const [state, setState] = useState(null); // ok | declined | expired | not_found | approved | claim_pending
+  const [state, setState] = useState(null); // ok | declined | expired | not_found | approved | claimed
   const [listing, setListing] = useState(null);
   const [assisted, setAssisted] = useState(null);
   const [isActing, setIsActing] = useState(false);
@@ -62,8 +61,30 @@ export default function AssistedListingApprovalPage() {
     if (!token) { setState("not_found"); setLoading(false); return; }
     (async () => {
       try {
+        // Check if logged-in user is scanning a QR for a listing they can claim
+        const isAuth = await base44.auth.isAuthenticated();
         const res = await base44.functions.invoke("resolveAssistedListing", { token });
         const d = res.data;
+
+        // If listing is approved/unclaimed and user is authenticated — auto-claim
+        if (d.status === "approved" && isAuth) {
+          const user = await base44.auth.me();
+          if (user) {
+            const claimRes = await base44.functions.invoke("resolveAssistedListing", {
+              token,
+              action: "claim_complete",
+              claimUserId: user.id,
+            });
+            if (claimRes.data?.status === "claimed") {
+              setState("claimed");
+              setListing(claimRes.data.listing || d.listing);
+              setAssisted(claimRes.data.assisted || d.assisted);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+
         setState(d.status);
         setListing(d.listing);
         setAssisted(d.assisted);
@@ -74,50 +95,15 @@ export default function AssistedListingApprovalPage() {
     })();
   }, [token]);
 
-  // Try to auto-claim if user is now logged in and we previously set claim_pending
-  useEffect(() => {
-    if (state !== "claim_pending") return;
-    (async () => {
-      const isAuth = await base44.auth.isAuthenticated();
-      if (!isAuth) return;
-      const user = await base44.auth.me();
-      if (!user) return;
-      // Attempt claim_complete
-      try {
-        const res = await base44.functions.invoke("resolveAssistedListing", {
-          token,
-          action: "claim_complete",
-          claimUserId: user.id,
-        });
-        if (res.data?.status === "claimed") {
-          navigate(createPageUrl("MyListings"));
-        }
-      } catch {}
-    })();
-  }, [state, token]);
-
   const doAction = async (action) => {
     setIsActing(true);
     try {
       const res = await base44.functions.invoke("resolveAssistedListing", { token, action });
       const d = res.data;
-
       if (d.listing) setListing(d.listing);
       if (d.assisted) setAssisted(d.assisted);
-
-      if (action === "approve") {
-        setState("owner_view");
-      } else if (action === "claim_pending") {
-        // Counts as approval — store token and redirect to login/signup
-        sessionStorage.setItem("assisted_claim_token", token);
-        setState("claim_pending");
-        base44.auth.redirectToLogin(`${window.location.origin}/assisted-listing?token=${token}`);
-      } else if (action === "decline") {
-        setState("declined");
-      } else {
-        setState(d.status);
-      }
-    } catch (err) {
+      setState(d.status === "approved" ? "owner_view" : d.status);
+    } catch {
       alert("Something went wrong. Please try again.");
     }
     setIsActing(false);
@@ -139,6 +125,7 @@ export default function AssistedListingApprovalPage() {
       </div>
 
       <div className="max-w-md mx-auto p-4 py-6">
+
         {state === "not_found" && (
           <div className="text-center py-12">
             <XCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -151,9 +138,9 @@ export default function AssistedListingApprovalPage() {
         {state === "declined" && <DeclinedScreen navigate={navigate} />}
         {state === "expired" && <ExpiredScreen navigate={navigate} />}
 
+        {/* Pending seller approval — first scan */}
         {state === "ok" && assisted && (
           <div className="space-y-5">
-            {/* Gift message */}
             <div className="bg-white rounded-2xl p-5 shadow-sm text-center border border-[#5DADA5]/30">
               <div className="text-4xl mb-3">🎁</div>
               <h1 className="text-xl font-bold text-[#2C4F4E] mb-3">
@@ -164,7 +151,6 @@ export default function AssistedListingApprovalPage() {
               </p>
             </div>
 
-            {/* Map-pin specific confirmation message */}
             {listing?.location_source === "map_pin" && (
               <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
@@ -197,7 +183,6 @@ export default function AssistedListingApprovalPage() {
             )}
 
             <div className="space-y-3">
-              {/* 1 — Large primary: Approve & View Listing */}
               <Button
                 onClick={() => doAction("approve")}
                 disabled={isActing}
@@ -205,10 +190,9 @@ export default function AssistedListingApprovalPage() {
                 className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white py-4 text-base font-semibold shadow-md"
               >
                 {isActing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle className="w-5 h-5 mr-2" />}
-                Approve &amp; View Listing
+                Approve &amp; Go Live
               </Button>
 
-              {/* 2 — Large secondary: Decide Later (local only, no backend) */}
               <Button
                 disabled={isActing}
                 size="lg"
@@ -220,15 +204,7 @@ export default function AssistedListingApprovalPage() {
                 Decide Later
               </Button>
 
-              {/* 3 & 4 — Small subtle text buttons */}
-              <div className="border-t pt-3 flex flex-col items-center gap-1">
-                <button
-                  onClick={() => doAction("claim_pending")}
-                  disabled={isActing}
-                  className="text-sm text-[#5DADA5] underline hover:text-[#4A9B93] disabled:opacity-50 py-1"
-                >
-                  Sign Up to Edit
-                </button>
+              <div className="border-t pt-3 flex flex-col items-center">
                 <button
                   onClick={() => doAction("decline")}
                   disabled={isActing}
@@ -247,7 +223,7 @@ export default function AssistedListingApprovalPage() {
               <Clock className="w-12 h-12 text-amber-500 mx-auto mb-3" />
               <h2 className="text-lg font-bold text-[#2C4F4E] mb-2">No Problem!</h2>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Your listing will stay on hold for 24 hours. Scan this QR code again before it expires to approve or manage it.
+                Your listing will stay on hold. Scan this QR code again before it expires to approve or manage it.
               </p>
               {assisted?.assisted_qr_expires_at && (
                 <p className="text-xs text-amber-700 mt-3 font-medium">
@@ -264,45 +240,34 @@ export default function AssistedListingApprovalPage() {
           </div>
         )}
 
-        {["owner_view", "approved", "assisted_active_unclaimed", "assisted_active_claim_pending"].includes(state) && (
+        {/* Approved — show single-listing owner view */}
+        {["owner_view", "approved", "assisted_active_unclaimed"].includes(state) && (
           listing
-            ? <AssistedListingOwnerView listing={listing} />
-            : loading
-              ? (
-                <div className="text-center py-12 px-4">
-                  <Loader2 className="w-10 h-10 animate-spin text-[#5DADA5] mx-auto mb-4" />
-                  <p className="text-gray-600 font-medium">Loading your Yardit listing...</p>
-                </div>
-              )
-              : (
-                <div className="text-center py-12 px-4">
-                  <XCircle className="w-14 h-14 text-gray-400 mx-auto mb-4" />
-                  <h2 className="text-lg font-bold text-gray-700 mb-2">We couldn't load this listing.</h2>
-                  <p className="text-sm text-gray-500 mb-6">Please scan the QR code again to try once more.</p>
-                  <Button onClick={() => window.location.reload()} className="bg-[#5DADA5] hover:bg-[#4A9B93] text-white font-semibold">
-                    Scan QR Again
-                  </Button>
-                </div>
-              )
+            ? <AssistedListingOwnerView listing={listing} token={token} />
+            : (
+              <div className="text-center py-12 px-4">
+                <XCircle className="w-14 h-14 text-gray-400 mx-auto mb-4" />
+                <h2 className="text-lg font-bold text-gray-700 mb-2">We couldn't load this listing.</h2>
+                <p className="text-sm text-gray-500 mb-6">Please scan the QR code again to try once more.</p>
+                <Button onClick={() => window.location.reload()} className="bg-[#5DADA5] hover:bg-[#4A9B93] text-white font-semibold">
+                  Try Again
+                </Button>
+              </div>
+            )
         )}
 
-        {state === "claim_pending" && (
-          <div className="text-center py-12">
-            <Loader2 className="w-10 h-10 animate-spin text-[#5DADA5] mx-auto mb-4" />
-            <p className="text-gray-600">Redirecting to sign up…</p>
-          </div>
-        )}
-
+        {/* Claimed — show success and redirect to My Listings */}
         {state === "claimed" && (
           <div className="text-center py-12">
             <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-[#2C4F4E] mb-2">Listing Claimed!</h2>
-            <p className="text-gray-600 mb-6">Your listing is now in My Listings. You can now edit, relist, and manage it.</p>
-            <Button onClick={() => navigate(createPageUrl("MyListings"))} className="bg-[#5DADA5] hover:bg-[#4A9B93]">
+            <p className="text-gray-600 mb-6">Your listing is now in My Listings. You can edit, relist, and manage it anytime.</p>
+            <Button onClick={() => navigate(createPageUrl("MyListings"))} className="bg-[#5DADA5] hover:bg-[#4A9B93] text-white">
               Go to My Listings
             </Button>
           </div>
         )}
+
       </div>
     </div>
   );

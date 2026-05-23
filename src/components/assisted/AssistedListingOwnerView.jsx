@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   MapPin, Calendar, Map, Share2, Navigation, CheckCircle,
-  Lock, Eye, ArrowRight
+  Lock, ArrowRight
 } from "lucide-react";
 import {
   formatListingDateRange,
@@ -29,7 +29,7 @@ function LockedModal({ open, onClose, onSignUp }) {
         </div>
         <h3 className="font-bold text-lg text-[#2C4F4E] mb-2">Create an Account to Make Changes</h3>
         <p className="text-sm text-gray-600 mb-5">
-          Create an account to claim this listing and make changes — edit details, add photos, relist, upgrade, or extend dates.
+          Create a free account to claim this listing — edit details, add photos, relist, upgrade, or extend dates.
         </p>
         <div className="flex gap-3">
           <Button variant="outline" onClick={onClose} className="flex-1">Not Now</Button>
@@ -57,7 +57,7 @@ function LockedAction({ label, onClick }) {
   );
 }
 
-export default function AssistedListingOwnerView({ listing, onSignUpToEdit }) {
+export default function AssistedListingOwnerView({ listing, token }) {
   const navigate = useNavigate();
   const [showLockedModal, setShowLockedModal] = useState(false);
 
@@ -95,9 +95,12 @@ export default function AssistedListingOwnerView({ listing, onSignUpToEdit }) {
     navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
   };
 
-  const handleSignUp = () => {
-    sessionStorage.setItem("assisted_claim_listing_id", listing.id);
-    base44.auth.redirectToLogin(window.location.href);
+  // Claim: redirect to login; QR token in URL so after login they land back here
+  const handleClaim = () => {
+    const returnUrl = token
+      ? `${window.location.origin}/assisted-listing?token=${token}`
+      : window.location.href;
+    base44.auth.redirectToLogin(returnUrl);
   };
 
   return (
@@ -111,7 +114,7 @@ export default function AssistedListingOwnerView({ listing, onSignUpToEdit }) {
         </div>
       </div>
 
-      {/* Listing card — My Listings style */}
+      {/* Listing card */}
       <Card className="rounded-xl border bg-white/85 shadow">
         <CardContent className="p-5 space-y-4">
 
@@ -156,13 +159,19 @@ export default function AssistedListingOwnerView({ listing, onSignUpToEdit }) {
             <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{listing.description}</p>
           )}
 
-          {/* Viewer actions */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* Primary action: View on Map */}
+          <Button
+            onClick={handleViewOnMap}
+            disabled={!hasCoords}
+            className="w-full bg-teal-600 hover:bg-teal-700 text-white py-5 text-base font-semibold gap-2 shadow-md"
+          >
+            <Map className="w-5 h-5" /> View On Map
+          </Button>
+
+          {/* Secondary actions */}
+          <div className="grid grid-cols-3 gap-2">
             <Button onClick={handleViewDetails} size="sm" className="bg-slate-700 hover:bg-slate-800 text-white gap-1.5">
-              <Eye className="w-3.5 h-3.5" /> View Details
-            </Button>
-            <Button onClick={handleViewOnMap} size="sm" className="bg-teal-600 hover:bg-teal-700 text-white gap-1.5" disabled={!hasCoords}>
-              <Map className="w-3.5 h-3.5" /> Show on Map
+              Details
             </Button>
             <Button onClick={handleShare} size="sm" variant="outline" className="gap-1.5 border-slate-300">
               <Share2 className="w-3.5 h-3.5" /> Share
@@ -187,16 +196,16 @@ export default function AssistedListingOwnerView({ listing, onSignUpToEdit }) {
       {/* Claim CTA */}
       <div className="border-t pt-4">
         <Button
-          onClick={handleSignUp}
+          onClick={handleClaim}
           className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold gap-2"
         >
           Claim This Listing
           <ArrowRight className="w-4 h-4" />
         </Button>
-        <p className="text-xs text-center text-gray-500 mt-2">Free account — takes 30 seconds</p>
+        <p className="text-xs text-center text-gray-500 mt-2">Free account — scan QR again after sign-up to complete</p>
       </div>
 
-      <LockedModal open={showLockedModal} onClose={() => setShowLockedModal(false)} onSignUp={handleSignUp} />
+      <LockedModal open={showLockedModal} onClose={() => setShowLockedModal(false)} onSignUp={handleClaim} />
     </div>
   );
 }

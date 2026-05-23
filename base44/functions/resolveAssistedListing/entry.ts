@@ -43,11 +43,9 @@ Deno.serve(async (req) => {
     if (assisted.assisted_status === 'assisted_declined') {
       return Response.json({ status: 'declined', listing, assisted });
     }
+    // approved/active — already visible, QR rescan shows owner view
     if (assisted.assisted_status === 'assisted_active_unclaimed') {
       return Response.json({ status: 'approved', listing, assisted });
-    }
-    if (assisted.assisted_status === 'assisted_active_claim_pending') {
-      return Response.json({ status: 'claim_pending', listing, assisted });
     }
     if (assisted.assisted_status === 'claimed_active') {
       return Response.json({ status: 'claimed', listing, assisted });
@@ -55,7 +53,6 @@ Deno.serve(async (req) => {
 
     // Check expiry for pending listings
     if (isExpired && assisted.assisted_status === 'pending_seller_approval') {
-      // Mark as expired
       await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
         assisted_status: 'assisted_expired',
       });
@@ -67,13 +64,14 @@ Deno.serve(async (req) => {
       return Response.json({ status: 'ok', listing, assisted });
     }
 
-    // Handle actions
+    // --- Actions ---
+
+    // Seller approves: listing goes public, status = assisted_active_unclaimed
     if (action === 'approve') {
       await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
         assisted_status: 'assisted_active_unclaimed',
         seller_approved_at: now.toISOString(),
       });
-      // Make listing visible
       await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
         status: 'active',
       });
@@ -87,31 +85,18 @@ Deno.serve(async (req) => {
         seller_declined_at: now.toISOString(),
         assisted_qr_token: '__invalidated__',
       });
-      // Hide the listing
       await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
         status: 'hidden',
       });
       return Response.json({ status: 'declined', listing: null, assisted });
     }
 
-    if (action === 'claim_pending') {
-      await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
-        assisted_status: 'assisted_active_claim_pending',
-        seller_approved_at: assisted.seller_approved_at || now.toISOString(),
-      });
-      // Make listing visible if not already
-      if (listing && listing.status !== 'active') {
-        await base44.asServiceRole.entities.Listing.update(assisted.listing_id, { status: 'active' });
-      }
-      return Response.json({ status: 'claim_pending', listing, assisted });
-    }
-
+    // Logged-in user scans QR and claims ownership
     if (action === 'claim_complete' && claimUserId) {
-      // Transfer listing ownership to the claiming user
       await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
         ownerUserId: claimUserId,
         owner_type: null,
-        payment_status: null,
+        assisted_listing: null,
         status: 'active',
       });
       await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
