@@ -1,18 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, Clock, XCircle, MapPin, Calendar, Share2 } from "lucide-react";
+import { Loader2, CheckCircle, Clock, XCircle, MapPin, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-
-function formatDate(dt) {
-  if (!dt) return "";
-  return new Date(dt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-}
-function formatTime(dt) {
-  if (!dt) return "";
-  return new Date(dt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-}
+import AssistedListingOwnerView from "@/components/assisted/AssistedListingOwnerView";
 
 function DeclinedScreen({ navigate }) {
   return (
@@ -54,103 +46,6 @@ function ExpiredScreen({ navigate }) {
   );
 }
 
-function ListingCard({ listing }) {
-  if (!listing) return null;
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-      {listing.photoUrls?.length > 0 && (
-        <img src={listing.photoUrls[0]} alt="" className="w-full h-48 object-cover rounded-lg mb-3" />
-      )}
-      <h3 className="font-bold text-lg text-[#2C4F4E]">{listing.title}</h3>
-      {listing.addressText && (
-        <p className="flex items-center gap-1.5 text-sm text-gray-600 mt-1">
-          <MapPin className="w-3.5 h-3.5" />
-          {listing.addressText}, {listing.city}, {listing.state}
-        </p>
-      )}
-      {listing.startDateTime && (
-        <p className="flex items-center gap-1.5 text-sm text-gray-600 mt-1">
-          <Calendar className="w-3.5 h-3.5" />
-          {formatDate(listing.startDateTime)} · {formatTime(listing.startDateTime)} – {formatTime(listing.endDateTime)}
-        </p>
-      )}
-      {listing.description && (
-        <p className="text-sm text-gray-600 mt-2">{listing.description}</p>
-      )}
-    </div>
-  );
-}
-
-function LockedActionModal({ open, onClose }) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl">
-        <div className="text-4xl mb-3">🔒</div>
-        <h3 className="font-bold text-lg text-[#2C4F4E] mb-2">Create an Account to Make Changes</h3>
-        <p className="text-sm text-gray-600 mb-5">Create an account to claim this listing and make changes, relist, upgrade, or add photos.</p>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={onClose} className="flex-1">Not Now</Button>
-          <Button onClick={() => base44.auth.redirectToLogin()} className="flex-1 bg-[#5DADA5] hover:bg-[#4A9B93]">Sign Up / Log In</Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ApprovedUnclaimedView({ listing, onSignUpToEdit, navigate }) {
-  const [showLockedModal, setShowLockedModal] = useState(false);
-  const shareUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing?.id}`;
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      navigator.share({ title: listing?.title, url: shareUrl });
-    } else {
-      await navigator.clipboard.writeText(shareUrl);
-      alert("Link copied to clipboard!");
-    }
-  };
-
-  return (
-    <div className="space-y-5">
-      <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
-        <CheckCircle className="w-6 h-6 text-green-600 mt-0.5 shrink-0" />
-        <div>
-          <p className="font-semibold text-green-800">Your listing is live!</p>
-          <p className="text-sm text-green-700 mt-0.5">Share this with friends, neighbors, and shoppers nearby.</p>
-        </div>
-      </div>
-
-      <ListingCard listing={listing} />
-
-      <Button onClick={handleShare} className="w-full bg-[#5DADA5] hover:bg-[#4A9B93]">
-        Share Listing
-      </Button>
-
-      {/* Locked actions */}
-      <div className="space-y-2">
-        {["Edit Details", "Add Photos", "Relist / Upgrade"].map((action) => (
-          <button
-            key={action}
-            onClick={() => setShowLockedModal(true)}
-            className="w-full text-left p-3 rounded-lg border border-gray-200 text-sm text-gray-500 flex items-center justify-between hover:bg-gray-50"
-          >
-            🔒 {action}
-            <span className="text-xs text-gray-400">Account required</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="border-t pt-4">
-        <Button onClick={onSignUpToEdit} variant="outline" className="w-full border-[#5DADA5] text-[#5DADA5] hover:bg-[#5DADA5]/5">
-          Sign Up to Claim & Edit This Listing
-        </Button>
-      </div>
-
-      <LockedActionModal open={showLockedModal} onClose={() => setShowLockedModal(false)} />
-    </div>
-  );
-}
 
 export default function AssistedListingApprovalPage() {
   const navigate = useNavigate();
@@ -211,14 +106,7 @@ export default function AssistedListingApprovalPage() {
       if (d.assisted) setAssisted(d.assisted);
 
       if (action === "approve") {
-        // Show the live listing view, then navigate to listing detail
-        setState("approved");
-        const listingId = d.listing?.id || listing?.id;
-        if (listingId) {
-          setTimeout(() => {
-            navigate(`${createPageUrl("ListingDetail")}?id=${listingId}`);
-          }, 1200);
-        }
+        setState("owner_view");
       } else if (action === "claim_pending") {
         // Counts as approval — store token and redirect to login/signup
         sessionStorage.setItem("assisted_claim_token", token);
@@ -286,7 +174,27 @@ export default function AssistedListingApprovalPage() {
               </div>
             )}
 
-            {listing && <ListingCard listing={listing} />}
+            {listing && (
+              <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-2">
+                {listing.photoUrls?.length > 0 && (
+                  <img src={listing.photoUrls[0]} alt="" className="w-full h-40 object-cover rounded-lg" />
+                )}
+                <h3 className="font-bold text-lg text-[#2C4F4E]">{listing.title}</h3>
+                {(listing.display_address || listing.addressText) && (
+                  <p className="flex items-center gap-1.5 text-sm text-gray-600">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    {listing.display_address || listing.addressText}{listing.city ? `, ${listing.city}` : ""}{listing.state ? `, ${listing.state}` : ""}
+                  </p>
+                )}
+                {listing.startDateTime && (
+                  <p className="flex items-center gap-1.5 text-sm text-gray-600">
+                    <Calendar className="w-3.5 h-3.5 shrink-0" />
+                    {new Date(listing.startDateTime).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                  </p>
+                )}
+                {listing.description && <p className="text-sm text-gray-600">{listing.description}</p>}
+              </div>
+            )}
 
             <div className="space-y-3">
               {/* 1 — Large primary: Approve & View Listing */}
@@ -356,18 +264,8 @@ export default function AssistedListingApprovalPage() {
           </div>
         )}
 
-        {state === "approved" && listing && (
-          <div className="space-y-4">
-            <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
-              <CheckCircle className="w-6 h-6 text-green-600 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold text-green-800">Approved! Taking you to your listing…</p>
-                <p className="text-sm text-green-700 mt-0.5">Your sale is now visible to local shoppers on Yardit.</p>
-              </div>
-            </div>
-            <ListingCard listing={listing} />
-            <Loader2 className="w-6 h-6 animate-spin text-[#5DADA5] mx-auto" />
-          </div>
+        {state === "owner_view" && listing && (
+          <AssistedListingOwnerView listing={listing} />
         )}
 
         {state === "claim_pending" && (
