@@ -33,11 +33,11 @@ function ClickHandler({ onMapClick }) {
   return null;
 }
 
-function RecenterMap({ center }) {
+function RecenterMap({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, map.getZoom());
-  }, [center, map]);
+    map.setView(center, zoom ?? map.getZoom());
+  }, [center, zoom, map]);
   return null;
 }
 
@@ -49,19 +49,21 @@ export default function AdminPinDropMap({ onLocationSelected }) {
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const [geocodedLabel, setGeocodedLabel] = useState(null);
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
+  const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
   const [geoLocating, setGeoLocating] = useState(false);
   const geocodeTimeout = useRef(null);
 
-  // Try to get user's current location for map center
+  // Zoom to user's location — at a yard sale they're likely already at the sale
   useEffect(() => {
     setGeoLocating(true);
     navigator.geolocation?.getCurrentPosition(
       (pos) => {
         setMapCenter([pos.coords.latitude, pos.coords.longitude]);
+        setMapZoom(18); // street-level zoom
         setGeoLocating(false);
       },
       () => setGeoLocating(false),
-      { timeout: 5000 }
+      { timeout: 6000, enableHighAccuracy: true }
     );
   }, []);
 
@@ -143,7 +145,7 @@ export default function AdminPinDropMap({ onLocationSelected }) {
       <div className="rounded-xl overflow-hidden border border-slate-300 shadow-sm" style={{ height: 320 }}>
         <MapContainer
           center={mapCenter}
-          zoom={DEFAULT_ZOOM}
+          zoom={mapZoom}
           style={{ height: "100%", width: "100%" }}
           key={mapCenter.join(",")}
         >
@@ -153,7 +155,7 @@ export default function AdminPinDropMap({ onLocationSelected }) {
             tileSize={512}
             zoomOffset={-1}
           />
-          <RecenterMap center={mapCenter} />
+          <RecenterMap center={mapCenter} zoom={mapZoom} />
           <ClickHandler onMapClick={handleMapClick} />
           {pinLatLng && <Marker position={pinLatLng} icon={PIN_ICON} />}
         </MapContainer>
