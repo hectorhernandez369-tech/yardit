@@ -45,8 +45,16 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'Neighborhood sale listings are excluded' });
     }
 
-    if (listing.created_by_admin === true || listing.location_source === 'admin_selected') {
-      return Response.json({ skipped: true, reason: 'Admin created listings are excluded from profile lock' });
+    // Skip profile address enforcement for admin-assisted listings
+    if (
+      listing.created_by_admin === true ||
+      listing.assisted_listing === true ||
+      listing.owner_type === 'guest_assisted' ||
+      listing.location_source === 'address_search' ||
+      listing.location_source === 'map_pin' ||
+      listing.location_source === 'admin_selected'
+    ) {
+      return Response.json({ skipped: true, reason: 'Admin-assisted listings are excluded from profile lock' });
     }
 
     const settings = await base44.asServiceRole.entities.AppSetting.list();

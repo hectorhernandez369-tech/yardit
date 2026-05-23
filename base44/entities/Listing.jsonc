@@ -108,7 +108,9 @@
       "enum": [
         "search",
         "pin",
-        "admin_selected"
+        "admin_selected",
+        "address_search",
+        "map_pin"
       ],
       "default": "search",
       "description": "Source of the location data"
@@ -478,6 +480,33 @@
       "type": "string",
       "format": "date-time",
       "description": "When the host 24-hour cancellation message was sent"
+    },
+    "created_by_admin": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this listing was created by an admin (assisted listing)"
+    },
+    "assisted_listing": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is an admin-assisted listing"
+    },
+    "owner_type": {
+      "type": "string",
+      "default": "user",
+      "description": "Type of owner: user, guest, guest_assisted"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pending",
+        "paid",
+        "skipped_admin_promo",
+        "waived"
+      ],
+      "default": "none",
+      "description": "Payment status for this listing"
     }
   },
   "required": [
