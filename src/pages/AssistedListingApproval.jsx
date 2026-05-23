@@ -264,8 +264,26 @@ export default function AssistedListingApprovalPage() {
           </div>
         )}
 
-        {state === "owner_view" && listing && (
-          <AssistedListingOwnerView listing={listing} />
+        {["owner_view", "approved", "assisted_active_unclaimed", "assisted_active_claim_pending"].includes(state) && (
+          listing
+            ? <AssistedListingOwnerView listing={listing} />
+            : loading
+              ? (
+                <div className="text-center py-12 px-4">
+                  <Loader2 className="w-10 h-10 animate-spin text-[#5DADA5] mx-auto mb-4" />
+                  <p className="text-gray-600 font-medium">Loading your Yardit listing...</p>
+                </div>
+              )
+              : (
+                <div className="text-center py-12 px-4">
+                  <XCircle className="w-14 h-14 text-gray-400 mx-auto mb-4" />
+                  <h2 className="text-lg font-bold text-gray-700 mb-2">We couldn't load this listing.</h2>
+                  <p className="text-sm text-gray-500 mb-6">Please scan the QR code again to try once more.</p>
+                  <Button onClick={() => window.location.reload()} className="bg-[#5DADA5] hover:bg-[#4A9B93] text-white font-semibold">
+                    Scan QR Again
+                  </Button>
+                </div>
+              )
         )}
 
         {state === "claim_pending" && (
