@@ -110,7 +110,7 @@ export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
   }
 
   const joinStatus = normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status);
-  if (joinStatus !== "none" || !!listing.neighborhood_sale_id) return false;
+  if ((joinStatus && joinStatus !== "none") || !!listing.neighborhood_sale_id) return false;
 
   return true;
 }
