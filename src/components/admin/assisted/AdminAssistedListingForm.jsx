@@ -108,10 +108,16 @@ export default function AdminAssistedListingForm({ adminUser }) {
 
   const handleAddressMethodChange = (method) => {
     setAddressMethod(method);
-    // Reset location state when switching methods
-    setSelectedAddress(null);
-    setPinLocation(null);
-    setForm((p) => ({ ...p, addressText: "", city: "", state: "", zip: "", lat: "", lng: "" }));
+    // Reset location state when switching methods to prevent mixing
+    if (method === "search") {
+      // Switching to search: clear pin location
+      setPinLocation(null);
+      setForm((p) => ({ ...p, lat: "", lng: "" }));
+    } else {
+      // Switching to pin: clear search address
+      setSelectedAddress(null);
+      setForm((p) => ({ ...p, addressText: "", city: "", state: "", zip: "", lat: "", lng: "" }));
+    }
   };
 
   const handlePhotoUpload = async (e) => {
@@ -150,32 +156,56 @@ export default function AdminAssistedListingForm({ adminUser }) {
       return;
     }
 
-    // Build address payload depending on method
+    // Build ONE final location object from the active method only
+    const finalLocation = addressMethod === "pin" ? pinLocation : selectedAddress;
+    
+    // Debug logging
+    console.log("[AssistedListing] Submit Debug:", {
+      addressMethod,
+      selectedLocation: selectedAddress,
+      pinLocation,
+      finalLocation,
+    });
+
     let addrPayload;
-    if (addressMethod === "pin") {
-      const p = pinLocation;
+    if (addressMethod === "pin" && finalLocation) {
+      // Use ONLY pin location data
       addrPayload = {
-        lat: p.lat,
-        lng: p.lng,
-        addressText: p.street || "Approximate Yard Sale Location",
-        city: p.city || "",
-        state: p.state || "",
-        zip: p.zip || "",
+        lat: finalLocation.lat,
+        lng: finalLocation.lng,
+        addressText: finalLocation.street || "Approximate Yard Sale Location",
+        city: finalLocation.city || "",
+        state: finalLocation.state || "",
+        zip: finalLocation.zip || "",
         location_source: "map_pin",
-        saleFormattedAddress: p.formatted || "Approximate Yard Sale Location",
+        saleFormattedAddress: finalLocation.formatted || "Approximate Yard Sale Location",
+      };
+    } else if (addressMethod === "search" && finalLocation) {
+      // Use ONLY search address data
+      addrPayload = {
+        lat: parseFloat(finalLocation.lat),
+        lng: parseFloat(finalLocation.lng),
+        addressText: finalLocation.street || finalLocation.formatted,
+        city: finalLocation.city || "",
+        state: finalLocation.state || "",
+        zip: finalLocation.zip || "",
+        location_source: "address_search",
+        saleFormattedAddress: finalLocation.formatted || "",
       };
     } else {
-      addrPayload = {
-        lat: parseFloat(form.lat),
-        lng: parseFloat(form.lng),
-        addressText: form.addressText,
-        city: form.city,
-        state: form.state,
-        zip: form.zip,
-        location_source: "address_search",
-        saleFormattedAddress: selectedAddress?.formatted || `${form.addressText}, ${form.city}, ${form.state} ${form.zip}`.trim(),
-      };
+      toast.error("Location data is missing. Please select an address or drop a pin.");
+      setIsSubmitting(false);
+      return;
     }
+
+    // Debug final payload
+    console.log("[AssistedListing] Final Payload:", {
+      lat: addrPayload.lat,
+      lng: addrPayload.lng,
+      addressText: addrPayload.addressText,
+      display_address: addrPayload.saleFormattedAddress,
+      location_source: addrPayload.location_source,
+    });
 
     setIsSubmitting(true);
     try {
@@ -203,7 +233,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
         listingId: response.data.listingId,
         assistedId: response.data.assistedId,
         expiresAt: response.data.expiresAt,
-        saleAddress: response.data.saleFormattedAddress || `${form.addressText}, ${form.city}, ${form.state}`,
+        saleAddress: response.data.saleFormattedAddress || addrPayload.saleFormattedAddress,
         title: form.title,
       });
 
@@ -221,7 +251,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
           new_tier: form.tier,
           listing_type: form.listingType,
           title: form.title,
-          address: `${form.addressText}, ${form.city}, ${form.state}`,
+          address: addrPayload.saleFormattedAddress,
           seller_name: form.sellerName || null,
           seller_phone: form.sellerPhone || null,
           reason: form.adminNotes || "Admin assisted listing creation",
