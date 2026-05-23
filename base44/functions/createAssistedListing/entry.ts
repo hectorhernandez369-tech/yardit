@@ -99,6 +99,14 @@ Deno.serve(async (req) => {
     const listingTier = isEvent ? 'basic' : (tier === 'neighborhood_tier' ? 'neighborhood_tier' : tier);
     const eventTier = isEvent ? tier : undefined;
 
+    // Generate listing number with AD- prefix for admin-created listings
+    const stateCode = state || 'XX';
+    const zipLast4 = (zip || '0000').slice(-4).padStart(4, '0');
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let rand5 = '';
+    for (let i = 0; i < 5; i++) rand5 += chars[Math.floor(Math.random() * chars.length)];
+    const listingNumber = `AD-${stateCode}${zipLast4}-${rand5}`;
+
     // Use a system/guest owner user id — we use the admin's id as the creator
     // but mark it as assisted so it won't appear in the admin's "my listings"
     const listing = await base44.asServiceRole.entities.Listing.create({
@@ -127,6 +135,7 @@ Deno.serve(async (req) => {
       category: 'Miscellaneous',
       status: 'hidden', // hidden until seller approves
       pricePaid: 0,
+      listingNumber,
       // Admin-assisted metadata
       created_by_admin: true,
       assisted_listing: true,
