@@ -313,6 +313,9 @@ export default function ListingManagement({ mode, adminUser }) {
             return (
               <div className="space-y-3 text-sm">
                 <div className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-2">
+                  <span className="text-slate-500 font-medium">Listing ID:</span>
+                  <span className="text-slate-800 break-all">{listing.id}</span>
+
                   <span className="text-slate-500 font-medium">Created by:</span>
                   <span className="text-slate-800 break-all">{creatorName}</span>
 
