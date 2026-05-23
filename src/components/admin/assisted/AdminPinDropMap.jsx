@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Loader2, MapPin } from "lucide-react";
+
+const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
+const MAPBOX_URL = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`;
 
 // Fix Leaflet default icon broken in bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -30,7 +33,15 @@ function ClickHandler({ onMapClick }) {
   return null;
 }
 
-const DEFAULT_CENTER = [37.7749, -122.4194]; // San Francisco fallback
+function RecenterMap({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
+}
+
+const DEFAULT_CENTER = [37.7749, -122.4194];
 const DEFAULT_ZOOM = 14;
 
 export default function AdminPinDropMap({ onLocationSelected }) {
@@ -59,20 +70,28 @@ export default function AdminPinDropMap({ onLocationSelected }) {
     setGeocodedLabel(null);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
-        { headers: { "Accept-Language": "en" } }
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&types=address&limit=1`
       );
       const data = await res.json();
-      const addr = data.address || {};
+      const feature = data.features?.[0];
 
-      const street = [addr.house_number, addr.road].filter(Boolean).join(" ");
-      const city = addr.city || addr.town || addr.village || addr.county || "";
-      const state = addr.state || "";
-      const zip = addr.postcode || "";
-      const formatted = data.display_name || "Approximate Yard Sale Location";
+      let street = null, city = "", state = "", zip = "";
+
+      if (feature) {
+        // Mapbox place_name is the full formatted address
+        const context = feature.context || [];
+        street = feature.text || null;
+        const addressNumber = feature.address || "";
+        if (street && addressNumber) street = `${addressNumber} ${street}`;
+
+        for (const ctx of context) {
+          if (ctx.id.startsWith("postcode")) zip = ctx.text;
+          else if (ctx.id.startsWith("place")) city = ctx.text;
+          else if (ctx.id.startsWith("region")) state = ctx.short_code?.replace("US-", "") || ctx.text;
+        }
+      }
 
       const hasFullAddress = !!(street && city && state && zip);
-
       const result = {
         lat,
         lng,
@@ -88,7 +107,6 @@ export default function AdminPinDropMap({ onLocationSelected }) {
       setGeocodedLabel(result.formatted);
       onLocationSelected(result);
     } catch {
-      // Geocode failed — still allow submission with coords only
       const fallback = {
         lat,
         lng,
@@ -130,9 +148,12 @@ export default function AdminPinDropMap({ onLocationSelected }) {
           key={mapCenter.join(",")}
         >
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url={MAPBOX_URL}
+            attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            tileSize={512}
+            zoomOffset={-1}
           />
+          <RecenterMap center={mapCenter} />
           <ClickHandler onMapClick={handleMapClick} />
           {pinLatLng && <Marker position={pinLatLng} icon={PIN_ICON} />}
         </MapContainer>
