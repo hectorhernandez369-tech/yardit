@@ -50,39 +50,56 @@ export default function AssistedListingApprovalPage() {
   const navigate = useNavigate();
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token");
+  const autoclaim = params.get("autoclaim") === "1";
 
   const [loading, setLoading] = useState(true);
-  const [state, setState] = useState(null); // ok | declined | expired | not_found | approved | claimed
+  const [state, setState] = useState(null); // ok | declined | expired | not_found | approved | claimed | autoclaiming
   const [listing, setListing] = useState(null);
   const [assisted, setAssisted] = useState(null);
   const [isActing, setIsActing] = useState(false);
+
+  const attemptAutoClaim = async (listingData, assistedData) => {
+    try {
+      const isAuth = await base44.auth.isAuthenticated();
+      if (!isAuth) return false;
+      const user = await base44.auth.me();
+      if (!user) return false;
+      const claimRes = await base44.functions.invoke("resolveAssistedListing", {
+        token,
+        action: "claim_complete",
+        claimUserId: user.id,
+      });
+      if (claimRes.data?.status === "claimed") {
+        sessionStorage.removeItem("assisted_claim_token");
+        navigate(createPageUrl("MyListings"));
+        return true;
+      }
+    } catch {
+      // fall through — show manual owner view
+    }
+    return false;
+  };
 
   useEffect(() => {
     if (!token) { setState("not_found"); setLoading(false); return; }
     (async () => {
       try {
-        // Check if logged-in user is scanning a QR for a listing they can claim
-        const isAuth = await base44.auth.isAuthenticated();
         const res = await base44.functions.invoke("resolveAssistedListing", { token });
         const d = res.data;
 
-        // If listing is approved/unclaimed and user is authenticated — auto-claim
-        if (d.status === "approved" && isAuth) {
-          const user = await base44.auth.me();
-          if (user) {
-            const claimRes = await base44.functions.invoke("resolveAssistedListing", {
-              token,
-              action: "claim_complete",
-              claimUserId: user.id,
-            });
-            if (claimRes.data?.status === "claimed") {
-              setState("claimed");
-              setListing(claimRes.data.listing || d.listing);
-              setAssisted(claimRes.data.assisted || d.assisted);
-              setLoading(false);
-              return;
-            }
+        // Auto-claim if: returning from login (autoclaim param) OR already authenticated and viewing an unclaimed listing
+        const shouldAutoClaim = autoclaim || sessionStorage.getItem("assisted_claim_token") === token;
+        if ((d.status === "approved" || d.status === "ok") && shouldAutoClaim) {
+          setState("autoclaiming");
+          setListing(d.listing);
+          setAssisted(d.assisted);
+          setLoading(false);
+          const claimed = await attemptAutoClaim(d.listing, d.assisted);
+          if (!claimed) {
+            // Auth failed or claim failed — fall back to owner view
+            setState(d.status === "approved" ? "owner_view" : d.status);
           }
+          return;
         }
 
         setState(d.status);
@@ -109,10 +126,13 @@ export default function AssistedListingApprovalPage() {
     setIsActing(false);
   };
 
-  if (loading) {
+  if (loading || state === "autoclaiming") {
     return (
-      <div className="min-h-screen bg-[#F3E6CF] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#5DADA5]" />
+      <div className="min-h-screen bg-[#F3E6CF] flex flex-col items-center justify-center gap-4 px-4">
+        <Loader2 className="w-10 h-10 animate-spin text-[#5DADA5]" />
+        {state === "autoclaiming" && (
+          <p className="text-[#2C4F4E] font-semibold text-center">Claiming your listing…</p>
+        )}
       </div>
     );
   }

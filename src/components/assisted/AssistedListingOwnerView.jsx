@@ -104,7 +104,7 @@ export default function AssistedListingOwnerView({ listing, token }) {
     navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
   };
 
-  // If already authenticated, claim directly. Otherwise redirect to login with return URL.
+  // If already authenticated, claim directly. Otherwise store intent and redirect to login.
   const handleClaim = async () => {
     if (isAuthenticated) {
       setIsClaiming(true);
@@ -126,9 +126,9 @@ export default function AssistedListingOwnerView({ listing, token }) {
       }
       setIsClaiming(false);
     } else {
-      const returnUrl = token
-        ? `${window.location.origin}/assisted-listing?token=${token}`
-        : window.location.href;
+      // Store claim intent so the page auto-claims after login redirect returns
+      if (token) sessionStorage.setItem("assisted_claim_token", token);
+      const returnUrl = `${window.location.origin}/assisted-listing?token=${token}&autoclaim=1`;
       base44.auth.redirectToLogin(returnUrl);
     }
   };
