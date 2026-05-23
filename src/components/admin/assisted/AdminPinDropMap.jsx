@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, CircleMarker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Loader2, MapPin } from "lucide-react";
 
@@ -50,6 +50,7 @@ export default function AdminPinDropMap({ onLocationSelected }) {
   const [geocodedLabel, setGeocodedLabel] = useState(null);
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
+  const [userLatLng, setUserLatLng] = useState(null);
   const [geoLocating, setGeoLocating] = useState(false);
   const geocodeTimeout = useRef(null);
 
@@ -58,7 +59,9 @@ export default function AdminPinDropMap({ onLocationSelected }) {
     setGeoLocating(true);
     navigator.geolocation?.getCurrentPosition(
       (pos) => {
-        setMapCenter([pos.coords.latitude, pos.coords.longitude]);
+        const loc = [pos.coords.latitude, pos.coords.longitude];
+        setMapCenter(loc);
+        setUserLatLng(loc);
         setMapZoom(18); // street-level zoom
         setGeoLocating(false);
       },
@@ -157,6 +160,13 @@ export default function AdminPinDropMap({ onLocationSelected }) {
           />
           <RecenterMap center={mapCenter} zoom={mapZoom} />
           <ClickHandler onMapClick={handleMapClick} />
+          {userLatLng && (
+            <CircleMarker
+              center={userLatLng}
+              radius={10}
+              pathOptions={{ color: "#fff", fillColor: "#3B82F6", fillOpacity: 1, weight: 3 }}
+            />
+          )}
           {pinLatLng && <Marker position={pinLatLng} icon={PIN_ICON} />}
         </MapContainer>
       </div>
