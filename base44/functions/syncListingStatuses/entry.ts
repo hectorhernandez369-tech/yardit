@@ -1,75 +1,78 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    // Fetch all listings to check statuses
-    // Fetching large sets of records at once may be a problem down the line if there are > 50,000,
-    // but works for standard periodic checking.
+    const now = new Date();
+
+    // Fetch all listings (service role — no auth needed for scheduled task)
     let listings = [];
     try {
-      listings = await base44.asServiceRole.entities.Listing.list();
+      listings = await base44.asServiceRole.entities.Listing.list('-created_date', 500);
     } catch (e) {
       console.error("Error fetching listings", e);
       return Response.json({ error: e.message }, { status: 500 });
     }
-    
-    const now = new Date();
+
+    console.log(`[syncListingStatuses] Processing ${listings.length} listings at ${now.toISOString()}`);
+
     const updates = [];
+    const skipped = [];
 
     for (const listing of listings) {
       const start = listing?.startDateTime ? new Date(listing.startDateTime) : null;
       const end = listing?.endDateTime ? new Date(listing.endDateTime) : null;
       const currentStatus = listing?.status;
-      let nextStatus = currentStatus;
 
-      // Ensure valid dates exist before evaluating
-      if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
-        
-        // 1. Canceled takes highest precedence (sticky status)
-        // If it's explicitly canceled, we don't revert it back to active/scheduled/expired.
-        if (currentStatus === "canceled" || currentStatus === "cancelled" || listing?.event_state === "canceled") {
-          nextStatus = "canceled";
-        }
-        // 2. Closed/Completed/Suspended/Draft are also typically terminal or manual states we shouldn't blindly overwrite
-        else if (["closed", "completed", "suspended", "draft", "under_review"].includes(currentStatus)) {
-           nextStatus = currentStatus;
-        }
-        // 3. Date-based logic for active/scheduled/expired/upcoming
-        else {
-          if (now < start) {
-            nextStatus = "scheduled"; // Using 'scheduled' to represent 'Coming Soon' state internally, or we can use 'upcoming'
-            // The frontend map state typically translates 'scheduled' / 'upcoming' to 'Coming Soon'.
-            // Let's use 'scheduled' to align with paid residential creation logic, or 'upcoming' if we prefer.
-            // Let's stick to "scheduled" as it's already in the Listing schema enum.
-          } else if (now >= start && now <= end) {
-            nextStatus = "active";
-          } else if (now > end) {
-            nextStatus = "expired";
-          }
-        }
+      // Skip neighborhood_sale — handled by checkNeighborhoodEvents
+      if (listing.listingType === 'neighborhood_sale') {
+        skipped.push({ id: listing.id, reason: 'neighborhood_sale' });
+        continue;
       }
 
-      // If the status has changed, update it.
-      // Exception: If it's a neighborhood sale that is pending activation/collecting participants, 
-      // we might not want to force it to "scheduled" or "active" until payment is complete.
-      // The `checkNeighborhoodEvents` function already handles Neighborhood Sales intricately, 
-      // so we should probably exclude `neighborhood_sale` from this sweeping basic date logic 
-      // OR only apply it if it's not pending payment.
-      
-      // Let's exclude neighborhood_sale from this basic date-based status override 
-      // because checkNeighborhoodEvents handles them specifically based on homes count and payment lock.
-      if (listing.listingType !== "neighborhood_sale" && nextStatus !== currentStatus && nextStatus) {
-        await base44.asServiceRole.entities.Listing.update(listing.id, {
-          status: nextStatus
-        });
-        updates.push({ id: listing.id, old_status: currentStatus, new_status: nextStatus });
+      // Skip terminal/manual statuses
+      if (['canceled', 'cancelled', 'closed', 'completed', 'suspended', 'under_review', 'hidden'].includes(currentStatus)) {
+        skipped.push({ id: listing.id, reason: `terminal_status:${currentStatus}` });
+        continue;
+      }
+
+      // Must have valid dates to evaluate
+      if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime())) {
+        skipped.push({ id: listing.id, reason: 'invalid_dates' });
+        continue;
+      }
+
+      let nextStatus = currentStatus;
+
+      if (now < start) {
+        nextStatus = 'scheduled';
+      } else if (now >= start && now <= end) {
+        nextStatus = 'active';
+      } else if (now > end) {
+        nextStatus = 'expired';
+      }
+
+      if (nextStatus !== currentStatus) {
+        try {
+          // Use patch-style update to avoid validation errors on old listings missing required fields
+          await base44.asServiceRole.entities.Listing.update(listing.id, {
+            status: nextStatus,
+            // Supply fallback values for required fields that old/legacy listings may be missing
+            category: listing.category || 'Miscellaneous',
+            timeZoneId: listing.timeZoneId || 'America/Los_Angeles',
+          });
+          updates.push({ id: listing.id, listingNumber: listing.listingNumber, old: currentStatus, new: nextStatus });
+          console.log(`[syncListingStatuses] Updated ${listing.listingNumber || listing.id}: ${currentStatus} → ${nextStatus}`);
+        } catch (e) {
+          console.error(`[syncListingStatuses] Failed to update ${listing.id}:`, e.message);
+        }
       }
     }
 
-    return Response.json({ success: true, updated_count: updates.length, updates });
+    console.log(`[syncListingStatuses] Done. Updated: ${updates.length}, Skipped: ${skipped.length}`);
+    return Response.json({ success: true, updated_count: updates.length, updates, skipped_count: skipped.length });
   } catch (error) {
-    console.error('syncListingStatuses failed:', error?.message || error);
+    console.error('[syncListingStatuses] Fatal error:', error?.message || error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
