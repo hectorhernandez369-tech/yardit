@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import {
   MapPin, Calendar, Map, Share2, Navigation, CheckCircle,
   Lock, ArrowRight
 } from "lucide-react";
+
 import {
   formatListingDateRange,
   formatListingStatusLabel,
@@ -60,6 +62,13 @@ function LockedAction({ label, onClick }) {
 export default function AssistedListingOwnerView({ listing, token }) {
   const navigate = useNavigate();
   const [showLockedModal, setShowLockedModal] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [claimError, setClaimError] = useState("");
+
+  useEffect(() => {
+    base44.auth.isAuthenticated().then(setIsAuthenticated);
+  }, []);
 
   if (!listing) return null;
 
@@ -95,12 +104,33 @@ export default function AssistedListingOwnerView({ listing, token }) {
     navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
   };
 
-  // Claim: redirect to login; QR token in URL so after login they land back here
-  const handleClaim = () => {
-    const returnUrl = token
-      ? `${window.location.origin}/assisted-listing?token=${token}`
-      : window.location.href;
-    base44.auth.redirectToLogin(returnUrl);
+  // If already authenticated, claim directly. Otherwise redirect to login with return URL.
+  const handleClaim = async () => {
+    if (isAuthenticated) {
+      setIsClaiming(true);
+      setClaimError("");
+      try {
+        const user = await base44.auth.me();
+        const res = await base44.functions.invoke("resolveAssistedListing", {
+          token,
+          action: "claim_complete",
+          claimUserId: user.id,
+        });
+        if (res.data?.status === "claimed") {
+          navigate(createPageUrl("MyListings"));
+        } else {
+          setClaimError("Could not complete claim. Please try again.");
+        }
+      } catch {
+        setClaimError("Something went wrong. Please try again.");
+      }
+      setIsClaiming(false);
+    } else {
+      const returnUrl = token
+        ? `${window.location.origin}/assisted-listing?token=${token}`
+        : window.location.href;
+      base44.auth.redirectToLogin(returnUrl);
+    }
   };
 
   return (
@@ -197,12 +227,16 @@ export default function AssistedListingOwnerView({ listing, token }) {
       <div className="border-t pt-4">
         <Button
           onClick={handleClaim}
+          disabled={isClaiming}
           className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold gap-2"
         >
-          Claim This Listing
-          <ArrowRight className="w-4 h-4" />
+          {isClaiming ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+          {isClaiming ? "Claiming..." : "Claim This Listing"}
         </Button>
-        <p className="text-xs text-center text-gray-500 mt-2">Free account — scan QR again after sign-up to complete</p>
+        {claimError && <p className="text-xs text-center text-red-500 mt-2">{claimError}</p>}
+        {!isAuthenticated && (
+          <p className="text-xs text-center text-gray-500 mt-2">Free account — sign in and you'll be returned here to complete the claim</p>
+        )}
       </div>
 
       <LockedModal open={showLockedModal} onClose={() => setShowLockedModal(false)} onSignUp={handleClaim} />
