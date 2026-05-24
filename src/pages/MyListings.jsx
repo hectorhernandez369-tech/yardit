@@ -3,18 +3,33 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Map, Trash2, X, ChevronDown, ChevronUp, Search, Send, MoreHorizontal, Shield, UserX } from "lucide-react";
 import { format } from "date-fns";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { formatListingDateRange, formatListingStatusLabel, formatListingTierLabel, getListingAddressLine, getListingDisplayStatus, statusColors, tierColors } from "@/components/listing/listingDisplay";
+import {
+  formatListingDateRange,
+  formatListingStatusLabel,
+  formatListingTierLabel,
+  getListingAddressLine,
+  getListingDisplayStatus,
+  statusColors,
+  tierColors,
+} from "@/components/listing/listingDisplay";
 import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError, shouldShowListingOnMainMap, isNeighborhoodVisibleOnMap } from "@/lib/neighborhoodSaleState";
 import { Input } from "@/components/ui/input";
 import EventIconManager from "@/components/events/EventIconManager";
@@ -35,9 +50,15 @@ const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 export default function MyListingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
   const [user, setUser] = useState(null);
+
+  // (Tabs) "active" | "pending" | "past" | "billing" | "hunt"
   const [tab, setTab] = useState("active");
+
   const [showGuideModal, setShowGuideModal] = useState(false);
+
+  // (Edit Listing modal state)
   const [editingListing, setEditingListing] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -97,12 +118,8 @@ export default function MyListingsPage() {
       return merged.filter((listing) => {
         if (seen.has(listing.id)) return false;
         seen.add(listing.id);
-        // Hide unclaimed admin-created assisted listings — claimed listings appear to their owner
-        if (
-          (listing.created_by_admin === true || listing.assisted_listing === true) &&
-          listing.owner_type === "guest_assisted" &&
-          listing.ownerUserId !== user.id
-        ) {
+        // Hide unclaimed admin-created assisted listings — managed from Admin Dashboard
+        if ((listing.created_by_admin === true || listing.assisted_listing === true) && listing.owner_type === "guest_assisted") {
           return false;
         }
         return true;
@@ -111,6 +128,7 @@ export default function MyListingsPage() {
     enabled: !!user,
     initialData: [],
   });
+
 
   const { data: searchableUsers = [] } = useQuery({
     queryKey: ["coHostUserSearch", editingListing?.id],
@@ -174,6 +192,7 @@ export default function MyListingsPage() {
     }];
   }, [editingListing?.co_host_user_id, editingListing?.co_host_status, latestInviteForAttachedCoHost]);
 
+  // ---- Helpers ----
   const getLatLng = (listing) => {
     const lat = listing?.lat ?? listing?.latitude ?? null;
     const lng = listing?.lng ?? listing?.longitude ?? null;
@@ -187,6 +206,7 @@ export default function MyListingsPage() {
 
   const listingNumberText = (listing) => {
     if (listing?.listingNumber) return listing.listingNumber;
+    // Fallback: generate from state + zip + id for older listings
     const st = getStateAbbreviation(listing?.state || "XX");
     const zp = (listing?.zip || "0000").slice(-4).padStart(4, "0");
     const idSuffix = (listing?.id || "00000").slice(-5).toLowerCase();
@@ -216,6 +236,7 @@ export default function MyListingsPage() {
     if (listing?.listingType === "neighborhood_sale") {
       return isNeighborhoodVisibleOnMap(listing, now);
     }
+    // For yard sales and events, reuse the exact same map visibility check
     return shouldShowListingOnMainMap(listing, now);
   };
 
@@ -223,6 +244,7 @@ export default function MyListingsPage() {
   const isPendingListing = (listing) => {
     return !isEffectivelyPastListing(listing) && !isActiveListing(listing);
   };
+
 
   const canCancelListingDirectly = (listing) => {
     return [
@@ -314,9 +336,10 @@ export default function MyListingsPage() {
     const cleanup = async () => {
       if (!listings || listings.length === 0) return;
       const now = Date.now();
-      const toUpdate = listings.filter(l =>
+      const toUpdate = listings.filter(l => 
         l.status === "active" && l.endDateTime && new Date(l.endDateTime).getTime() < now
       );
+      
       for (const l of toUpdate) {
         try {
           await base44.entities.Listing.update(l.id, { status: "expired" });
@@ -368,8 +391,10 @@ export default function MyListingsPage() {
    setEditEventLogoUrl(latestListing?.event_logo_url || "");
    setEditPhotoUrls(latestListing?.listingType === "event" ? (latestListing?.event_photos || latestListing?.photoUrls || []) : (latestListing?.photoUrls || []));
    setEditMarqueeSlots(Array.isArray(latestListing?.marquee_schedule_slots) ? latestListing.marquee_schedule_slots : []);
-   setEditMarqueeFlyerUrl(latestListing?.marquee_flyer_url || "");
-   setEditMarqueeBackgroundUrl(latestListing?.marquee_background_url || "");
+   const flyerUrl = latestListing?.marquee_flyer_url || "";
+   setEditMarqueeFlyerUrl(flyerUrl);
+   const bgUrl = latestListing?.marquee_background_url || "";
+   setEditMarqueeBackgroundUrl(bgUrl);
 
     if (latestListing?.listingType === "event" && (latestListing?.event_tier || latestListing?.tier) === "marquee") {
       const start = latestListing.startDateTime ? new Date(latestListing.startDateTime) : null;
@@ -398,6 +423,7 @@ export default function MyListingsPage() {
       latestListing?.neighborhood_sale_id &&
       ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(latestListing?.neighborhood_join_status))
     ) {
+      // Participant yard_sale listing — allow editing sale time within the NS window
       const pStart = latestListing.startDateTime ? new Date(latestListing.startDateTime) : null;
       const pEnd = latestListing.endDateTime ? new Date(latestListing.endDateTime) : null;
       setEditStartDate(latestListing.selectedRangeStartDate || (pStart ? pStart.toISOString().slice(0, 10) : ""));
@@ -580,7 +606,13 @@ export default function MyListingsPage() {
     if (inviteId) {
       await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "accepted" });
     }
-    await updateCoHostDetails({ co_host_status: "suspended", cohost_invite_status: null }, "Co-host suspended");
+    await updateCoHostDetails(
+      {
+        co_host_status: "suspended",
+        cohost_invite_status: null,
+      },
+      "Co-host suspended"
+    );
     await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
   };
 
@@ -588,7 +620,13 @@ export default function MyListingsPage() {
     if (inviteId) {
       await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "accepted" });
     }
-    await updateCoHostDetails({ co_host_status: "active", cohost_invite_status: null }, "Co-host re-activated");
+    await updateCoHostDetails(
+      {
+        co_host_status: "active",
+        cohost_invite_status: null,
+      },
+      "Co-host re-activated"
+    );
     await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
   };
 
@@ -597,7 +635,12 @@ export default function MyListingsPage() {
       await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "removed" });
     }
     await updateCoHostDetails(
-      { co_host_user_id: null, co_host_status: null, cohost_invite_status: null, co_host_permissions: null },
+      {
+        co_host_user_id: null,
+        co_host_status: null,
+        cohost_invite_status: null,
+        co_host_permissions: null,
+      },
       "Co-host removed"
     );
     await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
@@ -624,7 +667,10 @@ export default function MyListingsPage() {
     }
 
     let dateChanged = false;
-    const updateData = { title: editTitle, description: editDescription };
+    const updateData = {
+      title: editTitle,
+      description: editDescription,
+    };
 
     if (editingListing.listingType === "event") {
       updateData.event_name = editTitle;
@@ -640,12 +686,15 @@ export default function MyListingsPage() {
     if (editingListing.listingType === "event") {
       updateData.photoUrls = editPhotoUrls;
       updateData.event_photos = editPhotoUrls;
+
       updateData.event_icon = editEventIcon || getDefaultEventIconForCategory(editingListing.event_category || editingListing.category);
       updateData.event_logo_url = editEventLogoUrl || "";
       if ((editingListing.event_tier || editingListing.tier) === "marquee") {
         updateData.marquee_schedule_slots = editMarqueeSlots;
         updateData.marquee_flyer_url = editMarqueeFlyerUrl;
         updateData.marquee_background_url = editMarqueeBackgroundUrl;
+
+        // Update start/end datetimes if provided
         if (editEventStartDate && editEventStartTime) {
           updateData.startDateTime = new Date(`${editEventStartDate}T${editEventStartTime}`).toISOString();
           updateData.start_datetime = updateData.startDateTime;
@@ -671,7 +720,10 @@ export default function MyListingsPage() {
       if (startDateChanged || endDateChanged || startTimeChanged || endTimeChanged) {
         if (startDateChanged) {
           const leadTimeError = getNeighborhoodCreationLeadTimeError(editStartDate);
-          if (leadTimeError) { toast.error(leadTimeError); return; }
+          if (leadTimeError) {
+            toast.error(leadTimeError);
+            return;
+          }
         }
 
         const newStartDate = editStartDate || oldStartStr;
@@ -679,16 +731,21 @@ export default function MyListingsPage() {
         const newStartTime = editStartTime || oldStartTime || "08:00";
         const newEndTime = editEndTime || oldEndTime || "14:00";
 
-        if (newEndDate < newStartDate) { toast.error("End date cannot be before start date."); return; }
+        if (newEndDate < newStartDate) {
+          toast.error("End date cannot be before start date.");
+          return;
+        }
 
         updateData.startDateTime = `${newStartDate}T${newStartTime}:00`;
         updateData.endDateTime = `${newEndDate}T${newEndTime}:00`;
         updateData.selectedRangeStartDate = newStartDate;
         updateData.selectedRangeEndDate = newEndDate;
+
         dateChanged = true;
       }
     }
 
+    // Participant yard_sale listing — allow editing sale time within the NS window
     const isParticipantYardSale =
       editingListing.listingType === "yard_sale" &&
       editingListing.neighborhood_sale_id &&
@@ -705,10 +762,17 @@ export default function MyListingsPage() {
       const newStartTime = editStartTime || oldStartTime;
       const newEndTime = editEndTime || oldEndTime;
 
+      // Validate end is after start
       const newStart = new Date(`${newStartDate}T${newStartTime}`);
       const newEnd = new Date(`${newEndDate}T${newEndTime}`);
-      if (newEnd <= newStart) { toast.error("End time must be after start time."); return; }
+      if (newEnd <= newStart) {
+        toast.error("End time must be after start time.");
+        return;
+      }
 
+      // Validate that the new dates overlap the Neighborhood Sale
+      const nsStart = editingListing.neighborhood_sale_id;
+      // Fetch the parent sale to validate overlap
       let parentSale = null;
       try {
         const results = await base44.entities.Listing.filter({ id: editingListing.neighborhood_sale_id });
@@ -733,12 +797,14 @@ export default function MyListingsPage() {
     setIsSaving(true);
     try {
       await base44.entities.Listing.update(editingListing.id, updateData);
+
       if (dateChanged) {
         await base44.functions.invoke("syncNeighborhoodDeadlineJobs", {
           data: { ...editingListing, ...updateData },
           event: { type: "update", entity_id: editingListing.id }
         }).catch(console.error);
       }
+
       toast.success("Listing updated");
       closeEditDescription();
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
@@ -751,16 +817,25 @@ export default function MyListingsPage() {
 
   const relist = (listing) => {
     const isEvent = listing.listingType === "event";
-    const basePayload = { relistFromId: listing.id, listingType: listing.listingType || "yard_sale" };
+
+    const basePayload = {
+      relistFromId: listing.id,
+      listingType: listing.listingType || "yard_sale",
+    };
 
     if (isEvent) {
+      // Event relist: prefill all event fields across steps 1, 2, 3
       basePayload.relistPrefill = {
         listingType: "event",
+
+        // Step 1 — Event Details
         event_name: listing.event_name || listing.title || "",
         event_description: listing.event_description || listing.description || "",
         event_category: listing.event_category || listing.category || "",
         event_icon: listing.event_icon || "",
         event_photos: listing.event_photos || listing.photoUrls || [],
+
+        // Step 2 — Event Location
         display_address: listing.display_address || listing.address_text || listing.addressText || "",
         geocoded_address: listing.geocoded_address || "",
         location_source: listing.location_source || "search",
@@ -771,15 +846,28 @@ export default function MyListingsPage() {
         zip: listing.zip || "",
         lat: listing.lat ?? null,
         lng: listing.lng ?? null,
-        event_start_date: "", event_end_date: "", event_start_time: "", event_end_time: "",
-        start_datetime: "", end_datetime: "", startDateTime: "", endDateTime: "",
+
+        // Step 3 — Schedule (cleared so user picks new dates)
+        event_start_date: "",
+        event_end_date: "",
+        event_start_time: "",
+        event_end_time: "",
+        start_datetime: "",
+        end_datetime: "",
+        startDateTime: "",
+        endDateTime: "",
+
+        // Step 4 — Tier: preselect original tier (marquee stays marquee)
         event_tier: listing.event_tier || listing.tier || "basic",
+
+        // Marquee extras
         marquee_schedule_slots: listing.marquee_schedule_slots || [],
         marquee_flyer_url: listing.marquee_flyer_url || "",
         marquee_background_url: listing.marquee_background_url || "",
         event_logo_url: listing.event_logo_url || "",
       };
     } else {
+      // Yard sale / neighborhood sale relist
       basePayload.relistPrefill = {
         listingType: listing.listingType || "yard_sale",
         title: listing.title || "",
@@ -797,9 +885,14 @@ export default function MyListingsPage() {
       };
     }
 
-    try { localStorage.setItem(RELIST_STORAGE_KEY, JSON.stringify(basePayload)); } catch (e) {}
+    try {
+      localStorage.setItem(RELIST_STORAGE_KEY, JSON.stringify(basePayload));
+    } catch (e) {
+      // ignore
+    }
 
     if (isEvent) {
+      // Event relist: go to step 1 so the user flows through event steps naturally
       navigate(createPageUrl("CreateListing") + "?relist=1&eventRelist=1");
     } else {
       navigate(createPageUrl("CreateListing") + "?relist=1");
@@ -827,7 +920,7 @@ export default function MyListingsPage() {
     } else if (isCommittedNeighborhoodSale) {
       message = `WARNING: Your Neighborhood Sale is COMMITTED (5+ homes). Cancelling now will trigger an immediate non-refundable charge for the event. Are you sure you want to cancel?`;
     }
-
+      
     const ok = window.confirm(message);
     if (!ok) return;
 
@@ -845,6 +938,7 @@ export default function MyListingsPage() {
           statusReason: isActive ? "Canceled by owner" : "Canceled by owner before activation",
         });
 
+        // Clean up any JoinRequests tied to this participant listing
         if (listing.neighborhood_sale_id || listing.neighborhood_join_status !== "none") {
           try {
             const reqs = await base44.entities.JoinRequest.filter({ listingId: listing.id });
@@ -856,6 +950,7 @@ export default function MyListingsPage() {
                 status: "canceled",
               });
             }
+            // Dismiss any pending join-request notifications for this listing
             const notifs = await base44.entities.Notification.filter({ user_id: listing.ownerUserId });
             for (const n of notifs) {
               if (n.metadata?.requester_listing_id === listing.id) {
@@ -885,7 +980,9 @@ export default function MyListingsPage() {
         await base44.entities.Listing.delete(listing.id);
       }
 
+      // Cleanup JoinRequests and Notifications
       try {
+        // Mark any JoinRequests for this listing as canceled (not hard-deleted, for audit trail)
         const requesterReqs = await base44.entities.JoinRequest.filter({ listingId: listing.id });
         for (const req of requesterReqs) {
           await base44.entities.JoinRequest.update(req.id, {
@@ -905,9 +1002,10 @@ export default function MyListingsPage() {
           });
         }
 
+        // Delete notifications tied to this listing
         const allNotifs = await base44.entities.Notification.filter({});
-        const toDelete = allNotifs.filter(n =>
-          n.metadata?.requester_listing_id === listing.id ||
+        const toDelete = allNotifs.filter(n => 
+          n.metadata?.requester_listing_id === listing.id || 
           n.metadata?.sale_listing_id === listing.id
         );
         for (const n of toDelete) {
@@ -925,6 +1023,7 @@ export default function MyListingsPage() {
     }
   };
 
+  // ---- Render Guards ----
   if (!user) {
     return (
       <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-gradient-to-br from-orange-50 via-purple-50 to-pink-50">
@@ -947,6 +1046,7 @@ export default function MyListingsPage() {
                 <p className="text-gray-600">Manage your active, pending, and past Yardit listings</p>
               </div>
             </div>
+
             <Button
               onClick={() => navigate(createPageUrl("CreateListing"))}
               className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold w-full sm:w-auto"
@@ -956,10 +1056,15 @@ export default function MyListingsPage() {
           </div>
         </div>
 
+        {/* Tabs */}
         <div className="flex gap-2 flex-wrap mb-6 rounded-xl border bg-white/70 p-2 shadow-sm max-w-4xl">
-          <Button variant={tab === "active" ? "default" : "outline"} onClick={() => setTab("active")}>
+          <Button
+            variant={tab === "active" ? "default" : "outline"}
+            onClick={() => setTab("active")}
+          >
             Active ({activeListings.length})
           </Button>
+
           <Button
             variant={tab === "pending" ? "default" : "outline"}
             onClick={() => setTab("pending")}
@@ -967,19 +1072,31 @@ export default function MyListingsPage() {
           >
             Pending ({pendingListings.length})
           </Button>
-          <Button variant={tab === "past" ? "default" : "outline"} onClick={() => setTab("past")}>
+
+          <Button
+            variant={tab === "past" ? "default" : "outline"}
+            onClick={() => setTab("past")}
+          >
             Past Listings ({pastListings.length})
           </Button>
-          <Button variant={tab === "billing" ? "default" : "outline"} onClick={() => setTab("billing")}>
+
+          <Button
+            variant={tab === "billing" ? "default" : "outline"}
+            onClick={() => setTab("billing")}
+          >
             Billing / Payments
           </Button>
+
         </div>
 
+        {/* Tabs Content */}
         {tab === "billing" ? (
           <Card className="rounded-xl border bg-white/80 shadow">
             <CardContent className="p-8">
               <h2 className="text-xl font-semibold mb-2">Billing / Payments</h2>
-              <p className="text-slate-600">Coming soon. (This will show receipts and payment history per listing.)</p>
+              <p className="text-slate-600">
+                Coming soon. (This will show receipts and payment history per listing.)
+              </p>
             </CardContent>
           </Card>
         ) : isLoading ? (
@@ -992,10 +1109,18 @@ export default function MyListingsPage() {
           <Card className="rounded-xl border bg-white/80 shadow">
             <CardContent className="p-12 text-center">
               <p className="text-slate-500 mb-4">
-                {tab === "past" ? "No past listings yet" : tab === "pending" ? "No pending or scheduled listings" : "You don't have any active listings right now"}
+                {tab === "past"
+                  ? "No past listings yet"
+                  : tab === "pending"
+                  ? "No pending or scheduled listings"
+                  : "You don't have any active listings right now"}
               </p>
+
               {tab === "active" && (
-                <Button onClick={() => navigate(createPageUrl("CreateListing"))} className="bg-amber-600 hover:bg-amber-700 text-white">
+                <Button
+                  onClick={() => navigate(createPageUrl("CreateListing"))}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
                   Create a Listing
                 </Button>
               )}
@@ -1009,17 +1134,23 @@ export default function MyListingsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3">
                     <div className="min-w-0">
                       <h3 className="text-lg sm:text-xl font-semibold mb-1 break-words">{listing.title}</h3>
+
+                      {/* Listing # small print */}
                       <div className="text-xs text-slate-500 mb-2 space-y-1 break-all">
                         <p>Listing #{String(listingNumberText(listing))}</p>
                         <p>ID: {listing.id}</p>
                       </div>
+
                       <div className="flex gap-2 flex-wrap">
                         <Badge variant="outline" className="bg-white text-slate-700 border-slate-300">
                           {listing.listingType === "event" ? "Event" : listing.listingType === "yard_sale" ? "Yard Sale" : listing.listingType === "neighborhood_sale" ? "Neighborhood Sale" : "Listing"}
                         </Badge>
                         {listing.co_host_user_id === user?.id && listing.co_host_status === "active" && (
-                          <Badge className="bg-indigo-600 text-white hover:bg-indigo-700 border-none">Co-Host</Badge>
+                          <Badge className="bg-indigo-600 text-white hover:bg-indigo-700 border-none">
+                            Co-Host
+                          </Badge>
                         )}
+                        {/* (plain english) Requester listing badges for neighborhood join status */}
                         {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && (
                           <Badge className="bg-yellow-500 text-yellow-950 hover:bg-yellow-600 border-none">Pending Neighborhood Approval</Badge>
                         )}
@@ -1029,9 +1160,11 @@ export default function MyListingsPage() {
                         {listing.neighborhood_join_status === "denied" && (
                           <Badge className="bg-red-600 text-white hover:bg-red-700 border-none">Neighborhood Denied</Badge>
                         )}
+
                         <Badge className={tierColors[listing.tier] || "bg-slate-500"}>
                           {formatListingTierLabel(listing.tier)}
                         </Badge>
+
                         <Badge className={statusColors[listing.displayStatus] || "bg-gray-500"}>
                           {formatListingStatusLabel(listing.displayStatus)}
                         </Badge>
@@ -1048,6 +1181,7 @@ export default function MyListingsPage() {
                         <Map className="w-3 h-3" />
                         View on Map
                       </Button>
+
                       <Button
                         size="sm"
                         onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
@@ -1055,30 +1189,61 @@ export default function MyListingsPage() {
                       >
                         View Details
                       </Button>
+
                       {listing.ownerUserId === user?.id && (
-                        <Button size="sm" onClick={() => openEditDescription(listing)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                        <Button
+                          size="sm"
+                          onClick={() => openEditDescription(listing)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
                           Edit Listing
                         </Button>
                       )}
-                      <Button size="sm" onClick={() => relist(listing)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+
+                      <Button
+                        size="sm"
+                        onClick={() => relist(listing)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
                         Relist
                       </Button>
+
                       {canSelfServeUpgrade(listing) && (
-                        <Button size="sm" onClick={() => setUpgradeListing(listing)} className="bg-amber-600 hover:bg-amber-700 text-white">
+                        <Button
+                          size="sm"
+                          onClick={() => setUpgradeListing(listing)}
+                          className="bg-amber-600 hover:bg-amber-700 text-white"
+                        >
                           Upgrade
                         </Button>
                       )}
+
                       {canCancelListingDirectly(listing) ? (
-                        <Button size="sm" variant="destructive" onClick={() => cancelListing(listing)} className="gap-1">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => cancelListing(listing)}
+                          className="gap-1"
+                        >
                           <Trash2 className="w-3 h-3" />
                           Cancel Listing
                         </Button>
                       ) : isActiveListing(listing) ? (
-                        <Button size="sm" variant="outline" onClick={() => navigate(createPageUrl("ContactSupport"))} className="gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(createPageUrl("ContactSupport"))}
+                          className="gap-1"
+                        >
                           Need Help? Contact Support
                         </Button>
                       ) : isEffectivelyPastListing(listing) ? (
-                        <Button size="sm" variant="destructive" onClick={() => deleteListing(listing)} className="gap-1">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteListing(listing)}
+                          className="gap-1"
+                        >
                           <Trash2 className="w-3 h-3" />
                           Delete
                         </Button>
@@ -1086,13 +1251,18 @@ export default function MyListingsPage() {
                     </div>
                   </div>
 
-                  <p className="text-gray-600 mb-4 whitespace-pre-wrap">{listing.description || "(No description)"}</p>
+                  {/* Description */}
+                  <p className="text-gray-600 mb-4 whitespace-pre-wrap">
+                    {listing.description || "(No description)"}
+                  </p>
 
+                  {/* Address + Dates */}
                   <div className="grid md:grid-cols-2 gap-4 text-sm rounded-xl bg-orange-50/60 border border-orange-100 p-4">
                     <div className="flex items-center gap-2 text-slate-600">
                       <MapPin className="w-4 h-4" />
                       <span className="break-words">{getListingAddressLine(listing)}</span>
                     </div>
+
                     <div className="flex items-center gap-2 text-slate-600">
                       <Calendar className="w-4 h-4" />
                       <span>{formatListingDateRange(listing)}</span>
@@ -1101,15 +1271,17 @@ export default function MyListingsPage() {
 
                   {listing.statusReason && (
                     <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-sm text-yellow-800"><strong>Status Note:</strong> {listing.statusReason}</p>
+                      <p className="text-sm text-yellow-800">
+                        <strong>Status Note:</strong> {listing.statusReason}
+                      </p>
                     </div>
                   )}
 
                   {listing.listingType === "yard_sale" && (
                     <div className="mt-4 pt-4 border-t border-slate-100 flex justify-center sm:justify-start">
-                      <button
-                        type="button"
-                        onClick={() => setShowGuideModal(true)}
+                      <button 
+                        type="button" 
+                        onClick={() => setShowGuideModal(true)} 
                         className="text-sm text-teal-600 font-medium hover:text-teal-800 underline underline-offset-2 transition-colors"
                       >
                         Want more traffic? View Success Guide
@@ -1125,6 +1297,7 @@ export default function MyListingsPage() {
 
       <YardSaleGuideModal open={showGuideModal} onOpenChange={setShowGuideModal} />
 
+      {/* (Edit Listing popup) */}
       <Dialog open={!!editingListing} onOpenChange={(open) => !open && closeEditDescription()}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1136,26 +1309,53 @@ export default function MyListingsPage() {
               <>
                 <div>
                   <Label className="text-[#2C4F4E] mb-2 block">Title</Label>
-                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Neighborhood Sale Title..." className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Neighborhood Sale Title..."
+                    className="bg-[#F3E6CF] border-[#2C4F4E]"
+                  />
                 </div>
                 <div className="space-y-3">
                   <Label className="text-[#2C4F4E] font-semibold block">Event Date &amp; Time</Label>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs text-slate-500 mb-1 block">Start Date</Label>
-                      <Input type="date" min={new Date().toISOString().split("T")[0]} value={editStartDate} onChange={(e) => setEditStartDate(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                      <Input
+                        type="date"
+                        min={new Date().toISOString().split("T")[0]}
+                        value={editStartDate}
+                        onChange={(e) => setEditStartDate(e.target.value)}
+                        className="bg-[#F3E6CF] border-[#2C4F4E]"
+                      />
                     </div>
                     <div>
                       <Label className="text-xs text-slate-500 mb-1 block">Start Time</Label>
-                      <Input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                      <Input
+                        type="time"
+                        value={editStartTime}
+                        onChange={(e) => setEditStartTime(e.target.value)}
+                        className="bg-[#F3E6CF] border-[#2C4F4E]"
+                      />
                     </div>
                     <div>
                       <Label className="text-xs text-slate-500 mb-1 block">End Date</Label>
-                      <Input type="date" min={editStartDate || new Date().toISOString().split("T")[0]} value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                      <Input
+                        type="date"
+                        min={editStartDate || new Date().toISOString().split("T")[0]}
+                        value={editEndDate}
+                        onChange={(e) => setEditEndDate(e.target.value)}
+                        className="bg-[#F3E6CF] border-[#2C4F4E]"
+                      />
                     </div>
                     <div>
                       <Label className="text-xs text-slate-500 mb-1 block">End Time</Label>
-                      <Input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                      <Input
+                        type="time"
+                        value={editEndTime}
+                        onChange={(e) => setEditEndTime(e.target.value)}
+                        className="bg-[#F3E6CF] border-[#2C4F4E]"
+                      />
                     </div>
                   </div>
                   <p className="text-xs text-slate-500">Changing the start date must be at least 7 days in the future. Time changes take effect immediately for all participants.</p>
@@ -1166,7 +1366,12 @@ export default function MyListingsPage() {
                     <Label className="text-[#2C4F4E] mb-2 block">Add Co-Host</Label>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <Input value={coHostSearchQuery} onChange={(e) => setCoHostSearchQuery(e.target.value)} placeholder="Search Co-Host by name, email, phone, address, city, or user ID" className="pl-9" />
+                      <Input
+                        value={coHostSearchQuery}
+                        onChange={(e) => setCoHostSearchQuery(e.target.value)}
+                        placeholder="Search Co-Host by name, email, phone, address, city, or user ID"
+                        className="pl-9"
+                      />
                     </div>
                     <p className="text-xs text-slate-500 mt-1">Search existing Yardit users only.</p>
                   </div>
@@ -1226,16 +1431,42 @@ export default function MyListingsPage() {
                                 </div>
                                 <DropdownMenu modal={false}>
                                   <DropdownMenuTrigger asChild>
-                                    <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={isUpdatingCoHost}
+                                      onPointerDown={(e) => e.stopPropagation()}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
                                       <MoreHorizontal className="w-4 h-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" side="bottom" sideOffset={8} collisionPadding={12} onCloseAutoFocus={(e) => e.preventDefault()} className="z-[2000]">
-                                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleResendInvite(row); }}>
-                                      <Send className="w-4 h-4" /> Resend Invite
+                                  <DropdownMenuContent
+                                    align="end"
+                                    side="bottom"
+                                    sideOffset={8}
+                                    collisionPadding={12}
+                                    onCloseAutoFocus={(e) => e.preventDefault()}
+                                    className="z-[2000]"
+                                  >
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleResendInvite(row);
+                                      }}
+                                    >
+                                      <Send className="w-4 h-4" />
+                                      Resend Invite
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleCancelInvite(row.inviteId); }}>
-                                      <UserX className="w-4 h-4" /> Cancel Invite
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleCancelInvite(row.inviteId);
+                                      }}
+                                    >
+                                      <UserX className="w-4 h-4" />
+                                      Cancel Invite
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -1256,16 +1487,42 @@ export default function MyListingsPage() {
                                 </div>
                                 <DropdownMenu modal={false}>
                                   <DropdownMenuTrigger asChild>
-                                    <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={isUpdatingCoHost}
+                                      onPointerDown={(e) => e.stopPropagation()}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
                                       <MoreHorizontal className="w-4 h-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" side="bottom" sideOffset={8} collisionPadding={12} onCloseAutoFocus={(e) => e.preventDefault()} className="z-[2000]">
-                                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleSuspendCoHost(row.inviteId); }}>
-                                      <Shield className="w-4 h-4" /> Suspend Co-Host
+                                  <DropdownMenuContent
+                                    align="end"
+                                    side="bottom"
+                                    sideOffset={8}
+                                    collisionPadding={12}
+                                    onCloseAutoFocus={(e) => e.preventDefault()}
+                                    className="z-[2000]"
+                                  >
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleSuspendCoHost(row.inviteId);
+                                      }}
+                                    >
+                                      <Shield className="w-4 h-4" />
+                                      Suspend Co-Host
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleRemoveCoHost(row.inviteId); }}>
-                                      <UserX className="w-4 h-4" /> Remove Co-Host
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleRemoveCoHost(row.inviteId);
+                                      }}
+                                    >
+                                      <UserX className="w-4 h-4" />
+                                      Remove Co-Host
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -1286,16 +1543,42 @@ export default function MyListingsPage() {
                                 </div>
                                 <DropdownMenu modal={false}>
                                   <DropdownMenuTrigger asChild>
-                                    <Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={isUpdatingCoHost}
+                                      onPointerDown={(e) => e.stopPropagation()}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
                                       <MoreHorizontal className="w-4 h-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" side="bottom" sideOffset={8} collisionPadding={12} onCloseAutoFocus={(e) => e.preventDefault()} className="z-[2000]">
-                                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleReactivateCoHost(row.inviteId); }}>
-                                      <Shield className="w-4 h-4" /> Re-Activate Co-Host
+                                  <DropdownMenuContent
+                                    align="end"
+                                    side="bottom"
+                                    sideOffset={8}
+                                    collisionPadding={12}
+                                    onCloseAutoFocus={(e) => e.preventDefault()}
+                                    className="z-[2000]"
+                                  >
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleReactivateCoHost(row.inviteId);
+                                      }}
+                                    >
+                                      <Shield className="w-4 h-4" />
+                                      Re-Activate Co-Host
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleRemoveCoHost(row.inviteId); }}>
-                                      <UserX className="w-4 h-4" /> Remove Co-Host
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleRemoveCoHost(row.inviteId);
+                                      }}
+                                    >
+                                      <UserX className="w-4 h-4" />
+                                      Remove Co-Host
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -1308,7 +1591,12 @@ export default function MyListingsPage() {
                   </div>
 
                   <div className="flex justify-end">
-                    <Button type="button" onClick={sendCoHostInvite} disabled={!selectedCoHostUserId || isSendingCoHostInvite || isUpdatingCoHost} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                    <Button
+                      type="button"
+                      onClick={sendCoHostInvite}
+                      disabled={!selectedCoHostUserId || isSendingCoHostInvite || isUpdatingCoHost}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
                       <Send className="w-4 h-4 mr-2" />
                       {isSendingCoHostInvite ? "Sending..." : "Send Invite"}
                     </Button>
@@ -1321,41 +1609,66 @@ export default function MyListingsPage() {
               <div className="space-y-4">
                 <div>
                   <Label className="text-[#2C4F4E] mb-2 block">Title</Label>
-                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Yard Sale Title..." className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Yard Sale Title..."
+                    className="bg-[#F3E6CF] border-[#2C4F4E]"
+                  />
                 </div>
                 <div>
                   <Label className="text-[#2C4F4E] mb-2 block">Categories (Up to 10) *</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {editCategories.map((cat, i) => (
-                      <Badge key={i} className="flex items-center gap-1 bg-[#5DADA5] py-1.5 px-3 text-sm rounded-full">
-                        {cat}
-                        <X className="w-3 h-3 cursor-pointer" onClick={() => { setEditCategories(prev => prev.filter((_, idx) => idx !== i)); }} />
-                      </Badge>
-                    ))}
-                  </div>
-                  {editCategories.length < 10 && (
-                    <Select value="" onValueChange={(value) => { if (editCategories.includes(value)) return; setEditCategories(prev => [...prev, value]); }}>
-                      <SelectTrigger className="border-[#2C4F4E] mt-3">
-                        <SelectValue placeholder="Add Category +" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {["Household Items", "Furniture", "Clothing & Accessories", "Electronics", "Tools & Hardware", "Toys & Games", "Baby & Kids", "Outdoor & Garden", "Sports Equipment", "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts", "Free Items", "Food / Baked Goods", "Miscellaneous"]
-                          .filter(cat => !editCategories.includes(cat))
-                          .map(cat => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                {editCategories.map((cat, i) => (
+                   <Badge key={i} className="flex items-center gap-1 bg-[#5DADA5] py-1.5 px-3 text-sm rounded-full">
+                      {cat} 
+                      <X className="w-3 h-3 cursor-pointer" onClick={() => {
+                        setEditCategories(prev => prev.filter((_, idx) => idx !== i));
+                      }} />
+                   </Badge>
+                ))}
               </div>
+              {editCategories.length < 10 && (
+                <Select
+                  value=""
+                  onValueChange={(value) => {
+                    if (editCategories.includes(value)) return;
+                    setEditCategories(prev => [...prev, value]);
+                  }}
+                >
+                  <SelectTrigger className="border-[#2C4F4E] mt-3">
+                    <SelectValue placeholder="Add Category +" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[
+                      "Household Items", "Furniture", "Clothing & Accessories",
+                      "Electronics", "Tools & Hardware", "Toys & Games",
+                      "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
+                      "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
+                      "Free Items", "Food / Baked Goods", "Miscellaneous"
+                    ].filter(cat => !editCategories.includes(cat)).map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              </div>
+            </div>
             )}
 
             {editingListing?.listingType === "event" && (
               <div className="space-y-4">
                 <div>
                   <Label className="text-[#2C4F4E] mb-2 block">Event Title *</Label>
-                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Event title..." className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Event title..."
+                    className="bg-[#F3E6CF] border-[#2C4F4E]"
+                  />
                 </div>
 
+                {/* Collapsible Event Icon Section */}
                 {(() => {
                   const tier = editingListing?.event_tier || editingListing?.tier || "basic";
                   const isBasic = tier === "basic";
@@ -1367,7 +1680,12 @@ export default function MyListingsPage() {
 
                   return (
                     <div className="border border-[#2C4F4E]/20 rounded-xl overflow-hidden">
-                      <button type="button" onClick={() => setIconPickerOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3 bg-[#F3E6CF] hover:bg-[#EDD9B5] transition-colors">
+                      {/* Collapsed header row — always visible */}
+                      <button
+                        type="button"
+                        onClick={() => setIconPickerOpen(o => !o)}
+                        className="w-full flex items-center justify-between px-4 py-3 bg-[#F3E6CF] hover:bg-[#EDD9B5] transition-colors"
+                      >
                         <div className="flex items-center gap-3">
                           <span className="text-sm font-semibold text-[#2C4F4E]">Event Icon</span>
                           <div className="flex items-center gap-2">
@@ -1385,11 +1703,22 @@ export default function MyListingsPage() {
                             <span className="text-xs text-slate-500 capitalize">{iconLabel}</span>
                           </div>
                         </div>
-                        {iconPickerOpen ? <ChevronUp className="w-4 h-4 text-[#2C4F4E]" /> : <ChevronDown className="w-4 h-4 text-[#2C4F4E]" />}
+                        {iconPickerOpen
+                          ? <ChevronUp className="w-4 h-4 text-[#2C4F4E]" />
+                          : <ChevronDown className="w-4 h-4 text-[#2C4F4E]" />
+                        }
                       </button>
+
+                      {/* Expanded picker */}
                       {iconPickerOpen && (
                         <div className="p-4 border-t border-[#2C4F4E]/10 bg-white">
-                          <EventIconManager tier={tier} selectedIcon={editEventIcon} setSelectedIcon={setEditEventIcon} uploadedImageUrl={editEventLogoUrl} setUploadedImageUrl={setEditEventLogoUrl} />
+                          <EventIconManager
+                            tier={tier}
+                            selectedIcon={editEventIcon}
+                            setSelectedIcon={setEditEventIcon}
+                            uploadedImageUrl={editEventLogoUrl}
+                            setUploadedImageUrl={setEditEventLogoUrl}
+                          />
                         </div>
                       )}
                     </div>
@@ -1403,19 +1732,40 @@ export default function MyListingsPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <Label className="text-xs text-slate-500 mb-1 block">Start Date</Label>
-                          <Input type="date" value={editEventStartDate} onChange={(e) => setEditEventStartDate(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                          <Input
+                            type="date"
+                            value={editEventStartDate}
+                            onChange={(e) => setEditEventStartDate(e.target.value)}
+                            className="bg-[#F3E6CF] border-[#2C4F4E]"
+                          />
                         </div>
                         <div>
                           <Label className="text-xs text-slate-500 mb-1 block">Start Time</Label>
-                          <Input type="time" value={editEventStartTime} onChange={(e) => setEditEventStartTime(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                          <Input
+                            type="time"
+                            value={editEventStartTime}
+                            onChange={(e) => setEditEventStartTime(e.target.value)}
+                            className="bg-[#F3E6CF] border-[#2C4F4E]"
+                          />
                         </div>
                         <div>
                           <Label className="text-xs text-slate-500 mb-1 block">End Date</Label>
-                          <Input type="date" value={editEventEndDate} min={editEventStartDate || undefined} onChange={(e) => setEditEventEndDate(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                          <Input
+                            type="date"
+                            value={editEventEndDate}
+                            min={editEventStartDate || undefined}
+                            onChange={(e) => setEditEventEndDate(e.target.value)}
+                            className="bg-[#F3E6CF] border-[#2C4F4E]"
+                          />
                         </div>
                         <div>
                           <Label className="text-xs text-slate-500 mb-1 block">End Time</Label>
-                          <Input type="time" value={editEventEndTime} onChange={(e) => setEditEventEndTime(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                          <Input
+                            type="time"
+                            value={editEventEndTime}
+                            onChange={(e) => setEditEventEndTime(e.target.value)}
+                            className="bg-[#F3E6CF] border-[#2C4F4E]"
+                          />
                         </div>
                       </div>
                     </div>
@@ -1427,26 +1777,45 @@ export default function MyListingsPage() {
                           <div className="w-full max-w-xs border-2 border-[#2C4F4E] rounded-lg overflow-hidden">
                             <img src={editMarqueeFlyerUrl} alt="Flyer preview" className="w-full h-auto" />
                           </div>
-                          <Button type="button" variant="destructive" size="sm" onClick={() => setEditMarqueeFlyerUrl("")}>Delete Flyer</Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setEditMarqueeFlyerUrl("")}
+                          >
+                            Delete Flyer
+                          </Button>
                         </div>
                       ) : (
                         <div className="border-2 border-dashed border-[#2C4F4E] rounded-lg p-4 text-center">
-                          <input type="file" id="flyer-upload" accept="image/*" onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            setIsUploadingFlyer(true);
-                            try {
-                              const result = await base44.integrations.Core.UploadFile({ file });
-                              setEditMarqueeFlyerUrl(result.file_url);
-                              toast.success("Flyer uploaded - click Save to persist");
-                            } catch (error) {
-                              console.error("Upload error:", error);
-                              toast.error("Failed to upload flyer");
-                            } finally {
-                              setIsUploadingFlyer(false);
-                            }
-                          }} className="hidden" />
-                          <Button type="button" variant="outline" className="border-[#2C4F4E]" disabled={isUploadingFlyer} onClick={() => document.getElementById("flyer-upload")?.click()}>
+                          <input
+                            type="file"
+                            id="flyer-upload"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setIsUploadingFlyer(true);
+                              try {
+                                 const result = await base44.integrations.Core.UploadFile({ file });
+                                 setEditMarqueeFlyerUrl(result.file_url);
+                                 toast.success("Flyer uploaded - click Save to persist");
+                               } catch (error) {
+                                 console.error("Upload error:", error);
+                                 toast.error("Failed to upload flyer");
+                               } finally {
+                                 setIsUploadingFlyer(false);
+                               }
+                            }}
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-[#2C4F4E]"
+                            disabled={isUploadingFlyer}
+                            onClick={() => document.getElementById("flyer-upload")?.click()}
+                          >
                             {isUploadingFlyer ? "Uploading..." : "Upload Flyer"}
                           </Button>
                           <p className="text-xs text-slate-500 mt-2">JPG, PNG (shown in listing details)</p>
@@ -1462,32 +1831,68 @@ export default function MyListingsPage() {
                             <img src={editMarqueeBackgroundUrl} alt="Background preview" className="w-full h-full object-cover" />
                           </div>
                           <div className="flex gap-2">
-                            <Button type="button" variant="secondary" size="sm" onClick={() => { setBackgroundImageForCrop(editMarqueeBackgroundUrl); setCropEditorOpen(true); }}>Crop & Zoom</Button>
-                            <Button type="button" variant="destructive" size="sm" onClick={() => setEditMarqueeBackgroundUrl("")}>Delete Background</Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                setBackgroundImageForCrop(editMarqueeBackgroundUrl);
+                                setCropEditorOpen(true);
+                              }}
+                            >
+                              Crop & Zoom
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setEditMarqueeBackgroundUrl("")}
+                            >
+                              Delete Background
+                            </Button>
                           </div>
                         </div>
                       ) : (
                         <div className="border-2 border-dashed border-[#2C4F4E] rounded-lg p-4 text-center">
-                          <input type="file" id="background-upload" accept="image/*" onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            setIsUploadingBackground(true);
-                            try {
-                              const result = await base44.integrations.Core.UploadFile({ file });
-                              setBackgroundImageForCrop(result.file_url);
-                              setCropEditorOpen(true);
-                            } catch (error) {
-                              toast.error("Failed to upload background");
-                            } finally {
-                              setIsUploadingBackground(false);
-                            }
-                          }} className="hidden" />
-                          <Button type="button" variant="outline" className="border-[#2C4F4E]" disabled={isUploadingBackground} onClick={() => document.getElementById("background-upload")?.click()}>
+                          <input
+                            type="file"
+                            id="background-upload"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setIsUploadingBackground(true);
+                              try {
+                                const result = await base44.integrations.Core.UploadFile({ file });
+                                setBackgroundImageForCrop(result.file_url);
+                                setCropEditorOpen(true);
+                              } catch (error) {
+                                toast.error("Failed to upload background");
+                              } finally {
+                                setIsUploadingBackground(false);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-[#2C4F4E]"
+                            disabled={isUploadingBackground}
+                            onClick={() => document.getElementById("background-upload")?.click()}
+                          >
                             {isUploadingBackground ? "Uploading..." : "Upload Background"}
                           </Button>
                           <p className="text-xs text-slate-500 mt-2">16:9 aspect ratio recommended (1920x1080 or larger)</p>
                           {backgroundImageForCrop && (
-                            <Button type="button" variant="secondary" className="w-full mt-2" onClick={() => setCropEditorOpen(true)}>Crop & Zoom Image</Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className="w-full mt-2"
+                              onClick={() => setCropEditorOpen(true)}
+                            >
+                              Crop & Zoom Image
+                            </Button>
                           )}
                         </div>
                       )}
@@ -1513,28 +1918,50 @@ export default function MyListingsPage() {
             />
 
             {editingListing?.listingType === "yard_sale" && (
-              <EditListingPhotos label="Listing Photos" value={editPhotoUrls} onChange={setEditPhotoUrls} maxPhotos={getPhotoLimitByTier(editingListing?.tier)} />
+              <EditListingPhotos
+                label="Listing Photos"
+                value={editPhotoUrls}
+                onChange={setEditPhotoUrls}
+                maxPhotos={getPhotoLimitByTier(editingListing?.tier)}
+              />
             )}
 
             {editingListing?.listingType === "event" && ["featured", "premium", "marquee", "galactic_display", "galactic", "display"].includes(editingListing?.event_tier || editingListing?.tier) && (
-              <EditListingPhotos label="Event Photos" value={editPhotoUrls} onChange={setEditPhotoUrls} maxPhotos={getPhotoLimitByTier(editingListing?.event_tier || editingListing?.tier)} />
+              <EditListingPhotos
+                label="Event Photos"
+                value={editPhotoUrls}
+                onChange={setEditPhotoUrls}
+                maxPhotos={getPhotoLimitByTier(editingListing?.event_tier || editingListing?.tier)}
+              />
             )}
 
             <div>
               <Label className="text-[#2C4F4E] mb-2 block">Description</Label>
-              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={5} placeholder="Update your description..." />
+              <Textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={5}
+                placeholder="Update your description..."
+              />
             </div>
           </div>
 
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={closeEditDescription}>Cancel</Button>
-            <Button onClick={saveDescription} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button variant="outline" onClick={closeEditDescription}>
+              Cancel
+            </Button>
+            <Button
+              onClick={saveDescription}
+              disabled={isSaving}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
               {isSaving ? "Saving..." : "Save"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Image Crop Editor */}
       <ListingUpgradeDialog
         open={!!upgradeListing}
         onClose={() => setUpgradeListing(null)}
@@ -1559,6 +1986,7 @@ export default function MyListingsPage() {
               await base44.entities.Listing.update(editingListing.id, { marquee_background_url: result.file_url });
               await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
             }
+            
             toast.success("Background image cropped and saved");
           } catch (error) {
             console.error("Upload error:", error);
