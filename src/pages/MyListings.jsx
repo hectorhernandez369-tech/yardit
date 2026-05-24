@@ -3,21 +3,45 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Map, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Map, Trash2, X, ChevronDown, ChevronUp, Search, Send, MoreHorizontal, Shield, UserX } from "lucide-react";
+import { format } from "date-fns";
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
-  formatListingDateRange, formatListingStatusLabel, formatListingTierLabel,
-  getListingAddressLine, getListingDisplayStatus, statusColors, tierColors,
+  formatListingDateRange,
+  formatListingStatusLabel,
+  formatListingTierLabel,
+  getListingAddressLine,
+  getListingDisplayStatus,
+  statusColors,
+  tierColors,
 } from "@/components/listing/listingDisplay";
 import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError, shouldShowListingOnMainMap, isNeighborhoodVisibleOnMap } from "@/lib/neighborhoodSaleState";
-import EditListingDialog from "@/components/listing/EditListingDialog";
+import { Input } from "@/components/ui/input";
+import EventIconManager from "@/components/events/EventIconManager";
+import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
+import ImageCropEditor from "@/components/admin/ImageCropEditor";
+import EditListingPhotos from "@/components/listing/EditListingPhotos";
+import EditParticipantSaleTime from "@/components/listing/EditParticipantSaleTime";
 import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
 import { canSelfServeUpgrade } from "@/lib/listingUpgradeConfig";
-import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
+import { getDefaultEventIconForCategory, EVENT_BASIC_ICON_LIBRARY, getEventIconEmoji } from "@/lib/eventListingConfig";
 import { getUserDisplayName } from "@/lib/userIdentity";
+import { getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import YardSaleGuideModal from "@/components/guide/YardSaleGuideModal";
 
@@ -26,12 +50,10 @@ const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 export default function MyListingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState("active");
   const [showGuideModal, setShowGuideModal] = useState(false);
-  const [upgradeListing, setUpgradeListing] = useState(null);
-
-  // Edit listing state
   const [editingListing, setEditingListing] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -50,8 +72,13 @@ export default function MyListingsPage() {
   const [editEventEndTime, setEditEventEndTime] = useState("");
   const [editMarqueeFlyerUrl, setEditMarqueeFlyerUrl] = useState("");
   const [editMarqueeBackgroundUrl, setEditMarqueeBackgroundUrl] = useState("");
+  const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
+  const [isUploadingBackground, setIsUploadingBackground] = useState(false);
+  const [cropEditorOpen, setCropEditorOpen] = useState(false);
+  const [backgroundImageForCrop, setBackgroundImageForCrop] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [upgradeListing, setUpgradeListing] = useState(null);
   const [coHostSearchQuery, setCoHostSearchQuery] = useState("");
   const [selectedCoHostUserId, setSelectedCoHostUserId] = useState("");
   const [isSendingCoHostInvite, setIsSendingCoHostInvite] = useState(false);
@@ -65,10 +92,15 @@ export default function MyListingsPage() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      try { setUser(await base44.auth.me()); }
-      catch { navigate(createPageUrl("Home")); }
+      try {
+        const currentUser = await base44.auth.me();
+        setUser(currentUser);
+      } catch (error) {
+        navigate(createPageUrl("Home"));
+      }
     };
     fetchUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const { data: listings = [], isLoading } = useQuery({
@@ -76,17 +108,13 @@ export default function MyListingsPage() {
     queryFn: async () => {
       const owned = await base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date");
       const coHosted = await base44.entities.Listing.filter({ co_host_user_id: user.id }, "-created_date");
-      const merged = [...owned, ...coHosted.filter((l) => l.co_host_status === "accepted")];
+      const merged = [...owned, ...coHosted.filter((listing) => listing.co_host_status === "accepted")];
       const seen = new Set();
       return merged.filter((listing) => {
         if (seen.has(listing.id)) return false;
         seen.add(listing.id);
-        // Hide admin-assisted listings that are still unclaimed (owner_type still guest_assisted and not owned by current user)
-        if (
-          (listing.created_by_admin === true || listing.assisted_listing === true) &&
-          listing.owner_type === "guest_assisted" &&
-          listing.ownerUserId !== user.id
-        ) {
+        // Hide unclaimed assisted listings; if user owns it (claimed), always show it
+        if ((listing.created_by_admin || listing.assisted_listing) && listing.owner_type === "guest_assisted" && listing.ownerUserId !== user.id) {
           return false;
         }
         return true;
@@ -120,20 +148,97 @@ export default function MyListingsPage() {
     return listingCoHostInvites.find((invite) => invite.host_user_id === editingListing.co_host_user_id) || null;
   }, [listingCoHostInvites, editingListing?.co_host_user_id]);
 
-  const pendingInviteRows = useMemo(() => listingCoHostInvites.filter((i) => i.status === "pending").map((invite) => ({
-    id: invite.id, inviteId: invite.id, userId: invite.host_user_id, status: "pending",
-    name: invite.host_name || "Invited co-host", email: invite.host_email || "", created_date: invite.created_date,
-  })), [listingCoHostInvites]);
+  const pendingInviteRows = useMemo(() => {
+    return listingCoHostInvites
+      .filter((invite) => invite.status === "pending")
+      .map((invite) => ({
+        id: invite.id,
+        inviteId: invite.id,
+        userId: invite.host_user_id,
+        status: "pending",
+        name: invite.host_name || "Invited co-host",
+        email: invite.host_email || "",
+        created_date: invite.created_date,
+      }));
+  }, [listingCoHostInvites]);
 
   const activeCoHostRows = useMemo(() => {
     if (!editingListing?.co_host_user_id || editingListing?.co_host_status !== "active") return [];
-    return [{ id: editingListing.co_host_user_id, inviteId: latestInviteForAttachedCoHost?.id || null, userId: editingListing.co_host_user_id, status: "active", name: latestInviteForAttachedCoHost?.host_name || "Co-host", email: latestInviteForAttachedCoHost?.host_email || "" }];
+    return [{
+      id: editingListing.co_host_user_id,
+      inviteId: latestInviteForAttachedCoHost?.id || null,
+      userId: editingListing.co_host_user_id,
+      status: "active",
+      name: latestInviteForAttachedCoHost?.host_name || "Co-host",
+      email: latestInviteForAttachedCoHost?.host_email || "",
+    }];
   }, [editingListing?.co_host_user_id, editingListing?.co_host_status, latestInviteForAttachedCoHost]);
 
   const suspendedCoHostRows = useMemo(() => {
     if (!editingListing?.co_host_user_id || editingListing?.co_host_status !== "suspended") return [];
-    return [{ id: editingListing.co_host_user_id, inviteId: latestInviteForAttachedCoHost?.id || null, userId: editingListing.co_host_user_id, status: "suspended", name: latestInviteForAttachedCoHost?.host_name || "Co-host", email: latestInviteForAttachedCoHost?.host_email || "" }];
+    return [{
+      id: editingListing.co_host_user_id,
+      inviteId: latestInviteForAttachedCoHost?.id || null,
+      userId: editingListing.co_host_user_id,
+      status: "suspended",
+      name: latestInviteForAttachedCoHost?.host_name || "Co-host",
+      email: latestInviteForAttachedCoHost?.host_email || "",
+    }];
   }, [editingListing?.co_host_user_id, editingListing?.co_host_status, latestInviteForAttachedCoHost]);
+
+  const getLatLng = (listing) => {
+    const lat = listing?.lat ?? listing?.latitude ?? null;
+    const lng = listing?.lng ?? listing?.longitude ?? null;
+    return { lat, lng };
+  };
+
+  const hasCoords = (listing) => {
+    const { lat, lng } = getLatLng(listing);
+    return !!lat && !!lng;
+  };
+
+  const listingNumberText = (listing) => {
+    if (listing?.listingNumber) return listing.listingNumber;
+    const st = getStateAbbreviation(listing?.state || "XX");
+    const zp = (listing?.zip || "0000").slice(-4).padStart(4, "0");
+    const idSuffix = (listing?.id || "00000").slice(-5).toLowerCase();
+    return `${st}${zp}-${idSuffix}`;
+  };
+
+  const isPastListing = (listing) => {
+    const status = listing?.status || "";
+    return (
+      status === "expired" || status === "completed" || status === "closed" ||
+      status === "cancelled" || status === "canceled" || status === "removed" ||
+      status === "denied" || status === "rejected" || status === "suspended"
+    );
+  };
+
+  const isActiveListing = (listing) => {
+    if (isPastListing(listing)) return false;
+    const now = new Date();
+    if (listing?.listingType === "neighborhood_sale") return isNeighborhoodVisibleOnMap(listing, now);
+    return shouldShowListingOnMainMap(listing, now);
+  };
+
+  const isPendingListing = (listing) => !isEffectivelyPastListing(listing) && !isActiveListing(listing);
+
+  const canCancelListingDirectly = (listing) => {
+    return [
+      "active", "activated_locked", "payment_pending", "scheduled",
+      "ready_for_payment", "payment_pending_adjustment", "under_review", "collecting_participants",
+    ].includes(listing?.status);
+  };
+
+  const normalizedListings = useMemo(() => {
+    return listings.map((listing) => ({ ...listing, displayStatus: getListingDisplayStatus(listing) }));
+  }, [listings]);
+
+  const isEffectivelyPastListing = (listing) => isPastListing(listing) || listing?.displayStatus === "expired";
+
+  const activeListings = useMemo(() => normalizedListings.filter((l) => isActiveListing(l)), [normalizedListings]);
+  const pendingListings = useMemo(() => normalizedListings.filter((l) => isPendingListing(l)), [normalizedListings]);
+  const pastListings = useMemo(() => normalizedListings.filter((l) => isEffectivelyPastListing(l)), [normalizedListings]);
 
   const filteredCoHostUsers = useMemo(() => {
     if (!editingListing || editingListing.listingType !== "neighborhood_sale") return [];
@@ -155,44 +260,19 @@ export default function MyListingsPage() {
         const normalizedValue = value.toLowerCase();
         if (!normalizedValue.includes(query)) return null;
         return { key: config.key, label: config.label, value, exact: normalizedValue === query, startsWith: normalizedValue.startsWith(query), priority: getPriority(config.key) };
-      }).filter(Boolean).sort((a, b) => { if (a.exact !== b.exact) return a.exact ? -1 : 1; if (a.startsWith !== b.startsWith) return a.startsWith ? -1 : 1; return b.priority - a.priority; });
+      }).filter(Boolean).sort((a, b) => {
+        if (a.exact !== b.exact) return a.exact ? -1 : 1;
+        if (a.startsWith !== b.startsWith) return a.startsWith ? -1 : 1;
+        return b.priority - a.priority;
+      });
       if (!matches.length) return null;
       return { ...candidate, matchedField: matches[0] };
     }).filter(Boolean).slice(0, 8);
   }, [searchableUsers, coHostSearchQuery, editingListing, user?.id]);
 
-  const listingNumberText = (listing) => {
-    if (listing?.listingNumber) return listing.listingNumber;
-    const st = getStateAbbreviation(listing?.state || "XX");
-    const zp = (listing?.zip || "0000").slice(-4).padStart(4, "0");
-    const idSuffix = (listing?.id || "00000").slice(-5).toLowerCase();
-    return `${st}${zp}-${idSuffix}`;
-  };
-
-  const hasCoords = (listing) => !!(listing?.lat ?? listing?.latitude) && !!(listing?.lng ?? listing?.longitude);
-
-  const isPastListing = (listing) => ["expired","completed","closed","cancelled","canceled","removed","denied","rejected","suspended"].includes(listing?.status || "");
-
-  const isActiveListing = (listing) => {
-    if (isPastListing(listing)) return false;
-    const now = new Date();
-    if (listing?.listingType === "neighborhood_sale") return isNeighborhoodVisibleOnMap(listing, now);
-    return shouldShowListingOnMainMap(listing, now);
-  };
-
-  const normalizedListings = useMemo(() => listings.map((l) => ({ ...l, displayStatus: getListingDisplayStatus(l) })), [listings]);
-  const isEffectivelyPastListing = (listing) => isPastListing(listing) || listing?.displayStatus === "expired";
-  const isPendingListing = (listing) => !isEffectivelyPastListing(listing) && !isActiveListing(listing);
-
-  const activeListings = useMemo(() => normalizedListings.filter((l) => isActiveListing(l)), [normalizedListings]);
-  const pendingListings = useMemo(() => normalizedListings.filter((l) => isPendingListing(l)), [normalizedListings]);
-  const pastListings = useMemo(() => normalizedListings.filter((l) => isEffectivelyPastListing(l)), [normalizedListings]);
-
-  const canCancelListingDirectly = (listing) => ["active","activated_locked","payment_pending","scheduled","ready_for_payment","payment_pending_adjustment","under_review","collecting_participants"].includes(listing?.status);
-
   useEffect(() => {
     const cleanup = async () => {
-      if (!listings?.length) return;
+      if (!listings || listings.length === 0) return;
       const now = Date.now();
       const toUpdate = listings.filter(l => l.status === "active" && l.endDateTime && new Date(l.endDateTime).getTime() < now);
       for (const l of toUpdate) {
@@ -201,7 +281,11 @@ export default function MyListingsPage() {
           if (l.listingType === "neighborhood_sale") {
             await base44.functions.invoke("syncNeighborhoodDeadlineJobs", { data: { ...l, status: "expired" }, event: { type: "update", entity_id: l.id } }).catch(console.error);
           }
-          await base44.entities.Notification.create({ user_id: user?.id, userId: user?.id, type: "listing_expired", title: "Listing Expired", message: `Your listing "${l.title}" has expired.`, related_entity_type: "listing", related_entity_id: l.id, is_read: false, read: false });
+          const notif = await base44.entities.Notification.create({
+            user_id: user?.id, userId: user?.id, type: "listing_expired", title: "Listing Expired",
+            message: `Your listing "${l.title}" has expired.`, related_entity_type: "listing", related_entity_id: l.id, is_read: false, read: false,
+          });
+          console.log("Created Notification:", { user_id: notif.user_id || notif.userId, type: notif.type, title: notif.title, message: notif.message, related_entity_type: notif.related_entity_type, related_entity_id: notif.related_entity_id, created_at: notif.created_date });
         } catch (e) {}
       }
       if (toUpdate.length > 0) {
@@ -215,41 +299,45 @@ export default function MyListingsPage() {
   const shownListings = tab === "past" ? pastListings : tab === "pending" ? pendingListings : activeListings;
 
   const openEditDescription = async (listing) => {
-    setIconPickerOpen(false);
-    const l = await refreshEditingListing(listing.id);
-    setEditTitle(l?.title || l?.event_name || "");
-    setEditDescription(l?.description || l?.event_description || "");
-    setEditCategories(l?.categories?.length > 0 ? l.categories : (l?.category ? [l.category] : []));
-    setEditEventIcon(l?.event_icon || getDefaultEventIconForCategory(l?.event_category || l?.category));
-    setEditEventLogoUrl(l?.event_logo_url || "");
-    setEditPhotoUrls(l?.listingType === "event" ? (l?.event_photos || l?.photoUrls || []) : (l?.photoUrls || []));
-    setEditMarqueeSlots(Array.isArray(l?.marquee_schedule_slots) ? l.marquee_schedule_slots : []);
-    setEditMarqueeFlyerUrl(l?.marquee_flyer_url || "");
-    setEditMarqueeBackgroundUrl(l?.marquee_background_url || "");
-    if (l?.listingType === "event" && (l?.event_tier || l?.tier) === "marquee") {
-      const start = l.startDateTime ? new Date(l.startDateTime) : null;
-      const end = l.endDateTime ? new Date(l.endDateTime) : null;
+   setIconPickerOpen(false);
+   const latestListing = await refreshEditingListing(listing.id);
+   setEditTitle(latestListing?.title || latestListing?.event_name || "");
+   setEditDescription(latestListing?.description || latestListing?.event_description || "");
+   setEditCategories(latestListing?.categories?.length > 0 ? latestListing.categories : (latestListing?.category ? [latestListing.category] : []));
+   setEditEventIcon(latestListing?.event_icon || getDefaultEventIconForCategory(latestListing?.event_category || latestListing?.category));
+   setEditEventLogoUrl(latestListing?.event_logo_url || "");
+   setEditPhotoUrls(latestListing?.listingType === "event" ? (latestListing?.event_photos || latestListing?.photoUrls || []) : (latestListing?.photoUrls || []));
+   setEditMarqueeSlots(Array.isArray(latestListing?.marquee_schedule_slots) ? latestListing.marquee_schedule_slots : []);
+   setEditMarqueeFlyerUrl(latestListing?.marquee_flyer_url || "");
+   setEditMarqueeBackgroundUrl(latestListing?.marquee_background_url || "");
+    if (latestListing?.listingType === "event" && (latestListing?.event_tier || latestListing?.tier) === "marquee") {
+      const start = latestListing.startDateTime ? new Date(latestListing.startDateTime) : null;
+      const end = latestListing.endDateTime ? new Date(latestListing.endDateTime) : null;
       setEditEventStartDate(start ? start.toISOString().slice(0, 10) : "");
       setEditEventEndDate(end ? end.toISOString().slice(0, 10) : "");
       setEditEventStartTime(start ? start.toTimeString().slice(0, 5) : "");
       setEditEventEndTime(end ? end.toTimeString().slice(0, 5) : "");
-    } else { setEditEventStartDate(""); setEditEventEndDate(""); setEditEventStartTime(""); setEditEventEndTime(""); }
-    if (l?.listingType === "neighborhood_sale") {
-      const nsStart = l.startDateTime ? new Date(l.startDateTime) : null;
-      const nsEnd = l.endDateTime ? new Date(l.endDateTime) : null;
-      setEditStartDate(l.selectedRangeStartDate || (nsStart ? nsStart.toISOString().slice(0, 10) : ""));
-      setEditEndDate(l.selectedRangeEndDate || (nsEnd ? nsEnd.toISOString().slice(0, 10) : ""));
+    } else {
+      setEditEventStartDate(""); setEditEventEndDate(""); setEditEventStartTime(""); setEditEventEndTime("");
+    }
+    if (latestListing?.listingType === "neighborhood_sale") {
+      const nsStart = latestListing.startDateTime ? new Date(latestListing.startDateTime) : null;
+      const nsEnd = latestListing.endDateTime ? new Date(latestListing.endDateTime) : null;
+      setEditStartDate(latestListing.selectedRangeStartDate || (nsStart ? nsStart.toISOString().slice(0, 10) : ""));
+      setEditEndDate(latestListing.selectedRangeEndDate || (nsEnd ? nsEnd.toISOString().slice(0, 10) : ""));
       setEditStartTime(nsStart ? nsStart.toTimeString().slice(0, 5) : "08:00");
       setEditEndTime(nsEnd ? nsEnd.toTimeString().slice(0, 5) : "14:00");
-      setSelectedCoHostUserId(l.co_host_user_id || "");
-    } else if (l?.listingType === "yard_sale" && l?.neighborhood_sale_id && ["pending","approved"].includes(normalizeNeighborhoodJoinStatus(l?.neighborhood_join_status))) {
-      const pStart = l.startDateTime ? new Date(l.startDateTime) : null;
-      const pEnd = l.endDateTime ? new Date(l.endDateTime) : null;
-      setEditStartDate(l.selectedRangeStartDate || (pStart ? pStart.toISOString().slice(0, 10) : ""));
-      setEditEndDate(l.selectedRangeEndDate || (pEnd ? pEnd.toISOString().slice(0, 10) : ""));
+      setSelectedCoHostUserId(latestListing.co_host_user_id || "");
+    } else if (latestListing?.listingType === "yard_sale" && latestListing?.neighborhood_sale_id && ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(latestListing?.neighborhood_join_status))) {
+      const pStart = latestListing.startDateTime ? new Date(latestListing.startDateTime) : null;
+      const pEnd = latestListing.endDateTime ? new Date(latestListing.endDateTime) : null;
+      setEditStartDate(latestListing.selectedRangeStartDate || (pStart ? pStart.toISOString().slice(0, 10) : ""));
+      setEditEndDate(latestListing.selectedRangeEndDate || (pEnd ? pEnd.toISOString().slice(0, 10) : ""));
       setEditStartTime(pStart ? pStart.toTimeString().slice(0, 5) : "08:00");
       setEditEndTime(pEnd ? pEnd.toTimeString().slice(0, 5) : "14:00");
-    } else { setEditStartDate(""); setEditEndDate(""); setEditStartTime(""); setEditEndTime(""); }
+    } else {
+      setEditStartDate(""); setEditEndDate(""); setEditStartTime(""); setEditEndTime("");
+    }
   };
 
   const closeEditDescription = () => {
@@ -262,51 +350,80 @@ export default function MyListingsPage() {
 
   const sendCoHostInvite = async () => {
     if (!editingListing || editingListing.listingType !== "neighborhood_sale" || !selectedCoHostUserId) return;
-    const selectedUser = searchableUsers.find((c) => c.id === selectedCoHostUserId);
+    const selectedUser = searchableUsers.find((candidate) => candidate.id === selectedCoHostUserId);
     if (!selectedUser) { toast.error("Select a user first"); return; }
     setIsSendingCoHostInvite(true);
     try {
-      const dup = listingCoHostInvites.find((i) => i.host_user_id === selectedUser.id && ["pending","accepted","active","suspended"].includes(i.status));
-      const dupLive = editingListing.co_host_user_id === selectedUser.id && ["active","suspended"].includes(editingListing.co_host_status);
-      if (dup || dupLive) { toast.error("That co-host already has an active or pending relationship on this listing"); return; }
-      const reusable = listingCoHostInvites.find((i) => i.host_user_id === selectedUser.id && ["declined","removed"].includes(i.status));
-      let inviteRecord;
-      if (reusable) {
-        inviteRecord = await base44.entities.NeighborhoodCoHostInvite.update(reusable.id, { host_user_id: selectedUser.id, host_email: selectedUser.email, host_name: getUserDisplayName(selectedUser), status: "pending", related_listing_id: editingListing.id, event_title: editingListing.title });
+      const duplicateInvite = listingCoHostInvites.find((invite) => invite.host_user_id === selectedUser.id && ["pending", "accepted", "active", "suspended"].includes(invite.status));
+      const duplicateLiveCoHost = editingListing.co_host_user_id === selectedUser.id && ["active", "suspended"].includes(editingListing.co_host_status);
+      if (duplicateInvite || duplicateLiveCoHost) { toast.error("That co-host already has an active or pending relationship on this listing"); return; }
+      const reusableInvite = listingCoHostInvites.find((invite) => invite.host_user_id === selectedUser.id && ["declined", "removed"].includes(invite.status));
+      let inviteRecord = reusableInvite;
+      if (reusableInvite) {
+        inviteRecord = await base44.entities.NeighborhoodCoHostInvite.update(reusableInvite.id, { host_user_id: selectedUser.id, host_email: selectedUser.email, host_name: getUserDisplayName(selectedUser), status: "pending", related_listing_id: editingListing.id, event_title: editingListing.title });
       } else {
         inviteRecord = await base44.entities.NeighborhoodCoHostInvite.create({ organizer_user_id: user?.id, organizer_email: user?.email, organizer_name: getUserDisplayName(user) || user?.email || "", event_title: editingListing.title, address_key: `listing|${editingListing.id}|${selectedUser.id}`, street_address: editingListing.display_address || editingListing.addressText || editingListing.host_addressText || "Unknown", city: editingListing.city || editingListing.host_city || "Unknown", state: getStateAbbreviation(editingListing.state || editingListing.host_state || "XX"), zip_code: editingListing.zip || editingListing.host_zip || "00000", host_user_id: selectedUser.id, host_email: selectedUser.email, host_name: getUserDisplayName(selectedUser), status: "pending", related_listing_id: editingListing.id });
       }
-      await base44.entities.Notification.create({ userId: selectedUser.id, user_id: selectedUser.id, user_email: selectedUser.email, title: "Neighborhood Sale Co-Host Invite", message: `${getUserDisplayName(user) || "A Yardit user"} invited you to co-host "${editingListing.title}".`, type: "co_host_invite", related_entity_type: "NeighborhoodCoHostInvite", related_entity_id: inviteRecord.id, read: false, is_read: false, metadata: { invite_id: inviteRecord.id, sale_listing_id: editingListing.id, event_title: editingListing.title, inviter_user_id: user?.id, inviter_name: getUserDisplayName(user) || user?.email || "", invite_type: "co_host", invited_user_id: selectedUser.id } });
+      await base44.entities.Notification.create({ userId: selectedUser.id, user_id: selectedUser.id, user_email: selectedUser.email, title: "Neighborhood Sale Co-Host Invite", message: `${getUserDisplayName(user) || "A Yardit user"} invited you to co-host \"${editingListing.title}\".`, type: "co_host_invite", related_entity_type: "NeighborhoodCoHostInvite", related_entity_id: inviteRecord.id, read: false, is_read: false, metadata: { invite_id: inviteRecord.id, sale_listing_id: editingListing.id, event_title: editingListing.title, inviter_user_id: user?.id, inviter_name: getUserDisplayName(user) || user?.email || "", invite_type: "co_host", invited_user_id: selectedUser.id } });
       toast.success("Co-host invite sent");
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
       await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id] });
       await refreshEditingListing(editingListing.id);
       setSelectedCoHostUserId(selectedUser.id);
-    } catch { toast.error("Could not send invite"); }
-    finally { setIsSendingCoHostInvite(false); }
+    } catch (error) { toast.error("Could not send invite"); } finally { setIsSendingCoHostInvite(false); }
   };
 
   const updateCoHostDetails = async (updates, successMessage) => {
     if (!editingListing) return;
     setIsUpdatingCoHost(true);
-    try { await base44.entities.Listing.update(editingListing.id, updates); toast.success(successMessage); await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] }); await refreshEditingListing(editingListing.id); }
-    catch { toast.error("Could not update co-host"); }
-    finally { setIsUpdatingCoHost(false); }
+    try {
+      await base44.entities.Listing.update(editingListing.id, updates);
+      toast.success(successMessage);
+      await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      await refreshEditingListing(editingListing.id);
+    } catch (error) { toast.error("Could not update co-host"); } finally { setIsUpdatingCoHost(false); }
   };
 
-  const handleCancelInvite = async (inviteId) => { if (inviteId) await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "removed" }); await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] }); await refreshEditingListing(editingListing.id); toast.success("Co-host invite canceled"); };
-  const handleResendInvite = async (row) => { setIsUpdatingCoHost(true); try { await base44.entities.Notification.create({ userId: row.userId, user_id: row.userId, user_email: row.email, title: "Neighborhood Sale Co-Host Invite", message: `${getUserDisplayName(user) || "A Yardit user"} invited you to co-host "${editingListing?.title}".`, type: "co_host_invite", related_entity_type: "NeighborhoodCoHostInvite", related_entity_id: row.inviteId, read: false, is_read: false, metadata: { invite_id: row.inviteId, sale_listing_id: editingListing?.id, event_title: editingListing?.title, inviter_user_id: user?.id, inviter_name: getUserDisplayName(user) || user?.email || "", invite_type: "co_host", invited_user_id: row.userId } }); toast.success("Co-host invite resent"); } catch { toast.error("Could not resend invite"); } finally { setIsUpdatingCoHost(false); } };
-  const handleSuspendCoHost = async (inviteId) => { if (inviteId) await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "accepted" }); await updateCoHostDetails({ co_host_status: "suspended", cohost_invite_status: null }, "Co-host suspended"); await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] }); };
-  const handleReactivateCoHost = async (inviteId) => { if (inviteId) await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "accepted" }); await updateCoHostDetails({ co_host_status: "active", cohost_invite_status: null }, "Co-host re-activated"); await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] }); };
-  const handleRemoveCoHost = async (inviteId) => { if (inviteId) await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "removed" }); await updateCoHostDetails({ co_host_user_id: null, co_host_status: null, cohost_invite_status: null, co_host_permissions: null }, "Co-host removed"); await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] }); };
+  const handleCancelInvite = async (inviteId) => {
+    if (inviteId) await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "removed" });
+    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
+    await refreshEditingListing(editingListing.id);
+    toast.success("Co-host invite canceled");
+  };
+
+  const handleResendInvite = async (row) => {
+    setIsUpdatingCoHost(true);
+    try {
+      await base44.entities.Notification.create({ userId: row.userId, user_id: row.userId, user_email: row.email, title: "Neighborhood Sale Co-Host Invite", message: `${getUserDisplayName(user) || "A Yardit user"} invited you to co-host "${editingListing?.title}".`, type: "co_host_invite", related_entity_type: "NeighborhoodCoHostInvite", related_entity_id: row.inviteId, read: false, is_read: false, metadata: { invite_id: row.inviteId, sale_listing_id: editingListing?.id, event_title: editingListing?.title, inviter_user_id: user?.id, inviter_name: getUserDisplayName(user) || user?.email || "", invite_type: "co_host", invited_user_id: row.userId } });
+      toast.success("Co-host invite resent");
+    } catch (e) { toast.error("Could not resend invite"); } finally { setIsUpdatingCoHost(false); }
+  };
+
+  const handleSuspendCoHost = async (inviteId) => {
+    if (inviteId) await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "accepted" });
+    await updateCoHostDetails({ co_host_status: "suspended", cohost_invite_status: null }, "Co-host suspended");
+    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
+  };
+
+  const handleReactivateCoHost = async (inviteId) => {
+    if (inviteId) await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "accepted" });
+    await updateCoHostDetails({ co_host_status: "active", cohost_invite_status: null }, "Co-host re-activated");
+    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
+  };
+
+  const handleRemoveCoHost = async (inviteId) => {
+    if (inviteId) await base44.entities.NeighborhoodCoHostInvite.update(inviteId, { status: "removed" });
+    await updateCoHostDetails({ co_host_user_id: null, co_host_status: null, cohost_invite_status: null, co_host_permissions: null }, "Co-host removed");
+    await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id, user?.id] });
+  };
 
   const saveDescription = async () => {
     if (!editingListing) return;
     if (editingListing.listingType === "yard_sale" && editCategories.length === 0) { toast.error("Please select at least 1 category"); return; }
     if (editingListing.listingType === "event") {
       const tier = editingListing.event_tier || editingListing.tier || "basic";
-      if (["basic","featured"].includes(tier) && !editEventIcon) { toast.error("Please choose an event icon"); return; }
+      if (["basic", "featured"].includes(tier) && !editEventIcon) { toast.error("Please choose an event icon"); return; }
       if (tier === "premium" && !editEventIcon && !editEventLogoUrl) { toast.error("Please choose an event icon or upload a logo/image"); return; }
     }
     let dateChanged = false;
@@ -333,7 +450,7 @@ export default function MyListingsPage() {
       const startTimeChanged = editStartTime && editStartTime !== oldStartTime;
       const endTimeChanged = editEndTime && editEndTime !== oldEndTime;
       if (startDateChanged || endDateChanged || startTimeChanged || endTimeChanged) {
-        if (startDateChanged) { const e = getNeighborhoodCreationLeadTimeError(editStartDate); if (e) { toast.error(e); return; } }
+        if (startDateChanged) { const leadTimeError = getNeighborhoodCreationLeadTimeError(editStartDate); if (leadTimeError) { toast.error(leadTimeError); return; } }
         const newStartDate = editStartDate || oldStartStr; const newEndDate = editEndDate || oldEndStr;
         const newStartTime = editStartTime || oldStartTime || "08:00"; const newEndTime = editEndTime || oldEndTime || "14:00";
         if (newEndDate < newStartDate) { toast.error("End date cannot be before start date."); return; }
@@ -341,7 +458,7 @@ export default function MyListingsPage() {
         updateData.selectedRangeStartDate = newStartDate; updateData.selectedRangeEndDate = newEndDate; dateChanged = true;
       }
     }
-    const isParticipantYardSale = editingListing.listingType === "yard_sale" && editingListing.neighborhood_sale_id && ["pending","approved"].includes(normalizeNeighborhoodJoinStatus(editingListing.neighborhood_join_status));
+    const isParticipantYardSale = editingListing.listingType === "yard_sale" && editingListing.neighborhood_sale_id && ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(editingListing.neighborhood_join_status));
     if (isParticipantYardSale && (editStartDate || editStartTime || editEndDate || editEndTime)) {
       const oldStartStr = editingListing.selectedRangeStartDate || editingListing.startDateTime?.slice(0, 10) || "";
       const oldEndStr = editingListing.selectedRangeEndDate || editingListing.endDateTime?.slice(0, 10) || "";
@@ -349,25 +466,25 @@ export default function MyListingsPage() {
       const oldEndTime = editingListing.endDateTime ? new Date(editingListing.endDateTime).toTimeString().slice(0, 5) : "14:00";
       const newStartDate = editStartDate || oldStartStr; const newEndDate = editEndDate || oldEndStr;
       const newStartTime = editStartTime || oldStartTime; const newEndTime = editEndTime || oldEndTime;
-      if (new Date(`${newEndDate}T${newEndTime}`) <= new Date(`${newStartDate}T${newStartTime}`)) { toast.error("End time must be after start time."); return; }
+      const newStart = new Date(`${newStartDate}T${newStartTime}`); const newEnd = new Date(`${newEndDate}T${newEndTime}`);
+      if (newEnd <= newStart) { toast.error("End time must be after start time."); return; }
       let parentSale = null;
-      try { const r = await base44.entities.Listing.filter({ id: editingListing.neighborhood_sale_id }); parentSale = r[0] || null; } catch (_) {}
+      try { const results = await base44.entities.Listing.filter({ id: editingListing.neighborhood_sale_id }); parentSale = results[0] || null; } catch (_) {}
       if (parentSale) {
         const nsStartDate = parentSale.selectedRangeStartDate || parentSale.startDateTime?.slice(0, 10);
         const nsEndDate = parentSale.selectedRangeEndDate || parentSale.endDateTime?.slice(0, 10);
         if (!nsStartDate || !nsEndDate || newStartDate > nsEndDate || newEndDate < nsStartDate) { toast.error(`Your sale dates must overlap the Neighborhood Sale window (${nsStartDate} – ${nsEndDate}).`); return; }
       }
-      updateData.startDateTime = new Date(`${newStartDate}T${newStartTime}`).toISOString();
-      updateData.endDateTime = new Date(`${newEndDate}T${newEndTime}`).toISOString();
+      updateData.startDateTime = new Date(`${newStartDate}T${newStartTime}`).toISOString(); updateData.endDateTime = new Date(`${newEndDate}T${newEndTime}`).toISOString();
       updateData.selectedRangeStartDate = newStartDate; updateData.selectedRangeEndDate = newEndDate;
     }
     setIsSaving(true);
     try {
       await base44.entities.Listing.update(editingListing.id, updateData);
       if (dateChanged) await base44.functions.invoke("syncNeighborhoodDeadlineJobs", { data: { ...editingListing, ...updateData }, event: { type: "update", entity_id: editingListing.id } }).catch(console.error);
-      toast.success("Listing updated"); closeEditDescription(); await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
-    } catch { toast.error("Could not update listing"); }
-    finally { setIsSaving(false); }
+      toast.success("Listing updated"); closeEditDescription();
+      await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+    } catch (e) { toast.error("Could not update listing"); } finally { setIsSaving(false); }
   };
 
   const relist = (listing) => {
@@ -379,19 +496,25 @@ export default function MyListingsPage() {
       basePayload.relistPrefill = { listingType: listing.listingType || "yard_sale", title: listing.title || "", description: listing.description || "", display_address: listing.display_address || listing.addressText || listing.street_address || listing.street || "", geocoded_address: listing.geocoded_address || "", location_source: listing.location_source || "search", addressText: listing.display_address || listing.addressText || listing.street_address || listing.street || "", city: listing.city || "", state: getStateAbbreviation(listing.state || ""), zip: listing.zip || listing.zip_code || "", lat: listing.lat ?? listing.latitude ?? null, lng: listing.lng ?? listing.longitude ?? null, tier: listing.tier || "free" };
     }
     try { localStorage.setItem(RELIST_STORAGE_KEY, JSON.stringify(basePayload)); } catch (e) {}
-    navigate(createPageUrl("CreateListing") + (isEvent ? "?relist=1&eventRelist=1" : "?relist=1"));
+    if (isEvent) navigate(createPageUrl("CreateListing") + "?relist=1&eventRelist=1");
+    else navigate(createPageUrl("CreateListing") + "?relist=1");
   };
 
   const cancelListing = async (listing) => {
     if (listing.listingType !== "neighborhood_sale" && listing.neighborhood_join_status === "approved" && listing.neighborhood_sale_id) {
-      try { const r = await base44.entities.Listing.filter({ id: listing.neighborhood_sale_id }); if (r[0] && ["activated_locked","coming_soon","active"].includes(r[0].event_state)) { toast.error("You cannot cancel your listing because the Neighborhood Sale is locked. Contact support if there is an emergency."); return; } } catch (e) {}
+      try {
+        const parentSales = await base44.entities.Listing.filter({ id: listing.neighborhood_sale_id });
+        const parentSale = parentSales[0];
+        if (parentSale && ["activated_locked", "coming_soon", "active"].includes(parentSale.event_state)) { toast.error("You cannot cancel your listing because the Neighborhood Sale is locked. Contact support if there is an emergency."); return; }
+      } catch (e) {}
     }
     const isActive = listing.status === "active" || listing.status === "activated_locked";
-    const isCommittedNS = listing.listingType === "neighborhood_sale" && listing.homeCount >= 5 && !listing.pricePaid;
-    let message = `Cancel this ${isActive ? "active " : ""}listing?`;
-    if (listing.pricePaid > 0) message = `Cancel this ${isActive ? "active " : ""}listing? Any eligible refund will be handled through the normal process.`;
-    else if (isCommittedNS) message = `WARNING: Your Neighborhood Sale is COMMITTED (5+ homes). Cancelling now will trigger an immediate non-refundable charge for the event. Are you sure you want to cancel?`;
-    if (!window.confirm(message)) return;
+    const isCommittedNeighborhoodSale = listing.listingType === "neighborhood_sale" && (listing.homeCount >= 5) && !listing.pricePaid;
+    let message = `Cancel this ${isActive ? 'active ' : ''}listing?`;
+    if (listing.pricePaid > 0) message = `Cancel this ${isActive ? 'active ' : ''}listing? Any eligible refund will be handled through the normal process.`;
+    else if (isCommittedNeighborhoodSale) message = `WARNING: Your Neighborhood Sale is COMMITTED (5+ homes). Cancelling now will trigger an immediate non-refundable charge for the event. Are you sure you want to cancel?`;
+    const ok = window.confirm(message);
+    if (!ok) return;
     try {
       if (listing.listingType === "neighborhood_sale") {
         await base44.functions.invoke("cancelNeighborhoodSale", { saleListingId: listing.id, reason: isActive ? "owner_cancelled_active" : "owner_cancelled_before_activation", finalState: "canceled", deleteSale: false });
@@ -406,27 +529,37 @@ export default function MyListingsPage() {
           } catch (cleanupErr) { console.error("JoinRequest cleanup error on cancel", cleanupErr); }
         }
       }
-      toast.success("Listing canceled"); await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] }); await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    } catch { toast.error("Could not cancel listing"); }
+      toast.success("Listing canceled");
+      await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    } catch (e) { toast.error("Could not cancel listing"); }
   };
 
   const deleteListing = async (listing) => {
-    if (!window.confirm("Delete this listing? This cannot be undone.")) return;
+    const ok = window.confirm("Delete this listing? This cannot be undone.");
+    if (!ok) return;
     try {
       if (listing.listingType !== "neighborhood_sale") await base44.entities.Listing.delete(listing.id);
       try {
-        const reqs = await base44.entities.JoinRequest.filter({ listingId: listing.id });
-        for (const req of reqs) await base44.entities.JoinRequest.update(req.id, { removed_by_listing_owner: true, removed_at: new Date().toISOString(), removal_reason: "listing_deleted", status: "canceled" });
+        const requesterReqs = await base44.entities.JoinRequest.filter({ listingId: listing.id });
+        for (const req of requesterReqs) await base44.entities.JoinRequest.update(req.id, { removed_by_listing_owner: true, removed_at: new Date().toISOString(), removal_reason: "listing_deleted", status: "canceled" });
         if (listing.listingType === "neighborhood_sale") await base44.functions.invoke("cancelNeighborhoodSale", { saleListingId: listing.id, reason: "event_deleted", finalState: "canceled", deleteSale: true });
         const allNotifs = await base44.entities.Notification.filter({});
-        for (const n of allNotifs.filter(n => n.metadata?.requester_listing_id === listing.id || n.metadata?.sale_listing_id === listing.id)) await base44.entities.Notification.delete(n.id);
+        const toDelete = allNotifs.filter(n => n.metadata?.requester_listing_id === listing.id || n.metadata?.sale_listing_id === listing.id);
+        for (const n of toDelete) await base44.entities.Notification.delete(n.id);
       } catch (err) { console.error("Cleanup error", err); }
-      toast.success("Listing deleted"); await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] }); await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    } catch { toast.error("Could not delete listing"); }
+      toast.success("Listing deleted");
+      await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    } catch (e) { toast.error("Could not delete listing"); }
   };
 
   if (!user) {
-    return <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-gradient-to-br from-orange-50 via-purple-50 to-pink-50"><p className="text-gray-600">Loading listings...</p></div>;
+    return (
+      <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-gradient-to-br from-orange-50 via-purple-50 to-pink-50">
+        <p className="text-gray-600">Loading listings...</p>
+      </div>
+    );
   }
 
   return (
@@ -461,10 +594,12 @@ export default function MyListingsPage() {
         ) : isLoading ? (
           <Card className="rounded-xl border bg-white/80 shadow"><CardContent className="p-12 text-center"><p className="text-slate-500">Loading listings...</p></CardContent></Card>
         ) : shownListings.length === 0 ? (
-          <Card className="rounded-xl border bg-white/80 shadow"><CardContent className="p-12 text-center">
-            <p className="text-slate-500 mb-4">{tab === "past" ? "No past listings yet" : tab === "pending" ? "No pending or scheduled listings" : "You don't have any active listings right now"}</p>
-            {tab === "active" && <Button onClick={() => navigate(createPageUrl("CreateListing"))} className="bg-amber-600 hover:bg-amber-700 text-white">Create a Listing</Button>}
-          </CardContent></Card>
+          <Card className="rounded-xl border bg-white/80 shadow">
+            <CardContent className="p-12 text-center">
+              <p className="text-slate-500 mb-4">{tab === "past" ? "No past listings yet" : tab === "pending" ? "No pending or scheduled listings" : "You don't have any active listings right now"}</p>
+              {tab === "active" && <Button onClick={() => navigate(createPageUrl("CreateListing"))} className="bg-amber-600 hover:bg-amber-700 text-white">Create a Listing</Button>}
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid gap-4">
             {shownListings.map((listing) => (
@@ -478,7 +613,9 @@ export default function MyListingsPage() {
                         <p>ID: {listing.id}</p>
                       </div>
                       <div className="flex gap-2 flex-wrap">
-                        <Badge variant="outline" className="bg-white text-slate-700 border-slate-300">{listing.listingType === "event" ? "Event" : listing.listingType === "yard_sale" ? "Yard Sale" : listing.listingType === "neighborhood_sale" ? "Neighborhood Sale" : "Listing"}</Badge>
+                        <Badge variant="outline" className="bg-white text-slate-700 border-slate-300">
+                          {listing.listingType === "event" ? "Event" : listing.listingType === "yard_sale" ? "Yard Sale" : listing.listingType === "neighborhood_sale" ? "Neighborhood Sale" : "Listing"}
+                        </Badge>
                         {listing.co_host_user_id === user?.id && listing.co_host_status === "active" && <Badge className="bg-indigo-600 text-white hover:bg-indigo-700 border-none">Co-Host</Badge>}
                         {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && <Badge className="bg-yellow-500 text-yellow-950 hover:bg-yellow-600 border-none">Pending Neighborhood Approval</Badge>}
                         {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && <Badge className="bg-green-600 text-white hover:bg-green-700 border-none">Neighborhood Approved</Badge>}
@@ -522,53 +659,217 @@ export default function MyListingsPage() {
 
       <YardSaleGuideModal open={showGuideModal} onOpenChange={setShowGuideModal} />
 
-      <EditListingDialog
-        editingListing={editingListing}
-        onClose={closeEditDescription}
-        onSave={saveDescription}
-        isSaving={isSaving}
-        editTitle={editTitle} setEditTitle={setEditTitle}
-        editDescription={editDescription} setEditDescription={setEditDescription}
-        editCategories={editCategories} setEditCategories={setEditCategories}
-        editStartDate={editStartDate} setEditStartDate={setEditStartDate}
-        editEndDate={editEndDate} setEditEndDate={setEditEndDate}
-        editStartTime={editStartTime} setEditStartTime={setEditStartTime}
-        editEndTime={editEndTime} setEditEndTime={setEditEndTime}
-        editEventIcon={editEventIcon} setEditEventIcon={setEditEventIcon}
-        editEventLogoUrl={editEventLogoUrl} setEditEventLogoUrl={setEditEventLogoUrl}
-        editPhotoUrls={editPhotoUrls} setEditPhotoUrls={setEditPhotoUrls}
-        editMarqueeSlots={editMarqueeSlots} setEditMarqueeSlots={setEditMarqueeSlots}
-        editEventStartDate={editEventStartDate} setEditEventStartDate={setEditEventStartDate}
-        editEventEndDate={editEventEndDate} setEditEventEndDate={setEditEventEndDate}
-        editEventStartTime={editEventStartTime} setEditEventStartTime={setEditEventStartTime}
-        editEventEndTime={editEventEndTime} setEditEventEndTime={setEditEventEndTime}
-        editMarqueeFlyerUrl={editMarqueeFlyerUrl} setEditMarqueeFlyerUrl={setEditMarqueeFlyerUrl}
-        editMarqueeBackgroundUrl={editMarqueeBackgroundUrl} setEditMarqueeBackgroundUrl={setEditMarqueeBackgroundUrl}
-        iconPickerOpen={iconPickerOpen} setIconPickerOpen={setIconPickerOpen}
-        filteredCoHostUsers={filteredCoHostUsers}
-        coHostSearchQuery={coHostSearchQuery} setCoHostSearchQuery={setCoHostSearchQuery}
-        selectedCoHostUserId={selectedCoHostUserId} setSelectedCoHostUserId={setSelectedCoHostUserId}
-        isSendingCoHostInvite={isSendingCoHostInvite}
-        isUpdatingCoHost={isUpdatingCoHost}
-        pendingInviteRows={pendingInviteRows}
-        activeCoHostRows={activeCoHostRows}
-        suspendedCoHostRows={suspendedCoHostRows}
-        sendCoHostInvite={sendCoHostInvite}
-        handleCancelInvite={handleCancelInvite}
-        handleResendInvite={handleResendInvite}
-        handleSuspendCoHost={handleSuspendCoHost}
-        handleReactivateCoHost={handleReactivateCoHost}
-        handleRemoveCoHost={handleRemoveCoHost}
-        user={user}
-      />
+      <Dialog open={!!editingListing} onOpenChange={(open) => !open && closeEditDescription()}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit Listing</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            {editingListing?.listingType === "neighborhood_sale" && (
+              <>
+                <div>
+                  <Label className="text-[#2C4F4E] mb-2 block">Title</Label>
+                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Neighborhood Sale Title..." className="bg-[#F3E6CF] border-[#2C4F4E]" />
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-[#2C4F4E] font-semibold block">Event Date &amp; Time</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label className="text-xs text-slate-500 mb-1 block">Start Date</Label><Input type="date" min={new Date().toISOString().split("T")[0]} value={editStartDate} onChange={(e) => setEditStartDate(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" /></div>
+                    <div><Label className="text-xs text-slate-500 mb-1 block">Start Time</Label><Input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" /></div>
+                    <div><Label className="text-xs text-slate-500 mb-1 block">End Date</Label><Input type="date" min={editStartDate || new Date().toISOString().split("T")[0]} value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" /></div>
+                    <div><Label className="text-xs text-slate-500 mb-1 block">End Time</Label><Input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" /></div>
+                  </div>
+                  <p className="text-xs text-slate-500">Changing the start date must be at least 7 days in the future. Time changes take effect immediately for all participants.</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 p-4 space-y-3">
+                  <div>
+                    <Label className="text-[#2C4F4E] mb-2 block">Add Co-Host</Label>
+                    <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input value={coHostSearchQuery} onChange={(e) => setCoHostSearchQuery(e.target.value)} placeholder="Search Co-Host by name, email, phone, address, city, or user ID" className="pl-9" /></div>
+                    <p className="text-xs text-slate-500 mt-1">Search existing Yardit users only.</p>
+                  </div>
+                  {filteredCoHostUsers.length > 0 && (
+                    <div className="space-y-2 max-h-56 overflow-y-auto">
+                      {filteredCoHostUsers.map((candidate) => {
+                        const displayName = getUserDisplayName(candidate);
+                        const isSelected = selectedCoHostUserId === candidate.id;
+                        const matchedValue = candidate.matchedField?.value || "";
+                        const supportingAddress = [candidate.street_address, candidate.city, candidate.state, candidate.zip_code].filter(Boolean).join(", ");
+                        return (
+                          <button key={candidate.id} type="button" onClick={() => setSelectedCoHostUserId(candidate.id)} className={`w-full rounded-md border p-3 text-left transition ${isSelected ? "border-blue-600 bg-blue-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                            <div className="font-medium text-slate-900">{displayName}</div>
+                            <div className="text-xs font-medium text-slate-500 mt-1">Matched by: {candidate.matchedField.label}</div>
+                            <div className="text-xs text-slate-600 mt-1 space-y-1">
+                              {matchedValue && <p>{matchedValue}</p>}
+                              {supportingAddress && candidate.matchedField.key !== "address" && <p>{supportingAddress}</p>}
+                              {candidate.phone && candidate.matchedField.key !== "phone" && <p>{candidate.phone}</p>}
+                              {candidate.email && candidate.matchedField.key !== "email" && matchedValue !== candidate.email && <p>{candidate.email}</p>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {coHostSearchQuery.trim() && filteredCoHostUsers.length === 0 && <p className="text-sm text-slate-500">No users found.</p>}
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-4">
+                    <div><p className="text-sm font-semibold text-slate-800">Co-Host Management</p><p className="text-xs text-slate-500">Manage pending invites, active co-hosts, and suspended co-hosts.</p></div>
+                    {pendingInviteRows.length === 0 && activeCoHostRows.length === 0 && suspendedCoHostRows.length === 0 ? (
+                      <p className="text-sm text-slate-500">No co-hosts or invites yet.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {pendingInviteRows.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pending Invites</p>
+                            {pendingInviteRows.map((row) => (
+                              <div key={row.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
+                                <div className="min-w-0"><p className="text-sm font-medium text-slate-800 truncate">{row.name}</p><p className="text-xs text-slate-500 truncate">{row.email || "No email available"}</p>{row.created_date && <p className="text-[10px] text-slate-400 mt-0.5">Sent: {format(new Date(row.created_date), "MMM d, yyyy")}</p>}<Badge variant="outline" className="mt-2 capitalize bg-amber-100 text-amber-800 border-amber-200">Pending</Badge></div>
+                                <DropdownMenu modal={false}><DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}><MoreHorizontal className="w-4 h-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" side="bottom" sideOffset={8} collisionPadding={12} onCloseAutoFocus={(e) => e.preventDefault()} className="z-[2000]"><DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleResendInvite(row); }}><Send className="w-4 h-4" />Resend Invite</DropdownMenuItem><DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleCancelInvite(row.inviteId); }}><UserX className="w-4 h-4" />Cancel Invite</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {activeCoHostRows.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Active Co-Hosts</p>
+                            {activeCoHostRows.map((row) => (
+                              <div key={row.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
+                                <div className="min-w-0"><p className="text-sm font-medium text-slate-800 truncate">{row.name}</p><p className="text-xs text-slate-500 truncate">{row.email || "No email available"}</p><Badge variant="outline" className="mt-2 capitalize bg-green-100 text-green-800 border-green-200">Active</Badge></div>
+                                <DropdownMenu modal={false}><DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}><MoreHorizontal className="w-4 h-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" side="bottom" sideOffset={8} collisionPadding={12} onCloseAutoFocus={(e) => e.preventDefault()} className="z-[2000]"><DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleSuspendCoHost(row.inviteId); }}><Shield className="w-4 h-4" />Suspend Co-Host</DropdownMenuItem><DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleRemoveCoHost(row.inviteId); }}><UserX className="w-4 h-4" />Remove Co-Host</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {suspendedCoHostRows.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Suspended Co-Hosts</p>
+                            {suspendedCoHostRows.map((row) => (
+                              <div key={row.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
+                                <div className="min-w-0"><p className="text-sm font-medium text-slate-800 truncate">{row.name}</p><p className="text-xs text-slate-500 truncate">{row.email || "No email available"}</p><Badge variant="outline" className="mt-2 capitalize bg-red-100 text-red-800 border-red-200">Suspended</Badge></div>
+                                <DropdownMenu modal={false}><DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon" disabled={isUpdatingCoHost} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}><MoreHorizontal className="w-4 h-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" side="bottom" sideOffset={8} collisionPadding={12} onCloseAutoFocus={(e) => e.preventDefault()} className="z-[2000]"><DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleReactivateCoHost(row.inviteId); }}><Shield className="w-4 h-4" />Re-Activate Co-Host</DropdownMenuItem><DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleRemoveCoHost(row.inviteId); }}><UserX className="w-4 h-4" />Remove Co-Host</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end">
+                    <Button type="button" onClick={sendCoHostInvite} disabled={!selectedCoHostUserId || isSendingCoHostInvite || isUpdatingCoHost} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                      <Send className="w-4 h-4 mr-2" />{isSendingCoHostInvite ? "Sending..." : "Send Invite"}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
 
-      <ListingUpgradeDialog
-        open={!!upgradeListing}
-        onClose={() => setUpgradeListing(null)}
-        listing={upgradeListing}
-        user={user}
-        onSuccess={() => { setUpgradeListing(null); queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] }); queryClient.invalidateQueries({ queryKey: ["listings"] }); }}
-      />
+            {editingListing?.listingType === "yard_sale" && (
+              <div className="space-y-4">
+                <div><Label className="text-[#2C4F4E] mb-2 block">Title</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Yard Sale Title..." className="bg-[#F3E6CF] border-[#2C4F4E]" /></div>
+                <div>
+                  <Label className="text-[#2C4F4E] mb-2 block">Categories (Up to 10) *</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {editCategories.map((cat, i) => (<Badge key={i} className="flex items-center gap-1 bg-[#5DADA5] py-1.5 px-3 text-sm rounded-full">{cat}<X className="w-3 h-3 cursor-pointer" onClick={() => setEditCategories(prev => prev.filter((_, idx) => idx !== i))} /></Badge>))}
+                  </div>
+                  {editCategories.length < 10 && (
+                    <Select value="" onValueChange={(value) => { if (editCategories.includes(value)) return; setEditCategories(prev => [...prev, value]); }}>
+                      <SelectTrigger className="border-[#2C4F4E] mt-3"><SelectValue placeholder="Add Category +" /></SelectTrigger>
+                      <SelectContent>{["Household Items","Furniture","Clothing & Accessories","Electronics","Tools & Hardware","Toys & Games","Baby & Kids","Outdoor & Garden","Sports Equipment","Collectibles","Antiques & Vintage","Vehicles & Auto Parts","Free Items","Food / Baked Goods","Miscellaneous"].filter(cat => !editCategories.includes(cat)).map(cat => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}</SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {editingListing?.listingType === "event" && (
+              <div className="space-y-4">
+                <div><Label className="text-[#2C4F4E] mb-2 block">Event Title *</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Event title..." className="bg-[#F3E6CF] border-[#2C4F4E]" /></div>
+                {(() => {
+                  const tier = editingListing?.event_tier || editingListing?.tier || "basic";
+                  const isBasic = tier === "basic";
+                  const iconLabel = isBasic ? (EVENT_BASIC_ICON_LIBRARY.find(i => i.key === editEventIcon)?.label || editEventIcon || "None selected") : (editEventIcon ? editEventIcon.replace(/_/g, " ") : "None selected");
+                  const iconEmoji = isBasic ? null : getEventIconEmoji(editEventIcon);
+                  return (
+                    <div className="border border-[#2C4F4E]/20 rounded-xl overflow-hidden">
+                      <button type="button" onClick={() => setIconPickerOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3 bg-[#F3E6CF] hover:bg-[#EDD9B5] transition-colors">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-[#2C4F4E]">Event Icon</span>
+                          <div className="flex items-center gap-2">
+                            {editEventLogoUrl ? <img src={editEventLogoUrl} alt="icon" className="w-6 h-6 rounded-full object-cover border border-[#2C4F4E]/30" /> : iconEmoji ? <span className="text-lg leading-none">{iconEmoji}</span> : editEventIcon ? <span className="w-5 h-5 flex items-center justify-center text-[#2C4F4E] opacity-70"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke="#2C4F4E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg></span> : null}
+                            <span className="text-xs text-slate-500 capitalize">{iconLabel}</span>
+                          </div>
+                        </div>
+                        {iconPickerOpen ? <ChevronUp className="w-4 h-4 text-[#2C4F4E]" /> : <ChevronDown className="w-4 h-4 text-[#2C4F4E]" />}
+                      </button>
+                      {iconPickerOpen && <div className="p-4 border-t border-[#2C4F4E]/10 bg-white"><EventIconManager tier={tier} selectedIcon={editEventIcon} setSelectedIcon={setEditEventIcon} uploadedImageUrl={editEventLogoUrl} setUploadedImageUrl={setEditEventLogoUrl} /></div>}
+                    </div>
+                  );
+                })()}
+                {(editingListing?.event_tier || editingListing?.tier) === "marquee" && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-[#2C4F4E] font-semibold block mb-2">Event Date &amp; Time</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><Label className="text-xs text-slate-500 mb-1 block">Start Date</Label><Input type="date" value={editEventStartDate} onChange={(e) => setEditEventStartDate(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" /></div>
+                        <div><Label className="text-xs text-slate-500 mb-1 block">Start Time</Label><Input type="time" value={editEventStartTime} onChange={(e) => setEditEventStartTime(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" /></div>
+                        <div><Label className="text-xs text-slate-500 mb-1 block">End Date</Label><Input type="date" value={editEventEndDate} min={editEventStartDate || undefined} onChange={(e) => setEditEventEndDate(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" /></div>
+                        <div><Label className="text-xs text-slate-500 mb-1 block">End Time</Label><Input type="time" value={editEventEndTime} onChange={(e) => setEditEventEndTime(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" /></div>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-[#2C4F4E] font-semibold block mb-2">Flyer</Label>
+                      {editMarqueeFlyerUrl ? (
+                        <div className="space-y-2"><div className="w-full max-w-xs border-2 border-[#2C4F4E] rounded-lg overflow-hidden"><img src={editMarqueeFlyerUrl} alt="Flyer preview" className="w-full h-auto" /></div><Button type="button" variant="destructive" size="sm" onClick={() => setEditMarqueeFlyerUrl("")}>Delete Flyer</Button></div>
+                      ) : (
+                        <div className="border-2 border-dashed border-[#2C4F4E] rounded-lg p-4 text-center">
+                          <input type="file" id="flyer-upload" accept="image/*" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; setIsUploadingFlyer(true); try { const result = await base44.integrations.Core.UploadFile({ file }); setEditMarqueeFlyerUrl(result.file_url); toast.success("Flyer uploaded - click Save to persist"); } catch (error) { console.error("Upload error:", error); toast.error("Failed to upload flyer"); } finally { setIsUploadingFlyer(false); } }} className="hidden" />
+                          <Button type="button" variant="outline" className="border-[#2C4F4E]" disabled={isUploadingFlyer} onClick={() => document.getElementById("flyer-upload")?.click()}>{isUploadingFlyer ? "Uploading..." : "Upload Flyer"}</Button>
+                          <p className="text-xs text-slate-500 mt-2">JPG, PNG (shown in listing details)</p>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-[#2C4F4E] font-semibold block mb-2">Background Image</Label>
+                      {editMarqueeBackgroundUrl ? (
+                        <div className="space-y-2"><div className="w-full max-w-xs border-2 border-[#2C4F4E] rounded-lg overflow-hidden aspect-video"><img src={editMarqueeBackgroundUrl} alt="Background preview" className="w-full h-full object-cover" /></div><div className="flex gap-2"><Button type="button" variant="secondary" size="sm" onClick={() => { setBackgroundImageForCrop(editMarqueeBackgroundUrl); setCropEditorOpen(true); }}>Crop & Zoom</Button><Button type="button" variant="destructive" size="sm" onClick={() => setEditMarqueeBackgroundUrl("")}>Delete Background</Button></div></div>
+                      ) : (
+                        <div className="border-2 border-dashed border-[#2C4F4E] rounded-lg p-4 text-center">
+                          <input type="file" id="background-upload" accept="image/*" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; setIsUploadingBackground(true); try { const result = await base44.integrations.Core.UploadFile({ file }); setBackgroundImageForCrop(result.file_url); setCropEditorOpen(true); } catch (error) { toast.error("Failed to upload background"); } finally { setIsUploadingBackground(false); } }} className="hidden" />
+                          <Button type="button" variant="outline" className="border-[#2C4F4E]" disabled={isUploadingBackground} onClick={() => document.getElementById("background-upload")?.click()}>{isUploadingBackground ? "Uploading..." : "Upload Background"}</Button>
+                          <p className="text-xs text-slate-500 mt-2">16:9 aspect ratio recommended (1920x1080 or larger)</p>
+                          {backgroundImageForCrop && <Button type="button" variant="secondary" className="w-full mt-2" onClick={() => setCropEditorOpen(true)}>Crop & Zoom Image</Button>}
+                        </div>
+                      )}
+                    </div>
+                    <MarqueeSlotsEditor value={editMarqueeSlots} onChange={setEditMarqueeSlots} eventStartDate={editEventStartDate || editingListing?.startDateTime?.slice(0, 10)} eventEndDate={editEventEndDate || editingListing?.endDateTime?.slice(0, 10)} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <EditParticipantSaleTime listing={editingListing} startDate={editStartDate} setStartDate={setEditStartDate} startTime={editStartTime} setStartTime={setEditStartTime} endDate={editEndDate} setEndDate={setEditEndDate} endTime={editEndTime} setEndTime={setEditEndTime} />
+
+            {editingListing?.listingType === "yard_sale" && <EditListingPhotos label="Listing Photos" value={editPhotoUrls} onChange={setEditPhotoUrls} maxPhotos={getPhotoLimitByTier(editingListing?.tier)} />}
+            {editingListing?.listingType === "event" && ["featured", "premium", "marquee", "galactic_display", "galactic", "display"].includes(editingListing?.event_tier || editingListing?.tier) && <EditListingPhotos label="Event Photos" value={editPhotoUrls} onChange={setEditPhotoUrls} maxPhotos={getPhotoLimitByTier(editingListing?.event_tier || editingListing?.tier)} />}
+
+            <div>
+              <Label className="text-[#2C4F4E] mb-2 block">Description</Label>
+              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={5} placeholder="Update your description..." />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={closeEditDescription}>Cancel</Button>
+            <Button onClick={saveDescription} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white">{isSaving ? "Saving..." : "Save"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <ListingUpgradeDialog open={!!upgradeListing} onClose={() => setUpgradeListing(null)} listing={upgradeListing} user={user} onSuccess={() => { setUpgradeListing(null); queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] }); queryClient.invalidateQueries({ queryKey: ["listings"] }); }} />
+
+      <ImageCropEditor imageUrl={backgroundImageForCrop} open={cropEditorOpen} onClose={() => setCropEditorOpen(false)} onApply={async (file) => {
+        try {
+          const result = await base44.integrations.Core.UploadFile({ file });
+          setEditMarqueeBackgroundUrl(result.file_url);
+          if (editingListing?.id) { await base44.entities.Listing.update(editingListing.id, { marquee_background_url: result.file_url }); await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] }); }
+          toast.success("Background image cropped and saved");
+        } catch (error) { console.error("Upload error:", error); toast.error("Failed to save cropped image"); }
+      }} aspectRatio={16 / 9} />
     </div>
   );
 }
