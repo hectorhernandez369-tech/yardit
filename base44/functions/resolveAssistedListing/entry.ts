@@ -54,12 +54,9 @@ Deno.serve(async (req) => {
       }
       const claimNow = new Date().toISOString();
 
-      // Claim transfers full ownership — update owner_type so listing appears in user's My Listings
+      // Claim only attaches ownership and unlocks management tools — do NOT change dates
       await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
         ownerUserId: claimUserId,
-        owner_type: 'user',
-        claimed_by_user_id: claimUserId,
-        claimed_at: claimNow,
       });
       await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
         assisted_status: 'claimed_active',
