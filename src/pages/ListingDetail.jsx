@@ -7,13 +7,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MapPin, Calendar, AlertTriangle, Map, Copy, Share2, Tag, Facebook, Instagram, Link } from "lucide-react";
+
+import { MapPin, Calendar, AlertTriangle, Map, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ReportModal from "../components/ReportModal";
@@ -23,17 +18,14 @@ import { useAppMode } from "../components/shared/DemoMode";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import {
-  calculateNeighborhoodSalePrice,
   getNeighborhoodPricingSummary,
   NEIGHBORHOOD_MAX_HOMES,
-  NEIGHBORHOOD_MIN_HOMES,
 } from "@/lib/neighborhoodSalePricing";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import { getListingNumber, getOwnerDisplayName } from "@/components/listing/listingDisplay";
 import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 import { formatEventTierLabel } from "@/lib/eventListingConfig";
 import { formatMarqueeSlotTime, normalizeMarqueeSlots } from "@/lib/marqueeSchedule";
-import NeighborhoodSalePreviewMap from "@/components/neighborhood/NeighborhoodSalePreviewMap";
 import {
   getFeaturedItems,
   getFormattedDescription,
@@ -42,6 +34,9 @@ import {
   getUrgencyText,
 } from "@/components/listing/listingDetailContent";
 import SaveListingButton from "@/components/listing/SaveListingButton";
+import ListingPhotoGallery from "@/components/listing/ListingPhotoGallery";
+import ListingShareButton from "@/components/listing/ListingShareButton";
+import NeighborhoodSalePanel from "@/components/listing/NeighborhoodSalePanel";
 
 export default function ListingDetailPage() {
   const navigate = useNavigate();
@@ -51,11 +46,9 @@ export default function ListingDetailPage() {
   const [showReport, setShowReport] = useState(false);
   const [reportContext, setReportContext] = useState(null);
   const [showPromoModal, setShowPromoModal] = useState(false);
-  const [shareFallbackOpen, setShareFallbackOpen] = useState(false);
+
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
-  
+
   const { guardAction, showModal, setShowModal, isGuest } = useGuestGuard();
 
   useEffect(() => {
@@ -355,102 +348,6 @@ export default function ListingDetailPage() {
   const mainImage = listingImages[selectedImageIndex] || listingImages[0];
   const listingUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing.id}`;
   const shareTitle = listing.event_name || listing.title;
-  const shareText = [shareTitle, listing.event_description || listing.description, listingUrl].filter(Boolean).join("\n\n");
-
-  const handleCopyLink = async () => {
-    await navigator.clipboard.writeText(listingUrl);
-    toast.success("Link copied");
-  };
-
-  const handleShare = async () => {
-    if (!navigator.share) {
-      setShareFallbackOpen(true);
-      return;
-    }
-
-    try {
-      let fileToShare = null;
-      if (mainImage) {
-        try {
-          const response = await fetch(mainImage, { mode: "cors" });
-          const blob = await response.blob();
-          const file = new File([blob], "listing_flyer.jpg", { type: blob.type });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            fileToShare = file;
-          }
-        } catch (e) {
-          console.error("Could not load image for sharing:", e);
-        }
-      }
-
-      const shareData = {
-        title: shareTitle,
-        text: (listing.event_description || listing.description || "") + "\n\n" + listingUrl,
-      };
-
-      if (fileToShare) {
-        shareData.files = [fileToShare];
-      } else {
-        shareData.url = listingUrl;
-      }
-
-      await navigator.share(shareData);
-    } catch (error) {
-      if (error?.name === "NotAllowedError" || error?.name === "AbortError") {
-        setShareFallbackOpen(true);
-        return;
-      }
-      throw error;
-    }
-  };
-
-  const handleCopyForApp = async (appName) => {
-    await navigator.clipboard.writeText(shareText);
-    toast.success(`${appName} text copied`);
-  };
-
-  const handleCopyInvite = () => {
-    navigator.clipboard.writeText(inviteText).then(() => {
-      toast.success("Invite copied");
-    });
-  };
-
-  const handleTouchStart = (e) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-    
-    if (isLeftSwipe && selectedImageIndex < listingImages.length - 1) {
-      setSelectedImageIndex(prev => prev + 1);
-    }
-    if (isRightSwipe && selectedImageIndex > 0) {
-      setSelectedImageIndex(prev => prev - 1);
-    }
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
-
-  const handlePhotoClick = (e) => {
-    if (listingImages.length <= 1) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    if (x < rect.width / 2) {
-      setSelectedImageIndex(prev => prev > 0 ? prev - 1 : prev);
-    } else {
-      setSelectedImageIndex(prev => (prev + 1) % listingImages.length);
-    }
-  };
-
   return (
     <div className="min-h-[calc(100vh-140px)] bg-slate-50">
       <div className="max-w-4xl mx-auto">
@@ -491,47 +388,12 @@ export default function ListingDetailPage() {
           <CardContent className="space-y-8 p-4 sm:p-6 md:p-8">
             <div className="space-y-5">
               {listingImages.length > 0 && (
-                <div className="space-y-4">
-                  <div 
-                    className="relative overflow-hidden rounded-[1.75rem] bg-slate-100 shadow-[0_12px_40px_rgba(15,23,42,0.16)] cursor-pointer select-none touch-pan-y"
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                    onClick={handlePhotoClick}
-                  >
-                    <img
-                      src={mainImage}
-                      alt={shareTitle}
-                      className="w-full max-h-[420px] sm:max-h-[480px] object-contain transition-opacity duration-300"
-                      draggable="false"
-                      key={mainImage}
-                    />
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                    {listingImages.length > 1 && (
-                      <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-md pointer-events-none">
-                        {selectedImageIndex + 1} / {listingImages.length}
-                      </div>
-                    )}
-                  </div>
-                  {listingImages.length > 1 && (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                      {listingImages.map((url, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setSelectedImageIndex(idx)}
-                          className={`overflow-hidden rounded-2xl bg-slate-100 shadow-sm transition-all ${selectedImageIndex === idx ? "ring-2 ring-slate-900 ring-offset-2 ring-offset-white" : "opacity-85 hover:opacity-100"}`}
-                        >
-                          <img
-                            src={url}
-                            alt={`Listing image ${idx + 1}`}
-                            className="h-24 sm:h-28 w-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <ListingPhotoGallery
+                  images={listingImages}
+                  selectedIndex={selectedImageIndex}
+                  onIndexChange={setSelectedImageIndex}
+                  title={shareTitle}
+                />
               )}
 
               <div className="space-y-8">
@@ -607,43 +469,11 @@ export default function ListingDetailPage() {
 
                 {/* E. Primary Actions */}
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <DropdownMenu open={shareFallbackOpen} onOpenChange={setShareFallbackOpen}>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        onClick={handleShare}
-                        className="flex-1 gap-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 h-12 text-base font-semibold shadow-sm"
-                      >
-                        <Share2 className="w-4 h-4" />
-                        Share Listing
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="center" className="w-56 rounded-xl p-2">
-                      <DropdownMenuItem onClick={handleCopyLink} className="flex items-center cursor-pointer py-2.5">
-                        <Link className="w-4 h-4 mr-3 text-slate-600" />
-                        <span className="font-medium text-slate-700">Copy Link</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(listingUrl)}`, "_blank")} className="flex items-center cursor-pointer py-2.5">
-                        <Facebook className="w-4 h-4 mr-3 text-[#1877F2]" />
-                        <span className="font-medium text-slate-700">Facebook</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { handleCopyForApp("Instagram"); toast.success("Link copied for Instagram"); }} className="flex items-center cursor-pointer py-2.5">
-                        <Instagram className="w-4 h-4 mr-3 text-[#E4405F]" />
-                        <span className="font-medium text-slate-700">Instagram</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { handleCopyForApp("Snapchat"); toast.success("Link copied for Snapchat"); }} className="flex items-center cursor-pointer py-2.5">
-                        <svg className="w-4 h-4 mr-3 text-[#FFFC00]" viewBox="0 0 24 24" fill="currentColor" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 2C8 2 6 5.5 6 9c0 1 .5 2.5 1.5 3-1 0-2 .5-2 1.5 0 .5.5 1 1 1 0 1.5 2 3 5.5 3s5.5-1.5 5.5-3c.5 0 1-.5 1-1.5 0-1-1-1.5-2-1.5 1-.5 1.5-2 1.5-3 0-3.5-2-7-6-7z"/>
-                        </svg>
-                        <span className="font-medium text-slate-700">Snapchat</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { handleCopyForApp("TikTok"); toast.success("Link copied for TikTok"); }} className="flex items-center cursor-pointer py-2.5">
-                        <svg className="w-4 h-4 mr-3 text-slate-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
-                        </svg>
-                        <span className="font-medium text-slate-700">TikTok</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <ListingShareButton
+                    listing={listing}
+                    listingUrl={listingUrl}
+                    mainImage={mainImage}
+                  />
                   <Button
                     onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
                     disabled={!listing.lat || !listing.lng}
@@ -722,294 +552,24 @@ export default function ListingDetailPage() {
               </div>
             )}
 
-            {listing.listingType === "neighborhood_sale" && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold text-emerald-900 mb-2">Neighborhood Sale</h3>
-                    <p className="text-sm text-emerald-800">
-                      {listing.homeCount} homes participating • Span: {listing.spanFeet} ft
-                    </p>
-                    {listing.co_host_user_id && (
-                      <p className="text-sm text-emerald-800 mt-1">
-                        Co-host status: <span className="font-medium capitalize">{listing.co_host_status || "pending"}</span>
-                      </p>
-                    )}
-                  </div>
-                  <Button size="sm" variant="outline" className="gap-2 border-emerald-300 text-emerald-800 hover:bg-emerald-100" onClick={handleCopyInvite}>
-                    <Copy className="w-4 h-4" />
-                    Copy Invite
-                  </Button>
-                </div>
-
-                <div className="bg-white/70 border border-emerald-200 rounded-lg p-3 space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Main Event Address</p>
-                  <p className="text-sm text-emerald-950 font-medium">{eventAddress}</p>
-                  <NeighborhoodSalePreviewMap lat={listing.event_center_lat} lng={listing.event_center_lng} />
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
-                      Homes Joined: {approvedHomesCount} / 25
-                    </div>
-                    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
-                      {availableSpots === 0 ? "Neighborhood Sale is full" : `Available Spots: ${availableSpots} left`}
-                    </div>
-                  </div>
-                </div>
-
-                {canManageNeighborhoodSale && salePricing && (
-                  <div className="bg-white/70 border border-emerald-200 rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Neighborhood Sale Payment</p>
-                        <p className="text-sm text-emerald-950 font-medium">{salePricing.totalApprovedHomes} homes • {salePricing.homesNeeded > 0 ? `${salePricing.homesNeeded} more needed to activate` : 'Activated / ready'}</p>
-                      </div>
-                      <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 border-none capitalize">
-                        {String(neighborhoodEventState || "pending_activation").replace(/_/g, " ")}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                      <div className="rounded-md border border-emerald-200 bg-white p-3">
-                        <p className="text-xs uppercase tracking-wide text-emerald-700">Paid</p>
-                        <p className="font-semibold text-emerald-950">${Number(listing.pricePaid || 0).toFixed(2)}</p>
-                      </div>
-                      <div className="rounded-md border border-emerald-200 bg-white p-3">
-                        <p className="text-xs uppercase tracking-wide text-emerald-700">Calculated Cost</p>
-                        <p className="font-semibold text-emerald-950">${Number(calculateNeighborhoodSalePrice(salePricing.totalApprovedHomes) || 0).toFixed(2)}</p>
-                      </div>
-                      <div className="rounded-md border border-emerald-200 bg-white p-3">
-                        <p className="text-xs uppercase tracking-wide text-emerald-700">Additional Due</p>
-                        <p className="font-semibold text-emerald-950">${Number(salePricing.additionalDue || 0).toFixed(2)}</p>
-                      </div>
-                    </div>
-                    {salePricing.totalApprovedHomes < NEIGHBORHOOD_MIN_HOMES ? (
-                      <p className="text-sm text-emerald-800">If the sale is still under {NEIGHBORHOOD_MIN_HOMES} approved homes at the 24-hour lock point, Yardit will switch the organizer to the $7.99 Premium fallback and remove the Neighborhood container.</p>
-                    ) : neighborhoodEventState === "activated_locked" || neighborhoodEventState === "coming_soon" || neighborhoodEventState === "active" ? (
-                      <p className="text-sm text-emerald-800">This sale is locked after the organizer charge and can no longer add or remove participants through the normal flow.</p>
-                    ) : (
-                      <p className="text-sm text-emerald-800">
-                        <strong>Committed:</strong> Your sale has reached {NEIGHBORHOOD_MIN_HOMES} homes. Cancelling now will trigger an immediate charge. Otherwise, your card on file will be charged exactly 24 hours before start time.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <div className="bg-white/70 border border-emerald-200 rounded-lg p-3 space-y-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Participating in Sale</p>
-                    <p className="text-sm text-emerald-950 font-medium">{salePricing?.visibleHomeCount || 1} homes currently live in this sale</p>
-                  </div>
-                  {isNeighborhoodSaleLive && approvedRequests.length > 0 ? (
-                    <div className="space-y-3">
-                      {approvedRequests.map((req, index) => (
-                        <div key={req.id || index} className="text-sm text-emerald-900 border border-emerald-200 rounded-md bg-white p-3 space-y-2">
-                          <div>
-                            <p className="font-semibold text-emerald-950">{req.listingDetails?.title || "Participant"}</p>
-                            <p className="text-emerald-800">{req.listingDetails ? formatAddress(req.listingDetails) : "Address unavailable"}</p>
-                          </div>
-                          <div className="flex gap-2 flex-wrap pt-2 mt-2 border-t border-emerald-100">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
-                              onClick={() => navigate(createPageUrl("ListingDetail") + "?id=" + req.listingId)}
-                            >
-                              View More Details
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
-                              onClick={() => toast.info("Messaging feature coming soon.")}
-                            >
-                              Send Message
-                            </Button>
-                            {(canManageNeighborhoodSale || user?.isAdmin) && (
-                              isNeighborhoodSaleLive ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-red-600 border-red-200 hover:bg-red-50"
-                                  onClick={() => {
-                                    setReportContext({
-                                      joinRequestId: req.id,
-                                      requesterListingId: req.listingId,
-                                      requesterUserId: req.requesterUserId,
-                                      saleListingId: listingId,
-                                      eventTitle: listing.title,
-                                    });
-                                    setShowReport(true);
-                                  }}
-                                >
-                                  Report
-                                </Button>
-                              ) : (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="text-red-600 border-red-200 hover:bg-red-50"
-                                  onClick={() => {
-                                    if (window.confirm("Are you sure you want to remove this participant from the sale?")) {
-                                      respondToJoinRequestMutation.mutate({
-                                        requestId: req.id,
-                                        requesterListingId: req.listingId,
-                                        action: "remove",
-                                        requesterUserId: req.requesterUserId,
-                                        eventTitle: listing.title
-                                      });
-                                    }
-                                  }}
-                                >
-                                  Remove From Sale
-                                </Button>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-emerald-800">
-                      {isNeighborhoodSaleLive
-                        ? "No approved participant addresses available yet."
-                        : "This sale is not public yet. Approved homes become visible after payment is completed."}
-                    </p>
-                  )}
-                </div>
-
-                {/* (plain english) section to show pending requests for EO */}
-                {canManageNeighborhoodSale && pendingRequests.length > 0 && (
-                  <div className="mt-4 border-t border-emerald-200 pt-4">
-                    <h4 className="font-semibold text-emerald-900 mb-3">Pending Join Requests ({pendingRequests.length})</h4>
-                    <div className="space-y-3">
-                      {pendingRequests.map(req => (
-                        <div key={req.id} className="bg-white p-3 rounded border border-emerald-100 shadow-sm">
-                          <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
-                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.display_address || req.listingDetails?.addressText || "No address"}</p>
-                          <p className="text-sm text-slate-500 line-clamp-2 mb-3">{req.listingDetails?.description}</p>
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                              onClick={() => respondToJoinRequestMutation.mutate({
-                                requestId: req.id,
-                                requesterListingId: req.listingId,
-                                action: "approve",
-                                requesterUserId: req.requesterUserId,
-                                eventTitle: listing.title
-                              })}
-                            >
-                              Approve
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="text-red-600 border-red-200 hover:bg-red-50"
-                              onClick={() => respondToJoinRequestMutation.mutate({
-                                requestId: req.id,
-                                requesterListingId: req.listingId,
-                                action: "deny",
-                                requesterUserId: req.requesterUserId,
-                                eventTitle: listing.title
-                              })}
-                            >
-                              Deny
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* (plain english) section to show participating homes for EO */}
-                {canManageNeighborhoodSale && approvedRequests.length > 0 && (
-                  <div className="mt-4 border-t border-emerald-200 pt-4">
-                    <h4 className="font-semibold text-emerald-900 mb-3">Participating Homes ({approvedRequests.length})</h4>
-                    <div className="space-y-3">
-                      {approvedRequests.map(req => (
-                        <div key={req.id} className="bg-white p-3 rounded border border-emerald-100 shadow-sm">
-                          <div className="flex justify-between items-start mb-1">
-                            <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
-                            <Badge className="bg-green-600 text-white hover:bg-green-700 border-none">Approved</Badge>
-                          </div>
-                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.display_address || req.listingDetails?.addressText || "No address"}</p>
-                          <p className="text-sm text-slate-500 line-clamp-2 mb-3">{req.listingDetails?.description}</p>
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                              onClick={() => navigate(createPageUrl("CreateListing") + "?edit=1&listingId=" + req.listingId)}
-                            >
-                              Edit Listing
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="text-red-600 border-red-200 hover:bg-red-50"
-                              onClick={() => respondToJoinRequestMutation.mutate({
-                                requestId: req.id,
-                                requesterListingId: req.listingId,
-                                action: "remove",
-                                requesterUserId: req.requesterUserId,
-                                eventTitle: listing.title
-                              })}
-                            >
-                              Remove from Neighborhood
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* (plain english) section to show removed homes for EO */}
-                {canManageNeighborhoodSale && removedRequests.length > 0 && (
-                  <div className="mt-4 border-t border-red-200 pt-4">
-                    <h4 className="font-semibold text-red-900 mb-3">Removed Homes ({removedRequests.length})</h4>
-                    <div className="space-y-3">
-                      {removedRequests.map(req => (
-                        <div key={req.id} className="bg-white p-3 rounded border border-red-100 shadow-sm opacity-75">
-                          <div className="flex justify-between items-start mb-1">
-                            <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
-                            <Badge className="bg-red-600 text-white hover:bg-red-700 border-none">Removed</Badge>
-                          </div>
-                          <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.display_address || req.listingDetails?.addressText || "No address"}</p>
-                          <p className="text-sm text-slate-500 line-clamp-2 mb-3">{req.listingDetails?.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* (plain english) info box for the requester about their join status */}
-            {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h3 className="font-semibold text-yellow-900">Neighborhood Sale: Pending approval</h3>
-              </div>
-            )}
-            {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h3 className="font-semibold text-green-900 mb-1">Neighborhood Sale: Approved</h3>
-                {parentSale && (
-                  <div className="text-sm text-green-800 mt-2">
-                    <p><strong>Event:</strong> {parentSale.title}</p>
-                    {parentSale.startDateTime && parentSale.endDateTime && (
-                      <p><strong>Dates:</strong> {format(new Date(parentSale.startDateTime), "PPp")} - {format(new Date(parentSale.endDateTime), "PPp")}</p>
-                    )}
-                    <p className="mt-2">If this Neighborhood Sale is canceled or your participation is removed, you will need to create a normal listing to appear independently.</p>
-                  </div>
-                )}
-              </div>
-            )}
-            {listing.neighborhood_join_status === "denied" && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h3 className="font-semibold text-red-900">Neighborhood Sale: Denied</h3>
-              </div>
-            )}
+            <NeighborhoodSalePanel
+              listing={listing}
+              user={user}
+              salePricing={salePricing}
+              neighborhoodEventState={neighborhoodEventState}
+              isNeighborhoodSaleLive={isNeighborhoodSaleLive}
+              approvedRequests={approvedRequests}
+              pendingRequests={pendingRequests}
+              removedRequests={removedRequests}
+              approvedHomesCount={approvedHomesCount}
+              availableSpots={availableSpots}
+              canManageNeighborhoodSale={canManageNeighborhoodSale}
+              parentSale={parentSale}
+              listingId={listingId}
+              inviteText={inviteText}
+              onRespondToJoinRequest={(args) => respondToJoinRequestMutation.mutate(args)}
+              onReport={(ctx) => { setReportContext(ctx); setShowReport(true); }}
+            />
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button
