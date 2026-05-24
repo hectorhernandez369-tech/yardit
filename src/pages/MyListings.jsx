@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useMyListingsQuery } from "@/components/MyListingsUtils";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -108,26 +109,7 @@ export default function MyListingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { data: listings = [], isLoading } = useQuery({
-    queryKey: ["myListings", user?.id],
-    queryFn: async () => {
-      const owned = await base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date");
-      const coHosted = await base44.entities.Listing.filter({ co_host_user_id: user.id }, "-created_date");
-      const merged = [...owned, ...coHosted.filter((listing) => listing.co_host_status === "accepted")];
-      const seen = new Set();
-      return merged.filter((listing) => {
-        if (seen.has(listing.id)) return false;
-        seen.add(listing.id);
-        // Hide unclaimed admin-created assisted listings — managed from Admin Dashboard
-        if ((listing.created_by_admin === true || listing.assisted_listing === true) && listing.owner_type === "guest_assisted") {
-          return false;
-        }
-        return true;
-      });
-    },
-    enabled: !!user,
-    initialData: [],
-  });
+  const { data: listings = [], isLoading } = useMyListingsQuery(user);
 
 
   const { data: searchableUsers = [] } = useQuery({
