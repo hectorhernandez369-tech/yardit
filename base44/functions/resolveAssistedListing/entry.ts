@@ -94,17 +94,27 @@ Deno.serve(async (req) => {
       return Response.json({ status: 'ok', listing, assisted });
     }
 
-    // Seller approves: listing goes public, status = assisted_active_unclaimed
+    // Seller approves: listing goes public. If claimUserId is provided, also claim immediately.
     if (action === 'approve') {
-      await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
-        assisted_status: 'assisted_active_unclaimed',
-        seller_approved_at: now.toISOString(),
-      });
+      const claimNow = now.toISOString();
+      const isClaiming = !!claimUserId;
+
       await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
         status: 'active',
+        ...(isClaiming ? { ownerUserId: claimUserId, owner_type: 'user' } : {}),
       });
+
+      await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
+        assisted_status: isClaiming ? 'claimed_active' : 'assisted_active_unclaimed',
+        seller_approved_at: claimNow,
+        ...(isClaiming ? { claimed_by_user_id: claimUserId, claimed_at: claimNow } : {}),
+      });
+
       const updatedListings = await base44.asServiceRole.entities.Listing.filter({ id: assisted.listing_id });
-      return Response.json({ status: 'approved', listing: updatedListings[0] || listing, assisted });
+      const updatedListing = updatedListings[0] || listing;
+      const returnStatus = isClaiming ? 'claimed' : 'approved';
+      console.log(`approve: listing ${assisted.listing_id} → ${returnStatus}`, isClaiming ? `claimed by ${claimUserId}` : 'unclaimed');
+      return Response.json({ status: returnStatus, listing: updatedListing, assisted });
     }
 
     if (action === 'decline') {

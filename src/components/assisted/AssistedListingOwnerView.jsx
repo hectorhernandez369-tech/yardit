@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  MapPin, Calendar, Map, Share2, Navigation, CheckCircle,
-  Lock, ArrowRight
+  MapPin, Calendar, Map, Share2, Navigation, CheckCircle, ArrowRight
 } from "lucide-react";
 
 import {
@@ -21,54 +19,10 @@ import {
 } from "@/components/listing/listingDisplay";
 import { base44 } from "@/api/base44Client";
 
-function LockedModal({ open, onClose, onSignUp }) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl">
-        <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
-          <Lock className="w-6 h-6 text-amber-600" />
-        </div>
-        <h3 className="font-bold text-lg text-[#2C4F4E] mb-2">Create an Account to Make Changes</h3>
-        <p className="text-sm text-gray-600 mb-5">
-          Create a free account to claim this listing — edit details, add photos, relist, upgrade, or extend dates.
-        </p>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={onClose} className="flex-1">Not Now</Button>
-          <Button onClick={onSignUp} className="flex-1 bg-[#5DADA5] hover:bg-[#4A9B93] text-white">
-            Sign Up / Log In
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LockedAction({ label, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center justify-between w-full p-3 rounded-xl border border-gray-200 bg-white/60 hover:bg-gray-50 transition text-left group"
-    >
-      <span className="flex items-center gap-2.5 text-sm text-gray-500">
-        <Lock className="w-3.5 h-3.5 text-gray-400" />
-        {label}
-      </span>
-      <span className="text-xs text-gray-400 group-hover:text-[#5DADA5] transition">Account required →</span>
-    </button>
-  );
-}
-
+// This component is only shown to logged-out sellers after approval.
+// Logged-in sellers are sent directly to My Listings by AssistedListingApprovalPage.
 export default function AssistedListingOwnerView({ listing, token }) {
   const navigate = useNavigate();
-  const [showLockedModal, setShowLockedModal] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isClaiming, setIsClaiming] = useState(false);
-  const [claimError, setClaimError] = useState("");
-
-  useEffect(() => {
-    base44.auth.isAuthenticated().then(setIsAuthenticated);
-  }, []);
 
   if (!listing) return null;
 
@@ -96,45 +50,12 @@ export default function AssistedListingOwnerView({ listing, token }) {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank");
   };
 
-  const handleViewOnMap = () => {
-    navigate(createPageUrl("Home") + `?listingId=${listing.id}`);
-  };
-
-  const handleViewDetails = () => {
-    navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`);
-  };
-
-  // If already authenticated, claim directly. Otherwise store intent and redirect to login.
-  const handleClaim = async () => {
-    if (isAuthenticated) {
-      setIsClaiming(true);
-      setClaimError("");
-      try {
-        const user = await base44.auth.me();
-        const res = await base44.functions.invoke("resolveAssistedListing", {
-          token,
-          action: "claim_complete",
-          claimUserId: user.id,
-        });
-        console.log("claim_complete response:", res.data);
-        if (res.data?.status === "claimed") {
-          navigate(createPageUrl("MyListings"));
-        } else {
-          const msg = res.data?.error || `Unexpected status: ${res.data?.status}`;
-          console.error("claim_complete failed:", msg);
-          setClaimError(`Could not complete claim: ${msg}`);
-        }
-      } catch (err) {
-        console.error("claim_complete exception:", err);
-        setClaimError("Something went wrong. Please try again.");
-      }
-      setIsClaiming(false);
-    } else {
-      // Store claim intent so the page auto-claims after login redirect returns
-      if (token) sessionStorage.setItem("assisted_claim_token", token);
-      const returnUrl = `${window.location.origin}/assisted-listing?token=${token}&autoclaim=1`;
-      base44.auth.redirectToLogin(returnUrl);
-    }
+  // Store claim intent in sessionStorage, then redirect to login.
+  // After login, AssistedListingApprovalPage will auto-run claim_complete via autoclaim param.
+  const handleLoginToClaim = () => {
+    if (token) sessionStorage.setItem("assisted_claim_token", token);
+    const returnUrl = `${window.location.origin}/assisted-listing?token=${token}&autoclaim=1`;
+    base44.auth.redirectToLogin(returnUrl);
   };
 
   return (
@@ -195,7 +116,7 @@ export default function AssistedListingOwnerView({ listing, token }) {
 
           {/* Primary action: View on Map */}
           <Button
-            onClick={handleViewOnMap}
+            onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
             disabled={!hasCoords}
             className="w-full bg-teal-600 hover:bg-teal-700 text-white py-5 text-base font-semibold gap-2 shadow-md"
           >
@@ -204,7 +125,11 @@ export default function AssistedListingOwnerView({ listing, token }) {
 
           {/* Secondary actions */}
           <div className="grid grid-cols-3 gap-2">
-            <Button onClick={handleViewDetails} size="sm" className="bg-slate-700 hover:bg-slate-800 text-white gap-1.5">
+            <Button
+              onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+              size="sm"
+              className="bg-slate-700 hover:bg-slate-800 text-white gap-1.5"
+            >
               Details
             </Button>
             <Button onClick={handleShare} size="sm" variant="outline" className="gap-1.5 border-slate-300">
@@ -217,33 +142,19 @@ export default function AssistedListingOwnerView({ listing, token }) {
         </CardContent>
       </Card>
 
-      {/* Owner-locked actions */}
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 px-1">Listing Management</p>
-        <LockedAction label="Edit Details" onClick={() => setShowLockedModal(true)} />
-        <LockedAction label="Add Photos" onClick={() => setShowLockedModal(true)} />
-        <LockedAction label="Upgrade Listing" onClick={() => setShowLockedModal(true)} />
-        <LockedAction label="Relist for Another Date" onClick={() => setShowLockedModal(true)} />
-        <LockedAction label="Extend Dates" onClick={() => setShowLockedModal(true)} />
-      </div>
-
-      {/* Claim CTA */}
-      <div className="border-t pt-4">
+      {/* Login to claim CTA */}
+      <div className="border-t pt-4 space-y-2">
         <Button
-          onClick={handleClaim}
-          disabled={isClaiming}
+          onClick={handleLoginToClaim}
           className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold gap-2"
         >
-          {isClaiming ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-          {isClaiming ? "Claiming..." : "Claim This Listing"}
+          <ArrowRight className="w-4 h-4" />
+          Log In / Sign Up to Claim This Listing
         </Button>
-        {claimError && <p className="text-xs text-center text-red-500 mt-2">{claimError}</p>}
-        {!isAuthenticated && (
-          <p className="text-xs text-center text-gray-500 mt-2">Free account — sign in and you'll be returned here to complete the claim</p>
-        )}
+        <p className="text-xs text-center text-gray-500">
+          Free account — after sign-in, this listing is automatically yours
+        </p>
       </div>
-
-      <LockedModal open={showLockedModal} onClose={() => setShowLockedModal(false)} onSignUp={handleClaim} />
     </div>
   );
 }

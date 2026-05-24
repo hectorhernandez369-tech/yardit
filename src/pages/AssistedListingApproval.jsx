@@ -50,18 +50,18 @@ export default function AssistedListingApprovalPage() {
   const navigate = useNavigate();
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token");
+  // autoclaim=1 means user just returned from login — approve+claim was already stored
   const autoclaim = params.get("autoclaim") === "1";
 
   const [loading, setLoading] = useState(true);
-  const [state, setState] = useState(null); // ok | declined | expired | not_found | approved | claimed | autoclaiming
+  const [state, setState] = useState(null);
   const [listing, setListing] = useState(null);
   const [assisted, setAssisted] = useState(null);
   const [isActing, setIsActing] = useState(false);
 
-  const attemptAutoClaim = async (listingData, assistedData) => {
+  // After returning from login, auto-run claim_complete on the approved (unclaimed) listing
+  const attemptPostLoginClaim = async () => {
     try {
-      const isAuth = await base44.auth.isAuthenticated();
-      if (!isAuth) return false;
       const user = await base44.auth.me();
       if (!user) return false;
       const claimRes = await base44.functions.invoke("resolveAssistedListing", {
@@ -75,7 +75,7 @@ export default function AssistedListingApprovalPage() {
         return true;
       }
     } catch {
-      // fall through — show manual owner view
+      // fall through — show owner view with claim CTA
     }
     return false;
   };
@@ -87,17 +87,16 @@ export default function AssistedListingApprovalPage() {
         const res = await base44.functions.invoke("resolveAssistedListing", { token });
         const d = res.data;
 
-        // Auto-claim if: returning from login (autoclaim param) OR already authenticated and viewing an unclaimed listing
-        const shouldAutoClaim = autoclaim || sessionStorage.getItem("assisted_claim_token") === token;
-        if ((d.status === "approved" || d.status === "ok") && shouldAutoClaim) {
+        // If returning from login (autoclaim param) and listing is approved-unclaimed, auto-claim
+        const isReturningFromLogin = autoclaim || sessionStorage.getItem("assisted_claim_token") === token;
+        if (isReturningFromLogin && (d.status === "approved" || d.status === "ok")) {
           setState("autoclaiming");
           setListing(d.listing);
           setAssisted(d.assisted);
           setLoading(false);
-          const claimed = await attemptAutoClaim(d.listing, d.assisted);
+          const claimed = await attemptPostLoginClaim();
           if (!claimed) {
-            // Auth failed or claim failed — fall back to owner view
-            setState(d.status === "approved" ? "owner_view" : d.status);
+            setState("approved");
           }
           return;
         }
@@ -112,14 +111,47 @@ export default function AssistedListingApprovalPage() {
     })();
   }, [token]);
 
-  const doAction = async (action) => {
+  // Approve button handler — if logged in, approve+claim in one step; if logged out, approve then show owner view with login CTA
+  const handleApprove = async () => {
     setIsActing(true);
     try {
-      const res = await base44.functions.invoke("resolveAssistedListing", { token, action });
+      const isAuth = await base44.auth.isAuthenticated();
+      let claimUserId = null;
+      if (isAuth) {
+        const user = await base44.auth.me();
+        claimUserId = user?.id || null;
+      }
+
+      const res = await base44.functions.invoke("resolveAssistedListing", {
+        token,
+        action: "approve",
+        claimUserId,
+      });
       const d = res.data;
       if (d.listing) setListing(d.listing);
       if (d.assisted) setAssisted(d.assisted);
-      setState(d.status === "approved" ? "owner_view" : d.status);
+
+      if (d.status === "claimed") {
+        // Logged-in: approved + claimed → go straight to My Listings
+        navigate(createPageUrl("MyListings"));
+      } else {
+        // Logged-out: approved, now show owner view with login CTA
+        setState("approved");
+      }
+    } catch {
+      alert("Something went wrong. Please try again.");
+    }
+    setIsActing(false);
+  };
+
+  const handleDecline = async () => {
+    setIsActing(true);
+    try {
+      const res = await base44.functions.invoke("resolveAssistedListing", { token, action: "decline" });
+      const d = res.data;
+      if (d.listing) setListing(d.listing);
+      if (d.assisted) setAssisted(d.assisted);
+      setState("declined");
     } catch {
       alert("Something went wrong. Please try again.");
     }
@@ -204,13 +236,13 @@ export default function AssistedListingApprovalPage() {
 
             <div className="space-y-3">
               <Button
-                onClick={() => doAction("approve")}
+                onClick={handleApprove}
                 disabled={isActing}
                 size="lg"
                 className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white py-4 text-base font-semibold shadow-md"
               >
                 {isActing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle className="w-5 h-5 mr-2" />}
-                Approve &amp; Go Live
+                Approve &amp; View
               </Button>
 
               <Button
@@ -226,7 +258,7 @@ export default function AssistedListingApprovalPage() {
 
               <div className="border-t pt-3 flex flex-col items-center">
                 <button
-                  onClick={() => doAction("decline")}
+                  onClick={handleDecline}
                   disabled={isActing}
                   className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-50 py-1"
                 >
@@ -260,8 +292,8 @@ export default function AssistedListingApprovalPage() {
           </div>
         )}
 
-        {/* Approved — show single-listing owner view */}
-        {["owner_view", "approved", "assisted_active_unclaimed"].includes(state) && (
+        {/* Approved — show single-listing owner view (logged-out path only) */}
+        {["approved", "assisted_active_unclaimed"].includes(state) && (
           listing
             ? <AssistedListingOwnerView listing={listing} token={token} />
             : (
@@ -274,18 +306,6 @@ export default function AssistedListingApprovalPage() {
                 </Button>
               </div>
             )
-        )}
-
-        {/* Claimed — show success and redirect to My Listings */}
-        {state === "claimed" && (
-          <div className="text-center py-12">
-            <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-[#2C4F4E] mb-2">Listing Claimed!</h2>
-            <p className="text-gray-600 mb-6">Your listing is now in My Listings. You can edit, relist, and manage it anytime.</p>
-            <Button onClick={() => navigate(createPageUrl("MyListings"))} className="bg-[#5DADA5] hover:bg-[#4A9B93] text-white">
-              Go to My Listings
-            </Button>
-          </div>
         )}
 
       </div>
