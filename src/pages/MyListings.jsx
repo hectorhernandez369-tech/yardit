@@ -7,7 +7,7 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Map, Trash2, X, ChevronDown, ChevronUp, Search, Send, MoreHorizontal, Shield, UserX } from "lucide-react";
+import { Map, X, ChevronDown, ChevronUp, Search, Send, MoreHorizontal, Shield, UserX } from "lucide-react";
 import { format } from "date-fns";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,13 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
-  formatListingDateRange,
-  formatListingStatusLabel,
-  formatListingTierLabel,
-  getListingAddressLine,
   getListingDisplayStatus,
-  statusColors,
-  tierColors,
 } from "@/components/listing/listingDisplay";
 import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError, shouldShowListingOnMainMap, isNeighborhoodVisibleOnMap } from "@/lib/neighborhoodSaleState";
 import { Input } from "@/components/ui/input";
@@ -38,7 +32,7 @@ import ImageCropEditor from "@/components/admin/ImageCropEditor";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
 import EditParticipantSaleTime from "@/components/listing/EditParticipantSaleTime";
 import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
-import { canSelfServeUpgrade } from "@/lib/listingUpgradeConfig";
+import MyListingCard from "@/components/listing/MyListingCard";
 import { getDefaultEventIconForCategory, EVENT_BASIC_ICON_LIBRARY, getEventIconEmoji } from "@/lib/eventListingConfig";
 import { getUserDisplayName } from "@/lib/userIdentity";
 import { getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
@@ -1129,167 +1123,22 @@ export default function MyListingsPage() {
         ) : (
           <div className="grid gap-4">
             {shownListings.map((listing) => (
-              <Card key={listing.id} className="rounded-xl border bg-white/85 shadow hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3">
-                    <div className="min-w-0">
-                      <h3 className="text-lg sm:text-xl font-semibold mb-1 break-words">{listing.title}</h3>
-
-                      {/* Listing # small print */}
-                      <div className="text-xs text-slate-500 mb-2 space-y-1 break-all">
-                        <p>Listing #{String(listingNumberText(listing))}</p>
-                        <p>ID: {listing.id}</p>
-                      </div>
-
-                      <div className="flex gap-2 flex-wrap">
-                        <Badge variant="outline" className="bg-white text-slate-700 border-slate-300">
-                          {listing.listingType === "event" ? "Event" : listing.listingType === "yard_sale" ? "Yard Sale" : listing.listingType === "neighborhood_sale" ? "Neighborhood Sale" : "Listing"}
-                        </Badge>
-                        {listing.co_host_user_id === user?.id && listing.co_host_status === "active" && (
-                          <Badge className="bg-indigo-600 text-white hover:bg-indigo-700 border-none">
-                            Co-Host
-                          </Badge>
-                        )}
-                        {/* (plain english) Requester listing badges for neighborhood join status */}
-                        {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && (
-                          <Badge className="bg-yellow-500 text-yellow-950 hover:bg-yellow-600 border-none">Pending Neighborhood Approval</Badge>
-                        )}
-                        {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && (
-                          <Badge className="bg-green-600 text-white hover:bg-green-700 border-none">Neighborhood Approved</Badge>
-                        )}
-                        {listing.neighborhood_join_status === "denied" && (
-                          <Badge className="bg-red-600 text-white hover:bg-red-700 border-none">Neighborhood Denied</Badge>
-                        )}
-
-                        <Badge className={tierColors[listing.tier] || "bg-slate-500"}>
-                          {formatListingTierLabel(listing.tier)}
-                        </Badge>
-
-                        <Badge className={statusColors[listing.displayStatus] || "bg-gray-500"}>
-                          {formatListingStatusLabel(listing.displayStatus)}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:flex gap-2 sm:flex-wrap sm:justify-end bg-white/60 rounded-xl p-2 border border-gray-100">
-                      <Button
-                        size="sm"
-                        disabled={!hasCoords(listing)}
-                        onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
-                        className="gap-1 bg-teal-600 hover:bg-teal-700 text-white"
-                      >
-                        <Map className="w-3 h-3" />
-                        View on Map
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-                        className="bg-slate-700 hover:bg-slate-800 text-white"
-                      >
-                        View Details
-                      </Button>
-
-                      {listing.ownerUserId === user?.id && (
-                        <Button
-                          size="sm"
-                          onClick={() => openEditDescription(listing)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          Edit Listing
-                        </Button>
-                      )}
-
-                      <Button
-                        size="sm"
-                        onClick={() => relist(listing)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                      >
-                        Relist
-                      </Button>
-
-                      {canSelfServeUpgrade(listing) && (
-                        <Button
-                          size="sm"
-                          onClick={() => setUpgradeListing(listing)}
-                          className="bg-amber-600 hover:bg-amber-700 text-white"
-                        >
-                          Upgrade
-                        </Button>
-                      )}
-
-                      {canCancelListingDirectly(listing) ? (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => cancelListing(listing)}
-                          className="gap-1"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          Cancel Listing
-                        </Button>
-                      ) : isActiveListing(listing) ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => navigate(createPageUrl("ContactSupport"))}
-                          className="gap-1"
-                        >
-                          Need Help? Contact Support
-                        </Button>
-                      ) : isEffectivelyPastListing(listing) ? (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => deleteListing(listing)}
-                          className="gap-1"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          Delete
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-gray-600 mb-4 whitespace-pre-wrap">
-                    {listing.description || "(No description)"}
-                  </p>
-
-                  {/* Address + Dates */}
-                  <div className="grid md:grid-cols-2 gap-4 text-sm rounded-xl bg-orange-50/60 border border-orange-100 p-4">
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <MapPin className="w-4 h-4" />
-                      <span className="break-words">{getListingAddressLine(listing)}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Calendar className="w-4 h-4" />
-                      <span>{formatListingDateRange(listing)}</span>
-                    </div>
-                  </div>
-
-                  {listing.statusReason && (
-                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-sm text-yellow-800">
-                        <strong>Status Note:</strong> {listing.statusReason}
-                      </p>
-                    </div>
-                  )}
-
-                  {listing.listingType === "yard_sale" && (
-                    <div className="mt-4 pt-4 border-t border-slate-100 flex justify-center sm:justify-start">
-                      <button 
-                        type="button" 
-                        onClick={() => setShowGuideModal(true)} 
-                        className="text-sm text-teal-600 font-medium hover:text-teal-800 underline underline-offset-2 transition-colors"
-                      >
-                        Want more traffic? View Success Guide
-                      </button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <MyListingCard
+                key={listing.id}
+                listing={listing}
+                user={user}
+                listingNumberText={listingNumberText}
+                hasCoords={hasCoords}
+                isActiveListing={isActiveListing}
+                isEffectivelyPastListing={isEffectivelyPastListing}
+                canCancelListingDirectly={canCancelListingDirectly}
+                onEdit={openEditDescription}
+                onRelist={relist}
+                onUpgrade={setUpgradeListing}
+                onCancel={cancelListing}
+                onDelete={deleteListing}
+                onShowGuide={() => setShowGuideModal(true)}
+              />
             ))}
           </div>
         )}
