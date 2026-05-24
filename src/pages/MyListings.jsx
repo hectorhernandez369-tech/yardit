@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Map } from "lucide-react";
 import { format } from "date-fns";
@@ -19,7 +18,6 @@ import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
 import MyListingCard from "@/components/listing/MyListingCard";
 import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
 import { getUserDisplayName } from "@/lib/userIdentity";
-import { getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import YardSaleGuideModal from "@/components/guide/YardSaleGuideModal";
 
