@@ -13,7 +13,6 @@ import EditListingDialog from "@/components/listing/EditListingDialog";
 import { toast } from "sonner";
 import { getListingDisplayStatus } from "@/components/listing/listingDisplay";
 import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError, shouldShowListingOnMainMap, isNeighborhoodVisibleOnMap } from "@/lib/neighborhoodSaleState";
-import { Input } from "@/components/ui/input";
 import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
 import MyListingCard from "@/components/listing/MyListingCard";
 import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
