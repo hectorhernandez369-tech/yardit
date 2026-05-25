@@ -33,6 +33,7 @@ export default function NeighborhoodSalePanel({
   neighborhoodEventState,
   isNeighborhoodSaleLive,
   approvedRequests,
+  visibleParticipatingHomes,
   pendingRequests,
   removedRequests,
   approvedHomesCount,
@@ -44,6 +45,9 @@ export default function NeighborhoodSalePanel({
   onRespondToJoinRequest,
   onReport,
 }) {
+  // Use the canonical roster if provided, otherwise fall back to approvedRequests
+  const rosterHomes = visibleParticipatingHomes ?? approvedRequests;
+  const rosterCount = rosterHomes.length;
   const navigate = useNavigate();
   const eventAddress = formatAddress(listing);
 
@@ -88,7 +92,7 @@ export default function NeighborhoodSalePanel({
             <NeighborhoodSalePreviewMap lat={listing.event_center_lat} lng={listing.event_center_lng} />
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
-                Homes Joined: {approvedHomesCount} / 25
+                Homes Joined: {rosterCount} / 25
               </div>
               <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
                 {availableSpots === 0 ? "Neighborhood Sale is full" : `Available Spots: ${availableSpots} left`}
@@ -150,12 +154,12 @@ export default function NeighborhoodSalePanel({
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Participating in Sale</p>
               <p className="text-sm text-emerald-950 font-medium">
-                {salePricing?.visibleHomeCount ?? approvedRequests.length} homes currently live in this sale
+                {rosterCount} homes currently live in this sale
               </p>
             </div>
-            {isNeighborhoodSaleLive && approvedRequests.length > 0 ? (
+            {isNeighborhoodSaleLive && rosterHomes.length > 0 ? (
               <div className="space-y-3">
-                {approvedRequests.map((req, index) => (
+                {rosterHomes.map((req, index) => (
                   <div key={req.id || index} className="text-sm text-emerald-900 border border-emerald-200 rounded-md bg-white p-3 space-y-2">
                     <div>
                       <p className="font-semibold text-emerald-950">{req.listingDetails?.title || "Participant"}</p>
@@ -245,14 +249,14 @@ export default function NeighborhoodSalePanel({
             </div>
           )}
 
-          {canManageNeighborhoodSale && approvedRequests.length > 0 && (
+          {canManageNeighborhoodSale && rosterHomes.length > 0 && (
             <div className="mt-4 border-t border-emerald-200 pt-4">
               <h4 className="font-semibold text-emerald-900 mb-3 flex items-center gap-2">
                 <Home className="w-4 h-4" />
-                Participating Homes ({approvedRequests.length})
+                Participating Homes ({rosterCount})
               </h4>
               <div className="space-y-3">
-                {approvedRequests.map((req) => {
+                {rosterHomes.map((req) => {
                   const ld = req.listingDetails || {};
                   const photo = ld.photoUrls?.[0];
                   const address = ld.display_address || ld.address_text || ld.addressText || "Address unavailable";
@@ -278,7 +282,9 @@ export default function NeighborhoodSalePanel({
                         {/* Title + badge */}
                         <div className="flex items-start justify-between gap-2">
                           <p className="font-semibold text-slate-800 leading-snug">{ld.title || "Participant Listing"}</p>
-                          <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 border-none shrink-0 text-[10px]">Approved</Badge>
+                          <Badge className={`${req.isOrganizer ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"} text-white border-none shrink-0 text-[10px]`}>
+                            {req.isOrganizer ? "Organizer" : "Approved"}
+                          </Badge>
                         </div>
 
                         {/* Address */}
@@ -328,14 +334,16 @@ export default function NeighborhoodSalePanel({
                           >
                             Edit
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
-                            onClick={() => onRespondToJoinRequest({ requestId: req.id, requesterListingId: req.listingId, action: "remove", requesterUserId: req.requesterUserId, eventTitle: listing.title })}
-                          >
-                            Remove
-                          </Button>
+                          {!req.isOrganizer && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
+                              onClick={() => onRespondToJoinRequest({ requestId: req.id, requesterListingId: req.listingId, action: "remove", requesterUserId: req.requesterUserId, eventTitle: listing.title })}
+                            >
+                              Remove
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

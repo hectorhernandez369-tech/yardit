@@ -104,12 +104,37 @@ export default function ListingDetailPage() {
   });
 
   const pendingRequests = joinRequests?.filter(r => r.status === "pending") || [];
-  const approvedRequests = joinRequests?.filter(r => r.status === "approved" && r.removed_by_eo !== true) || [];
-  const removedRequests = joinRequests?.filter(r => r.removed_by_eo === true) || [];
+  const approvedRequests = joinRequests?.filter(r =>
+    r.status === "approved" &&
+    r.removed_by_eo !== true &&
+    r.removed_by_listing_owner !== true &&
+    r.listingDetails?.status !== "canceled" &&
+    r.listingDetails?.status !== "cancelled"
+  ) || [];
+  const removedRequests = joinRequests?.filter(r => r.removed_by_eo === true || r.removed_by_listing_owner === true) || [];
   const isOwner = !!user && user.id === listing?.ownerUserId;
   const isAcceptedCoHost = !!user && listing?.listingType === "neighborhood_sale" && listing?.co_host_user_id === user.id && listing?.co_host_status === "accepted";
   const canManageNeighborhoodSale = isOwner || isAcceptedCoHost;
-  const approvedHomesCount = 1 + approvedRequests.length;
+
+  // Build the canonical participating homes roster.
+  // The organizer listing always counts as 1 home. Participants come from valid approved JoinRequests.
+  // This is the single source of truth for both the count AND the displayed roster.
+  const organizerEntry = listing?.listingType === "neighborhood_sale" ? {
+    id: `__organizer__${listing?.id}`,
+    listingId: listing?.id,
+    isOrganizer: true,
+    requesterUserId: listing?.ownerUserId,
+    listingDetails: listing,
+  } : null;
+
+  // Exclude any participant whose listing ID matches the organizer listing to prevent double-counting
+  const participantEntries = approvedRequests.filter(r => r.listingId !== listing?.id);
+
+  const visibleParticipatingHomes = listing?.listingType === "neighborhood_sale"
+    ? [organizerEntry, ...participantEntries].filter(Boolean)
+    : [];
+
+  const approvedHomesCount = visibleParticipatingHomes.length;
   const availableSpots = Math.max(0, 25 - approvedHomesCount);
   const formatAddress = (item) => {
     const base = [item.display_address || item.address_text || item.addressText || "Address unavailable", item.city, getStateAbbreviation(item.state)].filter(Boolean).join(", ");
@@ -117,7 +142,24 @@ export default function ListingDetailPage() {
   };
   const salePricing = useMemo(() => {
     if (!listing || listing.listingType !== "neighborhood_sale") return null;
-    return getNeighborhoodPricingSummary(joinRequests || [], listing.pricePaid || 0);
+    const summary = getNeighborhoodPricingSummary(joinRequests || [], listing.pricePaid || 0);
+    // Override visibleHomeCount and totalApprovedHomes to match the canonical roster
+    // (organizer + valid participants). We can't compute visibleParticipatingHomes.length
+    // here due to dependency ordering, so we re-derive it inline.
+    const validParticipants = (joinRequests || []).filter(r =>
+      r.status === "approved" &&
+      r.removed_by_eo !== true &&
+      r.removed_by_listing_owner !== true &&
+      r.listingDetails?.status !== "canceled" &&
+      r.listingDetails?.status !== "cancelled" &&
+      r.listingId !== listing.id
+    );
+    const canonicalCount = 1 + validParticipants.length; // 1 = organizer
+    return {
+      ...summary,
+      visibleHomeCount: canonicalCount,
+      totalApprovedHomes: canonicalCount,
+    };
   }, [joinRequests, listing]);
   const neighborhoodEventState = useMemo(() => deriveNeighborhoodEventState(listing), [listing]);
   const isNeighborhoodSaleLive = listing?.listingType === "neighborhood_sale" && neighborhoodEventState === "active";
@@ -559,6 +601,7 @@ export default function ListingDetailPage() {
               neighborhoodEventState={neighborhoodEventState}
               isNeighborhoodSaleLive={isNeighborhoodSaleLive}
               approvedRequests={approvedRequests}
+              visibleParticipatingHomes={visibleParticipatingHomes}
               pendingRequests={pendingRequests}
               removedRequests={removedRequests}
               approvedHomesCount={approvedHomesCount}
