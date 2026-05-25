@@ -53,6 +53,7 @@ import { isLiveVendorCheckIn } from "@/lib/vendorTiers";
 import { isPublishedVendorEvent, toVendorEventListing } from "@/lib/vendorEvents";
 import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map/vendorMarkerIcons";
 import QuickMapFilters from "@/components/map/QuickMapFilters";
+import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
@@ -1887,78 +1888,15 @@ const stats = useMemo(() => {
         onClose={() => setHiddenListingsForMarquee(null)} 
       />
 
-      {/* Filter Modal */}
-      <Dialog open={showFilterModal} onOpenChange={setShowFilterModal}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Filters</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Listing Type</label>
-              <Tabs value={filter} onValueChange={setFilter}>
-                <TabsList className="grid grid-cols-4">
-                  <TabsTrigger value="all" className="gap-1 text-xs px-2">
-                    <MapPin className="w-3 h-3 hidden sm:inline" />
-                    All ({stats.total})
-                  </TabsTrigger>
-                  <TabsTrigger value="yard_sale" className="gap-1 text-xs px-2">
-                    <ShoppingBag className="w-3 h-3 hidden sm:inline" />
-                    Sales ({stats.yard_sale})
-                  </TabsTrigger>
-                  <TabsTrigger value="neighborhood_sale" className="gap-1 text-xs px-2">
-                    <Users className="w-3 h-3 hidden sm:inline" />
-                    Hood ({stats.neighborhood_sale})
-                  </TabsTrigger>
-                  <TabsTrigger value="event" className="gap-1 text-xs px-2">
-                    <Calendar className="w-3 h-3 hidden sm:inline" />
-                    Events ({stats.event})
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Categories</label>
-                {selectedCategories.length > 0 && (
-                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setSelectedCategories([])}>
-                    Clear
-                  </Button>
-                )}
-              </div>
-              <ScrollArea className="h-48 rounded-md border p-4">
-                <div className="grid grid-cols-1 gap-3">
-                  {[
-                    "Household Items", "Furniture", "Clothing & Accessories",
-                    "Electronics", "Tools & Hardware", "Toys & Games",
-                    "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
-                    "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
-                    "Free Items", "Food / Baked Goods", "Miscellaneous"
-                  ].map((cat) => (
-                    <div key={cat} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`filter-${cat}`} 
-                        checked={selectedCategories.includes(cat)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedCategories([...selectedCategories, cat]);
-                          } else {
-                            setSelectedCategories(selectedCategories.filter(c => c !== cat));
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`filter-${cat}`} className="text-sm font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        {cat}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <MapFilterModal
+        open={showFilterModal}
+        onOpenChange={setShowFilterModal}
+        filter={filter}
+        onFilterChange={setFilter}
+        selectedCategories={selectedCategories}
+        onCategoriesChange={setSelectedCategories}
+        stats={stats}
+      />
     </div>
   );
 }
