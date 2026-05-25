@@ -150,7 +150,7 @@ export default function NeighborhoodSalePanel({
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Participating in Sale</p>
               <p className="text-sm text-emerald-950 font-medium">
-                {salePricing?.visibleHomeCount || 1} homes currently live in this sale
+                {salePricing?.visibleHomeCount ?? approvedRequests.length} homes currently live in this sale
               </p>
             </div>
             {isNeighborhoodSaleLive && approvedRequests.length > 0 ? (
