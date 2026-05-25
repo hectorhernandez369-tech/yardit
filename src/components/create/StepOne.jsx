@@ -5,27 +5,65 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { X, Home, Users, Calendar } from "lucide-react";
+
+const LISTING_TYPES = [
+  {
+    value: "yard_sale",
+    icon: Home,
+    title: "Yard Sale",
+    subtitle: "Individual residential sale at your home",
+    accent: "border-amber-200 bg-amber-50/40",
+    activeAccent: "border-amber-400 bg-amber-50 ring-2 ring-amber-400/20",
+    iconColor: "text-amber-600",
+  },
+  {
+    value: "neighborhood_sale",
+    icon: Users,
+    title: "Neighborhood Sale",
+    subtitle: "Coordinate up to 25 homes within 500 ft",
+    accent: "border-emerald-200 bg-emerald-50/40",
+    activeAccent: "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-400/20",
+    iconColor: "text-emerald-600",
+  },
+  {
+    value: "event",
+    icon: Calendar,
+    title: "Event",
+    subtitle: "Public awareness listing for local events",
+    accent: "border-[#b3d9db] bg-[#e6f3f4]/40",
+    activeAccent: "border-[#006168] bg-[#e6f3f4] ring-2 ring-[#006168]/15",
+    iconColor: "text-[#006168]",
+  },
+];
+
+const CATEGORIES = [
+  "Household Items", "Furniture", "Clothing & Accessories",
+  "Electronics", "Tools & Hardware", "Toys & Games",
+  "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
+  "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
+  "Free Items", "Food / Baked Goods", "Miscellaneous"
+];
+
+const COLLECTIBLE_TYPES = [
+  "Funko Pops", "Sports Cards", "Pokémon Cards",
+  "Trading Cards (Other)", "Star Wars Collectibles", "Comics",
+  "Action Figures", "Die-cast Cars", "Video Game Collectibles",
+  "Movie Memorabilia", "Other Collectible"
+];
 
 export default function StepOne({ formData, setFormData }) {
   const navigate = useNavigate();
   const listingType = formData?.listingType || "yard_sale";
+  const isNeighborhood = listingType === "neighborhood_sale";
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
-        <h3 className="text-[#2C4F4E] font-semibold">Details</h3>
-        <p className="text-sm text-[#1F2937] opacity-80">
-          Tell us about your sale
-        </p>
-      </div>
+    <div className="space-y-8">
 
+      {/* Listing type selector */}
       <div>
-        <Label className="mb-3 block text-[#2C4F4E]">Listing Type</Label>
+        <Label className="text-sm font-semibold text-slate-700 mb-3 block">What are you listing?</Label>
         <RadioGroup
           value={formData.listingType}
           onValueChange={(value) => setFormData(prev => ({
@@ -42,82 +80,98 @@ export default function StepOne({ formData, setFormData }) {
               event_tier: "basic",
             } : {}),
           }))}
+          className="space-y-2.5"
         >
-          <div className="flex items-center space-x-2 p-4 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF] mb-2">
-            <RadioGroupItem value="yard_sale" id="yard_sale" />
-            <Label htmlFor="yard_sale" className="flex-1 cursor-pointer">
-              <div className="font-semibold text-[#2C4F4E]">Yard Sale</div>
-              <div className="text-sm text-[#1F2937] opacity-80">Individual residential sale</div>
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2 p-4 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF] mb-2">
-            <RadioGroupItem value="neighborhood_sale" id="neighborhood_sale" />
-            <Label htmlFor="neighborhood_sale" className="flex-1 cursor-pointer">
-              <div className="font-semibold text-[#2C4F4E]">Neighborhood Sale</div>
-              <div className="text-sm text-[#1F2937] opacity-80">Up to 25 homes within a 500 ft radius</div>
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2 p-4 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF]">
-            <RadioGroupItem value="event" id="event" />
-            <Label htmlFor="event" className="flex-1 cursor-pointer">
-              <div className="font-semibold text-[#2C4F4E]">Event</div>
-              <div className="text-sm text-[#1F2937] opacity-80">Public awareness listing for events</div>
-            </Label>
-          </div>
+          {LISTING_TYPES.map(({ value, icon: Icon, title, subtitle, accent, activeAccent, iconColor }) => {
+            const isSelected = formData.listingType === value;
+            return (
+              <label
+                key={value}
+                htmlFor={value}
+                className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-150 ${isSelected ? activeAccent : `${accent} hover:border-slate-300`}`}
+              >
+                <RadioGroupItem value={value} id={value} className="mt-0.5 shrink-0" />
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? "bg-white shadow-sm" : "bg-white/60"}`}>
+                  <Icon className={`w-4 h-4 ${iconColor}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-slate-800 text-sm">{title}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{subtitle}</div>
+                </div>
+              </label>
+            );
+          })}
         </RadioGroup>
       </div>
 
-
-
-      <div className="pt-4 border-t border-[#2C4F4E]/20">
-        <Label className="text-[#2C4F4E]" htmlFor="title">Title *</Label>
+      {/* Title */}
+      <div className="space-y-1.5">
+        <Label htmlFor="title" className="text-sm font-semibold text-slate-700">
+          {isNeighborhood ? "Event Name *" : "Sale Title *"}
+        </Label>
+        <p className="text-xs text-slate-400">
+          {isNeighborhood
+            ? "Give your neighborhood event a memorable name"
+            : "A clear title helps shoppers find your sale faster"}
+        </p>
         <Input
           id="title"
-          placeholder="e.g., Multi-Family Yard Sale"
+          placeholder={isNeighborhood ? "e.g., Oak Street Neighborhood Sale" : "e.g., Multi-Family Yard Sale — Great Deals!"}
           value={formData.title}
           onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
           required
-          className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF] mt-2"
+          className="mt-1.5 bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-11 text-slate-800 placeholder:text-slate-300"
         />
       </div>
 
-      {listingType !== "neighborhood_sale" && (
+      {/* Categories + Description — only for non-neighborhood */}
+      {!isNeighborhood && (
         <>
-          <div>
-            <Label className="text-[#2C4F4E]">Categories (Up to 10) *</Label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {formData.categories?.map((cat, i) => (
-                 <Badge key={i} className="flex items-center gap-1 bg-[#5DADA5] py-1.5 px-3 text-sm rounded-full">
-                    {cat} 
-                    <X className="w-3 h-3 cursor-pointer" onClick={() => {
-                      const newCats = formData.categories.filter((_, idx) => idx !== i);
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        categories: newCats, 
-                        category: newCats[0] || "", 
-                        collectible_type: newCats.includes("Collectibles") ? prev.collectible_type : null 
-                      }));
-                    }} />
-                 </Badge>
-              ))}
-            </div>
+          {/* Categories */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-slate-700">
+              Categories <span className="text-slate-400 font-normal">(up to 10) *</span>
+            </Label>
+            <p className="text-xs text-slate-400">Help shoppers browse by what you're selling</p>
+
+            {formData.categories?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {formData.categories.map((cat, i) => (
+                  <span key={i} className="inline-flex items-center gap-1.5 text-xs font-medium bg-[#e6f3f4] text-[#006168] border border-[#b3d9db] rounded-full px-3 py-1">
+                    {cat}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newCats = formData.categories.filter((_, idx) => idx !== i);
+                        setFormData(prev => ({
+                          ...prev,
+                          categories: newCats,
+                          category: newCats[0] || "",
+                          collectible_type: newCats.includes("Collectibles") ? prev.collectible_type : null
+                        }));
+                      }}
+                      className="hover:text-[#004d52] transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Collectible type sub-selector */}
             {(formData.category === "Collectibles" || formData.categories?.includes("Collectibles")) && (
-              <div className="mt-3">
-                <Label className="text-[#2C4F4E]">Collectible Type *</Label>
+              <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <Label className="text-xs font-semibold text-amber-800 mb-1.5 block">Collectible Type *</Label>
                 <Select
                   value={formData.collectible_type || ""}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, collectible_type: value }))}
                 >
-                  <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-2">
+                  <SelectTrigger className="bg-white border-amber-200 rounded-lg h-9 text-sm">
                     <SelectValue placeholder="Select collectible type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {[
-                      "Funko Pops", "Sports Cards", "Pokémon Cards",
-                      "Trading Cards (Other)", "Star Wars Collectibles", "Comics",
-                      "Action Figures", "Die-cast Cars", "Video Game Collectibles",
-                      "Movie Memorabilia", "Other Collectible"
-                    ].map(type => (
+                    {COLLECTIBLE_TYPES.map(type => (
                       <SelectItem key={type} value={type}>{type}</SelectItem>
                     ))}
                   </SelectContent>
@@ -131,25 +185,19 @@ export default function StepOne({ formData, setFormData }) {
                 onValueChange={(value) => {
                   if (formData.categories?.includes(value)) return;
                   const newCats = [...(formData.categories || []), value];
-                  setFormData(prev => ({ 
-                    ...prev, 
+                  setFormData(prev => ({
+                    ...prev,
                     categories: newCats,
                     category: newCats[0] || "",
                     collectible_type: newCats.includes("Collectibles") ? prev.collectible_type : null
                   }));
                 }}
               >
-                <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-3">
-                  <SelectValue placeholder="Add Category +" />
+                <SelectTrigger className="bg-white border-slate-200 rounded-xl h-10 text-sm text-slate-500">
+                  <SelectValue placeholder="+ Add a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[
-                    "Household Items", "Furniture", "Clothing & Accessories",
-                    "Electronics", "Tools & Hardware", "Toys & Games",
-                    "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
-                    "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
-                    "Free Items", "Food / Baked Goods", "Miscellaneous"
-                  ].filter(cat => !(formData.categories || []).includes(cat)).map(cat => (
+                  {CATEGORIES.filter(cat => !(formData.categories || []).includes(cat)).map(cat => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
                 </SelectContent>
@@ -157,74 +205,73 @@ export default function StepOne({ formData, setFormData }) {
             )}
           </div>
 
-          <div>
-            <Label className="text-[#2C4F4E]" htmlFor="description">Description *</Label>
-            <p className="text-xs text-[#1F2937] opacity-80 mt-1">
-              Tip: Use searchable keywords like #item, #Pokémon card, #baby crib, #tools, #furniture.
+          {/* Description */}
+          <div className="space-y-1.5">
+            <Label htmlFor="description" className="text-sm font-semibold text-slate-700">Description *</Label>
+            <p className="text-xs text-slate-400">
+              Use keywords buyers search for — furniture, baby clothes, tools, Pokémon cards, etc.
             </p>
             <Textarea
               id="description"
-              placeholder="Describe what you're selling..."
+              placeholder="What are you selling? Be specific — buyers search by item type, brand, and condition."
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              rows={5}
+              rows={4}
               required
-              className="border-[#2C4F4E] focus-visible:ring-[#5DADA5] bg-[#F3E6CF] mt-2"
+              className="mt-1 bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl text-slate-800 placeholder:text-slate-300 resize-none"
             />
           </div>
         </>
       )}
 
-      {listingType === "neighborhood_sale" && (
-        <div className="space-y-4 rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
-          <div className="rounded-lg border border-[#2C4F4E]/30 bg-[#F3E6CF] p-4">
-            <Label className="mb-3 block font-semibold text-[#2C4F4E]">Will you be participating in your own Neighborhood Sale?</Label>
+      {/* Neighborhood sale specific options */}
+      {isNeighborhood && (
+        <div className="space-y-5">
+          {/* Participation choice */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            <Label className="text-sm font-semibold text-slate-700 mb-3 block">
+              Will you have a sale at your own address?
+            </Label>
             <RadioGroup
               value={formData.organizer_participation || "participating"}
               onValueChange={(value) => setFormData(prev => ({ ...prev, organizer_participation: value }))}
               className="space-y-2"
             >
-              <div className="flex items-start space-x-2 rounded-md border border-[#2C4F4E]/20 bg-white/50 p-3">
-                <RadioGroupItem value="participating" id="organizer_participating" className="mt-1" />
-                <Label htmlFor="organizer_participating" className="flex-1 cursor-pointer">
-                  <div className="font-semibold text-[#2C4F4E]">Yes, I will have a sale at my address</div>
-                  <div className="text-sm text-[#1F2937] opacity-80">Count my home as one participating home in this Neighborhood Sale.</div>
-                </Label>
-              </div>
-              <div className="flex items-start space-x-2 rounded-md border border-[#2C4F4E]/20 bg-white/50 p-3">
-                <RadioGroupItem value="organizing_only" id="organizer_only" className="mt-1" />
-                <Label htmlFor="organizer_only" className="flex-1 cursor-pointer">
-                  <div className="font-semibold text-[#2C4F4E]">No, I am only organizing</div>
-                  <div className="text-sm text-[#1F2937] opacity-80">Do not count my home as a participant.</div>
-                </Label>
-              </div>
+              <label htmlFor="organizer_participating" className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.organizer_participation !== "organizing_only" ? "border-emerald-300 bg-emerald-50 ring-2 ring-emerald-300/20" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                <RadioGroupItem value="participating" id="organizer_participating" className="mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-sm font-semibold text-slate-800">Yes, I'm hosting a sale at my address</div>
+                  <div className="text-xs text-slate-500 mt-0.5">My home counts as one participant</div>
+                </div>
+              </label>
+              <label htmlFor="organizer_only" className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.organizer_participation === "organizing_only" ? "border-[#006168]/40 bg-[#e6f3f4] ring-2 ring-[#006168]/15" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                <RadioGroupItem value="organizing_only" id="organizer_only" className="mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-sm font-semibold text-slate-800">No, I'm just organizing</div>
+                  <div className="text-xs text-slate-500 mt-0.5">My home will not be listed as a participant</div>
+                </div>
+              </label>
             </RadioGroup>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <div>
-              <p className="font-semibold text-[#2C4F4E]">Neighborhood Sale Pricing & Rules</p>
-              <div className="text-sm text-[#1F2937] opacity-90 mt-2 space-y-2">
-                <p><strong>Neighborhood Sales work best when planned ahead with your neighbors.</strong></p>
-                <p>Your final cost is calculated as <strong>$19.99 base plus $2 per participating home</strong>. Participants are never charged.</p>
-                <p>Once your sale reaches 5 participating homes, your event is considered committed and the organizer will be charged at the 24-hour mark.</p>
-                <p className="mb-1">After activation:</p>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>No additional homes can be added</li>
-                  <li>The event is locked to provide a consistent experience for all participants</li>
-                </ul>
-                <p>We recommend inviting neighbors early to get the most out of your sale.</p>
-              </div>
+          {/* Pricing info */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+            <p className="text-sm font-semibold text-slate-800">How Neighborhood Sale pricing works</p>
+            <div className="text-sm text-slate-500 space-y-2 leading-relaxed">
+              <p><strong className="text-slate-700">$19.99 base + $2 per participating home.</strong> Participants are never charged.</p>
+              <p>Once you reach 5 confirmed homes, your event is committed and billing runs at the 24-hour mark before the event starts.</p>
+              <ul className="list-disc pl-4 space-y-1 text-xs mt-2">
+                <li>No new homes can be added after activation</li>
+                <li>All participants are locked in for a consistent experience</li>
+              </ul>
             </div>
-            <div className="pt-2 flex justify-start border-t border-[#2C4F4E]/20 mt-2">
-              <button
-                type="button"
-                onClick={() => navigate(createPageUrl("FAQ") + "#neighborhood-sale-pricing")}
-                className="text-sm font-semibold text-[#0F766E] underline underline-offset-4"
-              >
-                Read more in our FAQ
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => navigate(createPageUrl("FAQ") + "#neighborhood-sale-pricing")}
+              className="text-xs font-semibold text-[#006168] hover:text-[#004d52] underline underline-offset-2 transition-colors"
+            >
+              Full pricing FAQ →
+            </button>
           </div>
         </div>
       )}

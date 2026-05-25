@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useAuth } from "@/lib/AuthContext";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -1621,64 +1621,80 @@ export default function CreateListingPage() {
     return <PrimaryAddressVerificationGate user={user} onVerified={async () => setUser(await base44.auth.me())} />;
   }
 
+  // Step labels per flow
+  const residentialStepLabels = ["Sale Details", "Your Location", "Tier & Schedule", isAdminCreate ? "Assign User" : "Payment"];
+  const eventStepLabels = ["Event Info", "Location", "Date & Time", "Visibility", isAdminCreate ? "Assign User" : "Payment"];
+  const stepLabels = isEventFlow ? eventStepLabels : residentialStepLabels;
+  const totalSteps = isEventFlow ? 5 : 4;
+
+  const stepMeta = {
+    yard_sale:      { 1: "Tell buyers what you're selling", 2: "Confirm your sale address",      3: "Pick your visibility & schedule", 4: "Complete your listing" },
+    neighborhood_sale: { 1: "Set up your event",            2: "Choose the sale area",            3: "Dates & details",                 4: "Payment setup" },
+    event:          { 1: "Describe your event",             2: "Set the location",                3: "Add dates & times",               4: "Choose visibility tier", 5: "Review & pay" },
+  };
+  const currentMeta = stepMeta[formData.listingType]?.[step] || "";
+
   return (
-    <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Progress */}
+    <div className="min-h-[calc(100vh-140px)] bg-gradient-to-b from-slate-50 to-white">
+      <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
+
+        {/* Page title */}
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
+            {isAdminCreate ? "Create Listing (Admin)" : formData.listingType === "event" ? "Create an Event" : formData.listingType === "neighborhood_sale" ? "Set Up a Neighborhood Sale" : "Post Your Yard Sale"}
+          </h1>
+          {currentMeta && <p className="text-slate-400 text-sm mt-1.5">{currentMeta}</p>}
+        </div>
+
+        {/* Progress bar */}
         <div className="mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
-            {(isEventFlow ? [1, 2, 3, 4, 5] : [1, 2, 3, 4]).map((s) => (
+          <div className="flex items-center justify-between mb-3">
+            {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s, i) => (
               <React.Fragment key={s}>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
-                    s === step
-                      ? "bg-amber-600 text-white"
-                      : s < step
-                      ? "bg-green-600 text-white"
-                      : "bg-slate-200 text-slate-500"
-                  }`}
-                >
-                  {s < step ? "✓" : s}
+                <div className="flex flex-col items-center gap-1">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 ${
+                    s < step
+                      ? "bg-[#006168] text-white shadow-sm"
+                      : s === step
+                      ? "bg-[#006168] text-white ring-4 ring-[#006168]/20 shadow-md"
+                      : "bg-slate-100 text-slate-400"
+                  }`}>
+                    {s < step ? "✓" : s}
+                  </div>
+                  <span className={`text-[10px] font-medium hidden sm:block ${s === step ? "text-[#006168]" : s < step ? "text-slate-500" : "text-slate-300"}`}>
+                    {stepLabels[i]}
+                  </span>
                 </div>
-                {s < (isEventFlow ? 5 : 4) && (
-                  <div
-                    key={`line-${s}`}
-                    className={`w-12 h-1 ${s < step ? "bg-green-600" : "bg-slate-200"}`}
-                  />
+                {s < totalSteps && (
+                  <div className={`flex-1 h-0.5 mx-1 rounded-full transition-all duration-300 ${s < step ? "bg-[#006168]" : "bg-slate-200"}`} />
                 )}
               </React.Fragment>
             ))}
           </div>
-          <div className="flex justify-center gap-4 md:gap-8 text-xs text-slate-600 flex-wrap">
-            {(isEventFlow
-              ? ["Details", "Location", "Date & Time", "Tier", isAdminCreate ? "Assign User" : "Payment"]
-              : ["Details", "Location & Time", "Tier & Review", isAdminCreate ? "Assign User" : "Payment"]
-            ).map((label, index) => (
-              <span key={label} className={step === index + 1 ? "font-semibold" : ""}>{label}</span>
-            ))}
-          </div>
-          {formData.listingType === "yard_sale" && (
-             <div className="mt-5 flex justify-center">
-                <button type="button" onClick={() => setShowGuideModal(true)} className="text-sm text-teal-600 font-medium hover:text-teal-800 underline underline-offset-2 transition-colors">
-                   Need tips for a great sale? View our Success Guide & Checklist
-                </button>
-             </div>
-          )}
         </div>
 
-        <Card>
-          <CardHeader className="bg-gradient-to-r from-amber-600 to-amber-800 text-white">
-            <CardTitle>{isAdminCreate ? "Create Listing (Admin)" : (formData.listingType === "event" ? "Create Event" : "Post Your Yard Sale")}</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6" ref={formContainerRef}>
-            <FormScrollHelper containerRef={formContainerRef} />
+        {/* Success guide link */}
+        {formData.listingType === "yard_sale" && (
+          <div className="mb-6 flex justify-center">
+            <button type="button" onClick={() => setShowGuideModal(true)} className="text-xs text-[#006168] font-medium hover:text-[#004d52] underline underline-offset-2 transition-colors">
+              Need tips for a great sale? View our Success Guide →
+            </button>
+          </div>
+        )}
 
-            {formData.listingType === "neighborhood_sale" && (
-              <div className="mb-4 p-3 bg-[#e7d7b8]/50 border border-[#2C4F4E]/20 rounded-md text-[#2C4F4E] text-sm font-medium">
-                Neighborhood Sale: Up to 25 homes within 500 feet.
-              </div>
-            )}
+        {/* Form card */}
+        <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden" ref={formContainerRef}>
+          <FormScrollHelper containerRef={formContainerRef} />
 
+          {/* Neighborhood sale notice */}
+          {formData.listingType === "neighborhood_sale" && (
+            <div className="mx-6 mt-6 mb-0 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm font-medium flex items-start gap-2">
+              <span className="mt-0.5">🏘️</span>
+              <span>Neighborhood Sale — Up to 25 homes within 500 feet of your selected center.</span>
+            </div>
+          )}
+
+          <div className="p-6 md:p-8">
             {step === 1 && (formData.listingType === "event" ? <EventDetailsStep formData={formData} setFormData={setFormData} /> : <StepOne formData={formData} setFormData={setFormData} />)}
             {step === 2 && (
               formData.listingType === "event"
@@ -1753,54 +1769,60 @@ export default function CreateListingPage() {
               )
             )}
 
-            {(step !== paymentStepNumber || isAdminCreate) && <div className="flex gap-3 mt-6">
-              {step > 1 && (
-                <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
-                  Back
-                </Button>
-              )}
-              {(isAdminCreate ? step < paymentStepNumber : step < entryStepNumber) ? (
-                <Button
-                  onClick={isAdminCreate && step === entryStepNumber ? () => setStep(paymentStepNumber) : handleNext}
-                  disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (isGlobalDemoMode ? (profileAddressMissing || regularAddressIncomplete) : profileAddressUnconfirmed)}
-                  className="flex-1 bg-amber-600 hover:bg-amber-700"
-                >
-                  Continue
-                </Button>
-              ) : (
-                <Button
-                  onClick={isAdminCreate && step === paymentStepNumber ? () => {
-                    if (!selectedUserForAdmin) {
-                      toast.error("Please assign a user.");
-                      return;
-                    }
-                    executeSubmit("admin_create");
-                  } : handleSubmit}
-                  disabled={createListingMutation.isPending || isStartingPayment}
-                  className="flex-1 bg-amber-600 hover:bg-amber-700"
-                >
-                  {isStartingPayment
-                    ? formData.listingType === "neighborhood_sale"
-                      ? "Saving Payment Method..."
-                      : "Starting Payment..."
-                    : createListingMutation.isPending
-                    ? "Creating..."
-                    : isAdminCreate && step === paymentStepNumber
-                    ? "Create Listing (Admin)"
-                    : isAdminCreate && step === entryStepNumber
-                    ? "Continue to Assign User"
-                    : formData.listingType === "event"
-                    ? "Continue to Payment"
-                    : formData.listingType === "neighborhood_sale"
-                    ? "Continue to Payment Setup"
-                    : ["featured", "premium"].includes(formData.tier)
-                    ? "Continue to Payment"
-                    : "Create Listing"}
-                </Button>
-              )}
-            </div>}
-          </CardContent>
-        </Card>
+            {(step !== paymentStepNumber || isAdminCreate) && (
+              <div className="flex gap-3 mt-8 pt-6 border-t border-slate-100">
+                {step > 1 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep(step - 1)}
+                    className="flex-1 border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl h-11"
+                  >
+                    ← Back
+                  </Button>
+                )}
+                {(isAdminCreate ? step < paymentStepNumber : step < entryStepNumber) ? (
+                  <Button
+                    onClick={isAdminCreate && step === entryStepNumber ? () => setStep(paymentStepNumber) : handleNext}
+                    disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (isGlobalDemoMode ? (profileAddressMissing || regularAddressIncomplete) : profileAddressUnconfirmed)}
+                    className="flex-1 bg-[#006168] hover:bg-[#004d52] text-white rounded-xl h-11 font-semibold shadow-sm"
+                  >
+                    Continue →
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={isAdminCreate && step === paymentStepNumber ? () => {
+                      if (!selectedUserForAdmin) {
+                        toast.error("Please assign a user.");
+                        return;
+                      }
+                      executeSubmit("admin_create");
+                    } : handleSubmit}
+                    disabled={createListingMutation.isPending || isStartingPayment}
+                    className="flex-1 bg-[#006168] hover:bg-[#004d52] text-white rounded-xl h-11 font-semibold shadow-sm"
+                  >
+                    {isStartingPayment
+                      ? formData.listingType === "neighborhood_sale"
+                        ? "Saving Payment Method..."
+                        : "Starting Payment..."
+                      : createListingMutation.isPending
+                      ? "Creating..."
+                      : isAdminCreate && step === paymentStepNumber
+                      ? "Create Listing (Admin)"
+                      : isAdminCreate && step === entryStepNumber
+                      ? "Continue to Assign User"
+                      : formData.listingType === "event"
+                      ? "Continue to Payment →"
+                      : formData.listingType === "neighborhood_sale"
+                      ? "Continue to Payment Setup →"
+                      : ["featured", "premium"].includes(formData.tier)
+                      ? "Continue to Payment →"
+                      : "Publish Listing 🎉"}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Popup #1 */}
