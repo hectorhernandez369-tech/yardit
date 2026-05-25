@@ -19,56 +19,58 @@ export default function EventDetailsStep({ formData, setFormData }) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
-        <h3 className="text-[#2C4F4E] font-semibold">Event Details</h3>
-        <p className="text-sm text-[#1F2937] opacity-80">Create a new event listing for visibility on the map.</p>
-      </div>
-
+    <div className="space-y-8">
+      {/* Listing type switcher */}
       <div>
-        <Label className="mb-3 block text-[#2C4F4E]">Listing Type</Label>
-        <RadioGroup value={formData.listingType} onValueChange={setListingType}>
+        <Label className="text-sm font-semibold text-slate-700 mb-3 block">Listing Type</Label>
+        <RadioGroup value={formData.listingType} onValueChange={setListingType} className="space-y-2.5">
           {[
             { value: "yard_sale", title: "Yard Sale", description: "Individual residential sale" },
             { value: "neighborhood_sale", title: "Neighborhood Sale", description: "Up to 25 homes within a 500 ft radius" },
             { value: "event", title: "Event", description: "Sports, pop-ups, food, auto, community, and more" },
-          ].map((option) => (
-            <div key={option.value} className="flex items-center space-x-2 p-4 border-2 border-[#2C4F4E] rounded-lg bg-[#F3E6CF] mb-2">
-              <RadioGroupItem value={option.value} id={option.value} />
-              <Label htmlFor={option.value} className="flex-1 cursor-pointer">
-                <div className="font-semibold text-[#2C4F4E]">{option.title}</div>
-                <div className="text-sm text-[#1F2937] opacity-80">{option.description}</div>
-              </Label>
-            </div>
-          ))}
+          ].map((option) => {
+            const selected = formData.listingType === option.value;
+            return (
+              <label key={option.value} htmlFor={option.value} className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${selected ? "border-[#006168] bg-[#e6f3f4] ring-2 ring-[#006168]/15" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                <RadioGroupItem value={option.value} id={option.value} className="mt-0.5 shrink-0" />
+                <div>
+                  <div className="font-semibold text-slate-800 text-sm">{option.title}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{option.description}</div>
+                </div>
+              </label>
+            );
+          })}
         </RadioGroup>
       </div>
 
-      <div>
-        <Label className="text-[#2C4F4E]" htmlFor="event_name">Event Name *</Label>
+      {/* Event Name */}
+      <div className="space-y-1.5">
+        <Label htmlFor="event_name" className="text-sm font-semibold text-slate-700">Event Name *</Label>
         <Input
           id="event_name"
           value={formData.event_name || ""}
           onChange={(e) => setFormData((prev) => ({ ...prev, event_name: e.target.value, title: e.target.value }))}
           placeholder="e.g., Saturday Farmers Market"
-          className="border-[#2C4F4E] bg-[#F3E6CF] mt-2"
+          className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-11 text-slate-800 placeholder:text-slate-300"
         />
       </div>
 
-      <div>
-        <Label className="text-[#2C4F4E]" htmlFor="event_description">Event Description</Label>
+      {/* Description */}
+      <div className="space-y-1.5">
+        <Label htmlFor="event_description" className="text-sm font-semibold text-slate-700">Event Description</Label>
         <Textarea
           id="event_description"
           value={formData.event_description || ""}
           onChange={(e) => setFormData((prev) => ({ ...prev, event_description: e.target.value, description: e.target.value }))}
           placeholder="Add event details, schedule notes, or highlights..."
-          rows={5}
-          className="border-[#2C4F4E] bg-[#F3E6CF] mt-2"
+          rows={4}
+          className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl text-slate-800 placeholder:text-slate-300 resize-none"
         />
       </div>
 
-      <div>
-        <Label className="text-[#2C4F4E]">Event Category *</Label>
+      {/* Category */}
+      <div className="space-y-1.5">
+        <Label className="text-sm font-semibold text-slate-700">Event Category *</Label>
         <Select
           value={formData.event_category || ""}
           onValueChange={(value) => setFormData((prev) => ({
@@ -78,8 +80,8 @@ export default function EventDetailsStep({ formData, setFormData }) {
             event_icon: getDefaultEventIconForCategory(value),
           }))}
         >
-          <SelectTrigger className="border-[#2C4F4E] bg-[#F3E6CF] mt-2">
-            <SelectValue placeholder="Select category" />
+          <SelectTrigger className="bg-white border-slate-200 rounded-xl h-11 text-sm">
+            <SelectValue placeholder="Select a category" />
           </SelectTrigger>
           <SelectContent>
             {EVENT_CATEGORIES.map((category) => (
@@ -87,10 +89,7 @@ export default function EventDetailsStep({ formData, setFormData }) {
             ))}
           </SelectContent>
         </Select>
-      </div>
-
-      <div className="rounded-lg border border-[#2C4F4E]/20 bg-white/70 p-3 text-sm text-[#2C4F4E]">
-        Your event icon is automatically selected from the chosen category. You can manage it later from My Listings based on your event tier.
+        <p className="text-xs text-slate-400">Your event icon is auto-selected by category. Manage it later from My Listings.</p>
       </div>
 
       <EventPhotoUpload

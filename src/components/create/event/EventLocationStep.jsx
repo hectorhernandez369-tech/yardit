@@ -303,70 +303,66 @@ export default function EventLocationStep({ formData, setFormData }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 space-y-3">
-        <div>
-          <h3 className="text-[#2C4F4E] font-semibold">Event Location</h3>
-          <p className="text-sm text-[#1F2937] opacity-80">Search for Event Address or pick center on map.</p>
+      {/* Address search */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-slate-700">Search for Event Address</label>
+        <div className="relative">
+          <Input
+            value={addressQuery}
+            onChange={(event) => setAddressQuery(event.target.value)}
+            placeholder="Search for an event address"
+            className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-11 pr-10 text-slate-800 placeholder:text-slate-300"
+          />
+          {isSearching && <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />}
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-[#2C4F4E]">Search for Event Address for Map Pin</label>
-          <div className="relative">
-            <Input
-              value={addressQuery}
-              onChange={(event) => setAddressQuery(event.target.value)}
-              placeholder="Search for an event address"
-              className="bg-[#F3E6CF] border-[#2C4F4E] pr-10"
-            />
-            {isSearching && <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />}
+        {addressSuggestions.length > 0 && (
+          <div className="rounded-xl border border-slate-200 bg-white shadow-md overflow-hidden">
+            {addressSuggestions.map((feature) => (
+              <button
+                key={feature.id}
+                type="button"
+                onClick={() => handleSelectSuggestion(feature)}
+                className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 transition-colors"
+              >
+                {feature.place_name}
+              </button>
+            ))}
           </div>
-
-          {addressSuggestions.length > 0 && (
-            <div className="rounded-lg border border-[#2C4F4E]/30 bg-white shadow-sm overflow-hidden">
-              {addressSuggestions.map((feature) => (
-                <button
-                  key={feature.id}
-                  type="button"
-                  onClick={() => handleSelectSuggestion(feature)}
-                  className="w-full px-4 py-3 text-left text-sm text-[#1F2937] hover:bg-[#F3E6CF] border-b border-slate-100 last:border-b-0"
-                >
-                  {feature.place_name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <Button
-          type="button"
-          onClick={() => setIsMapModalOpen(true)}
-          className="w-full mt-4 py-8 text-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white flex gap-3 shadow-md border-2 border-[#2C4F4E]"
-        >
-          <MapIcon className="w-6 h-6" />
-          Pick center on map
-        </Button>
+        )}
       </div>
 
+      {/* Map picker button */}
+      <Button
+        type="button"
+        onClick={() => setIsMapModalOpen(true)}
+        className="w-full py-6 text-base bg-[#006168] hover:bg-[#004d52] text-white flex gap-3 rounded-xl font-semibold shadow-sm"
+      >
+        <MapIcon className="w-5 h-5" />
+        Drop a pin on the map
+      </Button>
+
+      {/* Confirmed location */}
       {typeof formData.lat === "number" && typeof formData.lng === "number" && (
-        <div className="space-y-4">
-          <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 space-y-3">
-            <label className="text-sm font-medium text-[#2C4F4E]">Display Address (What attendees see)</label>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-slate-700">Display Address (what attendees see)</label>
             <Input
               value={formData.display_address || formData.address_text || ""}
               onChange={(e) => setFormData(prev => ({ ...prev, display_address: e.target.value, addressText: e.target.value, address_text: e.target.value }))}
               placeholder="e.g. 123 Main St (West Entrance)"
-              className="bg-[#F3E6CF] border-[#2C4F4E]"
+              className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-11 text-slate-800 placeholder:text-slate-300"
             />
-            <p className="text-xs text-[#1F2937] opacity-80">This is the public address shown on your listing details.</p>
+            <p className="text-xs text-slate-400">This is the public address shown on your listing.</p>
           </div>
 
-          <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-4 py-3 space-y-1">
-            <p className="text-sm font-medium text-[#2C4F4E] flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              {formData.display_address || formData.address_text || formData.addressText || "Center selected."}
-              {formData.location_source === "pin" && <span className="ml-2 text-[10px] bg-[#2C4F4E]/10 px-2 py-0.5 rounded-full text-[#2C4F4E]">Custom Pin</span>}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-0.5">
+            <p className="text-sm font-medium text-slate-700 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-[#006168]" />
+              {formData.display_address || formData.address_text || formData.addressText || "Location confirmed"}
+              {formData.location_source === "pin" && <span className="ml-1 text-[10px] bg-[#006168]/10 text-[#006168] px-2 py-0.5 rounded-full font-medium">Pin</span>}
             </p>
-            <p className="text-xs text-[#1F2937] opacity-80">
+            <p className="text-xs text-slate-400 pl-6">
               {Number(formData.lat).toFixed(4)}, {Number(formData.lng).toFixed(4)}
             </p>
           </div>
@@ -374,8 +370,8 @@ export default function EventLocationStep({ formData, setFormData }) {
       )}
 
       {isSaving && (
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <Loader2 className="w-4 h-4 animate-spin" /> Saving selected location...
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          <Loader2 className="w-4 h-4 animate-spin" /> Saving location...
         </div>
       )}
 

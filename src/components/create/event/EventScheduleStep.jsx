@@ -28,88 +28,82 @@ export default function EventScheduleStep({ formData, setFormData }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
-        <h3 className="text-[#2C4F4E] font-semibold">Date &amp; Time</h3>
-        <p className="text-sm text-[#1F2937] opacity-80">Set when the event can start advertising and when the live event begins and ends.</p>
-      </div>
-
-      <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 space-y-4">
+      {/* Live Event Schedule */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
         <div>
-          <Label className="text-[#2C4F4E]">Optional Coming Soon Start Date</Label>
-          <Input
-            type="date"
-            value={schedule.comingSoonStartDate}
-            min={schedule.eventStartDate ? schedule.comingSoonEarliestDate : undefined}
-            max={schedule.eventStartDate || undefined}
-            onChange={(e) => updateSchedule({ coming_soon_start_date: e.target.value })}
-            className="bg-[#F3E6CF] border-[#2C4F4E] mt-2"
-          />
-          <p className="text-xs text-[#1F2937] opacity-80 mt-2">
-            Optional: start promoting the event up to 3 days before the live event begins.
-          </p>
-        </div>
-      </div>
-
-      <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 space-y-4">
-        <div>
-          <h4 className="text-[#2C4F4E] font-semibold">Live Event Schedule</h4>
-          <p className="text-sm text-[#1F2937] opacity-80">Your live event can run for up to 5 days total.</p>
+          <h4 className="text-sm font-semibold text-slate-800">Live Event Schedule *</h4>
+          <p className="text-xs text-slate-400 mt-0.5">Your live event can run for up to 5 days total.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label className="text-[#2C4F4E]" htmlFor="event_start_date">Event Start Date *</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="event_start_date" className="text-xs font-semibold text-slate-600">Start Date *</Label>
             <Input
               id="event_start_date"
               type="date"
               value={schedule.eventStartDate}
               onChange={(e) => updateSchedule({ event_start_date: e.target.value })}
-              className="bg-[#F3E6CF] border-[#2C4F4E] mt-2"
+              className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-10"
             />
           </div>
-          <div>
-            <Label className="text-[#2C4F4E]" htmlFor="event_end_date">Event End Date *</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="event_end_date" className="text-xs font-semibold text-slate-600">End Date *</Label>
             <Input
               id="event_end_date"
               type="date"
               value={schedule.eventEndDate}
               min={schedule.eventStartDate || undefined}
               onChange={(e) => updateSchedule({ event_end_date: e.target.value })}
-              className="bg-[#F3E6CF] border-[#2C4F4E] mt-2"
+              className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-10"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label className="text-[#2C4F4E]" htmlFor="event_start_time">Start Time *</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="event_start_time" className="text-xs font-semibold text-slate-600">Start Time *</Label>
             <Input
               id="event_start_time"
               type="time"
               value={schedule.eventStartTime}
               onChange={(e) => updateSchedule({ event_start_time: e.target.value })}
-              className="bg-[#F3E6CF] border-[#2C4F4E] mt-2"
+              className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-10"
             />
           </div>
-          <div>
-            <Label className="text-[#2C4F4E]" htmlFor="event_end_time">End Time *</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="event_end_time" className="text-xs font-semibold text-slate-600">End Time *</Label>
             <Input
               id="event_end_time"
               type="time"
               value={schedule.eventEndTime}
               onChange={(e) => updateSchedule({ event_end_time: e.target.value })}
-              className="bg-[#F3E6CF] border-[#2C4F4E] mt-2"
+              className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-10"
             />
           </div>
         </div>
       </div>
 
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Coming Soon is optional. If you use it, promotion can start up to 3 days before the live event. The live event itself can last up to 5 days.
+      {/* Coming Soon (optional) */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
+        <div>
+          <h4 className="text-sm font-semibold text-slate-800">Coming Soon <span className="text-slate-400 font-normal">(optional)</span></h4>
+          <p className="text-xs text-slate-400 mt-0.5">Start promoting up to 3 days before your live event begins.</p>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-slate-600">Coming Soon Start Date</Label>
+          <Input
+            type="date"
+            value={schedule.comingSoonStartDate}
+            min={schedule.eventStartDate ? schedule.comingSoonEarliestDate : undefined}
+            max={schedule.eventStartDate || undefined}
+            onChange={(e) => updateSchedule({ coming_soon_start_date: e.target.value })}
+            className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-10"
+          />
+        </div>
       </div>
 
       {validation.errors.length > 0 && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 space-y-1">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 space-y-1">
           {validation.errors.map((error) => (
             <p key={error}>{error}</p>
           ))}
