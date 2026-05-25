@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
       // Claim only attaches ownership and unlocks management tools — do NOT change dates
       await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
         ownerUserId: claimUserId,
+        owner_type: 'user',
       });
       await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
         assisted_status: 'claimed_active',
