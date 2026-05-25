@@ -1288,7 +1288,7 @@ const stats = useMemo(() => {
             ref={controlsBtnRef}
             onPointerDown={handleHuntButtonPointerDown}
             onClick={handleHuntButtonClick}
-            className="absolute z-[1002] w-[70px] h-[70px] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-none outline-none shadow-none"
+            className="absolute z-[1002] w-[70px] h-[70px] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-2 border-[#2C4F4E]/20 outline-none shadow-none rounded-full"
             style={{ left: `${huntButtonPosition.x}px`, top: `${huntButtonPosition.y}px`, touchAction: "none" }}
           >
             {showControls ? (
