@@ -227,7 +227,7 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
           {(tier === "featured" || tier === "premium") && (
             <div className="pt-6 mt-6 border-t-2 border-[#2C4F4E]/20">
               <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 mb-4">
-                <h3 className="text-[#2C4F4E] font-semibold">Event Dates</h3>
+                <h3 className="text-[#2C4F4E] font-semibold">Live Event / Sale Schedule</h3>
                 <p className="text-sm text-[#1F2937] opacity-80">
                   {tier === "featured" 
                     ? "Featured listings must run exactly 3 consecutive days." 
@@ -324,31 +324,31 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
                   )}
                 </div>
               </div>
+            </div>
+          )}
 
-              {tier === "premium" && (
-                <div className="mt-6 p-4 border-2 border-[#F4A849] bg-[#E7D7B8] rounded-xl shadow-sm">
-                  <Label className="text-[#2C4F4E] text-base font-bold mb-2 block">Pre-Activation Advertising</Label>
-                  <p className="text-sm text-[#1F2937] opacity-80 mb-4">
-                    Shows your pin early for advertising only. Does not start the sale early.
-                  </p>
-                  <div className="flex items-center gap-4 bg-[#F3E6CF] p-3 rounded-lg border border-[#2C4F4E]/30 w-fit">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setFormData(p => ({ ...p, earlyVisibilityDays: Math.max(0, (p.earlyVisibilityDays || 0) - 1)}))}
-                      className="w-10 h-10 border-2 border-[#2C4F4E] bg-white text-[#2C4F4E] shadow-sm font-bold text-lg"
-                    >-</Button>
-                    <span className="font-bold text-[#2C4F4E] text-xl w-6 text-center">{formData.earlyVisibilityDays || 0}</span>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setFormData(p => ({ ...p, earlyVisibilityDays: Math.min(3, (p.earlyVisibilityDays || 0) + 1)}))}
-                      className="w-10 h-10 border-2 border-[#2C4F4E] bg-white text-[#2C4F4E] shadow-sm font-bold text-lg"
-                    >+</Button>
-                    <span className="text-sm font-medium text-[#2C4F4E] ml-2">Days before start</span>
-                  </div>
-                </div>
-              )}
+          {tier === "premium" && (
+            <div className="mt-6 p-4 border-2 border-[#F4A849] bg-[#E7D7B8] rounded-xl shadow-sm">
+              <Label className="text-[#2C4F4E] text-base font-bold mb-2 block">Optional Coming Soon / Early Advertising</Label>
+              <p className="text-sm text-[#1F2937] opacity-80 mb-4">
+                Shows your pin early for advertising only. Does not start the sale early.
+              </p>
+              <div className="flex items-center gap-4 bg-[#F3E6CF] p-3 rounded-lg border border-[#2C4F4E]/30 w-fit">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setFormData(p => ({ ...p, earlyVisibilityDays: Math.max(0, (p.earlyVisibilityDays || 0) - 1)}))}
+                  className="w-10 h-10 border-2 border-[#2C4F4E] bg-white text-[#2C4F4E] shadow-sm font-bold text-lg"
+                >-</Button>
+                <span className="font-bold text-[#2C4F4E] text-xl w-6 text-center">{formData.earlyVisibilityDays || 0}</span>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setFormData(p => ({ ...p, earlyVisibilityDays: Math.min(3, (p.earlyVisibilityDays || 0) + 1)}))}
+                  className="w-10 h-10 border-2 border-[#2C4F4E] bg-white text-[#2C4F4E] shadow-sm font-bold text-lg"
+                >+</Button>
+                <span className="text-sm font-medium text-[#2C4F4E] ml-2">Days before start</span>
+              </div>
             </div>
           )}
         </>
