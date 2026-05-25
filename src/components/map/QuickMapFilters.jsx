@@ -33,8 +33,8 @@ const FILTERS = [
 ];
 
 export default function QuickMapFilters({ value, onChange }) {
-  const [collapsed, setCollapsed] = React.useState(false);
-  const [position, setPosition] = React.useState({ right: 10, bottom: 72 });
+  const [collapsed, setCollapsed] = React.useState(true);
+  const [position, setPosition] = React.useState({ right: 16, bottom: 16 });
   const dragRef = React.useRef(null);
 
   const toggleFilter = (key, currentValue) => {
