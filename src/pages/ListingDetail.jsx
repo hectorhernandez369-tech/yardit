@@ -119,7 +119,8 @@ export default function ListingDetailPage() {
   // Build the canonical participating homes roster.
   // The organizer listing always counts as 1 home. Participants come from valid approved JoinRequests.
   // This is the single source of truth for both the count AND the displayed roster.
-  const organizerEntry = listing?.listingType === "neighborhood_sale" ? {
+  const organizerIsParticipating = listing?.organizer_participation !== "organizing_only";
+  const organizerEntry = (listing?.listingType === "neighborhood_sale" && organizerIsParticipating) ? {
     id: `__organizer__${listing?.id}`,
     listingId: listing?.id,
     isOrganizer: true,
@@ -213,7 +214,8 @@ export default function ListingDetailPage() {
       r.listingDetails?.status !== "cancelled" &&
       r.listingId !== listing.id
     );
-    const canonicalCount = 1 + validParticipants.length; // 1 = organizer
+    const organizerCounts = listing.organizer_participation !== "organizing_only" ? 1 : 0;
+    const canonicalCount = organizerCounts + validParticipants.length;
     return {
       ...summary,
       visibleHomeCount: canonicalCount,
