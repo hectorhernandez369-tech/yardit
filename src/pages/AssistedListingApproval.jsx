@@ -58,27 +58,7 @@ export default function AssistedListingApprovalPage() {
   const [listing, setListing] = useState(null);
   const [assisted, setAssisted] = useState(null);
   const [isActing, setIsActing] = useState(false);
-
-  // After returning from login, auto-run claim_complete on the approved (unclaimed) listing
-  const attemptPostLoginClaim = async () => {
-    try {
-      const user = await base44.auth.me();
-      if (!user) return false;
-      const claimRes = await base44.functions.invoke("resolveAssistedListing", {
-        token,
-        action: "claim_complete",
-        claimUserId: user.id,
-      });
-      if (claimRes.data?.status === "claimed") {
-        sessionStorage.removeItem("assisted_claim_token");
-        navigate(createPageUrl("MyListings"));
-        return true;
-      }
-    } catch {
-      // fall through — show owner view with claim CTA
-    }
-    return false;
-  };
+  const [claimError, setClaimError] = useState(null);
 
   useEffect(() => {
     if (!token) { setState("not_found"); setLoading(false); return; }
@@ -87,15 +67,45 @@ export default function AssistedListingApprovalPage() {
         const res = await base44.functions.invoke("resolveAssistedListing", { token });
         const d = res.data;
 
-        // If returning from login (autoclaim param) and listing is approved-unclaimed, auto-claim
+        // Detect post-login return: either ?autoclaim=1 in URL or saved token in sessionStorage
         const isReturningFromLogin = autoclaim || sessionStorage.getItem("assisted_claim_token") === token;
-        if (isReturningFromLogin && (d.status === "approved" || d.status === "ok")) {
+
+        if (isReturningFromLogin && (d.status === "approved" || d.status === "ok" || d.status === "assisted_active_unclaimed")) {
           setState("autoclaiming");
           setListing(d.listing);
           setAssisted(d.assisted);
           setLoading(false);
-          const claimed = await attemptPostLoginClaim();
-          if (!claimed) {
+
+          // Must be authenticated at this point
+          const isAuth = await base44.auth.isAuthenticated();
+          if (!isAuth) {
+            // Not logged in yet — show owner view so they can try again
+            setState("approved");
+            return;
+          }
+
+          const user = await base44.auth.me();
+          if (!user?.id) {
+            setState("approved");
+            return;
+          }
+
+          try {
+            const claimRes = await base44.functions.invoke("resolveAssistedListing", {
+              token,
+              action: "claim_complete",
+              claimUserId: user.id,
+            });
+            if (claimRes.data?.status === "claimed") {
+              sessionStorage.removeItem("assisted_claim_token");
+              navigate(createPageUrl("MyListings"));
+            } else {
+              // Backend returned unexpected status — show error
+              setClaimError(claimRes.data?.error || "Could not complete claim. Please try again.");
+              setState("approved");
+            }
+          } catch (err) {
+            setClaimError(err?.message || "Could not complete claim. Please try again.");
             setState("approved");
           }
           return;
@@ -295,7 +305,7 @@ export default function AssistedListingApprovalPage() {
         {/* Approved — show single-listing owner view (logged-out path only) */}
         {["approved", "assisted_active_unclaimed"].includes(state) && (
           listing
-            ? <AssistedListingOwnerView listing={listing} token={token} />
+            ? <AssistedListingOwnerView listing={listing} token={token} claimError={claimError} />
             : (
               <div className="text-center py-12 px-4">
                 <XCircle className="w-14 h-14 text-gray-400 mx-auto mb-4" />

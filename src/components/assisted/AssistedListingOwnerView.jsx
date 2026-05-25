@@ -21,7 +21,7 @@ import { base44 } from "@/api/base44Client";
 
 // This component is only shown to logged-out sellers after approval.
 // Logged-in sellers are sent directly to My Listings by AssistedListingApprovalPage.
-export default function AssistedListingOwnerView({ listing, token }) {
+export default function AssistedListingOwnerView({ listing, token, claimError }) {
   const navigate = useNavigate();
 
   if (!listing) return null;
@@ -144,12 +144,17 @@ export default function AssistedListingOwnerView({ listing, token }) {
 
       {/* Login to claim CTA */}
       <div className="border-t pt-4 space-y-2">
+        {claimError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <strong>Could not complete claim:</strong> {claimError}
+          </div>
+        )}
         <Button
           onClick={handleLoginToClaim}
           className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold gap-2"
         >
           <ArrowRight className="w-4 h-4" />
-          Log In / Sign Up to Claim This Listing
+          {claimError ? "Try Again — Log In / Sign Up" : "Log In / Sign Up to Claim This Listing"}
         </Button>
         <p className="text-xs text-center text-gray-500">
           Free account — after sign-in, this listing is automatically yours
