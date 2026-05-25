@@ -134,5 +134,47 @@
     "assisted_qr_expires_at",
     "admin_creator_id",
     "seller_permission_confirmed"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    }
+  }
 }
