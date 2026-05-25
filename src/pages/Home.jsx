@@ -440,7 +440,7 @@ export default function HomePage() {
   const [mapCenter, setMapCenter] = useState(getSavedLocation);
   const [mapZoom, setMapZoom] = useState(getSavedZoom);
   const [showControls, setShowControls] = useState(false);
-  const [quickMapFilters, setQuickMapFilters] = useState({ yardSales: true, events: true, vendors: true });
+  const [quickMapFilters, setQuickMapFilters] = useState({ yardSales: true, neighborhoodSales: true, events: true, vendors: true });
   const controlsPanelRef = useRef(null);
   const controlsBtnRef = useRef(null);
   const mapAreaRef = useRef(null);
@@ -1024,7 +1024,8 @@ const stats = useMemo(() => {
     eligibleListings.forEach(listing => {
       if (filter !== "all" && listing.listingType !== filter) return;
       if (!quickMapFilters.events && listing.listingType === "event") return;
-      if (!quickMapFilters.yardSales && listing.listingType !== "event") return;
+      if (!quickMapFilters.neighborhoodSales && listing.listingType === "neighborhood_sale") return;
+      if (!quickMapFilters.yardSales && listing.listingType === "yard_sale") return;
 
       const isPreview = listing.mapState === "preview";
       const isComingSoon = listing.mapState === "coming_soon";
