@@ -132,78 +132,108 @@ export default function ListView({ listings, userLocation }) {
       </div>
 
       {filteredListings.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <p className="text-slate-500">No listings found nearby</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl bg-white/70 border border-slate-200/60 shadow-sm p-12 text-center">
+          <p className="text-slate-400 text-sm">No listings found nearby</p>
+        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredListings.map((listing) => {
             const isEvent = listing.listingType === "event";
+            const isNeighborhood = listing.listingType === "neighborhood_sale";
             const categories = isEvent
               ? [listing.event_category].filter(Boolean)
               : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean);
             const statusUi = getListingStatusUi(listing);
             const descriptionText = getListingDescriptionText(listing);
 
+            // Card accent color by type
+            const accentBar = isEvent
+              ? "border-l-[#006168]"
+              : isNeighborhood
+              ? "border-l-emerald-500"
+              : "border-l-amber-400";
+
             return (
-            <Card key={listing.id} className={`transition-all duration-200 hover:shadow-lg ${listing._expired ? "opacity-60" : ""}`}>
-              <CardContent className="p-4">
+            <div
+              key={listing.id}
+              className={`group relative bg-white rounded-2xl border border-slate-200/70 border-l-4 ${accentBar} shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden ${listing._expired ? "opacity-55" : ""}`}
+            >
+              {/* Subtle folded corner for residential */}
+              {!isEvent && !isNeighborhood && (
+                <div className="absolute top-0 right-0 w-0 h-0 border-t-[20px] border-r-[20px] border-t-amber-100 border-r-transparent opacity-60 pointer-events-none" />
+              )}
+
+              <div className="p-4 sm:p-5">
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-2">
-                        <Badge variant="outline" className="text-[11px] text-slate-600 border-slate-300 bg-slate-50">
+                      <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 bg-slate-50 rounded-full px-2 py-0.5 border border-slate-100">
                           {getListingTypeBadgeLabel(listing)}
-                        </Badge>
-                        <Badge variant="outline" className="text-[11px] text-slate-600 border-slate-300 bg-slate-50">
+                        </span>
+                        <span className="text-[10px] font-medium text-slate-400 bg-slate-50 rounded-full px-2 py-0.5 border border-slate-100">
                           {getListingSecondaryBadgeLabel(listing)}
-                        </Badge>
-                        <Badge className={`${statusUi.isComingSoon ? "bg-amber-500" : statusUi.isActive ? "bg-green-600" : "bg-slate-500"} text-white`}>
+                        </span>
+                        <span className={`text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-0.5 ${
+                          statusUi.isComingSoon
+                            ? "bg-amber-50 text-amber-700 border border-amber-200"
+                            : statusUi.isActive
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-slate-100 text-slate-500 border border-slate-200"
+                        }`}>
                           {statusUi.label}
-                        </Badge>
+                        </span>
                         {listing._expired && (
-                          <Badge className="bg-red-500 text-white">Expired</Badge>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200">
+                            Expired
+                          </span>
                         )}
                       </div>
-                      <h3 className="text-lg font-semibold text-slate-900 leading-tight">{getListingPrimaryText(listing)}</h3>
+                      <h3 className="text-base font-semibold text-slate-800 leading-snug">{getListingPrimaryText(listing)}</h3>
                       {(listing.city || listing.state) && (
-                        <div className="flex items-center gap-1.5 mt-1.5 text-slate-500">
-                          <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span className="text-sm font-medium">{[listing.city, listing.state].filter(Boolean).join(", ")}</span>
+                        <div className="flex items-center gap-1 mt-1 text-slate-400">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          <span className="text-xs">{[listing.city, listing.state].filter(Boolean).join(", ")}</span>
                         </div>
                       )}
                     </div>
                   </div>
 
                   {descriptionText && (
-                    <p className="text-sm text-slate-600 leading-relaxed">{descriptionText}</p>
+                    <p className="text-sm text-slate-500 leading-relaxed line-clamp-2">{descriptionText}</p>
                   )}
 
                   {categories.length > 0 && !statusUi.isComingSoon && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {categories.map((item, index) => (
-                        <Badge key={`${item}-${index}`} variant="outline" className="text-xs border-slate-200 text-slate-700 bg-white">
+                        <span key={`${item}-${index}`} className="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-2 py-0.5">
                           {item}
-                        </Badge>
+                        </span>
                       ))}
                     </div>
                   )}
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 pt-1">
                     <Button
+                      size="sm"
                       onClick={() => navigate(listing.is_vendor_event ? `/VendorEventPublicPage?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-                      className="flex-1 bg-amber-600 hover:bg-amber-700"
+                      className={`flex-1 text-white text-sm font-medium shadow-sm transition-all ${
+                        isEvent
+                          ? "bg-[#006168] hover:bg-[#004d52]"
+                          : isNeighborhood
+                          ? "bg-emerald-600 hover:bg-emerald-700"
+                          : "bg-[#006168] hover:bg-[#004d52]"
+                      }`}
                     >
-                      {listing.is_vendor_event ? "Public View" : "View Listing"}
+                      {listing.is_vendor_event ? "View Event" : "View Listing"}
                     </Button>
-                    <SaveListingButton listing={listing} iconOnly={true} className="w-10 px-0 flex-shrink-0 border-slate-200 text-slate-500" />
+                    <SaveListingButton listing={listing} iconOnly={true} className="w-9 h-9 px-0 flex-shrink-0 border-slate-200 text-slate-400 hover:text-slate-600 rounded-xl" />
                   
                   {!isEvent && HUNT_ENABLED && (
                     <Button
+                      size="sm"
                       variant="outline"
-                      className="flex-1 border-amber-600 text-amber-700 hover:bg-amber-50"
+                      className="flex-1 border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 rounded-xl text-sm"
                       onClick={() => guardAction(() => addToHunt(listing), {
                         allowGuest: isGuest && huntStops.length < 2,
                         modal: {
@@ -214,13 +244,13 @@ export default function ListView({ listings, userLocation }) {
                       })}
                       disabled={huntStops.some(s => s.id === listing.id)}
                     >
-                      {huntStops.some(s => s.id === listing.id) ? "Added ✅" : "Add Stop to Hunt"}
+                      {huntStops.some(s => s.id === listing.id) ? "✓ Added" : "+ Add to Hunt"}
                     </Button>
                   )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )})}
         </div>
       )}

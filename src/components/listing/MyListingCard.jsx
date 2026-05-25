@@ -1,10 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Map, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Map, Trash2, ExternalLink } from "lucide-react";
 import {
   formatListingDateRange,
   formatListingStatusLabel,
@@ -15,6 +14,39 @@ import {
 } from "@/components/listing/listingDisplay";
 import { normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 import { canSelfServeUpgrade } from "@/lib/listingUpgradeConfig";
+
+// Soft pill badge — consistent across status/tier
+function PillBadge({ children, className = "" }) {
+  return (
+    <span className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-0.5 border ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+const TIER_PILL = {
+  free: "bg-slate-50 text-slate-500 border-slate-200",
+  basic: "bg-slate-100 text-slate-600 border-slate-200",
+  featured: "bg-purple-50 text-purple-700 border-purple-200",
+  premium: "bg-amber-50 text-amber-700 border-amber-200",
+  marquee: "bg-rose-50 text-rose-700 border-rose-200",
+  neighborhood_tier: "bg-emerald-50 text-emerald-700 border-emerald-200",
+};
+
+const STATUS_PILL = {
+  active: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  upcoming: "bg-[#e6f3f4] text-[#006168] border-[#b3d9db]",
+  coming_soon: "bg-amber-50 text-amber-700 border-amber-200",
+  hidden: "bg-slate-100 text-slate-500 border-slate-200",
+  under_review: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  suspended: "bg-red-50 text-red-600 border-red-200",
+  completed: "bg-blue-50 text-blue-600 border-blue-200",
+  expired: "bg-slate-100 text-slate-400 border-slate-200",
+  canceled: "bg-slate-100 text-slate-400 border-slate-200",
+  pending_activation: "bg-amber-50 text-amber-700 border-amber-200",
+  activated: "bg-[#e6f3f4] text-[#006168] border-[#b3d9db]",
+  activated_locked: "bg-emerald-50 text-emerald-700 border-emerald-200",
+};
 
 export default function MyListingCard({
   listing,
@@ -33,60 +65,70 @@ export default function MyListingCard({
 }) {
   const navigate = useNavigate();
 
+  const isYardSale = listing.listingType === "yard_sale";
+  const isNeighborhood = listing.listingType === "neighborhood_sale";
+  const isEvent = listing.listingType === "event";
+
+  const accentBar = isEvent
+    ? "border-l-[#006168]"
+    : isNeighborhood
+    ? "border-l-emerald-500"
+    : "border-l-amber-400";
+
+  const tierPill = TIER_PILL[listing.tier] || "bg-slate-50 text-slate-500 border-slate-200";
+  const statusPill = STATUS_PILL[listing.displayStatus] || "bg-slate-100 text-slate-500 border-slate-200";
+
   return (
-    <Card className="rounded-xl border bg-white/85 shadow hover:shadow-lg transition-shadow">
-      <CardContent className="p-6">
+    <div className={`group relative bg-white rounded-2xl border border-slate-200/70 border-l-4 ${accentBar} shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden`}>
+      {/* Subtle folded corner for yard sales */}
+      {isYardSale && (
+        <div className="absolute top-0 right-0 w-0 h-0 border-t-[22px] border-r-[22px] border-t-amber-50 border-r-transparent opacity-70 pointer-events-none" />
+      )}
+
+      <div className="p-5 sm:p-6">
+        {/* Header row */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3">
-          <div className="min-w-0">
-            <h3 className="text-lg sm:text-xl font-semibold mb-1 break-words">{listing.title}</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-800 mb-1 leading-snug break-words">
+              {listing.title}
+            </h3>
 
-            {/* Listing # small print */}
-            <div className="text-xs text-slate-500 mb-2 space-y-1 break-all">
-              <p>Listing #{String(listingNumberText(listing))}</p>
-              <p>ID: {listing.id}</p>
-            </div>
+            {/* Meta — listing number */}
+            <p className="text-[11px] text-slate-400 mb-2.5 font-mono break-all">
+              #{String(listingNumberText(listing))}
+            </p>
 
-            <div className="flex gap-2 flex-wrap">
-              <Badge variant="outline" className="bg-white text-slate-700 border-slate-300">
-                {listing.listingType === "event"
-                  ? "Event"
-                  : listing.listingType === "yard_sale"
-                  ? "Yard Sale"
-                  : listing.listingType === "neighborhood_sale"
-                  ? "Neighborhood Sale"
-                  : "Listing"}
-              </Badge>
+            {/* Badges */}
+            <div className="flex gap-1.5 flex-wrap">
+              <PillBadge className="bg-slate-50 text-slate-500 border-slate-200">
+                {isEvent ? "Event" : isNeighborhood ? "Neighborhood Sale" : "Yard Sale"}
+              </PillBadge>
+
               {listing.co_host_user_id === user?.id && listing.co_host_status === "active" && (
-                <Badge className="bg-indigo-600 text-white hover:bg-indigo-700 border-none">
-                  Co-Host
-                </Badge>
+                <PillBadge className="bg-indigo-50 text-indigo-700 border-indigo-200">Co-Host</PillBadge>
               )}
               {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && (
-                <Badge className="bg-yellow-500 text-yellow-950 hover:bg-yellow-600 border-none">Pending Neighborhood Approval</Badge>
+                <PillBadge className="bg-amber-50 text-amber-700 border-amber-200">Pending Approval</PillBadge>
               )}
               {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && (
-                <Badge className="bg-green-600 text-white hover:bg-green-700 border-none">Neighborhood Approved</Badge>
+                <PillBadge className="bg-emerald-50 text-emerald-700 border-emerald-200">Neighborhood Approved</PillBadge>
               )}
               {listing.neighborhood_join_status === "denied" && (
-                <Badge className="bg-red-600 text-white hover:bg-red-700 border-none">Neighborhood Denied</Badge>
+                <PillBadge className="bg-red-50 text-red-600 border-red-200">Neighborhood Denied</PillBadge>
               )}
 
-              <Badge className={tierColors[listing.tier] || "bg-slate-500"}>
-                {formatListingTierLabel(listing.tier)}
-              </Badge>
-
-              <Badge className={statusColors[listing.displayStatus] || "bg-gray-500"}>
-                {formatListingStatusLabel(listing.displayStatus)}
-              </Badge>
+              <PillBadge className={tierPill}>{formatListingTierLabel(listing.tier)}</PillBadge>
+              <PillBadge className={statusPill}>{formatListingStatusLabel(listing.displayStatus)}</PillBadge>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:flex gap-2 sm:flex-wrap sm:justify-end bg-white/60 rounded-xl p-2 border border-gray-100">
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end">
             <Button
               size="sm"
               disabled={!hasCoords(listing)}
               onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
-              className="gap-1 bg-teal-600 hover:bg-teal-700 text-white"
+              className="gap-1.5 bg-[#006168] hover:bg-[#004d52] text-white text-xs rounded-xl shadow-sm"
             >
               <Map className="w-3 h-3" />
               View on Map
@@ -94,26 +136,30 @@ export default function MyListingCard({
 
             <Button
               size="sm"
+              variant="outline"
               onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-              className="bg-slate-700 hover:bg-slate-800 text-white"
+              className="gap-1.5 border-slate-200 text-slate-600 hover:bg-slate-50 text-xs rounded-xl"
             >
+              <ExternalLink className="w-3 h-3" />
               View Details
             </Button>
 
             {listing.ownerUserId === user?.id && (
               <Button
                 size="sm"
+                variant="outline"
                 onClick={() => onEdit(listing)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="border-[#006168]/40 text-[#006168] hover:bg-[#e6f3f4] text-xs rounded-xl"
               >
-                Edit Listing
+                Edit
               </Button>
             )}
 
             <Button
               size="sm"
+              variant="outline"
               onClick={() => onRelist(listing)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-xs rounded-xl"
             >
               Relist
             </Button>
@@ -122,7 +168,7 @@ export default function MyListingCard({
               <Button
                 size="sm"
                 onClick={() => onUpgrade(listing)}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
+                className="bg-amber-500 hover:bg-amber-600 text-white text-xs rounded-xl shadow-sm"
               >
                 Upgrade
               </Button>
@@ -131,28 +177,28 @@ export default function MyListingCard({
             {canCancelListingDirectly(listing) ? (
               <Button
                 size="sm"
-                variant="destructive"
+                variant="outline"
                 onClick={() => onCancel(listing)}
-                className="gap-1"
+                className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 text-xs rounded-xl"
               >
                 <Trash2 className="w-3 h-3" />
-                Cancel Listing
+                Cancel
               </Button>
             ) : isActiveListing(listing) ? (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => navigate(createPageUrl("ContactSupport"))}
-                className="gap-1"
+                className="border-slate-200 text-slate-500 hover:bg-slate-50 text-xs rounded-xl"
               >
-                Need Help? Contact Support
+                Need Help?
               </Button>
             ) : isEffectivelyPastListing(listing) ? (
               <Button
                 size="sm"
-                variant="destructive"
+                variant="outline"
                 onClick={() => onDelete(listing)}
-                className="gap-1"
+                className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 text-xs rounded-xl"
               >
                 <Trash2 className="w-3 h-3" />
                 Delete
@@ -162,43 +208,47 @@ export default function MyListingCard({
         </div>
 
         {/* Description */}
-        <p className="text-gray-600 mb-4 whitespace-pre-wrap">
-          {listing.description || "(No description)"}
-        </p>
+        {listing.description && (
+          <p className="text-sm text-slate-500 mb-4 leading-relaxed whitespace-pre-wrap">
+            {listing.description}
+          </p>
+        )}
 
         {/* Address + Dates */}
-        <div className="grid md:grid-cols-2 gap-4 text-sm rounded-xl bg-orange-50/60 border border-orange-100 p-4">
-          <div className="flex items-center gap-2 text-slate-600">
-            <MapPin className="w-4 h-4" />
-            <span className="break-words">{getListingAddressLine(listing)}</span>
+        <div className="grid md:grid-cols-2 gap-3 text-sm rounded-xl bg-slate-50/80 border border-slate-100 p-3.5">
+          <div className="flex items-start gap-2 text-slate-500">
+            <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-slate-400" />
+            <span className="break-words text-xs leading-relaxed">{getListingAddressLine(listing)}</span>
           </div>
 
-          <div className="flex items-center gap-2 text-slate-600">
-            <Calendar className="w-4 h-4" />
-            <span>{formatListingDateRange(listing)}</span>
+          <div className="flex items-start gap-2 text-slate-500">
+            <Calendar className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-slate-400" />
+            <span className="text-xs leading-relaxed">{formatListingDateRange(listing)}</span>
           </div>
         </div>
 
+        {/* Status reason */}
         {listing.statusReason && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              <strong>Status Note:</strong> {listing.statusReason}
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
+            <p className="text-xs text-amber-800">
+              <strong>Note:</strong> {listing.statusReason}
             </p>
           </div>
         )}
 
-        {listing.listingType === "yard_sale" && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex justify-center sm:justify-start">
+        {/* Yard sale guide CTA */}
+        {isYardSale && (
+          <div className="mt-3.5 pt-3.5 border-t border-slate-100 flex justify-center sm:justify-start">
             <button
               type="button"
               onClick={onShowGuide}
-              className="text-sm text-teal-600 font-medium hover:text-teal-800 underline underline-offset-2 transition-colors"
+              className="text-xs text-[#006168] font-medium hover:text-[#004d52] underline underline-offset-2 transition-colors"
             >
-              Want more traffic? View Success Guide
+              Want more traffic? View Success Guide →
             </button>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
