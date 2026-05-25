@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy } from "lucide-react";
+import { Copy, MapPin, Calendar, Tag, Home, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import NeighborhoodSalePreviewMap from "@/components/neighborhood/NeighborhoodSalePreviewMap";
@@ -247,26 +247,100 @@ export default function NeighborhoodSalePanel({
 
           {canManageNeighborhoodSale && approvedRequests.length > 0 && (
             <div className="mt-4 border-t border-emerald-200 pt-4">
-              <h4 className="font-semibold text-emerald-900 mb-3">Participating Homes ({approvedRequests.length})</h4>
+              <h4 className="font-semibold text-emerald-900 mb-3 flex items-center gap-2">
+                <Home className="w-4 h-4" />
+                Participating Homes ({approvedRequests.length})
+              </h4>
               <div className="space-y-3">
-                {approvedRequests.map((req) => (
-                  <div key={req.id} className="bg-white p-3 rounded border border-emerald-100 shadow-sm">
-                    <div className="flex justify-between items-start mb-1">
-                      <p className="font-medium text-slate-800">{req.listingDetails?.title || "Unknown Listing"}</p>
-                      <Badge className="bg-green-600 text-white hover:bg-green-700 border-none">Approved</Badge>
+                {approvedRequests.map((req) => {
+                  const ld = req.listingDetails || {};
+                  const photo = ld.photoUrls?.[0];
+                  const address = ld.display_address || ld.address_text || ld.addressText || "Address unavailable";
+                  const city = [ld.city, getStateAbbreviation(ld.state)].filter(Boolean).join(", ");
+                  const startDate = ld.startDateTime ? format(new Date(ld.startDateTime), "MMM d") : null;
+                  const endDate = ld.endDateTime ? format(new Date(ld.endDateTime), "MMM d, yyyy") : null;
+                  const categories = ld.categories?.length ? ld.categories : ld.category ? [ld.category] : [];
+
+                  return (
+                    <div key={req.id} className="bg-white rounded-xl border border-emerald-100 shadow-sm overflow-hidden">
+                      {/* Photo banner */}
+                      {photo ? (
+                        <div className="h-28 w-full overflow-hidden">
+                          <img src={photo} alt={ld.title} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="h-16 w-full bg-gradient-to-r from-emerald-50 to-emerald-100 flex items-center justify-center">
+                          <Home className="w-6 h-6 text-emerald-300" />
+                        </div>
+                      )}
+
+                      <div className="p-3 space-y-2">
+                        {/* Title + badge */}
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-slate-800 leading-snug">{ld.title || "Participant Listing"}</p>
+                          <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 border-none shrink-0 text-[10px]">Approved</Badge>
+                        </div>
+
+                        {/* Address */}
+                        <div className="flex items-start gap-1.5 text-sm text-slate-600">
+                          <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-emerald-500" />
+                          <span>{address}{city ? `, ${city}` : ""}</span>
+                        </div>
+
+                        {/* Dates */}
+                        {startDate && (
+                          <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                            <Calendar className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                            <span>{startDate}{endDate && endDate !== startDate ? ` – ${endDate}` : ""}</span>
+                          </div>
+                        )}
+
+                        {/* Categories */}
+                        {categories.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Tag className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                            {categories.slice(0, 4).map((cat) => (
+                              <span key={cat} className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5">{cat}</span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Description */}
+                        {ld.description && (
+                          <p className="text-xs text-slate-500 line-clamp-2">{ld.description}</p>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-2 pt-1 flex-wrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-emerald-700 border-emerald-200 hover:bg-emerald-50 gap-1.5 text-xs"
+                            onClick={() => navigate(createPageUrl("ListingDetail") + "?id=" + req.listingId)}
+                          >
+                            <ExternalLink className="w-3 h-3" /> View Listing
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs"
+                            onClick={() => navigate(createPageUrl("CreateListing") + "?edit=1&listingId=" + req.listingId)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
+                            onClick={() => onRespondToJoinRequest({ requestId: req.id, requesterListingId: req.listingId, action: "remove", requesterUserId: req.requesterUserId, eventTitle: listing.title })}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-sm text-slate-600 mb-1">{req.listingDetails?.display_address || req.listingDetails?.addressText || "No address"}</p>
-                    <p className="text-sm text-slate-500 line-clamp-2 mb-3">{req.listingDetails?.description}</p>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => navigate(createPageUrl("CreateListing") + "?edit=1&listingId=" + req.listingId)}>
-                        Edit Listing
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => onRespondToJoinRequest({ requestId: req.id, requesterListingId: req.listingId, action: "remove", requesterUserId: req.requesterUserId, eventTitle: listing.title })}>
-                        Remove from Neighborhood
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
