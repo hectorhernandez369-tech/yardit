@@ -66,7 +66,7 @@ export default function NeighborhoodSalePanel({
             <div>
               <h3 className="font-semibold text-emerald-900 mb-2">Neighborhood Sale</h3>
               <p className="text-sm text-emerald-800">
-                {listing.homeCount} homes participating • Span: {listing.spanFeet} ft
+                {rosterCount} homes participating • Span: {listing.spanFeet} ft
               </p>
               {listing.co_host_user_id && (
                 <p className="text-sm text-emerald-800 mt-1">
