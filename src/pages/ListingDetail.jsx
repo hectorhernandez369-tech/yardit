@@ -116,50 +116,66 @@ export default function ListingDetailPage() {
   const isAcceptedCoHost = !!user && listing?.listingType === "neighborhood_sale" && listing?.co_host_user_id === user.id && listing?.co_host_status === "accepted";
   const canManageNeighborhoodSale = isOwner || isAcceptedCoHost;
 
-  // Build the canonical participating homes roster.
-  // Only real residential yard sale listings count as homes:
-  //   1. The organizer's linked yard sale (organizer_participant_listing_id) if it appears as an approved JoinRequest
-  //   2. All other approved JoinRequest participants
-  // The Neighborhood Sale parent listing itself is NEVER counted as a home.
-  const participantEntries = approvedRequests.filter(r => r.listingId !== listing?.id);
+  // Fetch the organizer's own linked yard sale listing (created during NS setup flow).
+  // It is stored on the NS as organizer_participant_listing_id and has no JoinRequest record.
+  const { data: organizerParticipantListing } = useQuery({
+    queryKey: ["organizerParticipantListing", listing?.organizer_participant_listing_id],
+    queryFn: async () => {
+      const results = await base44.entities.Listing.filter({ id: listing.organizer_participant_listing_id });
+      return results[0] || null;
+    },
+    enabled: !!listing?.organizer_participant_listing_id && listing?.listingType === "neighborhood_sale",
+  });
 
-  const visibleParticipatingHomes = listing?.listingType === "neighborhood_sale"
-    ? participantEntries
-    : [];
+  // Canonical roster:
+  // 1. Organizer's own yard sale (via organizer_participant_listing_id), only if active/not cancelled
+  // 2. Approved JoinRequest participants (excluding any that might reference the NS parent itself)
+  const visibleParticipatingHomes = useMemo(() => {
+    if (!listing || listing.listingType !== "neighborhood_sale") return [];
 
+    const homes = [];
 
+    // Add organizer's linked listing if it exists and is not cancelled
+    if (organizerParticipantListing &&
+        organizerParticipantListing.status !== "canceled" &&
+        organizerParticipantListing.status !== "cancelled") {
+      homes.push({
+        _isOrganizerListing: true,
+        id: `organizer-${organizerParticipantListing.id}`,
+        listingId: organizerParticipantListing.id,
+        listingDetails: organizerParticipantListing,
+        requesterUserId: listing.ownerUserId,
+      });
+    }
+
+    // Add approved JoinRequest participants (never include the NS parent itself)
+    for (const r of approvedRequests) {
+      if (r.listingId !== listing.id) {
+        homes.push(r);
+      }
+    }
+
+    return homes;
+  }, [listing, organizerParticipantListing, approvedRequests]);
 
   const approvedHomesCount = visibleParticipatingHomes.length;
   const availableSpots = Math.max(0, 25 - approvedHomesCount);
+
   const formatAddress = (item) => {
     const base = [item.display_address || item.address_text || item.addressText || "Address unavailable", item.city, getStateAbbreviation(item.state)].filter(Boolean).join(", ");
     return item.zip ? `${base} ${item.zip}` : base;
   };
+
   const salePricing = useMemo(() => {
     if (!listing || listing.listingType !== "neighborhood_sale") return null;
     const summary = getNeighborhoodPricingSummary(joinRequests || [], listing.pricePaid || 0);
-    // Override visibleHomeCount and totalApprovedHomes to match the canonical roster
-    // (organizer + valid participants). We can't compute visibleParticipatingHomes.length
-    // here due to dependency ordering, so we re-derive it inline.
-    const validParticipants = (joinRequests || []).filter(r =>
-      r.status === "approved" &&
-      r.removed_by_eo !== true &&
-      r.removed_by_listing_owner !== true &&
-      r.listingDetails?.status !== "canceled" &&
-      r.listingDetails?.status !== "cancelled" &&
-      r.listingId !== listing.id
-    );
-    const canonicalCount = validParticipants.length;
-    return {
-      ...summary,
-      visibleHomeCount: canonicalCount,
-      totalApprovedHomes: canonicalCount,
-    };
-  }, [joinRequests, listing]);
+    const canonicalCount = visibleParticipatingHomes.length;
+    return { ...summary, visibleHomeCount: canonicalCount, totalApprovedHomes: canonicalCount };
+  }, [joinRequests, listing, visibleParticipatingHomes]);
   const neighborhoodEventState = useMemo(() => deriveNeighborhoodEventState(listing), [listing]);
   const isNeighborhoodSaleLive = listing?.listingType === "neighborhood_sale" && neighborhoodEventState === "active";
-  const participantAddresses = (isNeighborhoodSaleLive ? approvedRequests : [])
-    .map((req) => req.listingDetails ? formatAddress(req.listingDetails) : null)
+  const participantAddresses = (isNeighborhoodSaleLive ? visibleParticipatingHomes : [])
+    .map((entry) => entry.listingDetails ? formatAddress(entry.listingDetails) : null)
     .filter(Boolean);
 
   // (plain english) query to get parent neighborhood sale info if the listing was approved to join one
