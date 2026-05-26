@@ -117,82 +117,17 @@ export default function ListingDetailPage() {
   const canManageNeighborhoodSale = isOwner || isAcceptedCoHost;
 
   // Build the canonical participating homes roster.
-  // The organizer listing always counts as 1 home. Participants come from valid approved JoinRequests.
-  // This is the single source of truth for both the count AND the displayed roster.
-  const organizerIsParticipating = listing?.organizer_participation !== "organizing_only";
-  const organizerEntry = (listing?.listingType === "neighborhood_sale" && organizerIsParticipating) ? {
-    id: `__organizer__${listing?.id}`,
-    listingId: listing?.id,
-    isOrganizer: true,
-    requesterUserId: listing?.ownerUserId,
-    listingDetails: listing,
-  } : null;
-
-  // Exclude any participant whose listing ID matches the organizer listing to prevent double-counting
+  // Only real residential yard sale listings count as homes:
+  //   1. The organizer's linked yard sale (organizer_participant_listing_id) if it appears as an approved JoinRequest
+  //   2. All other approved JoinRequest participants
+  // The Neighborhood Sale parent listing itself is NEVER counted as a home.
   const participantEntries = approvedRequests.filter(r => r.listingId !== listing?.id);
 
   const visibleParticipatingHomes = listing?.listingType === "neighborhood_sale"
-    ? [organizerEntry, ...participantEntries].filter(Boolean)
+    ? participantEntries
     : [];
 
-  // ── DIAGNOSTIC LOG ──────────────────────────────────────────────
-  if (listing?.listingType === "neighborhood_sale") {
-    console.group(`[NeighborhoodSale DIAGNOSTIC] listing=${listing?.id}`);
 
-    console.log("=== ALL JOIN REQUESTS for this saleListingId ===");
-    (joinRequests || []).forEach((r, i) => {
-      console.log(`JoinRequest[${i}]`, {
-        id: r.id,
-        listingId: r.listingId,
-        raw_status: r.raw_status,
-        normalized_status: r.status,
-        removed_by_eo: r.removed_by_eo,
-        removed_by_listing_owner: r.removed_by_listing_owner,
-        listingTitle: r.listingDetails?.title,
-        listingStatus: r.listingDetails?.status,
-        listing_neighborhood_join_status: r.listingDetails?.neighborhood_join_status,
-      });
-    });
-
-    console.log("=== approvedRequests (filtered) ===", approvedRequests.length);
-    approvedRequests.forEach((r, i) => {
-      console.log(`approved[${i}]`, {
-        id: r.id,
-        listingId: r.listingId,
-        listingTitle: r.listingDetails?.title,
-        listingStatus: r.listingDetails?.status,
-        removed_by_eo: r.removed_by_eo,
-        removed_by_listing_owner: r.removed_by_listing_owner,
-      });
-    });
-
-    console.log("=== participantEntries (deduped from organizer) ===", participantEntries.length);
-    participantEntries.forEach((r, i) => {
-      console.log(`participant[${i}]`, {
-        id: r.id,
-        listingId: r.listingId,
-        listingTitle: r.listingDetails?.title,
-      });
-    });
-
-    console.log("=== visibleParticipatingHomes (FINAL ROSTER) ===", visibleParticipatingHomes.length);
-    visibleParticipatingHomes.forEach((r, i) => {
-      console.log(`roster[${i}]`, {
-        source: r.isOrganizer ? "organizer" : "join_request",
-        id: r.id,
-        listingId: r.listingId,
-        requesterUserId: r.requesterUserId,
-        listingTitle: r.listingDetails?.title,
-        listingStatus: r.listingDetails?.status,
-        neighborhood_join_status: r.listingDetails?.neighborhood_join_status,
-        removed_by_eo: r.removed_by_eo,
-        removed_by_listing_owner: r.removed_by_listing_owner,
-      });
-    });
-
-    console.groupEnd();
-  }
-  // ── END DIAGNOSTIC ───────────────────────────────────────────────
 
   const approvedHomesCount = visibleParticipatingHomes.length;
   const availableSpots = Math.max(0, 25 - approvedHomesCount);
@@ -214,8 +149,7 @@ export default function ListingDetailPage() {
       r.listingDetails?.status !== "cancelled" &&
       r.listingId !== listing.id
     );
-    const organizerCounts = listing.organizer_participation !== "organizing_only" ? 1 : 0;
-    const canonicalCount = organizerCounts + validParticipants.length;
+    const canonicalCount = validParticipants.length;
     return {
       ...summary,
       visibleHomeCount: canonicalCount,
