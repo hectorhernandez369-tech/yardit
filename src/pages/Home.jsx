@@ -1311,7 +1311,7 @@ const stats = useMemo(() => {
 
           {/* Backdrop */}
           {showControls && (
-            <div className="absolute inset-0 z-[999] bg-black/5 backdrop-blur-[1px] transition-opacity duration-200 pointer-events-none" />
+            <div className="absolute inset-0 z-[999] bg-black/5 backdrop-blur-[.90px] transition-opacity duration-200 pointer-events-none" />
           )}
 
           {/* Controls Panel */}
