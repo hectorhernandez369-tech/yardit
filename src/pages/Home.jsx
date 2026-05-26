@@ -1288,8 +1288,14 @@ const stats = useMemo(() => {
             ref={controlsBtnRef}
             onPointerDown={handleHuntButtonPointerDown}
             onClick={handleHuntButtonClick}
-            className="absolute z-[1002] w-[70px] h-[70px] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-2 border-[#2C4F4E]/20 outline-none shadow-none rounded-full"
-            style={{ left: `${huntButtonPosition.x}px`, top: `${huntButtonPosition.y}px`, touchAction: "none" }}
+            className="absolute z-[1002] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-2 border-[#2C4F4E]/20 outline-none shadow-none rounded-full"
+            style={{ 
+              left: `${huntButtonPosition.x}px`, 
+              top: `${huntButtonPosition.y}px`, 
+              width: showControls ? "50px" : "70px",
+              height: showControls ? "50px" : "70px",
+              touchAction: "none" 
+            }}
           >
             {showControls ? (
               <X className="w-12 h-12 text-[#2C4F4E]" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
@@ -1314,7 +1320,7 @@ const stats = useMemo(() => {
             className="absolute top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1001] transition-all duration-200 ease-out origin-top"
             style={{
               opacity: showControls ? 1 : 0,
-              transform: showControls ? "translateX(-50%) translateY(0) scaleY(1)" : "translateX(-50%) translateY(-12px) scaleY(0.95)",
+              transform: showControls ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-12px)",
               pointerEvents: showControls ? "auto" : "none",
             }}
           >
