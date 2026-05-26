@@ -1288,16 +1288,16 @@ const stats = useMemo(() => {
             ref={controlsBtnRef}
             onPointerDown={handleHuntButtonPointerDown}
             onClick={handleHuntButtonClick}
-            className="absolute z-[1002] w-[56px] h-[56px] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-2 border-[#2C4F4E]/20 outline-none shadow-none rounded-full"
+            className="absolute z-[1002] w-[70px] h-[70px] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-2 border-[#2C4F4E]/20 outline-none shadow-none rounded-full"
             style={{ left: `${huntButtonPosition.x}px`, top: `${huntButtonPosition.y}px`, touchAction: "none" }}
           >
             {showControls ? (
-              <X className="w-10 h-10 text-[#2C4F4E]" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+              <X className="w-12 h-12 text-[#2C4F4E]" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
             ) : (
               <img 
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/cb76cc21e_file_00000000cd1c720ca3ac2dd5471be0aa.png" 
                 alt="Open Map" 
-                className="w-[56px] h-[56px] object-contain"
+                className="w-[70px] h-[70px] object-contain"
                 style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }}
               />
             )}
