@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Edit, Pause, Play, Trash2, Gift, Users, Store, Building2 } from "lucide-react";
+import { Plus, Edit, Pause, Play, Trash2, Gift, Users, Store, Building2, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import VoucherCampaignModal from "./VoucherCampaignModal";
@@ -27,6 +27,23 @@ export default function VoucherCampaignsTab({ adminUser }) {
     queryFn: () => base44.entities.VoucherCampaign.list("-created_at"),
     initialData: [],
   });
+
+  const { data: allRedemptions = [] } = useQuery({
+    queryKey: ["allVoucherRedemptions"],
+    queryFn: () => base44.entities.UserVoucher.filter({ status: "redeemed" }),
+    initialData: [],
+  });
+
+  const redemptionCountByCampaign = allRedemptions.reduce((acc, v) => {
+    acc[v.campaign_id] = (acc[v.campaign_id] || 0) + 1;
+    return acc;
+  }, {});
+
+  const getLinkedBusinessName = (c) => {
+    if (c.business_link_type === "yardit_vendor") return c.vendor_business_name || "—";
+    if (c.business_link_type === "external_business") return c.external_business_name || "—";
+    return c.business_name || "—";
+  };
 
   const filtered = filter === "all" ? campaigns : campaigns.filter(c => c.status === filter);
 
@@ -75,19 +92,13 @@ export default function VoucherCampaignsTab({ adminUser }) {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b">
               <tr>
-                {["Campaign","Reward","Linked Business","Vendor?","Status","Issued","Dates","Actions"].map(h => (
+                {["Campaign","Reward","Linked Business","Type","Vendor?","Issued","Redeemed","Status","Actions"].map(h => (
                   <th key={h} className="px-3 py-2 text-left text-slate-600 font-semibold text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map(c => {
-                const linkedName = c.business_link_type === "yardit_vendor"
-                  ? c.vendor_business_name
-                  : c.business_link_type === "external_business"
-                    ? c.external_business_name
-                    : c.business_name;
-                return (
+              {filtered.map(c => (
                 <tr key={c.id} className="hover:bg-slate-50">
                   <td className="px-3 py-2">
                     <p className="font-semibold text-[#2C4F4E]">{c.campaign_name}</p>
@@ -97,30 +108,35 @@ export default function VoucherCampaignsTab({ adminUser }) {
                     <p className="font-medium">{c.reward_title}</p>
                     <p className="text-xs text-slate-400">{c.reward_value}</p>
                   </td>
-                  <td className="px-3 py-2 text-xs text-slate-600">
-                    <div className="flex items-center gap-1">
-                      {c.business_link_type === "yardit_vendor" && <Store className="w-3 h-3 text-[#5DADA5] shrink-0" />}
-                      {c.business_link_type === "external_business" && <Building2 className="w-3 h-3 text-[#F4A849] shrink-0" />}
-                      <span>{linkedName || "—"}</span>
-                    </div>
+                  <td className="px-3 py-2 text-xs text-slate-700 max-w-[120px] truncate">{getLinkedBusinessName(c)}</td>
+                  <td className="px-3 py-2">
+                   {c.business_link_type === "yardit_vendor" && (
+                     <span className="inline-flex items-center gap-1 text-[10px] bg-[#5DADA5]/10 text-[#2C4F4E] px-2 py-0.5 rounded-full font-medium">
+                       <Store className="w-3 h-3" /> Yardit
+                     </span>
+                   )}
+                   {c.business_link_type === "external_business" && (
+                     <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                       <Building2 className="w-3 h-3" /> External
+                     </span>
+                   )}
+                   {!c.business_link_type && <span className="text-xs text-slate-400">—</span>}
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                   {c.business_link_type === "yardit_vendor"
+                     ? <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto" />
+                     : <XCircle className="w-4 h-4 text-slate-300 mx-auto" />
+                   }
                   </td>
                   <td className="px-3 py-2">
-                    {c.business_link_type === "yardit_vendor"
-                      ? <Badge className="text-xs bg-green-100 text-green-800 border-green-200">Yes</Badge>
-                      : c.business_link_type === "external_business"
-                        ? <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-200">External</Badge>
-                        : <span className="text-xs text-slate-400">—</span>}
+                   <div className="flex items-center gap-1 text-xs">
+                     <Users className="w-3 h-3 text-slate-400" />
+                     {c.issued_count || 0}{c.distribution_limit ? `/${c.distribution_limit}` : ""}
+                   </div>
                   </td>
+                  <td className="px-3 py-2 text-xs text-slate-600 font-medium">{redemptionCountByCampaign[c.id] || 0}</td>
                   <td className="px-3 py-2"><Badge className={`text-xs ${STATUS_COLORS[c.status] || ""}`}>{c.status}</Badge></td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-1 text-xs">
-                      <Users className="w-3 h-3 text-slate-400" />
-                      {c.issued_count || 0}{c.distribution_limit ? `/${c.distribution_limit}` : ""}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-xs text-slate-500">
-                    {c.start_date ? format(new Date(c.start_date), "MMM d") : "—"} – {c.end_date ? format(new Date(c.end_date), "MMM d, yy") : "∞"}
-                  </td>
+                  <td className="px-3 py-2 hidden">{/* dates removed for space */}</td>
                   <td className="px-3 py-2">
                     <div className="flex gap-1">
                       <button onClick={() => { setEditRecord(c); setShowModal(true); }} className="p-1 text-slate-400 hover:text-[#2C4F4E]"><Edit className="w-3.5 h-3.5" /></button>
@@ -131,8 +147,7 @@ export default function VoucherCampaignsTab({ adminUser }) {
                     </div>
                   </td>
                 </tr>
-                );
-              })}
+              ))}
             </tbody>
           </table>
         </div>
@@ -148,12 +163,20 @@ export default function VoucherCampaignsTab({ adminUser }) {
                   <div>
                     <p className="font-bold text-[#2C4F4E]">{c.campaign_name}</p>
                     <p className="text-sm text-slate-600">{c.reward_title}</p>
-                    {c.business_name && <p className="text-xs text-slate-400">{c.business_name}</p>}
+                    <p className="text-xs text-slate-400">{getLinkedBusinessName(c)}</p>
                   </div>
-                  <Badge className={`text-xs ${STATUS_COLORS[c.status] || ""}`}>{c.status}</Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge className={`text-xs ${STATUS_COLORS[c.status] || ""}`}>{c.status}</Badge>
+                    {c.business_link_type === "yardit_vendor" && (
+                      <span className="inline-flex items-center gap-1 text-[10px] bg-[#5DADA5]/10 text-[#2C4F4E] px-2 py-0.5 rounded-full"><Store className="w-3 h-3" /> Yardit</span>
+                    )}
+                    {c.business_link_type === "external_business" && (
+                      <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full"><Building2 className="w-3 h-3" /> External</span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-xs text-slate-500 space-y-1">
-                  <p>Issued: {c.issued_count || 0}{c.distribution_limit ? `/${c.distribution_limit}` : ""}</p>
+                  <p>Issued: {c.issued_count || 0}{c.distribution_limit ? `/${c.distribution_limit}` : ""} · Redeemed: {redemptionCountByCampaign[c.id] || 0}</p>
                   <p>Prefix: {c.promo_prefix}-XXXXXX</p>
                   {c.end_date && <p>Expires: {format(new Date(c.end_date), "MMM d, yyyy")}</p>}
                 </div>

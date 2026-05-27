@@ -134,8 +134,92 @@ export default function VoucherCampaignModal({ open, onClose, editRecord, adminU
           </div>
 
           <div className="space-y-1">
-            <Label>Business Name</Label>
+            <Label>Business Name (legacy display)</Label>
             <Input value={form.business_name} onChange={e => set("business_name", e.target.value)} placeholder="Partner business name" />
+          </div>
+
+          {/* Business Linking Section */}
+          <div className="border-2 border-[#5DADA5]/30 rounded-xl p-4 space-y-4 bg-[#F3E6CF]/50">
+            <div>
+              <p className="font-semibold text-[#2C4F4E] text-sm mb-1">Where Can This Voucher Be Redeemed?</p>
+              <p className="text-xs text-slate-500">Link the redeeming business so hunters know where to go.</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: "yardit_vendor", label: "Yardit Vendor", sub: "Already on Yardit", Icon: Store },
+                { value: "external_business", label: "Not a Yardit Vendor Yet", sub: "Enter manually", Icon: Building2 },
+              ].map(({ value, label, sub, Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => set("business_link_type", form.business_link_type === value ? null : value)}
+                  className={`flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                    form.business_link_type === value
+                      ? "border-[#5DADA5] bg-[#5DADA5]/10"
+                      : "border-slate-200 bg-white hover:border-[#5DADA5]/50"
+                  }`}
+                >
+                  <div className={`mt-0.5 p-1.5 rounded-lg ${form.business_link_type === value ? "bg-[#5DADA5] text-white" : "bg-slate-100 text-slate-500"}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm text-[#2C4F4E]">{label}</p>
+                    <p className="text-xs text-slate-400">{sub}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {form.business_link_type === "yardit_vendor" && (
+              <div className="space-y-2">
+                <Label>Search & Select Vendor</Label>
+                <VendorPickerSearch
+                  selectedVendorId={form.vendor_id}
+                  onSelect={(data) => {
+                    if (!data) {
+                      setForm(f => ({ ...f, vendor_id: null, vendor_business_name: null, vendor_page_url: null, vendor_logo: null, vendor_description: null, vendor_address: null }));
+                    } else {
+                      setForm(f => ({ ...f, ...data }));
+                    }
+                  }}
+                />
+                {form.vendor_business_name && (
+                  <p className="text-xs text-[#5DADA5] font-medium">✓ Linked: {form.vendor_business_name}</p>
+                )}
+              </div>
+            )}
+
+            {form.business_link_type === "external_business" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Business Name *</Label>
+                    <Input value={form.external_business_name} onChange={e => set("external_business_name", e.target.value)} placeholder="e.g. Brew Yard Café" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Phone Number</Label>
+                    <Input value={form.external_business_phone} onChange={e => set("external_business_phone", e.target.value)} placeholder="(555) 555-5555" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label>Business Logo URL</Label>
+                  <Input value={form.external_business_logo} onChange={e => set("external_business_logo", e.target.value)} placeholder="https://..." />
+                </div>
+                <div className="space-y-1">
+                  <Label>Short Description</Label>
+                  <Textarea rows={2} value={form.external_business_description} onChange={e => set("external_business_description", e.target.value)} placeholder="A short description shown on the reward card..." />
+                </div>
+                <div className="space-y-1">
+                  <Label>Address</Label>
+                  <Input value={form.external_business_address} onChange={e => set("external_business_address", e.target.value)} placeholder="123 Main St, Lindsay, CA 93247" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Website URL</Label>
+                  <Input value={form.external_business_website} onChange={e => set("external_business_website", e.target.value)} placeholder="https://..." />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-1">

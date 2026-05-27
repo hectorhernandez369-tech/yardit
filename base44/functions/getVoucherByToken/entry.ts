@@ -29,7 +29,14 @@ Deno.serve(async (req) => {
       business = businesses?.[0] || null;
     }
 
-    return Response.json({ voucher, campaign, business });
+    // Load vendor account if campaign is linked to a Yardit vendor
+    let linkedVendor = null;
+    if (campaign?.business_link_type === 'yardit_vendor' && campaign?.vendor_id) {
+      const vendors = await base44.asServiceRole.entities.VendorAccount.filter({ id: campaign.vendor_id });
+      linkedVendor = vendors?.[0] || null;
+    }
+
+    return Response.json({ voucher, campaign, business, linkedVendor });
   } catch (error) {
     console.error('[getVoucherByToken] Error:', error?.message);
     return Response.json({ error: error.message }, { status: 500 });
