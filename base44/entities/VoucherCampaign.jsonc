@@ -120,6 +120,49 @@
     "created_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "business_link_type": {
+      "type": "string",
+      "enum": [
+        "yardit_vendor",
+        "external_business"
+      ]
+    },
+    "vendor_id": {
+      "type": "string"
+    },
+    "vendor_business_name": {
+      "type": "string"
+    },
+    "vendor_page_url": {
+      "type": "string"
+    },
+    "vendor_logo": {
+      "type": "string"
+    },
+    "vendor_description": {
+      "type": "string"
+    },
+    "vendor_address": {
+      "type": "string"
+    },
+    "external_business_name": {
+      "type": "string"
+    },
+    "external_business_logo": {
+      "type": "string"
+    },
+    "external_business_description": {
+      "type": "string"
+    },
+    "external_business_address": {
+      "type": "string"
+    },
+    "external_business_phone": {
+      "type": "string"
+    },
+    "external_business_website": {
+      "type": "string"
     }
   },
   "required": [

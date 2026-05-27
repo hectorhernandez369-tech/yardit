@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import VendorPickerSearch from "./VendorPickerSearch";
+import { Store, Building2 } from "lucide-react";
 
 const TRIGGER_TYPES = [
   { group: "🏠 Lister", items: [
@@ -31,6 +33,11 @@ const DEFAULT_FORM = {
   activation_delay_hours: 0, auto_hold_on_report: true, verified_business_only: false,
   redemption_radius_feet: "", geographic_scope_type: "global", geographic_scope_values: "",
   start_date: "", end_date: "", status: "draft",
+  business_link_type: null,
+  vendor_id: null, vendor_business_name: null, vendor_page_url: null, vendor_logo: null,
+  vendor_description: null, vendor_address: null,
+  external_business_name: "", external_business_logo: "", external_business_description: "",
+  external_business_address: "", external_business_phone: "", external_business_website: "",
 };
 
 export default function VoucherCampaignModal({ open, onClose, editRecord, adminUser }) {

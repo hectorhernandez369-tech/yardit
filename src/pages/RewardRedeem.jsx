@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format, isPast } from "date-fns";
-import { Gift, MapPin, Clock, AlertCircle, CheckCircle2, ShieldAlert, Copy, Loader2 } from "lucide-react";
+import { Gift, MapPin, Clock, AlertCircle, CheckCircle2, ShieldAlert, Copy, Loader2, ExternalLink, Phone, Globe, Store, Building2 } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS_INFO = {
@@ -287,6 +287,112 @@ export default function RewardRedeem() {
                 <Gift className="w-5 h-5" />
                 Redeem My Reward
               </Button>
+            )}
+
+            {/* Where Can I Redeem This? */}
+            {campaign?.business_link_type && (
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Where Can I Redeem This?</p>
+                </div>
+                <div className="p-4 space-y-3">
+                  {campaign.business_link_type === "yardit_vendor" ? (
+                    <>
+                      <div className="flex items-center gap-3">
+                        {campaign.vendor_logo ? (
+                          <img src={campaign.vendor_logo} className="w-12 h-12 rounded-xl object-cover border border-slate-200" alt={campaign.vendor_business_name} />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-[#5DADA5]/15 flex items-center justify-center">
+                            <Store className="w-6 h-6 text-[#5DADA5]" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-bold text-[#2C4F4E]">{campaign.vendor_business_name}</p>
+                          {campaign.vendor_description && (
+                            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{campaign.vendor_description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {campaign.vendor_page_url && (
+                          <a
+                            href={campaign.vendor_page_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#5DADA5] hover:bg-[#4A9B93] text-white text-sm font-semibold transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            View Vendor Page
+                          </a>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 text-center italic">
+                        Thank you to <span className="font-medium not-italic">{campaign.vendor_business_name}</span> for supporting local Yardit hunters and sellers.
+                      </p>
+                    </>
+                  ) : campaign.business_link_type === "external_business" ? (
+                    <>
+                      <div className="flex items-center gap-3">
+                        {campaign.external_business_logo ? (
+                          <img src={campaign.external_business_logo} className="w-12 h-12 rounded-xl object-cover border border-slate-200" alt={campaign.external_business_name} />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-[#F4A849]/15 flex items-center justify-center">
+                            <Building2 className="w-6 h-6 text-[#F4A849]" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-bold text-[#2C4F4E]">{campaign.external_business_name}</p>
+                          {campaign.external_business_description && (
+                            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{campaign.external_business_description}</p>
+                          )}
+                        </div>
+                      </div>
+                      {campaign.external_business_address && (
+                        <div className="flex items-start gap-2 text-sm text-slate-600">
+                          <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                          <span>{campaign.external_business_address}</span>
+                        </div>
+                      )}
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {campaign.external_business_address && (
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(campaign.external_business_address)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-[#2C4F4E]/20 bg-white hover:bg-slate-50 text-[#2C4F4E] text-sm font-semibold transition-colors"
+                          >
+                            <MapPin className="w-4 h-4" />
+                            Get Directions
+                          </a>
+                        )}
+                        {campaign.external_business_website && (
+                          <a
+                            href={campaign.external_business_website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-[#2C4F4E]/20 bg-white hover:bg-slate-50 text-[#2C4F4E] text-sm font-semibold transition-colors"
+                          >
+                            <Globe className="w-4 h-4" />
+                            Visit Website
+                          </a>
+                        )}
+                        {campaign.external_business_phone && (
+                          <a
+                            href={`tel:${campaign.external_business_phone}`}
+                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-[#2C4F4E]/20 bg-white hover:bg-slate-50 text-[#2C4F4E] text-sm font-semibold transition-colors"
+                          >
+                            <Phone className="w-4 h-4" />
+                            Call
+                          </a>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 text-center italic">
+                        Thank you to <span className="font-medium not-italic">{campaign.external_business_name}</span> for supporting the local Yardit community.
+                      </p>
+                    </>
+                  ) : null}
+                </div>
+              </div>
             )}
 
             {/* Terms */}

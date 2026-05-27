@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Edit, Pause, Play, Trash2, Gift, Users } from "lucide-react";
+import { Plus, Edit, Pause, Play, Trash2, Gift, Users, Store, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import VoucherCampaignModal from "./VoucherCampaignModal";
@@ -75,13 +75,19 @@ export default function VoucherCampaignsTab({ adminUser }) {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b">
               <tr>
-                {["Campaign","Reward","Business","Status","Issued","Dates","Actions"].map(h => (
+                {["Campaign","Reward","Linked Business","Vendor?","Status","Issued","Dates","Actions"].map(h => (
                   <th key={h} className="px-3 py-2 text-left text-slate-600 font-semibold text-xs whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map(c => (
+              {filtered.map(c => {
+                const linkedName = c.business_link_type === "yardit_vendor"
+                  ? c.vendor_business_name
+                  : c.business_link_type === "external_business"
+                    ? c.external_business_name
+                    : c.business_name;
+                return (
                 <tr key={c.id} className="hover:bg-slate-50">
                   <td className="px-3 py-2">
                     <p className="font-semibold text-[#2C4F4E]">{c.campaign_name}</p>
@@ -91,7 +97,20 @@ export default function VoucherCampaignsTab({ adminUser }) {
                     <p className="font-medium">{c.reward_title}</p>
                     <p className="text-xs text-slate-400">{c.reward_value}</p>
                   </td>
-                  <td className="px-3 py-2 text-xs text-slate-600">{c.business_name || "—"}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600">
+                    <div className="flex items-center gap-1">
+                      {c.business_link_type === "yardit_vendor" && <Store className="w-3 h-3 text-[#5DADA5] shrink-0" />}
+                      {c.business_link_type === "external_business" && <Building2 className="w-3 h-3 text-[#F4A849] shrink-0" />}
+                      <span>{linkedName || "—"}</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    {c.business_link_type === "yardit_vendor"
+                      ? <Badge className="text-xs bg-green-100 text-green-800 border-green-200">Yes</Badge>
+                      : c.business_link_type === "external_business"
+                        ? <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-200">External</Badge>
+                        : <span className="text-xs text-slate-400">—</span>}
+                  </td>
                   <td className="px-3 py-2"><Badge className={`text-xs ${STATUS_COLORS[c.status] || ""}`}>{c.status}</Badge></td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1 text-xs">
@@ -112,7 +131,8 @@ export default function VoucherCampaignsTab({ adminUser }) {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
