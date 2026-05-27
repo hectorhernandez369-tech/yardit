@@ -117,7 +117,7 @@ export default function VoucherCampaignsTab({ adminUser }) {
                    )}
                    {c.business_link_type === "external_business" && (
                      <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                       <Building2 className="w-3 h-3" /> External
+                       <Building2 className="w-3 h-3" /> Not on Yardit Yet
                      </span>
                    )}
                    {!c.business_link_type && <span className="text-xs text-slate-400">—</span>}
@@ -171,7 +171,7 @@ export default function VoucherCampaignsTab({ adminUser }) {
                       <span className="inline-flex items-center gap-1 text-[10px] bg-[#5DADA5]/10 text-[#2C4F4E] px-2 py-0.5 rounded-full"><Store className="w-3 h-3" /> Yardit</span>
                     )}
                     {c.business_link_type === "external_business" && (
-                      <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full"><Building2 className="w-3 h-3" /> External</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full"><Building2 className="w-3 h-3" /> Not on Yardit Yet</span>
                     )}
                   </div>
                 </div>

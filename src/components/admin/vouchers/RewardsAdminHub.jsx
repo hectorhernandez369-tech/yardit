@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Gift, BarChart2, CheckCircle2, ShieldAlert, Building2, Tag } from "lucide-react";
+import { Gift, BarChart2, CheckCircle2, ShieldAlert, Tag } from "lucide-react";
 import ResidentialPromoCodesTab from "../residential-promos/ResidentialPromoCodesTab";
 import VoucherCampaignsTab from "./VoucherCampaignsTab";
 import VoucherAnalyticsTab from "./VoucherAnalyticsTab";
 import RedemptionStatsTab from "./RedemptionStatsTab";
 import FraudHoldsTab from "./FraudHoldsTab";
-import RedemptionBusinessesTab from "./RedemptionBusinessesTab";
 
 export default function RewardsAdminHub({ adminUser }) {
   const [tab, setTab] = useState("promo_codes");
@@ -21,7 +20,7 @@ export default function RewardsAdminHub({ adminUser }) {
           </div>
           <div>
             <h1 className="text-lg font-bold">Promotions & Rewards</h1>
-            <p className="text-sm text-white/70">Promo codes · QR vouchers · Analytics · Fraud · Businesses</p>
+            <p className="text-sm text-white/70">Promo codes · QR vouchers · Analytics · Fraud</p>
           </div>
         </div>
       </div>
@@ -43,9 +42,6 @@ export default function RewardsAdminHub({ adminUser }) {
           <TabsTrigger value="fraud" className="flex items-center gap-1.5 text-xs whitespace-nowrap">
             <ShieldAlert className="w-3.5 h-3.5" />Fraud Holds
           </TabsTrigger>
-          <TabsTrigger value="businesses" className="flex items-center gap-1.5 text-xs whitespace-nowrap">
-            <Building2 className="w-3.5 h-3.5" />Redemption Businesses
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="promo_codes" className="mt-4">
@@ -62,9 +58,6 @@ export default function RewardsAdminHub({ adminUser }) {
         </TabsContent>
         <TabsContent value="fraud" className="mt-4">
           <FraudHoldsTab adminUser={adminUser} />
-        </TabsContent>
-        <TabsContent value="businesses" className="mt-4">
-          <RedemptionBusinessesTab adminUser={adminUser} />
         </TabsContent>
       </Tabs>
     </div>

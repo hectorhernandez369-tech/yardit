@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import VendorPickerSearch from "./VendorPickerSearch";
-import { Store, Building2 } from "lucide-react";
+import { Store, Building2, Sparkles } from "lucide-react";
 
 const TRIGGER_TYPES = [
   { group: "🏠 Lister", items: [
@@ -148,7 +148,7 @@ export default function VoucherCampaignModal({ open, onClose, editRecord, adminU
             <div className="grid grid-cols-2 gap-3">
               {[
                 { value: "yardit_vendor", label: "Yardit Vendor", sub: "Already on Yardit", Icon: Store },
-                { value: "external_business", label: "Not a Yardit Vendor Yet", sub: "Enter manually", Icon: Building2 },
+                { value: "external_business", label: "Not on Yardit Yet", sub: "Business name only", Icon: Building2 },
               ].map(({ value, label, sub, Icon }) => (
                 <button
                   key={value}
@@ -187,36 +187,41 @@ export default function VoucherCampaignModal({ open, onClose, editRecord, adminU
                 {form.vendor_business_name && (
                   <p className="text-xs text-[#5DADA5] font-medium">✓ Linked: {form.vendor_business_name}</p>
                 )}
+                <p className="text-xs text-slate-500 bg-[#5DADA5]/8 border border-[#5DADA5]/20 rounded-lg px-3 py-2">
+                  Yardit vendors receive full recognition, vendor page traffic, and customer discovery from voucher rewards.
+                </p>
               </div>
             )}
 
             {form.business_link_type === "external_business" && (
               <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label>Business Name *</Label>
-                    <Input value={form.external_business_name} onChange={e => set("external_business_name", e.target.value)} placeholder="e.g. Brew Yard Café" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Phone Number</Label>
-                    <Input value={form.external_business_phone} onChange={e => set("external_business_phone", e.target.value)} placeholder="(555) 555-5555" />
-                  </div>
+                <div className="space-y-1">
+                  <Label>Business Name *</Label>
+                  <Input value={form.external_business_name} onChange={e => set("external_business_name", e.target.value)} placeholder="e.g. Brew Yard Café" />
                 </div>
                 <div className="space-y-1">
-                  <Label>Business Logo URL</Label>
+                  <Label>Business Logo URL <span className="text-slate-400 font-normal">(optional)</span></Label>
                   <Input value={form.external_business_logo} onChange={e => set("external_business_logo", e.target.value)} placeholder="https://..." />
                 </div>
-                <div className="space-y-1">
-                  <Label>Short Description</Label>
-                  <Textarea rows={2} value={form.external_business_description} onChange={e => set("external_business_description", e.target.value)} placeholder="A short description shown on the reward card..." />
-                </div>
-                <div className="space-y-1">
-                  <Label>Address</Label>
-                  <Input value={form.external_business_address} onChange={e => set("external_business_address", e.target.value)} placeholder="123 Main St, Lindsay, CA 93247" />
-                </div>
-                <div className="space-y-1">
-                  <Label>Website URL</Label>
-                  <Input value={form.external_business_website} onChange={e => set("external_business_website", e.target.value)} placeholder="https://..." />
+
+                {/* Vendor Acquisition Callout */}
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-800">
+                      Want this business to get full recognition, a public vendor page, map visibility, and customer discovery? Invite them to become a Yardit Vendor.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const name = form.external_business_name || "this business";
+                      window.alert(`Invite "${name}" to Yardit\n\nShare your Yardit vendor signup link with them:\nhttps://yardit.com/VendorSignup\n\n(Full invite system coming soon.)`);
+                    }}
+                    className="text-xs font-semibold text-amber-700 border border-amber-300 bg-white hover:bg-amber-50 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Invite Business to Yardit
+                  </button>
                 </div>
               </div>
             )}

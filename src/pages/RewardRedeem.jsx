@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format, isPast } from "date-fns";
-import { Gift, MapPin, Clock, AlertCircle, CheckCircle2, ShieldAlert, Copy, Loader2, Store, Globe, Phone, ExternalLink } from "lucide-react";
+import { Gift, MapPin, Clock, AlertCircle, CheckCircle2, ShieldAlert, Copy, Loader2, Store } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS_INFO = {
@@ -302,14 +302,8 @@ export default function RewardRedeem() {
                 : campaign.external_business_name;
               const description = isVendor
                 ? (linkedVendor?.description || campaign.vendor_description)
-                : campaign.external_business_description;
-              const address = isVendor
-                ? campaign.vendor_address
-                : campaign.external_business_address;
-              const vendorPageUrl = campaign.vendor_page_url;
-              const website = !isVendor ? campaign.external_business_website : null;
-              const phone = !isVendor ? campaign.external_business_phone : null;
-              const mapsUrl = address ? `https://maps.google.com/?q=${encodeURIComponent(address)}` : null;
+                : null;
+              const vendorPageUrl = isVendor ? campaign.vendor_page_url : null;
 
               if (!name) return null;
 
@@ -338,40 +332,14 @@ export default function RewardRedeem() {
                       </div>
                     </div>
 
-                    {address && (
-                      <div className="flex items-start gap-2 text-sm text-slate-500">
-                        <MapPin className="w-4 h-4 text-[#5DADA5] shrink-0 mt-0.5" />
-                        <span>{address}</span>
-                      </div>
-                    )}
-
-                    {phone && (
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <Phone className="w-4 h-4 text-[#5DADA5] shrink-0" />
-                        <a href={`tel:${phone}`} className="hover:text-[#5DADA5]">{phone}</a>
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {isVendor && vendorPageUrl && (
+                    {isVendor && vendorPageUrl && (
+                      <div className="flex flex-wrap gap-2 pt-1">
                         <a href={vendorPageUrl} target="_blank" rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#5DADA5] hover:bg-[#4A9B93] text-white text-sm font-semibold transition-colors">
                           <Store className="w-4 h-4" /> View Vendor Page
                         </a>
-                      )}
-                      {!isVendor && website && (
-                        <a href={website} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold transition-colors">
-                          <Globe className="w-4 h-4" /> Visit Website
-                        </a>
-                      )}
-                      {mapsUrl && (
-                        <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border-2 border-[#2C4F4E] text-[#2C4F4E] hover:bg-[#F3E6CF] text-sm font-semibold transition-colors">
-                          <MapPin className="w-4 h-4" /> Get Directions
-                        </a>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     {/* Thank you copy */}
                     <p className="text-xs text-slate-400 italic border-t border-slate-100 pt-3">
@@ -380,6 +348,13 @@ export default function RewardRedeem() {
                         : `Thank you to ${name} for supporting the local Yardit community.`
                       }
                     </p>
+
+                    {/* For external businesses — Yardit promo message */}
+                    {!isVendor && (
+                      <p className="text-xs text-slate-400 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                        Businesses can unlock full recognition and customer discovery with a Yardit Vendor account.
+                      </p>
+                    )}
                   </div>
                 </div>
               );
