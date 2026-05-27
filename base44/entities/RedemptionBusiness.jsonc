@@ -1,0 +1,47 @@
+{
+  "name": "RedemptionBusiness",
+  "type": "object",
+  "properties": {
+    "business_name": {
+      "type": "string"
+    },
+    "logo": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "redemption_radius_feet": {
+      "type": "number",
+      "default": 500
+    },
+    "contact_name": {
+      "type": "string"
+    },
+    "contact_email": {
+      "type": "string"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "business_name",
+    "active"
+  ]
+}

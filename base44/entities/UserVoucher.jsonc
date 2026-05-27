@@ -1,0 +1,104 @@
+{
+  "name": "UserVoucher",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "campaign_id": {
+      "type": "string"
+    },
+    "qr_token": {
+      "type": "string"
+    },
+    "promo_code": {
+      "type": "string"
+    },
+    "qr_image_url": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "on_hold",
+        "redeemed",
+        "expired",
+        "revoked",
+        "canceled"
+      ],
+      "default": "pending"
+    },
+    "reward_title": {
+      "type": "string"
+    },
+    "reward_description": {
+      "type": "string"
+    },
+    "business_name": {
+      "type": "string"
+    },
+    "campaign_image": {
+      "type": "string"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expiration_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "redeemed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revoked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revoked_reason": {
+      "type": "string"
+    },
+    "on_hold_reason": {
+      "type": "string"
+    },
+    "source_trigger_type": {
+      "type": "string"
+    },
+    "source_reference_id": {
+      "type": "string"
+    },
+    "redemption_business_id": {
+      "type": "string"
+    },
+    "redemption_location": {
+      "type": "string"
+    },
+    "redemption_device_info": {
+      "type": "string"
+    },
+    "redemption_ip": {
+      "type": "string"
+    },
+    "verification_hash": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_id",
+    "campaign_id",
+    "qr_token",
+    "promo_code",
+    "status"
+  ]
+}

@@ -5,7 +5,7 @@ import ListingManagement from "./ListingManagement";
 import UserManagement from "./UserManagement";
 import SystemSettings from "./SystemSettings";
 import JTHTab from "./JTHTab";
-import ResidentialPromoCodesTab from "./residential-promos/ResidentialPromoCodesTab";
+import RewardsAdminHub from "./vouchers/RewardsAdminHub";
 
 // Pure Residential Admin Dashboard — no vendor data mixed in
 export default function AdminLiteDashboard({ user }) {
@@ -24,7 +24,7 @@ export default function AdminLiteDashboard({ user }) {
         <TabsList className="flex flex-wrap gap-1 h-auto w-full p-1">
           <TabsTrigger value="listings" className="whitespace-nowrap">Listings</TabsTrigger>
           <TabsTrigger value="users" className="whitespace-nowrap">Users</TabsTrigger>
-          <TabsTrigger value="promos" className="whitespace-nowrap">Promo Codes</TabsTrigger>
+          <TabsTrigger value="promos" className="whitespace-nowrap">Promotions & Rewards</TabsTrigger>
           <TabsTrigger value="jth" className="whitespace-nowrap">Join the Hunt</TabsTrigger>
           <TabsTrigger value="settings" className="whitespace-nowrap">Settings</TabsTrigger>
         </TabsList>
@@ -39,7 +39,7 @@ export default function AdminLiteDashboard({ user }) {
 
         <TabsContent value="promos">
           <div className="mt-4">
-            <ResidentialPromoCodesTab adminUser={user} />
+            <RewardsAdminHub adminUser={user} />
           </div>
         </TabsContent>
 

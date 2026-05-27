@@ -1,0 +1,46 @@
+{
+  "name": "VoucherTrigger",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string"
+    },
+    "trigger_type": {
+      "type": "string",
+      "enum": [
+        "first_free_listing",
+        "first_featured_listing",
+        "first_premium_listing",
+        "first_weekend_listing",
+        "completed_listing",
+        "hosted_x_listings",
+        "hosted_x_featured",
+        "hosted_x_premium",
+        "consecutive_weekends",
+        "saved_x_hunt_map",
+        "checked_into_x_listings",
+        "completed_x_routes",
+        "checked_into_featured",
+        "checked_into_premium",
+        "completed_neighborhood_sale_route",
+        "hunt_streak",
+        "referral",
+        "social_share",
+        "hidden_reward",
+        "milestone_reward"
+      ]
+    },
+    "trigger_threshold": {
+      "type": "number",
+      "default": 1
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "campaign_id",
+    "trigger_type"
+  ]
+}

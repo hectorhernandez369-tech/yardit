@@ -1,0 +1,130 @@
+{
+  "name": "VoucherCampaign",
+  "type": "object",
+  "properties": {
+    "campaign_name": {
+      "type": "string"
+    },
+    "internal_notes": {
+      "type": "string"
+    },
+    "public_description": {
+      "type": "string"
+    },
+    "terms_and_conditions": {
+      "type": "string"
+    },
+    "redemption_instructions": {
+      "type": "string"
+    },
+    "reward_title": {
+      "type": "string"
+    },
+    "reward_type": {
+      "type": "string",
+      "enum": [
+        "discount",
+        "free_item",
+        "experience",
+        "cash_back",
+        "credit",
+        "other"
+      ],
+      "default": "discount"
+    },
+    "reward_value": {
+      "type": "string"
+    },
+    "business_name": {
+      "type": "string"
+    },
+    "campaign_image": {
+      "type": "string"
+    },
+    "qr_logo": {
+      "type": "string"
+    },
+    "promo_prefix": {
+      "type": "string",
+      "default": "YH"
+    },
+    "distribution_limit": {
+      "type": "number"
+    },
+    "issued_count": {
+      "type": "number",
+      "default": 0
+    },
+    "redemption_limit_per_user": {
+      "type": "number",
+      "default": 1
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activation_delay_hours": {
+      "type": "number",
+      "default": 0
+    },
+    "auto_hold_on_report": {
+      "type": "boolean",
+      "default": true
+    },
+    "verified_business_only": {
+      "type": "boolean",
+      "default": false
+    },
+    "redemption_radius_feet": {
+      "type": "number"
+    },
+    "geographic_scope_type": {
+      "type": "string",
+      "enum": [
+        "town",
+        "zip",
+        "county",
+        "state",
+        "radius",
+        "global"
+      ],
+      "default": "global"
+    },
+    "geographic_scope_values": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "paused",
+        "ended"
+      ],
+      "default": "draft"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "campaign_name",
+    "reward_title",
+    "status"
+  ]
+}

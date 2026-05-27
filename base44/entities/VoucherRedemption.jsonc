@@ -1,0 +1,40 @@
+{
+  "name": "VoucherRedemption",
+  "type": "object",
+  "properties": {
+    "voucher_id": {
+      "type": "string"
+    },
+    "campaign_id": {
+      "type": "string"
+    },
+    "redeemed_by_user": {
+      "type": "string"
+    },
+    "redeemed_by_business": {
+      "type": "string"
+    },
+    "redeemed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "location": {
+      "type": "string"
+    },
+    "device_info": {
+      "type": "string"
+    },
+    "ip_address": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "voucher_id",
+    "campaign_id",
+    "redeemed_by_user",
+    "redeemed_at"
+  ]
+}
