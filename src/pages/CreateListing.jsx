@@ -552,7 +552,7 @@ export default function CreateListingPage() {
     return hasDateConflict(startDate, endDate, freshReserved);
   };
 
-  const startPaidListingCheckout = async () => {
+  const startPaidListingCheckout = async (promoData = null) => {
     if (window.self !== window.top) {
       console.warn("Stripe checkout blocked inside iframe preview");
       setPaymentError("Stripe checkout must be tested from the published app, not the Base44 preview.");
@@ -1311,7 +1311,7 @@ export default function CreateListingPage() {
     createListingMutation.mutate(payload);
   };
 
-  const handlePaymentStepSubmit = async () => {
+  const handlePaymentStepSubmit = async (promoData = null) => {
     if (isGlobalDemoMode) {
       setPaymentError("");
       setIsStartingPayment(true);
@@ -1322,7 +1322,58 @@ export default function CreateListingPage() {
       return;
     }
 
-    await startPaidListingCheckout();
+    // If promo makes it completely free, skip Stripe entirely
+    if (promoData?.isFree && promoData?.promoResult?.valid) {
+      setPaymentError("");
+      setIsStartingPayment(true);
+      try {
+        // Create a completed redemption record
+        const pr = promoData.promoResult;
+        const tier = formData.tier || formData.event_tier;
+        const originalCents = formData.listingType === "event"
+          ? (EVENT_TIER_PRICES[formData.event_tier || formData.tier] || 0)
+          : (RESIDENTIAL_TIER_PRICES[tier] || 0);
+        await base44.entities.ResidentialPromoRedemption.create({
+          promo_code_id: pr.promoCode?.id || "",
+          code: pr.promoCode?.code || "",
+          user_id: user?.id || "",
+          user_email: user?.email || "",
+          original_amount: originalCents / 100,
+          discount_percent_applied: pr.discountPercent,
+          discount_amount: pr.discountAmount,
+          final_amount: 0,
+          discount_bucket: pr.discountBucket,
+          location_state: formData.state || "",
+          location_city: formData.city || "",
+          location_zip: formData.zip || "",
+          redeemed_at: new Date().toISOString(),
+          status: "completed",
+        });
+
+        // Increment usage counts
+        const updatedPromo = await base44.entities.ResidentialPromoCode.filter({ code: pr.promoCode?.code });
+        if (updatedPromo?.[0]?.id) {
+          const p = updatedPromo[0];
+          const updatePayload = {
+            total_used_count: (p.total_used_count || 0) + 1,
+            updated_at: new Date().toISOString(),
+          };
+          if (pr.discountBucket === "early") {
+            updatePayload.early_discount_used_count = (p.early_discount_used_count || 0) + 1;
+          }
+          await base44.entities.ResidentialPromoCode.update(p.id, updatePayload);
+        }
+
+        toast.success("Promo applied — listing is free!");
+        executeSubmit("paid_success");
+      } catch (err) {
+        setIsStartingPayment(false);
+        toast.error(err?.message || "Failed to apply promo. Please try again.");
+      }
+      return;
+    }
+
+    await startPaidListingCheckout(promoData);
   };
 
   const handleNeighborhoodSetupSubmit = async () => {
@@ -1731,6 +1782,7 @@ export default function CreateListingPage() {
                   setStep(3);
                 }}
                 onPay={handlePaymentStepSubmit}
+                userId={user?.id}
               />
               )
             )}
@@ -1750,6 +1802,7 @@ export default function CreateListingPage() {
                   setStep(4);
                 }}
                 onPay={handlePaymentStepSubmit}
+                userId={user?.id}
               />
               )
             )}

@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CreditCard, Loader2 } from "lucide-react";
+import { AlertTriangle, CreditCard, Loader2, Tag } from "lucide-react";
 
 function money(amount) {
   return `$${Number(amount || 0).toFixed(2)}`;
@@ -52,6 +52,8 @@ export default function ReviewPayContent({
   onPay,
   backLabel = "Back",
   continueLabel = "Continue to Stripe",
+  promoResult,
+  promoInputSlot,
 }) {
   const key = purchaseType || tier;
   const resolvedName = purchaseName || `${titleCase(tier)} Listing`;
@@ -68,11 +70,38 @@ export default function ReviewPayContent({
             {badge && <Badge className="mt-2 bg-[#F4A849] text-[#2C4F4E]">{badge}</Badge>}
           </div>
           <div className="shrink-0 rounded-xl bg-white/15 px-3 py-2 text-right">
-            <p className="text-xs text-white/75">Price</p>
-            <p className="font-bold">{money(price)}</p>
+            {promoResult ? (
+              <>
+                <p className="text-xs text-white/75 line-through">{money(price)}</p>
+                <p className="font-bold text-[#F4A849]">{money(promoResult.finalAmount)}</p>
+                <p className="text-[10px] text-white/60">after promo</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-white/75">Price</p>
+                <p className="font-bold">{money(price)}</p>
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Promo code input slot — injected by parent */}
+      {promoInputSlot && promoInputSlot}
+
+      {/* Promo discount summary */}
+      {promoResult && (
+        <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm space-y-1">
+          <div className="flex items-center gap-2 font-semibold text-green-800">
+            <Tag className="w-4 h-4" /> Promo Applied: {promoResult.promoCode?.code}
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-xs text-green-700 mt-2">
+            <div><p className="text-slate-500">Original</p><p className="font-medium">{money(price)}</p></div>
+            <div><p className="text-slate-500">Discount</p><p className="font-medium text-red-600">-{money(promoResult.discountAmount)}</p></div>
+            <div><p className="text-slate-500">Total Due</p><p className="font-bold text-green-900">{money(promoResult.finalAmount)}</p></div>
+          </div>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">

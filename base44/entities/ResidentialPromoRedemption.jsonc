@@ -1,0 +1,84 @@
+{
+  "name": "ResidentialPromoRedemption",
+  "type": "object",
+  "properties": {
+    "promo_code_id": {
+      "type": "string"
+    },
+    "code": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "listing_id": {
+      "type": "string"
+    },
+    "payment_transaction_id": {
+      "type": "string"
+    },
+    "original_amount": {
+      "type": "number"
+    },
+    "discount_percent_applied": {
+      "type": "number"
+    },
+    "discount_amount": {
+      "type": "number"
+    },
+    "final_amount": {
+      "type": "number"
+    },
+    "discount_bucket": {
+      "type": "string",
+      "enum": [
+        "early",
+        "default"
+      ]
+    },
+    "location_state": {
+      "type": "string"
+    },
+    "location_county": {
+      "type": "string"
+    },
+    "location_city": {
+      "type": "string"
+    },
+    "location_town": {
+      "type": "string"
+    },
+    "location_zip": {
+      "type": "string"
+    },
+    "redeemed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "voided"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "promo_code_id",
+    "code",
+    "user_id",
+    "user_email",
+    "original_amount",
+    "discount_percent_applied",
+    "discount_amount",
+    "final_amount",
+    "discount_bucket",
+    "redeemed_at",
+    "status"
+  ]
+}

@@ -1,13 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@18.5.0';
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-  apiVersion: '2025-02-24.acacia',
-});
-
-const RESIDENTIAL_PRICES = { featured: 499, premium: 799 };
 const nowIso = () => new Date().toISOString();
 const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
+
+const RESIDENTIAL_BASE_PRICES = { featured: 499, premium: 799 };
 
 async function webhookConfirmed(base44, sessionId) {
   const records = await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_checkout_session_id: sessionId });
@@ -16,10 +13,12 @@ async function webhookConfirmed(base44, sessionId) {
 
 Deno.serve(async (req) => {
   try {
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', { apiVersion: '2025-02-24.acacia' });
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
     const action = body?.action || 'create';
 
+    // ── VERIFY ─────────────────────────────────────────────────────
     if (action === 'verify') {
       const sessionId = body?.sessionId || body?.session_id;
       if (!sessionId) return Response.json({ error: 'Missing sessionId' }, { status: 400 });
@@ -38,20 +37,82 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── FREE PROMO (no Stripe needed) ───────────────────────────────
+    if (action === 'complete_free_promo') {
+      const { listing_id, promo_code_id, promo_code, discount_percent, discount_amount, original_amount, discount_bucket, user_id, user_email } = body;
+
+      if (!listing_id || !promo_code_id) {
+        return Response.json({ error: 'Missing required fields for free promo' }, { status: 400 });
+      }
+
+      // Create completed redemption record
+      await base44.asServiceRole.entities.ResidentialPromoRedemption.create({
+        promo_code_id,
+        code: promo_code,
+        user_id: user_id || '',
+        user_email: user_email || '',
+        listing_id,
+        original_amount: Number(original_amount) || 0,
+        discount_percent_applied: Number(discount_percent) || 0,
+        discount_amount: Number(discount_amount) || 0,
+        final_amount: 0,
+        discount_bucket: discount_bucket || 'default',
+        redeemed_at: nowIso(),
+        status: 'completed',
+      });
+
+      // Increment promo usage counts
+      const promoCodes = await base44.asServiceRole.entities.ResidentialPromoCode.filter({ id: promo_code_id });
+      const pc = promoCodes?.[0];
+      if (pc) {
+        const updates = { total_used_count: (pc.total_used_count || 0) + 1, updated_at: nowIso() };
+        if (discount_bucket === 'early') {
+          updates.early_discount_used_count = (pc.early_discount_used_count || 0) + 1;
+        }
+        await base44.asServiceRole.entities.ResidentialPromoCode.update(pc.id, updates);
+      }
+
+      // Update listing to active/scheduled (payment_status = paid)
+      await base44.asServiceRole.entities.Listing.update(listing_id, {
+        payment_status: 'paid',
+        status: 'scheduled',
+      });
+
+      return Response.json({ ok: true, free_promo: true });
+    }
+
+    // ── CREATE STRIPE CHECKOUT ──────────────────────────────────────
     const tier = String(body?.tier || 'featured').toLowerCase();
-    const amount = Number(body?.amount || body?.amount_cents || RESIDENTIAL_PRICES[tier] || 0);
+    const basePrice = RESIDENTIAL_BASE_PRICES[tier];
+
+    if (!basePrice) {
+      return Response.json({ error: 'Invalid residential tier' }, { status: 400 });
+    }
+
+    // Promo fields
+    const promoCodeId = body?.promo_code_id || null;
+    const promoCode = body?.promo_code || null;
+    const promoDiscountPercent = Number(body?.promo_discount_percent || 0);
+    const promoDiscountBucket = body?.promo_discount_bucket || null;
+    const promoDiscountAmount = Number(body?.promo_discount_amount || 0);
+    const promoFinalAmount = body?.promo_final_amount != null ? Number(body.promo_final_amount) : null;
+
+    // Determine final amount
+    const amount = promoFinalAmount != null ? promoFinalAmount : basePrice;
+
     const successUrl = String(body?.successUrl || body?.return_url || '');
     const cancelUrl = String(body?.cancelUrl || body?.return_url || '');
 
-    if (!amount || amount < 50 || !successUrl || !cancelUrl || !RESIDENTIAL_PRICES[tier]) {
-      return Response.json({ error: 'Missing checkout details' }, { status: 400 });
+    if (!successUrl || !cancelUrl) {
+      return Response.json({ error: 'Missing checkout URLs' }, { status: 400 });
     }
-    if (amount !== RESIDENTIAL_PRICES[tier]) {
-      return Response.json({ error: 'Invalid residential tier amount' }, { status: 400 });
+    if (amount < 50) {
+      return Response.json({ error: 'Amount too small for Stripe checkout' }, { status: 400 });
     }
 
     const successWithParams = `${successUrl}${successUrl.includes('?') ? '&' : '?'}stripePayment=success&session_id={CHECKOUT_SESSION_ID}`;
     const cancelWithParams = `${cancelUrl}${cancelUrl.includes('?') ? '&' : '?'}stripePayment=cancel`;
+
     const metadata = {
       base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
       listing_id: body?.listing_id || '',
@@ -61,6 +122,14 @@ Deno.serve(async (req) => {
       purpose: 'residential_listing_payment',
       transaction_type: 'listing_payment',
       final_status: 'scheduled',
+      ...(promoCodeId && {
+        promo_code_id: promoCodeId,
+        promo_code: promoCode,
+        discount_percent: String(promoDiscountPercent),
+        discount_bucket: promoDiscountBucket,
+        original_amount: String(basePrice),
+        promo_discount_amount: String(promoDiscountAmount),
+      }),
     };
 
     const session = await stripe.checkout.sessions.create({
@@ -70,7 +139,12 @@ Deno.serve(async (req) => {
       line_items: [{
         price_data: {
           currency: 'usd',
-          product_data: { name: `Yardit ${tier} Listing`, description: 'Residential paid listing checkout' },
+          product_data: {
+            name: `Yardit ${tier} Listing${promoCode ? ` (${promoCode})` : ''}`,
+            description: promoCode
+              ? `${promoDiscountPercent}% promo discount applied — original $${(basePrice / 100).toFixed(2)}`
+              : 'Residential paid listing checkout',
+          },
           unit_amount: amount,
         },
         quantity: 1,
@@ -81,6 +155,25 @@ Deno.serve(async (req) => {
       payment_intent_data: { metadata },
     });
 
+    // Create pending promo redemption if promo applied
+    if (promoCodeId) {
+      await base44.asServiceRole.entities.ResidentialPromoRedemption.create({
+        promo_code_id: promoCodeId,
+        code: promoCode,
+        user_id: body?.user_id || '',
+        user_email: body?.customer_email || '',
+        listing_id: body?.listing_id || '',
+        original_amount: basePrice,
+        discount_percent_applied: promoDiscountPercent,
+        discount_amount: promoDiscountAmount,
+        final_amount: amount,
+        discount_bucket: promoDiscountBucket || 'default',
+        redeemed_at: nowIso(),
+        status: 'pending',
+      });
+    }
+
+    // Record payment transaction
     await base44.asServiceRole.entities.PaymentTransaction.create({
       stripe_event_id: `checkout_created_${session.id}`,
       event_type: 'checkout.session.created',
@@ -99,7 +192,13 @@ Deno.serve(async (req) => {
       processed_at: nowIso(),
     });
 
-    return Response.json({ ok: true, checkout_url: session.url, checkoutUrl: session.url, session_id: session.id, sessionId: session.id });
+    return Response.json({
+      ok: true,
+      checkout_url: session.url,
+      checkoutUrl: session.url,
+      session_id: session.id,
+      sessionId: session.id,
+    });
   } catch (error) {
     console.error('Residential Stripe checkout failed:', error?.message || error);
     return Response.json({ error: error?.message || 'Stripe checkout failed' }, { status: 500 });
