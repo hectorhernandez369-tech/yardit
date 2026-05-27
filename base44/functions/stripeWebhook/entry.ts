@@ -125,6 +125,47 @@ async function getExpandedMetadata(object) {
   return metadata;
 }
 
+async function completePromoRedemption(base44, metadata, sessionId) {
+  const promoCodeId = metadata.promo_code_id;
+  if (!promoCodeId) return;
+
+  try {
+    // Find pending redemption for this listing+promo
+    const redemptions = await base44.asServiceRole.entities.ResidentialPromoRedemption.filter({
+      promo_code_id: promoCodeId,
+      listing_id: metadata.listing_id || '',
+      status: 'pending',
+    });
+
+    const redemption = redemptions?.[0];
+    if (!redemption) return;
+
+    // Mark completed
+    await base44.asServiceRole.entities.ResidentialPromoRedemption.update(redemption.id, {
+      status: 'completed',
+      payment_transaction_id: sessionId || '',
+    });
+
+    // Increment promo usage counts
+    const promoCodes = await base44.asServiceRole.entities.ResidentialPromoCode.filter({ id: promoCodeId });
+    const pc = promoCodes?.[0];
+    if (pc) {
+      const updates = {
+        total_used_count: (pc.total_used_count || 0) + 1,
+        updated_at: new Date().toISOString(),
+      };
+      if (redemption.discount_bucket === 'early') {
+        updates.early_discount_used_count = (pc.early_discount_used_count || 0) + 1;
+      }
+      await base44.asServiceRole.entities.ResidentialPromoCode.update(pc.id, updates);
+    }
+
+    console.log(`[completePromoRedemption] Promo ${metadata.promo_code} redemption completed for listing ${metadata.listing_id}`);
+  } catch (e) {
+    console.error('[completePromoRedemption] Error:', e?.message);
+  }
+}
+
 async function updateListing(base44, metadata, object, transactionType) {
   if (!metadata.listing_id) return;
 
@@ -204,6 +245,10 @@ async function processVerifiedEvent(base44, event) {
 
     if (transactionType === 'listing_payment' || transactionType === 'listing_upgrade') {
       await updateListing(base44, metadata, object, transactionType);
+      // Complete any pending promo redemption
+      if (metadata.promo_code_id) {
+        await completePromoRedemption(base44, metadata, object.id);
+      }
     }
 
     if (transactionType === 'vendor_event_promotion_upgrade') {

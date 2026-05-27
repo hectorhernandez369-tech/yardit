@@ -552,7 +552,7 @@ export default function CreateListingPage() {
     return hasDateConflict(startDate, endDate, freshReserved);
   };
 
-  const startPaidListingCheckout = async (promoData = null) => {
+  const startPaidListingCheckout = async (promoResult = null) => {
     if (window.self !== window.top) {
       console.warn("Stripe checkout blocked inside iframe preview");
       setPaymentError("Stripe checkout must be tested from the published app, not the Base44 preview.");
@@ -574,18 +574,23 @@ export default function CreateListingPage() {
       localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({ formData }));
 
       const returnUrl = `${window.location.origin}${createPageUrl("CreateListing")}`;
-      const response = await base44.functions.invoke("createResidentialListingCheckout", {
-        amount_cents: amountCents,
+      const promoPayload = promoResult ? {
+        promo_code_id: promoResult.promoCode?.id,
+        promo_code: promoResult.promoCode?.code,
+        promo_discount_percent: promoResult.discountPercent,
+        promo_discount_amount: promoResult.discountAmount,
+        promo_discount_bucket: promoResult.discountBucket,
+        promo_final_amount: promoResult.finalAmount,
+        user_id: user?.id,
+      } : {};
+      const response = await base44.functions.invoke("residentialStripeCheckout", {
         tier: formData.listingType === "event" ? (formData.event_tier || formData.tier) : formData.tier,
         listing_kind: formData.listingType === "event" ? "event" : "residential",
         customer_email: user?.email,
-        return_url: returnUrl,
-        // For backend date-conflict guard
-        owner_user_id: user?.id,
-        lat: user?.primary_latitude,
-        lng: user?.primary_longitude,
-        selected_range_start_date: formData.selectedRangeStartDate || "",
-        selected_range_end_date: formData.selectedRangeEndDate || "",
+        successUrl: `${returnUrl}?payment=success`,
+        cancelUrl: `${returnUrl}?payment=cancel`,
+        listing_id: "",
+        ...promoPayload,
       });
 
       console.log("Stripe session created", response?.data);
@@ -1311,7 +1316,7 @@ export default function CreateListingPage() {
     createListingMutation.mutate(payload);
   };
 
-  const handlePaymentStepSubmit = async (promoData = null) => {
+  const handlePaymentStepSubmit = async ({ promoResult, finalAmount } = {}) => {
     if (isGlobalDemoMode) {
       setPaymentError("");
       setIsStartingPayment(true);
@@ -1322,58 +1327,86 @@ export default function CreateListingPage() {
       return;
     }
 
-    // If promo makes it completely free, skip Stripe entirely
-    if (promoData?.isFree && promoData?.promoResult?.valid) {
-      setPaymentError("");
-      setIsStartingPayment(true);
+    // Free promo: bypass Stripe entirely
+    if (promoResult && promoResult.finalAmount === 0) {
+      if (window.self !== window.top) {
+        setPaymentError("Checkout must be tested from the published app.");
+        return;
+      }
       try {
-        // Create a completed redemption record
-        const pr = promoData.promoResult;
-        const tier = formData.tier || formData.event_tier;
-        const originalCents = formData.listingType === "event"
-          ? (EVENT_TIER_PRICES[formData.event_tier || formData.tier] || 0)
-          : (RESIDENTIAL_TIER_PRICES[tier] || 0);
-        await base44.entities.ResidentialPromoRedemption.create({
-          promo_code_id: pr.promoCode?.id || "",
-          code: pr.promoCode?.code || "",
-          user_id: user?.id || "",
-          user_email: user?.email || "",
-          original_amount: originalCents / 100,
-          discount_percent_applied: pr.discountPercent,
-          discount_amount: pr.discountAmount,
-          final_amount: 0,
-          discount_bucket: pr.discountBucket,
-          location_state: formData.state || "",
-          location_city: formData.city || "",
-          location_zip: formData.zip || "",
-          redeemed_at: new Date().toISOString(),
-          status: "completed",
+        setPaymentError("");
+        setIsStartingPayment(true);
+
+        // First create the listing (as scheduled/paid)
+        const listingPayload = buildFreePromoListingPayload(formData);
+        const createdListing = await createListingDirectlyWithPromo(listingPayload);
+
+        // Record the free promo redemption server-side
+        await base44.functions.invoke("residentialStripeCheckout", {
+          action: "complete_free_promo",
+          listing_id: createdListing.id,
+          promo_code_id: promoResult.promoCode.id,
+          promo_code: promoResult.promoCode.code,
+          discount_percent: promoResult.discountPercent,
+          discount_amount: promoResult.discountAmount,
+          original_amount: RESIDENTIAL_TIER_PRICES[formData.tier] || 0,
+          discount_bucket: promoResult.discountBucket,
+          user_id: user?.id,
+          user_email: user?.email,
         });
 
-        // Increment usage counts
-        const updatedPromo = await base44.entities.ResidentialPromoCode.filter({ code: pr.promoCode?.code });
-        if (updatedPromo?.[0]?.id) {
-          const p = updatedPromo[0];
-          const updatePayload = {
-            total_used_count: (p.total_used_count || 0) + 1,
-            updated_at: new Date().toISOString(),
-          };
-          if (pr.discountBucket === "early") {
-            updatePayload.early_discount_used_count = (p.early_discount_used_count || 0) + 1;
-          }
-          await base44.entities.ResidentialPromoCode.update(p.id, updatePayload);
-        }
-
-        toast.success("Promo applied — listing is free!");
-        executeSubmit("paid_success");
+        setIsStartingPayment(false);
+        toast.success("🎉 Free promo applied! Your listing is live.");
+        queryClient.invalidateQueries({ queryKey: ["listings"] });
+        queryClient.invalidateQueries({ queryKey: ["userListings", user?.id] });
+        navigate(createPageUrl("MyListings"));
       } catch (err) {
         setIsStartingPayment(false);
-        toast.error(err?.message || "Failed to apply promo. Please try again.");
+        setPaymentError(err?.message || "Could not complete free promo. Please try again.");
+        toast.error(err?.message || "Could not complete free promo.");
       }
       return;
     }
 
-    await startPaidListingCheckout(promoData);
+    // Paid checkout with optional promo discount
+    await startPaidListingCheckout(promoResult);
+  };
+
+  // Helper: build listing payload for free promo bypass
+  const buildFreePromoListingPayload = (data) => {
+    const stateCode = getStateAbbreviation(data.state || "XX");
+    const zipLast4 = (data.zip || "0000").slice(-4).padStart(4, "0");
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let rand5 = "";
+    for (let i = 0; i < 5; i++) rand5 += chars[Math.floor(Math.random() * chars.length)];
+    const listingNumber = `${stateCode}${zipLast4}-${rand5}`;
+
+    // Build dates same as featured/premium executeSubmit logic
+    let payload = { ...data, listingNumber, ownerUserId: user.id, participant_origin: "standalone", neighborhood_join_status: "none" };
+    if (data.tier === "featured") {
+      const startLocal = new Date(`${data.selectedRangeStartDate}T00:00:00`);
+      const activeDates = [];
+      const pad = (n) => String(n).padStart(2, "0");
+      for (let i = 0; i < 3; i++) {
+        const d = new Date(startLocal); d.setDate(d.getDate() + i);
+        activeDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+      }
+      payload.startDateTime = new Date(`${data.selectedRangeStartDate}T00:00:00Z`).toISOString();
+      payload.endDateTime = new Date(`${data.selectedRangeEndDate}T23:59:59Z`).toISOString();
+      payload.activeDates = activeDates;
+      payload.earlyVisibilityDates = [];
+    }
+    payload.status = "scheduled";
+    payload.payment_status = "paid";
+    payload.pricePaid = 0;
+    payload.payment_intent_status = "none";
+    return payload;
+  };
+
+  // Helper: directly create a listing for free-promo (bypasses Stripe)
+  const createListingDirectlyWithPromo = async (payload) => {
+    const listing = await base44.entities.Listing.create(payload);
+    return listing;
   };
 
   const handleNeighborhoodSetupSubmit = async () => {
@@ -1772,17 +1805,17 @@ export default function CreateListingPage() {
               ) : (
               <ResidentialPaymentStep
                 tier={formData.tier}
-                amount={(RESIDENTIAL_TIER_PRICES[formData.tier] || 0) / 100}
+                amount={RESIDENTIAL_TIER_PRICES[formData.tier] || 0}
                 listing={formData}
                 isDemoMode={isGlobalDemoMode}
                 isProcessing={isStartingPayment}
                 errorMessage={paymentError}
+                user={user}
                 onBack={() => {
                   setPaymentError("");
                   setStep(3);
                 }}
                 onPay={handlePaymentStepSubmit}
-                userId={user?.id}
               />
               )
             )}
@@ -1802,7 +1835,6 @@ export default function CreateListingPage() {
                   setStep(4);
                 }}
                 onPay={handlePaymentStepSubmit}
-                userId={user?.id}
               />
               )
             )}
