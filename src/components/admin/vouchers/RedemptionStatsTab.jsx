@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { CheckCircle2, ShieldOff, RotateCcw, Send } from "lucide-react";
+import { CheckCircle2, ShieldOff, RotateCcw, Send, Search, ExternalLink, X } from "lucide-react";
 
 const STATUS_COLORS = {
   active: "bg-green-100 text-green-800",
@@ -17,11 +17,16 @@ const STATUS_COLORS = {
   expired: "bg-slate-100 text-slate-400",
 };
 
+const APP_BASE_URL = window.location.origin;
+
 export default function RedemptionStatsTab({ adminUser }) {
   const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState(null);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupResults, setLookupResults] = useState(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
 
   const { data: vouchers = [], isLoading } = useQuery({
     queryKey: ["allUserVouchers"],
@@ -36,6 +41,43 @@ export default function RedemptionStatsTab({ adminUser }) {
   });
 
   const campaignMap = Object.fromEntries(campaigns.map(c => [c.id, c]));
+
+  const handleLookup = async () => {
+    if (!lookupQuery.trim()) return;
+    setLookupLoading(true);
+    setLookupResults(null);
+    try {
+      const q = lookupQuery.trim().toLowerCase();
+      // Fetch all vouchers (up to 500) and filter client-side across all fields
+      const all = await base44.entities.UserVoucher.list("-created_at", 500);
+      // Also try to match users by email/name to find their user_id
+      let userIds = new Set();
+      try {
+        const users = await base44.entities.User.list();
+        users.forEach(u => {
+          if (
+            u.email?.toLowerCase().includes(q) ||
+            u.full_name?.toLowerCase().includes(q)
+          ) {
+            userIds.add(u.id);
+          }
+        });
+      } catch (_) {}
+
+      const results = all.filter(v =>
+        v.promo_code?.toLowerCase().includes(q) ||
+        v.qr_token?.toLowerCase().includes(q) ||
+        v.user_id?.toLowerCase().includes(q) ||
+        v.reward_title?.toLowerCase().includes(q) ||
+        v.business_name?.toLowerCase().includes(q) ||
+        userIds.has(v.user_id)
+      );
+      setLookupResults(results);
+    } catch (e) {
+      toast.error("Lookup failed: " + e.message);
+    }
+    setLookupLoading(false);
+  };
 
   const filtered = vouchers
     .filter(v => filter === "all" || v.status === filter)
@@ -64,11 +106,73 @@ export default function RedemptionStatsTab({ adminUser }) {
         <p className="text-sm text-slate-500">All issued vouchers with status and admin actions.</p>
       </div>
 
+      {/* Voucher Lookup Panel */}
+      <div className="bg-[#F3E6CF] border-2 border-[#5DADA5]/40 rounded-xl p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Search className="w-4 h-4 text-[#5DADA5]" />
+          <span className="font-semibold text-sm text-[#2C4F4E]">Voucher Lookup</span>
+          <span className="text-xs text-slate-400 ml-1">— search by promo code, token, user ID, email, name, or reward</span>
+        </div>
+        <div className="flex gap-2">
+          <input
+            className="border rounded-lg px-3 py-2 text-sm flex-1 bg-white"
+            placeholder="e.g. YH-7LLACM, user@email.com, John Smith, QX2GCZLTV6VU..."
+            value={lookupQuery}
+            onChange={e => setLookupQuery(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleLookup()}
+          />
+          <Button size="sm" onClick={handleLookup} disabled={lookupLoading} className="bg-[#5DADA5] hover:bg-[#4A9B93] text-white gap-1 shrink-0">
+            {lookupLoading ? <RotateCcw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            Look Up
+          </Button>
+          {lookupResults !== null && (
+            <Button size="sm" variant="ghost" onClick={() => { setLookupResults(null); setLookupQuery(""); }} className="shrink-0">
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+
+        {lookupResults !== null && (
+          <div>
+            {lookupResults.length === 0 ? (
+              <p className="text-sm text-slate-500 py-2">No vouchers found matching that query.</p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-slate-500 font-medium">{lookupResults.length} voucher{lookupResults.length !== 1 ? "s" : ""} found</p>
+                {lookupResults.map(v => (
+                  <div key={v.id} className="bg-white rounded-lg border border-slate-200 p-3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-bold text-[#2C4F4E] text-sm">{v.promo_code}</span>
+                        <Badge className={`text-xs ${STATUS_COLORS[v.status] || ""}`}>{v.status}</Badge>
+                      </div>
+                      <p className="text-sm font-medium text-slate-700 truncate">{v.reward_title}</p>
+                      <p className="text-xs text-slate-400 truncate">{campaignMap[v.campaign_id]?.campaign_name || ""}</p>
+                      <p className="text-xs text-slate-400 font-mono">User: {v.user_id}</p>
+                      {v.created_at && <p className="text-xs text-slate-400">Issued: {format(new Date(v.created_at), "MMM d, yyyy")}</p>}
+                    </div>
+                    <a
+                      href={`${APP_BASE_URL}/reward/redeem/${v.qr_token}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white text-xs font-semibold shrink-0 transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Open Redemption Page
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2">
         <input
           className="border rounded-lg px-3 py-2 text-sm flex-1"
-          placeholder="Search by promo code, user ID, or reward..."
+          placeholder="Filter table by promo code, user ID, or reward..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
