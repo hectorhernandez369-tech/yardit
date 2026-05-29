@@ -13,6 +13,7 @@ import NotificationList from "./NotificationList";
 
 export default function NotificationBell() {
   const [user, setUser] = useState(null);
+  const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -77,7 +78,7 @@ export default function NotificationBell() {
   if (!user) return null;
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 h-10 w-10 touch-manipulation">
           <Bell className="w-5 h-5" />
@@ -92,6 +93,7 @@ export default function NotificationBell() {
         <NotificationList 
           notifications={notifications}
           onMarkAllRead={() => markAllReadMutation.mutate()}
+          onClose={() => setOpen(false)}
         />
       </PopoverContent>
     </Popover>

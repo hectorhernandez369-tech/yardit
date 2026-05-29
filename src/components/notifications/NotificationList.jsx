@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { respondToCoHostInvite } from "@/lib/coHostInviteActions";
 
-export default function NotificationList({ notifications, onMarkAllRead }) {
+export default function NotificationList({ notifications, onMarkAllRead, onClose }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -240,6 +240,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
     }
 
     if (url) {
+      onClose?.();
       navigate(url);
     }
   };
@@ -342,7 +343,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
 
                       {notification.type === "vendor_event_invite" && (
                         <div className="flex flex-wrap gap-2 mt-2 mb-3">
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); navigate(`/VendorEventDetail?id=${notification.metadata?.event_id}`); }}>View Event</Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); onClose?.(); navigate(`/VendorEventDetail?id=${notification.metadata?.event_id}`); }}>View Event</Button>
                           <Button size="sm" className="h-7 text-xs bg-green-600 hover:bg-green-700" onClick={(e) => { e.stopPropagation(); vendorEventInviteMutation.mutate({ notification, action: "accept" }); }}><Check className="w-3 h-3 mr-1" /> Accept</Button>
                           <Button size="sm" variant="outline" className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); vendorEventInviteMutation.mutate({ notification, action: "decline" }); }}><X className="w-3 h-3 mr-1" /> Decline</Button>
                         </div>
@@ -355,6 +356,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
                             className="h-7 text-xs bg-green-600 hover:bg-green-700"
                             onClick={(e) => {
                               e.stopPropagation();
+                              onClose?.();
                               navigate(`/VendorDashboard?tab=events&collabInvite=${notification.metadata?.collaborator_id || ""}&eventId=${notification.metadata?.event_id || notification.related_entity_id || ""}`);
                             }}
                           >
@@ -393,7 +395,7 @@ export default function NotificationList({ notifications, onMarkAllRead }) {
         <Button 
           variant="ghost" 
           className="w-full text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-          onClick={() => navigate(createPageUrl("Notifications"))}
+          onClick={() => { onClose?.(); navigate(createPageUrl("Notifications")); }}
         >
           View All Notifications
         </Button>
