@@ -116,7 +116,7 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
             removed: "bg-slate-100 text-slate-500",
             inactive: "bg-slate-100 text-slate-500",
           };
-          const canAssignPins = item.status === "accepted" || item.status === "active" || item.status === "pending";
+          const canAssignPins = item.status === "accepted" || item.status === "active";
           const canRemove = item.status !== "removed";
           return (
             <Card key={item.id} className="rounded-2xl overflow-hidden bg-white shadow-sm">
