@@ -9,12 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Edit2, Save, X, Shield, MapPin, Loader2 } from "lucide-react";
 import AddressFields from "@/components/shared/AddressFields";
 import { toast } from "sonner";
+import { computedAddressVerified } from "@/lib/trustActions";
 
 export default function UserInfoSection({ user, setUser }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingAddress, setIsConfirmingAddress] = useState(false);
 
-  const isAddressConfirmed = user.address_confirmation_status === "confirmed" && user.address_lat && user.address_lng;
+  // Use the computed helper so a stale verified flag without real address data is treated as unverified
+  const isAddressConfirmed = computedAddressVerified(user);
 
   const [formData, setFormData] = useState({
     first_name: user.first_name || "",

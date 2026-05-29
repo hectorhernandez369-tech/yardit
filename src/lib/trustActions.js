@@ -6,22 +6,42 @@ export const TRUST_ACTIONS = {
   ADD_EXTERNAL_LINK: "add_external_link",
 };
 
-export function getTrustStatus(user) {
-  const hasAddress = !!(
-    user?.primary_address &&
-    typeof user?.primary_latitude === "number" &&
-    typeof user?.primary_longitude === "number"
-  );
+/**
+ * Returns true only if BOTH conditions are met:
+ * 1. address_verified / primary_address_verified flag is true
+ * 2. All required address fields are present and non-blank
+ *
+ * This prevents a stale verified flag from granting access when
+ * the actual address data has been cleared.
+ */
+export function computedAddressVerified(user) {
+  if (!user) return false;
 
+  const flagSet =
+    user.primary_address_verified === true ||
+    user.address_verified === true;
+
+  if (!flagSet) return false;
+
+  // Required fields must all be non-blank strings
+  const street = String(user.street_address || "").trim();
+  const city   = String(user.city || "").trim();
+  const state  = String(user.state || "").trim();
+  const zip    = String(user.zip_code || "").trim();
+
+  return street.length > 0 && city.length > 0 && state.length > 0 && zip.length > 0;
+}
+
+export function getTrustStatus(user) {
   return {
     emailVerified: user?.email_verified !== false,
-    addressVerified: user?.primary_address_verified === true && hasAddress,
+    addressVerified: computedAddressVerified(user),
     listingRulesAccepted: user?.listing_rules_accepted === true,
   };
 }
 
 export function hasVerifiedPrimaryAddress(user) {
-  return getTrustStatus(user).addressVerified;
+  return computedAddressVerified(user);
 }
 
 export function isEmailVerified(user) {
