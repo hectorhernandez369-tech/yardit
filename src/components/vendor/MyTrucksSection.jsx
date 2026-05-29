@@ -77,7 +77,10 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   const isOwner = currentUser?.id === vendorAccount?.owner_user_id || currentUser?.email === vendorAccount?.owner_user_id;
   // Only users with active or accepted status can be assigned to pins
   const accessibleAuthorizedUsers = authorizedUsers.filter((u) => u.status === "active" || u.status === "accepted");
-  const currentAuthorizedUser = accessibleAuthorizedUsers.find((u) => u.authorized_email?.toLowerCase() === currentUser?.email?.toLowerCase());
+  // For the current user's own access check, also look up pending status so that assignments
+  // made before the user accepts still grant check-in access
+  const nonRemovedAuthorizedUsers = authorizedUsers.filter((u) => u.status !== "removed" && u.status !== "inactive" && u.status !== "denied");
+  const currentAuthorizedUser = nonRemovedAuthorizedUsers.find((u) => u.authorized_email?.toLowerCase() === currentUser?.email?.toLowerCase());
   const getAssignedUsers = (pinId) => accessibleAuthorizedUsers.filter((u) => u.assigned_pin_ids?.includes(pinId));
   const canCurrentUserCheckIn = (pinId) => isOwner || (currentAuthorizedUser?.assigned_pin_ids || []).includes(pinId);
 
