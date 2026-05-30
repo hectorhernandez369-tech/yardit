@@ -23,13 +23,49 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only admins can create assisted listings
-    if (user.role !== 'admin' && user.role !== 'master' && user.role !== 'super_master') {
-      // Also allow users with isAdmin flag via AdminProfile — check AdminProfile
-      const adminProfiles = await base44.asServiceRole.entities.AdminProfile.filter({ owner_email: user.email });
+    // Yardit admin access is controlled through AdminProfile, NOT Base44 User.role.
+    // Only master/super_master AdminProfiles (or super_master Base44 roles) can create assisted listings.
+    const isSuperMasterBase44 = user.role === 'super_master';
+
+    if (!isSuperMasterBase44) {
+      // Look up AdminProfile by user email (the Yardit admin system)
+      const adminProfiles = await base44.asServiceRole.entities.AdminProfile.filter({ email: user.email });
       const profile = adminProfiles[0];
-      if (!profile || !profile.is_active) {
-        return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+
+      if (!profile) {
+        return Response.json({
+          error: 'Access denied: No admin profile found for this account.',
+          debug: {
+            base44_role: user.role,
+            admin_profile_found: false,
+            required: 'AdminProfile with role_label "master" and is_active: true',
+          }
+        }, { status: 403 });
+      }
+
+      if (!profile.is_active) {
+        return Response.json({
+          error: 'Access denied: Your admin profile is inactive.',
+          debug: {
+            base44_role: user.role,
+            admin_profile_role: profile.role_label,
+            admin_profile_active: false,
+            required: 'is_active must be true',
+          }
+        }, { status: 403 });
+      }
+
+      const allowedRoles = ['master', 'super_master'];
+      if (!allowedRoles.includes(profile.role_label)) {
+        return Response.json({
+          error: `Access denied: Your admin role "${profile.role_label}" does not have permission to create assisted listings. Required role: master.`,
+          debug: {
+            base44_role: user.role,
+            admin_profile_role: profile.role_label,
+            admin_profile_active: profile.is_active,
+            required_role: 'master or super_master',
+          }
+        }, { status: 403 });
       }
     }
 

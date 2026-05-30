@@ -261,7 +261,18 @@ export default function AdminAssistedListingForm({ adminUser }) {
 
       toast.success("Assisted listing created! Show the QR code to the seller.");
     } catch (err) {
-      toast.error(err?.response?.data?.error || err.message || "Failed to create listing");
+      const errData = err?.response?.data;
+      const message = errData?.error || err.message || "Failed to create listing";
+      const debug = errData?.debug;
+      if (debug) {
+        console.error("[AssistedListing] Access denied debug:", debug);
+        toast.error(
+          `${message}\n\nBase44 role: ${debug.base44_role ?? "unknown"} | AdminProfile role: ${debug.admin_profile_role ?? "none"} | Required: ${debug.required_role ?? debug.required ?? "master"}`,
+          { duration: 8000 }
+        );
+      } else {
+        toast.error(message);
+      }
     }
     setIsSubmitting(false);
   };
