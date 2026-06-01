@@ -90,7 +90,7 @@ export default function StepOne({ formData, setFormData }) {
 
       {/* Listing type selector */}
       <div>
-        <Label className="text-sm font-semibold text-slate-700 mb-3 block">What are you listing?</Label>
+        <Label className="text-sm font-semibold text-slate-900 mb-3 block">What are you listing?</Label>
         <RadioGroup
           value={formData.listingType}
           onValueChange={(value) => {
@@ -206,7 +206,7 @@ export default function StepOne({ formData, setFormData }) {
         <Label htmlFor="title" className="text-sm font-semibold text-slate-700">
           {isNeighborhood ? "Event Name *" : "Sale Title *"}
         </Label>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500">
           {isNeighborhood
             ? "Give your neighborhood event a memorable name"
             : "A clear title helps shoppers find your sale faster"}
@@ -217,7 +217,7 @@ export default function StepOne({ formData, setFormData }) {
           value={formData.title}
           onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
           required
-          className="mt-1.5 bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-11 text-slate-800 placeholder:text-slate-300"
+          className="mt-1.5 bg-white border-slate-400 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-11 text-slate-800 placeholder:text-slate-400"
         />
       </div>
 
@@ -226,10 +226,10 @@ export default function StepOne({ formData, setFormData }) {
         <>
           {/* Categories */}
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-700">
-              Categories <span className="text-slate-400 font-normal">(up to 10) *</span>
+            <Label className="text-sm font-semibold text-slate-900">
+              Categories <span className="text-slate-500 font-normal">(up to 10) *</span>
             </Label>
-            <p className="text-xs text-slate-400">Help shoppers browse by what you're selling</p>
+            <p className="text-xs text-slate-500">Help shoppers browse by what you're selling</p>
 
             {formData.categories?.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
@@ -290,7 +290,7 @@ export default function StepOne({ formData, setFormData }) {
                   }));
                 }}
               >
-                <SelectTrigger className="bg-white border-slate-200 rounded-xl h-10 text-sm text-slate-500">
+                <SelectTrigger className="bg-white border-slate-400 rounded-xl h-10 text-sm text-slate-600">
                   <SelectValue placeholder="+ Add a category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -304,8 +304,8 @@ export default function StepOne({ formData, setFormData }) {
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="description" className="text-sm font-semibold text-slate-700">Description *</Label>
-            <p className="text-xs text-slate-400">
+            <Label htmlFor="description" className="text-sm font-semibold text-slate-900">Description *</Label>
+            <p className="text-xs text-slate-500">
               Use keywords buyers search for — furniture, baby clothes, tools, Pokémon cards, etc.
             </p>
             <Textarea
@@ -315,7 +315,7 @@ export default function StepOne({ formData, setFormData }) {
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={4}
               required
-              className="mt-1 bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl text-slate-800 placeholder:text-slate-300 resize-none"
+              className="mt-1 bg-white border-slate-400 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl text-slate-800 placeholder:text-slate-400 resize-none"
             />
           </div>
         </>
