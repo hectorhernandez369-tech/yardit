@@ -251,53 +251,7 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
             />
           </Section>
 
-          {/* Coverage */}
-          <Section title="Address-Based Coverage (Legacy)">
-            <Field label="Coverage Type">
-              <Select value={form.coverage_type || "nationwide"} onValueChange={v => set("coverage_type", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nationwide">Nationwide</SelectItem>
-                  <SelectItem value="state">State</SelectItem>
-                  <SelectItem value="county">County</SelectItem>
-                  <SelectItem value="city">City</SelectItem>
-                  <SelectItem value="town">Town</SelectItem>
-                  <SelectItem value="zip">ZIP Code</SelectItem>
-                  <SelectItem value="custom">Custom Rules</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
 
-            {form.coverage_type === "state" && (
-              <Field label="State (abbreviation, e.g. CA)">
-                <Input value={form.coverage_state || ""} onChange={e => set("coverage_state", e.target.value.toUpperCase().slice(0, 2))} placeholder="CA" />
-              </Field>
-            )}
-            {form.coverage_type === "county" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-                <Field label="State"><Input value={form.coverage_state || ""} onChange={e => set("coverage_state", e.target.value.toUpperCase().slice(0, 2))} placeholder="CA" /></Field>
-                <Field label="County"><Input value={form.coverage_county || ""} onChange={e => set("coverage_county", e.target.value)} placeholder="Tulare" /></Field>
-              </div>
-            )}
-            {(form.coverage_type === "city" || form.coverage_type === "town") && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-                <Field label="State"><Input value={form.coverage_state || ""} onChange={e => set("coverage_state", e.target.value.toUpperCase().slice(0, 2))} placeholder="CA" /></Field>
-                <Field label="City / Town"><Input value={form.coverage_city || form.coverage_town || ""} onChange={e => { set("coverage_city", e.target.value); set("coverage_town", e.target.value); }} placeholder="Lindsay" /></Field>
-              </div>
-            )}
-            {form.coverage_type === "zip" && (
-              <Field label="ZIP Code" className="mt-3">
-                <Input value={form.coverage_zip || ""} onChange={e => set("coverage_zip", e.target.value)} placeholder="93247" />
-              </Field>
-            )}
-            {form.coverage_type === "custom" && (
-              <div className="mt-3 p-3 bg-slate-50 rounded-lg text-xs text-slate-500 border border-slate-200">
-                <p className="font-medium text-slate-700 mb-1">Custom rules (JSON)</p>
-                <p>Enter custom coverage using the coverage_rules field. Example:</p>
-                <pre className="mt-1 text-[10px]">{"{ \"states\": [\"CA\"], \"counties\": [\"Tulare\"], \"cities\": [\"Lindsay\"], \"zips\": [\"93247\"] }"}</pre>
-              </div>
-            )}
-          </Section>
         </div>
 
         <div className="flex gap-3 mt-6 pt-4 border-t">
