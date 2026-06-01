@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Search, Loader2, X, Plus } from "lucide-react";
+import { MapPin, Search, Loader2, X, Plus, Crosshair } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -67,6 +67,7 @@ function DraggableMarker({ lat, lng, onDragEnd }) {
 export default function GeoPromoSection({ form, onChange }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [cityInput, setCityInput] = useState("");
   const [zipInput, setZipInput] = useState("");
   const [customRadius, setCustomRadius] = useState("");
@@ -134,6 +135,22 @@ export default function GeoPromoSection({ form, onChange }) {
     if (!form.geo_display_label) {
       onChange("geo_display_label", `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     }
+  };
+
+  const handleMyLocation = () => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const { latitude: lat, longitude: lng } = coords;
+        onChange("geo_center_lat", lat);
+        onChange("geo_center_lng", lng);
+        if (!form.geo_display_label) onChange("geo_display_label", `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+        setFlyTarget({ lat, lng });
+        setLocating(false);
+      },
+      () => setLocating(false)
+    );
   };
 
   const handleDragEnd = (lat, lng) => {
@@ -294,8 +311,17 @@ export default function GeoPromoSection({ form, onChange }) {
                   >
                     {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                   </button>
-                </div>
-                <p className="text-[10px] text-slate-400">Or click/tap the map to set the center point.</p>
+                  <button
+                    type="button"
+                    onClick={handleMyLocation}
+                    disabled={locating}
+                    title="Use my location"
+                    className="px-2.5 py-1 rounded bg-slate-100 text-slate-600 text-xs hover:bg-slate-200 border border-slate-300 shrink-0 flex items-center gap-1"
+                  >
+                    {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crosshair className="w-3.5 h-3.5" />}
+                  </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Or click/tap the map to set the center point.</p>
               </div>
 
               {/* Map */}
