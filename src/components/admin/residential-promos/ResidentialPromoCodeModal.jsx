@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import GeoPromoSection from "@/components/admin/promo-geo/GeoPromoSection";
 
 const DEFAULT_FORM = {
   code: "",
@@ -33,6 +34,14 @@ const DEFAULT_FORM = {
   coverage_town: "",
   coverage_zip: "",
   notes: "",
+  geographic_limit_enabled: false,
+  geographic_limit_type: "none",
+  eligible_cities: [],
+  eligible_zips: [],
+  geo_center_lat: null,
+  geo_center_lng: null,
+  geo_radius_miles: 5,
+  geo_display_label: "",
 };
 
 const TIER_OPTIONS = ["featured", "premium", "marquee"];
@@ -83,8 +92,20 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
 
     setSaving(true);
     try {
+      const geoPayload = {
+        geographic_limit_enabled: !!form.geographic_limit_enabled,
+        geographic_limit_type: form.geographic_limit_enabled ? (form.geographic_limit_type || "none") : "none",
+        eligible_cities: form.eligible_cities || [],
+        eligible_zips: form.eligible_zips || [],
+        geo_center_lat: form.geographic_limit_type === "radius" ? (form.geo_center_lat || null) : null,
+        geo_center_lng: form.geographic_limit_type === "radius" ? (form.geo_center_lng || null) : null,
+        geo_radius_miles: form.geographic_limit_type === "radius" ? (Number(form.geo_radius_miles) || 5) : null,
+        geo_display_label: form.geo_display_label?.trim() || null,
+      };
+
       const payload = {
         ...form,
+        ...geoPayload,
         code: form.code.trim().toUpperCase(),
         title: form.title.trim(),
         default_discount_percent: Number(form.default_discount_percent),
@@ -222,8 +243,16 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
             </div>
           </Section>
 
+          {/* New geo radius targeting */}
+          <Section title="Geographic Targeting (Advanced)">
+            <GeoPromoSection
+              form={form}
+              onChange={(k, v) => set(k, v)}
+            />
+          </Section>
+
           {/* Coverage */}
-          <Section title="Geographic Coverage">
+          <Section title="Address-Based Coverage (Legacy)">
             <Field label="Coverage Type">
               <Select value={form.coverage_type || "nationwide"} onValueChange={v => set("coverage_type", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>

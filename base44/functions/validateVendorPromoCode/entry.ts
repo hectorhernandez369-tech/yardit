@@ -1,5 +1,45 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 3958.8;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function checkGeoLimit(promo, vendorLat, vendorLng) {
+  if (!promo.geographic_limit_enabled) return { valid: true, status: 'skipped', distance: null };
+  const geoType = promo.geographic_limit_type || 'none';
+  if (geoType === 'none') return { valid: true, status: 'skipped', distance: null };
+
+  if (geoType === 'city_zip') {
+    // No coordinate check for city_zip — handled at listing/vendor level via address text
+    return { valid: true, status: 'skipped', distance: null };
+  }
+
+  if (geoType === 'radius') {
+    if (!promo.geo_center_lat || !promo.geo_center_lng || !promo.geo_radius_miles) {
+      return { valid: true, status: 'skipped', distance: null };
+    }
+    if (!vendorLat || !vendorLng) {
+      // No coordinates provided — skip silently (can't validate)
+      return { valid: true, status: 'skipped', distance: null };
+    }
+    const dist = haversineDistance(promo.geo_center_lat, promo.geo_center_lng, vendorLat, vendorLng);
+    if (dist > promo.geo_radius_miles) {
+      return { valid: false, status: 'failed', distance: Math.round(dist * 10) / 10 };
+    }
+    return { valid: true, status: 'passed', distance: Math.round(dist * 10) / 10 };
+  }
+
+  return { valid: true, status: 'skipped', distance: null };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -7,7 +47,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ valid: false, error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const { code, tier } = body;
+    const { code, tier, vendor_lat, vendor_lng } = body;
 
     if (!code || !tier) {
       return Response.json({ valid: false, error: 'Code and tier are required.' }, { status: 400 });
@@ -26,31 +66,26 @@ Deno.serve(async (req) => {
 
     const now = new Date();
 
-    // Valid start date check
     if (promo.valid_start_date && new Date(promo.valid_start_date) > now) {
       return Response.json({ valid: false, error: 'This promo code is not yet valid.' });
     }
 
-    // Redeem window check (prefer redeem_by_date, fall back to valid_end_date)
     const redeemCutoff = promo.redeem_by_date || promo.valid_end_date;
     if (redeemCutoff && new Date(redeemCutoff) < now) {
       return Response.json({ valid: false, error: 'This promo code is no longer accepting new redemptions.' });
     }
 
-    // Tier eligibility
     if (promo.applies_to_tiers && promo.applies_to_tiers.length > 0) {
       if (!promo.applies_to_tiers.includes(tier)) {
         return Response.json({ valid: false, error: `This promo code is not valid for the ${tier} plan.` });
       }
     }
 
-    // Max redemptions check using current_redemptions
     const currentRedemptions = promo.current_redemptions ?? promo.redemptions_used ?? 0;
     if (promo.max_redemptions != null && currentRedemptions >= promo.max_redemptions) {
       return Response.json({ valid: false, error: 'Promo code has reached maximum redemptions.' });
     }
 
-    // One use per user
     if (promo.one_use_per_user) {
       const existing = await base44.asServiceRole.entities.VendorPromoRedemption.filter({
         promo_code_id: promo.id,
@@ -60,6 +95,16 @@ Deno.serve(async (req) => {
       if (activeExisting && activeExisting.length > 0) {
         return Response.json({ valid: false, error: 'You have already used this promo code.' });
       }
+    }
+
+    // Geographic validation
+    const geoCheck = checkGeoLimit(promo, vendor_lat, vendor_lng);
+    if (!geoCheck.valid) {
+      return Response.json({
+        valid: false,
+        error: 'This promo code is not available in your area.',
+        geo_distance_miles: geoCheck.distance,
+      });
     }
 
     // Compute benefit expiration for display
@@ -72,9 +117,11 @@ Deno.serve(async (req) => {
       benefitsExpireAt = promo.promotion_end_date;
     }
 
-    console.log('Promo code validated', { code: promo.code, userId: user.id, tier });
+    console.log('Promo code validated', { code: promo.code, userId: user.id, tier, geoStatus: geoCheck.status });
     return Response.json({
       valid: true,
+      geo_validation_status: geoCheck.status,
+      geo_validation_distance_miles: geoCheck.distance,
       promo: {
         id: promo.id,
         code: promo.code,

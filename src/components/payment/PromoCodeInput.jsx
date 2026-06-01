@@ -29,6 +29,8 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
       listingLocation,
       selectedTier,
       listingPrice,
+      listingLat: listing?.lat,
+      listingLng: listing?.lng,
     });
 
     if (res.valid) {

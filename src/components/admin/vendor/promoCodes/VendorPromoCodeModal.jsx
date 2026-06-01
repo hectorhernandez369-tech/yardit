@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import GeoPromoSection from "@/components/admin/promo-geo/GeoPromoSection";
 
 const TIERS = [
   { key: "starter", label: "Starter" },
@@ -49,6 +50,14 @@ const EMPTY = {
   is_founding_vendor: false,
   founding_recurring_price: "",
   founding_forfeits_on_cancel: true,
+  geographic_limit_enabled: false,
+  geographic_limit_type: "none",
+  eligible_cities: [],
+  eligible_zips: [],
+  geo_center_lat: null,
+  geo_center_lng: null,
+  geo_radius_miles: 5,
+  geo_display_label: "",
 };
 
 export default function VendorPromoCodeModal({ open, onClose, existingCode, user, onSaved }) {
@@ -123,6 +132,14 @@ export default function VendorPromoCodeModal({ open, onClose, existingCode, user
       is_founding_vendor: !!form.is_founding_vendor,
       founding_recurring_price: form.is_founding_vendor && form.founding_recurring_price !== "" ? Number(form.founding_recurring_price) : null,
       founding_forfeits_on_cancel: !!form.founding_forfeits_on_cancel,
+      geographic_limit_enabled: !!form.geographic_limit_enabled,
+      geographic_limit_type: form.geographic_limit_enabled ? (form.geographic_limit_type || "none") : "none",
+      eligible_cities: form.eligible_cities || [],
+      eligible_zips: form.eligible_zips || [],
+      geo_center_lat: form.geographic_limit_type === "radius" ? (form.geo_center_lat || null) : null,
+      geo_center_lng: form.geographic_limit_type === "radius" ? (form.geo_center_lng || null) : null,
+      geo_radius_miles: form.geographic_limit_type === "radius" ? (Number(form.geo_radius_miles) || 5) : null,
+      geo_display_label: form.geo_display_label?.trim() || null,
       updated_at: now,
     };
 
@@ -326,6 +343,16 @@ export default function VendorPromoCodeModal({ open, onClose, existingCode, user
                 </label>
               </div>
             )}
+          </div>
+
+          {/* Geographic Coverage */}
+          <div className="h-px bg-slate-200 my-2" />
+          <div>
+            <p className="text-xs font-bold text-slate-600 mb-2">Geographic Coverage</p>
+            <GeoPromoSection
+              form={form}
+              onChange={(k, v) => update(k, v)}
+            />
           </div>
 
           {/* Status toggle */}

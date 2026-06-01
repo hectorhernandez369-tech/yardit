@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format, isPast } from "date-fns";
-import { Tag, Plus, Pencil, Power, PowerOff, Star } from "lucide-react";
+import { Tag, Plus, Pencil, Power, PowerOff, Star, MapPin } from "lucide-react";
 import VendorPromoCodeModal from "./VendorPromoCodeModal";
 import PromoRedemptionsPanel from "./PromoRedemptionsPanel";
 
@@ -29,6 +29,24 @@ function durationSummary(code) {
   if (code.promotion_duration_type === "preset_days" && code.promotion_duration_days) return `${code.promotion_duration_days}d benefit`;
   if (code.promotion_duration_type === "fixed_end_date" && code.promotion_end_date) return `Until ${format(new Date(code.promotion_end_date), "MMM d, yyyy")}`;
   return "No expiry";
+}
+
+function geoSummary(code) {
+  if (!code.geographic_limit_enabled) return null;
+  const t = code.geographic_limit_type;
+  if (!t || t === "none") return null;
+  if (t === "city_zip") {
+    const parts = [];
+    if (code.geo_display_label) return code.geo_display_label;
+    if (code.eligible_cities?.length) parts.push(code.eligible_cities.join(", "));
+    if (code.eligible_zips?.length) parts.push(code.eligible_zips.join(", "));
+    return parts.join(" / ") || "City/ZIP restricted";
+  }
+  if (t === "radius") {
+    const label = code.geo_display_label ? `from ${code.geo_display_label}` : "";
+    return `${code.geo_radius_miles || "?"}-mile radius ${label}`.trim();
+  }
+  return null;
 }
 
 export default function VendorPromoCodesTab({ user }) {
@@ -147,6 +165,11 @@ export default function VendorPromoCodesTab({ user }) {
                     ? code.applies_to_tiers.map(t => <Badge key={t} className="bg-slate-100 text-slate-600 text-[10px]">{TIER_LABELS[t] || t}</Badge>)
                     : <Badge className="bg-slate-100 text-slate-400 text-[10px]">All tiers</Badge>
                   }
+                  {geoSummary(code) && (
+                    <Badge className="bg-teal-50 text-teal-700 border border-teal-200 text-[10px] gap-1">
+                      <MapPin className="w-2.5 h-2.5" />{geoSummary(code)}
+                    </Badge>
+                  )}
                   {code.redeem_by_date && (
                     <span className={`text-[10px] font-medium ${redeemExpired ? "text-red-600" : "text-slate-500"}`}>
                       Redeem by {format(new Date(code.redeem_by_date), "MMM d, yyyy")}

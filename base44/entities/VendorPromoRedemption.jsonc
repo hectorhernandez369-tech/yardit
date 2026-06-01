@@ -83,6 +83,27 @@
     "checkout_session_id": {
       "type": "string",
       "description": "Stripe checkout session ID if available"
+    },
+    "user_lat_snapshot": {
+      "type": "number",
+      "description": "Vendor business latitude at time of redemption"
+    },
+    "user_lng_snapshot": {
+      "type": "number",
+      "description": "Vendor business longitude at time of redemption"
+    },
+    "geo_validation_status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "skipped",
+        "failed"
+      ],
+      "description": "Result of geographic validation"
+    },
+    "geo_validation_distance_miles": {
+      "type": "number",
+      "description": "Distance in miles from promo center at time of redemption"
     }
   },
   "required": [

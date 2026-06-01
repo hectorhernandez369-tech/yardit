@@ -4,14 +4,13 @@ import { base44 } from "@/api/base44Client";
  * Validate a residential promo code.
  * Returns { valid, reason, promoCode, discountPercent, discountAmount, finalAmount, discountBucket }
  */
-export async function validateResidentialPromoCode({ code, user, listingLocation, selectedTier, listingPrice }) {
+export async function validateResidentialPromoCode({ code, user, listingLocation, selectedTier, listingPrice, listingLat, listingLng }) {
   if (!code || !code.trim()) {
     return { valid: false, reason: "Please enter a promo code." };
   }
 
   const normalizedCode = code.trim().toUpperCase();
 
-  // Free tier cannot receive a cash discount
   if (!selectedTier || selectedTier === "free") {
     return { valid: false, reason: "Promo codes do not apply to free listings." };
   }
@@ -20,7 +19,6 @@ export async function validateResidentialPromoCode({ code, user, listingLocation
     return { valid: false, reason: "No payment required for this listing." };
   }
 
-  // Fetch all active promo codes and find by code (case-insensitive stored uppercase)
   let promoCodes;
   try {
     promoCodes = await base44.entities.ResidentialPromoCode.filter({ code: normalizedCode });
@@ -49,24 +47,27 @@ export async function validateResidentialPromoCode({ code, user, listingLocation
     return { valid: false, reason: "This promo code has expired." };
   }
 
-  // Tier eligibility
   const tiers = promoCode.applies_to_tiers || [];
   if (tiers.length > 0 && !tiers.includes(selectedTier)) {
     return { valid: false, reason: `This promo code does not apply to the ${selectedTier} tier.` };
   }
 
-  // Coverage check
+  // Legacy address coverage check
   const coverageValid = checkCoverage(promoCode, listingLocation);
   if (!coverageValid) {
     return { valid: false, reason: "This promo code is not available in your listing's location." };
   }
 
-  // Total uses check
+  // New geo limit check
+  const geoCheck = checkGeoLimit(promoCode, { ...listingLocation, lat: listingLat, lng: listingLng });
+  if (!geoCheck.valid) {
+    return { valid: false, reason: "This promo code is not available in your area." };
+  }
+
   if (promoCode.max_total_uses != null && promoCode.total_used_count >= promoCode.max_total_uses) {
     return { valid: false, reason: "This promo code has reached its maximum number of uses." };
   }
 
-  // Per-user limit check
   if (user?.id) {
     let userRedemptions;
     try {
@@ -84,7 +85,6 @@ export async function validateResidentialPromoCode({ code, user, listingLocation
     }
   }
 
-  // Determine discount bucket
   let discountPercent;
   let discountBucket;
 
@@ -100,7 +100,6 @@ export async function validateResidentialPromoCode({ code, user, listingLocation
     discountBucket = "default";
   }
 
-  // Calculate amounts — round to cents
   const discountAmount = Math.min(Math.round((listingPrice * discountPercent) / 100), listingPrice);
   const finalAmount = Math.max(0, listingPrice - discountAmount);
 
@@ -115,6 +114,52 @@ export async function validateResidentialPromoCode({ code, user, listingLocation
   };
 }
 
+// ── Geo limit check (city_zip or radius) ─────────────────────────────────────
+
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 3958.8;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function checkGeoLimit(promoCode, loc) {
+  if (!promoCode.geographic_limit_enabled) return { valid: true };
+  const geoType = promoCode.geographic_limit_type || "none";
+  if (geoType === "none") return { valid: true };
+
+  if (geoType === "city_zip") {
+    const norm = (s) => String(s || "").trim().toLowerCase();
+    const cities = (promoCode.eligible_cities || []).map(norm);
+    const zips = (promoCode.eligible_zips || []).map(norm);
+    const locCity = norm(loc.city);
+    const locTown = norm(loc.town);
+    const locZip = norm(loc.zip);
+    const cityMatch = cities.length === 0 || cities.includes(locCity) || cities.includes(locTown);
+    const zipMatch = zips.length === 0 || zips.includes(locZip);
+    if (cities.length > 0 && zips.length > 0) {
+      if (!cityMatch && !zipMatch) return { valid: false };
+    } else if (cities.length > 0 && !cityMatch) return { valid: false };
+    else if (zips.length > 0 && !zipMatch) return { valid: false };
+    return { valid: true };
+  }
+
+  if (geoType === "radius") {
+    if (!promoCode.geo_center_lat || !promoCode.geo_center_lng || !promoCode.geo_radius_miles) return { valid: true };
+    if (!loc.lat || !loc.lng) return { valid: true };
+    const dist = haversineDistance(promoCode.geo_center_lat, promoCode.geo_center_lng, loc.lat, loc.lng);
+    if (dist > promoCode.geo_radius_miles) return { valid: false };
+    return { valid: true };
+  }
+
+  return { valid: true };
+}
+
+// ── Legacy address coverage ───────────────────────────────────────────────────
+
 function checkCoverage(promoCode, listingLocation) {
   const type = promoCode.coverage_type || "nationwide";
 
@@ -124,7 +169,6 @@ function checkCoverage(promoCode, listingLocation) {
 
   const loc = listingLocation;
 
-  // Custom coverage_rules object
   if (type === "custom" && promoCode.coverage_rules) {
     const rules = promoCode.coverage_rules;
     if (rules.states?.length && !rules.states.some((s) => matches(s, loc.state))) return false;

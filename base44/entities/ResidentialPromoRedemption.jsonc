@@ -66,6 +66,27 @@
         "voided"
       ],
       "default": "pending"
+    },
+    "user_lat_snapshot": {
+      "type": "number",
+      "description": "Listing latitude at time of redemption"
+    },
+    "user_lng_snapshot": {
+      "type": "number",
+      "description": "Listing longitude at time of redemption"
+    },
+    "geo_validation_status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "skipped",
+        "failed"
+      ],
+      "description": "Result of geographic validation"
+    },
+    "geo_validation_distance_miles": {
+      "type": "number",
+      "description": "Distance in miles from promo center at time of redemption"
     }
   },
   "required": [
