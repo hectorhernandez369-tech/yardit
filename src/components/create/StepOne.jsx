@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Home, Users, Calendar } from "lucide-react";
+import { X, Home, Users, Calendar, Lock } from "lucide-react";
+
+// LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
+const LOCKED_LISTING_TYPES = ["neighborhood_sale", "event"];
 
 const LISTING_TYPES = [
   {
@@ -26,6 +29,7 @@ const LISTING_TYPES = [
     accent: "border-emerald-200 bg-emerald-50/40",
     activeAccent: "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-400/20",
     iconColor: "text-emerald-600",
+    comingSoonMessage: "Neighborhood Sales will launch after Founding Hunt Weekend.",
   },
   {
     value: "event",
@@ -35,6 +39,7 @@ const LISTING_TYPES = [
     accent: "border-[#b3d9db] bg-[#e6f3f4]/40",
     activeAccent: "border-[#006168] bg-[#e6f3f4] ring-2 ring-[#006168]/15",
     iconColor: "text-[#006168]",
+    comingSoonMessage: "Events will launch after Founding Hunt Weekend.",
   },
 ];
 
@@ -66,39 +71,72 @@ export default function StepOne({ formData, setFormData }) {
         <Label className="text-sm font-semibold text-slate-700 mb-3 block">What are you listing?</Label>
         <RadioGroup
           value={formData.listingType}
-          onValueChange={(value) => setFormData(prev => ({
-            ...prev,
-            listingType: value,
-            ...(value === "neighborhood_sale" ? {
-              categories: [],
-              category: "Neighborhood Sale",
-              description: "",
-              organizer_participation: prev.organizer_participation || "participating",
-            } : {}),
-            ...(value === "event" ? {
-              tier: "basic",
-              event_tier: "basic",
-            } : {}),
-          }))}
+          onValueChange={(value) => {
+            if (LOCKED_LISTING_TYPES.includes(value)) return;
+            setFormData(prev => ({
+              ...prev,
+              listingType: value,
+              ...(value === "neighborhood_sale" ? {
+                categories: [],
+                category: "Neighborhood Sale",
+                description: "",
+                organizer_participation: prev.organizer_participation || "participating",
+              } : {}),
+              ...(value === "event" ? {
+                tier: "basic",
+                event_tier: "basic",
+              } : {}),
+            }));
+          }}
           className="space-y-2.5"
         >
-          {LISTING_TYPES.map(({ value, icon: Icon, title, subtitle, accent, activeAccent, iconColor }) => {
-            const isSelected = formData.listingType === value;
+          {LISTING_TYPES.map(({ value, icon: Icon, title, subtitle, accent, activeAccent, iconColor, comingSoonMessage }) => {
+            const isLocked = LOCKED_LISTING_TYPES.includes(value);
+            const isSelected = formData.listingType === value && !isLocked;
             return (
-              <label
+              <div
                 key={value}
-                htmlFor={value}
-                className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-150 ${isSelected ? activeAccent : `${accent} hover:border-slate-300`}`}
+                className={`relative rounded-xl border transition-all duration-150 ${
+                  isLocked
+                    ? "border-slate-200 bg-slate-50/60 opacity-55 cursor-not-allowed select-none"
+                    : isSelected
+                    ? `${activeAccent} cursor-pointer`
+                    : `${accent} hover:border-slate-300 cursor-pointer`
+                }`}
+                onClick={() => !isLocked && setFormData(prev => ({
+                  ...prev,
+                  listingType: value,
+                  ...(value === "event" ? { tier: "basic", event_tier: "basic" } : {}),
+                }))}
               >
-                <RadioGroupItem value={value} id={value} className="mt-0.5 shrink-0" />
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? "bg-white shadow-sm" : "bg-white/60"}`}>
-                  <Icon className={`w-4 h-4 ${iconColor}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-slate-800 text-sm">{title}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">{subtitle}</div>
-                </div>
-              </label>
+                <label
+                  htmlFor={isLocked ? undefined : value}
+                  className={`flex items-start gap-4 p-4 ${isLocked ? "cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  {!isLocked && <RadioGroupItem value={value} id={value} className="mt-0.5 shrink-0" />}
+                  {isLocked && (
+                    <div className="mt-0.5 shrink-0 w-4 h-4 flex items-center justify-center">
+                      <Lock className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                  )}
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isLocked ? "bg-white/40" : isSelected ? "bg-white shadow-sm" : "bg-white/60"}`}>
+                    <Icon className={`w-4 h-4 ${isLocked ? "text-slate-400" : iconColor}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-semibold text-sm ${isLocked ? "text-slate-400" : "text-slate-800"}`}>{title}</span>
+                      {isLocked && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5 tracking-wide uppercase">
+                          Coming Soon
+                        </span>
+                      )}
+                    </div>
+                    <div className={`text-xs mt-0.5 ${isLocked ? "text-slate-400" : "text-slate-500"}`}>
+                      {isLocked ? comingSoonMessage : subtitle}
+                    </div>
+                  </div>
+                </label>
+              </div>
             );
           })}
         </RadioGroup>
