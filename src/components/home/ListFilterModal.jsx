@@ -131,7 +131,7 @@ export default function ListFilterModal({ open, onOpenChange, filters, onFilters
           )}
         </div>
 
-        <div className="px-5 py-5 space-y-5 max-h-[72vh] overflow-y-auto">
+        <div className="px-5 py-5 space-y-5 max-h-[55vh] overflow-y-auto">
 
           {/* Visibility / Tier */}
           <div>
