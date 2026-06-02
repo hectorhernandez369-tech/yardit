@@ -259,7 +259,7 @@ export default function ListFilterModal({ open, onOpenChange, filters, onFilters
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/60">
+        <div className="border-t border-slate-100 bg-slate-50/60 px-5 py-4">
           <button
             onClick={() => onOpenChange(false)}
             className="w-full py-3 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors shadow-sm"
