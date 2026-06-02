@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ShoppingBag, Users, Calendar, Check } from "lucide-react";
 
@@ -188,6 +188,20 @@ export default function ListFilterModal({ open, onOpenChange, filters, onFilters
                 </ToggleChip>
               ))}
             </div>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="date"
+                value={/^\d{4}-\d{2}-\d{2}$/.test(f.dateFilter) ? f.dateFilter : ""}
+                onChange={e => onFiltersChange({ ...f, dateFilter: e.target.value || "all" })}
+                className="flex-1 h-8 rounded-lg border border-slate-200 px-2 text-xs text-slate-700 bg-white focus:outline-none focus:border-slate-400"
+              />
+              {/^\d{4}-\d{2}-\d{2}$/.test(f.dateFilter) && (
+                <button
+                  onClick={() => onFiltersChange({ ...f, dateFilter: "all" })}
+                  className="text-xs text-slate-400 hover:text-slate-600"
+                >✕</button>
+              )}
+            </div>
           </div>
 
           {/* Distance (only shown if location available) */}
@@ -206,6 +220,25 @@ export default function ListFilterModal({ open, onOpenChange, filters, onFilters
                       {label}
                     </ToggleChip>
                   ))}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="Custom miles..."
+                    value={
+                      f.maxDistance != null && !DISTANCE_OPTIONS.some(o => o.value === f.maxDistance)
+                        ? f.maxDistance
+                        : ""
+                    }
+                    onChange={e => {
+                      const v = parseFloat(e.target.value);
+                      onFiltersChange({ ...f, maxDistance: isNaN(v) || v <= 0 ? null : v });
+                    }}
+                    className="flex-1 h-8 rounded-lg border border-slate-200 px-2 text-xs text-slate-700 bg-white focus:outline-none focus:border-slate-400"
+                  />
+                  <span className="text-xs text-slate-400 shrink-0">mi</span>
                 </div>
               </div>
             </>

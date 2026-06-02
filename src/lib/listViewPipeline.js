@@ -192,6 +192,14 @@ function listingMatchesDate(listing, dateFilter, now) {
     return start >= now;
   }
 
+  // Custom date string (YYYY-MM-DD) — check if listing overlaps that day
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateFilter)) {
+    const dayStart = new Date(dateFilter + "T00:00:00");
+    const dayEnd = new Date(dateFilter + "T23:59:59");
+    if (!start || !end) return false;
+    return start <= dayEnd && end >= dayStart;
+  }
+
   return true;
 }
 
