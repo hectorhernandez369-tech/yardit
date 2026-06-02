@@ -24,8 +24,8 @@ import {
   isNeighborhoodVisibleOnMap,
   normalizeNeighborhoodJoinStatus,
   shouldShowListingInNeighborhoodParticipantView,
-  shouldShowListingOnMainMap,
 } from "@/lib/neighborhoodSaleState";
+import { getListingMapVisibilityState, debugListingVisibility, getListingOwnerId } from "@/lib/listingVisibility";
 
 const UPCOMING_PREVIEW_LABEL = "COMING SOON";
 import CheckInButton from "../components/map/CheckInButton";
@@ -481,6 +481,11 @@ export default function HomePage() {
     const p = new URLSearchParams(window.location.search);
     return p.get("debug") === "true";
   }, []);
+
+  const viewingOwnerPreviewMode = useMemo(() => {
+    const p = new URLSearchParams(window.location.search);
+    return p.get("ownerPreview") === "1" || p.get("previewMode") === "owner";
+  }, []);
   const [debugVisible, setDebugVisible] = useState(false);
   const [debugPinned, setDebugPinned] = useState(debugForceOn);
   const debugTimerRef = useRef(null);
@@ -840,48 +845,17 @@ export default function HomePage() {
 
   const eligibleListings = useMemo(() => {
     const now = new Date();
-    const demo = demoOn;
+    const visibilityContext = { now, viewingOwnerPreviewMode, debugVisibility: debugForceOn };
 
     const baseListings = listings
       .map((listing) => {
-        if (listing.status === "cancelled" || listing.status === "canceled" || listing.status === "expired" || listing.status === "removed" || listing.status === "hidden") return null;
-        if (listing.canceled_at || listing.expired_at) return null;
-        if (!demo && listing.endDateTime && now > new Date(listing.endDateTime)) return null;
-        if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return null;
-        if (!isFinite(listing.lat) || !isFinite(listing.lng)) return null;
-
         const matchesCategory = selectedCategories.length === 0 || 
           selectedCategories.some(cat => (listing.categories || []).includes(cat) || listing.category === cat);
         if (!matchesCategory) return null;
 
-        const mapState = getListingMapState(listing, user, now);
-
-        if (listing.listingType === "neighborhood_sale") {
-          const isOwnerPendingPreview = user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, now) === "pending_activation";
-          if (!isOwnerPendingPreview && listing.status !== "active") return null;
-          const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
-          if (!isOwnerPendingPreview && (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(listing, now))) return null;
-
-          const start = new Date(listing.startDateTime);
-          const end = new Date(listing.endDateTime);
-          if (isNaN(start.getTime()) || isNaN(end.getTime()) || now > end) return null;
-
-          const neighborhoodState = deriveNeighborhoodEventState(listing, now);
-
-          return {
-            ...listing,
-            mapState: neighborhoodState
-          };
-        } else {
-          if (mapState === "hidden") return null;
-          if (mapState === "active" && !shouldShowListingOnMainMap(listing, now)) return null;
-
-          const start = new Date(listing.startDateTime);
-          const end = new Date(listing.endDateTime);
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
-          if (mapState === "active" && !demo && listing.listingType !== "event" && (start > now || end < now)) return null;
-          if (mapState === "active" && demo && listing.listingType === "event" && end < now) return null;
-        }
+        const mapState = getListingMapVisibilityState(listing, user, visibilityContext);
+        if (debugForceOn) debugListingVisibility(listing, user, visibilityContext);
+        if (mapState === "hidden") return null;
 
         return { ...listing, mapState };
       })
@@ -896,7 +870,7 @@ export default function HomePage() {
     }
 
     return combinedListings.filter(l => listingMatchesQuery(l, searchQuery, true));
-  }, [listings, vendorEvents, filter, searchQuery, selectedCategories, demoOn, user]);
+  }, [listings, vendorEvents, filter, searchQuery, selectedCategories, demoOn, user, viewingOwnerPreviewMode, debugForceOn]);
 
   // List View uses its own pipeline in ListView.jsx + lib/listViewPipeline.js
   // No pre-filtering here — raw listings + vendorEvents are passed directly.
@@ -1224,6 +1198,8 @@ const stats = useMemo(() => {
             vendorEvents={vendorEvents}
             userLocation={userLocation}
             mapCenter={mapCenter}
+            currentUser={user}
+            viewingOwnerPreviewMode={false}
           />
         </div>
       ) : (
@@ -1331,7 +1307,7 @@ const stats = useMemo(() => {
               const isHuntStop = huntStops.some(loc => loc.id === listing.id);
               const isMapSelected = selectedListingId === listing.id;
               const routeIndex = huntStops.findIndex(loc => loc.id === listing.id);
-              const ownerPreviewPending = listing.listingType === "neighborhood_sale" && user?.id && listing.ownerUserId === user.id && deriveNeighborhoodEventState(listing, new Date()) === "pending_activation";
+              const ownerPreviewPending = listing.listingType === "neighborhood_sale" && user?.id && getListingOwnerId(listing) === user.id && deriveNeighborhoodEventState(listing, new Date()) === "pending_activation";
               const isPreviewState = listing.mapState === "preview";
               const goLiveLabel = formatListingGoLive(listing);
 

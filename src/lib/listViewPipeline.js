@@ -4,8 +4,9 @@
  * Does NOT affect Map View.
  */
 
-import { shouldShowListingOnMainMap, isNeighborhoodVisibleOnMap, deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
+import { deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
 import { isPublishedVendorEvent, toVendorEventListing } from "@/lib/vendorEvents";
+import { isListingVisible, getListingMapVisibilityState } from "@/lib/listingVisibility";
 
 // ---------------------------------------------------------------------------
 // Distance
@@ -38,53 +39,7 @@ function getTierPriority(listing) {
 // Public visibility gate
 // ---------------------------------------------------------------------------
 export function isListingPubliclyVisible(listing, now = new Date()) {
-  if (!listing) return false;
-
-  const s = listing.status;
-  // Explicitly excluded statuses
-  if (["cancelled", "canceled", "expired", "removed", "hidden", "suspended", "deleted"].includes(s)) return false;
-  if (listing.canceled_at || listing.expired_at) return false;
-
-  // Must have valid coords
-  if (typeof listing.lat !== "number" || typeof listing.lng !== "number") return false;
-  if (!isFinite(listing.lat) || !isFinite(listing.lng)) return false;
-
-  // Payment gate: paid-tier listings must be paid
-  const paidTiers = ["featured", "premium", "marquee", "basic"];
-  if (
-    listing.listingType === "yard_sale" &&
-    paidTiers.includes(listing.tier) &&
-    listing.payment_status &&
-    !["paid", "skipped_admin_promo", "waived"].includes(listing.payment_status)
-  ) return false;
-
-  // endDateTime must not be in the past (except events can be future-dated "coming soon")
-  if (listing.endDateTime && now > new Date(listing.endDateTime)) return false;
-
-  // Neighborhood sale rules
-  if (listing.listingType === "neighborhood_sale") {
-    const visibleHomes = Number(listing.homeCount || listing.confirmed_count || 0);
-    if (visibleHomes < 5) return false;
-    if (!isNeighborhoodVisibleOnMap(listing, now)) return false;
-    const end = new Date(listing.endDateTime);
-    if (isNaN(end.getTime()) || now > end) return false;
-    return true;
-  }
-
-  // Vendor events — handled separately via toVendorEventListing
-  if (listing.is_vendor_event) return true;
-
-  // Standard listing visibility
-  if (!shouldShowListingOnMainMap(listing, now)) return false;
-
-  const start = new Date(listing.startDateTime);
-  const end = new Date(listing.endDateTime);
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-
-  // Events can be "coming soon" (start in future is ok)
-  if (listing.listingType !== "event" && start > now) return false;
-
-  return true;
+  return isListingVisible(listing, null, { now, viewingOwnerPreviewMode: false });
 }
 
 // ---------------------------------------------------------------------------
@@ -226,6 +181,8 @@ export function buildListViewResults({
   searchQuery = "",
   filters = {},
   now = new Date(),
+  currentUser = null,
+  viewingOwnerPreviewMode = false,
 }) {
   const {
     tiers = ["premium", "featured"],      // default: premium + featured only
@@ -245,11 +202,12 @@ export function buildListViewResults({
     : null;
 
   // Build base listing pool
-  const baseListings = listings.filter(l => isListingPubliclyVisible(l, now)).map(l => {
+  const visibilityContext = { now, viewingOwnerPreviewMode };
+  const baseListings = listings.filter(l => isListingVisible(l, currentUser, visibilityContext)).map(l => {
     const neighborhoodState = l.listingType === "neighborhood_sale"
       ? deriveNeighborhoodEventState(l, now)
       : null;
-    return { ...l, _neighborhoodState: neighborhoodState };
+    return { ...l, _neighborhoodState: neighborhoodState, mapState: getListingMapVisibilityState(l, currentUser, visibilityContext) };
   });
 
   // Add published vendor events

@@ -12,7 +12,8 @@ import { format } from "date-fns";
 import EditListingDialog from "@/components/listing/EditListingDialog";
 import { toast } from "sonner";
 import { getListingDisplayStatus } from "@/components/listing/listingDisplay";
-import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError, shouldShowListingOnMainMap, isNeighborhoodVisibleOnMap } from "@/lib/neighborhoodSaleState";
+import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
+import { isPubliclyVisibleListing } from "@/lib/listingVisibility";
 import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
 import MyListingCard from "@/components/listing/MyListingCard";
 import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
@@ -183,14 +184,12 @@ export default function MyListingsPage() {
 
   const isPastListing = (listing) => {
     const status = listing?.status || "";
-    return ["expired","completed","closed","cancelled","canceled","removed","denied","rejected","suspended"].includes(status);
+    return ["expired","completed","closed","cancelled","canceled","removed","denied","rejected","suspended","hidden","deleted"].includes(status);
   };
 
   const isActiveListing = (listing) => {
     if (isPastListing(listing)) return false;
-    const now = new Date();
-    if (listing?.listingType === "neighborhood_sale") return isNeighborhoodVisibleOnMap(listing, now);
-    return shouldShowListingOnMainMap(listing, now);
+    return isPubliclyVisibleListing(listing, { now: new Date(), currentUser: user });
   };
 
   const isPendingListing = (listing) => !isEffectivelyPastListing(listing) && !isActiveListing(listing);

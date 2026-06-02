@@ -37,6 +37,7 @@ import SaveListingButton from "@/components/listing/SaveListingButton";
 import ListingPhotoGallery from "@/components/listing/ListingPhotoGallery";
 import ListingShareButton from "@/components/listing/ListingShareButton";
 import NeighborhoodSalePanel from "@/components/listing/NeighborhoodSalePanel";
+import { getListingOwnerId, isOwnerPreviewVisibleListing, isPubliclyVisibleListing } from "@/lib/listingVisibility";
 
 export default function ListingDetailPage() {
   const navigate = useNavigate();
@@ -112,7 +113,7 @@ export default function ListingDetailPage() {
     r.listingDetails?.status !== "cancelled"
   ) || [];
   const removedRequests = joinRequests?.filter(r => r.removed_by_eo === true || r.removed_by_listing_owner === true) || [];
-  const isOwner = !!user && user.id === listing?.ownerUserId;
+  const isOwner = !!user && user.id === getListingOwnerId(listing);
   const isAcceptedCoHost = !!user && listing?.listingType === "neighborhood_sale" && listing?.co_host_user_id === user.id && listing?.co_host_status === "accepted";
   const canManageNeighborhoodSale = isOwner || isAcceptedCoHost;
 
@@ -365,6 +366,11 @@ export default function ListingDetailPage() {
     return <div className="p-8 text-center">Loading...</div>;
   }
 
+  const canViewListingDetail = isPubliclyVisibleListing(listing, { currentUser: user }) || isOwnerPreviewVisibleListing(listing, user, { viewingOwnerPreviewMode: true }) || user?.isAdmin || ["master", "super_master", "supervisor"].includes(user?.role);
+  if (!canViewListingDetail) {
+    return <div className="p-8 text-center text-slate-600">This listing is not publicly available.</div>;
+  }
+
   const tierColors = {
     free: "bg-slate-500",
     basic: "bg-slate-700",
@@ -421,7 +427,7 @@ export default function ListingDetailPage() {
                   PROMOTIONAL
                 </Button>
               )}
-              {(user || isGuest) && user?.id !== listing.ownerUserId && (
+              {(user || isGuest) && user?.id !== getListingOwnerId(listing) && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -483,7 +489,7 @@ export default function ListingDetailPage() {
                     {user?.isAdmin && getAdminSession() ? (
                       <button
                         type="button"
-                        onClick={() => navigate(createPageUrl("AdminLite") + `?tab=lite&liteTab=users&openUserId=${listing.ownerUserId}`)}
+                        onClick={() => navigate(createPageUrl("AdminLite") + `?tab=lite&liteTab=users&openUserId=${getListingOwnerId(listing)}`)}
                         className="font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2"
                       >
                         {getOwnerDisplayName(ownerUser, listing)}
@@ -528,7 +534,7 @@ export default function ListingDetailPage() {
                     mainImage={mainImage}
                   />
                   <Button
-                    onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
+                    onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}${isOwner ? "&ownerPreview=1" : ""}`)}
                     disabled={!listing.lat || !listing.lng}
                     variant="outline"
                     className="flex-1 gap-2 rounded-xl h-12 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 font-medium"

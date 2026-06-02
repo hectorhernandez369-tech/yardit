@@ -14,6 +14,7 @@ import {
 } from "@/components/listing/listingDisplay";
 import { normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 import { canSelfServeUpgrade } from "@/lib/listingUpgradeConfig";
+import { getListingOwnerId } from "@/lib/listingVisibility";
 
 // Soft pill badge — consistent across status/tier
 function PillBadge({ children, className = "" }) {
@@ -127,7 +128,7 @@ export default function MyListingCard({
             <Button
               size="sm"
               disabled={!hasCoords(listing)}
-              onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}`)}
+              onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}&ownerPreview=1`)}
               className="gap-1.5 bg-[#006168] hover:bg-[#004d52] text-white text-xs rounded-xl shadow-sm"
             >
               <Map className="w-3 h-3" />
@@ -144,7 +145,7 @@ export default function MyListingCard({
               View Details
             </Button>
 
-            {listing.ownerUserId === user?.id && (
+            {getListingOwnerId(listing) === user?.id && (
               <Button
                 size="sm"
                 variant="outline"

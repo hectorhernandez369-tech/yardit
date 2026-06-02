@@ -18,7 +18,7 @@ import {
 import ListFilterModal, { DEFAULT_LIST_FILTERS } from "@/components/home/ListFilterModal";
 import { buildListViewResults } from "@/lib/listViewPipeline";
 
-export default function ListView({ listings, vendorEvents, userLocation, mapCenter }) {
+export default function ListView({ listings, vendorEvents, userLocation, mapCenter, currentUser = null, viewingOwnerPreviewMode = false }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState(DEFAULT_LIST_FILTERS);
@@ -34,7 +34,9 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
     mapCenter,
     searchQuery,
     filters,
-  }), [listings, vendorEvents, userLocation, mapCenter, searchQuery, filters]);
+    currentUser,
+    viewingOwnerPreviewMode,
+  }), [listings, vendorEvents, userLocation, mapCenter, searchQuery, filters, currentUser, viewingOwnerPreviewMode]);
 
   const hasLocation = !!userLocation;
 
