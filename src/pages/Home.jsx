@@ -45,7 +45,7 @@ import { calculateTotalDistance } from "@/components/hunt/huntUtils";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
-import { getListingSortPriority, formatEventTierLabel } from "@/lib/eventListingConfig";
+import { formatEventTierLabel } from "@/lib/eventListingConfig";
 import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.jsx";
 import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
 import SaveListingButton from "@/components/listing/SaveListingButton";
@@ -892,74 +892,14 @@ export default function HomePage() {
 
     const strictMatches = combinedListings.filter(l => listingMatchesQuery(l, searchQuery, false));
     if (strictMatches.length > 0 || !searchQuery) {
-      return strictMatches.sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
+      return strictMatches;
     }
 
-    return combinedListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
+    return combinedListings.filter(l => listingMatchesQuery(l, searchQuery, true));
   }, [listings, vendorEvents, filter, searchQuery, selectedCategories, demoOn, user]);
 
-  const listViewListings = useMemo(() => {
-    const now = new Date();
-    const demo = demoOn;
-
-    const baseListings = listings.filter((l) => {
-      if (l.status === "cancelled" || l.status === "canceled" || l.status === "expired" || l.status === "removed" || l.status === "hidden") return false;
-      if (l.canceled_at || l.expired_at) return false;
-      if (!demo && l.endDateTime && now > new Date(l.endDateTime)) return false;
-
-      if (l.status !== "active" && l.listingType !== "neighborhood_sale") return false;
-      if (typeof l.lat !== "number" || l.lat === null || typeof l.lng !== "number" || l.lng === null) return false;
-      if (!isFinite(l.lat) || !isFinite(l.lng)) return false;
-
-      if (l.listingType === "neighborhood_sale") {
-        const visibleHomes = Number(l.homeCount || l.confirmed_count || 0);
-        if (visibleHomes < 5 || !isNeighborhoodVisibleOnMap(l, now)) return false;
-
-        const start = new Date(l.startDateTime);
-        const end = new Date(l.endDateTime);
-        if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < now) return false;
-        return true;
-      }
-
-      if (!shouldShowListingOnMainMap(l, now)) return false;
-
-      const start = new Date(l.startDateTime);
-      const end = new Date(l.endDateTime);
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-      if (!demo && l.listingType !== "event" && (start > now || end < now)) return false;
-
-      return true;
-    }).filter(l => {
-      if (filter !== "all" && l.listingType !== filter) return false;
-      const matchesCategory = selectedCategories.length === 0 || 
-        selectedCategories.some(cat => (l.categories || []).includes(cat) || l.category === cat);
-      return matchesCategory;
-    }).map((l) => {
-      if (l.listingType === "neighborhood_sale") {
-        const neighborhoodState = deriveNeighborhoodEventState(l, now);
-
-        return {
-          ...l,
-          mapState: neighborhoodState
-        };
-      }
-
-      return {
-        ...l,
-        mapState: getListingMapState(l, user, now)
-      };
-    });
-
-    const vendorEventListings = vendorEvents.filter((event) => isPublishedVendorEvent(event, now)).map((e) => toVendorEventListing(e, now));
-    const combinedListings = [...baseListings, ...vendorEventListings];
-
-    const strictMatches = combinedListings.filter(l => listingMatchesQuery(l, searchQuery, false));
-    if (strictMatches.length > 0 || !searchQuery) {
-      return strictMatches.sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
-    }
-
-    return combinedListings.filter(l => listingMatchesQuery(l, searchQuery, true)).sort((a, b) => getListingSortPriority(a) - getListingSortPriority(b));
-  }, [listings, vendorEvents, filter, searchQuery, selectedCategories, demoOn, user]);
+  // List View uses its own pipeline in ListView.jsx + lib/listViewPipeline.js
+  // No pre-filtering here — raw listings + vendorEvents are passed directly.
 
 const stats = useMemo(() => {
   const publicListings = eligibleListings.filter((l) => l.mapState !== "preview");
@@ -1279,7 +1219,12 @@ const stats = useMemo(() => {
       {/* Content area */}
       {view === "list" ? (
         <div className="flex-1 overflow-auto">
-          <ListView listings={listViewListings} userLocation={userLocation} />
+          <ListView
+            listings={listings}
+            vendorEvents={vendorEvents}
+            userLocation={userLocation}
+            mapCenter={mapCenter}
+          />
         </div>
       ) : (
         <div ref={mapAreaRef} className="flex-1 relative min-w-0 w-full">
