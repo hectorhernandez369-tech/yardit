@@ -1,5 +1,5 @@
-import React from "react";
-import { ArrowLeft } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -63,6 +63,12 @@ const faqItems = [
 ];
 
 export default function NeighborhoodIntroFAQ({ onBack }) {
+  const [expandedFaq, setExpandedFaq] = useState(null);
+
+  const toggleFaq = (index) => {
+    setExpandedFaq((current) => current === index ? null : index);
+  };
+
   return (
     <>
       <div className="border-b border-[#2C4F4E]/10 bg-white/90 px-4 py-3 sm:px-5">
@@ -81,12 +87,24 @@ export default function NeighborhoodIntroFAQ({ onBack }) {
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
         <div className="space-y-3">
-          {faqItems.map((item) => (
-            <section key={item.question} className="rounded-2xl border border-[#5DADA5]/20 bg-white p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-[#2C4F4E]">{item.question}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-700">{item.answer}</p>
-            </section>
-          ))}
+          {faqItems.map((item, index) => {
+            const expanded = expandedFaq === index;
+            return (
+              <section key={item.question} className="overflow-hidden rounded-2xl border border-[#5DADA5]/20 bg-white shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => toggleFaq(index)}
+                  className="flex w-full items-center justify-between gap-3 p-4 text-left touch-manipulation"
+                >
+                  <h3 className="text-sm font-bold text-[#2C4F4E]">{item.question}</h3>
+                  <ChevronDown className={`h-4 w-4 shrink-0 text-[#5DADA5] transition-transform ${expanded ? "rotate-180" : ""}`} />
+                </button>
+                {expanded && (
+                  <p className="border-t border-[#5DADA5]/15 bg-[#F9F4EA]/70 px-4 pb-4 pt-3 text-sm leading-relaxed text-slate-700">{item.answer}</p>
+                )}
+              </section>
+            );
+          })}
         </div>
       </div>
 
