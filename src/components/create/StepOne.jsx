@@ -15,7 +15,7 @@ const LOCKED_PREVIEW = {
   neighborhood_sale: {
     tagline: "Turn your block into a destination.",
     highlights: [
-      { icon: Users, text: "Coordinate multiple homes in one unified listing" },
+      { icon: Users, text: "Coordinate up to 25 homes in one unified listing" },
       { icon: MapPin, text: "Buyers discover your whole street on a single map pin" },
       { icon: Star, text: "Organizers set the dates — neighbors join for free" },
     ],
@@ -46,7 +46,7 @@ const LISTING_TYPES = [
     value: "neighborhood_sale",
     icon: Users,
     title: "Neighborhood Sale",
-    subtitle: "Coordinate multiple homes within 500 ft",
+    subtitle: "Coordinate up to 25 homes within 500 ft",
     accent: "border-emerald-200 bg-emerald-50/40",
     activeAccent: "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-400/20",
     iconColor: "text-emerald-600",
