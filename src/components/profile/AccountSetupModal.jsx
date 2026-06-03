@@ -95,7 +95,7 @@ export default function AccountSetupModal({ user, setUser }) {
             </DialogHeader>
           </div>
 
-          <div className="space-y-5 px-6 py-6">
+          <div className="space-y-5 px-6 py-6 max-h-[60vh] overflow-y-auto">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="setup_first_name">First Name *</Label>
