@@ -46,7 +46,7 @@ const faqItems = [
   },
   {
     question: "What Is a Co-Host?",
-    answer: "A Co-Host is a user invited by the organizer to help manage the event. Co-Hosts may view participants, manage participation requests, and help coordinate the event. Co-Hosts do not own the event and cannot delete it.",
+    answer: "A Co-Host is a user invited by the organizer to help manage the event. Co-Hosts may view participants, manage participation requests, and help coordinate the event. Co-Hosts do not own the event and cannot delete it. The co-host's home must be within 500 feet of the event center to be approved as a co-host.",
   },
   {
     question: "What Am I Responsible For As Organizer?",
