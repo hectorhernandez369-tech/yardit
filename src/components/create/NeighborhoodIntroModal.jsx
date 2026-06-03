@@ -149,7 +149,15 @@ export default function NeighborhoodIntroModal({ open, onClose, onContinue }) {
   };
 
   const toggleCard = (index) => {
-    setExpandedCard((current) => current === index ? null : index);
+    setExpandedCard((current) => {
+      const next = current === index ? null : index;
+      if (next !== null) {
+        setTimeout(() => {
+          document.querySelector(`[data-neighborhood-intro-card="${index}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+      }
+      return next;
+    });
   };
 
   return (
@@ -172,16 +180,17 @@ export default function NeighborhoodIntroModal({ open, onClose, onContinue }) {
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
               <div className="space-y-3">
                 {cards.map((card, index) => (
-                  <NeighborhoodIntroCard
-                    key={card.title}
-                    icon={card.icon}
-                    emoji={card.emoji}
-                    title={card.title}
-                    expanded={expandedCard === index}
-                    onToggle={() => toggleCard(index)}
-                  >
-                    {card.content}
-                  </NeighborhoodIntroCard>
+                  <div key={card.title} data-neighborhood-intro-card={index}>
+                    <NeighborhoodIntroCard
+                      icon={card.icon}
+                      emoji={card.emoji}
+                      title={card.title}
+                      expanded={expandedCard === index}
+                      onToggle={() => toggleCard(index)}
+                    >
+                      {card.content}
+                    </NeighborhoodIntroCard>
+                  </div>
                 ))}
               </div>
 

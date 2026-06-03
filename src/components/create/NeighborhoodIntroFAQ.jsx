@@ -66,7 +66,15 @@ export default function NeighborhoodIntroFAQ({ onBack }) {
   const [expandedFaq, setExpandedFaq] = useState(null);
 
   const toggleFaq = (index) => {
-    setExpandedFaq((current) => current === index ? null : index);
+    setExpandedFaq((current) => {
+      const next = current === index ? null : index;
+      if (next !== null) {
+        setTimeout(() => {
+          document.querySelector(`[data-neighborhood-faq-card="${index}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+      }
+      return next;
+    });
   };
 
   return (
@@ -90,7 +98,7 @@ export default function NeighborhoodIntroFAQ({ onBack }) {
           {faqItems.map((item, index) => {
             const expanded = expandedFaq === index;
             return (
-              <section key={item.question} className="overflow-hidden rounded-2xl border border-[#5DADA5]/20 bg-white shadow-sm">
+              <section key={item.question} data-neighborhood-faq-card={index} className="overflow-hidden rounded-2xl border border-[#5DADA5]/20 bg-white shadow-sm">
                 <button
                   type="button"
                   onClick={() => toggleFaq(index)}
