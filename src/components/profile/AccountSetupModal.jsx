@@ -80,7 +80,7 @@ export default function AccountSetupModal({ user, setUser }) {
   return (
     <>
       <Dialog open={open} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-lg overflow-hidden border border-slate-200/80 bg-white p-0 shadow-2xl shadow-slate-950/20 [&>button]:hidden">
+        <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-hidden border border-slate-200/80 bg-white p-0 shadow-2xl shadow-slate-950/20 [&>button]:hidden flex flex-col">
           <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-[#123C3A] px-6 py-7 text-white">
             <DialogHeader>
               <img 
@@ -95,7 +95,7 @@ export default function AccountSetupModal({ user, setUser }) {
             </DialogHeader>
           </div>
 
-          <div className="space-y-5 px-6 py-6 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-5 px-6 py-6 flex-1 min-h-0 overflow-y-auto">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="setup_first_name">First Name *</Label>
