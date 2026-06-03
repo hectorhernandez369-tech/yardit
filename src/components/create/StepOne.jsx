@@ -322,57 +322,6 @@ export default function StepOne({ formData, setFormData }) {
         </>
       )}
 
-      {/* Neighborhood sale specific options */}
-      {isNeighborhood && (
-        <div className="space-y-5">
-          {/* Participation choice */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-            <Label className="text-sm font-semibold text-slate-700 mb-3 block">
-              Will you have a sale at your own address?
-            </Label>
-            <RadioGroup
-              value={formData.organizer_participation || "participating"}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, organizer_participation: value }))}
-              className="space-y-2"
-            >
-              <label htmlFor="organizer_participating" className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.organizer_participation !== "organizing_only" ? "border-emerald-300 bg-emerald-50 ring-2 ring-emerald-300/20" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                <RadioGroupItem value="participating" id="organizer_participating" className="mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-sm font-semibold text-slate-800">Yes, I'm hosting a sale at my address</div>
-                  <div className="text-xs text-slate-500 mt-0.5">My home counts as one participant</div>
-                </div>
-              </label>
-              <label htmlFor="organizer_only" className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.organizer_participation === "organizing_only" ? "border-[#006168]/40 bg-[#e6f3f4] ring-2 ring-[#006168]/15" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                <RadioGroupItem value="organizing_only" id="organizer_only" className="mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-sm font-semibold text-slate-800">No, I'm just organizing</div>
-                  <div className="text-xs text-slate-500 mt-0.5">My home will not be listed as a participant</div>
-                </div>
-              </label>
-            </RadioGroup>
-          </div>
-
-          {/* Pricing info */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
-            <p className="text-sm font-semibold text-slate-800">How Neighborhood Sale pricing works</p>
-            <div className="text-sm text-slate-500 space-y-2 leading-relaxed">
-              <p><strong className="text-slate-700">$19.99 base + $2 per participating home.</strong> Participants are never charged.</p>
-              <p>Once you reach 5 confirmed homes, your event is committed and billing runs at the 24-hour mark before the event starts.</p>
-              <ul className="list-disc pl-4 space-y-1 text-xs mt-2">
-                <li>No new homes can be added after activation</li>
-                <li>All participants are locked in for a consistent experience</li>
-              </ul>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate(createPageUrl("FAQ") + "#neighborhood-sale-pricing")}
-              className="text-xs font-semibold text-[#006168] hover:text-[#004d52] underline underline-offset-2 transition-colors"
-            >
-              Full pricing FAQ →
-            </button>
-          </div>
-        </div>
-      )}
 
     </div>
   );
