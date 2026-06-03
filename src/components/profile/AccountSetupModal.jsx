@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PRIVACY_VERSION, TERMS_VERSION, isAccountSetupComplete } from "@/lib/accountSetup";
 
@@ -83,8 +83,12 @@ export default function AccountSetupModal({ user, setUser }) {
         <DialogContent className="sm:max-w-lg overflow-hidden border border-slate-200/80 bg-white p-0 shadow-2xl shadow-slate-950/20 [&>button]:hidden">
           <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-[#123C3A] px-6 py-7 text-white">
             <DialogHeader>
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white shadow-lg backdrop-blur">
-                <ShieldCheck className="h-6 w-6" />
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-lg backdrop-blur">
+                <img 
+                  src="https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png" 
+                  alt="Yardit Logo" 
+                  className="h-7 w-7 object-contain"
+                />
               </div>
               <DialogTitle className="text-center text-2xl font-semibold tracking-tight text-white">Secure Account Setup</DialogTitle>
               <DialogDescription className="text-center text-slate-300">
