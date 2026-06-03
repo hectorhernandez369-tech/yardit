@@ -27,7 +27,7 @@ export default function NeighborhoodIntroModal({ open, onClose, onContinue }) {
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) resetAndClose(); }}>
       <DialogContent className="max-w-2xl max-h-[92vh] flex flex-col overflow-hidden border-0 p-0 bg-[#F3E6CF]">
-        <div className="shrink-0 bg-gradient-to-br from-[#5DADA5] via-[#4A9B93] to-[#2C4F4E] text-white px-6 py-2">
+        <div className="bg-gradient-to-br from-[#5DADA5] via-[#4A9B93] to-[#2C4F4E] text-white px-6 py-2">
           <DialogHeader>
             <div className="mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/15">
               <PartyPopper className="h-3 w-3 text-[#F4A849]" />
