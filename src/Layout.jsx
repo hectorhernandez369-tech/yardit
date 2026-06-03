@@ -25,6 +25,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "./components/guest/GuestAuthModal";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
+import WelcomeProfileModal from "./components/profile/WelcomeProfileModal";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
@@ -284,6 +285,7 @@ function LayoutContent({ children, user, setUser }) {
       </main>
       
       <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} returnTo={`${window.location.origin}${createPageUrl("CreateListing")}`} />
+      <WelcomeProfileModal user={user} setUser={setUser} />
 
       <AdminLoginModal
         open={showAdminLogin}
