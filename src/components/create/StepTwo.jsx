@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { base44 } from "@/api/base44Client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -698,6 +699,20 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
             />
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="neighborhood-description" className="text-sm font-semibold text-[#2C4F4E]">
+              Event Description
+            </Label>
+            <Textarea
+              id="neighborhood-description"
+              placeholder="Tell neighbors what kind of sale this is, what to expect, and any helpful event details."
+              value={formData.description || ""}
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              rows={4}
+              className="bg-[#F3E6CF] border-[#2C4F4E] resize-none"
+            />
+          </div>
+
           <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
             <Label className="text-sm font-semibold text-slate-700 mb-3 block">
               Will you have a sale at your own address?
@@ -791,7 +806,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                   disabled={!formData.event_center_lat || !formData.event_center_lng}
                   onClick={handleUseAlternateHostFlow}
                 >
-                  I don’t live in the radius
+                  Use a Co-Host Address
                 </Button>
               )}
             </div>
