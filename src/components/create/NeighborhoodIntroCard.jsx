@@ -1,12 +1,12 @@
 import React from "react";
 import { ChevronDown } from "lucide-react";
 
-export default function NeighborhoodIntroCard({ id, emoji, title, isOpen, onToggle, children }) {
+export default function NeighborhoodIntroCard({ emoji, title, expanded, onToggle, children }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-[#5DADA5]/25 bg-white/95 shadow-sm">
       <button
         type="button"
-        onClick={() => onToggle(id)}
+        onClick={onToggle}
         className="flex w-full items-center justify-between gap-3 p-3.5 text-left"
       >
         <span className="flex min-w-0 items-center gap-2.5">
@@ -15,10 +15,10 @@ export default function NeighborhoodIntroCard({ id, emoji, title, isOpen, onTogg
           </span>
           <span className="text-sm font-black leading-tight text-[#2C4F4E]">{title}</span>
         </span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-[#5DADA5] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-4 w-4 shrink-0 text-[#5DADA5] transition-transform ${expanded ? "rotate-180" : ""}`} />
       </button>
 
-      {isOpen && (
+      {expanded && (
         <div className="border-t border-[#5DADA5]/15 bg-[#F9F4EA]/70 px-4 pb-4 pt-3 text-[13px] leading-relaxed text-slate-700">
           {children}
         </div>
