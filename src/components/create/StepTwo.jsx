@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import AddressFields from "@/components/shared/AddressFields";
 import ListingAddressReview from "@/components/create/ListingAddressReview";
 import { useAppMode } from "@/components/shared/DemoMode";
@@ -683,6 +684,46 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
     <div className="space-y-6">
       {isNeighborhood && (
         <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="neighborhood-title" className="text-sm font-semibold text-[#2C4F4E]">
+              Event Title *
+            </Label>
+            <Input
+              id="neighborhood-title"
+              placeholder="e.g., Oak Street Neighborhood Sale"
+              value={formData.title || ""}
+              onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+              className="bg-[#F3E6CF] border-[#2C4F4E]"
+              required
+            />
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            <Label className="text-sm font-semibold text-slate-700 mb-3 block">
+              Will you have a sale at your own address?
+            </Label>
+            <RadioGroup
+              value={formData.organizer_participation || "participating"}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, organizer_participation: value }))}
+              className="space-y-2"
+            >
+              <label htmlFor="organizer_participating" className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.organizer_participation !== "organizing_only" ? "border-emerald-300 bg-emerald-50 ring-2 ring-emerald-300/20" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                <RadioGroupItem value="participating" id="organizer_participating" className="mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-sm font-semibold text-slate-800">Yes, I'm hosting a sale at my address</div>
+                  <div className="text-xs text-slate-500 mt-0.5">My home counts as one participant</div>
+                </div>
+              </label>
+              <label htmlFor="organizer_only" className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.organizer_participation === "organizing_only" ? "border-[#006168]/40 bg-[#e6f3f4] ring-2 ring-[#006168]/15" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                <RadioGroupItem value="organizing_only" id="organizer_only" className="mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-sm font-semibold text-slate-800">No, I'm just organizing</div>
+                  <div className="text-xs text-slate-500 mt-0.5">My home will not be listed as a participant</div>
+                </div>
+              </label>
+            </RadioGroup>
+          </div>
+
           <Button
             type="button"
             onClick={() => setIsMapModalOpen(true)}

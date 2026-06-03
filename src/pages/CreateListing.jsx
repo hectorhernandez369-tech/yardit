@@ -936,6 +936,11 @@ export default function CreateListingPage() {
       }
 
       if (formData.listingType === "neighborhood_sale") {
+        if (!formData.title?.trim()) {
+          toast.error("Please enter an event title");
+          return;
+        }
+
         if (!formData.event_center_lat || !formData.event_center_lng) {
           toast.error("Please provide a location for the event center");
           return;
