@@ -141,10 +141,10 @@ function LayoutContent({ children, user, setUser }) {
   return (
     <div className="min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
       <Toaster richColors position="top-center" />
-      <header className="bg-[#5DADA5] border-b border-[#2C4F4E] sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5">
+      <header className="bg-[#5DADA5] border-b-2 border-[#2C4F4E] sticky top-0 z-50 shadow-md">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Link
                 to={createPageUrl("Home")}
                 className="flex flex-col items-center justify-center group select-none touch-none"
@@ -152,7 +152,7 @@ function LayoutContent({ children, user, setUser }) {
                 <img 
                   src="https://media.base44.com/images/public/690f554506edf795e5d84121/9df715fab_file_0000000005b4722fb02f43a8db334d53.png" 
                   alt="Yardit Events Logo" 
-                  className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
+                  className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
                 />
               </Link>
               {demoActive && (
@@ -162,46 +162,51 @@ function LayoutContent({ children, user, setUser }) {
               )}
             </div>
 
-            <nav className="flex items-center gap-0.5 sm:gap-1 flex-wrap">
+            <nav className="flex items-center gap-1 sm:gap-2 flex-wrap">
+              {/* My Hunt link moved to My Listings */}
+
               <Link to={createPageUrl("Home")}>
                 <Button
                   variant={location.pathname === createPageUrl("Home") || location.pathname === "/" ? "secondary" : "ghost"}
-                  size="xs"
-                  className={`gap-1 text-xs ${location.pathname === createPageUrl("Home") || location.pathname === "/" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                  size="sm"
+                  className={`gap-2 ${location.pathname === createPageUrl("Home") || location.pathname === "/" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
                 >
-                  <Home className="w-3.5 h-3.5" />
+                  <Home className="w-4 h-4" />
                   <span className="hidden sm:inline">Map</span>
                 </Button>
               </Link>
 
+
+
               {!isAuthenticated && (
                 <Button
-                  size="xs"
+                  size="sm"
                   onClick={navigateToLogin}
-                  className="gap-1 bg-[#F4A849] text-[#2C4F4E] border border-[#2C4F4E] hover:bg-[#E39635] shadow-sm font-semibold text-xs"
+                  className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
                 >
-                  <User className="w-3.5 h-3.5" />
-                  <span>Log In</span>
+                  <User className="w-4 h-4" />
+                  <span>Log In / Sign Up</span>
                 </Button>
               )}
               
               <>
                 {user && <NotificationBell />}
 
+
                 {user && (
                   <>
                     <Button
-                      size="xs"
-                      onClick={() => guardAction(() => navigate(createPageUrl("CreateListing")), { returnTo: `${window.location.origin}${createPageUrl("CreateListing")}` })}
-                      className="gap-1 bg-[#F4A849] text-[#2C4F4E] border border-[#2C4F4E] hover:bg-[#E39635] shadow-sm font-semibold text-xs"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Post</span>
-                    </Button>
+                    size="sm"
+                    onClick={() => guardAction(() => navigate(createPageUrl("CreateListing")), { returnTo: `${window.location.origin}${createPageUrl("CreateListing")}` })}
+                    className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Post Sale</span>
+                  </Button>
 
-                    <DropdownMenu>
+                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-7 w-7">
+                      <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-8 w-8">
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -317,14 +322,14 @@ function LayoutContent({ children, user, setUser }) {
         </DialogContent>
       </Dialog>
 
-      <footer className="bg-[#5DADA5] border-t border-[#2C4F4E] py-2">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-1.5">
+      <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-2">
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0ba1ba06_file_00000000fce071fd9ff100a6a9cf19951.png" 
             alt="Pirate Flag" 
-            className="h-5 w-auto object-contain"
+            className="h-[30px] w-auto object-contain"
           />
-          <p className="text-center text-[10px] text-white font-medium">
+          <p className="text-center text-xs text-white font-medium">
             Yardit - Seekers find the best residential yard sales
           </p>
         </div>
