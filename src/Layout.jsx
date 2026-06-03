@@ -150,7 +150,7 @@ function LayoutContent({ children, user, setUser }) {
                 className="flex flex-col items-center justify-center group select-none touch-none"
               >
                 <img 
-                  src="https://media.base44.com/images/public/690f554506edf795e5d84121/9df715fab_file_0000000005b4722fb02f43a8db334d53.png" 
+                  src="https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png" 
                   alt="Yardit Events Logo" 
                   className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
                 />
