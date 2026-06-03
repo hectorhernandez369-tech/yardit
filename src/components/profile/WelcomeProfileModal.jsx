@@ -20,10 +20,10 @@ export default function WelcomeProfileModal({ user, setUser }) {
   useEffect(() => {
     if (!user?.id) return;
 
-    const hasName = !!(user.first_name || user.last_name || user.full_name);
+    const hasYarditName = !!(user.first_name && user.last_name);
     const hasSeen = localStorage.getItem(seenKey(user.id)) === "true";
 
-    if (!hasName && !hasSeen) {
+    if (!hasYarditName && !hasSeen) {
       setFormData({
         first_name: user.first_name || "",
         last_name: user.last_name || "",
