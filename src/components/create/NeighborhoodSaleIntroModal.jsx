@@ -8,13 +8,13 @@ export default function NeighborhoodSaleIntroModal({ open, onClose, acknowledged
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[92vh] flex flex-col overflow-hidden border-0 p-0 bg-[#F3E6CF]">
-        <div className="shrink-0 bg-gradient-to-br from-[#5DADA5] via-[#4A9B93] to-[#2C4F4E] text-white px-6 py-6">
+        <div className="shrink-0 bg-gradient-to-br from-[#5DADA5] via-[#4A9B93] to-[#2C4F4E] text-white px-6 py-3">
           <DialogHeader>
-            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/20 shadow-lg ring-4 ring-white/15">
-              <PartyPopper className="h-7 w-7 text-[#F4A849]" />
+            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 shadow-lg ring-2 ring-white/15">
+              <PartyPopper className="h-4 w-4 text-[#F4A849]" />
             </div>
-            <DialogTitle className="text-center text-2xl font-bold">Create a Neighborhood Sale</DialogTitle>
-            <p className="text-center text-sm text-white/90 mt-2 max-w-lg mx-auto">
+            <DialogTitle className="text-center text-lg font-bold">Create a Neighborhood Sale</DialogTitle>
+            <p className="text-center text-xs text-white/90 mt-1 max-w-lg mx-auto">
               Turn multiple individual yard sales into one larger community event.
             </p>
           </DialogHeader>
