@@ -569,8 +569,7 @@ export default function CreateListingPage() {
         tier: formData.listingType === "event" ? (formData.event_tier || formData.tier) : formData.tier,
         listing_kind: formData.listingType === "event" ? "event" : "residential",
         customer_email: user?.email,
-        successUrl: `${returnUrl}?payment=success`,
-        cancelUrl: `${returnUrl}?payment=cancel`,
+        return_url: returnUrl,
         listing_id: "",
         ...promoPayload,
       });
@@ -1640,7 +1639,7 @@ export default function CreateListingPage() {
         handledCheckoutSessionRef.current = sessionId;
         localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
 
-        base44.functions.invoke("createResidentialListingCheckout", {
+        base44.functions.invoke("residentialStripeCheckout", {
           action: "verify",
           session_id: sessionId,
         }).then(async (response) => {

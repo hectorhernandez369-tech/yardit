@@ -10,6 +10,9 @@ export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBa
           <CreditCard className="w-6 h-6" />
           Payment Method Required
         </h3>
+        <p className="mb-4 rounded-xl bg-white/70 px-3 py-2 text-sm font-semibold text-amber-900">
+          Secure card setup powered by Stripe.
+        </p>
         <ul className="list-disc pl-5 space-y-3 text-amber-900 text-[15px]">
           <li><strong>Payment method required:</strong> A card must be saved on file to create a Neighborhood Sale.</li>
           <li><strong>No charge at creation:</strong> You will not be charged immediately.</li>

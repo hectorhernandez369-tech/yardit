@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Stripe from 'npm:stripe@18.5.0';
 
 const nowIso = () => new Date().toISOString();
@@ -110,8 +110,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Amount too small for Stripe checkout' }, { status: 400 });
     }
 
-    const successWithParams = `${successUrl}${successUrl.includes('?') ? '&' : '?'}stripePayment=success&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelWithParams = `${cancelUrl}${cancelUrl.includes('?') ? '&' : '?'}stripePayment=cancel`;
+    const successWithParams = `${successUrl}${successUrl.includes('?') ? '&' : '?'}payment=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelWithParams = `${cancelUrl}${cancelUrl.includes('?') ? '&' : '?'}payment=cancel`;
 
     const metadata = {
       base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
