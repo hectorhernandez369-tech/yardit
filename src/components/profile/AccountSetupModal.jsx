@@ -80,18 +80,20 @@ export default function AccountSetupModal({ user, setUser }) {
   return (
     <>
       <Dialog open={open} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-lg bg-[#F3E6CF] border-2 border-[#2C4F4E] [&>button]:hidden">
-          <DialogHeader>
-            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[#5DADA5] text-white shadow-md">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
-            <DialogTitle className="text-center text-2xl font-bold text-[#2C4F4E]">Welcome to Yardit</DialogTitle>
-            <DialogDescription className="text-center text-slate-700">
-              Help us personalize your experience and keep our marketplace safe.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-lg overflow-hidden border border-slate-200/80 bg-white p-0 shadow-2xl shadow-slate-950/20 [&>button]:hidden">
+          <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-[#123C3A] px-6 py-7 text-white">
+            <DialogHeader>
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white shadow-lg backdrop-blur">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <DialogTitle className="text-center text-2xl font-semibold tracking-tight text-white">Secure Account Setup</DialogTitle>
+              <DialogDescription className="text-center text-slate-300">
+                Confirm your identity details to protect the Yardit marketplace.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
 
-          <div className="space-y-4 pt-2">
+          <div className="space-y-5 px-6 py-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="setup_first_name">First Name *</Label>
@@ -100,7 +102,7 @@ export default function AccountSetupModal({ user, setUser }) {
                   value={formData.first_name}
                   onChange={(event) => setFormData((prev) => ({ ...prev, first_name: event.target.value }))}
                   placeholder="First name"
-                  className="bg-white"
+                  className="h-11 border-slate-200 bg-slate-50/70 focus-visible:ring-[#2C4F4E]"
                 />
               </div>
               <div className="space-y-1.5">
@@ -110,12 +112,12 @@ export default function AccountSetupModal({ user, setUser }) {
                   value={formData.last_name}
                   onChange={(event) => setFormData((prev) => ({ ...prev, last_name: event.target.value }))}
                   placeholder="Last name"
-                  className="bg-white"
+                  className="h-11 border-slate-200 bg-slate-50/70 focus-visible:ring-[#2C4F4E]"
                 />
               </div>
             </div>
 
-            <p className="text-xs text-slate-600">
+            <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
               Your name helps build trust between buyers, sellers, vendors, and event organizers on Yardit.
             </p>
 
@@ -131,7 +133,7 @@ export default function AccountSetupModal({ user, setUser }) {
               />
             </div>
 
-            <div className="rounded-xl border border-[#2C4F4E]/20 bg-white/70 p-4 space-y-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 space-y-3 shadow-inner shadow-slate-200/40">
               <label className="flex items-start gap-3 text-sm text-slate-700 cursor-pointer">
                 <Checkbox
                   checked={formData.terms_accepted}
@@ -149,16 +151,16 @@ export default function AccountSetupModal({ user, setUser }) {
                 <span>I acknowledge the Privacy Policy</span>
               </label>
               <div className="flex flex-wrap gap-3 text-xs">
-                <button type="button" onClick={() => setShowTerms((prev) => !prev)} className="text-[#2C4F4E] underline font-medium">View Terms of Service</button>
-                <button type="button" onClick={() => setShowPrivacy((prev) => !prev)} className="text-[#2C4F4E] underline font-medium">View Privacy Policy</button>
+                <button type="button" onClick={() => setShowTerms((prev) => !prev)} className="font-semibold text-slate-800 underline decoration-slate-300 underline-offset-4 hover:text-[#2C4F4E]">View Terms of Service</button>
+                <button type="button" onClick={() => setShowPrivacy((prev) => !prev)} className="font-semibold text-slate-800 underline decoration-slate-300 underline-offset-4 hover:text-[#2C4F4E]">View Privacy Policy</button>
               </div>
               {showTerms && (
-                <div className="rounded-lg bg-[#F3E6CF] border border-[#2C4F4E]/20 p-3 text-xs text-slate-700">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-600 shadow-sm">
                   Terms of Service content will appear here when finalized.
                 </div>
               )}
               {showPrivacy && (
-                <div className="rounded-lg bg-[#F3E6CF] border border-[#2C4F4E]/20 p-3 text-xs text-slate-700">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-600 shadow-sm">
                   Privacy Policy content will appear here when finalized.
                 </div>
               )}
@@ -168,7 +170,7 @@ export default function AccountSetupModal({ user, setUser }) {
               <Button
                 onClick={() => saveSetup(true)}
                 disabled={!requirementsMet || saving}
-                className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold disabled:opacity-50"
+                className="h-11 w-full rounded-xl bg-slate-950 font-semibold text-white shadow-lg shadow-slate-950/20 transition hover:bg-slate-800 disabled:opacity-50"
               >
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Complete Profile Now
@@ -177,7 +179,7 @@ export default function AccountSetupModal({ user, setUser }) {
                 onClick={() => saveSetup(false)}
                 disabled={!requirementsMet || saving}
                 variant="outline"
-                className="w-full border-[#2C4F4E] text-[#2C4F4E] hover:bg-[#E7D7B8] disabled:opacity-50"
+                className="h-11 w-full rounded-xl border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
                 Complete Profile Later
               </Button>
