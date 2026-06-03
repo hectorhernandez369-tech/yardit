@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import AddressFields from "@/components/shared/AddressFields";
 import ListingAddressReview from "@/components/create/ListingAddressReview";
+import NeighborhoodCoHostSelector from "@/components/create/NeighborhoodCoHostSelector";
 import { useAppMode } from "@/components/shared/DemoMode";
 import { MapPin, Navigation, Loader2, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -547,7 +548,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
         }));
 
         if (data.has_match) {
-          toast.success("Co-host request sent.");
+          toast.success("Alternate host request sent.");
         } else {
           const inviteText = `${window.location.origin}\nCreate an account, confirm the matching address, then accept the co-host request from Notifications.`;
           await navigator.clipboard.writeText(inviteText);
@@ -563,8 +564,8 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
   const hostStatusLabel = useMemo(() => {
     if (formData.host_mode === "self") return "Using your confirmed address";
-    if (formData.cohost_invite_status === "accepted") return "Accepted co-host address selected";
-    if (formData.cohost_invite_status === "pending") return "Co-host request pending acceptance";
+    if (formData.cohost_invite_status === "accepted") return "Accepted alternate host selected";
+    if (formData.cohost_invite_status === "pending") return "Alternate host request pending acceptance";
     if (formData.host_mode === "cohost") return "Alternate host flow selected";
     return "No host address selected yet";
   }, [formData]);
@@ -760,6 +761,8 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
             </div>
           )}
 
+          <NeighborhoodCoHostSelector formData={formData} setFormData={setFormData} currentUser={user} />
+
           <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 space-y-3">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
@@ -806,7 +809,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                   disabled={!formData.event_center_lat || !formData.event_center_lng}
                   onClick={handleUseAlternateHostFlow}
                 >
-                  Use a Co-Host Address
+                  I don’t live in the radius
                 </Button>
               )}
             </div>
@@ -1027,14 +1030,14 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       <Dialog open={showHostDialog} onOpenChange={setShowHostDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Enter Host Address Here</DialogTitle>
+            <DialogTitle>Enter Alternate Host Address</DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto pr-1">
             <div className="space-y-4">
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-2">
                 <p>Neighborhood Sales must be anchored to a confirmed address within the 500-foot radius.</p>
-                <p>If you do not live within the radius, you must designate a co-host who does.</p>
-                <p>The co-host must have (or create) an account with the matching confirmed address and must accept the invitation before the sale can use that address.</p>
+                <p>If you do not live within the radius, you must designate an alternate in-radius host address.</p>
+                <p>The person at that address must have (or create) an account with the matching confirmed address and must accept before the sale can use that address.</p>
               </div>
 
               <div className="space-y-4">
