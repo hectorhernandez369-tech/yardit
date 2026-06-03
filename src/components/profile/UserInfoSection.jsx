@@ -12,8 +12,7 @@ import { toast } from "sonner";
 import { computedAddressVerified } from "@/lib/trustActions";
 
 export default function UserInfoSection({ user, setUser }) {
-  const needsBasicInfo = !user.first_name?.trim() || !user.last_name?.trim();
-  const [isEditing, setIsEditing] = useState(needsBasicInfo);
+  const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingAddress, setIsConfirmingAddress] = useState(false);
 
   // Use the computed helper so a stale verified flag without real address data is treated as unverified
@@ -83,18 +82,10 @@ export default function UserInfoSection({ user, setUser }) {
   });
 
   const handleSave = async () => {
-    const firstName = formData.first_name.trim();
-    const lastName = formData.last_name.trim();
     const { street_address, city, state, zip_code } = formData;
-
-    if (!firstName || !lastName) {
-      toast.error("First and last name are required to finish account setup.");
-      return;
-    }
-
-    const hasAnyAddress = !!(street_address || city || state || zip_code);
-    if (hasAnyAddress && (!street_address || !city || !state || !zip_code)) {
-      toast.error("Please complete street, city, state, and zip before saving your address.");
+    
+    if (!street_address || !city || !state || !zip_code) {
+      toast.error("A complete address (street, city, state, zip) is required to finish account setup.");
       return;
     }
 
@@ -106,12 +97,10 @@ export default function UserInfoSection({ user, setUser }) {
 
     let currentData = {
       ...formData,
-      first_name: firstName,
-      last_name: lastName,
       address: [formData.street_address, formData.city, formData.state, formData.zip_code].filter(Boolean).join(", "),
     };
 
-    if (hasAnyAddress && (addressChanged || !formData.address_lat || !formData.address_lng)) {
+    if (addressChanged || !formData.address_lat || !formData.address_lng) {
       const coords = await confirmAddress();
       if (!coords) return;
       currentData.address_lat = coords.lat;
@@ -161,7 +150,7 @@ export default function UserInfoSection({ user, setUser }) {
                 variant="outline"
                 size="sm"
                 onClick={handleCancel}
-                disabled={updateUserMutation.isPending || needsBasicInfo}
+                disabled={updateUserMutation.isPending}
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -183,7 +172,7 @@ export default function UserInfoSection({ user, setUser }) {
         <div className="space-y-6">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="first_name">First Name <span className="text-red-500">*</span></Label>
+              <Label htmlFor="first_name">First Name</Label>
               {isEditing ? (
                 <Input
                   id="first_name"
@@ -196,7 +185,7 @@ export default function UserInfoSection({ user, setUser }) {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="last_name">Last Name <span className="text-red-500">*</span></Label>
+              <Label htmlFor="last_name">Last Name</Label>
               {isEditing ? (
                 <Input
                   id="last_name"
@@ -266,7 +255,7 @@ export default function UserInfoSection({ user, setUser }) {
             </div>
             
             {!isAddressConfirmed && (
-              <p className="text-xs text-orange-600 mb-2">Confirm your address when you’re ready to create live listings.</p>
+              <p className="text-xs text-orange-600 mb-2">Confirm your address to finish account setup and create live listings.</p>
             )}
 
             {isEditing ? (

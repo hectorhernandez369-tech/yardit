@@ -73,7 +73,6 @@ export default function ProfilePage() {
   });
 
   const trustStatus = getTrustStatus(user);
-  const needsBasicInfo = !user?.first_name?.trim() || !user?.last_name?.trim();
 
   if (isLoadingUser) {
     return (
@@ -121,20 +120,6 @@ export default function ProfilePage() {
 
             </div>
             </div>
-
-        {needsBasicInfo ? (
-          <Card className="mb-6 border-[#5DADA5] bg-white shadow-md">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-[#F4A849] mt-0.5" />
-                <div>
-                  <p className="font-semibold text-[#2C4F4E]">Please complete your profile information.</p>
-                  <p className="text-sm text-gray-700">First and last name are required so Yardit can identify you beyond your email address.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
 
         {!trustStatus.addressVerified || !trustStatus.listingRulesAccepted || !trustStatus.emailVerified ? (
           <Card className="mb-6 border-orange-200 bg-orange-50">
