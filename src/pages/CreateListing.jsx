@@ -4,11 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useAuth } from "@/lib/AuthContext";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { getAdminSession } from "../components/admin/AdminLoginModal";
 
 import StepOne from "../components/create/StepOne";
@@ -113,26 +111,6 @@ function getSaleConfirmedCount(sale) {
     0;
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
-}
-
-function buildNeighborhoodDeadlineJobs(startDateTime, saleListingId) {
-  const start = new Date(startDateTime);
-  return [
-    {
-      sale_listing_id: saleListingId,
-      checkpoint_type: "warning_48h",
-      run_at: new Date(start.getTime() - 48 * 60 * 60 * 1000).toISOString(),
-      status: "pending",
-      attempt_count: 0,
-    },
-    {
-      sale_listing_id: saleListingId,
-      checkpoint_type: "charge_24h",
-      run_at: new Date(start.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-      status: "pending",
-      attempt_count: 0,
-    },
-  ];
 }
 
 export default function CreateListingPage() {
@@ -915,6 +893,11 @@ export default function CreateListingPage() {
         return;
       }
 
+      if (formData.listingType === "neighborhood_sale") {
+        if (localStorage.getItem(NEIGHBORHOOD_INTRO_HIDE_KEY) === "true") setStep(2);
+        else window.dispatchEvent(new CustomEvent("yardit-open-neighborhood-sale-intro", { detail: { onContinue: () => setStep(2) } }));
+        return;
+      }
       if (!formData.title) {
         toast.error("Please fill in all required fields");
         return;

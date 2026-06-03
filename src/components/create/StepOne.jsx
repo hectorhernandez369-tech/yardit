@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Label } from "@/components/ui/label";
@@ -92,6 +92,26 @@ export default function StepOne({ formData, setFormData }) {
   const [showNeighborhoodIntro, setShowNeighborhoodIntro] = useState(false);
   const [neighborhoodIntroAcknowledged, setNeighborhoodIntroAcknowledged] = useState(false);
   const [hideNeighborhoodIntro, setHideNeighborhoodIntro] = useState(false);
+  const continueAfterIntroRef = useRef(null);
+
+  useEffect(() => {
+    const handleOpenIntro = (event) => {
+      continueAfterIntroRef.current = event.detail?.onContinue || null;
+      setNeighborhoodIntroAcknowledged(false);
+      setHideNeighborhoodIntro(false);
+      setShowNeighborhoodIntro(true);
+    };
+
+    window.addEventListener("yardit-open-neighborhood-sale-intro", handleOpenIntro);
+    return () => window.removeEventListener("yardit-open-neighborhood-sale-intro", handleOpenIntro);
+  }, []);
+
+  const closeNeighborhoodIntro = () => {
+    continueAfterIntroRef.current = null;
+    setNeighborhoodIntroAcknowledged(false);
+    setHideNeighborhoodIntro(false);
+    setShowNeighborhoodIntro(false);
+  };
 
   const handleListingTypeSelect = (value) => {
     if (LOCKED_LISTING_TYPES.includes(value)) return;
@@ -112,18 +132,18 @@ export default function StepOne({ formData, setFormData }) {
       } : {}),
     }));
 
-    if (value === "neighborhood_sale" && localStorage.getItem(NEIGHBORHOOD_INTRO_HIDE_KEY) !== "true") {
-      setNeighborhoodIntroAcknowledged(false);
-      setHideNeighborhoodIntro(false);
-      setShowNeighborhoodIntro(true);
-    }
   };
 
   const continueNeighborhoodIntro = () => {
     if (hideNeighborhoodIntro) {
       localStorage.setItem(NEIGHBORHOOD_INTRO_HIDE_KEY, "true");
     }
+    const continueAfterIntro = continueAfterIntroRef.current;
     setShowNeighborhoodIntro(false);
+    setNeighborhoodIntroAcknowledged(false);
+    setHideNeighborhoodIntro(false);
+    continueAfterIntroRef.current = null;
+    continueAfterIntro?.();
   };
 
   return (
@@ -394,13 +414,13 @@ export default function StepOne({ formData, setFormData }) {
         </div>
       )}
 
-      <Dialog open={showNeighborhoodIntro}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
+      <Dialog open={showNeighborhoodIntro} onOpenChange={(open) => { if (!open) closeNeighborhoodIntro(); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
             <DialogTitle>Before You Create a Neighborhood Sale</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 text-sm text-slate-600 leading-relaxed">
+          <div className="space-y-4 text-sm text-slate-600 leading-relaxed overflow-y-auto min-h-0 pr-1">
             <p>
               A Neighborhood Sale is a hosted group yard sale where multiple homes participate together. Yardit helps organize, map, and promote the event so shoppers see a stronger destination.
             </p>
@@ -426,7 +446,7 @@ export default function StepOne({ formData, setFormData }) {
             </label>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0 pt-4">
             <Button
               onClick={continueNeighborhoodIntro}
               disabled={!neighborhoodIntroAcknowledged}
