@@ -6,10 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { X, Home, Users, Calendar, Lock, ChevronDown, ChevronUp, Sparkles, MapPin, Star, Megaphone } from "lucide-react";
 
 // LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
 const LOCKED_LISTING_TYPES = ["event"];
+
+const NEIGHBORHOOD_INTRO_HIDE_KEY = "yardit_hide_neighborhood_sale_intro";
 
 const LOCKED_PREVIEW = {
   neighborhood_sale: {
@@ -84,6 +89,42 @@ export default function StepOne({ formData, setFormData }) {
   const listingType = formData?.listingType || "yard_sale";
   const isNeighborhood = listingType === "neighborhood_sale";
   const [expandedLocked, setExpandedLocked] = useState(null);
+  const [showNeighborhoodIntro, setShowNeighborhoodIntro] = useState(false);
+  const [neighborhoodIntroAcknowledged, setNeighborhoodIntroAcknowledged] = useState(false);
+  const [hideNeighborhoodIntro, setHideNeighborhoodIntro] = useState(false);
+
+  const handleListingTypeSelect = (value) => {
+    if (LOCKED_LISTING_TYPES.includes(value)) return;
+
+    setFormData(prev => ({
+      ...prev,
+      listingType: value,
+      ...(value === "neighborhood_sale" ? {
+        categories: [],
+        category: "Neighborhood Sale",
+        description: "",
+        title: prev.title || "Neighborhood Sale",
+        organizer_participation: prev.organizer_participation || "participating",
+      } : {}),
+      ...(value === "event" ? {
+        tier: "basic",
+        event_tier: "basic",
+      } : {}),
+    }));
+
+    if (value === "neighborhood_sale" && localStorage.getItem(NEIGHBORHOOD_INTRO_HIDE_KEY) !== "true") {
+      setNeighborhoodIntroAcknowledged(false);
+      setHideNeighborhoodIntro(false);
+      setShowNeighborhoodIntro(true);
+    }
+  };
+
+  const continueNeighborhoodIntro = () => {
+    if (hideNeighborhoodIntro) {
+      localStorage.setItem(NEIGHBORHOOD_INTRO_HIDE_KEY, "true");
+    }
+    setShowNeighborhoodIntro(false);
+  };
 
   return (
     <div className="space-y-8">
@@ -93,23 +134,7 @@ export default function StepOne({ formData, setFormData }) {
         <Label className="text-sm font-semibold text-slate-900 mb-3 block">What are you listing?</Label>
         <RadioGroup
           value={formData.listingType}
-          onValueChange={(value) => {
-            if (LOCKED_LISTING_TYPES.includes(value)) return;
-            setFormData(prev => ({
-              ...prev,
-              listingType: value,
-              ...(value === "neighborhood_sale" ? {
-                categories: [],
-                category: "Neighborhood Sale",
-                description: "",
-                organizer_participation: prev.organizer_participation || "participating",
-              } : {}),
-              ...(value === "event" ? {
-                tier: "basic",
-                event_tier: "basic",
-              } : {}),
-            }));
-          }}
+          onValueChange={handleListingTypeSelect}
           className="space-y-2.5"
         >
           {LISTING_TYPES.map(({ value, icon: Icon, title, subtitle, accent, activeAccent, iconColor }) => {
@@ -179,11 +204,7 @@ export default function StepOne({ formData, setFormData }) {
                 className={`relative rounded-xl border transition-all duration-150 ${
                   isSelected ? `${activeAccent} cursor-pointer` : `${accent} hover:border-slate-300 cursor-pointer`
                 }`}
-                onClick={() => setFormData(prev => ({
-                  ...prev,
-                  listingType: value,
-                  ...(value === "event" ? { tier: "basic", event_tier: "basic" } : {}),
-                }))}
+                onClick={() => handleListingTypeSelect(value)}
               >
                 <label htmlFor={value} className="flex items-start gap-4 p-4 cursor-pointer">
                   <RadioGroupItem value={value} id={value} className="mt-0.5 shrink-0" />
@@ -201,25 +222,25 @@ export default function StepOne({ formData, setFormData }) {
         </RadioGroup>
       </div>
 
-      {/* Title */}
-      <div className="space-y-1.5">
-        <Label htmlFor="title" className="text-sm font-semibold text-slate-700">
-          {isNeighborhood ? "Event Name *" : "Sale Title *"}
-        </Label>
-        <p className="text-xs text-slate-500">
-          {isNeighborhood
-            ? "Give your neighborhood event a memorable name"
-            : "A clear title helps shoppers find your sale faster"}
-        </p>
-        <Input
-          id="title"
-          placeholder={isNeighborhood ? "e.g., Oak Street Neighborhood Sale" : "e.g., Multi-Family Yard Sale — Great Deals!"}
-          value={formData.title}
-          onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-          required
-          className="mt-1.5 bg-white border-slate-400 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-11 text-slate-800 placeholder:text-slate-400"
-        />
-      </div>
+      {/* Title — skipped for Neighborhood Sale */}
+      {!isNeighborhood && (
+        <div className="space-y-1.5">
+          <Label htmlFor="title" className="text-sm font-semibold text-slate-700">
+            Sale Title *
+          </Label>
+          <p className="text-xs text-slate-500">
+            A clear title helps shoppers find your sale faster
+          </p>
+          <Input
+            id="title"
+            placeholder="e.g., Multi-Family Yard Sale — Great Deals!"
+            value={formData.title}
+            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            required
+            className="mt-1.5 bg-white border-slate-400 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-11 text-slate-800 placeholder:text-slate-400"
+          />
+        </div>
+      )}
 
       {/* Categories + Description — only for non-neighborhood */}
       {!isNeighborhood && (
@@ -372,6 +393,50 @@ export default function StepOne({ formData, setFormData }) {
           </div>
         </div>
       )}
+
+      <Dialog open={showNeighborhoodIntro}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Before You Create a Neighborhood Sale</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 text-sm text-slate-600 leading-relaxed">
+            <p>
+              A Neighborhood Sale is a hosted group yard sale where multiple homes participate together. Yardit helps organize, map, and promote the event so shoppers see a stronger destination.
+            </p>
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-emerald-900">
+              <p className="font-semibold">Pricing</p>
+              <p>$19.99 base + $2 per participating home. Neighborhood Sales require enough participating homes to activate, and participants are never charged.</p>
+            </div>
+            <p>
+              Neighborhood Sales work best when the host invites neighbors in person. Yardit is the tool to organize, map, and manage the sale — it does not magically create participants. Talk to neighbors, hand out links or cards, and encourage them to join.
+            </p>
+            <p>
+              This is best for streets with several families doing sales, cul-de-sacs organizing together, HOA/community weekends, and neighbors who want more shopper traffic together.
+            </p>
+            <p className="font-medium text-slate-800">More homes = a stronger event and a better destination for shoppers.</p>
+
+            <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 cursor-pointer">
+              <Checkbox checked={neighborhoodIntroAcknowledged} onCheckedChange={(checked) => setNeighborhoodIntroAcknowledged(checked === true)} />
+              <span>I understand that I should invite/solicit neighbors and use Yardit as the organizing tool.</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <Checkbox checked={hideNeighborhoodIntro} onCheckedChange={(checked) => setHideNeighborhoodIntro(checked === true)} />
+              <span>Do not show again</span>
+            </label>
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={continueNeighborhoodIntro}
+              disabled={!neighborhoodIntroAcknowledged}
+              className="bg-[#006168] hover:bg-[#004d52] text-white"
+            >
+              I Understand — Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

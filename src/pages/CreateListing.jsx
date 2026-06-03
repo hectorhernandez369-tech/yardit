@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { getAdminSession } from "../components/admin/AdminLoginModal";
 
 import StepOne from "../components/create/StepOne";
@@ -54,6 +55,7 @@ import { buildResolvedListingLocation, isLocationReadyForSubmission, resolveTime
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 const PAID_LISTING_CHECKOUT_KEY = "yardit_paid_listing_checkout_v1";
 const NEIGHBORHOOD_SETUP_KEY = "yardit_neighborhood_setup_v1";
+const NEIGHBORHOOD_INTRO_HIDE_KEY = "yardit_hide_neighborhood_sale_intro";
 const RESIDENTIAL_TIER_PRICES = {
   featured: 499,
   premium: 799,
