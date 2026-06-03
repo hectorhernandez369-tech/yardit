@@ -9,6 +9,7 @@ const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
 const AUTH_RETURN_TO_MAX_AGE_MS = 30 * 60 * 1000;
 const RETURNING_USER_KEY = 'yardit_returning_user_v1';
+const PROFILE_COMPLETION_PATH = '/Profile?complete=1';
 
 const saveAuthReturnTo = (url) => {
   try {
@@ -85,8 +86,17 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
-      restoreAuthReturnTo();
       setAuthError(null);
+
+      const needsBasicProfile = !currentUser?.first_name?.trim() || !currentUser?.last_name?.trim();
+      const currentPath = window.location.pathname;
+      if (needsBasicProfile && currentPath !== '/Profile') {
+        clearAuthReturnTo();
+        window.location.replace(PROFILE_COMPLETION_PATH);
+        return;
+      }
+
+      restoreAuthReturnTo();
     } catch (error) {
       console.error('User auth check failed:', error);
       console.log('AUTH_DEBUG base44.auth.me:error', {
