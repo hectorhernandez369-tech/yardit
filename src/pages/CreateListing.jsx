@@ -1762,13 +1762,7 @@ export default function CreateListingPage() {
         <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden" ref={formContainerRef}>
           <FormScrollHelper containerRef={formContainerRef} />
 
-          {/* Neighborhood sale notice */}
-          {formData.listingType === "neighborhood_sale" && (
-            <div className="mx-6 mt-6 mb-0 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm font-medium flex items-start gap-2">
-              <span className="mt-0.5">🏘️</span>
-              <span>Neighborhood Sale — Up to 25 homes within 500 feet of your selected center.</span>
-            </div>
-          )}
+
 
           <div className="p-6 md:p-8">
             {step === 1 && (formData.listingType === "event" ? <EventDetailsStep formData={formData} setFormData={setFormData} /> : <StepOne formData={formData} setFormData={setFormData} />)}
