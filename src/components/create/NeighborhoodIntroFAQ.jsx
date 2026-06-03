@@ -14,7 +14,7 @@ const faqItems = [
   },
   {
     question: "How Many Homes Are Required?",
-    answer: "A Neighborhood Sale requires a minimum of 5 approved participating homes to activate. The organizer's participating home counts toward this total if the organizer chooses to participate. A Neighborhood Sale may have up to 25 participating homes.",
+    answer: "A Neighborhood Sale requires a minimum of 5 approved participating homes to activate. All participating homes must be within 500 feet of the selected map location or chosen event address. The organizer's participating home counts toward this total if the organizer chooses to participate. A Neighborhood Sale may have up to 25 participating homes.",
   },
   {
     question: "What Does It Cost?",
