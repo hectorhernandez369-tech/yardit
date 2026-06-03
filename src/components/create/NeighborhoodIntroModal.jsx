@@ -167,13 +167,13 @@ export default function NeighborhoodIntroModal({ open, onClose, onContinue }) {
           <NeighborhoodIntroFAQ onBack={() => setShowFaq(false)} />
         ) : (
           <>
-            <div className="bg-gradient-to-r from-[#5DADA5] to-[#2C4F4E] px-5 py-3 text-white">
-              <DialogHeader className="space-y-1">
-                <div className="mx-auto flex h-10 w-10 max-h-10 max-w-10 items-center justify-center rounded-2xl bg-white/18 ring-1 ring-white/20">
-                  <PartyPopper className="h-5 w-5 text-[#F4A849]" />
+            <div className="bg-gradient-to-br from-[#2C4F4E] via-[#36706C] to-[#5DADA5] px-5 py-5 text-white">
+              <DialogHeader className="space-y-2">
+                <div className="mx-auto mb-1 flex h-14 w-14 items-center justify-center">
+                  <PartyPopper className="h-7 w-7 text-[#F4A849]" />
                 </div>
-                <DialogTitle className="text-center text-lg font-black leading-tight">🏡 Create a Neighborhood Sale</DialogTitle>
-                <p className="text-center text-xs text-white/90">Turn multiple yard sales into one larger community event.</p>
+                <DialogTitle className="text-center text-xl font-black leading-tight">Create a Neighborhood Sale</DialogTitle>
+                <p className="text-center text-sm text-white/90">Turn multiple yard sales into one larger community event.</p>
               </DialogHeader>
             </div>
 
