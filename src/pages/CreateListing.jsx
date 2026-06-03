@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { getAdminSession } from "../components/admin/AdminLoginModal";
 
 import StepOne from "../components/create/StepOne";
+import NeighborhoodIntroModal from "../components/create/NeighborhoodIntroModal";
 import StepTwo from "../components/create/StepTwo";
 import StepThree from "../components/create/StepThree";
 import ResidentialPaymentStep from "../components/payment/ResidentialPaymentStep";
@@ -123,6 +124,7 @@ export default function CreateListingPage() {
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showNeighborhoodIntro, setShowNeighborhoodIntro] = useState(false);
   const [geocodeRef, setGeocodeRef] = useState(null);
   const [isStartingPayment, setIsStartingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
@@ -895,7 +897,7 @@ export default function CreateListingPage() {
 
       if (formData.listingType === "neighborhood_sale") {
         if (localStorage.getItem(NEIGHBORHOOD_INTRO_HIDE_KEY) === "true") setStep(2);
-        else window.dispatchEvent(new CustomEvent("yardit-open-neighborhood-sale-intro", { detail: { onContinue: () => setStep(2) } }));
+        else setShowNeighborhoodIntro(true);
         return;
       }
       if (!formData.title) {
@@ -1894,6 +1896,8 @@ export default function CreateListingPage() {
           </div>
         </div>
       </div>
+
+      <NeighborhoodIntroModal open={showNeighborhoodIntro} onClose={() => setShowNeighborhoodIntro(false)} onContinue={() => { setShowNeighborhoodIntro(false); setStep(2); }} />
 
       {/* Popup #1 */}
       <Dialog
