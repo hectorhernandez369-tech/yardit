@@ -15,6 +15,7 @@ import SavedListingsTab from "../components/profile/SavedListingsTab";
 import { Bookmark } from "lucide-react";
 import { getTrustStatus } from "@/lib/trustActions";
 import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
+import { getProfileCompletionPercent, isAccountSetupComplete } from "@/lib/accountSetup";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -73,6 +74,8 @@ export default function ProfilePage() {
   });
 
   const trustStatus = getTrustStatus(user);
+  const accountSetupComplete = isAccountSetupComplete(user);
+  const profileCompletionPercent = getProfileCompletionPercent(user);
 
   if (isLoadingUser) {
     return (
@@ -120,6 +123,20 @@ export default function ProfilePage() {
 
             </div>
             </div>
+
+        <Card className="mb-6 border-green-200 bg-white/90 shadow-sm">
+          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className={`w-5 h-5 ${accountSetupComplete ? "text-green-600" : "text-slate-400"}`} />
+              <p className="font-semibold text-[#2C4F4E]">
+                Account Setup {accountSetupComplete ? "Complete ✓" : "Incomplete"}
+              </p>
+            </div>
+            <div className="text-sm font-medium text-slate-700">
+              Profile Completion: {profileCompletionPercent}%
+            </div>
+          </CardContent>
+        </Card>
 
         {!trustStatus.addressVerified || !trustStatus.listingRulesAccepted || !trustStatus.emailVerified ? (
           <Card className="mb-6 border-orange-200 bg-orange-50">

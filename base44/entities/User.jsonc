@@ -18,6 +18,42 @@
       "type": "string",
       "description": "Optional phone number"
     },
+    "phone_number": {
+      "type": "string",
+      "description": "Optional phone number alias for account setup"
+    },
+    "terms_accepted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user accepted the current Terms of Service"
+    },
+    "terms_accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the user accepted the Terms of Service"
+    },
+    "terms_version": {
+      "type": "string",
+      "description": "Terms of Service version accepted by the user"
+    },
+    "privacy_accepted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user acknowledged the current Privacy Policy"
+    },
+    "privacy_accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the user acknowledged the Privacy Policy"
+    },
+    "privacy_version": {
+      "type": "string",
+      "description": "Privacy Policy version acknowledged by the user"
+    },
+    "profile_photo_url": {
+      "type": "string",
+      "description": "Optional profile photo URL"
+    },
     "login_provider": {
       "type": "string",
       "description": "Authentication provider used for signup or login"

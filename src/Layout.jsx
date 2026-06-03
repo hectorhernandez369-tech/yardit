@@ -12,7 +12,7 @@ import {
 import NotificationBell from "./components/notifications/NotificationBell";
 import AdminLoginModal, { getAdminSession, clearAdminSession } from "./components/admin/AdminLoginModal";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+
 import { HuntProvider, useHunt, HUNT_ENABLED } from "./components/hunt/HuntContext";
 import { Map as MapIcon, Crosshair } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -25,7 +25,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "./components/guest/GuestAuthModal";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
-import WelcomeProfileModal from "./components/profile/WelcomeProfileModal";
+import AccountSetupModal from "./components/profile/AccountSetupModal";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
@@ -40,34 +40,11 @@ function LayoutContent({ children, user, setUser }) {
   const [hasAdminProfile, setHasAdminProfile] = useState(false);
   const [hasVendorAccount, setHasVendorAccount] = useState(false);
   const [adminActivatedBanner, setAdminActivatedBanner] = useState(false);
-  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
   const [installDialogMode, setInstallDialogMode] = useState("ios");
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [canInstallApp, setCanInstallApp] = useState(false);
   const { isGuest, isAuthenticated, logout, navigateToLogin } = useAuth() || {};
-
-  useEffect(() => {
-    if (!isGuest && !isAuthenticated) {
-      setShowWelcomePopup(false);
-      return;
-    }
-
-    const hasSeenGuide = localStorage.getItem("yardit_has_seen_startup_guide");
-    if (!hasSeenGuide && location.pathname !== createPageUrl("StartupGuide")) {
-      setShowWelcomePopup(true);
-    }
-  }, [location.pathname, isGuest, isAuthenticated]);
-
-  const handleSkipGuide = () => {
-    localStorage.setItem("yardit_has_seen_startup_guide", "true");
-    setShowWelcomePopup(false);
-  };
-
-  const handleLearnMore = () => {
-    setShowWelcomePopup(false);
-    navigate(createPageUrl("StartupGuide"));
-  };
 
   const { guardAction, showModal, setShowModal, isGuest: guestHookIsGuest } = useGuestGuard();
 
@@ -285,7 +262,7 @@ function LayoutContent({ children, user, setUser }) {
       </main>
       
       <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} returnTo={`${window.location.origin}${createPageUrl("CreateListing")}`} />
-      <WelcomeProfileModal user={user} setUser={setUser} />
+      <AccountSetupModal user={user} setUser={setUser} />
 
       <AdminLoginModal
         open={showAdminLogin}
@@ -297,32 +274,6 @@ function LayoutContent({ children, user, setUser }) {
       />
 
       <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} mode={installDialogMode} />
-
-      <Dialog open={showWelcomePopup} onOpenChange={setShowWelcomePopup}>
-        <DialogContent className="sm:max-w-md bg-[#F3E6CF] border-2 border-[#2C4F4E]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-[#2C4F4E] text-center">Welcome to Yardit</DialogTitle>
-            <DialogDescription className="text-center text-slate-700 mt-4 text-base">
-              Yardit helps you discover yard sales, neighborhood events, and hidden treasures happening around you.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-3 mt-6">
-            <Button 
-              onClick={handleLearnMore}
-              className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] shadow-sm font-semibold"
-            >
-              Learn How Yardit Works
-            </Button>
-            <Button 
-              onClick={handleSkipGuide}
-              variant="outline"
-              className="w-full border-2 border-[#2C4F4E]/30 text-[#2C4F4E] hover:bg-[#E7D7B8]"
-            >
-              I Already Know How To Use Yardit
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-2">

@@ -28,7 +28,6 @@ import Events from './pages/Events';
 import RewardRedeem from './pages/RewardRedeem';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import GuestEntryModal from '@/components/guest/GuestEntryModal';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -39,15 +38,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, isGuest, enterGuestMode, isAuthenticated } = useAuth();
-  const isReturningUser = (() => {
-    try {
-      return localStorage.getItem('yardit_returning_user_v1') === 'true' || localStorage.getItem('yardit_has_seen_startup_guide') === 'true';
-    } catch {
-      return false;
-    }
-  })();
-  const showGuestEntry = !isReturningUser && !isLoadingAuth && !isLoadingPublicSettings && !isAuthenticated && !isGuest && (!authError || authError.type === 'auth_required');
+  const { isLoadingAuth, isLoadingPublicSettings, authError, isGuest } = useAuth();
 
   const { data: appSettings = [], isLoading: isLoadingAppSettings } = useQuery({
     queryKey: ["appSettings"],
@@ -97,7 +88,6 @@ const AuthenticatedApp = () => {
           <Route path="/ComingSoon" element={<ComingSoon />} />
           <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
         </Routes>
-        <GuestEntryModal open={showGuestEntry} onLogin={navigateToLogin} onGuestEnter={enterGuestMode} />
       </>
     );
   }
@@ -143,7 +133,6 @@ const AuthenticatedApp = () => {
         <Route path="/reward/redeem/:token" element={<RewardRedeem />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
-      <GuestEntryModal open={showGuestEntry} onLogin={navigateToLogin} onGuestEnter={enterGuestMode} />
     </>
   );
 };
