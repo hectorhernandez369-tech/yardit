@@ -482,10 +482,11 @@ export default function HomePage() {
     return p.get("debug") === "true";
   }, []);
 
-  const viewingOwnerPreviewMode = useMemo(() => {
+  const ownerPreviewUrlFlag = useMemo(() => {
     const p = new URLSearchParams(window.location.search);
     return p.get("ownerPreview") === "1" || p.get("previewMode") === "owner";
   }, []);
+  const viewingOwnerPreviewMode = !!user?.id || ownerPreviewUrlFlag;
   const [debugVisible, setDebugVisible] = useState(false);
   const [debugPinned, setDebugPinned] = useState(debugForceOn);
   const debugTimerRef = useRef(null);
@@ -948,9 +949,7 @@ const stats = useMemo(() => {
       const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
 
       if (isPreview) {
-        if (viewingOwnerPreviewMode || currentZoom > 11) {
-          pins.push(listing);
-        }
+        pins.push(listing);
         return;
       }
 
