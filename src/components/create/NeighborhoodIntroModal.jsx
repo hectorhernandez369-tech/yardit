@@ -2,54 +2,52 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { PartyPopper } from "lucide-react";
+import { BookOpen, ClipboardList, DollarSign, HelpCircle, Home, House, Megaphone, PartyPopper, Users } from "lucide-react";
 import NeighborhoodIntroCard from "./NeighborhoodIntroCard";
 import NeighborhoodIntroFAQ from "./NeighborhoodIntroFAQ";
 
 const NEIGHBORHOOD_INTRO_HIDE_KEY = "yardit_hide_neighborhood_sale_intro";
 
-const sections = [
+const cards = [
   {
-    id: "what",
+    icon: Home,
     emoji: "🏡",
-    title: "What Is a Neighborhood Sale?",
+    title: "What Is A Neighborhood Sale?",
     content: (
-      <div className="space-y-3">
+      <div className="space-y-2">
         <p>A Neighborhood Sale allows multiple homes in the same area to participate under a single event. Instead of shoppers discovering one yard sale at a time, they discover an entire neighborhood of sales in one place.</p>
         <p>Yardit helps organize the event, display participating homes on the map, and make the sale easier for shoppers to find and navigate.</p>
       </div>
     ),
   },
   {
-    id: "who",
+    icon: Users,
     emoji: "👥",
     title: "Who Is a Neighborhood Sale For?",
     content: (
-      <div className="space-y-3">
+      <div className="space-y-2">
         <p>Neighborhood Sales are ideal for communities that want to work together to attract more shoppers.</p>
-        <div>
-          <p className="font-bold text-[#2C4F4E]">Examples include:</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li>HOA community sales</li>
-            <li>Gated communities</li>
-            <li>Neighborhood-wide yard sale weekends</li>
-            <li>Cul-de-sacs and residential streets</li>
-            <li>Apartment and condominium communities</li>
-            <li>Mobile home and senior living communities</li>
-            <li>Church, school, and fundraising sales</li>
-            <li>Groups of friends or family hosting sales in the same area</li>
-          </ul>
-        </div>
+        <p className="font-semibold text-[#2C4F4E]">Examples include:</p>
+        <ul className="space-y-1 pl-4 list-disc">
+          <li>HOA community sales</li>
+          <li>Gated communities</li>
+          <li>Neighborhood-wide yard sale weekends</li>
+          <li>Cul-de-sacs and residential streets</li>
+          <li>Apartment and condominium communities</li>
+          <li>Mobile home and senior living communities</li>
+          <li>Church, school, and fundraising sales</li>
+          <li>Groups of friends or family hosting sales in the same area</li>
+        </ul>
         <p>If multiple homes are planning to sell items around the same time, a Neighborhood Sale can help turn several individual sales into one larger destination for shoppers.</p>
       </div>
     ),
   },
   {
-    id: "creating",
+    icon: Megaphone,
     emoji: "📣",
     title: "What Am I Creating?",
     content: (
-      <div className="space-y-3">
+      <div className="space-y-2">
         <p>You are creating a Neighborhood Sale event that other nearby homes can join.</p>
         <p>Once approved, participating homes are grouped together and promoted as one larger event on Yardit.</p>
         <p>Each participating home manages its own yard sale listing while benefiting from increased visibility and shopper traffic.</p>
@@ -57,74 +55,67 @@ const sections = [
     ),
   },
   {
-    id: "homes",
+    icon: House,
     emoji: "🏠",
     title: "How Many Homes Do I Need?",
     content: (
-      <div className="space-y-3">
-        <p>A Neighborhood Sale requires at least 5 approved participating homes to activate.</p>
+      <div className="space-y-2">
+        <p>A Neighborhood Sale requires at least <strong>5 approved participating homes</strong> to activate.</p>
         <p>The most successful events typically have between 5 and 15 participating homes, but larger events can attract even more shopper traffic.</p>
-        <p className="rounded-xl bg-[#2C4F4E] px-3 py-2 text-center font-black text-white">More Homes = More Traffic</p>
+        <p className="rounded-xl bg-[#F4A849]/20 px-3 py-2 text-center font-black text-[#2C4F4E]">More Homes = More Traffic</p>
       </div>
     ),
   },
   {
-    id: "pricing",
+    icon: DollarSign,
     emoji: "💲",
     title: "How Does Pricing Work?",
     content: (
-      <div className="space-y-3">
-        <p>Only the organizer is charged.</p>
-        <p className="font-bold text-[#006168]">Participants always join free.</p>
-        <div>
-          <p className="font-bold text-[#2C4F4E]">Organizer pricing:</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li>$10 base event fee</li>
-            <li>$2 per approved participating home</li>
-            <li>Maximum charge: $50</li>
-          </ul>
-        </div>
+      <div className="space-y-2">
+        <p><strong>Only the organizer is charged.</strong></p>
+        <p>Participants always join free.</p>
+        <p className="font-semibold text-[#2C4F4E]">Organizer pricing:</p>
+        <ul className="space-y-1 pl-4 list-disc">
+          <li>$10 base event fee</li>
+          <li>$2 per approved participating home</li>
+          <li>Maximum charge: $50</li>
+        </ul>
         <p>You are only charged if the event qualifies and moves forward as a Neighborhood Sale.</p>
       </div>
     ),
   },
   {
-    id: "responsible",
+    icon: ClipboardList,
     emoji: "📋",
     title: "What Am I Responsible For?",
     content: (
-      <div className="space-y-3">
+      <div className="space-y-2">
         <p>Yardit helps organize and manage the event, but successful Neighborhood Sales still require local participation.</p>
-        <div>
-          <p className="font-bold text-[#2C4F4E]">The most successful organizers:</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li>Personally invite neighbors</li>
-            <li>Share their Yardit event link</li>
-            <li>Approve participation requests</li>
-            <li>Encourage nearby homes to join</li>
-            <li>Help the event reach the activation requirement</li>
-          </ul>
-        </div>
-        <p className="font-bold text-[#2C4F4E]">Think of Yardit as the event organizer&apos;s toolkit.</p>
+        <p className="font-semibold text-[#2C4F4E]">The most successful organizers:</p>
+        <ul className="space-y-1 pl-4 list-disc">
+          <li>Personally invite neighbors</li>
+          <li>Share their Yardit event link</li>
+          <li>Approve participation requests</li>
+          <li>Encourage nearby homes to join</li>
+          <li>Help the event reach the activation requirement</li>
+        </ul>
+        <p className="font-semibold text-[#2C4F4E]">Think of Yardit as the event organizer&apos;s toolkit.</p>
       </div>
     ),
   },
   {
-    id: "minimum",
+    icon: HelpCircle,
     emoji: "❓",
-    title: "What Happens If I Don&apos;t Reach 5 Homes?",
-    content: ({ onFaq }) => (
-      <div className="space-y-3">
+    title: "What Happens If I Don't Reach 5 Homes?",
+    content: (
+      <div className="space-y-2">
         <p>Neighborhood Sales must reach the minimum participation requirement before activation.</p>
-        <ul className="list-disc space-y-1 pl-5">
+        <ul className="space-y-1 pl-4 list-disc">
           <li>A reminder is sent if participation is low before the event.</li>
           <li>If the event does not reach the required number of homes, it cannot launch as a Neighborhood Sale.</li>
           <li>Participants will be notified and provided available options.</li>
         </ul>
-        <p>For complete details regarding activation requirements, deadlines, downgrades, cancellations, invitations, co-hosts, refunds, and participant management:</p>
-        <button type="button" onClick={onFaq} className="text-sm font-black text-[#006168] underline-offset-4 hover:underline">
-          📖 View Full Neighborhood Sale FAQ →
-        </button>
+        <p>For complete details regarding activation requirements, deadlines, downgrades, cancellations, invitations, co-hosts, refunds, and participant management, view the full FAQ below.</p>
       </div>
     ),
   },
@@ -135,19 +126,15 @@ export default function NeighborhoodIntroModal({ open, onClose, onContinue }) {
   const [understandsRole, setUnderstandsRole] = useState(false);
   const [hideAgain, setHideAgain] = useState(false);
   const [showFaq, setShowFaq] = useState(false);
-  const [expandedSection, setExpandedSection] = useState(null);
+  const [expandedCard, setExpandedCard] = useState(null);
 
   const resetAndClose = () => {
     setReviewed(false);
     setUnderstandsRole(false);
     setHideAgain(false);
     setShowFaq(false);
-    setExpandedSection(null);
+    setExpandedCard(null);
     onClose?.();
-  };
-
-  const handleToggleSection = (id) => {
-    setExpandedSection((current) => (current === id ? null : id));
   };
 
   const handleContinue = () => {
@@ -157,8 +144,12 @@ export default function NeighborhoodIntroModal({ open, onClose, onContinue }) {
     setUnderstandsRole(false);
     setHideAgain(false);
     setShowFaq(false);
-    setExpandedSection(null);
+    setExpandedCard(null);
     onContinue?.();
+  };
+
+  const toggleCard = (index) => {
+    setExpandedCard((current) => current === index ? null : index);
   };
 
   return (
@@ -179,20 +170,34 @@ export default function NeighborhoodIntroModal({ open, onClose, onContinue }) {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
-              <div className="space-y-2.5">
-                {sections.map((section) => (
+              <div className="space-y-3">
+                {cards.map((card, index) => (
                   <NeighborhoodIntroCard
-                    key={section.id}
-                    id={section.id}
-                    emoji={section.emoji}
-                    title={section.title}
-                    isOpen={expandedSection === section.id}
-                    onToggle={handleToggleSection}
+                    key={card.title}
+                    icon={card.icon}
+                    emoji={card.emoji}
+                    title={card.title}
+                    expanded={expandedCard === index}
+                    onToggle={() => toggleCard(index)}
                   >
-                    {typeof section.content === "function" ? section.content({ onFaq: () => setShowFaq(true) }) : section.content}
+                    {card.content}
                   </NeighborhoodIntroCard>
                 ))}
               </div>
+
+              <section className="mt-3 rounded-2xl border border-[#F4A849]/45 bg-white/90 p-3.5 shadow-sm">
+                <div className="flex items-center gap-2 text-[#2C4F4E]">
+                  <BookOpen className="h-4 w-4 text-[#F4A849]" />
+                  <h3 className="text-sm font-bold">📖 Need More Details?</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowFaq(true)}
+                  className="mt-2 text-sm font-bold text-[#006168] underline-offset-4 hover:underline"
+                >
+                  View Full Neighborhood Sale FAQ →
+                </button>
+              </section>
 
               <div className="mt-4 space-y-2.5">
                 <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#2C4F4E]/15 bg-white p-3 text-sm text-slate-700 shadow-sm">
