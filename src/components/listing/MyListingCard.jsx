@@ -100,26 +100,32 @@ export default function MyListingCard({
             </p>
 
             {/* Badges */}
-            <div className="flex gap-1.5 flex-wrap">
-              <PillBadge className="bg-slate-50 text-slate-500 border-slate-200">
-                {isEvent ? "Event" : isNeighborhood ? "Neighborhood Sale" : "Yard Sale"}
-              </PillBadge>
+            <div className="space-y-2">
+              {/* Type + State Badges */}
+              <div className="flex gap-1.5 flex-wrap">
+                <PillBadge className="bg-slate-50 text-slate-500 border-slate-200">
+                  {isEvent ? "Event" : isNeighborhood ? "Neighborhood Sale" : "Yard Sale"}
+                </PillBadge>
 
-              {listing.co_host_user_id === user?.id && listing.co_host_status === "active" && (
-                <PillBadge className="bg-indigo-50 text-indigo-700 border-indigo-200">Co-Host</PillBadge>
-              )}
-              {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && (
-                <PillBadge className="bg-amber-50 text-amber-700 border-amber-200">Pending Approval</PillBadge>
-              )}
-              {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && (
-                <PillBadge className="bg-emerald-50 text-emerald-700 border-emerald-200">Neighborhood Approved</PillBadge>
-              )}
-              {listing.neighborhood_join_status === "denied" && (
-                <PillBadge className="bg-red-50 text-red-600 border-red-200">Neighborhood Denied</PillBadge>
-              )}
+                {listing.co_host_user_id === user?.id && listing.co_host_status === "active" && (
+                  <PillBadge className="bg-indigo-50 text-indigo-700 border-indigo-200">Co-Host</PillBadge>
+                )}
+                {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && (
+                  <PillBadge className="bg-amber-50 text-amber-700 border-amber-200">Pending Approval</PillBadge>
+                )}
+                {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && (
+                  <PillBadge className="bg-emerald-50 text-emerald-700 border-emerald-200">Neighborhood Approved</PillBadge>
+                )}
+                {listing.neighborhood_join_status === "denied" && (
+                  <PillBadge className="bg-red-50 text-red-600 border-red-200">Neighborhood Denied</PillBadge>
+                )}
+              </div>
 
-              <PillBadge className={tierPill}>{formatListingTierLabel(listing.tier)}</PillBadge>
-              <PillBadge className={statusPill}>{formatListingStatusLabel(listing.displayStatus)}</PillBadge>
+              {/* Tier + Status Badges */}
+              <div className="flex gap-1.5 flex-wrap">
+                <PillBadge className={tierPill}>{formatListingTierLabel(listing.tier)}</PillBadge>
+                <PillBadge className={statusPill}>{formatListingStatusLabel(listing.displayStatus)}</PillBadge>
+              </div>
             </div>
           </div>
 
