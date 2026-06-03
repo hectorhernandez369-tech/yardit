@@ -6,8 +6,17 @@ export default function NeighborhoodIntroCard({ emoji, title, expanded, onToggle
     <section className="overflow-hidden rounded-2xl border border-[#5DADA5]/25 bg-white/95 shadow-sm">
       <button
         type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 p-3.5 text-left"
+        onPointerDown={(event) => {
+          event.preventDefault();
+          onToggle?.();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onToggle?.();
+          }
+        }}
+        className="flex w-full touch-manipulation select-none items-center justify-between gap-3 p-3.5 text-left"
       >
         <span className="flex min-w-0 items-center gap-2.5">
           <span className="flex h-10 w-10 max-h-10 max-w-10 shrink-0 items-center justify-center rounded-xl bg-[#5DADA5]/12 text-lg">
