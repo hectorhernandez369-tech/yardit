@@ -21,9 +21,8 @@ export default function WelcomeProfileModal({ user, setUser }) {
     if (!user?.id) return;
 
     const hasYarditName = !!(user.first_name && user.last_name);
-    const hasSeen = localStorage.getItem(seenKey(user.id)) === "true";
 
-    if (!hasYarditName && !hasSeen) {
+    if (!hasYarditName) {
       setFormData({
         first_name: user.first_name || "",
         last_name: user.last_name || "",
@@ -59,7 +58,6 @@ export default function WelcomeProfileModal({ user, setUser }) {
   };
 
   const handleCompleteProfile = () => {
-    markSeen();
     setOpen(false);
     navigate(createPageUrl("Profile"));
   };
