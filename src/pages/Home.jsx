@@ -948,7 +948,7 @@ const stats = useMemo(() => {
       const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
 
       if (isPreview) {
-        if (currentZoom > 11) {
+        if (viewingOwnerPreviewMode || currentZoom > 11) {
           pins.push(listing);
         }
         return;
