@@ -44,7 +44,9 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingBackground, setUploadingBackground] = useState(false);
   const logoInputRef = useRef(null);
+  const backgroundInputRef = useRef(null);
 
   const fields = {
     business_name: { label: "Business name", entityField: "business_name", value: profile?.business_name || "" },
@@ -89,6 +91,19 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
     event.target.value = "";
   };
 
+  const uploadBackground = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !profile?.id) return;
+
+    setUploadingBackground(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    await base44.entities.VendorAccount.update(profile.id, { featured_photo_url: file_url });
+    setUploadingBackground(false);
+    toast.success("Background updated");
+    onRefresh?.();
+    event.target.value = "";
+  };
+
   const EditableButton = ({ field, children, className = "" }) => {
     if (!editable) return <div className={className}>{children}</div>;
 
@@ -111,6 +126,21 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
           backgroundPosition: "center",
         }}
       >
+        {editable && (
+          <div className="absolute right-3 top-3 z-20">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => backgroundInputRef.current?.click()}
+              disabled={uploadingBackground}
+              className="h-8 rounded-full bg-white/90 px-3 text-xs font-semibold text-[#2C4F4E] shadow-md hover:bg-white"
+            >
+              {uploadingBackground ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Pencil className="mr-1.5 h-3.5 w-3.5" />}
+              Edit background
+            </Button>
+            <input ref={backgroundInputRef} type="file" accept="image/*" onChange={uploadBackground} className="hidden" />
+          </div>
+        )}
         <div className="absolute inset-x-0 bottom-0 h-16 sm:h-24 bg-gradient-to-t from-black/30 to-transparent" />
         <div className="relative flex h-full flex-col justify-end gap-2 sm:gap-4">
           <div className="flex items-end gap-2 sm:gap-5 min-w-0">
