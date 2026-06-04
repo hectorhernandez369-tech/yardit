@@ -56,6 +56,31 @@
       "type": "string",
       "description": "Scheduled end time (HH:MM local)"
     },
+    "recurring_schedule": {
+      "type": "array",
+      "description": "Recurring weekly schedule rows for automatic pin visibility by weekday",
+      "items": {
+        "type": "object",
+        "properties": {
+          "day_of_week": {
+            "type": "number",
+            "description": "0=Sunday, 6=Saturday"
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": false
+          },
+          "start_time": {
+            "type": "string",
+            "description": "Start time HH:MM local"
+          },
+          "end_time": {
+            "type": "string",
+            "description": "End time HH:MM local"
+          }
+        }
+      }
+    },
     "scheduled_location_label": {
       "type": "string",
       "description": "Human-readable location label for the scheduled appearance"
@@ -86,7 +111,7 @@
         "canceled"
       ],
       "default": "draft",
-      "description": "Lifecycle status of the current schedule slot. Does NOT affect pin visibility \u2014 user must still manually check in within radius."
+      "description": "Lifecycle status of the current schedule slot. Scheduled/active schedules can drive pin visibility when the configured time window is active."
     },
     "schedule_notes": {
       "type": "string",

@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { CalendarClock, MapPin, Info, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { WEEKDAYS, normalizeRecurringSchedule } from "@/lib/vendorPinSchedule";
 
 const STATUS_COLORS = {
   draft: "bg-slate-100 text-slate-700",
@@ -24,6 +25,7 @@ export default function VendorPinScheduleDrawer({ open, onOpenChange, pin, user,
     scheduled_date: pin?.scheduled_date || "",
     scheduled_start_time: pin?.scheduled_start_time || "",
     scheduled_end_time: pin?.scheduled_end_time || "",
+    recurring_schedule: normalizeRecurringSchedule(pin?.recurring_schedule),
     scheduled_location_label: pin?.scheduled_location_label || "",
     scheduled_lat: pin?.scheduled_lat || "",
     scheduled_lng: pin?.scheduled_lng || "",
@@ -34,16 +36,36 @@ export default function VendorPinScheduleDrawer({ open, onOpenChange, pin, user,
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
+  const updateRecurringDay = (dayOfWeek, patch) => {
+    setForm((prev) => ({
+      ...prev,
+      recurring_schedule: normalizeRecurringSchedule(prev.recurring_schedule).map((row) =>
+        row.day_of_week === dayOfWeek ? { ...row, ...patch } : row
+      ),
+    }));
+  };
+
+  const enabledRecurringDays = normalizeRecurringSchedule(form.recurring_schedule).filter((row) => row.enabled);
+
   const handleSave = async () => {
-    if (!form.scheduled_date || !form.scheduled_start_time || !form.scheduled_end_time) {
-      toast.error("Date, start time, and end time are required.");
+    const hasOneTimeSchedule = form.scheduled_date && form.scheduled_start_time && form.scheduled_end_time;
+    const hasRecurringSchedule = enabledRecurringDays.length > 0;
+    const recurringMissingTimes = enabledRecurringDays.some((row) => !row.start_time || !row.end_time);
+
+    if (!hasOneTimeSchedule && !hasRecurringSchedule) {
+      toast.error("Add a one-time date/time or choose recurring days.");
+      return;
+    }
+    if (recurringMissingTimes) {
+      toast.error("Every selected recurring day needs a start and end time.");
       return;
     }
     setSaving(true);
     await base44.entities.VendorPin.update(pin.id, {
-      scheduled_date: form.scheduled_date,
-      scheduled_start_time: form.scheduled_start_time,
-      scheduled_end_time: form.scheduled_end_time,
+      scheduled_date: form.scheduled_date || null,
+      scheduled_start_time: form.scheduled_start_time || null,
+      scheduled_end_time: form.scheduled_end_time || null,
+      recurring_schedule: normalizeRecurringSchedule(form.recurring_schedule),
       scheduled_location_label: form.scheduled_location_label,
       scheduled_lat: form.scheduled_lat ? Number(form.scheduled_lat) : null,
       scheduled_lng: form.scheduled_lng ? Number(form.scheduled_lng) : null,
@@ -64,6 +86,7 @@ export default function VendorPinScheduleDrawer({ open, onOpenChange, pin, user,
       scheduled_date: null,
       scheduled_start_time: null,
       scheduled_end_time: null,
+      recurring_schedule: [],
       scheduled_location_label: null,
       scheduled_lat: null,
       scheduled_lng: null,
@@ -78,7 +101,7 @@ export default function VendorPinScheduleDrawer({ open, onOpenChange, pin, user,
     onOpenChange(false);
   };
 
-  const hasExistingSchedule = pin?.scheduled_date || pin?.schedule_status === "scheduled";
+  const hasExistingSchedule = pin?.scheduled_date || normalizeRecurringSchedule(pin?.recurring_schedule).some((row) => row.enabled) || pin?.schedule_status === "scheduled";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -89,7 +112,7 @@ export default function VendorPinScheduleDrawer({ open, onOpenChange, pin, user,
             Schedule — {pin?.pin_name}
           </SheetTitle>
           <SheetDescription>
-            Plan when and where this pin will be live. Scheduling does not check you in or make the pin public — you must still manually check in within the required radius when it's time.
+            Plan when and where this pin will be live. One-time and recurring schedules can automatically show the pin during the saved time windows.
           </SheetDescription>
         </SheetHeader>
 
@@ -97,8 +120,8 @@ export default function VendorPinScheduleDrawer({ open, onOpenChange, pin, user,
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 mb-5 flex items-start gap-2">
           <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
           <div className="text-xs text-amber-800 space-y-1">
-            <p className="font-semibold">Scheduling is preparation only</p>
-            <p>Your pin will only go public after you manually check in <strong>on the scheduled date</strong>, within the required GPS radius. Being outside the radius keeps the pin private.</p>
+            <p className="font-semibold">Schedule-driven pin visibility</p>
+            <p>When this schedule is marked Scheduled or Active, the pin can appear during the selected date or recurring weekday windows using the location below.</p>
           </div>
         </div>
 
@@ -122,21 +145,60 @@ export default function VendorPinScheduleDrawer({ open, onOpenChange, pin, user,
             </SelectContent>
           </Select>
 
-          {/* Date */}
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold uppercase text-slate-500 tracking-wide">Scheduled Date *</Label>
-            <Input type="date" value={form.scheduled_date} onChange={(e) => update("scheduled_date", e.target.value)} className="bg-white" />
+          {/* One-time schedule */}
+          <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-3">
+            <Label className="text-xs font-semibold uppercase text-slate-500 tracking-wide">One-time schedule</Label>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold uppercase text-slate-500 tracking-wide">Scheduled Date</Label>
+              <Input type="date" value={form.scheduled_date} onChange={(e) => update("scheduled_date", e.target.value)} className="bg-white" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold uppercase text-slate-500 tracking-wide">Start Time</Label>
+                <Input type="time" value={form.scheduled_start_time} onChange={(e) => update("scheduled_start_time", e.target.value)} className="bg-white" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold uppercase text-slate-500 tracking-wide">End Time</Label>
+                <Input type="time" value={form.scheduled_end_time} onChange={(e) => update("scheduled_end_time", e.target.value)} className="bg-white" />
+              </div>
+            </div>
           </div>
 
-          {/* Times */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold uppercase text-slate-500 tracking-wide">Start Time *</Label>
-              <Input type="time" value={form.scheduled_start_time} onChange={(e) => update("scheduled_start_time", e.target.value)} className="bg-white" />
+          {/* Recurring schedule */}
+          <div className="rounded-xl border border-[#5DADA5]/20 bg-[#5DADA5]/5 p-3 space-y-3">
+            <div>
+              <Label className="text-xs font-semibold uppercase text-slate-500 tracking-wide">Recurring weekly schedule</Label>
+              <p className="mt-1 text-xs text-slate-500">Select each day and set the time window for that day.</p>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold uppercase text-slate-500 tracking-wide">End Time *</Label>
-              <Input type="time" value={form.scheduled_end_time} onChange={(e) => update("scheduled_end_time", e.target.value)} className="bg-white" />
+            <div className="space-y-2">
+              {WEEKDAYS.map((day) => {
+                const row = normalizeRecurringSchedule(form.recurring_schedule).find((item) => item.day_of_week === day.value);
+                return (
+                  <div key={day.value} className="grid grid-cols-[110px_1fr_1fr] items-center gap-2 rounded-lg bg-white/80 p-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-[#2C4F4E]">
+                      <Checkbox
+                        checked={!!row?.enabled}
+                        onCheckedChange={(checked) => updateRecurringDay(day.value, { enabled: !!checked })}
+                      />
+                      {day.label}
+                    </label>
+                    <Input
+                      type="time"
+                      value={row?.start_time || ""}
+                      onChange={(e) => updateRecurringDay(day.value, { start_time: e.target.value })}
+                      disabled={!row?.enabled}
+                      className="bg-white text-xs"
+                    />
+                    <Input
+                      type="time"
+                      value={row?.end_time || ""}
+                      onChange={(e) => updateRecurringDay(day.value, { end_time: e.target.value })}
+                      disabled={!row?.enabled}
+                      className="bg-white text-xs"
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
 

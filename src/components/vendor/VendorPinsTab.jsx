@@ -11,6 +11,7 @@ import { CalendarClock, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import VendorPinScheduleDrawer from "./VendorPinScheduleDrawer";
+import { formatRecurringScheduleSummary } from "@/lib/vendorPinSchedule";
 
 const SCHEDULE_STATUS_COLORS = {
   draft: "bg-slate-100 text-slate-600",
@@ -77,7 +78,7 @@ export default function VendorPinsTab({ account, pins, users, user, onRefresh, o
               <div className="flex flex-wrap gap-1">{(pin.assigned_users || []).map((email) => <Badge key={email} variant="outline">{email}</Badge>)}</div>
 
               {/* Schedule Summary */}
-              {pin.scheduled_date && (
+              {(pin.scheduled_date || formatRecurringScheduleSummary(pin.recurring_schedule)) && (
                 <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 space-y-1">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold text-blue-800 flex items-center gap-1"><CalendarClock className="h-3 w-3" /> Schedule</p>
@@ -85,15 +86,20 @@ export default function VendorPinsTab({ account, pins, users, user, onRefresh, o
                       {pin.schedule_status || "draft"}
                     </Badge>
                   </div>
-                  <p className="text-xs text-blue-700">
-                    {format(new Date(pin.scheduled_date + "T00:00:00"), "MMM d, yyyy")}
-                    {pin.scheduled_start_time && ` · ${pin.scheduled_start_time}`}
-                    {pin.scheduled_end_time && ` – ${pin.scheduled_end_time}`}
-                  </p>
+                  {pin.scheduled_date && (
+                    <p className="text-xs text-blue-700">
+                      One-time: {format(new Date(pin.scheduled_date + "T00:00:00"), "MMM d, yyyy")}
+                      {pin.scheduled_start_time && ` · ${pin.scheduled_start_time}`}
+                      {pin.scheduled_end_time && ` – ${pin.scheduled_end_time}`}
+                    </p>
+                  )}
+                  {formatRecurringScheduleSummary(pin.recurring_schedule) && (
+                    <p className="text-xs text-blue-700">Recurring: {formatRecurringScheduleSummary(pin.recurring_schedule)}</p>
+                  )}
                   {pin.scheduled_location_label && (
                     <p className="text-xs text-blue-600 flex items-center gap-1"><MapPin className="h-3 w-3" />{pin.scheduled_location_label}</p>
                   )}
-                  <p className="text-[10px] text-blue-500 italic">Check-in required at scheduled time — GPS radius rules apply</p>
+                  <p className="text-[10px] text-blue-500 italic">Pin appears during scheduled windows when location coordinates are set</p>
                 </div>
               )}
 

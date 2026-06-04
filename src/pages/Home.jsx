@@ -50,6 +50,7 @@ import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/com
 import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
 import SaveListingButton from "@/components/listing/SaveListingButton";
 import { isLiveVendorCheckIn } from "@/lib/vendorTiers";
+import { getVendorPinActiveSchedule } from "@/lib/vendorPinSchedule";
 import { isPublishedVendorEvent, toVendorEventListing } from "@/lib/vendorEvents";
 import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map/vendorMarkerIcons";
 import QuickMapFilters from "@/components/map/QuickMapFilters";
@@ -471,6 +472,7 @@ export default function HomePage() {
   const showListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
+  const [scheduleNow, setScheduleNow] = useState(() => new Date());
   const markerRefsMap = useRef({});
   const hasCenteredOnUser = useRef(false);
   const userHasMovedMap = useRef(false);
@@ -594,6 +596,11 @@ export default function HomePage() {
       setIsShowingAllListings(false);
       showListingsTimerRef.current = null;
     }, 3000);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setScheduleNow(new Date()), 60000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -1056,7 +1063,8 @@ const stats = useMemo(() => {
 
   const liveVendorPins = useMemo(() => {
     if (!quickMapFilters.vendors) return [];
-    return vendorCheckIns
+
+    const checkedInPins = vendorCheckIns
       .filter(isLiveVendorCheckIn)
       .map((checkIn) => {
         const pin = vendorPins.find((item) => item.id === checkIn.vendor_pin_id);
@@ -1066,7 +1074,38 @@ const stats = useMemo(() => {
         return { checkIn, pin, account };
       })
       .filter(Boolean);
-  }, [vendorCheckIns, vendorPins, vendorAccounts, currentZoom, quickMapFilters.vendors]);
+
+    const checkedInPinIds = new Set(checkedInPins.map(({ pin }) => pin.id));
+    const scheduledPins = vendorPins
+      .map((pin) => {
+        if (checkedInPinIds.has(pin.id)) return null;
+        const account = vendorAccounts.find((item) => item.id === pin.vendor_account_id);
+        if (!account || account.is_active === false || pin.is_active === false) return null;
+        if (!shouldShowVendorPinAtZoom(account, currentZoom)) return null;
+
+        const activeSchedule = getVendorPinActiveSchedule(pin, scheduleNow);
+        if (!activeSchedule) return null;
+
+        return {
+          pin,
+          account,
+          activeSchedule,
+          checkIn: {
+            id: `scheduled-${pin.id}`,
+            vendor_pin_id: pin.id,
+            vendor_account_id: pin.vendor_account_id,
+            status: "scheduled_live",
+            checkin_latitude: Number(pin.scheduled_lat),
+            checkin_longitude: Number(pin.scheduled_lng),
+            checkin_display_address: pin.scheduled_location_label || "Scheduled vendor location",
+            checkin_end_time: activeSchedule.endDateTime.toISOString(),
+          },
+        };
+      })
+      .filter(Boolean);
+
+    return [...checkedInPins, ...scheduledPins];
+  }, [vendorCheckIns, vendorPins, vendorAccounts, currentZoom, quickMapFilters.vendors, scheduleNow]);
 
   const marqueeOverlays = useMemo(() => {
     if (currentZoom < MARQUEE_COLLAPSED_MIN_ZOOM) return [];
