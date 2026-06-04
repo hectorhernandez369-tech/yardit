@@ -1136,10 +1136,10 @@ const stats = useMemo(() => {
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
       {/* Sticky Top Bar */}
-      <div className="bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex flex-col lg:flex-row lg:items-center w-full">
+      <div className="bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex flex-col w-full">
         {view === "map" && (
-          <div className="px-3 pt-2 pb-1 lg:pb-0 lg:flex-1">
-            <div className="relative w-full max-w-md lg:max-w-xs">
+          <div className="px-3 pt-2 pb-1">
+            <div className="relative w-full max-w-md mx-auto">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 placeholder="Search by address or title..."
@@ -1151,7 +1151,7 @@ const stats = useMemo(() => {
           </div>
         )}
 
-        <div className="px-3 py-1.5 lg:py-0 flex items-center justify-between gap-2 lg:flex-1 lg:justify-end">
+        <div className="px-3 py-1.5 flex items-center justify-between gap-2">
           <Tabs value={view} onValueChange={setView} className="w-auto flex shrink-0">
             <TabsList className="grid grid-cols-2 h-9 w-32 bg-slate-100 p-1 rounded-md">
               <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
