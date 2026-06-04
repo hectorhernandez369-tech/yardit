@@ -10,11 +10,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 )
 
 if ('serviceWorker' in navigator) {
-  if (import.meta.env.PROD) {
+  const oneSignalEnabled = Boolean(window.OneSignalDeferred);
+
+  if (import.meta.env.PROD && !oneSignalEnabled) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js');
     });
-  } else {
+  } else if (!import.meta.env.PROD) {
     // In dev mode, unregister any stale service workers to avoid caching issues
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       registrations.forEach((reg) => reg.unregister());

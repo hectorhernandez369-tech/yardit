@@ -8,6 +8,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Yardit</title>
     <meta name="description" content="Seekers find the best residential yard sales, neighborhood events, and hidden treasures happening around you." />
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "44d72407-6c94-4258-95f7-fd22c3157040",
+          allowLocalhostAsSecureOrigin: true,
+          serviceWorkerPath: "OneSignalSDKWorker.js",
+          serviceWorkerUpdaterPath: "OneSignalSDKUpdaterWorker.js"
+        });
+      });
+    </script>
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
