@@ -1138,7 +1138,7 @@ const stats = useMemo(() => {
       {/* Sticky Top Bar */}
       <div className="bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex flex-col w-full">
         {view === "map" && (
-          <div className="px-3 pt-2 pb-1">
+          <div className="px-3 pt-2 pb-1 sm:hidden">
             <div className="relative w-full max-w-md mx-auto">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
@@ -1151,7 +1151,7 @@ const stats = useMemo(() => {
           </div>
         )}
 
-        <div className="px-3 py-1.5 flex items-center justify-between gap-2">
+        <div className="px-3 py-1.5 flex items-center justify-center gap-4">
           <Tabs value={view} onValueChange={setView} className="w-auto flex shrink-0">
             <TabsList className="grid grid-cols-2 h-9 w-32 bg-slate-100 p-1 rounded-md">
               <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
@@ -1162,6 +1162,16 @@ const stats = useMemo(() => {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+
+          <div className="hidden sm:block relative w-full max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Search by address or title..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 text-sm"
+            />
+          </div>
 
           <div className="flex items-center gap-2 ml-auto">
             {view === "map" && (
