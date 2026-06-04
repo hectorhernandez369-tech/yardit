@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format } from "date-fns";
 import { Camera, CheckCircle2, Loader2, MapPin, Palette, Phone, Pencil, Store, Tag } from "lucide-react";
 import { toast } from "sonner";
+import ImageCropEditor from "@/components/admin/ImageCropEditor";
 
 const categories = [
   "Food Truck", "Coffee & Drinks", "Desserts", "Bakery", "Catering", "Farmers Market", "Fresh Produce", "BBQ", "Tacos", "Pizza", "Ice Cream",
@@ -45,6 +46,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBackground, setUploadingBackground] = useState(false);
+  const [backgroundCropUrl, setBackgroundCropUrl] = useState("");
   const logoInputRef = useRef(null);
   const backgroundInputRef = useRef(null);
 
@@ -91,17 +93,28 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
     event.target.value = "";
   };
 
+  const closeBackgroundCrop = () => {
+    if (backgroundCropUrl) URL.revokeObjectURL(backgroundCropUrl);
+    setBackgroundCropUrl("");
+  };
+
   const uploadBackground = async (event) => {
     const file = event.target.files?.[0];
     if (!file || !profile?.id) return;
 
+    setBackgroundCropUrl(URL.createObjectURL(file));
+    event.target.value = "";
+  };
+
+  const applyBackgroundCrop = async (croppedFile) => {
+    if (!croppedFile || !profile?.id) return;
+
     setUploadingBackground(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await base44.integrations.Core.UploadFile({ file: croppedFile });
     await base44.entities.VendorAccount.update(profile.id, { featured_photo_url: file_url });
     setUploadingBackground(false);
     toast.success("Background updated");
     onRefresh?.();
-    event.target.value = "";
   };
 
   const EditableButton = ({ field, children, className = "" }) => {
@@ -203,6 +216,14 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
           </div>
         </div>
       )}
+
+      <ImageCropEditor
+        imageUrl={backgroundCropUrl}
+        open={!!backgroundCropUrl}
+        onClose={closeBackgroundCrop}
+        onApply={applyBackgroundCrop}
+        aspectRatio={16 / 9}
+      />
 
       {editing && (
         <div className="border-t border-slate-200 bg-slate-50 p-5 sm:p-6 space-y-3">
