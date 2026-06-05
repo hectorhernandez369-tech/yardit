@@ -27,6 +27,25 @@ export const getTransactionListingId = (tx) => (
 
 export const isResidentialTransaction = (tx) => RESIDENTIAL_TRANSACTION_TYPES.has(tx?.transaction_type || "");
 
+export const getDisplayResidentialTransactions = (transactions = []) => {
+  const succeededSessions = new Set(
+    transactions
+      .filter((tx) => tx?.stripe_checkout_session_id && tx?.event_type !== "checkout.session.created" && tx?.status === "succeeded")
+      .map((tx) => tx.stripe_checkout_session_id)
+  );
+  const completedPaymentIntents = new Set(
+    transactions
+      .filter((tx) => tx?.event_type === "checkout.session.completed" && tx?.status === "succeeded" && tx?.stripe_payment_intent_id)
+      .map((tx) => tx.stripe_payment_intent_id)
+  );
+
+  return transactions.filter((tx) => {
+    if (tx?.event_type === "checkout.session.created" && succeededSessions.has(tx?.stripe_checkout_session_id)) return false;
+    if (tx?.event_type === "payment_intent.succeeded" && completedPaymentIntents.has(tx?.stripe_payment_intent_id)) return false;
+    return true;
+  });
+};
+
 export const getTransactionAmounts = (tx) => {
   const original = centsToDollars(tx?.original_amount_cents ?? tx?.amount_cents);
   const discount = centsToDollars(tx?.discount_amount_cents);

@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import ResidentialReceiptDetail from "./ResidentialReceiptDetail";
 import ResidentialTransactionCard from "./ResidentialTransactionCard";
-import { getTransactionAmounts } from "./residentialBillingUtils";
+import { getDisplayResidentialTransactions, getTransactionAmounts } from "./residentialBillingUtils";
 
 export default function ResidentialBillingList({ transactions = [], listings = [], isLoading, emptyMessage, variant = "profile", onBackToListings }) {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
 
   const listingsById = useMemo(() => new Map(listings.map((listing) => [listing.id, listing])), [listings]);
+  const displayTransactions = useMemo(() => getDisplayResidentialTransactions(transactions), [transactions]);
 
   const getListingForTransaction = (transaction) => {
     const directId = transaction.listing_id || transaction.residential_listing_id || transaction.related_listing_id || transaction.product_id || transaction.sale_listing_id || transaction.yardit_record_id || transaction.location_id;
@@ -18,7 +19,7 @@ export default function ResidentialBillingList({ transactions = [], listings = [
   };
 
   const selectedListing = selectedTransaction ? getListingForTransaction(selectedTransaction) : null;
-  const totalPaid = transactions.reduce((sum, tx) => sum + getTransactionAmounts(tx).finalAmount, 0);
+  const totalPaid = displayTransactions.reduce((sum, tx) => sum + getTransactionAmounts(tx).finalAmount, 0);
 
   if (selectedTransaction) {
     return (
@@ -49,7 +50,7 @@ export default function ResidentialBillingList({ transactions = [], listings = [
           <div>
             <p className="text-sm text-gray-600 mb-1">Listing Billing Total</p>
             <p className="text-3xl font-bold text-green-600">${totalPaid.toFixed(2)}</p>
-            <p className="text-sm text-gray-600 mt-2">{transactions.length} transaction{transactions.length !== 1 ? "s" : ""}</p>
+            <p className="text-sm text-gray-600 mt-2">{displayTransactions.length} transaction{displayTransactions.length !== 1 ? "s" : ""}</p>
           </div>
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
             <CreditCard className="w-8 h-8 text-green-600" />
@@ -61,11 +62,11 @@ export default function ResidentialBillingList({ transactions = [], listings = [
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" /> Listing Transaction History
-            <span className="text-sm font-normal text-gray-500">({transactions.length} total)</span>
+            <span className="text-sm font-normal text-gray-500">({displayTransactions.length} total)</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {transactions.length === 0 ? (
+          {displayTransactions.length === 0 ? (
             <div className="text-center py-12">
               <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-700 mb-2">No listing payments yet</h3>
@@ -73,7 +74,7 @@ export default function ResidentialBillingList({ transactions = [], listings = [
             </div>
           ) : (
             <div className="space-y-3">
-              {transactions.map((transaction) => (
+              {displayTransactions.map((transaction) => (
                 <ResidentialTransactionCard
                   key={transaction.id || transaction.stripe_checkout_session_id}
                   transaction={transaction}
