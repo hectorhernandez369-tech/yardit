@@ -738,10 +738,10 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
             <Button
               type="button"
               onClick={() => setIsMapModalOpen(true)}
-              className="w-full py-8 text-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white flex gap-3 shadow-md border-2 border-[#2C4F4E]"
+              className="w-full py-6 text-sm sm:text-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white flex items-center justify-center gap-2 sm:gap-3 shadow-md border-2 border-[#2C4F4E]"
             >
-              <MapIcon className="w-6 h-6" />
-              Pick Neighborhood Sale Center on Map
+              <MapIcon className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+              <span>Pick Sale Center</span>
             </Button>
 
             {formData.event_center_lat && formData.event_center_lng && (
