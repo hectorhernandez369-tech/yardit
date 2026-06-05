@@ -12,7 +12,7 @@ import { format } from "date-fns";
 import EditListingDialog from "@/components/listing/EditListingDialog";
 import { toast } from "sonner";
 import { getListingDisplayStatus } from "@/components/listing/listingDisplay";
-import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
+import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError, deriveNeighborhoodEventState, isWithinParticipationWindow } from "@/lib/neighborhoodSaleState";
 import { isPubliclyVisibleListing } from "@/lib/listingVisibility";
 import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
 import MyListingCard from "@/components/listing/MyListingCard";
@@ -136,6 +136,24 @@ export default function MyListingsPage() {
     initialData: [],
   });
 
+  const participantParentSaleIds = useMemo(() => {
+    return [...new Set(listings.map((listing) => listing.neighborhood_sale_id).filter(Boolean))];
+  }, [listings]);
+
+  const { data: participantParentSales = [] } = useQuery({
+    queryKey: ["participantParentSales", user?.id, participantParentSaleIds.join(",")],
+    queryFn: async () => {
+      const results = await Promise.all(participantParentSaleIds.map((id) => base44.entities.Listing.filter({ id })));
+      return results.flat();
+    },
+    enabled: !!user?.id && participantParentSaleIds.length > 0,
+    initialData: [],
+  });
+
+  const participantParentSaleById = useMemo(() => {
+    return Object.fromEntries(participantParentSales.map((sale) => [sale.id, sale]));
+  }, [participantParentSales]);
+
   const { data: searchableUsers = [] } = useQuery({
     queryKey: ["coHostUserSearch", editingListing?.id],
     queryFn: () => base44.entities.User.list(),
@@ -224,6 +242,13 @@ export default function MyListingsPage() {
 
   const isActiveListing = (listing) => {
     if (isPastListing(listing)) return false;
+
+    const joinStatus = normalizeNeighborhoodJoinStatus(listing?.neighborhood_join_status);
+    if (listing?.listingType === "yard_sale" && listing?.neighborhood_sale_id && joinStatus === "approved") {
+      const parentSale = participantParentSaleById[listing.neighborhood_sale_id];
+      return deriveNeighborhoodEventState(parentSale, new Date()) === "active" && isWithinParticipationWindow(listing, parentSale, new Date());
+    }
+
     if (listing?.status === "active" || listing?.activation_status === "active") return true;
     return isPubliclyVisibleListing(listing, { now: new Date(), currentUser: user });
   };
@@ -240,8 +265,8 @@ export default function MyListingsPage() {
 
   const isEffectivelyPastListing = (listing) => isPastListing(listing) || listing?.displayStatus === "expired";
 
-  const activeListings = useMemo(() => normalizedListings.filter((l) => isActiveListing(l)), [normalizedListings]);
-  const pendingListings = useMemo(() => normalizedListings.filter((l) => isPendingListing(l)), [normalizedListings]);
+  const activeListings = useMemo(() => normalizedListings.filter((l) => isActiveListing(l)), [normalizedListings, participantParentSaleById, user]);
+  const pendingListings = useMemo(() => normalizedListings.filter((l) => isPendingListing(l)), [normalizedListings, participantParentSaleById, user]);
   const pastListings = useMemo(() => normalizedListings.filter((l) => isEffectivelyPastListing(l)), [normalizedListings]);
 
   const filteredCoHostUsers = useMemo(() => {
