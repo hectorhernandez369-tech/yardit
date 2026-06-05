@@ -48,6 +48,34 @@ function toCents(amount) {
   return Math.round(roundAmount(amount) * 100);
 }
 
+async function createNeighborhoodPaymentTransaction(base44, sale, amount, charge, status, purpose) {
+  const paymentIntentId = charge?.paymentIntentId || '';
+  await base44.asServiceRole.entities.PaymentTransaction.create({
+    stripe_event_id: `${purpose}_${paymentIntentId || sale.id}_${Date.now()}`,
+    event_type: purpose,
+    transaction_type: 'listing_payment',
+    user_id: sale.ownerUserId || '',
+    user_email: sale.ownerEmail || '',
+    yardit_record_type: 'Listing',
+    yardit_record_id: sale.id,
+    status,
+    amount_cents: toCents(amount),
+    original_amount_cents: toCents(amount),
+    discount_amount_cents: 0,
+    final_amount_cents: toCents(amount),
+    currency: 'usd',
+    payment_status: status,
+    stripe_payment_intent_id: paymentIntentId,
+    payment_method_last4: charge?.method || '',
+    refund_status: 'none',
+    non_refund_acknowledged: sale.non_refund_acknowledged === true,
+    non_refund_acknowledged_at: sale.non_refund_acknowledged_at || '',
+    non_refund_acknowledged_by_user_id: sale.non_refund_acknowledged_by_user_id || sale.ownerUserId || '',
+    received_at: new Date().toISOString(),
+    processed_at: new Date().toISOString(),
+  });
+}
+
 function sortNewest(records = []) {
   return [...records].sort((a, b) => new Date(b.created_date || b.created_at || 0).getTime() - new Date(a.created_date || a.created_at || 0).getTime());
 }
@@ -179,6 +207,8 @@ async function applyFallbackFlow(base44, sale, approvedHomes, reason, triggerLab
     stripe_payment_intent_id: fallbackCharge.paymentIntentId || preparedFallback.stripe_payment_intent_id || '',
   });
 
+  await createNeighborhoodPaymentTransaction(base44, sale, PREMIUM_FALLBACK_PRICE, fallbackCharge, fallbackCharge.success ? 'succeeded' : 'failed', 'neighborhood_sale_fallback_listing');
+
   await base44.asServiceRole.functions.invoke('cancelNeighborhoodSale', {
     saleListingId: sale.id,
     internal: true,
@@ -296,6 +326,8 @@ async function processNeighborhoodCharge(base44, sale, approvedHomes, now, isRet
     transaction_id: charge.paymentIntentId || paymentRecord.transaction_id || '',
     stripe_payment_intent_id: charge.paymentIntentId || paymentRecord.stripe_payment_intent_id || '',
   });
+
+  await createNeighborhoodPaymentTransaction(base44, sale, lockedAmount, charge, charge.success ? 'succeeded' : 'failed', isRetry ? 'neighborhood_sale_payment_retry' : 'neighborhood_sale_event_charge');
 
   if (charge.success) {
     await base44.asServiceRole.entities.Listing.update(sale.id, {

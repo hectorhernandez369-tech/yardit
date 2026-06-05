@@ -19,6 +19,7 @@ export const getTransactionListingId = (tx) => (
   tx?.residential_listing_id ||
   tx?.related_listing_id ||
   tx?.product_id ||
+  tx?.sale_listing_id ||
   tx?.yardit_record_id ||
   tx?.location_id ||
   ""

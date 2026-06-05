@@ -12,7 +12,7 @@ export default function ResidentialBillingList({ transactions = [], listings = [
   const listingsById = useMemo(() => new Map(listings.map((listing) => [listing.id, listing])), [listings]);
 
   const getListingForTransaction = (transaction) => {
-    const directId = transaction.listing_id || transaction.residential_listing_id || transaction.related_listing_id || transaction.product_id || transaction.yardit_record_id || transaction.location_id;
+    const directId = transaction.listing_id || transaction.residential_listing_id || transaction.related_listing_id || transaction.product_id || transaction.sale_listing_id || transaction.yardit_record_id || transaction.location_id;
     if (directId && listingsById.has(directId)) return listingsById.get(directId);
     return listings.find((listing) => listing.stripe_checkout_session_id === transaction.stripe_checkout_session_id || listing.stripe_payment_intent_id === transaction.stripe_payment_intent_id) || null;
   };

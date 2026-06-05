@@ -78,6 +78,7 @@ export default function MyListingCard({
 
   const tierPill = TIER_PILL[listing.tier] || "bg-slate-50 text-slate-500 border-slate-200";
   const statusPill = STATUS_PILL[listing.displayStatus] || "bg-slate-100 text-slate-500 border-slate-200";
+  const isPaidListing = Number(listing.pricePaid || 0) > 0 || listing.payment_status === "paid" || listing.payment_intent_status === "captured" || !!listing.stripe_checkout_session_id || !!listing.stripe_payment_intent_id;
 
   return (
     <div className={`group relative bg-white rounded-2xl border border-slate-200/70 border-l-4 ${accentBar} shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden`}>
@@ -181,7 +182,7 @@ export default function MyListingCard({
               </Button>
             )}
 
-            {canCancelListingDirectly(listing) ? (
+            {canCancelListingDirectly(listing) && !isPaidListing ? (
               <Button
                 size="sm"
                 variant="outline"

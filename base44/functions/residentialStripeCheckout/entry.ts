@@ -47,6 +47,9 @@ Deno.serve(async (req) => {
         stripe_payment_intent_id: paymentIntentId,
         stripe_customer_id: asId(session.customer),
         payment_status: session.payment_status || session.status || '',
+        non_refund_acknowledged: listing.non_refund_acknowledged === true,
+        non_refund_acknowledged_at: listing.non_refund_acknowledged_at || '',
+        non_refund_acknowledged_by_user_id: listing.non_refund_acknowledged_by_user_id || listing.ownerUserId || user.id || '',
         processed_at: nowIso(),
       };
 
@@ -60,6 +63,9 @@ Deno.serve(async (req) => {
         stripe_payment_intent_id: paymentIntentId,
         payment_status: 'paid',
         payment_intent_status: 'captured',
+        non_refund_acknowledged: listing.non_refund_acknowledged === true,
+        non_refund_acknowledged_at: listing.non_refund_acknowledged_at || '',
+        non_refund_acknowledged_by_user_id: listing.non_refund_acknowledged_by_user_id || listing.ownerUserId || user.id || '',
       });
 
       return Response.json({ ok: true, linked: records.length, payment_intent_id: paymentIntentId });
@@ -125,6 +131,26 @@ Deno.serve(async (req) => {
         status: 'scheduled',
       });
 
+      await base44.asServiceRole.entities.PaymentTransaction.create({
+        stripe_event_id: `free_promo_${listing_id}_${promo_code_id}`,
+        event_type: 'free_promo.completed',
+        transaction_type: 'listing_payment',
+        user_id: user_id || '',
+        user_email: user_email || '',
+        yardit_record_type: 'Listing',
+        yardit_record_id: listing_id,
+        status: 'succeeded',
+        amount_cents: 0,
+        original_amount_cents: Number(original_amount) || 0,
+        discount_amount_cents: Number(discount_amount) || 0,
+        final_amount_cents: 0,
+        currency: 'usd',
+        promo_code: promo_code || '',
+        payment_status: 'paid',
+        received_at: nowIso(),
+        processed_at: nowIso(),
+      });
+
       return Response.json({ ok: true, free_promo: true });
     }
 
@@ -171,12 +197,17 @@ Deno.serve(async (req) => {
       purpose: 'residential_listing_payment',
       transaction_type: 'listing_payment',
       final_status: 'scheduled',
+      original_amount: String(basePrice),
+      final_amount: String(amount),
+      non_refund_acknowledged: body?.non_refund_acknowledged ? 'true' : 'false',
+      non_refund_acknowledged_at: body?.non_refund_acknowledged_at || '',
+      non_refund_acknowledged_by_user_id: body?.non_refund_acknowledged_by_user_id || body?.user_id || currentUser?.id || '',
+      non_refund_disclosure_text: body?.non_refund_disclosure_text || '',
       ...(promoCodeId && {
         promo_code_id: promoCodeId,
         promo_code: promoCode,
         discount_percent: String(promoDiscountPercent),
         discount_bucket: promoDiscountBucket,
-        original_amount: String(basePrice),
         promo_discount_amount: String(promoDiscountAmount),
       }),
     };
@@ -233,7 +264,14 @@ Deno.serve(async (req) => {
       yardit_record_id: body?.listing_id || '',
       status: 'received',
       amount_cents: amount,
+      original_amount_cents: basePrice,
+      discount_amount_cents: promoDiscountAmount,
+      final_amount_cents: amount,
       currency: 'usd',
+      promo_code: promoCode || '',
+      non_refund_acknowledged: body?.non_refund_acknowledged === true,
+      non_refund_acknowledged_at: body?.non_refund_acknowledged_at || '',
+      non_refund_acknowledged_by_user_id: body?.non_refund_acknowledged_by_user_id || body?.user_id || currentUser?.id || '',
       stripe_checkout_session_id: session.id,
       stripe_payment_intent_id: asId(session.payment_intent),
       stripe_customer_id: asId(session.customer),

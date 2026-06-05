@@ -76,6 +76,7 @@ export default function ResidentialReceiptDetail({ transaction, listing, onBack,
             <DetailRow label="Promo Code" value={transaction.promo_code || "None"} />
             <DetailRow label="Final Amount Paid" value={formatMoney(finalAmount)} />
             <DetailRow label="Payment Status" value={transaction.status || transaction.payment_status} />
+            <DetailRow label="Refund Status" value={transaction.refund_status || "none"} />
             <DetailRow label="Payment Date" value={formatDate(transaction.processed_at || transaction.received_at || transaction.created_date)} />
             <DetailRow label="Non-Refund Acknowledgement" value={transaction.non_refund_acknowledged ? `Acknowledged${transaction.non_refund_acknowledged_at ? ` on ${formatDate(transaction.non_refund_acknowledged_at)}` : ""}` : "Not acknowledged"} />
           </div>

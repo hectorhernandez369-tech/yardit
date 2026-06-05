@@ -38,6 +38,9 @@ Deno.serve(async (req) => {
       yardit_record_id: listing.id,
       user_id: listing.ownerUserId || '',
       user_email: ownerEmail,
+      non_refund_acknowledged: listing.non_refund_acknowledged === true,
+      non_refund_acknowledged_at: listing.non_refund_acknowledged_at || '',
+      non_refund_acknowledged_by_user_id: listing.non_refund_acknowledged_by_user_id || listing.ownerUserId || '',
       processed_at: nowIso(),
       ...(linkedPaymentIntentId && { stripe_payment_intent_id: linkedPaymentIntentId }),
     };

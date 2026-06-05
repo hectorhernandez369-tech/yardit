@@ -45,9 +45,10 @@ export default function ResidentialPaymentStep({
           isProcessing={isProcessing}
           errorMessage={errorMessage}
           onBack={onBack}
-          onPay={() => onPay({ promoResult, finalAmount })}
+          onPay={({ nonRefundAcknowledgement } = {}) => onPay({ promoResult, finalAmount, nonRefundAcknowledgement })}
           promoResult={promoResultForDisplay}
           continueLabel={continueLabel}
+          requireNonRefundAcknowledgement={listing?.listingType !== "event"}
           promoInputSlot={
             <PromoCodeInput
               user={user}

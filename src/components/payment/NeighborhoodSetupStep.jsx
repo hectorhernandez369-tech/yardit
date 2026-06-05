@@ -1,8 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertCircle, CreditCard } from "lucide-react";
 
 export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBack, onSetup }) {
+  const [nonRefundAcknowledged, setNonRefundAcknowledged] = useState(false);
+  const nonRefundDisclosure = "I understand Neighborhood Sale charges are non-refundable once Yardit charges my saved payment method after the event commitment/lock rules are met.";
+
+  const handleSetup = () => {
+    onSetup?.({
+      acknowledged: nonRefundAcknowledged,
+      acknowledged_at: nonRefundAcknowledged ? new Date().toISOString() : "",
+      disclosure_text: nonRefundDisclosure,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
@@ -23,6 +35,11 @@ export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBa
         </ul>
       </div>
 
+      <label className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900 cursor-pointer">
+        <Checkbox checked={nonRefundAcknowledged} onCheckedChange={(checked) => setNonRefundAcknowledged(checked === true)} className="mt-0.5" />
+        <span><strong>Required:</strong> {nonRefundDisclosure}</span>
+      </label>
+
       {errorMessage && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm flex items-start gap-2">
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -40,8 +57,8 @@ export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBa
           Back
         </Button>
         <Button
-          onClick={onSetup}
-          disabled={isProcessing}
+          onClick={handleSetup}
+          disabled={isProcessing || !nonRefundAcknowledged}
           className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
         >
           {isProcessing ? "Starting Setup..." : "Add Payment Method"}

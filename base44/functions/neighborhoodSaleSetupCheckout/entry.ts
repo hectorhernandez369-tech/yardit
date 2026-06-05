@@ -59,6 +59,10 @@ Deno.serve(async (req) => {
       base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
       purpose: 'neighborhood_sale_setup',
       user_id: user.id,
+      non_refund_acknowledged: payload.non_refund_acknowledged ? 'true' : 'false',
+      non_refund_acknowledged_at: payload.non_refund_acknowledged_at || '',
+      non_refund_acknowledged_by_user_id: payload.non_refund_acknowledged_by_user_id || user.id,
+      non_refund_disclosure_text: payload.non_refund_disclosure_text || '',
     };
 
     const session = await stripe.checkout.sessions.create({

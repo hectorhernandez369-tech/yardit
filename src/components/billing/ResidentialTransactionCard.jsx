@@ -54,6 +54,7 @@ export default function ResidentialTransactionCard({ transaction, listing, varia
           <span><strong>Transaction ID:</strong> {transaction.stripe_payment_intent_id || transaction.stripe_checkout_session_id || transaction.id || "Not available"}</span>
           <span><strong>Stripe Checkout Session:</strong> {transaction.stripe_checkout_session_id || "Not available"}</span>
           <span><strong>Stripe Charge:</strong> {transaction.stripe_charge_id || "Not available"}</span>
+          <span><strong>Refund Status:</strong> {transaction.refund_status || "none"}</span>
           <span><strong>Non-refund acknowledgement:</strong> {transaction.non_refund_acknowledged ? "Acknowledged" : "Not acknowledged"}</span>
         </div>
 

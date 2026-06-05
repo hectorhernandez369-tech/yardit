@@ -37,6 +37,8 @@ import SaveListingButton from "@/components/listing/SaveListingButton";
 import ListingPhotoGallery from "@/components/listing/ListingPhotoGallery";
 import ListingShareButton from "@/components/listing/ListingShareButton";
 import NeighborhoodSalePanel from "@/components/listing/NeighborhoodSalePanel";
+import ResidentialBillingList from "@/components/billing/ResidentialBillingList";
+import { getTransactionListingId, isResidentialTransaction } from "@/components/billing/residentialBillingUtils";
 import { getListingOwnerId, isOwnerPreviewVisibleListing, isPubliclyVisibleListing } from "@/lib/listingVisibility";
 
 export default function ListingDetailPage() {
@@ -188,6 +190,39 @@ export default function ListingDetailPage() {
       return sales[0];
     },
     enabled: !!listing && normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && !!listing.neighborhood_sale_id,
+  });
+
+  const isAdminViewer = !!user && (user.isAdmin || ["master", "super_master", "supervisor", "admin"].includes(user.role));
+
+  const { data: listingBillingTransactions = [], isLoading: isLoadingListingBilling } = useQuery({
+    queryKey: ["adminListingBillingTransactions", listing?.id, listing?.ownerUserId],
+    queryFn: async () => {
+      const transactions = await base44.entities.PaymentTransaction.list("-created_date", 250);
+      const completedSessions = new Set(
+        transactions
+          .filter((tx) => tx.event_type !== "checkout.session.created" && tx.stripe_checkout_session_id)
+          .map((tx) => tx.stripe_checkout_session_id)
+      );
+      const seenKeys = new Set();
+      return transactions
+        .filter(isResidentialTransaction)
+        .filter((tx) => {
+          if (tx.event_type === "checkout.session.created" && completedSessions.has(tx.stripe_checkout_session_id)) return false;
+          const linkedListingId = getTransactionListingId(tx);
+          const exactMatch = linkedListingId === listing.id || tx.stripe_checkout_session_id === listing.stripe_checkout_session_id || tx.stripe_payment_intent_id === listing.stripe_payment_intent_id;
+          const needsReviewForOwner = isAdminViewer && !linkedListingId && (tx.user_id === listing.ownerUserId || tx.user_email === ownerUser?.email);
+          return exactMatch || needsReviewForOwner;
+        })
+        .filter((tx) => {
+          const key = tx.stripe_payment_intent_id || tx.stripe_checkout_session_id || tx.id;
+          if (seenKeys.has(key)) return false;
+          seenKeys.add(key);
+          return true;
+        })
+        .sort((a, b) => new Date(b.processed_at || b.received_at || b.created_date || 0) - new Date(a.processed_at || a.received_at || a.created_date || 0));
+    },
+    enabled: !!listing?.id && isAdminViewer,
+    initialData: [],
   });
 
   const syncNeighborhoodSaleListing = async (saleId, paidAmountOverride) => {
@@ -630,6 +665,18 @@ export default function ListingDetailPage() {
               onRespondToJoinRequest={(args) => respondToJoinRequestMutation.mutate(args)}
               onReport={(ctx) => { setReportContext(ctx); setShowReport(true); }}
             />
+
+            {isAdminViewer && ["yard_sale", "neighborhood_sale"].includes(listing.listingType) && (
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                <ResidentialBillingList
+                  transactions={listingBillingTransactions}
+                  listings={[listing]}
+                  isLoading={isLoadingListingBilling}
+                  variant="billing"
+                  emptyMessage="No PaymentTransaction records are linked to this residential listing yet."
+                />
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button

@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, CreditCard, Loader2, Tag } from "lucide-react";
 
 function money(amount) {
@@ -54,7 +55,10 @@ export default function ReviewPayContent({
   continueLabel = "Continue to Stripe",
   promoResult,
   promoInputSlot,
+  requireNonRefundAcknowledgement = false,
 }) {
+  const [nonRefundAcknowledged, setNonRefundAcknowledged] = useState(false);
+  const nonRefundDisclosure = "I understand this paid Yardit listing purchase is non-refundable once payment is submitted.";
   const key = purchaseType || tier;
   const resolvedName = purchaseName || `${titleCase(tier)} Listing`;
   const resolvedSummary = summaryItems || (listing ? listingSummary(listing, tier) : []);
@@ -147,11 +151,27 @@ export default function ReviewPayContent({
         <span>Paid access activates only after Stripe confirms payment.</span>
       </div>
 
+      {requireNonRefundAcknowledgement && (
+        <label className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900 cursor-pointer">
+          <Checkbox checked={nonRefundAcknowledged} onCheckedChange={(checked) => setNonRefundAcknowledged(checked === true)} className="mt-0.5" />
+          <span><strong>Required:</strong> {nonRefundDisclosure}</span>
+        </label>
+      )}
+
       <div className="grid gap-2 pt-1 sm:grid-cols-2">
         <Button type="button" variant="outline" onClick={onBack} disabled={isProcessing} className="border-[#2C4F4E] text-[#2C4F4E]">
           {backLabel}
         </Button>
-        <Button type="button" onClick={onPay} disabled={isProcessing} className="bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] font-semibold">
+        <Button
+          type="button"
+          onClick={() => onPay?.({ nonRefundAcknowledgement: {
+            acknowledged: nonRefundAcknowledged,
+            acknowledged_at: nonRefundAcknowledged ? new Date().toISOString() : "",
+            disclosure_text: nonRefundDisclosure,
+          }})}
+          disabled={isProcessing || (requireNonRefundAcknowledgement && !nonRefundAcknowledged)}
+          className="bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] font-semibold"
+        >
           {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</> : continueLabel}
         </Button>
       </div>
