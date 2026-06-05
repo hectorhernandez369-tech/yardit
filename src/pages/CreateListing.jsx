@@ -40,7 +40,8 @@ import {
   computeFeaturedDates,
   computePremiumDates,
   enforcePhotoLimit,
-  getPhotoLimitByTier
+  getPhotoLimitByTier,
+  zonedDateTimeToUtcDate
 } from "../components/shared/listingTierEngine";
 import {
   getReservedDatesForAddress,
@@ -1177,8 +1178,9 @@ export default function CreateListingPage() {
     }
 
     if (payload.listingType === "neighborhood_sale") {
-      const startDateTime = new Date(sourceFormData.selectedRangeStartDate + "T00:00:00Z").toISOString();
-      const endDateTime = new Date(sourceFormData.selectedRangeEndDate + "T23:59:59Z").toISOString();
+      const listingTimeZone = payload.timeZoneId || sourceFormData.timeZoneId || "America/Los_Angeles";
+      const startDateTime = zonedDateTimeToUtcDate(sourceFormData.selectedRangeStartDate, "05:00:00", listingTimeZone).toISOString();
+      const endDateTime = zonedDateTimeToUtcDate(sourceFormData.selectedRangeEndDate, "22:00:00", listingTimeZone).toISOString();
       const holdDeadlineAt = new Date(new Date(startDateTime).getTime() - 24 * 60 * 60 * 1000).toISOString();
 
       payload.spanFeet = 500;
@@ -1255,8 +1257,8 @@ export default function CreateListingPage() {
 
       payload = {
         ...payload,
-        startDateTime: new Date(`${sourceFormData.selectedRangeStartDate}T00:00:00Z`).toISOString(),
-        endDateTime: new Date(`${sourceFormData.selectedRangeEndDate}T23:59:59Z`).toISOString(),
+        startDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeStartDate, "05:00:00", payload.timeZoneId || "America/Los_Angeles").toISOString(),
+        endDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeEndDate, "22:00:00", payload.timeZoneId || "America/Los_Angeles").toISOString(),
         activeDates,
         earlyVisibilityDays: 0,
         earlyVisibilityDates: []
@@ -1294,8 +1296,8 @@ export default function CreateListingPage() {
 
       payload = {
         ...payload,
-        startDateTime: new Date(`${sourceFormData.selectedRangeStartDate}T00:00:00Z`).toISOString(),
-        endDateTime: new Date(`${sourceFormData.selectedRangeEndDate}T23:59:59Z`).toISOString(),
+        startDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeStartDate, "05:00:00", payload.timeZoneId || "America/Los_Angeles").toISOString(),
+        endDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeEndDate, "22:00:00", payload.timeZoneId || "America/Los_Angeles").toISOString(),
         earlyVisibilityDays: earlyDays,
         earlyVisibilityDates,
         activeDates,
@@ -1399,8 +1401,8 @@ export default function CreateListingPage() {
         const d = new Date(startLocal); d.setDate(d.getDate() + i);
         activeDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
       }
-      payload.startDateTime = new Date(`${data.selectedRangeStartDate}T00:00:00Z`).toISOString();
-      payload.endDateTime = new Date(`${data.selectedRangeEndDate}T23:59:59Z`).toISOString();
+      payload.startDateTime = zonedDateTimeToUtcDate(data.selectedRangeStartDate, "05:00:00", data.timeZoneId || "America/Los_Angeles").toISOString();
+      payload.endDateTime = zonedDateTimeToUtcDate(data.selectedRangeEndDate, "22:00:00", data.timeZoneId || "America/Los_Angeles").toISOString();
       payload.activeDates = activeDates;
       payload.earlyVisibilityDates = [];
     }

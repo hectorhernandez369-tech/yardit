@@ -264,7 +264,7 @@ function getConsecutiveDates(startDate, endDate) {
  * This avoids parsing toLocaleString() back into Date (unreliable).
  * It uses Intl.formatToParts() to measure the timezone offset and applies it.
  */
-function zonedDateTimeToUtcDate(ymd, timeStr, timeZoneId) {
+export function zonedDateTimeToUtcDate(ymd, timeStr, timeZoneId) {
   const { y, m, d } = parseYMD(ymd);
   const [hh, mm, ss] = String(timeStr).split(":").map((n) => Number(n));
 
