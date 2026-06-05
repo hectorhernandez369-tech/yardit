@@ -5,11 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ExternalLink, Zap, Plus } from "lucide-react";
+import { Search, ExternalLink, Zap, Plus, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import VendorPromoModal from "./promos/VendorPromoModal";
 import VendorActivePromos from "./promos/VendorActivePromos";
 import AdminCreateVendorModal from "./AdminCreateVendorModal";
+import AdminEditVendorModal from "./AdminEditVendorModal";
 
 const TIER_COLORS = {
   free: "bg-slate-100 text-slate-700",
@@ -37,6 +38,7 @@ export default function VendorAccountsTable({ user }) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [promoAccount, setPromoAccount] = useState(null);
+  const [editAccount, setEditAccount] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const isMasterAdmin = user?.role === "master" || user?.role === "super_master";
 
@@ -146,6 +148,14 @@ export default function VendorAccountsTable({ user }) {
                       size="sm"
                       variant="outline"
                       className="gap-1.5 text-xs"
+                      onClick={() => setEditAccount(account)}
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs"
                       onClick={() => navigate("/VendorPublicPage?vendorId=" + account.id)}
                     >
                       <ExternalLink className="w-3.5 h-3.5" /> View Page
@@ -176,6 +186,13 @@ export default function VendorAccountsTable({ user }) {
         onClose={() => setShowCreateModal(false)}
         adminUser={user}
         onCreated={() => queryClient.invalidateQueries({ queryKey: ["vendorAccountsAdmin"] })}
+      />
+
+      <AdminEditVendorModal
+        open={!!editAccount}
+        onClose={() => setEditAccount(null)}
+        account={editAccount}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["vendorAccountsAdmin"] })}
       />
 
       {/* Promo Modal */}
