@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
+import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 import { getUserDisplayName } from "@/lib/userIdentity";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 
@@ -43,6 +43,12 @@ export function getListingDisplayStatus(listing) {
     if (neighborhoodState === "active") return "active";
     if (neighborhoodState === "expired") return "expired";
     return neighborhoodState;
+  }
+
+  // Participant listings inherit parent's state, not their own dates
+  const joinStatus = normalizeNeighborhoodJoinStatus(listing?.neighborhood_join_status);
+  if (listing?.listingType === "yard_sale" && listing?.neighborhood_sale_id && joinStatus === "approved") {
+    return "scheduled"; // Always show as scheduled until parent is active
   }
 
   const now = Date.now();
