@@ -194,6 +194,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
   const [debugInfo, setDebugInfo] = useState({ lastQueryString: "", lastResponseCount: null, lastErrorMessage: "" });
   const [fieldErrors, setFieldErrors] = useState({});
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const mapPickerHistoryPushedRef = useRef(false);
   const [showHostDialog, setShowHostDialog] = useState(false);
   const [hostForm, setHostForm] = useState({
     street_address: "",
@@ -572,6 +573,32 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
   const hasProfileAddress = !!(user?.street_address && user?.city && user?.state && user?.zip_code);
 
+  useEffect(() => {
+    if (!isMapModalOpen) return;
+
+    window.history.pushState({ ...(window.history.state || {}), yarditMapPickerOpen: true }, "", window.location.href);
+    mapPickerHistoryPushedRef.current = true;
+
+    const handleBackButton = () => {
+      if (mapPickerHistoryPushedRef.current) {
+        mapPickerHistoryPushedRef.current = false;
+        setIsMapModalOpen(false);
+      }
+    };
+
+    window.addEventListener("popstate", handleBackButton);
+    return () => window.removeEventListener("popstate", handleBackButton);
+  }, [isMapModalOpen]);
+
+  const closeMapPicker = () => {
+    if (mapPickerHistoryPushedRef.current) {
+      mapPickerHistoryPushedRef.current = false;
+      window.history.back();
+      return;
+    }
+    setIsMapModalOpen(false);
+  };
+
   const ensureUserProfileTimeZone = React.useCallback(async () => {
     if (!user?.address_lat || !user?.address_lng) return "";
     if (user?.timeZoneId) return user.timeZoneId;
@@ -863,11 +890,11 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
 
           <MapPickerModal
             isOpen={isMapModalOpen}
-            onClose={() => setIsMapModalOpen(false)}
+            onClose={closeMapPicker}
             initialLat={formData.event_center_lat || formData.lat}
             initialLng={formData.event_center_lng || formData.lng}
             onConfirm={async (lat, lng) => {
-              setIsMapModalOpen(false);
+              closeMapPicker();
               toast.info("Saving location...");
               try {
                           const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`);
