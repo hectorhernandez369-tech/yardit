@@ -1327,6 +1327,8 @@ const stats = useMemo(() => {
                 url="https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA"
                 tileSize={512}
                 zoomOffset={-1}
+                maxZoom={22}
+                maxNativeZoom={22}
               />
               
               {/* User Location Dot */}
