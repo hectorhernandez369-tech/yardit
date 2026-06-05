@@ -34,6 +34,10 @@ const PUBLIC_PAYMENT_BLOCKED = new Set(["pending", "failed", "unpaid", "none", "
 const PAID_TIERS = new Set(["basic", "featured", "premium", "marquee"]);
 const COMING_SOON_TIERS = new Set(["premium", "marquee"]);
 
+function getEffectiveTier(listing) {
+  return listing?.listingType === "event" ? (listing?.event_tier || listing?.tier) : listing?.tier;
+}
+
 function relId(value) {
   if (!value) return null;
   if (typeof value === "object") return value.id || value._id || value.value || null;
@@ -80,7 +84,7 @@ function isTerminalHidden(listing, now = new Date()) {
 
 function hasPublicPayment(listing) {
   if (listing?.listingType === "event") return true;
-  const tier = listing?.event_tier || listing?.tier;
+  const tier = getEffectiveTier(listing);
   if (!PAID_TIERS.has(tier)) return true;
 
   const paymentStatus = String(listing?.payment_status || "").toLowerCase();
@@ -107,7 +111,7 @@ function getDateOnly(value, timeZoneId) {
 }
 
 export function isPremiumComingSoonPublicListing(listing, now = new Date()) {
-  const tier = listing?.event_tier || listing?.tier;
+  const tier = getEffectiveTier(listing);
   if (!COMING_SOON_TIERS.has(tier)) return false;
   if (!hasValidCoordinates(listing) || isTerminalHidden(listing, now) || !hasPublicPayment(listing)) return false;
 
@@ -142,7 +146,7 @@ export function getListingPublicVisibilityDecision(listing, context = {}) {
     currentUserId: context.currentUser?.id || null,
     status: listing?.status,
     listingType: listing?.listingType,
-    tier: listing?.event_tier || listing?.tier,
+    tier: getEffectiveTier(listing),
     paymentStatus: listing?.payment_status,
     startDateTime: listing?.startDateTime,
     endDateTime: listing?.endDateTime,
@@ -204,7 +208,7 @@ export function getListingOwnerPreviewDecision(listing, currentUser, context = {
     currentUserId: currentUser?.id || null,
     status: listing?.status,
     listingType: listing?.listingType,
-    tier: listing?.event_tier || listing?.tier,
+    tier: getEffectiveTier(listing),
     paymentStatus: listing?.payment_status,
     startDateTime: listing?.startDateTime,
     endDateTime: listing?.endDateTime,
