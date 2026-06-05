@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { hasDateConflict } from "@/lib/residentialDateConflict";
+import { computeFreeWindow } from "@/components/shared/listingTierEngine";
 
 function makeId() {
   try {
@@ -26,24 +27,19 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
   const tier = formData?.tier || "free";
 
   const freeTierDateRange = useMemo(() => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const daysUntilFriday = dayOfWeek <= 5 ? 5 - dayOfWeek : 6;
-    const friday = new Date(today);
-    friday.setHours(0, 0, 0, 0);
-    friday.setDate(today.getDate() + daysUntilFriday);
-
-    const sunday = new Date(friday);
-    sunday.setDate(friday.getDate() + 2);
-
-    const formatDate = (date) => `${date.getMonth() + 1}/${date.getDate()}/${String(date.getFullYear()).slice(-2)}`;
-    return `Fri ${formatDate(friday)} - Sun ${formatDate(sunday)}`;
-  }, []);
+    const freeWindow = computeFreeWindow(new Date(), formData?.timeZoneId || "America/Los_Angeles");
+    const formatDate = (ymd) => {
+      const [year, month, day] = String(ymd).split("-");
+      return `${Number(month)}/${Number(day)}/${String(year).slice(-2)}`;
+    };
+    return `Fri ${formatDate(freeWindow.startYMD)} 5:00 AM - Sun ${formatDate(freeWindow.endYMD)} 10:00 PM`;
+  }, [formData?.timeZoneId]);
 
   const tierDetails = {
     free: [
       "List view only",
       `Runs ${freeTierDateRange}`,
+      "No date picker — free listings follow the locked weekend schedule",
     ],
     featured: [
       "Strong visibility on map",

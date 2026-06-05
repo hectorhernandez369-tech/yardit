@@ -8,43 +8,41 @@
 
 /**
  * computeFreeWindow(now, timeZoneId)
- * Returns start/end for Free weekend logic:
- * - Friday 12:00am to Sunday 11:59:59pm in the listing's local timezone
- * - If posted before Sunday 6:00pm local during that weekend, activate immediately
- * - If posted after Sunday 6:00pm local, roll forward to next weekend
+ * LOCKED FREE LISTING POLICY — do not change without owner permission.
+ * Applies to standalone residential yard_sale listings with tier="free" only.
+ * - Users do NOT pick future dates/times for free listings.
+ * - Free window is Friday 05:00 through Sunday 22:00 in the listing timezone.
+ * - If created during that window, it activates immediately and ends Sunday 22:00.
+ * - If created outside that window, it stays scheduled until the next Friday 05:00.
  */
 export function computeFreeWindow(now, timeZoneId) {
-  const local = getZonedParts(now, timeZoneId); // listing-local parts
+  const tz = timeZoneId || "America/Los_Angeles";
+  const local = getZonedParts(now, tz); // listing-local parts
   const localYMD = `${local.year}-${pad2(local.month)}-${pad2(local.day)}`;
 
-  // Weekday mapping from Intl "short" weekday
   const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   const dow = weekdayMap[local.weekday];
-
-  // Days since Friday (Fri=0, Sat=1, Sun=2, Mon=3, Tue=4, Wed=5, Thu=6)
   const daysSinceFriday = dow >= 5 ? dow - 5 : dow + 2;
 
   const currentFridayYMD = addDaysYMD(localYMD, -daysSinceFriday);
   const currentSundayYMD = addDaysYMD(currentFridayYMD, 2);
+  const currentFridayStart = zonedDateTimeToUtcDate(currentFridayYMD, "05:00:00", tz);
+  const currentSundayEnd = zonedDateTimeToUtcDate(currentSundayYMD, "22:00:00", tz);
+  const isInsideCurrentFreeWindow = now >= currentFridayStart && now <= currentSundayEnd;
 
-  const currentFridayStart = zonedDateTimeToUtcDate(currentFridayYMD, "00:00:00", timeZoneId);
-  const currentSundayEnd = zonedDateTimeToUtcDate(currentSundayYMD, "23:59:59", timeZoneId);
-  const sundayCutoff = zonedDateTimeToUtcDate(currentSundayYMD, "18:00:00", timeZoneId);
-
-  const isBeforeSundayCutoffWeekend = now >= currentFridayStart && now < sundayCutoff;
-  const shouldRollToNextWeekend = now >= sundayCutoff;
-
-  const targetFridayYMD = shouldRollToNextWeekend ? addDaysYMD(currentFridayYMD, 7) : currentFridayYMD;
+  const targetFridayYMD = now > currentSundayEnd ? addDaysYMD(currentFridayYMD, 7) : currentFridayYMD;
   const targetSundayYMD = addDaysYMD(targetFridayYMD, 2);
-
-  const fridayStart = zonedDateTimeToUtcDate(targetFridayYMD, "00:00:00", timeZoneId);
-  const sundayEnd = zonedDateTimeToUtcDate(targetSundayYMD, "23:59:59", timeZoneId);
+  const fridayStart = zonedDateTimeToUtcDate(targetFridayYMD, "05:00:00", tz);
+  const sundayEnd = zonedDateTimeToUtcDate(targetSundayYMD, "22:00:00", tz);
 
   return {
     startDateTime: fridayStart,
     endDateTime: sundayEnd,
-    isCurrentlyWeekend: isBeforeSundayCutoffWeekend,
-    effectiveStart: isBeforeSundayCutoffWeekend ? now : fridayStart,
+    startYMD: targetFridayYMD,
+    endYMD: targetSundayYMD,
+    activeDates: [targetFridayYMD, addDaysYMD(targetFridayYMD, 1), targetSundayYMD],
+    isCurrentlyWeekend: isInsideCurrentFreeWindow,
+    effectiveStart: isInsideCurrentFreeWindow ? now : fridayStart,
     effectiveEnd: sundayEnd
   };
 }
@@ -271,13 +269,13 @@ function zonedDateTimeToUtcDate(ymd, timeStr, timeZoneId) {
   const [hh, mm, ss] = String(timeStr).split(":").map((n) => Number(n));
 
   // First guess: treat the wall time as UTC.
-  let guess = new Date(Date.UTC(y, m - 1, d, hh || 0, mm || 0, ss || 0));
+  const wallTimeAsUtcMs = Date.UTC(y, m - 1, d, hh || 0, mm || 0, ss || 0);
+  let guess = new Date(wallTimeAsUtcMs);
 
-  // Get offset for that guess in the target timezone, then adjust.
-  // Do two passes to handle DST edges better.
+  // Recalculate from the original wall-clock timestamp each pass to avoid double-adjusting.
   for (let i = 0; i < 2; i++) {
     const offsetMinutes = getTimeZoneOffsetMinutes(guess, timeZoneId);
-    guess = new Date(guess.getTime() - offsetMinutes * 60 * 1000);
+    guess = new Date(wallTimeAsUtcMs - offsetMinutes * 60 * 1000);
   }
 
   return guess;

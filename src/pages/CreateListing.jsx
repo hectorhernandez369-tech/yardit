@@ -1228,17 +1228,19 @@ export default function CreateListingPage() {
       };
     }
 
-    if (payload.tier === "free" && actionStr !== "requested") {
+    if (payload.listingType === "yard_sale" && payload.tier === "free" && actionStr !== "requested") {
       const freeWindow = computeFreeWindow(new Date(), payload.timeZoneId);
       payload = {
         ...payload,
         startDateTime: freeWindow.effectiveStart.toISOString(),
         endDateTime: freeWindow.effectiveEnd.toISOString(),
-        selectedRangeStartDate: freeWindow.startDateTime.toLocaleDateString("en-CA", { timeZone: payload.timeZoneId }),
-        selectedRangeEndDate: freeWindow.endDateTime.toLocaleDateString("en-CA", { timeZone: payload.timeZoneId }),
+        selectedRangeStartDate: freeWindow.startYMD,
+        selectedRangeEndDate: freeWindow.endYMD,
+        status: freeWindow.isCurrentlyWeekend ? "active" : "scheduled",
+        activation_status: freeWindow.isCurrentlyWeekend ? "active" : "pending",
         earlyVisibilityDays: 0,
         earlyVisibilityDates: [],
-        activeDates: []
+        activeDates: freeWindow.activeDates
       };
     }
 
