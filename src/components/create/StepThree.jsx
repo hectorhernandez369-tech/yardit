@@ -22,17 +22,12 @@ function addDays(dateStr, delta) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function formatDisplayDate(dateStr, includeWeekday = false) {
+function formatDisplayDate(dateStr) {
   if (!dateStr) return "?";
   const [year, month, day] = String(dateStr).split("-").map(Number);
   if (!year || !month || !day) return String(dateStr);
-
-  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
-    ...(includeWeekday ? { weekday: "short" } : {}),
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  const shortYear = String(year).slice(-2);
+  return `${month}-${day}-${shortYear}`;
 }
 
 function formatDisplayRange(startDate, endDate, suffix = "") {
@@ -45,7 +40,9 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
 
   const freeTierDateRange = useMemo(() => {
     const freeWindow = computeFreeWindow(new Date(), formData?.timeZoneId || "America/Los_Angeles");
-    return `${formatDisplayDate(freeWindow.startYMD, true)} 5:00 AM - ${formatDisplayDate(freeWindow.endYMD, true)} 10:00 PM`;
+    const startDate = formatDisplayDate(freeWindow.startYMD);
+    const endDate = formatDisplayDate(freeWindow.endYMD);
+    return `Fri ${startDate} 5:00 AM - Sun ${endDate} 10:00 PM`;
   }, [formData?.timeZoneId]);
 
   const tierDetails = {
