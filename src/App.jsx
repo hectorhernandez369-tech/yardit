@@ -14,6 +14,7 @@ import VendorDashboard from './pages/VendorDashboard';
 import AssistedListingApproval from './pages/AssistedListingApproval';
 import CreateListingUpgradeReturn from './pages/CreateListingUpgradeReturn';
 import PrintableChecklist from './pages/PrintableChecklist';
+import LaunchChecklist from './pages/LaunchChecklist';
 import VendorPinPreview from './pages/VendorPinPreview';
 import VendorPublicPage from './pages/VendorPublicPage';
 import VendorSignup from './pages/VendorSignup';
@@ -127,6 +128,7 @@ const AuthenticatedApp = () => {
         <Route path="/vendor/:vendorSlug" element={<LayoutWrapper currentPageName="VendorPublicPage"><VendorPublicPage /></LayoutWrapper>} />
         <Route path="/CreateListingUpgradeReturn" element={<LayoutWrapper currentPageName="CreateListingUpgradeReturn"><CreateListingUpgradeReturn /></LayoutWrapper>} />
         <Route path="/PrintableChecklist" element={<PrintableChecklist />} />
+        <Route path="/LaunchChecklist" element={<LayoutWrapper currentPageName="LaunchChecklist"><LaunchChecklist /></LayoutWrapper>} />
         <Route path="/ComingSoon" element={<ComingSoon />} />
         <Route path="/assisted-listing" element={<AssistedListingApproval />} />
         <Route path="/events" element={<Events />} />
