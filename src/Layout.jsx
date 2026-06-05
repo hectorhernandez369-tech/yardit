@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Plus, Home, User, Settings, Shield, MoreVertical, LogOut, HelpCircle, MapPin, Download, Store } from "lucide-react";
+import { Plus, Home, User, Settings, Shield, MoreVertical, LogOut, HelpCircle, MapPin, Download, Store, ClipboardList } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "./components/guest/GuestAuthModal";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
 import AccountSetupModal from "./components/profile/AccountSetupModal";
+import FloatingLaunchChecklist from "./components/checklist/FloatingLaunchChecklist";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
@@ -44,6 +45,7 @@ function LayoutContent({ children, user, setUser }) {
   const [installDialogMode, setInstallDialogMode] = useState("ios");
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [canInstallApp, setCanInstallApp] = useState(false);
+  const [showLaunchChecklist, setShowLaunchChecklist] = useState(false);
   const { isGuest, isAuthenticated, logout, navigateToLogin } = useAuth() || {};
 
   const { guardAction, showModal, setShowModal, isGuest: guestHookIsGuest } = useGuestGuard();
@@ -142,6 +144,16 @@ function LayoutContent({ children, user, setUser }) {
 
             <nav className="flex items-center gap-1 sm:gap-2 flex-wrap">
               {/* My Hunt link moved to My Listings */}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowLaunchChecklist(true)}
+                className="gap-2 text-white hover:bg-white/10"
+              >
+                <ClipboardList className="w-4 h-4" />
+                <span className="hidden sm:inline">Checklist</span>
+              </Button>
 
               <Link to={createPageUrl("Home")}>
                 <Button
@@ -274,6 +286,7 @@ function LayoutContent({ children, user, setUser }) {
       />
 
       <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} mode={installDialogMode} />
+      <FloatingLaunchChecklist open={showLaunchChecklist} onClose={() => setShowLaunchChecklist(false)} />
 
       <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-2">
