@@ -977,7 +977,7 @@ const stats = useMemo(() => {
       }
 
       if (isNeighborhoodEvent) {
-        if (currentZoom >= 12 && currentZoom < 18) {
+        if (currentZoom >= 12) {
           pins.push(listing);
         } else {
           cPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id });
