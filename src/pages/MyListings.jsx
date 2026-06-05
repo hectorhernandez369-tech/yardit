@@ -224,6 +224,7 @@ export default function MyListingsPage() {
 
   const isActiveListing = (listing) => {
     if (isPastListing(listing)) return false;
+    if (listing?.status === "active" || listing?.activation_status === "active") return true;
     return isPubliclyVisibleListing(listing, { now: new Date(), currentUser: user });
   };
 
