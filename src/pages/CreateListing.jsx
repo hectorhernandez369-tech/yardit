@@ -513,7 +513,7 @@ export default function CreateListingPage() {
   // Compute reserved dates for user's verified primary address (drives calendar blocking)
   const addressRef = user ? { lat: user.primary_latitude, lng: user.primary_longitude } : null;
   const reservedDates = React.useMemo(
-    () => (!isDevBypassUser(user) && addressRef
+    () => (!isGlobalDemoMode && !isDevBypassUser(user) && addressRef
       ? getReservedDatesForAddress(userListings, null, addressRef)
       : new Set()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -522,13 +522,13 @@ export default function CreateListingPage() {
 
   // Returns true if the proposed dates conflict with any reserved listing for this address
   const hasResidentialDateConflict = (startDate, endDate) => {
-    if (!startDate || !endDate || isDevBypassUser(user) || isAdminCreate) return false;
+    if (!startDate || !endDate || isGlobalDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
     return hasDateConflict(startDate, endDate, reservedDates);
   };
 
   // Live-fetch version used in mutation and Stripe-return handler (avoids stale cache)
   const checkDateConflictLive = async (startDate, endDate) => {
-    if (!startDate || !endDate || isDevBypassUser(user) || isAdminCreate) return false;
+    if (!startDate || !endDate || isGlobalDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
     const freshListings = await base44.entities.Listing.filter({ ownerUserId: user.id });
     const freshReserved = getReservedDatesForAddress(freshListings, null, addressRef);
     return hasDateConflict(startDate, endDate, freshReserved);
