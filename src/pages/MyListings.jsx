@@ -16,6 +16,8 @@ import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError }
 import { isPubliclyVisibleListing } from "@/lib/listingVisibility";
 import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
 import MyListingCard from "@/components/listing/MyListingCard";
+import ResidentialBillingList from "@/components/billing/ResidentialBillingList";
+import { getTransactionListingId, isResidentialTransaction } from "@/components/billing/residentialBillingUtils";
 import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
 import { getUserDisplayName } from "@/lib/userIdentity";
 import { getStateAbbreviation } from "@/lib/listingLocation";
@@ -98,6 +100,39 @@ export default function MyListingsPage() {
       });
     },
     enabled: !!user,
+    initialData: [],
+  });
+
+  const { data: residentialTransactions = [], isLoading: isLoadingResidentialTransactions } = useQuery({
+    queryKey: ["myListingsResidentialTransactions", user?.id, listings.length],
+    queryFn: async () => {
+      const transactions = await base44.entities.PaymentTransaction.list("-created_date", 200);
+      const listingIds = new Set(listings.map((listing) => listing.id).filter(Boolean));
+      const sessionIds = new Set(listings.map((listing) => listing.stripe_checkout_session_id).filter(Boolean));
+      const paymentIntentIds = new Set(listings.map((listing) => listing.stripe_payment_intent_id).filter(Boolean));
+      const completedSessions = new Set(
+        transactions
+          .filter((tx) => tx.event_type !== "checkout.session.created" && tx.stripe_checkout_session_id)
+          .map((tx) => tx.stripe_checkout_session_id)
+      );
+      const seenKeys = new Set();
+
+      return transactions
+        .filter(isResidentialTransaction)
+        .filter((tx) => {
+          if (tx.event_type === "checkout.session.created" && completedSessions.has(tx.stripe_checkout_session_id)) return false;
+          const listingId = getTransactionListingId(tx);
+          return tx.user_id === user.id || tx.user_email === user.email || listingIds.has(listingId) || sessionIds.has(tx.stripe_checkout_session_id) || paymentIntentIds.has(tx.stripe_payment_intent_id);
+        })
+        .filter((tx) => {
+          const key = tx.stripe_payment_intent_id || tx.stripe_checkout_session_id || tx.id;
+          if (seenKeys.has(key)) return false;
+          seenKeys.add(key);
+          return true;
+        })
+        .sort((a, b) => new Date(b.processed_at || b.received_at || b.created_date || 0) - new Date(a.processed_at || a.received_at || a.created_date || 0));
+    },
+    enabled: !!user?.id && listings.length >= 0,
     initialData: [],
   });
 
@@ -693,12 +728,14 @@ export default function MyListingsPage() {
         </div>
 
         {tab === "billing" ? (
-          <Card className="rounded-xl border bg-white/80 shadow">
-            <CardContent className="p-8">
-              <h2 className="text-xl font-semibold mb-2">Billing / Payments</h2>
-              <p className="text-slate-600">Coming soon. (This will show receipts and payment history per listing.)</p>
-            </CardContent>
-          </Card>
+          <ResidentialBillingList
+            transactions={residentialTransactions}
+            listings={listings}
+            isLoading={isLoading || isLoadingResidentialTransactions}
+            variant="billing"
+            onBackToListings={() => setTab("active")}
+            emptyMessage="Residential receipts and payment history for your listings will appear here."
+          />
         ) : isLoading ? (
           <Card className="rounded-xl border bg-white/80 shadow"><CardContent className="p-12 text-center"><p className="text-slate-500">Loading listings...</p></CardContent></Card>
         ) : shownListings.length === 0 ? (
