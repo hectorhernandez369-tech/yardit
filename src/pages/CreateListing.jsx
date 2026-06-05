@@ -130,6 +130,7 @@ export default function CreateListingPage() {
   const [paymentError, setPaymentError] = useState("");
   const handledCheckoutSessionRef = useRef(null);
   const handledNeighborhoodSetupSessionRef = useRef(null);
+  const recoveringPaidCheckoutRef = useRef(false);
 
   // (plain english) "Sale in your area" modal state
   const [saleModalStep, setSaleModalStep] = useState(0); // 0: none, 1: popup1, 2: popup2
@@ -1530,6 +1531,47 @@ export default function CreateListingPage() {
   };
 
   useEffect(() => {
+    if (!user?.id || recoveringPaidCheckoutRef.current) return;
+    const params = new URLSearchParams(location.search);
+    if (params.get("payment") || params.get("neighborhoodSetup")) return;
+
+    const raw = localStorage.getItem(PAID_LISTING_CHECKOUT_KEY);
+    if (!raw) return;
+
+    try {
+      const stored = JSON.parse(raw);
+      if (!stored?.formData) return;
+
+      recoveringPaidCheckoutRef.current = true;
+      base44.functions.invoke("residentialStripeCheckout", { action: "recover_paid_checkout" }).then(async (response) => {
+        if (response?.data?.stripe_paid && response?.data?.session_id) {
+          if (stored.formData?.listingType === "yard_sale" && stored.formData?.selectedRangeStartDate) {
+            const conflict = await checkDateConflictLive(stored.formData.selectedRangeStartDate, stored.formData.selectedRangeEndDate);
+            if (conflict) {
+              recoveringPaidCheckoutRef.current = false;
+              setPaymentError("These dates are already reserved for this address. Please choose different dates or edit your existing listing.");
+              toast.error("These dates are already reserved for this address.");
+              return;
+            }
+          }
+          toast.success("Payment found — creating your listing now.");
+          executeSubmit("paid_success_pending_link", {
+            ...stored.formData,
+            pending_checkout_session_id: response.data.session_id,
+            payment_intent_status: "hold_requested",
+          });
+        } else {
+          recoveringPaidCheckoutRef.current = false;
+        }
+      }).catch(() => {
+        recoveringPaidCheckoutRef.current = false;
+      });
+    } catch {
+      recoveringPaidCheckoutRef.current = false;
+    }
+  }, [location.search, user?.id]);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const setupState = params.get("neighborhoodSetup");
     const sessionId = params.get("session_id");
@@ -1630,7 +1672,7 @@ export default function CreateListingPage() {
           action: "verify",
           session_id: sessionId,
         }).then(async (response) => {
-          if (response?.data?.paid) {
+          if (response?.data?.paid || response?.data?.stripe_paid) {
             if (stored.formData?.listingType === "yard_sale" && stored.formData?.selectedRangeStartDate) {
               const conflict = await checkDateConflictLive(stored.formData.selectedRangeStartDate, stored.formData.selectedRangeEndDate);
               if (conflict) {
@@ -1641,7 +1683,7 @@ export default function CreateListingPage() {
               }
             }
             setPaymentError("");
-            toast.success("Payment successful.");
+            toast.success(response?.data?.paid ? "Payment successful." : "Payment received — creating your listing now.");
             executeSubmit("paid_success_pending_link", {
               ...stored.formData,
               pending_checkout_session_id: sessionId,
@@ -1649,7 +1691,7 @@ export default function CreateListingPage() {
             });
           } else {
             setIsStartingPayment(false);
-            const pendingMessage = response?.data?.pending_webhook ? "Payment received. Final confirmation is still processing — please try again shortly." : "Payment could not be confirmed. No listing was created.";
+            const pendingMessage = "Payment could not be confirmed. No listing was created.";
             setPaymentError(pendingMessage);
             toast.error(pendingMessage);
           }

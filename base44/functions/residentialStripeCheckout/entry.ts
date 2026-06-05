@@ -103,7 +103,6 @@ Deno.serve(async (req) => {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       if (session.payment_status !== 'paid') return Response.json({ error: 'Payment not paid' }, { status: 400 });
       const confirmed = await webhookConfirmed(base44, session.id);
-      if (!confirmed) return Response.json({ error: 'Stripe webhook confirmation is still pending' }, { status: 409 });
       const dateValidation = await validateResidentialCheckoutDates(base44, listing, user, listingId);
       if (!dateValidation.ok) return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
 
@@ -116,6 +115,7 @@ Deno.serve(async (req) => {
         stripe_payment_intent_id: paymentIntentId,
         stripe_customer_id: asId(session.customer),
         payment_status: session.payment_status || session.status || '',
+        status: session.payment_status === 'paid' ? 'succeeded' : 'received',
         non_refund_acknowledged: listing.non_refund_acknowledged === true,
         non_refund_acknowledged_at: listing.non_refund_acknowledged_at || '',
         non_refund_acknowledged_by_user_id: listing.non_refund_acknowledged_by_user_id || listing.ownerUserId || user.id || '',
@@ -140,6 +140,38 @@ Deno.serve(async (req) => {
       });
 
       return Response.json({ ok: true, linked: records.length, payment_intent_id: paymentIntentId });
+    }
+
+    // ── RECOVER PAID CHECKOUT WITH NO LISTING ─────────────────────
+    if (action === 'recover_paid_checkout') {
+      const user = currentUser;
+      if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+      const records = await base44.asServiceRole.entities.PaymentTransaction.filter({
+        user_id: user.id,
+        transaction_type: 'listing_payment',
+        status: 'received',
+      });
+
+      const candidates = (records || [])
+        .filter((record) => !record.yardit_record_id && record.stripe_checkout_session_id)
+        .sort((a, b) => new Date(b.received_at || b.created_date || 0) - new Date(a.received_at || a.created_date || 0))
+        .slice(0, 10);
+
+      for (const record of candidates) {
+        const session = await stripe.checkout.sessions.retrieve(record.stripe_checkout_session_id);
+        if (session.payment_status === 'paid') {
+          return Response.json({
+            ok: true,
+            found: true,
+            stripe_paid: true,
+            session_id: session.id,
+            payment_intent_id: asId(session.payment_intent),
+          });
+        }
+      }
+
+      return Response.json({ ok: true, found: false });
     }
 
     // ── VERIFY ─────────────────────────────────────────────────────
