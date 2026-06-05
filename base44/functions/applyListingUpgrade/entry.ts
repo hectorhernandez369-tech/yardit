@@ -29,11 +29,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Stripe payment has not confirmed this upgrade' }, { status: 402 });
     }
 
-    const webhookTransactions = await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_checkout_session_id: session.id });
-    const webhookConfirmed = (webhookTransactions || []).some((transaction) => transaction.event_type !== 'checkout.session.created' && transaction.status === 'succeeded');
-    if (!webhookConfirmed) {
-      return Response.json({ error: 'Stripe webhook confirmation is still pending' }, { status: 409 });
-    }
+    const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || '';
+    const transactions = await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_checkout_session_id: session.id });
+    await Promise.all((transactions || []).map((transaction) => base44.asServiceRole.entities.PaymentTransaction.update(transaction.id, {
+      status: 'succeeded',
+      payment_status: session.payment_status || session.status || '',
+      stripe_payment_intent_id: paymentIntentId,
+      stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id || '',
+      processed_at: new Date().toISOString(),
+    })));
 
     const listings = await base44.entities.Listing.filter({ id: listingId });
     const listing = listings?.[0];
@@ -44,7 +48,15 @@ Deno.serve(async (req) => {
       ? { tier: targetTier, event_tier: targetTier, status: session.metadata?.previous_status || 'active' }
       : { tier: targetTier, status: session.metadata?.previous_status || 'active' };
 
-    const updated = await base44.entities.Listing.update(listingId, updateData);
+    const updated = await base44.entities.Listing.update(listingId, {
+      ...updateData,
+      payment_intent_status: 'captured',
+      pending_upgrade_tier: '',
+      pending_upgrade_checkout_session_id: '',
+      stripe_checkout_session_id: session.id,
+      stripe_payment_intent_id: paymentIntentId,
+      pricePaid: Number(session.amount_total || 0) / 100,
+    });
     return Response.json({ success: true, listing: updated });
   } catch (error) {
     console.error('applyListingUpgrade error', error?.message || error);

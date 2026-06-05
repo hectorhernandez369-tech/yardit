@@ -87,10 +87,56 @@ Deno.serve(async (req) => {
       const sessionId = body?.session_id || body?.sessionId;
       if (!sessionId) return Response.json({ error: 'Missing session_id' }, { status: 400 });
 
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const user = await base44.auth.me();
+      if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+      let session = await stripe.checkout.sessions.retrieve(sessionId);
+      for (let attempt = 0; attempt < 6 && session.payment_status !== 'paid'; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        session = await stripe.checkout.sessions.retrieve(sessionId);
+      }
+
       const confirmed = await webhookConfirmed(base44, session.id);
+      const paymentIntentId = asId(session.payment_intent);
+      const listingId = session.metadata?.listing_id || '';
+      const targetTier = session.metadata?.target_tier || session.metadata?.tier || '';
+      const listingKind = session.metadata?.listing_kind || 'residential';
+
+      if (session.payment_status === 'paid') {
+        const listings = listingId ? await base44.asServiceRole.entities.Listing.filter({ id: listingId }) : [];
+        const listing = listings?.[0];
+        if (!listing) return Response.json({ error: 'Listing not found' }, { status: 404 });
+        if (listing.ownerUserId !== user.id && !['admin', 'master', 'super_master'].includes(user.role)) {
+          return Response.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        const bySession = await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_checkout_session_id: session.id });
+        const byIntent = paymentIntentId ? await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_payment_intent_id: paymentIntentId }) : [];
+        const records = [...bySession, ...byIntent].filter((record, index, arr) => record?.id && arr.findIndex((item) => item.id === record.id) === index);
+        await Promise.all(records.map((record) => base44.asServiceRole.entities.PaymentTransaction.update(record.id, {
+          stripe_payment_intent_id: paymentIntentId,
+          stripe_customer_id: asId(session.customer),
+          payment_status: session.payment_status || session.status || '',
+          status: 'succeeded',
+          processed_at: nowIso(),
+        })));
+
+        const updateData = listingKind === 'event'
+          ? { tier: targetTier, event_tier: targetTier, status: session.metadata?.previous_status || 'active' }
+          : { tier: targetTier, status: session.metadata?.previous_status || 'active' };
+        await base44.asServiceRole.entities.Listing.update(listingId, {
+          ...updateData,
+          payment_intent_status: 'captured',
+          pending_upgrade_tier: '',
+          pending_upgrade_checkout_session_id: '',
+          stripe_checkout_session_id: session.id,
+          stripe_payment_intent_id: paymentIntentId,
+          pricePaid: Number(session.amount_total || 0) / 100,
+        });
+      }
+
       return Response.json({
-        paid: session.payment_status === 'paid' && confirmed,
+        paid: session.payment_status === 'paid',
         stripe_paid: session.payment_status === 'paid',
         webhook_confirmed: confirmed,
         pending_webhook: session.payment_status === 'paid' && !confirmed,
