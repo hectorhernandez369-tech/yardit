@@ -143,6 +143,7 @@ Deno.serve(async (req) => {
         };
 
         const needsPatch = currentStatus !== patch.status ||
+          listing.activation_status !== patch.activation_status ||
           listing.startDateTime !== patch.startDateTime ||
           listing.endDateTime !== patch.endDateTime ||
           listing.selectedRangeStartDate !== patch.selectedRangeStartDate ||
