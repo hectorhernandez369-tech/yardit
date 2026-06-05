@@ -168,6 +168,18 @@ export function getListingPublicVisibilityDecision(listing, context = {}) {
     return { ...base, passedPublicVisibility: true, reason: "public_coming_soon_visible" };
   }
 
+  if (listing.listingType !== "event") {
+    const isActiveStatus = listing.status === "active" || listing.activation_status === "active";
+    const start = listing.startDateTime ? new Date(listing.startDateTime) : null;
+    const end = listing.endDateTime ? new Date(listing.endDateTime) : null;
+    const hasStarted = !start || Number.isNaN(start.getTime()) || now >= start;
+    const hasNotEnded = !end || Number.isNaN(end.getTime()) || now <= end;
+
+    if (isActiveStatus && hasStarted && hasNotEnded) {
+      return { ...base, passedPublicVisibility: true, reason: "public_active_status_visible" };
+    }
+  }
+
   const visible = shouldShowListingOnMainMap(listing, now);
   if (!visible) return { ...base, reason: "failed_standard_public_map_rules" };
 
