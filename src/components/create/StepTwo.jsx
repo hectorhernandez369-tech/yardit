@@ -123,7 +123,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
   return (
     <div className="fixed inset-0 z-[99999] bg-[#F3E6CF] flex flex-col">
       <div className="bg-[#5DADA5] text-white p-4 flex items-center justify-between shadow-md">
-        <h2 className="text-lg font-bold">Pick Event Center</h2>
+        <h2 className="text-lg font-bold">Pick Neighborhood Sale Center</h2>
         <Button variant="ghost" onClick={onClose} className="text-white hover:bg-white/20">Close</Button>
       </div>
       <div className="flex-1 relative">
@@ -172,11 +172,11 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
             disabled={!selectedCenter}
             onClick={() => onConfirm(selectedCenter[0], selectedCenter[1])}
           >
-            Confirm Center
+            Use This Sale Center
           </Button>
         </div>
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-md text-sm text-[#2C4F4E] font-medium border border-[#2C4F4E]/20">
-          Tap the map to place center
+          Tap the map to place the Neighborhood Sale center
         </div>
       </div>
     </div>
@@ -685,148 +685,180 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
   return (
     <div className="space-y-6">
       {isNeighborhood && (
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="neighborhood-title" className="text-sm font-semibold text-[#2C4F4E]">
-              Event Title *
-            </Label>
-            <Input
-              id="neighborhood-title"
-              placeholder="e.g., Oak Street Neighborhood Sale"
-              value={formData.title || ""}
-              onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-              className="bg-[#F3E6CF] border-[#2C4F4E]"
-              required
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="neighborhood-description" className="text-sm font-semibold text-[#2C4F4E]">
-              Event Description
-            </Label>
-            <Textarea
-              id="neighborhood-description"
-              placeholder="Tell neighbors what kind of sale this is, what to expect, and any helpful event details."
-              value={formData.description || ""}
-              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-              rows={4}
-              className="bg-[#F3E6CF] border-[#2C4F4E] resize-none"
-            />
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-            <Label className="text-sm font-semibold text-slate-700 mb-3 block">
-              Will you have a sale at your own address?
-            </Label>
-            <RadioGroup
-              value={formData.organizer_participation || "participating"}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, organizer_participation: value }))}
-              className="space-y-2"
-            >
-              <label htmlFor="organizer_participating" className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.organizer_participation !== "organizing_only" ? "border-emerald-300 bg-emerald-50 ring-2 ring-emerald-300/20" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                <RadioGroupItem value="participating" id="organizer_participating" className="mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-sm font-semibold text-slate-800">Yes, I'm hosting a sale at my address</div>
-                  <div className="text-xs text-slate-500 mt-0.5">My home counts as one participant</div>
-                </div>
-              </label>
-              <label htmlFor="organizer_only" className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.organizer_participation === "organizing_only" ? "border-[#006168]/40 bg-[#e6f3f4] ring-2 ring-[#006168]/15" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                <RadioGroupItem value="organizing_only" id="organizer_only" className="mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-sm font-semibold text-slate-800">No, I'm just organizing</div>
-                  <div className="text-xs text-slate-500 mt-0.5">My home will not be listed as a participant</div>
-                </div>
-              </label>
-            </RadioGroup>
-          </div>
-
-          <Button
-            type="button"
-            onClick={() => setIsMapModalOpen(true)}
-            className="w-full py-8 text-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white flex gap-3 shadow-md border-2 border-[#2C4F4E]"
-          >
-            <MapIcon className="w-6 h-6" />
-            Pick center on map
-          </Button>
-
-          {formData.event_center_lat && formData.event_center_lng && (
-            <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-4 py-3">
-              <p className="text-sm font-medium text-[#2C4F4E] flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Center selected on map.
-              </p>
-              <p className="text-xs text-[#1F2937] opacity-80 mt-1">
-                {Number(formData.event_center_lat).toFixed(4)}, {Number(formData.event_center_lng).toFixed(4)}
-              </p>
-            </div>
-          )}
-
-          <NeighborhoodCoHostSelector formData={formData} setFormData={setFormData} currentUser={user} />
-
-          <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 space-y-3">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-[#2C4F4E]/15 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-7 h-7 rounded-full bg-[#5DADA5] text-white flex items-center justify-center text-sm font-bold shrink-0">1</div>
               <div>
-                <p className="font-semibold text-[#2C4F4E]">Confirmed host address</p>
-                <p className="text-sm text-[#1F2937] opacity-80">If your confirmed address is inside the radius, you must use your own address.</p>
+                <h3 className="font-semibold text-[#2C4F4E]">Neighborhood Sale details</h3>
+                <p className="text-sm text-[#1F2937]/70">Name the event and add a short description for neighbors.</p>
               </div>
-              <div className="text-xs font-semibold text-[#2C4F4E] uppercase">{hostStatusLabel}</div>
             </div>
 
-            {confirmedUserAddress ? (
-              <div className="rounded-lg border border-[#2C4F4E]/30 bg-[#F3E6CF] p-3">
-                <p className="text-sm font-medium text-[#2C4F4E]">{confirmedUserAddress}</p>
-                <p className="text-xs text-[#1F2937] opacity-80 mt-1">Read-only confirmed signup address</p>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="neighborhood-title" className="text-sm font-semibold text-[#2C4F4E]">
+                  Event Title *
+                </Label>
+                <Input
+                  id="neighborhood-title"
+                  placeholder="e.g., Oak Street Neighborhood Sale"
+                  value={formData.title || ""}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                  className="bg-[#F3E6CF] border-[#2C4F4E]"
+                  required
+                />
               </div>
-            ) : (
-              <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
-                You do not have a confirmed address on your account yet. If you live inside the radius, confirm your address in Settings first. Otherwise use the co-host path below.
+
+              <div className="space-y-1.5">
+                <Label htmlFor="neighborhood-description" className="text-sm font-semibold text-[#2C4F4E]">
+                  Event Description
+                </Label>
+                <Textarea
+                  id="neighborhood-description"
+                  placeholder="Tell neighbors what kind of sale this is, what to expect, and any helpful event details."
+                  value={formData.description || ""}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                  rows={4}
+                  className="bg-[#F3E6CF] border-[#2C4F4E] resize-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#2C4F4E]/15 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-7 h-7 rounded-full bg-[#5DADA5] text-white flex items-center justify-center text-sm font-bold shrink-0">2</div>
+              <div>
+                <h3 className="font-semibold text-[#2C4F4E]">Choose the sale area</h3>
+                <p className="text-sm text-[#1F2937]/70">Pick the center point of the 500-foot Neighborhood Sale radius.</p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              onClick={() => setIsMapModalOpen(true)}
+              className="w-full py-8 text-lg bg-[#5DADA5] hover:bg-[#4A9B93] text-white flex gap-3 shadow-md border-2 border-[#2C4F4E]"
+            >
+              <MapIcon className="w-6 h-6" />
+              Pick Neighborhood Sale Center on Map
+            </Button>
+
+            {formData.event_center_lat && formData.event_center_lng && (
+              <div className="rounded-lg border border-[#2C4F4E]/40 bg-[#F3E6CF] px-4 py-3 mt-3">
+                <p className="text-sm font-medium text-[#2C4F4E] flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Neighborhood Sale center selected.
+                </p>
+                <p className="text-xs text-[#1F2937] opacity-80 mt-1">
+                  {Number(formData.event_center_lat).toFixed(4)}, {Number(formData.event_center_lng).toFixed(4)}
+                </p>
               </div>
             )}
+          </div>
 
-            {formData.event_center_lat && formData.event_center_lng && userHasConfirmedAddress && (
-              <div className={`rounded-lg p-3 text-sm ${userAddressInRadius ? "border border-green-200 bg-green-50 text-green-800" : "border border-amber-200 bg-amber-50 text-amber-800"}`}>
-                {userAddressInRadius
-                  ? "Your confirmed address is inside the 500-foot radius and will be used for this sale."
-                  : "Your confirmed address is not inside the 500-foot radius for this selected center."}
+          <div className="rounded-2xl border border-[#2C4F4E]/15 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-7 h-7 rounded-full bg-[#5DADA5] text-white flex items-center justify-center text-sm font-bold shrink-0">3</div>
+              <div>
+                <h3 className="font-semibold text-[#2C4F4E]">Confirm the host address</h3>
+                <p className="text-sm text-[#1F2937]/70">Choose whether your own confirmed address or an alternate host anchors the sale.</p>
               </div>
-            )}
+            </div>
 
-            <div className="flex gap-3 flex-wrap">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!userHasConfirmedAddress}
-                className="border-[#2C4F4E] text-[#2C4F4E]"
-                onClick={handleUseConfirmedAddress}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 mb-4">
+              <Label className="text-sm font-semibold text-slate-700 mb-3 block">
+                Will you have a sale at your own address?
+              </Label>
+              <RadioGroup
+                value={formData.organizer_participation || "participating"}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, organizer_participation: value }))}
+                className="space-y-2"
               >
-                Use My Confirmed Address
-              </Button>
+                <label htmlFor="organizer_participating" className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.organizer_participation !== "organizing_only" ? "border-emerald-300 bg-emerald-50 ring-2 ring-emerald-300/20" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                  <RadioGroupItem value="participating" id="organizer_participating" className="mt-0.5 shrink-0" />
+                  <div>
+                    <div className="text-sm font-semibold text-slate-800">Yes, I'm hosting a sale at my address</div>
+                    <div className="text-xs text-slate-500 mt-0.5">My home counts as one participant</div>
+                  </div>
+                </label>
+                <label htmlFor="organizer_only" className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.organizer_participation === "organizing_only" ? "border-[#006168]/40 bg-[#e6f3f4] ring-2 ring-[#006168]/15" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                  <RadioGroupItem value="organizing_only" id="organizer_only" className="mt-0.5 shrink-0" />
+                  <div>
+                    <div className="text-sm font-semibold text-slate-800">No, I'm just organizing</div>
+                    <div className="text-xs text-slate-500 mt-0.5">My home will not be listed as a participant</div>
+                  </div>
+                </label>
+              </RadioGroup>
+            </div>
 
-              {!userAddressInRadius && (
+            <NeighborhoodCoHostSelector formData={formData} setFormData={setFormData} currentUser={user} />
+
+            <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 space-y-3 mt-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="font-semibold text-[#2C4F4E]">Selected host address</p>
+                  <p className="text-sm text-[#1F2937] opacity-80">If your confirmed address is inside the radius, you must use your own address.</p>
+                </div>
+                <div className="text-xs font-semibold text-[#2C4F4E] uppercase">{hostStatusLabel}</div>
+              </div>
+
+              {confirmedUserAddress ? (
+                <div className="rounded-lg border border-[#2C4F4E]/30 bg-[#F3E6CF] p-3">
+                  <p className="text-sm font-medium text-[#2C4F4E]">{confirmedUserAddress}</p>
+                  <p className="text-xs text-[#1F2937] opacity-80 mt-1">Read-only confirmed signup address</p>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
+                  You do not have a confirmed address on your account yet. If you live inside the radius, confirm your address in Settings first. Otherwise use the co-host path below.
+                </div>
+              )}
+
+              {formData.event_center_lat && formData.event_center_lng && userHasConfirmedAddress && (
+                <div className={`rounded-lg p-3 text-sm ${userAddressInRadius ? "border border-green-200 bg-green-50 text-green-800" : "border border-amber-200 bg-amber-50 text-amber-800"}`}>
+                  {userAddressInRadius
+                    ? "Your confirmed address is inside the 500-foot radius and will be used for this sale."
+                    : "Your confirmed address is not inside the 500-foot radius for this selected center."}
+                </div>
+              )}
+
+              <div className="flex gap-3 flex-wrap">
                 <Button
                   type="button"
-                  className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border border-[#2C4F4E]"
-                  disabled={!formData.event_center_lat || !formData.event_center_lng}
-                  onClick={handleUseAlternateHostFlow}
+                  variant="outline"
+                  disabled={!userHasConfirmedAddress}
+                  className="border-[#2C4F4E] text-[#2C4F4E]"
+                  onClick={handleUseConfirmedAddress}
                 >
-                  I don’t live in the radius
+                  Use My Confirmed Address
                 </Button>
+
+                {!userAddressInRadius && (
+                  <Button
+                    type="button"
+                    className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border border-[#2C4F4E]"
+                    disabled={!formData.event_center_lat || !formData.event_center_lng}
+                    onClick={handleUseAlternateHostFlow}
+                  >
+                    I don’t live in the radius
+                  </Button>
+                )}
+              </div>
+
+              {formData.host_mode === "cohost" && !formData.host_addressText && (
+                <div className="rounded-lg border border-[#2C4F4E]/30 bg-white p-3 text-sm text-[#2C4F4E]">
+                  <p className="font-medium">Alternate host flow selected</p>
+                  <p className="mt-1">Your confirmed address is not being used for this sale. Enter or request a host address inside the radius.</p>
+                </div>
+              )}
+
+              {formData.host_addressText && (
+                <div className="rounded-lg border border-[#2C4F4E]/30 bg-white p-3 text-sm text-[#2C4F4E]">
+                  <p className="font-medium">Selected host address</p>
+                  <p className="mt-1">{`${formData.host_addressText}, ${formData.host_city}, ${formData.host_state} ${formData.host_zip}`}</p>
+                </div>
               )}
             </div>
-
-            {formData.host_mode === "cohost" && !formData.host_addressText && (
-              <div className="rounded-lg border border-[#2C4F4E]/30 bg-white p-3 text-sm text-[#2C4F4E]">
-                <p className="font-medium">Alternate host flow selected</p>
-                <p className="mt-1">Your confirmed address is not being used for this sale. Enter or request a host address inside the radius.</p>
-              </div>
-            )}
-
-            {formData.host_addressText && (
-              <div className="rounded-lg border border-[#2C4F4E]/30 bg-white p-3 text-sm text-[#2C4F4E]">
-                <p className="font-medium">Selected host address</p>
-                <p className="mt-1">{`${formData.host_addressText}, ${formData.host_city}, ${formData.host_state} ${formData.host_zip}`}</p>
-              </div>
-            )}
           </div>
 
           <MapPickerModal
@@ -951,11 +983,14 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       )}
 
       {isNeighborhood && (
-        <div className="pt-6 mt-6 border-t-2 border-[#2C4F4E]/20">
-          <div className="rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4 mb-4">
-            <h3 className="text-[#2C4F4E] font-semibold">Event Dates</h3>
-            <p className="text-sm text-[#1F2937] opacity-80">Select the start and end dates for your Neighborhood Sale (up to 3 days).</p>
-            <p className="text-sm text-red-700 mt-2 font-medium">Neighborhood Sales must be scheduled at least 7 days in advance.</p>
+        <div className="rounded-2xl border border-[#2C4F4E]/15 bg-white p-4 shadow-sm">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-7 h-7 rounded-full bg-[#5DADA5] text-white flex items-center justify-center text-sm font-bold shrink-0">4</div>
+            <div>
+              <h3 className="font-semibold text-[#2C4F4E]">Choose event dates</h3>
+              <p className="text-sm text-[#1F2937]/70">Select the start and end dates for your Neighborhood Sale, up to 3 days total.</p>
+              <p className="text-sm text-red-700 mt-1 font-medium">Neighborhood Sales must be scheduled at least 7 days in advance.</p>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
