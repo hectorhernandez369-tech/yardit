@@ -1544,7 +1544,7 @@ const stats = useMemo(() => {
                                       distanceFeet = distanceMeters * 3.28084;
                                     }
 
-                                    const isWithinDistance = demoOn || distanceFeet <= 50;
+                                    const isWithinDistance = distanceFeet <= 50;
 
                                     if (isWithinDistance) {
                                       return (
