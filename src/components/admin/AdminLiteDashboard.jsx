@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Link } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { ClipboardList } from "lucide-react";
 import ListingManagement from "./ListingManagement";
 import UserManagement from "./UserManagement";
 import SystemSettings from "./SystemSettings";
@@ -56,13 +53,6 @@ export default function AdminLiteDashboard({ user }) {
         </TabsContent>
         </Tabs>
       </div>
-      
-      <Link to="/LaunchChecklist">
-        <Button variant="outline" className="gap-2 border-[#F4A849] text-[#F4A849] hover:bg-[#F4A849] hover:text-[#2C4F4E]">
-          <ClipboardList className="w-4 h-4" />
-          Launch Checklist
-        </Button>
-      </Link>
     </div>
   );
 }

@@ -1,4 +1,7 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import { ClipboardList } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CreateAdminTab from "./CreateAdminTab";
 import AdminLogsTab from "./AdminLogsTab";
@@ -28,6 +31,7 @@ export default function AdminInternalTab({ user, adminSession }) {
           {canManageAdmins && <TabsTrigger value="employee-users" className="whitespace-nowrap">Employee Users</TabsTrigger>}
           {canViewLogs && <TabsTrigger value="logs" className="whitespace-nowrap">Logs</TabsTrigger>}
           {isMaster && <TabsTrigger value="system-health" className="whitespace-nowrap">System Health</TabsTrigger>}
+          <TabsTrigger value="launch-checklist" className="whitespace-nowrap">Launch Checklist</TabsTrigger>
           <TabsTrigger value="assisted" className="whitespace-nowrap">Assisted Listings</TabsTrigger>
           <TabsTrigger value="settings" className="whitespace-nowrap">My Settings</TabsTrigger>
         </TabsList>
@@ -55,6 +59,23 @@ export default function AdminInternalTab({ user, adminSession }) {
             <SystemHealthDashboard user={user} />
           </TabsContent>
         )}
+
+        <TabsContent value="launch-checklist">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 mt-4">
+            <div className="flex items-start gap-3">
+              <ClipboardList className="w-5 h-5 text-amber-600 mt-0.5" />
+              <div>
+                <h3 className="font-bold text-[#2C4F4E]">Launch Checklist</h3>
+                <p className="text-sm text-slate-600 mt-1 mb-4">Review the final launch readiness items for payments, listings, vendors, and events.</p>
+                <Link to="/LaunchChecklist">
+                  <Button className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">
+                    Open Launch Checklist
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
 
         <TabsContent value="assisted">
           <AdminAssistedListingsTab adminUser={user} />
