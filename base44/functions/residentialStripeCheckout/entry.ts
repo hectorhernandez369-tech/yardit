@@ -147,14 +147,29 @@ Deno.serve(async (req) => {
       const user = currentUser;
       if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+      const requestedSessionId = body?.sessionId || body?.session_id || '';
+      if (requestedSessionId) {
+        const session = await stripe.checkout.sessions.retrieve(requestedSessionId);
+        const sessionUserId = session.metadata?.user_id || '';
+        const sessionEmail = session.customer_details?.email || session.metadata?.user_email || '';
+        const ownsSession = sessionUserId === user.id || (!!sessionEmail && sessionEmail.toLowerCase() === String(user.email || '').toLowerCase());
+        if (!ownsSession) return Response.json({ error: 'Forbidden' }, { status: 403 });
+        return Response.json({
+          ok: true,
+          found: session.payment_status === 'paid',
+          stripe_paid: session.payment_status === 'paid',
+          session_id: session.id,
+          payment_intent_id: asId(session.payment_intent),
+        });
+      }
+
       const records = await base44.asServiceRole.entities.PaymentTransaction.filter({
         user_id: user.id,
         transaction_type: 'listing_payment',
-        status: 'received',
       });
 
       const candidates = (records || [])
-        .filter((record) => !record.yardit_record_id && record.stripe_checkout_session_id)
+        .filter((record) => !record.yardit_record_id && record.stripe_checkout_session_id && ['received', 'processing', 'succeeded'].includes(record.status))
         .sort((a, b) => new Date(b.received_at || b.created_date || 0) - new Date(a.received_at || a.created_date || 0))
         .slice(0, 10);
 
@@ -179,16 +194,36 @@ Deno.serve(async (req) => {
       const sessionId = body?.sessionId || body?.session_id;
       if (!sessionId) return Response.json({ error: 'Missing sessionId' }, { status: 400 });
 
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      let session = await stripe.checkout.sessions.retrieve(sessionId);
+      for (let attempt = 0; attempt < 6 && session.payment_status !== 'paid'; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        session = await stripe.checkout.sessions.retrieve(sessionId);
+      }
+
       const confirmed = await webhookConfirmed(base44, session.id);
+      const paymentIntentId = asId(session.payment_intent);
+
+      if (session.payment_status === 'paid') {
+        const bySession = await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_checkout_session_id: session.id });
+        const byIntent = paymentIntentId ? await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_payment_intent_id: paymentIntentId }) : [];
+        const records = [...bySession, ...byIntent].filter((record, index, arr) => record?.id && arr.findIndex((item) => item.id === record.id) === index);
+        await Promise.all(records.map((record) => base44.asServiceRole.entities.PaymentTransaction.update(record.id, {
+          stripe_payment_intent_id: paymentIntentId,
+          stripe_customer_id: asId(session.customer),
+          payment_status: session.payment_status || session.status || '',
+          status: 'succeeded',
+          processed_at: nowIso(),
+        })));
+      }
+
       return Response.json({
         ok: true,
-        paid: session.payment_status === 'paid' && confirmed,
+        paid: session.payment_status === 'paid',
         stripe_paid: session.payment_status === 'paid',
         webhook_confirmed: confirmed,
         pending_webhook: session.payment_status === 'paid' && !confirmed,
         status: session.status,
-        payment_intent_id: asId(session.payment_intent),
+        payment_intent_id: paymentIntentId,
         customer_email: session.customer_details?.email || null,
       });
     }
