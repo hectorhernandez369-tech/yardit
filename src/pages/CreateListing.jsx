@@ -513,7 +513,7 @@ export default function CreateListingPage() {
   // Compute reserved dates for user's verified primary address (drives calendar blocking)
   const addressRef = user ? { lat: user.primary_latitude, lng: user.primary_longitude } : null;
   const reservedDates = React.useMemo(
-    () => (!isGlobalDemoMode && !isDevBypassUser(user) && addressRef
+    () => (!isDevBypassUser(user) && addressRef
       ? getReservedDatesForAddress(userListings, null, addressRef)
       : new Set()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -522,13 +522,13 @@ export default function CreateListingPage() {
 
   // Returns true if the proposed dates conflict with any reserved listing for this address
   const hasResidentialDateConflict = (startDate, endDate) => {
-    if (!startDate || !endDate || isGlobalDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
+    if (!startDate || !endDate || isDevBypassUser(user) || isAdminCreate) return false;
     return hasDateConflict(startDate, endDate, reservedDates);
   };
 
   // Live-fetch version used in mutation and Stripe-return handler (avoids stale cache)
   const checkDateConflictLive = async (startDate, endDate) => {
-    if (!startDate || !endDate || isGlobalDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
+    if (!startDate || !endDate || isDevBypassUser(user) || isAdminCreate) return false;
     const freshListings = await base44.entities.Listing.filter({ ownerUserId: user.id });
     const freshReserved = getReservedDatesForAddress(freshListings, null, addressRef);
     return hasDateConflict(startDate, endDate, freshReserved);
@@ -687,8 +687,6 @@ export default function CreateListingPage() {
         }
       }
 
-      const demoPrefix = isGlobalDemoMode ? "Demo listing: " : "";
-
       // Generate listing number: STATE + last4zip + dash + 5 random chars
       const stateCode = getStateAbbreviation(data.state || "XX");
       const zipLast4 = (data.zip || "0000").slice(-4).padStart(4, "0");
@@ -699,7 +697,7 @@ export default function CreateListingPage() {
 
       const listing = await base44.entities.Listing.create({
         ...data,
-        title: demoPrefix + data.title,
+        title: data.title,
         ownerUserId: isAdminCreate ? selectedUserForAdmin?.id : user.id,
         status: data.status || (data.listingType === "neighborhood_sale" ? "collecting_participants" : "active"),
         event_state: data.listingType === "neighborhood_sale" ? (data.event_state || "pending_activation") : data.event_state,
@@ -1333,25 +1331,10 @@ export default function CreateListingPage() {
       payload.payment_intent_status = sourceFormData.payment_intent_status || "hold_requested";
     }
 
-    if (isGlobalDemoMode) {
-      payload.is_demo_listing = true;
-      payload.payment_intent_status = "none";
-    }
-
     createListingMutation.mutate(payload);
   };
 
   const handlePaymentStepSubmit = async ({ promoResult, finalAmount, nonRefundAcknowledgement } = {}) => {
-    if (isGlobalDemoMode) {
-      setPaymentError("");
-      setIsStartingPayment(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setIsStartingPayment(false);
-      toast.success("Demo payment successful.");
-      executeSubmit("paid_success", { ...formData, ...buildNonRefundFields(nonRefundAcknowledgement) });
-      return;
-    }
-
     if (promoResult && promoResult.finalAmount === 0) {
       if (window.self !== window.top) {
         setPaymentError("Checkout must be tested from the published app.");
@@ -1434,33 +1417,6 @@ export default function CreateListingPage() {
 
   const handleNeighborhoodSetupSubmit = async (nonRefundAcknowledgement = {}) => {
     const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
-    if (isGlobalDemoMode) {
-      setPaymentError("");
-      setIsStartingPayment(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      
-      const demoSetupData = formData.organizer_stripe_payment_method_id
-        ? { ...formData, ...nonRefundFields }
-        : {
-            ...formData,
-            organizer_stripe_customer_id: `demo_cus_${Date.now()}`,
-            organizer_stripe_payment_method_id: `demo_pm_${Date.now()}`,
-            organizer_setup_session_id: `demo_session_${Date.now()}`,
-            organizer_setup_intent_id: `demo_setup_${Date.now()}`,
-            payment_setup_status: "saved",
-            payment_method_collected_at: new Date().toISOString(),
-            ...nonRefundFields,
-          };
-
-      if (!formData.organizer_stripe_payment_method_id) {
-        setFormData(demoSetupData);
-      }
-
-      setIsStartingPayment(false);
-      toast.success("Demo payment method saved.");
-      executeSubmit(undefined, demoSetupData);
-      return;
-    }
 
     if (!formData.organizer_stripe_payment_method_id || !formData.organizer_stripe_customer_id) {
       await startNeighborhoodSaleSetup(nonRefundAcknowledgement);
@@ -1554,7 +1510,7 @@ export default function CreateListingPage() {
       return;
     }
 
-    if (formData.listingType === "yard_sale" && !isAdminCreate && !isGlobalDemoMode) {
+    if (formData.listingType === "yard_sale" && !isAdminCreate) {
       const nearbySale = await findNearbyNeighborhoodSale();
       if (nearbySale) {
         // Only prompt if the user's selected dates overlap the sale

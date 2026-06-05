@@ -82,7 +82,7 @@ export default function SystemSettings() {
             <div>
               <p className="font-semibold">Global App Mode</p>
               <p className="text-sm text-slate-600">
-                When Demo is enabled, all new listings skip payment and are flagged as demo listings.
+                When Demo is enabled, address selection is unlocked for testing. Payments still use the live Stripe flow.
               </p>
             </div>
             <div className="flex items-center gap-3">
