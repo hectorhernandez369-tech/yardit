@@ -1794,29 +1794,37 @@ const stats = useMemo(() => {
               className="transition-opacity duration-300"
               style={{ opacity: debugVisible ? 1 : 0, pointerEvents: debugVisible ? "auto" : "none" }}
             >
-              <MapDebugOverlay
-                zoom={currentZoom}
-                dbCount={listings.length}
-                eligibleCount={eligibleListings.length}
-                pinCount={visiblePins.length}
-                clusterCount={clusterPts.length}
-                fallback={fallbackActive}
-                firstRow={listings.length > 0 ? (() => {
-                  const row = listings[0];
-                  const now = new Date();
-                  const start = new Date(row.startDateTime);
-                  const end = new Date(row.endDateTime);
-                  return {
-                    nowISO: now.toISOString(),
-                    id: row.id,
-                    status: row.status || "(none)",
-                    startAt: row.startDateTime || "(none)",
-                    endAt: row.endDateTime || "(none)",
-                    tier: row.tier || "(none)",
-                    timeOk: start <= now && end >= now,
-                  };
-                })() : null}
-              />
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDebugVisible(false); setDebugPinned(false); }}
+                  className="absolute top-2 right-2 z-[1002] w-6 h-6 flex items-center justify-center rounded bg-black/70 text-green-400 hover:bg-black/90 text-xs font-bold"
+                >
+                  ✕
+                </button>
+                <MapDebugOverlay
+                  zoom={currentZoom}
+                  dbCount={listings.length}
+                  eligibleCount={eligibleListings.length}
+                  pinCount={visiblePins.length}
+                  clusterCount={clusterPts.length}
+                  fallback={fallbackActive}
+                  firstRow={listings.length > 0 ? (() => {
+                    const row = listings[0];
+                    const now = new Date();
+                    const start = new Date(row.startDateTime);
+                    const end = new Date(row.endDateTime);
+                    return {
+                      nowISO: now.toISOString(),
+                      id: row.id,
+                      status: row.status || "(none)",
+                      startAt: row.startDateTime || "(none)",
+                      endAt: row.endDateTime || "(none)",
+                      tier: row.tier || "(none)",
+                      timeOk: start <= now && end >= now,
+                    };
+                  })() : null}
+                />
+              </div>
             </div>
 
             {!debugVisible && (
