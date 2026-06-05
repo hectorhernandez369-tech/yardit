@@ -47,7 +47,7 @@ export default function ResidentialBillingList({ transactions = [], listings = [
       <Card className="border-0 shadow-xl bg-gradient-to-br from-green-50 to-emerald-50">
         <CardContent className="p-6 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-gray-600 mb-1">Residential Billing Total</p>
+            <p className="text-sm text-gray-600 mb-1">Listing Billing Total</p>
             <p className="text-3xl font-bold text-green-600">${totalPaid.toFixed(2)}</p>
             <p className="text-sm text-gray-600 mt-2">{transactions.length} transaction{transactions.length !== 1 ? "s" : ""}</p>
           </div>
@@ -60,7 +60,7 @@ export default function ResidentialBillingList({ transactions = [], listings = [
       <Card className="border-0 shadow-xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5" /> Residential Transaction History
+            <CreditCard className="w-5 h-5" /> Listing Transaction History
             <span className="text-sm font-normal text-gray-500">({transactions.length} total)</span>
           </CardTitle>
         </CardHeader>
@@ -68,8 +68,8 @@ export default function ResidentialBillingList({ transactions = [], listings = [
           {transactions.length === 0 ? (
             <div className="text-center py-12">
               <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">No residential payments yet</h3>
-              <p className="text-gray-500">{emptyMessage || "Your residential payment history will appear here after checkout."}</p>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">No listing payments yet</h3>
+              <p className="text-gray-500">{emptyMessage || "Listing payment history will appear here after checkout."}</p>
             </div>
           ) : (
             <div className="space-y-3">

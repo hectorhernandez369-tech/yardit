@@ -64,7 +64,7 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
     loadSavedPaymentMethod();
   }, [open, listing]);
 
-  const handleConfirmUpgrade = async () => {
+  const handleConfirmUpgrade = async ({ nonRefundAcknowledgement } = {}) => {
     if (!listing || !selectedTier || amountDue <= 0) return;
 
     if (window.self !== window.top) {
@@ -89,6 +89,10 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
         customer_id: listing.organizer_stripe_customer_id || undefined,
         amount_cents: amountDue,
         return_url: returnUrl,
+        non_refund_acknowledged: nonRefundAcknowledgement?.acknowledged === true,
+        non_refund_acknowledged_at: nonRefundAcknowledgement?.acknowledged_at || "",
+        non_refund_acknowledged_by_user_id: user?.id || "",
+        non_refund_disclosure_text: nonRefundAcknowledgement?.disclosure_text || "",
       });
 
       const checkoutUrl = response?.data?.checkoutUrl;
@@ -143,6 +147,7 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
             isProcessing={isStartingPayment}
             onBack={onClose}
             onPay={handleConfirmUpgrade}
+            requireNonRefundAcknowledgement={listing?.listingType !== "event"}
           />
 
           {savedPaymentMethod && (

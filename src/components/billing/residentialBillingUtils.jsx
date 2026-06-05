@@ -34,7 +34,7 @@ export const getTransactionAmounts = (tx) => {
   return { original, discount, finalAmount };
 };
 
-export const getListingTitle = (listing) => listing?.title || listing?.event_name || "Residential Listing";
+export const getListingTitle = (listing) => listing?.title || listing?.event_name || "Listing";
 
 export const getListingAddress = (listing) => (
   listing?.display_address ||
@@ -66,6 +66,7 @@ export const downloadResidentialReceiptPdf = ({ transaction, listing }) => {
     ["Status", listing?.status || "Needs Review"],
     ["Transaction ID", transaction?.stripe_payment_intent_id || transaction?.stripe_checkout_session_id || transaction?.id || "Not available"],
     ["Stripe Checkout Session", transaction?.stripe_checkout_session_id || "Not available"],
+    ["Stripe Payment Intent", transaction?.stripe_payment_intent_id || "Not available"],
     ["Stripe Charge", transaction?.stripe_charge_id || "Not available"],
     ["Payment Status", transaction?.status || transaction?.payment_status || "Not available"],
     ["Payment Date", formatDate(transaction?.processed_at || transaction?.received_at || transaction?.created_date)],
@@ -77,7 +78,7 @@ export const downloadResidentialReceiptPdf = ({ transaction, listing }) => {
   ];
 
   doc.setFontSize(20);
-  doc.text("Yardit Residential Receipt", 20, 20);
+  doc.text("Yardit Listing Receipt", 20, 20);
   doc.setFontSize(10);
   doc.text(`Generated ${formatDate(new Date().toISOString())}`, 20, 28);
 

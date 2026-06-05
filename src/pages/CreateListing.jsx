@@ -534,7 +534,14 @@ export default function CreateListingPage() {
     return hasDateConflict(startDate, endDate, freshReserved);
   };
 
-  const startPaidListingCheckout = async (promoResult = null) => {
+  const buildNonRefundFields = (nonRefundAcknowledgement = {}) => ({
+    non_refund_acknowledged: nonRefundAcknowledgement.acknowledged === true,
+    non_refund_acknowledged_at: nonRefundAcknowledgement.acknowledged_at || "",
+    non_refund_acknowledged_by_user_id: user?.id || "",
+    non_refund_disclosure_text: nonRefundAcknowledgement.disclosure_text || "",
+  });
+
+  const startPaidListingCheckout = async (promoResult = null, nonRefundAcknowledgement = {}) => {
     if (window.self !== window.top) {
       console.warn("Stripe checkout blocked inside iframe preview");
       setPaymentError("Stripe checkout must be tested from the published app, not the Base44 preview.");
@@ -553,7 +560,8 @@ export default function CreateListingPage() {
     try {
       setPaymentError("");
       setIsStartingPayment(true);
-      localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({ formData }));
+      const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
+      localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({ formData: { ...formData, ...nonRefundFields } }));
 
       const returnUrl = `${window.location.origin}${createPageUrl("CreateListing")}`;
       const promoPayload = promoResult ? {
@@ -571,6 +579,10 @@ export default function CreateListingPage() {
         customer_email: user?.email,
         return_url: returnUrl,
         listing_id: "",
+        non_refund_acknowledged: nonRefundFields.non_refund_acknowledged,
+        non_refund_acknowledged_at: nonRefundFields.non_refund_acknowledged_at,
+        non_refund_acknowledged_by_user_id: nonRefundFields.non_refund_acknowledged_by_user_id,
+        non_refund_disclosure_text: nonRefundFields.non_refund_disclosure_text,
         ...promoPayload,
       });
 
@@ -602,7 +614,7 @@ export default function CreateListingPage() {
     }
   };
 
-  const startNeighborhoodSaleSetup = async () => {
+  const startNeighborhoodSaleSetup = async (nonRefundAcknowledgement = {}) => {
     if (window.self !== window.top) {
       console.warn("Stripe setup blocked inside iframe preview");
       setPaymentError("Stripe setup must be tested from the published app, not the Base44 preview.");
@@ -613,12 +625,17 @@ export default function CreateListingPage() {
     try {
       setPaymentError("");
       setIsStartingPayment(true);
-      localStorage.setItem(NEIGHBORHOOD_SETUP_KEY, JSON.stringify({ formData }));
+      const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
+      localStorage.setItem(NEIGHBORHOOD_SETUP_KEY, JSON.stringify({ formData: { ...formData, ...nonRefundFields } }));
 
       const returnUrl = `${window.location.origin}${createPageUrl("CreateListing")}`;
       const response = await base44.functions.invoke("neighborhoodSaleSetupCheckout", {
         return_url: returnUrl,
         customer_id: formData.organizer_stripe_customer_id || undefined,
+        non_refund_acknowledged: nonRefundFields.non_refund_acknowledged,
+        non_refund_acknowledged_at: nonRefundFields.non_refund_acknowledged_at,
+        non_refund_acknowledged_by_user_id: nonRefundFields.non_refund_acknowledged_by_user_id,
+        non_refund_disclosure_text: nonRefundFields.non_refund_disclosure_text,
       });
 
       const checkoutUrl = response?.data?.checkoutUrl;
@@ -1307,18 +1324,17 @@ export default function CreateListingPage() {
     createListingMutation.mutate(payload);
   };
 
-  const handlePaymentStepSubmit = async ({ promoResult, finalAmount } = {}) => {
+  const handlePaymentStepSubmit = async ({ promoResult, finalAmount, nonRefundAcknowledgement } = {}) => {
     if (isGlobalDemoMode) {
       setPaymentError("");
       setIsStartingPayment(true);
       await new Promise((resolve) => setTimeout(resolve, 800));
       setIsStartingPayment(false);
       toast.success("Demo payment successful.");
-      executeSubmit("paid_success");
+      executeSubmit("paid_success", { ...formData, ...buildNonRefundFields(nonRefundAcknowledgement) });
       return;
     }
 
-    // Free promo: bypass Stripe entirely
     if (promoResult && promoResult.finalAmount === 0) {
       if (window.self !== window.top) {
         setPaymentError("Checkout must be tested from the published app.");
@@ -1328,11 +1344,10 @@ export default function CreateListingPage() {
         setPaymentError("");
         setIsStartingPayment(true);
 
-        // First create the listing (as scheduled/paid)
-        const listingPayload = buildFreePromoListingPayload(formData);
+        const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
+        const listingPayload = { ...buildFreePromoListingPayload(formData), ...nonRefundFields };
         const createdListing = await createListingDirectlyWithPromo(listingPayload);
 
-        // Record the free promo redemption server-side
         await base44.functions.invoke("residentialStripeCheckout", {
           action: "complete_free_promo",
           listing_id: createdListing.id,
@@ -1344,6 +1359,10 @@ export default function CreateListingPage() {
           discount_bucket: promoResult.discountBucket,
           user_id: user?.id,
           user_email: user?.email,
+          non_refund_acknowledged: nonRefundFields.non_refund_acknowledged,
+          non_refund_acknowledged_at: nonRefundFields.non_refund_acknowledged_at,
+          non_refund_acknowledged_by_user_id: nonRefundFields.non_refund_acknowledged_by_user_id,
+          non_refund_disclosure_text: nonRefundFields.non_refund_disclosure_text,
         });
 
         setIsStartingPayment(false);
@@ -1359,11 +1378,9 @@ export default function CreateListingPage() {
       return;
     }
 
-    // Paid checkout with optional promo discount
-    await startPaidListingCheckout(promoResult);
+    await startPaidListingCheckout(promoResult, nonRefundAcknowledgement);
   };
 
-  // Helper: build listing payload for free promo bypass
   const buildFreePromoListingPayload = (data) => {
     const stateCode = getStateAbbreviation(data.state || "XX");
     const zipLast4 = (data.zip || "0000").slice(-4).padStart(4, "0");
@@ -1394,20 +1411,20 @@ export default function CreateListingPage() {
     return payload;
   };
 
-  // Helper: directly create a listing for free-promo (bypasses Stripe)
   const createListingDirectlyWithPromo = async (payload) => {
     const listing = await base44.entities.Listing.create(payload);
     return listing;
   };
 
-  const handleNeighborhoodSetupSubmit = async () => {
+  const handleNeighborhoodSetupSubmit = async (nonRefundAcknowledgement = {}) => {
+    const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
     if (isGlobalDemoMode) {
       setPaymentError("");
       setIsStartingPayment(true);
       await new Promise((resolve) => setTimeout(resolve, 800));
       
       const demoSetupData = formData.organizer_stripe_payment_method_id
-        ? formData
+        ? { ...formData, ...nonRefundFields }
         : {
             ...formData,
             organizer_stripe_customer_id: `demo_cus_${Date.now()}`,
@@ -1416,6 +1433,7 @@ export default function CreateListingPage() {
             organizer_setup_intent_id: `demo_setup_${Date.now()}`,
             payment_setup_status: "saved",
             payment_method_collected_at: new Date().toISOString(),
+            ...nonRefundFields,
           };
 
       if (!formData.organizer_stripe_payment_method_id) {
@@ -1429,15 +1447,13 @@ export default function CreateListingPage() {
     }
 
     if (!formData.organizer_stripe_payment_method_id || !formData.organizer_stripe_customer_id) {
-      await startNeighborhoodSaleSetup();
+      await startNeighborhoodSaleSetup(nonRefundAcknowledgement);
       return;
     }
-
-    executeSubmit();
+    executeSubmit(undefined, { ...formData, ...nonRefundFields });
   };
 
   const handleSubmit = async () => {
-    // Date-overlap check at submit time (for featured/premium with explicit dates)
     if (!isAdminCreate && formData.listingType === "yard_sale" &&
         formData.selectedRangeStartDate && formData.selectedRangeEndDate &&
         hasResidentialDateConflict(formData.selectedRangeStartDate, formData.selectedRangeEndDate)) {
@@ -1696,7 +1712,6 @@ export default function CreateListingPage() {
     return <PrimaryAddressVerificationGate user={user} onVerified={async () => setUser(await base44.auth.me())} />;
   }
 
-  // Step labels per flow
   const residentialStepLabels = ["Sale Details", "Your Location", "Tier & Schedule", isAdminCreate ? "Assign User" : "Payment"];
   const eventStepLabels = ["Event Info", "Location", "Date & Time", "Visibility", isAdminCreate ? "Assign User" : "Payment"];
   const stepLabels = isEventFlow ? eventStepLabels : residentialStepLabels;
@@ -1748,7 +1763,6 @@ export default function CreateListingPage() {
           </div>
         </div>
 
-        {/* Success guide link */}
         {formData.listingType === "yard_sale" && (
           <div className="mb-6 flex justify-center">
             <button type="button" onClick={() => setShowGuideModal(true)} className="text-xs text-[#006168] font-medium hover:text-[#004d52] underline underline-offset-2 transition-colors">
@@ -1760,8 +1774,6 @@ export default function CreateListingPage() {
         {/* Form card */}
         <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden" ref={formContainerRef}>
           <FormScrollHelper containerRef={formContainerRef} />
-
-
 
           <div className="p-6 md:p-8">
             {step === 1 && (formData.listingType === "event" ? <EventDetailsStep formData={formData} setFormData={setFormData} /> : <StepOne formData={formData} setFormData={setFormData} />)}

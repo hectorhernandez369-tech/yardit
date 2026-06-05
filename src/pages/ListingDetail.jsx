@@ -673,7 +673,7 @@ export default function ListingDetailPage() {
                   listings={[listing]}
                   isLoading={isLoadingListingBilling}
                   variant="billing"
-                  emptyMessage="No PaymentTransaction records are linked to this residential listing yet."
+                  emptyMessage="No PaymentTransaction records are linked to this listing yet."
                 />
               </div>
             )}

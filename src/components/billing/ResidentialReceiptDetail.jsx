@@ -50,7 +50,7 @@ export default function ResidentialReceiptDetail({ transaction, listing, onBack,
       <Card className="border-0 shadow-xl bg-white/90">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" /> Residential Receipt
+            <FileText className="w-5 h-5" /> Listing Receipt
             <Badge variant="outline">{receiptNumber}</Badge>
           </CardTitle>
         </CardHeader>
@@ -60,6 +60,7 @@ export default function ResidentialReceiptDetail({ transaction, listing, onBack,
             <DetailRow label="Title" value={getListingTitle(listing)} />
             <DetailRow label="Address / Location" value={getListingAddress(listing)} />
             <DetailRow label="Dates" value={getListingDates(listing)} />
+            <DetailRow label="Listing Type" value={listing?.listingType || transaction.transaction_type || "Not available"} />
             <DetailRow label="Tier" value={listing?.tier || "Not available"} />
             <DetailRow label="Status" value={listing?.status || "Needs Review"} />
             <DetailRow label="Listing ID" value={listingId} />
@@ -70,6 +71,7 @@ export default function ResidentialReceiptDetail({ transaction, listing, onBack,
             <DetailRow label="Transaction ID" value={transaction.stripe_payment_intent_id || transaction.stripe_checkout_session_id || transaction.id} />
             <DetailRow label="Receipt Number" value={receiptNumber} />
             <DetailRow label="Stripe Checkout Session ID" value={transaction.stripe_checkout_session_id} />
+            <DetailRow label="Stripe Payment Intent ID" value={transaction.stripe_payment_intent_id} />
             <DetailRow label="Stripe Charge ID" value={transaction.stripe_charge_id} />
             <DetailRow label="Original Amount" value={formatMoney(original)} />
             <DetailRow label="Discount" value={formatMoney(discount)} />

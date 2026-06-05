@@ -147,6 +147,9 @@ Deno.serve(async (req) => {
         currency: 'usd',
         promo_code: promo_code || '',
         payment_status: 'paid',
+        non_refund_acknowledged: body?.non_refund_acknowledged === true,
+        non_refund_acknowledged_at: body?.non_refund_acknowledged_at || '',
+        non_refund_acknowledged_by_user_id: body?.non_refund_acknowledged_by_user_id || user_id || '',
         received_at: nowIso(),
         processed_at: nowIso(),
       });

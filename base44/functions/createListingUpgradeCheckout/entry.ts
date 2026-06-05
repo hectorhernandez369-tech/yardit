@@ -1,5 +1,5 @@
 import Stripe from 'npm:stripe@18.5.0';
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2025-02-24.acacia',
@@ -99,6 +99,10 @@ Deno.serve(async (req) => {
       tier: targetTier,
       listing_kind: listingKind,
       previous_status: listing.status || 'active',
+      non_refund_acknowledged: body?.non_refund_acknowledged ? 'true' : 'false',
+      non_refund_acknowledged_at: body?.non_refund_acknowledged_at || '',
+      non_refund_acknowledged_by_user_id: body?.non_refund_acknowledged_by_user_id || user.id || '',
+      non_refund_disclosure_text: body?.non_refund_disclosure_text || '',
     };
 
     const session = await stripe.checkout.sessions.create({
@@ -135,7 +139,13 @@ Deno.serve(async (req) => {
       yardit_record_id: listingId,
       status: 'received',
       amount_cents: amountCents,
+      original_amount_cents: amountCents,
+      discount_amount_cents: 0,
+      final_amount_cents: amountCents,
       currency: 'usd',
+      non_refund_acknowledged: body?.non_refund_acknowledged === true,
+      non_refund_acknowledged_at: body?.non_refund_acknowledged_at || '',
+      non_refund_acknowledged_by_user_id: body?.non_refund_acknowledged_by_user_id || user.id || '',
       stripe_checkout_session_id: session.id,
       stripe_payment_intent_id: asId(session.payment_intent),
       stripe_customer_id: asId(session.customer),

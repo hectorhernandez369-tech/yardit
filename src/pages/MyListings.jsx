@@ -734,7 +734,7 @@ export default function MyListingsPage() {
             isLoading={isLoading || isLoadingResidentialTransactions}
             variant="billing"
             onBackToListings={() => setTab("active")}
-            emptyMessage="Residential receipts and payment history for your listings will appear here."
+            emptyMessage="Receipts and payment history for your paid listings and Neighborhood Sales will appear here."
           />
         ) : isLoading ? (
           <Card className="rounded-xl border bg-white/80 shadow"><CardContent className="p-12 text-center"><p className="text-slate-500">Loading listings...</p></CardContent></Card>

@@ -181,6 +181,30 @@ Deno.serve(async (req) => {
         stripe_payment_intent_id: charge.paymentIntentId || paymentRecord.stripe_payment_intent_id || '',
       });
 
+      await base44.asServiceRole.entities.PaymentTransaction.create({
+        stripe_event_id: `neighborhood_sale_cancellation_charge_${charge.paymentIntentId || sale.id}_${Date.now()}`,
+        event_type: 'neighborhood_sale_cancellation_charge',
+        transaction_type: 'listing_payment',
+        user_id: sale.ownerUserId || '',
+        yardit_record_type: 'Listing',
+        yardit_record_id: sale.id,
+        status: charge.success ? 'succeeded' : 'failed',
+        amount_cents: toCents(chargeAmount),
+        original_amount_cents: toCents(chargeAmount),
+        discount_amount_cents: 0,
+        final_amount_cents: toCents(chargeAmount),
+        currency: 'usd',
+        payment_status: charge.success ? 'succeeded' : 'failed',
+        stripe_payment_intent_id: charge.paymentIntentId || '',
+        payment_method_last4: charge.method || '',
+        refund_status: 'none',
+        non_refund_acknowledged: sale.non_refund_acknowledged === true,
+        non_refund_acknowledged_at: sale.non_refund_acknowledged_at || '',
+        non_refund_acknowledged_by_user_id: sale.non_refund_acknowledged_by_user_id || sale.ownerUserId || '',
+        received_at: nowIso,
+        processed_at: nowIso,
+      });
+
       if (charge.success) {
         await base44.asServiceRole.entities.Listing.update(sale.id, {
           pricePaid: chargeAmount,
