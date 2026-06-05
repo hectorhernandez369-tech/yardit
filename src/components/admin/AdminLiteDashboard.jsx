@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { ClipboardList } from "lucide-react";
 import ListingManagement from "./ListingManagement";
 import UserManagement from "./UserManagement";
 import SystemSettings from "./SystemSettings";
@@ -20,14 +23,15 @@ export default function AdminLiteDashboard({ user }) {
 
   return (
     <div className="mt-4">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap gap-1 h-auto w-full p-1">
-          <TabsTrigger value="listings" className="whitespace-nowrap">Listings</TabsTrigger>
-          <TabsTrigger value="users" className="whitespace-nowrap">Users</TabsTrigger>
-          <TabsTrigger value="promos" className="whitespace-nowrap">Promotions & Rewards</TabsTrigger>
-          <TabsTrigger value="jth" className="whitespace-nowrap">Join the Hunt</TabsTrigger>
-          <TabsTrigger value="settings" className="whitespace-nowrap">Settings</TabsTrigger>
-        </TabsList>
+      <div className="flex items-center justify-between mb-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
+          <TabsList className="flex flex-wrap gap-1 h-auto w-full p-1">
+            <TabsTrigger value="listings" className="whitespace-nowrap">Listings</TabsTrigger>
+            <TabsTrigger value="users" className="whitespace-nowrap">Users</TabsTrigger>
+            <TabsTrigger value="promos" className="whitespace-nowrap">Promotions & Rewards</TabsTrigger>
+            <TabsTrigger value="jth" className="whitespace-nowrap">Join the Hunt</TabsTrigger>
+            <TabsTrigger value="settings" className="whitespace-nowrap">Settings</TabsTrigger>
+          </TabsList>
 
         <TabsContent value="listings">
           <ListingManagement mode="residential" adminUser={user} />
@@ -50,7 +54,15 @@ export default function AdminLiteDashboard({ user }) {
         <TabsContent value="settings">
           <SystemSettings />
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
+      
+      <Link to="/LaunchChecklist">
+        <Button variant="outline" className="gap-2 border-[#F4A849] text-[#F4A849] hover:bg-[#F4A849] hover:text-[#2C4F4E]">
+          <ClipboardList className="w-4 h-4" />
+          Launch Checklist
+        </Button>
+      </Link>
     </div>
   );
 }
