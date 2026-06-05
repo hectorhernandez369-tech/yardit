@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 function buildAccountNumber(listing) {
   if (listing?.listingNumber) return listing.listingNumber;

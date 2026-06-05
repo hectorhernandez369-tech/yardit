@@ -6,11 +6,60 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 });
 
 const RESIDENTIAL_PRICES = { free: 0, featured: 499, premium: 799 };
+const DATE_UNAVAILABLE_MESSAGE = 'These dates are no longer available for this address. Please select different dates.';
+const RESERVED_STATUSES = new Set(['active', 'under_review', 'pending_payment', 'scheduled', 'activated_locked', 'coming_soon', 'payment_pending', 'payment_pending_adjustment']);
 const nowIso = () => new Date().toISOString();
 const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
 
 function residentialUpgradeAmount(currentTier, targetTier) {
   return Math.max(0, (RESIDENTIAL_PRICES[targetTier] || 0) - (RESIDENTIAL_PRICES[currentTier] || 0));
+}
+
+function expandDateRange(startDate, endDate) {
+  const dates = [];
+  if (!startDate || !endDate) return dates;
+  const [sy, sm, sd] = String(startDate).split('-').map(Number);
+  const [ey, em, ed] = String(endDate).split('-').map(Number);
+  if (!sy || !sm || !sd || !ey || !em || !ed) return dates;
+  let cur = Date.UTC(sy, sm - 1, sd);
+  const end = Date.UTC(ey, em - 1, ed);
+  let guard = 0;
+  while (cur <= end && guard++ < 40) {
+    const d = new Date(cur);
+    dates.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`);
+    cur += 86400000;
+  }
+  return dates;
+}
+
+function normalizeAddressPart(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function sameResidentialAddress(listing, ref) {
+  if (typeof listing.lat === 'number' && typeof listing.lng === 'number' && typeof ref.lat === 'number' && typeof ref.lng === 'number') {
+    if (Math.abs(listing.lat - ref.lat) < 0.0003 && Math.abs(listing.lng - ref.lng) < 0.0003) return true;
+  }
+  return normalizeAddressPart(listing.addressText) === normalizeAddressPart(ref.addressText) && normalizeAddressPart(listing.zip) === normalizeAddressPart(ref.zip);
+}
+
+async function validateResidentialUpgradeDates(base44, listing) {
+  if (!listing?.selectedRangeStartDate || !listing?.selectedRangeEndDate) return { ok: false, error: 'Missing selected date range' };
+  if (!listing.addressText || !listing.zip || typeof listing.lat !== 'number' || typeof listing.lng !== 'number') {
+    return { ok: false, error: 'Verified address, normalized address, coordinates, and selected date range are required before checkout.' };
+  }
+  const proposed = new Set(expandDateRange(listing.selectedRangeStartDate, listing.selectedRangeEndDate));
+  const listings = await base44.asServiceRole.entities.Listing.filter({ zip: listing.zip });
+  const now = new Date();
+  for (const candidate of listings || []) {
+    if (candidate.id === listing.id || candidate.listingType !== 'yard_sale' || candidate.is_demo_listing) continue;
+    if (!RESERVED_STATUSES.has(candidate.status)) continue;
+    if (candidate.endDateTime && new Date(candidate.endDateTime) < now) continue;
+    if (!sameResidentialAddress(candidate, listing)) continue;
+    const reserved = [...expandDateRange(candidate.selectedRangeStartDate, candidate.selectedRangeEndDate), ...(candidate.earlyVisibilityDates || [])];
+    if (reserved.some((date) => proposed.has(date))) return { ok: false, error: DATE_UNAVAILABLE_MESSAGE };
+  }
+  return { ok: true };
 }
 
 async function webhookConfirmed(base44, sessionId) {
@@ -84,6 +133,11 @@ Deno.serve(async (req) => {
     if (!amountCents || amountCents < 50) return Response.json({ error: 'Invalid upgrade amount' }, { status: 400 });
     if (listingKind === 'residential' && amountCents !== expectedAmount) {
       return Response.json({ error: 'Invalid residential upgrade amount' }, { status: 400 });
+    }
+
+    if (listingKind === 'residential') {
+      const dateValidation = await validateResidentialUpgradeDates(base44, listing);
+      if (!dateValidation.ok) return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
     }
 
     const separator = String(returnUrl).includes('?') ? '&' : '?';

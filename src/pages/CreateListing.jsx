@@ -579,6 +579,13 @@ export default function CreateListingPage() {
         customer_email: user?.email,
         return_url: returnUrl,
         listing_id: "",
+        owner_user_id: user?.id,
+        addressText: formData.addressText || user?.primary_address || user?.street_address || "",
+        zip: formData.zip || user?.zip_code || "",
+        lat: formData.lat ?? user?.primary_latitude ?? user?.address_lat,
+        lng: formData.lng ?? user?.primary_longitude ?? user?.address_lng,
+        selectedRangeStartDate: formData.selectedRangeStartDate,
+        selectedRangeEndDate: formData.selectedRangeEndDate,
         non_refund_acknowledged: nonRefundFields.non_refund_acknowledged,
         non_refund_acknowledged_at: nonRefundFields.non_refund_acknowledged_at,
         non_refund_acknowledged_by_user_id: nonRefundFields.non_refund_acknowledged_by_user_id,
@@ -673,7 +680,6 @@ export default function CreateListingPage() {
 
   const createListingMutation = useMutation({
     mutationFn: async (data) => {
-      // ✅ Enforce date-overlap rule: same address cannot have overlapping active listing dates
       if (!isAdminCreate && data.listingType === "yard_sale" && data.selectedRangeStartDate && data.selectedRangeEndDate) {
         const conflict = await checkDateConflictLive(data.selectedRangeStartDate, data.selectedRangeEndDate);
         if (conflict) {
@@ -870,6 +876,14 @@ export default function CreateListingPage() {
         } catch (err) {
           console.error("Failed to create join request/notifications", err);
         }
+      }
+
+      if (createdListing.pending_checkout_session_id && createdListing.listingType === "yard_sale") {
+        await base44.functions.invoke("residentialStripeCheckout", {
+          action: "link_paid_listing",
+          session_id: createdListing.pending_checkout_session_id,
+          listing_id: createdListing.id,
+        });
       }
 
       if (activeRescue?.id) {
@@ -1309,11 +1323,12 @@ export default function CreateListingPage() {
       payload.pricePaid = Number(EVENT_TIER_PRICES[payload.event_tier || payload.tier] || 0) / 100;
     }
 
-    if (actionStr === "paid_success" && ["featured", "premium"].includes(payload.tier) && payload.listingType !== "event") {
-      payload.status = "scheduled";
-      payload.pricePaid = (RESIDENTIAL_TIER_PRICES[payload.tier] || 0) / 100;
-      payload.stripe_checkout_session_id = sourceFormData.stripe_checkout_session_id || "";
-      payload.payment_intent_status = sourceFormData.payment_intent_status || "captured";
+    if (actionStr === "paid_success_pending_link" && ["featured", "premium"].includes(payload.tier) && payload.listingType !== "event") {
+      payload.status = "pending_payment";
+      payload.payment_status = "pending";
+      payload.pricePaid = 0;
+      payload.pending_checkout_session_id = sourceFormData.pending_checkout_session_id || "";
+      payload.payment_intent_status = sourceFormData.payment_intent_status || "hold_requested";
     }
 
     if (isGlobalDemoMode) {
@@ -1389,7 +1404,6 @@ export default function CreateListingPage() {
     for (let i = 0; i < 5; i++) rand5 += chars[Math.floor(Math.random() * chars.length)];
     const listingNumber = `${stateCode}${zipLast4}-${rand5}`;
 
-    // Build dates same as featured/premium executeSubmit logic
     let payload = { ...data, listingNumber, ownerUserId: user.id, participant_origin: "standalone", neighborhood_join_status: "none" };
     if (data.tier === "featured") {
       const startLocal = new Date(`${data.selectedRangeStartDate}T00:00:00`);
@@ -1404,8 +1418,8 @@ export default function CreateListingPage() {
       payload.activeDates = activeDates;
       payload.earlyVisibilityDates = [];
     }
-    payload.status = "scheduled";
-    payload.payment_status = "paid";
+    payload.status = "pending_payment";
+    payload.payment_status = "pending";
     payload.pricePaid = 0;
     payload.payment_intent_status = "none";
     return payload;
@@ -1538,7 +1552,6 @@ export default function CreateListingPage() {
       return;
     }
 
-    // Ask-to-Join check: run AFTER dates are confirmed, only for yard_sale
     if (formData.listingType === "yard_sale" && !isAdminCreate && !isGlobalDemoMode) {
       const nearbySale = await findNearbyNeighborhoodSale();
       if (nearbySale) {
@@ -1660,7 +1673,6 @@ export default function CreateListingPage() {
           session_id: sessionId,
         }).then(async (response) => {
           if (response?.data?.paid) {
-            // Live date-overlap check on Stripe return (prevents stale-cache race condition)
             if (stored.formData?.listingType === "yard_sale" && stored.formData?.selectedRangeStartDate) {
               const conflict = await checkDateConflictLive(stored.formData.selectedRangeStartDate, stored.formData.selectedRangeEndDate);
               if (conflict) {
@@ -1672,10 +1684,10 @@ export default function CreateListingPage() {
             }
             setPaymentError("");
             toast.success("Payment successful.");
-            executeSubmit("paid_success", {
+            executeSubmit("paid_success_pending_link", {
               ...stored.formData,
-              stripe_checkout_session_id: sessionId,
-              payment_intent_status: "captured",
+              pending_checkout_session_id: sessionId,
+              payment_intent_status: "hold_requested",
             });
           } else {
             setIsStartingPayment(false);
@@ -1693,13 +1705,6 @@ export default function CreateListingPage() {
       localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
     }
   }, [location.search, user?.id]);
-
-  useEffect(() => {
-    if (step !== 3 || formData.listingType !== "yard_sale") return;
-    console.log("[RELIST_DEBUG] current formData tier before Tier & Review renders", {
-      currentFormDataTier: formData.tier,
-    });
-  }, [step, formData.listingType, formData.tier]);
 
   if (!user) {
     return <div className="p-8 text-center">Loading...</div>;
@@ -1728,7 +1733,6 @@ export default function CreateListingPage() {
     <div className="min-h-[calc(100vh-140px)] bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
 
-        {/* Page title */}
         <div className="mb-8 text-center">
           <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
             {isAdminCreate ? "Create Listing (Admin)" : formData.listingType === "event" ? "Create an Event" : formData.listingType === "neighborhood_sale" ? "Set Up a Neighborhood Sale" : "Post Your Yard Sale"}
@@ -1736,7 +1740,6 @@ export default function CreateListingPage() {
           {currentMeta && <p className="text-slate-400 text-sm mt-1.5">{currentMeta}</p>}
         </div>
 
-        {/* Progress bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s, i) => (
@@ -1771,7 +1774,6 @@ export default function CreateListingPage() {
           </div>
         )}
 
-        {/* Form card */}
         <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden" ref={formContainerRef}>
           <FormScrollHelper containerRef={formContainerRef} />
 
@@ -1909,7 +1911,6 @@ export default function CreateListingPage() {
 
       <NeighborhoodIntroModal open={showNeighborhoodIntro} onClose={() => setShowNeighborhoodIntro(false)} onContinue={() => { setShowNeighborhoodIntro(false); setStep(2); }} />
 
-      {/* Popup #1 */}
       <Dialog
         open={saleModalStep === 1}
         onOpenChange={(open) => {
@@ -1950,7 +1951,6 @@ export default function CreateListingPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Popup #2 */}
       <Dialog
         open={saleModalStep === 2}
         onOpenChange={(open) => {

@@ -6,6 +6,7 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 });
 
 const RESIDENTIAL_PRICES = { featured: 499, premium: 799 };
+const DATE_UNAVAILABLE_MESSAGE = 'These dates are no longer available for this address. Please select different dates.';
 
 const RESERVED_STATUSES = new Set([
   'active', 'under_review', 'pending_payment', 'scheduled',
@@ -33,27 +34,47 @@ function expandDateRange(startDate, endDate) {
   return dates;
 }
 
-async function checkResidentialDateConflict(base44, ownerUserId, lat, lng, startDate, endDate) {
-  if (!ownerUserId || !lat || !lng || !startDate || !endDate) return false;
-  const listings = await base44.asServiceRole.entities.Listing.filter({ ownerUserId });
+function normalizeAddressPart(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function sameResidentialAddress(listing, ref) {
+  const lat = Number(ref.lat);
+  const lng = Number(ref.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng) && typeof listing.lat === 'number' && typeof listing.lng === 'number') {
+    if (Math.abs(listing.lat - lat) < 0.0003 && Math.abs(listing.lng - lng) < 0.0003) return true;
+  }
+  return normalizeAddressPart(listing.addressText) === normalizeAddressPart(ref.addressText) && normalizeAddressPart(listing.zip) === normalizeAddressPart(ref.zip);
+}
+
+async function validateResidentialCheckoutDates(base44, payload, currentUser, excludeListingId = '') {
+  const startDate = payload.selected_range_start_date || payload.selectedRangeStartDate;
+  const endDate = payload.selected_range_end_date || payload.selectedRangeEndDate;
+  if (!startDate || !endDate) return { ok: false, error: 'Missing selected date range' };
+  const ref = {
+    addressText: payload.address_text || payload.addressText || currentUser?.primary_address || currentUser?.street_address || '',
+    zip: payload.zip || currentUser?.zip_code || '',
+    lat: payload.lat ?? currentUser?.primary_latitude ?? currentUser?.address_lat,
+    lng: payload.lng ?? currentUser?.primary_longitude ?? currentUser?.address_lng,
+  };
+  if (!ref.addressText || !ref.zip || !Number.isFinite(Number(ref.lat)) || !Number.isFinite(Number(ref.lng))) {
+    return { ok: false, error: 'Verified address, normalized address, coordinates, and selected date range are required before checkout.' };
+  }
+  if (currentUser && currentUser.primary_address_verified !== true && currentUser.address_confirmation_status !== 'confirmed') {
+    return { ok: false, error: 'Verified address is required before checkout.' };
+  }
+  const listings = await base44.asServiceRole.entities.Listing.filter({ zip: ref.zip });
   const now = new Date();
   const proposed = new Set(expandDateRange(startDate, endDate));
   for (const l of listings || []) {
-    if (l.listingType !== 'yard_sale') continue;
-    if (l.is_demo_listing) continue;
+    if (l.id === excludeListingId || l.listingType !== 'yard_sale' || l.is_demo_listing) continue;
     if (!RESERVED_STATUSES.has(l.status)) continue;
     if (l.endDateTime && new Date(l.endDateTime) < now) continue;
-    // coordinate match ~100ft
-    const dLat = Math.abs((l.lat || 0) - lat);
-    const dLng = Math.abs((l.lng || 0) - lng);
-    if (dLat >= 0.0003 || dLng >= 0.0003) continue;
-    const existing = [...expandDateRange(l.selectedRangeStartDate, l.selectedRangeEndDate),
-                     ...(l.earlyVisibilityDates || [])];
-    for (const d of existing) {
-      if (proposed.has(d)) return true;
-    }
+    if (!sameResidentialAddress(l, ref)) continue;
+    const existing = [...expandDateRange(l.selectedRangeStartDate, l.selectedRangeEndDate), ...(l.earlyVisibilityDates || [])];
+    if (existing.some((d) => proposed.has(d))) return { ok: false, error: DATE_UNAVAILABLE_MESSAGE };
   }
-  return false;
+  return { ok: true };
 }
 const nowIso = () => new Date().toISOString();
 const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
@@ -122,20 +143,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invalid residential tier amount' }, { status: 400 });
     }
 
-    // ✅ Backend date-overlap guard: prevent paying for already-reserved dates
-    if (listingKind === 'residential' && payload.owner_user_id && payload.lat && payload.lng &&
-        payload.selected_range_start_date && payload.selected_range_end_date) {
-      const conflict = await checkResidentialDateConflict(
-        base44,
-        payload.owner_user_id,
-        Number(payload.lat),
-        Number(payload.lng),
-        payload.selected_range_start_date,
-        payload.selected_range_end_date
-      );
-      if (conflict) {
-        console.warn('Date conflict detected, blocking checkout', { owner: payload.owner_user_id, start: payload.selected_range_start_date, end: payload.selected_range_end_date });
-        return Response.json({ error: 'These dates are already reserved for this address. Please choose different dates.' }, { status: 409 });
+    if (listingKind === 'residential') {
+      const currentUser = await base44.auth.me().catch(() => null);
+      const dateValidation = await validateResidentialCheckoutDates(base44, payload, currentUser, payload.listing_id || '');
+      if (!dateValidation.ok) {
+        return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
       }
     }
 

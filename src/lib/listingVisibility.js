@@ -30,6 +30,7 @@ const OWNER_PREVIEW_STATUSES = new Set([
 ]);
 
 const PUBLIC_PAYMENT_OK = new Set(["paid", "skipped_admin_promo", "waived"]);
+const PUBLIC_PAYMENT_BLOCKED = new Set(["pending", "failed", "unpaid", "none", "canceled", "cancelled", "requires_payment_method", "requires_payment_action"]);
 const PAID_TIERS = new Set(["basic", "featured", "premium", "marquee"]);
 const COMING_SOON_TIERS = new Set(["premium", "marquee"]);
 
@@ -82,14 +83,12 @@ function hasPublicPayment(listing) {
   const tier = listing?.event_tier || listing?.tier;
   if (!PAID_TIERS.has(tier)) return true;
 
-  const paymentStatus = listing?.payment_status;
+  const paymentStatus = String(listing?.payment_status || "").toLowerCase();
   if (PUBLIC_PAYMENT_OK.has(paymentStatus)) return true;
+  if (PUBLIC_PAYMENT_BLOCKED.has(paymentStatus)) return false;
   if (listing?.payment_intent_status === "captured") return true;
-  if (Number(listing?.pricePaid || 0) > 0) return true;
-  if (listing?.stripe_checkout_session_id || listing?.stripe_payment_intent_id) return true;
 
-  if (!paymentStatus) return true;
-  return false;
+  return !paymentStatus;
 }
 
 function isNeighborhoodParticipant(listing) {

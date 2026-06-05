@@ -5,6 +5,71 @@ const nowIso = () => new Date().toISOString();
 const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
 
 const RESIDENTIAL_BASE_PRICES = { featured: 499, premium: 799 };
+const DATE_UNAVAILABLE_MESSAGE = 'These dates are no longer available for this address. Please select different dates.';
+const RESERVED_STATUSES = new Set(['active', 'under_review', 'pending_payment', 'scheduled', 'activated_locked', 'coming_soon', 'payment_pending', 'payment_pending_adjustment']);
+
+function expandDateRange(startDate, endDate) {
+  const dates = [];
+  if (!startDate || !endDate) return dates;
+  const [sy, sm, sd] = String(startDate).split('-').map(Number);
+  const [ey, em, ed] = String(endDate).split('-').map(Number);
+  if (!sy || !sm || !sd || !ey || !em || !ed) return dates;
+  let cur = Date.UTC(sy, sm - 1, sd);
+  const end = Date.UTC(ey, em - 1, ed);
+  let guard = 0;
+  while (cur <= end && guard++ < 40) {
+    const d = new Date(cur);
+    dates.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`);
+    cur += 86400000;
+  }
+  return dates;
+}
+
+function normalizeAddressPart(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function sameResidentialAddress(listing, ref) {
+  const lat = Number(ref.lat);
+  const lng = Number(ref.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng) && typeof listing.lat === 'number' && typeof listing.lng === 'number') {
+    if (Math.abs(listing.lat - lat) < 0.0003 && Math.abs(listing.lng - lng) < 0.0003) return true;
+  }
+  return normalizeAddressPart(listing.addressText) === normalizeAddressPart(ref.addressText) &&
+    normalizeAddressPart(listing.zip) === normalizeAddressPart(ref.zip);
+}
+
+async function validateResidentialCheckoutDates(base44, payload, currentUser, excludeListingId = '') {
+  const startDate = payload.selected_range_start_date || payload.selectedRangeStartDate;
+  const endDate = payload.selected_range_end_date || payload.selectedRangeEndDate;
+  if (!startDate || !endDate) return { ok: false, error: 'Missing selected date range' };
+
+  const ref = {
+    addressText: payload.address_text || payload.addressText || currentUser?.primary_address || currentUser?.street_address || '',
+    zip: payload.zip || currentUser?.zip_code || '',
+    lat: payload.lat ?? currentUser?.primary_latitude ?? currentUser?.address_lat,
+    lng: payload.lng ?? currentUser?.primary_longitude ?? currentUser?.address_lng,
+  };
+  if (!ref.addressText || !ref.zip || !Number.isFinite(Number(ref.lat)) || !Number.isFinite(Number(ref.lng))) {
+    return { ok: false, error: 'Verified address, normalized address, coordinates, and selected date range are required before checkout.' };
+  }
+  if (currentUser && currentUser.primary_address_verified !== true && currentUser.address_confirmation_status !== 'confirmed') {
+    return { ok: false, error: 'Verified address is required before checkout.' };
+  }
+
+  const proposed = new Set(expandDateRange(startDate, endDate));
+  const listings = await base44.asServiceRole.entities.Listing.filter({ zip: ref.zip });
+  const now = new Date();
+  for (const listing of listings || []) {
+    if (listing.id === excludeListingId || listing.listingType !== 'yard_sale' || listing.is_demo_listing) continue;
+    if (!RESERVED_STATUSES.has(listing.status)) continue;
+    if (listing.endDateTime && new Date(listing.endDateTime) < now) continue;
+    if (!sameResidentialAddress(listing, ref)) continue;
+    const reserved = [...expandDateRange(listing.selectedRangeStartDate, listing.selectedRangeEndDate), ...(listing.earlyVisibilityDates || [])];
+    if (reserved.some((date) => proposed.has(date))) return { ok: false, error: DATE_UNAVAILABLE_MESSAGE };
+  }
+  return { ok: true };
+}
 
 async function webhookConfirmed(base44, sessionId) {
   const records = await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_checkout_session_id: sessionId });
@@ -37,6 +102,10 @@ Deno.serve(async (req) => {
 
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       if (session.payment_status !== 'paid') return Response.json({ error: 'Payment not paid' }, { status: 400 });
+      const confirmed = await webhookConfirmed(base44, session.id);
+      if (!confirmed) return Response.json({ error: 'Stripe webhook confirmation is still pending' }, { status: 409 });
+      const dateValidation = await validateResidentialCheckoutDates(base44, listing, user, listingId);
+      if (!dateValidation.ok) return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
 
       const paymentIntentId = asId(session.payment_intent);
       const patch = {
@@ -63,6 +132,8 @@ Deno.serve(async (req) => {
         stripe_payment_intent_id: paymentIntentId,
         payment_status: 'paid',
         payment_intent_status: 'captured',
+        status: 'scheduled',
+        pricePaid: Number(session.amount_total || 0) / 100,
         non_refund_acknowledged: listing.non_refund_acknowledged === true,
         non_refund_acknowledged_at: listing.non_refund_acknowledged_at || '',
         non_refund_acknowledged_by_user_id: listing.non_refund_acknowledged_by_user_id || listing.ownerUserId || user.id || '',
@@ -97,6 +168,12 @@ Deno.serve(async (req) => {
       if (!listing_id || !promo_code_id) {
         return Response.json({ error: 'Missing required fields for free promo' }, { status: 400 });
       }
+
+      const listings = await base44.asServiceRole.entities.Listing.filter({ id: listing_id });
+      const listing = listings?.[0];
+      if (!listing) return Response.json({ error: 'Listing not found' }, { status: 404 });
+      const dateValidation = await validateResidentialCheckoutDates(base44, listing, null, listing_id);
+      if (!dateValidation.ok) return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
 
       // Create completed redemption record
       await base44.asServiceRole.entities.ResidentialPromoRedemption.create({
@@ -184,6 +261,13 @@ Deno.serve(async (req) => {
     }
     if (amount < 50) {
       return Response.json({ error: 'Amount too small for Stripe checkout' }, { status: 400 });
+    }
+
+    if (body?.listing_kind !== 'event') {
+      const dateValidation = await validateResidentialCheckoutDates(base44, body, currentUser, body?.listing_id || '');
+      if (!dateValidation.ok) {
+        return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
+      }
     }
 
     const successWithParams = `${successUrl}${successUrl.includes('?') ? '&' : '?'}payment=success&session_id={CHECKOUT_SESSION_ID}`;
