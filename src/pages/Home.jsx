@@ -1272,7 +1272,7 @@ const stats = useMemo(() => {
               <img 
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/cb76cc21e_file_00000000cd1c720ca3ac2dd5471be0aa.png" 
                 alt="Open Map" 
-                className="w-[70px] h-[70px] object-contain"
+                className="w-[70px] h-[70px] object-contain pointer-events-none"
                 style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }}
               />
             )}
@@ -1313,6 +1313,9 @@ const stats = useMemo(() => {
               center={mapCenter}
               zoom={13}
               maxZoom={22}
+              dragging={true}
+              touchZoom={true}
+              scrollWheelZoom={true}
               className="w-full h-full"
               style={{ width: "100%", height: "100%" }}
               zoomControl={false}
