@@ -1312,6 +1312,7 @@ const stats = useMemo(() => {
             <MapContainer
               center={mapCenter}
               zoom={13}
+              maxZoom={22}
               className="w-full h-full"
               style={{ width: "100%", height: "100%" }}
               zoomControl={false}
