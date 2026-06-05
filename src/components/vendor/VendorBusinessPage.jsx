@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
 import VendorActivePinPreview from "@/components/vendor/my-page/VendorActivePinPreview";
 import VendorUpdatesPanel from "@/components/vendor/my-page/VendorUpdatesPanel";
 import VendorPublicPreview from "@/components/vendor/my-page/VendorPublicPreview";
@@ -8,6 +9,7 @@ import VendorDetailsForm from "@/components/vendor/my-page/VendorDetailsForm";
 
 export default function VendorBusinessPage({ account, pins, checkIns, updates, onRefresh }) {
   const [previewMode, setPreviewMode] = useState(false);
+  const detailsFormRef = useRef(null);
 
   if (previewMode) {
     return (
@@ -30,6 +32,16 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
 
   const liveItems = (checkIns || []).filter((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
   const liveCount = liveItems.length;
+
+  const handleEditClick = () => {
+    const detailsCard = document.getElementById("vendor-profile-editor");
+    if (detailsCard) {
+      detailsCard.scrollIntoView({ behavior: "smooth", block: "center" });
+      const expandButton = detailsCard.querySelector("button[type='button']");
+      if (expandButton) expandButton.click();
+    }
+  };
+
   return (
     <div className="space-y-2 sm:space-y-5 min-w-0">
       <div id="vendor-my-page-card" className="rounded-2xl sm:rounded-3xl border border-[#2C4F4E]/15 bg-white p-3 sm:p-4 shadow-sm">
@@ -38,7 +50,13 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
             <h2 className="text-base sm:text-xl font-black text-[#2C4F4E]">My Page</h2>
             <p className="truncate text-xs sm:text-sm text-slate-600">Manage your public feed, photos, and live locations.</p>
           </div>
-          <Button id="vendor-public-preview-button" onClick={() => setPreviewMode(true)} size="sm" className="h-8 shrink-0 rounded-full bg-[#F4A849] px-3 text-xs text-[#2C4F4E] hover:bg-[#E39635] sm:h-9 sm:px-4 sm:text-sm">View Public Page</Button>
+          <div className="flex gap-2 shrink-0">
+            <Button id="vendor-edit-button" onClick={handleEditClick} size="sm" variant="outline" className="h-8 rounded-full px-3 text-xs sm:h-9 sm:px-4 sm:text-sm gap-1.5">
+              <Pencil className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Edit</span>
+            </Button>
+            <Button id="vendor-public-preview-button" onClick={() => setPreviewMode(true)} size="sm" className="h-8 shrink-0 rounded-full bg-[#F4A849] px-3 text-xs text-[#2C4F4E] hover:bg-[#E39635] sm:h-9 sm:px-4 sm:text-sm">View Public Page</Button>
+          </div>
         </div>
         <div className="mt-2 flex gap-1.5 sm:mt-3 sm:gap-3 text-center">
           <div className="rounded-xl sm:rounded-2xl bg-[#F3E6CF] px-2.5 py-1.5 sm:px-3 sm:py-2"><p className="text-sm sm:text-base font-black text-[#2C4F4E]">{(account.photo_urls || []).length}</p><p className="text-[10px] sm:text-[11px] text-slate-600">Photos</p></div>
