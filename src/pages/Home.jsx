@@ -1765,29 +1765,6 @@ const stats = useMemo(() => {
               })}
             </MapContainer>
 
-            {/* Temporary Proximity Debug Overlay */}
-            {gpsLocation && huntStops.some(s => s.huntStatus === 'not_started') && (
-              <div className="absolute top-[80px] right-4 z-[1000] bg-black/80 text-white text-[11px] p-3 rounded-md font-mono shadow-lg border border-green-500 pointer-events-none w-64 max-h-[40vh] overflow-y-auto">
-                <div className="font-bold text-green-400 mb-1 border-b border-green-800 pb-1">GPS Proximity Debug</div>
-                <div>Accuracy: {gpsLocation.accuracy ? gpsLocation.accuracy.toFixed(1) : '?'}m</div>
-                <div className="text-[9px] text-gray-400 break-all mb-2">Loc: [{gpsLocation.lat?.toFixed(5)}, {gpsLocation.lng?.toFixed(5)}]</div>
-                <div className="space-y-1.5">
-                  {huntStops.filter(s => s.huntStatus === 'not_started').map((stop) => {
-                    const lLat = Number(stop.lat);
-                    const lLng = Number(stop.lng);
-                    if (isNaN(lLat) || isNaN(lLng)) return <div key={stop.id}>Stop: Invalid coords</div>;
-                    const distFt = calculateDistanceMeters(Number(gpsLocation.lat), Number(gpsLocation.lng), lLat, lLng) * 3.28084;
-                    return (
-                      <div key={stop.id} className={`flex flex-col ${distFt <= 50 ? "text-green-300" : "text-amber-200"}`}>
-                        <span className="font-semibold truncate">{stop.title}</span>
-                        <span className="text-[10px]">Dist: {distFt.toFixed(1)} ft {distFt <= 50 ? '(Arrived)' : ''}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* Debug Overlay */}
             <div
               onClick={() => { setDebugPinned(true); clearTimeout(debugTimerRef.current); }}
