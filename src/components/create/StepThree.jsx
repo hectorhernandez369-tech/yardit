@@ -22,17 +22,30 @@ function addDays(dateStr, delta) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+function formatDisplayDate(dateStr, includeWeekday = false) {
+  if (!dateStr) return "?";
+  const [year, month, day] = String(dateStr).split("-").map(Number);
+  if (!year || !month || !day) return String(dateStr);
+
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+    ...(includeWeekday ? { weekday: "short" } : {}),
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatDisplayRange(startDate, endDate, suffix = "") {
+  return `${formatDisplayDate(startDate)} to ${formatDisplayDate(endDate)}${suffix}`;
+}
+
 export default function StepThree({ formData, setFormData, reservedDates = new Set() }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
 
   const freeTierDateRange = useMemo(() => {
     const freeWindow = computeFreeWindow(new Date(), formData?.timeZoneId || "America/Los_Angeles");
-    const formatDate = (ymd) => {
-      const [year, month, day] = String(ymd).split("-");
-      return `${Number(month)}/${Number(day)}/${String(year).slice(-2)}`;
-    };
-    return `Fri ${formatDate(freeWindow.startYMD)} 5:00 AM - Sun ${formatDate(freeWindow.endYMD)} 10:00 PM`;
+    return `${formatDisplayDate(freeWindow.startYMD, true)} 5:00 AM - ${formatDisplayDate(freeWindow.endYMD, true)} 10:00 PM`;
   }, [formData?.timeZoneId]);
 
   const tierDetails = {
@@ -231,7 +244,7 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
                 </p>
                 {reservedSortedList.length > 0 && (
                   <p className="text-xs text-amber-700 mt-2 font-medium">
-                    ⚠ Reserved dates for your address: {reservedSortedList.slice(0, 6).join(", ")}{reservedSortedList.length > 6 ? ` +${reservedSortedList.length - 6} more` : ""}
+                    ⚠ Reserved dates for your address: {reservedSortedList.slice(0, 6).map((date) => formatDisplayDate(date)).join(", ")}{reservedSortedList.length > 6 ? ` +${reservedSortedList.length - 6} more` : ""}
                   </p>
                 )}
               </div>
@@ -371,13 +384,13 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
             <div className="text-xs text-[#1F2937] opacity-70 mb-1">Event Dates</div>
             <div className="font-semibold text-[#2C4F4E] text-base">
               {isNeighborhoodSale ? (
-                `${formData.selectedRangeStartDate || "?"} to ${formData.selectedRangeEndDate || "?"}`
+                formatDisplayRange(formData.selectedRangeStartDate, formData.selectedRangeEndDate)
               ) : formData.tier === "free" ? (
                 freeTierDateRange
               ) : formData.tier === "featured" ? (
-                `${formData.selectedRangeStartDate || "?"} to ${formData.selectedRangeEndDate || "?"} (3 days)`
+                formatDisplayRange(formData.selectedRangeStartDate, formData.selectedRangeEndDate, " (3 days)")
               ) : (
-                `${formData.selectedRangeStartDate || "?"} to ${formData.selectedRangeEndDate || "?"} (5 days)`
+                formatDisplayRange(formData.selectedRangeStartDate, formData.selectedRangeEndDate, " (5 days)")
               )}
             </div>
           </div>
@@ -386,7 +399,7 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
             <div className="bg-[#E7D7B8] p-3 rounded-lg border border-[#F4A849]">
               <div className="text-xs text-[#2C4F4E] font-semibold mb-1">Pre-Activation Advertising</div>
               <div className="font-semibold text-[#2C4F4E]">
-                Starts on <span className="underline decoration-[#F4A849] decoration-2">{premiumAdStartDate}</span> ({formData.earlyVisibilityDays} days early)
+                Starts on <span className="underline decoration-[#F4A849] decoration-2">{formatDisplayDate(premiumAdStartDate)}</span> ({formData.earlyVisibilityDays} days early)
               </div>
             </div>
           )}
