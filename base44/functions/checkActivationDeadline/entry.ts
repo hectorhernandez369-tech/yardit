@@ -187,8 +187,8 @@ async function applyFallbackFlow(base44, sale, approvedHomes, reason, triggerLab
     type: 'fallback_listing',
     related_entity_id: sale.id,
     stripe_payment_intent_id: fallbackPayment?.stripe_payment_intent_id || '',
-    stripe_customer_id: fallbackPayment?.stripe_customer_id || neighborhoodPayment?.stripe_customer_id || '',
-    stripe_payment_method_id: fallbackPayment?.stripe_payment_method_id || neighborhoodPayment?.stripe_payment_method_id || '',
+    stripe_customer_id: fallbackPayment?.stripe_customer_id || neighborhoodPayment?.stripe_customer_id || sale.organizer_stripe_customer_id || '',
+    stripe_payment_method_id: fallbackPayment?.stripe_payment_method_id || neighborhoodPayment?.stripe_payment_method_id || sale.organizer_stripe_payment_method_id || '',
     created_at: fallbackPayment?.created_at || nowIso,
   });
 
@@ -307,8 +307,8 @@ async function processNeighborhoodCharge(base44, sale, approvedHomes, now, isRet
     type: 'neighborhood_event',
     related_entity_id: sale.id,
     stripe_payment_intent_id: existingPayment?.stripe_payment_intent_id || '',
-    stripe_customer_id: existingPayment?.stripe_customer_id || '',
-    stripe_payment_method_id: existingPayment?.stripe_payment_method_id || '',
+    stripe_customer_id: existingPayment?.stripe_customer_id || sale.organizer_stripe_customer_id || '',
+    stripe_payment_method_id: existingPayment?.stripe_payment_method_id || sale.organizer_stripe_payment_method_id || '',
     created_at: existingPayment?.created_at || now.toISOString(),
   });
 
