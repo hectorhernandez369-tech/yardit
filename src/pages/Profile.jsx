@@ -39,21 +39,69 @@ export default function ProfilePage() {
     fetchUser();
   }, []);
 
-  const { data: userLocations, isLoading: isLoadingLocations } = useQuery({
-    queryKey: ["userLocations", user?.email],
-    queryFn: () => base44.entities.Location.filter({ created_by: user.email }, "-created_date"),
-    enabled: !!user?.email,
+  const { data: userListings = [], isLoading: isLoadingListings } = useQuery({
+    queryKey: ["userPaymentListings", user?.id],
+    queryFn: () => base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date"),
+    enabled: !!user?.id,
     initialData: [],
   });
 
-  const { data: payments, isLoading: isLoadingPayments } = useQuery({
-    queryKey: ["userPayments", user?.email],
+  const { data: payments = [], isLoading: isLoadingPayments } = useQuery({
+    queryKey: ["userPayments", user?.id, userListings.length],
     queryFn: async () => {
-      const allPayments = await base44.entities.Payment.list("-created_date");
-      const userLocationIds = userLocations.map(loc => loc.id);
-      return allPayments.filter(payment => userLocationIds.includes(payment.location_id));
+      const [legacyPayments, transactions] = await Promise.all([
+        base44.entities.Payment.list("-created_date", 100),
+        base44.entities.PaymentTransaction.list("-created_date", 150),
+      ]);
+
+      const listingIds = new Set(userListings.map((listing) => listing.id).filter(Boolean));
+      const sessionIds = new Set(userListings.map((listing) => listing.stripe_checkout_session_id).filter(Boolean));
+      const paymentIntentIds = new Set(userListings.map((listing) => listing.stripe_payment_intent_id).filter(Boolean));
+      const completedSessions = new Set(
+        transactions
+          .filter((tx) => tx.event_type !== "checkout.session.created" && tx.stripe_checkout_session_id)
+          .map((tx) => tx.stripe_checkout_session_id)
+      );
+      const seenKeys = new Set();
+
+      const legacyRows = legacyPayments
+        .filter((payment) => payment.user_id === user.id || listingIds.has(payment.location_id) || listingIds.has(payment.related_entity_id))
+        .map((payment) => ({
+          ...payment,
+          amount: Number(payment.amount || 0),
+          location_id: payment.location_id || payment.related_entity_id,
+          plan: payment.plan || payment.type || "payment",
+          transaction_id: payment.transaction_id || payment.stripe_payment_intent_id || "",
+          payment_method: payment.payment_method || "Stripe",
+        }));
+
+      const transactionRows = transactions
+        .filter((tx) => {
+          if (tx.event_type === "checkout.session.created" && completedSessions.has(tx.stripe_checkout_session_id)) return false;
+          return tx.user_id === user.id || tx.user_email === user.email || listingIds.has(tx.yardit_record_id) || sessionIds.has(tx.stripe_checkout_session_id) || paymentIntentIds.has(tx.stripe_payment_intent_id);
+        })
+        .filter((tx) => {
+          const key = tx.stripe_payment_intent_id || tx.stripe_checkout_session_id || tx.id;
+          if (seenKeys.has(key)) return false;
+          seenKeys.add(key);
+          return true;
+        })
+        .map((tx) => {
+          const matchedListing = userListings.find((listing) => listing.id === tx.yardit_record_id || listing.stripe_checkout_session_id === tx.stripe_checkout_session_id || listing.stripe_payment_intent_id === tx.stripe_payment_intent_id);
+          return {
+            ...tx,
+            amount: Number(tx.amount_cents || 0) / 100,
+            location_id: tx.yardit_record_id || matchedListing?.id || "",
+            plan: tx.transaction_type || "payment",
+            duration_days: "",
+            transaction_id: tx.stripe_checkout_session_id || tx.stripe_payment_intent_id || tx.stripe_event_id || "",
+            payment_method: "Stripe",
+          };
+        });
+
+      return [...transactionRows, ...legacyRows].sort((a, b) => new Date(b.created_date || b.received_at || 0) - new Date(a.created_date || a.received_at || 0));
     },
-    enabled: !!user?.email && userLocations.length > 0,
+    enabled: !!user?.id,
     initialData: [],
   });
 
@@ -202,9 +250,9 @@ export default function ProfilePage() {
 
           <TabsContent value="payments">
             <PaymentHistory 
-              payments={payments}
-              locations={userLocations}
-              isLoading={isLoadingPayments}
+            payments={payments}
+            locations={userListings}
+            isLoading={isLoadingPayments || isLoadingListings}
             />
           </TabsContent>
 

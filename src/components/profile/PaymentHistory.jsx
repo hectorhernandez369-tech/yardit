@@ -8,7 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function PaymentHistory({ payments, locations, isLoading }) {
   const getLocationTitle = (locationId) => {
     const location = locations.find((loc) => loc.id === locationId);
-    return location?.title || "Unknown Location";
+    return location?.title || location?.event_name || "Paid Listing";
+  };
+
+  const getPlanLabel = (plan) => {
+    if (plan === "5_day") return "5-Day Plan";
+    if (plan === "monthly") return "Monthly Plan";
+    return String(plan || "payment").replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   const getTotalSpent = () => {
@@ -108,10 +114,14 @@ export default function PaymentHistory({ payments, locations, isLoading }) {
                             {format(new Date(payment.created_date), "MMM d, yyyy")}
                           </div>
                           <Badge variant="outline" className="text-xs">
-                            {payment.plan === "5_day" ? "5-Day Plan" : "Monthly Plan"}
+                            {getPlanLabel(payment.plan)}
                           </Badge>
-                          <span className="text-gray-400">•</span>
-                          <span>{payment.duration_days} days</span>
+                          {payment.duration_days && (
+                            <>
+                              <span className="text-gray-400">•</span>
+                              <span>{payment.duration_days} days</span>
+                            </>
+                          )}
                         </div>
 
                         {payment.transaction_id && (

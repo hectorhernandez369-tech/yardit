@@ -60,10 +60,12 @@ const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
 
 async function createCheckoutRecord(base44, session, payload, transactionType) {
   await base44.asServiceRole.entities.PaymentTransaction.create({
-    stripe_event_id: `checkout_created_${session.id}`,
-    event_type: 'checkout.session.created',
-    transaction_type: transactionType,
-    yardit_record_type: payload.listing_id ? 'Listing' : '',
+  stripe_event_id: `checkout_created_${session.id}`,
+  event_type: 'checkout.session.created',
+  transaction_type: transactionType,
+  user_id: payload.user_id || payload.owner_user_id || '',
+  user_email: payload.user_email || payload.customer_email || '',
+  yardit_record_type: payload.listing_id ? 'Listing' : '',
     yardit_record_id: payload.listing_id || '',
     status: 'received',
     amount_cents: Number(session.amount_total || payload.amount_cents || 0),
@@ -152,6 +154,8 @@ Deno.serve(async (req) => {
     const transactionType = 'listing_payment';
     const metadata = {
       base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
+      user_id: payload.user_id || payload.owner_user_id || '',
+      user_email: payload.user_email || payload.customer_email || '',
       purpose: listingKind === 'event' ? 'event_paid_listing' : 'residential_listing_payment',
       transaction_type: transactionType,
       listing_id: payload.listing_id || '',

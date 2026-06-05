@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Stripe from 'npm:stripe@18.5.0';
 
 /**
@@ -81,6 +81,8 @@ async function saveTransaction(base44, event, object, metadata, transactionType,
     stripe_event_id: event.id,
     event_type: event.type,
     transaction_type: transactionType,
+    user_id: metadata.user_id || metadata.owner_user_id || '',
+    user_email: metadata.user_email || metadata.customer_email || object.customer_details?.email || object.customer_email || object.receipt_email || '',
     yardit_record_type: target.type,
     yardit_record_id: target.id,
     status,

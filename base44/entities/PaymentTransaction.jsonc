@@ -17,10 +17,19 @@
         "listing_upgrade",
         "vendor_subscription",
         "vendor_tier_upgrade",
+        "vendor_event_promotion_upgrade",
         "unknown"
       ],
       "default": "unknown",
       "description": "Yardit payment category determined from Stripe metadata"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Yardit user ID associated with this transaction"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Yardit user email associated with this transaction"
     },
     "yardit_record_type": {
       "type": "string",

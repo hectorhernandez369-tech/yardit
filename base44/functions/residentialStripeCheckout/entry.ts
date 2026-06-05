@@ -16,7 +16,54 @@ Deno.serve(async (req) => {
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', { apiVersion: '2025-02-24.acacia' });
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
+    const currentUser = await base44.auth.me();
     const action = body?.action || 'create';
+
+    // ── LINK PAID SESSION TO CREATED LISTING ───────────────────────
+    if (action === 'link_paid_listing') {
+      const user = currentUser;
+      if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+      const sessionId = body?.sessionId || body?.session_id;
+      const listingId = body?.listing_id;
+      if (!sessionId || !listingId) return Response.json({ error: 'Missing session or listing' }, { status: 400 });
+
+      const listings = await base44.asServiceRole.entities.Listing.filter({ id: listingId });
+      const listing = listings?.[0];
+      if (!listing) return Response.json({ error: 'Listing not found' }, { status: 404 });
+      if (listing.ownerUserId !== user.id && !['admin', 'master', 'super_master'].includes(user.role)) {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.payment_status !== 'paid') return Response.json({ error: 'Payment not paid' }, { status: 400 });
+
+      const paymentIntentId = asId(session.payment_intent);
+      const patch = {
+        yardit_record_type: 'Listing',
+        yardit_record_id: listingId,
+        user_id: listing.ownerUserId || user.id,
+        user_email: user.email || session.customer_details?.email || '',
+        stripe_payment_intent_id: paymentIntentId,
+        stripe_customer_id: asId(session.customer),
+        payment_status: session.payment_status || session.status || '',
+        processed_at: nowIso(),
+      };
+
+      const bySession = await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_checkout_session_id: sessionId });
+      const byIntent = paymentIntentId ? await base44.asServiceRole.entities.PaymentTransaction.filter({ stripe_payment_intent_id: paymentIntentId }) : [];
+      const records = [...bySession, ...byIntent].filter((record, index, arr) => record?.id && arr.findIndex((item) => item.id === record.id) === index);
+      await Promise.all(records.map((record) => base44.asServiceRole.entities.PaymentTransaction.update(record.id, patch)));
+
+      await base44.asServiceRole.entities.Listing.update(listingId, {
+        stripe_checkout_session_id: sessionId,
+        stripe_payment_intent_id: paymentIntentId,
+        payment_status: 'paid',
+        payment_intent_status: 'captured',
+      });
+
+      return Response.json({ ok: true, linked: records.length, payment_intent_id: paymentIntentId });
+    }
 
     // ── VERIFY ─────────────────────────────────────────────────────
     if (action === 'verify') {
@@ -115,6 +162,8 @@ Deno.serve(async (req) => {
 
     const metadata = {
       base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
+      user_id: body?.user_id || currentUser?.id || '',
+      user_email: body?.user_email || body?.customer_email || currentUser?.email || '',
       listing_id: body?.listing_id || '',
       tier,
       target_tier: tier,
@@ -178,6 +227,8 @@ Deno.serve(async (req) => {
       stripe_event_id: `checkout_created_${session.id}`,
       event_type: 'checkout.session.created',
       transaction_type: 'listing_payment',
+      user_id: body?.user_id || currentUser?.id || '',
+      user_email: body?.user_email || body?.customer_email || currentUser?.email || '',
       yardit_record_type: body?.listing_id ? 'Listing' : '',
       yardit_record_id: body?.listing_id || '',
       status: 'received',
