@@ -17,7 +17,6 @@ import { buildResolvedListingLocation, resolveTimeZoneFromCoordinates, getStateA
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import tzLookup from "tz-lookup";
 import iconRetina from "leaflet/dist/images/marker-icon-2x.png";
 import iconUrl from "leaflet/dist/images/marker-icon.png";
 import shadowUrl from "leaflet/dist/images/marker-shadow.png";
@@ -34,13 +33,11 @@ const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym5
 async function resolveTimeZoneId(lat, lng) {
   if (typeof lat !== "number" || typeof lng !== "number") return "";
 
-  console.log("[StepTwo] timezone lookup coords", { lat, lng });
-
-  const timeZoneId = tzLookup(lat, lng);
+  const timeZoneId = resolveTimeZoneFromCoordinates(lat, lng);
 
   console.log("[StepTwo] timezone lookup result", { lat, lng, timeZoneId });
 
-  return typeof timeZoneId === "string" ? timeZoneId : "";
+  return timeZoneId;
 }
 
 async function ensureUserProfileTimeZone(user) {
