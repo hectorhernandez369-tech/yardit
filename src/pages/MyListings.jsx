@@ -6,6 +6,7 @@ import { createPageUrl } from "@/utils";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Map } from "lucide-react";
 import { format } from "date-fns";
 
@@ -22,6 +23,7 @@ import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
 import { getUserDisplayName } from "@/lib/userIdentity";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import YardSaleGuideModal from "@/components/guide/YardSaleGuideModal";
+import { getPreviewListingsOnMapPreference, setPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
@@ -31,6 +33,7 @@ export default function MyListingsPage() {
 
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState("active");
+  const [previewListingsOnMap, setPreviewListingsOnMap] = useState(getPreviewListingsOnMapPreference);
   const [showGuideModal, setShowGuideModal] = useState(false);
 
   // Edit modal state — passed to EditListingDialog
@@ -749,11 +752,24 @@ export default function MyListingsPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap mb-6 rounded-xl border bg-white/70 p-2 shadow-sm max-w-4xl">
-          <Button variant={tab === "active" ? "default" : "outline"} onClick={() => setTab("active")}>Active ({activeListings.length})</Button>
-          <Button variant={tab === "pending" ? "default" : "outline"} onClick={() => setTab("pending")} className={tab !== "pending" ? "border-yellow-400 text-yellow-700 hover:bg-yellow-50" : ""}>Pending ({pendingListings.length})</Button>
-          <Button variant={tab === "past" ? "default" : "outline"} onClick={() => setTab("past")}>Past Listings ({pastListings.length})</Button>
-          <Button variant={tab === "billing" ? "default" : "outline"} onClick={() => setTab("billing")}>Billing / Payments</Button>
+        <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex gap-2 flex-wrap rounded-xl border bg-white/70 p-2 shadow-sm max-w-4xl">
+            <Button variant={tab === "active" ? "default" : "outline"} onClick={() => setTab("active")}>Active ({activeListings.length})</Button>
+            <Button variant={tab === "pending" ? "default" : "outline"} onClick={() => setTab("pending")} className={tab !== "pending" ? "border-yellow-400 text-yellow-700 hover:bg-yellow-50" : ""}>Pending ({pendingListings.length})</Button>
+            <Button variant={tab === "past" ? "default" : "outline"} onClick={() => setTab("past")}>Past Listings ({pastListings.length})</Button>
+            <Button variant={tab === "billing" ? "default" : "outline"} onClick={() => setTab("billing")}>Billing / Payments</Button>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-xl border bg-white/80 px-4 py-3 shadow-sm lg:min-w-[260px]">
+            <span className="text-sm font-semibold text-slate-700">Preview listings on map</span>
+            <Switch
+              checked={previewListingsOnMap}
+              onCheckedChange={(checked) => {
+                setPreviewListingsOnMap(checked);
+                setPreviewListingsOnMapPreference(checked);
+              }}
+            />
+          </div>
         </div>
 
         {tab === "billing" ? (

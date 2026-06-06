@@ -56,6 +56,7 @@ import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map
 import QuickMapFilters from "@/components/map/QuickMapFilters";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
+import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 
@@ -458,6 +459,7 @@ export default function HomePage() {
   const huntButtonPositionRef = useRef({ x: 0, y: 112 });
   const [huntButtonPosition, setHuntButtonPosition] = useState({ x: 0, y: 112 });
   const [user, setUser] = useState(null);
+  const [previewListingsOnMap] = useState(getPreviewListingsOnMapPreference);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -864,6 +866,7 @@ export default function HomePage() {
         const mapState = getListingMapVisibilityState(listing, user, visibilityContext);
         if (debugForceOn) debugListingVisibility(listing, user, visibilityContext);
         if (mapState === "hidden") return null;
+        if (!previewListingsOnMap && mapState === "preview" && user?.id && getListingOwnerId(listing) === user.id) return null;
 
         return { ...listing, mapState };
       })
@@ -878,7 +881,7 @@ export default function HomePage() {
     }
 
     return combinedListings.filter(l => listingMatchesQuery(l, searchQuery, true));
-  }, [listings, vendorEvents, filter, searchQuery, selectedCategories, demoOn, user, viewingOwnerPreviewMode, debugForceOn]);
+  }, [listings, vendorEvents, filter, searchQuery, selectedCategories, demoOn, user, viewingOwnerPreviewMode, debugForceOn, previewListingsOnMap]);
 
   // List View uses its own pipeline in ListView.jsx + lib/listViewPipeline.js
   // No pre-filtering here — raw listings + vendorEvents are passed directly.
