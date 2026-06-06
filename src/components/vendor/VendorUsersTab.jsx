@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { getVendorUsageLimitStatus } from "@/lib/vendorUsage";
 import { getVendorAccountCapabilities } from "@/lib/getVendorAccountCapabilities";
 import { hashVendorPasscode } from "@/lib/vendorPasscode";
+import TransferOwnershipCard from "./TransferOwnershipCard";
 import { toast } from "sonner";
 
 export default function VendorUsersTab({ account, users, user, pins = [], isOwner, onRefresh }) {
@@ -16,6 +17,7 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
   // Capabilities always come from the selected business account — never from a user-level tier.
   const caps = getVendorAccountCapabilities(account);
   const activeUserCount = users.filter((u) => u.status === "active" || u.status === "accepted").length;
+  const canTransferOwnership = isOwner || ["master", "super_master"].includes(user?.role);
   const canAddUser = isOwner && activeUserCount < caps.maxUsers;
 
   const addUser = async () => {
@@ -105,6 +107,8 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
           {!isOwner && <p className="text-sm text-muted-foreground">Only the business owner can add users.</p>}
           {isOwner && !canAddUser && <p className="text-sm text-amber-700">User limit reached ({activeUserCount}/{caps.maxUsers}) for {caps.tierLabel} plan on this business.</p>}
         </CardContent></Card>
+
+        <TransferOwnershipCard account={account} user={user} canTransfer={canTransferOwnership} onRefresh={onRefresh} />
       </div>
       <div className="grid min-w-0 gap-2.5 sm:gap-3">
         {users.map((item) => {
