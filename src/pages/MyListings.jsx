@@ -267,7 +267,10 @@ export default function MyListingsPage() {
 
   const activeListings = useMemo(() => normalizedListings.filter((l) => isActiveListing(l)), [normalizedListings, participantParentSaleById, user]);
   const pendingListings = useMemo(() => normalizedListings.filter((l) => isPendingListing(l)), [normalizedListings, participantParentSaleById, user]);
-  const pastListings = useMemo(() => normalizedListings.filter((l) => isEffectivelyPastListing(l)).sort((a, b) => new Date(b.updated_date || b.created_date || 0) - new Date(a.updated_date || a.created_date || 0)), [normalizedListings]);
+  const pastListings = useMemo(() => {
+    const past = normalizedListings.filter((l) => isEffectivelyPastListing(l));
+    return past.sort((a, b) => new Date(b.endDateTime || b.updated_date || 0) - new Date(a.endDateTime || a.updated_date || 0));
+  }, [normalizedListings]);
 
   const filteredCoHostUsers = useMemo(() => {
     if (!editingListing || editingListing.listingType !== "neighborhood_sale") return [];
