@@ -88,7 +88,8 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
   };
 
   return (
-    <div className="grid min-w-0 gap-3 sm:gap-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
+    <div className="space-y-3 sm:space-y-4 min-w-0">
+      <div className="grid min-w-0 gap-3 sm:gap-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
       <div className="space-y-3 sm:space-y-4 min-w-0">
         <Card className="rounded-2xl overflow-hidden bg-white shadow-sm"><CardHeader className="p-3 sm:p-5 pb-2"><CardTitle className="text-base sm:text-lg">Vendor Portal Passcode</CardTitle></CardHeader><CardContent className="space-y-2.5 p-3 pt-0 sm:p-5 sm:pt-0">
           <p className="text-sm text-slate-600">Authorized users must enter this shared passcode before accessing the Vendor Dashboard. The current passcode is never shown.</p>
@@ -108,7 +109,6 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
           {isOwner && !canAddUser && <p className="text-sm text-amber-700">User limit reached ({activeUserCount}/{caps.maxUsers}) for {caps.tierLabel} plan on this business.</p>}
         </CardContent></Card>
 
-        <TransferOwnershipCard account={account} user={user} canTransfer={canTransferOwnership} onRefresh={onRefresh} />
       </div>
       <div className="grid min-w-0 gap-2.5 sm:gap-3">
         {users.map((item) => {
@@ -155,6 +155,8 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
           );
         })}
       </div>
+      </div>
+      <TransferOwnershipCard account={account} user={user} canTransfer={canTransferOwnership} onRefresh={onRefresh} />
     </div>
   );
 }

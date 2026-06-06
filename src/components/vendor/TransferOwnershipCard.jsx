@@ -13,6 +13,7 @@ export default function TransferOwnershipCard({ account, user, canTransfer, onRe
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [transferring, setTransferring] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const normalizedEmail = newOwnerEmail.trim().toLowerCase();
   const hasPasscode = !!account?.vendor_dashboard_passcode_hash;
@@ -54,18 +55,25 @@ export default function TransferOwnershipCard({ account, user, canTransfer, onRe
   return (
     <>
       <Card className="rounded-2xl overflow-hidden bg-white shadow-sm">
-        <CardHeader className="p-3 sm:p-5 pb-2">
-          <CardTitle className="text-base sm:text-lg">Transfer Ownership</CardTitle>
+        <CardHeader className="p-3 sm:p-5">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-base sm:text-lg">Transfer Ownership</CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={() => setExpanded(!expanded)} className="rounded-full">
+              {expanded ? "Collapse" : "Open"}
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-2.5 p-3 pt-0 sm:p-5 sm:pt-0">
-          <p className="text-sm text-slate-600">Move this business account to a different Yardit user dashboard.</p>
-          <Input placeholder="New owner email" value={newOwnerEmail} onChange={(e) => setNewOwnerEmail(e.target.value)} disabled={!canTransfer} />
-          <Button onClick={openPasswordDialog} disabled={!canTransfer} variant="outline" className="w-full border-amber-300 text-amber-800 hover:bg-amber-50">
-            Transfer Ownership
-          </Button>
-          {!canTransfer && <p className="text-xs text-muted-foreground">Only the business owner can transfer this account.</p>}
-          {canTransfer && !hasPasscode && <p className="text-xs text-amber-700">Create a vendor passcode above before transferring ownership.</p>}
-        </CardContent>
+        {expanded && (
+          <CardContent className="space-y-2.5 p-3 pt-0 sm:p-5 sm:pt-0">
+            <p className="text-sm text-slate-600">Move this business account to a different Yardit user dashboard.</p>
+            <Input placeholder="New owner email" value={newOwnerEmail} onChange={(e) => setNewOwnerEmail(e.target.value)} disabled={!canTransfer} />
+            <Button onClick={openPasswordDialog} disabled={!canTransfer} variant="outline" className="w-full border-amber-300 text-amber-800 hover:bg-amber-50">
+              Transfer Ownership
+            </Button>
+            {!canTransfer && <p className="text-xs text-muted-foreground">Only the business owner can transfer this account.</p>}
+            {canTransfer && !hasPasscode && <p className="text-xs text-amber-700">Create a vendor passcode above before transferring ownership.</p>}
+          </CardContent>
+        )}
       </Card>
 
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
