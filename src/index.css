@@ -169,32 +169,3 @@ button:focus-visible {
   margin-top: 4px !important;
   margin-right: 4px !important;
 }
-
-.yardit-listing-popup .leaflet-popup-content-wrapper {
-  padding: 0 !important;
-  border-radius: 18px !important;
-  border: 1px solid rgba(44, 79, 78, 0.16);
-  box-shadow: 0 16px 40px rgba(44, 79, 78, 0.22) !important;
-  overflow: hidden;
-  background: white;
-}
-
-.yardit-listing-popup .leaflet-popup-content {
-  margin: 0 !important;
-}
-
-.yardit-listing-popup .leaflet-popup-tip {
-  background: white;
-  box-shadow: 0 6px 16px rgba(44, 79, 78, 0.14) !important;
-}
-
-.yardit-listing-popup .leaflet-popup-close-button {
-  width: 22px !important;
-  height: 22px !important;
-  margin-top: 7px !important;
-  margin-right: 7px !important;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.85) !important;
-  color: #2C4F4E !important;
-  box-shadow: 0 1px 4px rgba(44, 79, 78, 0.18);
-}
