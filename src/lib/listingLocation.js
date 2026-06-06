@@ -1,5 +1,3 @@
-import tzLookup from "tz-lookup";
-
 export const FALLBACK_TZ = "";
 
 export function hasValidCoordinates(lat, lng) {
@@ -55,12 +53,16 @@ export function normalizeLocationFields(location = {}) {
 
 export function resolveTimeZoneFromCoordinates(lat, lng) {
   if (!hasValidCoordinates(lat, lng)) return FALLBACK_TZ;
-  try {
-    const timeZoneId = tzLookup(lat, lng);
-    return typeof timeZoneId === "string" ? timeZoneId : FALLBACK_TZ;
-  } catch {
-    return FALLBACK_TZ;
+
+  if (lat >= 18 && lat <= 72 && lng >= -180 && lng <= -50) {
+    if (lng <= -150) return "America/Anchorage";
+    if (lng <= -125) return "America/Los_Angeles";
+    if (lng <= -110) return "America/Denver";
+    if (lng <= -95) return "America/Chicago";
+    return "America/New_York";
   }
+
+  return FALLBACK_TZ;
 }
 
 export function buildResolvedListingLocation(location = {}) {

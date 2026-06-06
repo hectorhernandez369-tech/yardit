@@ -1388,31 +1388,31 @@ const stats = useMemo(() => {
                       />
                     )}
                     {!isMarquee && (
-                      <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]}>
-                        <div className="flex flex-col" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
-                          <div className="p-1 overflow-y-auto flex-1 min-h-0 space-y-2">
-                            <div className="flex items-center gap-1 flex-wrap mb-1">
-                              <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
+                      <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="yardit-listing-popup">
+                        <div className="flex flex-col overflow-hidden rounded-[18px] bg-white" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
+                          <div className="p-3 overflow-y-auto flex-1 min-h-0 space-y-2.5 bg-gradient-to-br from-white via-[#FFFBF3] to-[#F3E6CF]/55">
+                            <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                              <Badge className={`text-[9px] px-2 py-0 h-5 min-h-0 rounded-full shadow-sm ${listing.listingType === "neighborhood_sale" ? "bg-[#5DADA5]" : listing.listingType === "event" ? "bg-[#2C4F4E]" : "bg-[#F4A849] text-[#2C4F4E]"}`}>
                                 {getListingTypeBadgeLabel(listing)}
                               </Badge>
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{getListingSecondaryBadgeLabel(listing)}</Badge>
+                              <Badge variant="outline" className="text-[9px] px-2 py-0 h-5 min-h-0 rounded-full capitalize border-[#5DADA5]/30 bg-white/80 text-[#2C4F4E]">{getListingSecondaryBadgeLabel(listing)}</Badge>
                               {!isPreviewState && (() => {
                                 const statusUi = getListingStatusUi(listing);
                                 return (
-                                  <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${statusUi.isComingSoon ? "bg-amber-500" : statusUi.isActive ? "bg-green-600" : "bg-slate-500"} text-white`}>
+                                  <Badge className={`text-[9px] px-2 py-0 h-5 min-h-0 rounded-full shadow-sm ${statusUi.isComingSoon ? "bg-[#F4A849] text-[#2C4F4E]" : statusUi.isActive ? "bg-emerald-600" : "bg-slate-500"} text-white`}>
                                     {statusUi.label}
                                   </Badge>
                                 );
                               })()}
                               {isPreviewState && (
-                                <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-amber-500 text-white">Preview</Badge>
+                                <Badge className="text-[9px] px-2 py-0 h-5 min-h-0 rounded-full bg-[#F4A849] text-[#2C4F4E] shadow-sm">Preview</Badge>
                               )}
                               {isHuntStop && !isPreviewState && (
-                                <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
+                                <Badge className="text-[9px] px-2 py-0 h-5 min-h-0 rounded-full bg-[#5DADA5] shadow-sm">Stop #{routeIndex + 1}</Badge>
                               )}
                             </div>
 
-                            <h3 className="font-bold text-sm leading-none">{getListingPrimaryText(listing)}</h3>
+                            <h3 className="font-extrabold text-[15px] leading-tight text-[#2C4F4E] tracking-tight">{getListingPrimaryText(listing)}</h3>
 
                             {isPreviewState ? (
                               <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2">
@@ -1440,14 +1440,14 @@ const stats = useMemo(() => {
                             )}
                           </div>
 
-                          <div className="flex items-center gap-1 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
+                          <div className="flex items-center gap-1.5 px-3 py-2 border-t border-[#2C4F4E]/10 bg-white/95 flex-shrink-0 flex-wrap">
                             <Button
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(listing.is_vendor_event ? `/VendorEventPublicPage?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`);
                               }}
-                              className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700"
+                              className="h-7 text-[11px] px-3 py-0 rounded-full bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635] font-bold shadow-sm"
                             >
                               {listing.is_vendor_event ? "Public View" : "View Listing"}
                             </Button>
