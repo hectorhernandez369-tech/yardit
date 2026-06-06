@@ -1,5 +1,21 @@
 export const FALLBACK_TZ = "";
 
+const TIME_ZONE_BOUNDS = [
+  { zone: "Pacific/Honolulu", minLat: 18, maxLat: 23, minLng: -161, maxLng: -154 },
+  { zone: "America/Anchorage", minLat: 51, maxLat: 72, minLng: -170, maxLng: -130 },
+  { zone: "America/Los_Angeles", minLat: 32, maxLat: 49, minLng: -125, maxLng: -114 },
+  { zone: "America/Denver", minLat: 31, maxLat: 49, minLng: -114, maxLng: -101 },
+  { zone: "America/Chicago", minLat: 25, maxLat: 49, minLng: -101, maxLng: -86 },
+  { zone: "America/New_York", minLat: 24, maxLat: 49, minLng: -86, maxLng: -66 },
+];
+
+function lookupApproximateTimeZone(lat, lng) {
+  const match = TIME_ZONE_BOUNDS.find(({ minLat, maxLat, minLng, maxLng }) => (
+    lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng
+  ));
+  return match?.zone || FALLBACK_TZ;
+}
+
 export function hasValidCoordinates(lat, lng) {
   return typeof lat === "number" && typeof lng === "number" && !Number.isNaN(lat) && !Number.isNaN(lng);
 }
@@ -53,16 +69,12 @@ export function normalizeLocationFields(location = {}) {
 
 export function resolveTimeZoneFromCoordinates(lat, lng) {
   if (!hasValidCoordinates(lat, lng)) return FALLBACK_TZ;
-
-  if (lat >= 18 && lat <= 72 && lng >= -180 && lng <= -50) {
-    if (lng <= -150) return "America/Anchorage";
-    if (lng <= -125) return "America/Los_Angeles";
-    if (lng <= -110) return "America/Denver";
-    if (lng <= -95) return "America/Chicago";
-    return "America/New_York";
+  try {
+    const timeZoneId = lookupApproximateTimeZone(lat, lng);
+    return typeof timeZoneId === "string" ? timeZoneId : FALLBACK_TZ;
+  } catch {
+    return FALLBACK_TZ;
   }
-
-  return FALLBACK_TZ;
 }
 
 export function buildResolvedListingLocation(location = {}) {
