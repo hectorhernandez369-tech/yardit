@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { AlertTriangle, ChevronDown } from "lucide-react";
+import { AlertTriangle, ChevronDown, Loader2, Upload } from "lucide-react";
 import { getVendorAccountNumber, getVendorIdentityWarnings } from "@/lib/vendorAccountIdentity";
 
 const fields = [
@@ -14,7 +14,6 @@ const fields = [
   ["business_name", "Business Name"],
   ["legal_business_name", "Legal Business Name"],
   ["organization_type", "Organization Type"],
-  ["business_logo", "Business Logo URL"],
   ["business_category", "Business Category"],
   ["phone", "Phone"],
   ["email", "Email"],
@@ -31,9 +30,22 @@ const fields = [
 export default function VendorDetailsForm({ account, onRefresh }) {
   const [form, setForm] = useState({ ...account });
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const logoInputRef = useRef(null);
 
   const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const uploadLogo = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    updateField("business_logo", file_url);
+    setUploadingLogo(false);
+    toast.success("Logo uploaded. Click Save Profile to publish it.");
+    event.target.value = "";
+  };
 
   const saveProfile = async () => {
     setSaving(true);
@@ -87,6 +99,24 @@ export default function VendorDetailsForm({ account, onRefresh }) {
       </CardHeader>
       {expanded && (
         <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+          <div className="flex flex-col gap-3 rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3 sm:flex-row sm:items-center">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-white">
+              {form.business_logo ? (
+                <img src={form.business_logo} alt="Business logo" className="h-full w-full object-cover" />
+              ) : (
+                <Upload className="h-6 w-6 text-slate-400" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1 space-y-2">
+              <Label>Business Logo</Label>
+              <p className="text-xs text-slate-500">Upload the photo/logo that appears on your vendor page and dashboard header.</p>
+              <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={uploadLogo} />
+              <Button type="button" variant="outline" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo} className="gap-2">
+                {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                {uploadingLogo ? "Uploading..." : "Upload Logo"}
+              </Button>
+            </div>
+          </div>
           <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4">
             {fields.map(([key, label]) => (
               <div key={key} className="space-y-1.5">
