@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { ChevronDown, Store } from "lucide-react";
 import {
   DropdownMenu,

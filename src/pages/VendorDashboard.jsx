@@ -13,6 +13,7 @@ import VendorPinStatusBar from "@/components/vendor/VendorPinStatusBar";
 import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
+import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
 import VendorAccessDenied from "@/components/vendor/VendorAccessDenied";
 import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
@@ -183,6 +184,7 @@ export default function VendorDashboard() {
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
             <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={accounts} onSelectBusiness={handleSelectBusiness} />
             <div className="hidden sm:block">
+              <BusinessSelectorBar accounts={accounts} activeAccount={account} onSelect={handleSelectBusiness} />
               <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
             </div>
 
