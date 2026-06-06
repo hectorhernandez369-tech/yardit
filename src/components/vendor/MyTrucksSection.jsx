@@ -75,12 +75,13 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   const livePinUsageStatus = getVendorUsageLimitStatus({ account: vendorAccount, pins });
   const canAddPin = hasVendorAccount && livePinUsageStatus.canAddPin;
   const isOwner = currentUser?.id === vendorAccount?.owner_user_id || currentUser?.email === vendorAccount?.owner_user_id;
+  const canManagePins = isOwner || ["master", "super_master"].includes(currentUser?.role);
 
   // Only accepted/active users have dashboard access
   const accessibleAuthorizedUsers = authorizedUsers.filter((u) => u.status === "active" || u.status === "accepted");
 
   // Find the current user's authorized record (accepted/active only) using case-insensitive email match
-  const currentAuthorizedUser = !isOwner
+  const currentAuthorizedUser = !canManagePins
     ? accessibleAuthorizedUsers.find(
         (u) => u.authorized_email?.trim().toLowerCase() === currentUser?.email?.trim().toLowerCase()
       )
@@ -89,13 +90,13 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   // Pins visible to the current user:
   // - Owner: all active pins
   // - Authorized user: only pins listed in their assigned_pin_ids
-  const visiblePins = isOwner
+  const visiblePins = canManagePins
     ? activePins
     : activePins.filter((p) => (currentAuthorizedUser?.assigned_pin_ids || []).includes(p.id));
 
   const getAssignedUsers = (pinId) => accessibleAuthorizedUsers.filter((u) => u.assigned_pin_ids?.includes(pinId));
   // Both owner and assigned authorized users can check in
-  const canCurrentUserCheckIn = (pinId) => isOwner || (currentAuthorizedUser?.assigned_pin_ids || []).includes(pinId);
+  const canCurrentUserCheckIn = (pinId) => canManagePins || (currentAuthorizedUser?.assigned_pin_ids || []).includes(pinId);
 
   const syncCheckInToPublicMap = async (checkInId) => {
     await base44.functions.invoke("syncPublicMapRecord", { recordType: "vendor_pin_checkin", recordId: checkInId });
@@ -231,17 +232,17 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
       <div className="flex items-center justify-between gap-3 rounded-2xl border bg-white p-3 sm:p-5 shadow-sm min-w-0">
         <div className="min-w-0">
           <h2 className="font-heading font-bold text-base sm:text-lg">My Truck Pins</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground truncate">{isOwner ? "Manage trucks and live map pins." : "Trucks assigned to you."}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground truncate">{canManagePins ? "Manage trucks and live map pins." : "Trucks assigned to you."}</p>
         </div>
-        {isOwner && <Button size="sm" onClick={handleOpenAdd} disabled={!canAddPin} className="shrink-0 gap-1 rounded-full font-heading px-3"><Plus className="w-3.5 h-3.5" /> Add</Button>}
+        {canManagePins && <Button size="sm" onClick={handleOpenAdd} disabled={!canAddPin} className="shrink-0 gap-1 rounded-full font-heading px-3"><Plus className="w-3.5 h-3.5" /> Add</Button>}
       </div>
 
-      {isOwner && !canAddPin && <div className="bg-destructive/10 rounded-xl p-3 flex gap-2"><AlertCircle className="w-4 h-4 text-destructive shrink-0" /><p className="text-xs text-destructive/80">You've reached your limit of {max_pins} truck pin{max_pins > 1 ? "s" : ""} for {tierConfig.name} tier.</p></div>}
+      {canManagePins && !canAddPin && <div className="bg-destructive/10 rounded-xl p-3 flex gap-2"><AlertCircle className="w-4 h-4 text-destructive shrink-0" /><p className="text-xs text-destructive/80">You've reached your limit of {max_pins} truck pin{max_pins > 1 ? "s" : ""} for {tierConfig.name} tier.</p></div>}
 
       {visiblePins.length === 0 ? (
         <div className="bg-card rounded-2xl border px-4 py-8 text-center">
           <Truck className="w-5 h-5 mx-auto text-muted-foreground mb-2" />
-          {isOwner
+          {canManagePins
             ? <p className="font-heading font-semibold text-sm">No truck pins yet</p>
             : <>
                 <p className="font-heading font-semibold text-sm">No trucks or pins assigned yet.</p>
@@ -253,12 +254,12 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
         <div className="space-y-3">
           {visiblePins.map((pin) => {
             const { status, lastCheckIn } = getPinStatus(pin.id);
-            const assignedUsers = isOwner ? getAssignedUsers(pin.id) : [];
+            const assignedUsers = canManagePins ? getAssignedUsers(pin.id) : [];
             return <div key={pin.id} className="bg-card rounded-2xl border shadow-sm p-3 space-y-2.5 min-w-0">
               <div className="flex items-start gap-2.5 min-w-0">
                 {pin.pin_logo_url ? <img src={pin.pin_logo_url} alt="Truck logo" className="w-10 h-10 rounded-lg object-cover shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0"><Truck className="w-5 h-5 text-muted-foreground" /></div>}
                 <div className="min-w-0 flex-1"><p className="font-heading font-bold text-sm truncate">{pin.pin_name}</p>{pin.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{pin.description}</p>}<p className="mt-1 text-[11px] text-muted-foreground">{status}{lastCheckIn ? ` • ${formatDistanceToNow(new Date(lastCheckIn.created_date), { addSuffix: true })}` : ""}</p></div>
-                {isOwner && (
+                {canManagePins && (
                   <div className="flex gap-0.5 shrink-0">
                     <Button size="icon" variant="ghost" onClick={() => setSelectedPinHistory(pin)} className="h-8 w-8"><History className="w-3.5 h-3.5" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => setSchedulingPin(pin)} title="Schedule" className="h-8 w-8"><CalendarClock className="w-3.5 h-3.5" /></Button>
@@ -269,7 +270,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
               </div>
               {/* Schedule summary pill — show to anyone */}
               {pin.scheduled_date && pin.schedule_status === "scheduled" && (
-                <button onClick={() => isOwner && setSchedulingPin(pin)} className={`w-full text-left rounded-xl border border-blue-100 bg-blue-50 px-3 py-1.5 text-[11px] text-blue-700 flex items-center gap-1.5 ${isOwner ? "hover:bg-blue-100 transition-colors" : ""}`}>
+                <button onClick={() => canManagePins && setSchedulingPin(pin)} className={`w-full text-left rounded-xl border border-blue-100 bg-blue-50 px-3 py-1.5 text-[11px] text-blue-700 flex items-center gap-1.5 ${canManagePins ? "hover:bg-blue-100 transition-colors" : ""}`}>
                   <CalendarClock className="w-3 h-3 shrink-0" />
                   <span className="truncate">
                     Scheduled {pin.scheduled_date}{pin.scheduled_start_time ? ` · ${pin.scheduled_start_time}` : ""}{pin.scheduled_location_label ? ` — ${pin.scheduled_location_label}` : ""}
@@ -278,7 +279,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
               )}
               <Button size="sm" onClick={() => navigate(`/VendorPinPreview?pinId=${pin.id}&accountId=${vendorAccount.id}`)} className="w-full h-9 rounded-xl gap-1.5 text-xs"><MapPin className="w-3.5 h-3.5" />{status === "Live Now" || status === "Paused" ? "Update Pin" : "Drop Pin"}</Button>
               {(status === "Live Now" || status === "Paused") && <div className="flex gap-1.5">{status === "Live Now" ? <Button size="sm" variant="outline" onClick={() => handlePause(lastCheckIn)} className="h-8 flex-1 rounded-xl text-xs"><PauseCircle className="w-3.5 h-3.5" /> Pause</Button> : <Button size="sm" variant="outline" onClick={() => handleResume(lastCheckIn)} className="h-8 flex-1 rounded-xl text-xs"><PlayCircle className="w-3.5 h-3.5" /> Resume</Button>}<Button size="sm" variant="outline" onClick={() => handleTakeOffline(lastCheckIn)} className="h-8 flex-1 rounded-xl text-xs"><XCircle className="w-3.5 h-3.5" /> Offline</Button></div>}
-              {isOwner && assignedUsers.length > 0 && <p className="text-[11px] text-muted-foreground truncate">Assigned: {assignedUsers.map((u) => u.authorized_email).join(", ")}</p>}
+              {canManagePins && assignedUsers.length > 0 && <p className="text-[11px] text-muted-foreground truncate">Assigned: {assignedUsers.map((u) => u.authorized_email).join(", ")}</p>}
             </div>;
           })}
         </div>
