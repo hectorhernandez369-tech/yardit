@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,17 +7,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 
 export default function AdminEditVendorModal({ open, onClose, account, onSaved }) {
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef(null);
 
   useEffect(() => {
     if (account) setForm({ ...account });
   }, [account]);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const uploadLogo = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    update("business_logo", file_url);
+    setUploadingLogo(false);
+    toast.success("Logo uploaded. Click Save Changes to publish it.");
+    event.target.value = "";
+  };
 
   const handleSave = async () => {
     if (!form.business_name?.trim() || !form.owner_email?.trim()) {
@@ -38,6 +51,7 @@ export default function AdminEditVendorModal({ open, onClose, account, onSaved }
       vendor_display_name: form.vendor_display_name || form.business_name.trim(),
       legal_business_name: form.legal_business_name || form.business_name.trim(),
       business_category: form.business_category,
+      business_logo: form.business_logo,
       owner_name: form.owner_name,
       owner_email: form.owner_email.trim(),
       owner_user_id: account?.owner_user_id === account?.owner_email ? form.owner_email.trim() : account?.owner_user_id,
@@ -74,6 +88,24 @@ export default function AdminEditVendorModal({ open, onClose, account, onSaved }
         </DialogHeader>
 
         <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-3 rounded-2xl border bg-slate-50 p-3 sm:col-span-2 sm:flex-row sm:items-center">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-white">
+              {form.business_logo ? (
+                <img src={form.business_logo} alt="Business logo" className="h-full w-full object-cover" />
+              ) : (
+                <Upload className="h-6 w-6 text-slate-400" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1 space-y-2">
+              <Label>Business Logo</Label>
+              <p className="text-xs text-slate-500">Upload a logo for this vendor account.</p>
+              <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={uploadLogo} />
+              <Button type="button" variant="outline" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo} className="gap-2">
+                {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                {uploadingLogo ? "Uploading..." : "Upload Logo"}
+              </Button>
+            </div>
+          </div>
           <div className="space-y-1.5">
             <Label>Business Name *</Label>
             <Input value={form.business_name || ""} onChange={(e) => update("business_name", e.target.value)} />
