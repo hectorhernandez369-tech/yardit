@@ -23,6 +23,7 @@ export default function VendorDashboard() {
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const requestedTab = urlParams.get("tab") || "profile";
+  const adminPreviewAccountId = urlParams.get("adminPreview") === "1" ? urlParams.get("account") : null;
   const [activeTab, setActiveTab] = useState(requestedTab);
   const [showSetupReminder, setShowSetupReminder] = useState(true);
   // Multi-business: which account is currently active
@@ -35,8 +36,13 @@ export default function VendorDashboard() {
 
   // Use shared helper for consistent account detection
   const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
-    queryKey: ["vendorDashboardAccounts", user?.id, user?.email],
-    queryFn: () => getUserVendorAccounts(user),
+    queryKey: ["vendorDashboardAccounts", user?.id, user?.email, adminPreviewAccountId],
+    queryFn: () => {
+      const canAdminPreview = adminPreviewAccountId && ["master", "super_master"].includes(user?.role);
+      return canAdminPreview
+        ? base44.entities.VendorAccount.filter({ id: adminPreviewAccountId })
+        : getUserVendorAccounts(user);
+    },
     enabled: !!user?.id || !!user?.email,
   });
 
@@ -114,7 +120,7 @@ export default function VendorDashboard() {
 
   const handleSelectBusiness = (acc) => {
     setActiveAccountId(acc.id);
-    navigate(`/VendorDashboard?tab=${activeTab}&account=${acc.id}`, { replace: true });
+    navigate(`/VendorDashboard?tab=${activeTab}&account=${acc.id}${adminPreviewAccountId ? "&adminPreview=1" : ""}`, { replace: true });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardPins", acc.id] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardCheckIns", acc.id] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardUsers", acc.id] });

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ExternalLink, Zap, Plus, Pencil } from "lucide-react";
+import { Search, ExternalLink, Zap, Plus, Pencil, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import VendorPromoModal from "./promos/VendorPromoModal";
 import VendorActivePromos from "./promos/VendorActivePromos";
@@ -144,6 +144,13 @@ export default function VendorAccountsTable({ user }) {
                   </div>
 
                   <div className="shrink-0 flex flex-col gap-2">
+                    <Button
+                      size="sm"
+                      className="gap-1.5 text-xs bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]"
+                      onClick={() => navigate(`/VendorDashboard?tab=profile&account=${account.id}&adminPreview=1`)}
+                    >
+                      <LayoutDashboard className="w-3.5 h-3.5" /> Enter Dashboard
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
