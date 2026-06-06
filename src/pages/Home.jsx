@@ -1388,8 +1388,8 @@ const stats = useMemo(() => {
                       />
                     )}
                     {!isMarquee && (
-                      <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]}>
-                        <div className="flex flex-col" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
+                       <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
+                         <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md bg-white/90 border border-white/40 shadow-lg" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
                           <div className="p-1 overflow-y-auto flex-1 min-h-0 space-y-2">
                             <div className="flex items-center gap-1 flex-wrap mb-1">
                               <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
@@ -1622,8 +1622,8 @@ const stats = useMemo(() => {
                   position={[checkIn.checkin_latitude, checkIn.checkin_longitude]}
                   icon={getVendorMarkerIcon({ pin, account, checkIn })}
                 >
-                  <Popup minWidth={230}>
-                    <div className="space-y-2 p-0.5">
+                  <Popup minWidth={230} className="leaflet-popup-transparent">
+                    <div className="space-y-2 p-0.5 rounded-xl overflow-hidden backdrop-blur-md bg-white/90 border border-white/40 shadow-lg">
                       <div className="flex items-center gap-2">
                         {(pin.pin_logo_url || account.business_logo) && <img src={pin.pin_logo_url || account.business_logo} alt={account.business_name || pin.pin_name} className="h-9 w-9 rounded-full object-cover border" />}
                         <div className="min-w-0">
@@ -1684,8 +1684,8 @@ const stats = useMemo(() => {
                     popupclose: () => setSelectedListingId((current) => current === pin.listingId ? null : current),
                   }}
                 >
-                  <Popup minWidth={160}>
-                    <div className="flex flex-col gap-1 p-0.5">
+                  <Popup minWidth={160} className="leaflet-popup-transparent">
+                    <div className="flex flex-col gap-1 p-0.5 rounded-xl overflow-hidden backdrop-blur-md bg-white/90 border border-white/40 shadow-lg">
                       <div className="flex">
                         <Badge className="bg-emerald-600 text-white text-[9px] px-1 py-0 h-4 min-h-0">Participant Home</Badge>
                       </div>
