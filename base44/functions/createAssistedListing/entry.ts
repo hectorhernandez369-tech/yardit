@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 function generateToken() {
   const arr = new Uint8Array(24);
@@ -26,13 +26,13 @@ Deno.serve(async (req) => {
     // Yardit admin access is controlled through AdminProfile, NOT Base44 User.role.
     // Only master/super_master AdminProfiles (or super_master Base44 roles) can create assisted listings.
     const isSuperMasterBase44 = user.role === 'super_master';
+    let adminProfile = null;
+
+    const adminProfiles = await base44.asServiceRole.entities.AdminProfile.filter({ email: user.email });
+    adminProfile = adminProfiles[0] || null;
 
     if (!isSuperMasterBase44) {
-      // Look up AdminProfile by user email (the Yardit admin system)
-      const adminProfiles = await base44.asServiceRole.entities.AdminProfile.filter({ email: user.email });
-      const profile = adminProfiles[0];
-
-      if (!profile) {
+      if (!adminProfile) {
         return Response.json({
           error: 'Access denied: No admin profile found for this account.',
           debug: {
@@ -43,12 +43,12 @@ Deno.serve(async (req) => {
         }, { status: 403 });
       }
 
-      if (!profile.is_active) {
+      if (!adminProfile.is_active) {
         return Response.json({
           error: 'Access denied: Your admin profile is inactive.',
           debug: {
             base44_role: user.role,
-            admin_profile_role: profile.role_label,
+            admin_profile_role: adminProfile.role_label,
             admin_profile_active: false,
             required: 'is_active must be true',
           }
@@ -56,13 +56,13 @@ Deno.serve(async (req) => {
       }
 
       const allowedRoles = ['master', 'super_master'];
-      if (!allowedRoles.includes(profile.role_label)) {
+      if (!allowedRoles.includes(adminProfile.role_label)) {
         return Response.json({
-          error: `Access denied: Your admin role "${profile.role_label}" does not have permission to create assisted listings. Required role: master.`,
+          error: `Access denied: Your admin role "${adminProfile.role_label}" does not have permission to create assisted listings. Required role: master.`,
           debug: {
             base44_role: user.role,
-            admin_profile_role: profile.role_label,
-            admin_profile_active: profile.is_active,
+            admin_profile_role: adminProfile.role_label,
+            admin_profile_active: adminProfile.is_active,
             required_role: 'master or super_master',
           }
         }, { status: 403 });
@@ -210,6 +210,31 @@ Deno.serve(async (req) => {
     });
 
     console.log('Created assisted record:', assisted.id, 'token:', token);
+
+    await base44.asServiceRole.entities.AdminAuditLog.create({
+      user_id: user.id,
+      admin_employee_id: adminProfile?.employee_id || user.email || user.id,
+      action_type: 'admin_created_assisted_listing',
+      target_type: 'AssistedListing',
+      target_id: assisted.id,
+      success: true,
+      metadata: JSON.stringify({
+        listing_id: listing.id,
+        assisted_listing_id: assisted.id,
+        listing_number: listingNumber,
+        listing_type: listingType,
+        tier: listingTier,
+        event_tier: eventTier || null,
+        title,
+        seller_name: sellerName || null,
+        seller_email: sellerEmail || null,
+        seller_phone: sellerPhone || null,
+        address: saleFormattedAddress,
+        location_source,
+        created_by_admin_email: user.email,
+        created_at: now.toISOString(),
+      }),
+    });
 
     return Response.json({
       ok: true,

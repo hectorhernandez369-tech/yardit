@@ -237,28 +237,6 @@ export default function AdminAssistedListingForm({ adminUser }) {
         title: form.title,
       });
 
-      // Audit log
-      base44.entities.AdminAuditLog.create({
-        admin_id: adminUser?.id,
-        admin_employee_id: adminUser?.employee_id || adminUser?.id,
-        action_type: "admin_created_listing",
-        target_type: "Listing",
-        target_id: response.data.listingId || "",
-        success: true,
-        metadata: JSON.stringify({
-          affected_user_email: form.sellerEmail || null,
-          listing_id: response.data.listingId,
-          new_tier: form.tier,
-          listing_type: form.listingType,
-          title: form.title,
-          address: addrPayload.saleFormattedAddress,
-          seller_name: form.sellerName || null,
-          seller_phone: form.sellerPhone || null,
-          reason: form.adminNotes || "Admin assisted listing creation",
-          created_at: new Date().toISOString(),
-        }),
-      }).catch(() => {});
-
       toast.success("Assisted listing created! Show the QR code to the seller.");
     } catch (err) {
       const errData = err?.response?.data;

@@ -84,6 +84,27 @@ export default function AdminCreateVendorModal({ open, onClose, adminUser, onCre
       base44.entities.VendorAccountIdentityReservation.update(reservationSlug.id, { vendor_account_id: account.id, status: "assigned" }),
     ]);
 
+    await base44.entities.AdminAuditLog.create({
+      user_id: adminUser?.id,
+      admin_employee_id: adminUser?.employee_id || adminUser?.email || adminUser?.id || "unknown",
+      action_type: "admin_created_vendor_account",
+      target_type: "VendorAccount",
+      target_id: account.id,
+      success: true,
+      metadata: JSON.stringify({
+        vendor_account_id: account.id,
+        vendor_account_number: account.vendor_account_number,
+        vendor_slug: account.vendor_slug,
+        business_name: account.business_name,
+        business_category: account.business_category || null,
+        owner_email: account.owner_email,
+        vendor_tier: account.vendor_tier,
+        subscription_status: account.subscription_status,
+        created_by_admin_email: adminUser?.email || null,
+        created_at: now,
+      }),
+    });
+
     toast.success(`Vendor account created for ${form.owner_email.trim()}`);
     setSaving(false);
     setForm({ owner_email: "", business_name: "", business_category: "", vendor_tier: "free" });

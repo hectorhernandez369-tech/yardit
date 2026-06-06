@@ -19,6 +19,8 @@ const ACTION_LABELS = {
   update_admin: "Updated Admin",
   delete_admin: "Deleted Admin",
   admin_created_listing: "Created Listing for User",
+  admin_created_assisted_listing: "Created Assisted Listing",
+  admin_created_vendor_account: "Created Vendor Account",
   admin_granted_free_listing: "Granted Free Listing",
   admin_granted_premium_upgrade: "Granted Premium Upgrade",
   admin_granted_vendor_promotion: "Granted Vendor Promotion",
