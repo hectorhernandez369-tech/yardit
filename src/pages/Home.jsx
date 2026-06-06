@@ -152,7 +152,7 @@ const createIcon = (type, tier, isSelected, location) => {
 
   let fill = "#6b7280";
   let stroke = "#4b5563";
-  let size = 22;
+  let size = 18;
 
   if (type === "halloween_candy") {
     fill = "#9333ea";
