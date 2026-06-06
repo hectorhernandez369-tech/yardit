@@ -31,7 +31,7 @@ export default function VendorDetailsForm({ account, onRefresh }) {
   const [form, setForm] = useState({ ...account });
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const logoInputRef = useRef(null);
 
   const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
