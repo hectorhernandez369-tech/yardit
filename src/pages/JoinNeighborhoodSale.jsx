@@ -41,8 +41,8 @@ export default function JoinNeighborhoodSale() {
     queryKey: ["neighborhood_sale_by_code", code],
     queryFn: async () => {
       if (!code) return null;
-      const sales = await base44.entities.Listing.filter({ invite_code: code, listingType: "neighborhood_sale" });
-      return sales[0] || null;
+      const response = await base44.functions.invoke("getNeighborhoodSaleByInviteCode", { code });
+      return response?.data?.sale || null;
     },
     enabled: !!code,
   });
