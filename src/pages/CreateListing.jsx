@@ -6,7 +6,6 @@ import { createPageUrl } from "@/utils";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getAdminSession } from "../components/admin/AdminLoginModal";
 
 import NeighborhoodIntroModal from "../components/create/NeighborhoodIntroModal";
@@ -19,9 +18,7 @@ import { clearStaleTrustProgress, hasVerifiedPrimaryAddress } from "@/lib/trustA
 import { useAppMode } from "../components/shared/DemoMode";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import {
-  deriveNeighborhoodEventState,
   getNeighborhoodCreationLeadTimeError,
-  isNeighborhoodJoinAllowed,
   normalizeNeighborhoodJoinStatus,
 } from "@/lib/neighborhoodSaleState";
 
@@ -93,19 +90,6 @@ function isDevBypassUser(user) {
 }
 
 
-function getSaleConfirmedCount(sale) {
-  // (plain english) tries multiple field names so we don't miss it
-  const v =
-    sale?.homeCount ??
-    sale?.confirmed_count ??
-    sale?.confirmedCount ??
-    sale?.confirmedHomes ??
-    sale?.participantsCount ??
-    0;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
-
 export default function CreateListingPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -125,10 +109,6 @@ export default function CreateListingPage() {
   const handledNeighborhoodSetupSessionRef = useRef(null);
   const recoveringPaidCheckoutRef = useRef(false);
 
-  // (plain english) "Sale in your area" modal state
-  const [saleModalStep, setSaleModalStep] = useState(0); // 0: none, 1: popup1, 2: popup2
-  const [matchedSale, setMatchedSale] = useState(null);
-  const [joinAction, setJoinAction] = useState(null); // null, "requested", "none"
   const [showHomeAddressConfirm, setShowHomeAddressConfirm] = useState(false);
   const [pendingHomeAddress, setPendingHomeAddress] = useState(null);
   const [isConfirmingHomeAddress, setIsConfirmingHomeAddress] = useState(false);
@@ -143,80 +123,6 @@ export default function CreateListingPage() {
     }
   }, [isAdminCreate, user, navigate]);
 
-  const findNearbyNeighborhoodSale = async (locationOverride = null) => {
-    const sourceLocation = locationOverride || formData;
-    console.log("[JOIN_DEBUG] Checking for nearby neighborhood sales...", {
-      sourceLat: sourceLocation?.lat,
-      sourceLng: sourceLocation?.lng,
-      listingType: formData.listingType,
-      userId: user?.id
-    });
-
-    if (!user?.id || formData.listingType === "neighborhood_sale" || !sourceLocation?.lat || !sourceLocation?.lng) {
-      console.log("[JOIN_DEBUG] Aborting check: missing location or wrong type");
-      return null;
-    }
-
-    const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" }, "-created_date", 250);
-    let reqs = [];
-    try {
-      reqs = await base44.entities.JoinRequest.filter({ requesterUserId: user.id });
-    } catch {}
-
-    const now = new Date();
-    const nearby = (sales || []).filter((sale) => {
-      const eventState = deriveNeighborhoodEventState(sale, now);
-      console.log(`[JOIN_DEBUG] Event State Check -> ID: ${sale.id} | state: ${eventState}`);
-
-      if (!sale.startDateTime || !sale.endDateTime) {
-        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: missing dates`);
-        return false;
-      }
-      const end = new Date(sale.endDateTime);
-      if (now >= end) {
-        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: expired`);
-        return false;
-      }
-      
-      const isAllowed = isNeighborhoodJoinAllowed(sale, now);
-      if (!isAllowed) {
-        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: join not allowed (state: ${eventState})`);
-        return false;
-      }
-
-      const homeCount = getSaleConfirmedCount(sale);
-      if (homeCount >= 25) {
-        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: full (homes: ${homeCount})`);
-        return false;
-      }
-
-      const cLat = sale.event_center_lat ?? sale.lat;
-      const cLng = sale.event_center_lng ?? sale.lng;
-      const dist = getDistanceFeet(sourceLocation.lat, sourceLocation.lng, cLat, cLng);
-      
-      console.log(`[JOIN_DEBUG] RADIUS CHECK -> Listing: ${sourceLocation.lat}, ${sourceLocation.lng} | Event: ${cLat}, ${cLng} | Distance: ${dist} | Within 500ft: ${dist <= 500}`);
-
-      if (dist > 500) return false;
-      
-      if (sale.ownerUserId === user.id) {
-        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: current user is organizer`);
-        return false;
-      }
-
-      const alreadyRequested = reqs.some(
-        (request) => request.saleListingId === sale.id && ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status))
-      );
-      
-      if (alreadyRequested) {
-        console.log(`[JOIN_DEBUG] Sale ${sale.id} skipped: user already requested`);
-      }
-      
-      return !alreadyRequested;
-    });
-
-    console.log(`[JOIN_DEBUG] Found ${nearby.length} nearby sales`);
-    return nearby[0] || null;
-  };
   const [activeRescue, setActiveRescue] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -484,19 +390,6 @@ export default function CreateListingPage() {
   const { data: userListings } = useQuery({
     queryKey: ["userListings", user?.id],
     queryFn: () => base44.entities.Listing.filter({ ownerUserId: user.id }),
-    enabled: !!user,
-    initialData: []
-  });
-
-  const { data: userJoinRequests } = useQuery({
-    queryKey: ["userJoinRequests", user?.id],
-    queryFn: async () => {
-      try {
-        return await base44.entities.JoinRequest.filter({ requesterUserId: user.id });
-      } catch {
-        return [];
-      }
-    },
     enabled: !!user,
     initialData: []
   });
@@ -866,49 +759,6 @@ export default function CreateListingPage() {
         }
       }
 
-      if (joinAction === "requested" && matchedSale) {
-        try {
-          await base44.entities.JoinRequest.create({
-            listingId: createdListing.id,
-            saleListingId: matchedSale.id,
-            ownerUserId: matchedSale.ownerUserId,
-            requesterUserId: user.id,
-            status: "pending",
-            participant_origin_snapshot: "neighborhood_invite"
-          });
-
-          await base44.entities.Notification.create({
-            userId: matchedSale.ownerUserId,
-            user_id: matchedSale.ownerUserId,
-            title: "New Join Request",
-            message: "Someone requested to join your Neighborhood Sale.",
-            type: "join_request",
-            metadata: {
-              sale_listing_id: matchedSale.id,
-              requester_user_id: user.id,
-              requester_listing_id: createdListing.id,
-              event_title: matchedSale.title
-            }
-          });
-
-          await base44.entities.Notification.create({
-            userId: user.id,
-            user_id: user.id,
-            title: "Join Request Sent",
-            message: "Your request to join the Neighborhood Sale has been sent.",
-            type: "join_request_sent",
-            metadata: {
-              sale_listing_id: matchedSale.id,
-              requester_user_id: user.id,
-              requester_listing_id: createdListing.id,
-              event_title: matchedSale.title
-            }
-          });
-        } catch (err) {
-          console.error("Failed to create join request/notifications", err);
-        }
-      }
-
       if (createdListing.pending_checkout_session_id && createdListing.listingType === "yard_sale") {
         await base44.functions.invoke("residentialStripeCheckout", {
           action: "link_paid_listing",
@@ -1150,7 +1000,7 @@ export default function CreateListingPage() {
 
       setFormData(normalizedNextData);
 
-      // Do NOT show Ask-to-Join yet — wait until after dates are selected (handled at handleSubmit)
+      // Neighborhood Sale discovery appears on tier selection.
       setStep(3);
       return;
     }
@@ -1171,7 +1021,7 @@ export default function CreateListingPage() {
 
   };
 
-  const executeSubmit = (actionStr = joinAction, sourceFormData = formData) => {
+  const executeSubmit = (actionStr, sourceFormData = formData) => {
     let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId || "" };
 
     if (isAdminCreate) {
@@ -1262,22 +1112,7 @@ export default function CreateListingPage() {
       }
     }
 
-    if (actionStr === "requested" && matchedSale) {
-      payload = {
-        ...payload,
-        tier: "free",
-        pricePaid: 0,
-        startDateTime: matchedSale.startDateTime,
-        endDateTime: matchedSale.endDateTime,
-        selectedRangeStartDate: matchedSale.selectedRangeStartDate || matchedSale.startDateTime?.slice(0, 10),
-        selectedRangeEndDate: matchedSale.selectedRangeEndDate || matchedSale.endDateTime?.slice(0, 10),
-        earlyVisibilityDays: 0,
-        earlyVisibilityDates: [],
-        activeDates: matchedSale.activeDates || [],
-      };
-    }
-
-    if (payload.listingType === "yard_sale" && payload.tier === "free" && actionStr !== "requested") {
+    if (payload.listingType === "yard_sale" && payload.tier === "free") {
       const freeWindow = computeFreeWindow(new Date(), payload.timeZoneId);
       payload = {
         ...payload,
@@ -1357,17 +1192,7 @@ export default function CreateListingPage() {
       payload.participant_origin = payload.participant_origin || "standalone";
     }
 
-    if (actionStr === "requested" && matchedSale) {
-      payload.neighborhood_join_status = "pending";
-      payload.payment_intent_status = "none";
-      payload.hold_deadline_at = null;
-      payload.neighborhood_sale_id = matchedSale.id;
-      payload.participant_origin = "neighborhood_invite";
-      payload.origin_sale_listing_id = matchedSale.id;
-      payload.status = "active";
-    } else {
-      payload.neighborhood_join_status = payload.neighborhood_join_status || "none";
-    }
+    payload.neighborhood_join_status = payload.neighborhood_join_status || "none";
 
     if (actionStr === "paid_success" && payload.listingType === "event") {
       payload.status = "active";
