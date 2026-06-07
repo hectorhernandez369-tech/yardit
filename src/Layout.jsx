@@ -26,6 +26,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "./components/guest/GuestAuthModal";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
 import AccountSetupModal from "./components/profile/AccountSetupModal";
+import VerifiedAddressRequiredModal from "./components/profile/VerifiedAddressRequiredModal";
 import FloatingLaunchChecklist from "./components/checklist/FloatingLaunchChecklist";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
 
@@ -46,6 +47,7 @@ function LayoutContent({ children, user, setUser }) {
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [canInstallApp, setCanInstallApp] = useState(false);
   const [showLaunchChecklist, setShowLaunchChecklist] = useState(false);
+  const [showAddressRequiredModal, setShowAddressRequiredModal] = useState(false);
   const { isGuest, isAuthenticated, logout, navigateToLogin } = useAuth() || {};
 
   const { guardAction, showModal, setShowModal, isGuest: guestHookIsGuest } = useGuestGuard();
@@ -118,6 +120,21 @@ function LayoutContent({ children, user, setUser }) {
     await logout?.(createPageUrl("Home"));
   };
 
+  const hasVerifiedPrimaryAddress = Boolean(
+    user?.primary_address_verified || user?.address_confirmation_status === "confirmed"
+  );
+
+  const handlePostSaleClick = () => {
+    guardAction(() => {
+      if (!hasVerifiedPrimaryAddress) {
+        setShowAddressRequiredModal(true);
+        return;
+      }
+
+      navigate(createPageUrl("CreateListing"));
+    }, { returnTo: `${window.location.origin}${createPageUrl("CreateListing")}` });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
       <Toaster richColors position="top-center" />
@@ -187,7 +204,7 @@ function LayoutContent({ children, user, setUser }) {
                   <>
                     <Button
                     size="sm"
-                    onClick={() => guardAction(() => navigate(createPageUrl("CreateListing")), { returnTo: `${window.location.origin}${createPageUrl("CreateListing")}` })}
+                    onClick={handlePostSaleClick}
                     className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
                   >
                     <Plus className="w-4 h-4" />
@@ -275,6 +292,14 @@ function LayoutContent({ children, user, setUser }) {
       
       <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} returnTo={`${window.location.origin}${createPageUrl("CreateListing")}`} />
       <AccountSetupModal user={user} setUser={setUser} />
+      <VerifiedAddressRequiredModal
+        open={showAddressRequiredModal}
+        onOpenChange={setShowAddressRequiredModal}
+        onAddNow={() => {
+          setShowAddressRequiredModal(false);
+          navigate(createPageUrl("Profile"));
+        }}
+      />
 
       <AdminLoginModal
         open={showAdminLogin}
