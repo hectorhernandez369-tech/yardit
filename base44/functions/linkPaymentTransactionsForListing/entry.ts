@@ -15,11 +15,11 @@ Deno.serve(async (req) => {
     const payload = await req.json().catch(() => ({}));
     const listing = payload?.data || payload?.listing || payload;
 
-    if (!listing?.id || !listing?.stripe_checkout_session_id) {
+    const sessionId = listing?.stripe_checkout_session_id || listing?.pending_checkout_session_id || '';
+
+    if (!listing?.id || !sessionId) {
       return Response.json({ ok: true, linked: 0, reason: 'No paid listing session to link' });
     }
-
-    const sessionId = listing.stripe_checkout_session_id;
     const paymentIntentId = listing.stripe_payment_intent_id || '';
     const ownerEmail = await getOwnerEmail(base44, listing.ownerUserId);
 
