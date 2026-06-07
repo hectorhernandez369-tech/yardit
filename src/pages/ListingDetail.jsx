@@ -195,7 +195,7 @@ export default function ListingDetailPage() {
   const isAdminViewer = !!user && (user.isAdmin || ["master", "super_master", "supervisor", "admin"].includes(user.role));
 
   const { data: listingBillingTransactions = [], isLoading: isLoadingListingBilling } = useQuery({
-    queryKey: ["adminListingBillingTransactions", listing?.id, listing?.ownerUserId],
+    queryKey: ["adminListingBillingTransactions", "listingOnlyV2", listing?.id, listing?.ownerUserId],
     queryFn: async () => {
       const transactions = await base44.entities.PaymentTransaction.list("-created_date", 250);
       const completedSessions = new Set(
