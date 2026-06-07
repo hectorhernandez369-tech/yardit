@@ -315,6 +315,43 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
                         </div>
                       )}
 
+                      {notification.type === "join_request" && !notification.read && !notification.is_read && (
+                        <div className="flex gap-2 mt-2 mb-3">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              respondToRequestMutation.mutate({
+                                notificationId: notification.id,
+                                action: "accept",
+                                eventTitle: notification.metadata?.event_title || "this Neighborhood Sale",
+                                notification,
+                              });
+                            }}
+                          >
+                            <Check className="w-3 h-3 mr-1" /> Approve
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              respondToRequestMutation.mutate({
+                                notificationId: notification.id,
+                                action: "deny",
+                                eventTitle: notification.metadata?.event_title || "this Neighborhood Sale",
+                                notification,
+                              });
+                            }}
+                          >
+                            <X className="w-3 h-3 mr-1" /> Deny
+                          </Button>
+                        </div>
+                      )}
+
                       {notification.type === "vendor_access_invite" && !notification.read && !notification.is_read && (
                         <div className="flex gap-2 mt-2 mb-3">
                           <Button
