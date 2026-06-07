@@ -125,20 +125,6 @@ export default function JoinNeighborhoodSale() {
       });
 
       await base44.entities.Notification.create({
-        userId: sale.ownerUserId,
-        user_id: sale.ownerUserId,
-        title: "New Join Request",
-        message: "Someone requested to join your Neighborhood Sale.",
-        type: "join_request",
-        metadata: {
-          sale_listing_id: sale.id,
-          requester_listing_id: inviteListing.id,
-          requester_user_id: user.id,
-          event_title: sale.title,
-        },
-      });
-
-      await base44.entities.Notification.create({
         userId: user.id,
         user_id: user.id,
         title: "Join Request Sent",
