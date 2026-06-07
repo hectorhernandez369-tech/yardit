@@ -47,11 +47,27 @@ export default function UserInfoSection({ user, setUser }) {
       const data = await response.json();
 
       if (data && data.features && data.features.length > 0) {
-        const [lng, lat] = data.features[0].center;
+        const feature = data.features[0];
+        const [lng, lat] = feature.center;
+        const formattedAddress = feature.place_name || query;
+        const verifiedAt = new Date().toISOString();
+        const confirmedAddressData = {
+          address_lat: lat,
+          address_lng: lng,
+          address_confirmation_status: "confirmed",
+          has_primary_address: true,
+          primary_address_verified: true,
+          primary_address: formattedAddress,
+          primary_latitude: lat,
+          primary_longitude: lng,
+          primary_address_verified_at: verifiedAt,
+          address_verification_required: false,
+          address: formattedAddress,
+        };
         
-        setFormData(prev => ({ ...prev, address_lat: lat, address_lng: lng, address_confirmation_status: "confirmed" }));
-        await base44.auth.updateMe({ address_lat: lat, address_lng: lng, address_confirmation_status: "confirmed" });
-        setUser(prev => ({ ...prev, address_lat: lat, address_lng: lng, address_confirmation_status: "confirmed" }));
+        setFormData(prev => ({ ...prev, ...confirmedAddressData }));
+        await base44.auth.updateMe(confirmedAddressData);
+        setUser(prev => ({ ...prev, ...confirmedAddressData }));
         
         toast.success("Address confirmed and saved!");
         return { lat, lng };

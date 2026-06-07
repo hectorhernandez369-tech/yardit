@@ -58,6 +58,7 @@ export default function PrimaryAddressVerificationModal({ open, initialUser, onV
     const verifiedAt = new Date().toISOString();
     const updatedUser = {
       has_primary_address: true,
+      primary_address_verified: true,
       primary_address: formattedAddress,
       primary_latitude: latitude,
       primary_longitude: longitude,

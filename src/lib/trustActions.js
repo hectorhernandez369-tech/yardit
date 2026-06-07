@@ -19,7 +19,8 @@ export function computedAddressVerified(user) {
 
   const flagSet =
     user.primary_address_verified === true ||
-    user.address_verified === true;
+    user.address_verified === true ||
+    user.address_confirmation_status === "confirmed";
 
   if (!flagSet) return false;
 
