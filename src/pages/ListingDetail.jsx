@@ -209,9 +209,7 @@ export default function ListingDetailPage() {
         .filter((tx) => {
           if (tx.event_type === "checkout.session.created" && completedSessions.has(tx.stripe_checkout_session_id)) return false;
           const linkedListingId = getTransactionListingId(tx);
-          const exactMatch = linkedListingId === listing.id || tx.stripe_checkout_session_id === listing.stripe_checkout_session_id || tx.stripe_payment_intent_id === listing.stripe_payment_intent_id;
-          const needsReviewForOwner = isAdminViewer && !linkedListingId && (tx.user_id === listing.ownerUserId || tx.user_email === ownerUser?.email);
-          return exactMatch || needsReviewForOwner;
+          return linkedListingId === listing.id || tx.stripe_checkout_session_id === listing.stripe_checkout_session_id || tx.stripe_payment_intent_id === listing.stripe_payment_intent_id;
         })
         .filter((tx) => {
           const key = tx.stripe_payment_intent_id || tx.stripe_checkout_session_id || tx.id;
