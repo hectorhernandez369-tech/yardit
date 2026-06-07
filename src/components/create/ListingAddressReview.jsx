@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,15 @@ export default function ListingAddressReview({
 }) {
   const readOnly = !canEditAddress;
   const inputClassName = `bg-[#F3E6CF] border-[#2C4F4E] ${readOnly ? "opacity-70 cursor-not-allowed" : ""}`;
+  const suggestionsRef = useRef(null);
+
+  useEffect(() => {
+    if (addressSuggestions.length > 0 && suggestionsRef.current) {
+      setTimeout(() => {
+        suggestionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [addressSuggestions.length]);
 
   return (
     <div className="space-y-6">
@@ -145,7 +154,7 @@ export default function ListingAddressReview({
       )}
 
       {addressSuggestions.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2" ref={suggestionsRef}>
           {addressSelectionMessage && (
             <p className="text-sm text-[#2C4F4E]">{addressSelectionMessage}</p>
           )}
