@@ -1,5 +1,5 @@
-import React from "react";
-import { ArrowLeft, Download, FileText, ListChecks } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowLeft, ChevronDown, Download, FileText, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,8 @@ const DetailRow = ({ label, value }) => (
 );
 
 export default function ResidentialReceiptDetail({ transaction, listing, onBack, onBackToListings }) {
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+
   if (!transaction) return null;
 
   const { original, discount, finalAmount } = getTransactionAmounts(transaction);
@@ -47,42 +49,50 @@ export default function ResidentialReceiptDetail({ transaction, listing, onBack,
         </div>
       </div>
 
-      <Card className="border-0 shadow-xl bg-white/90">
+      <Card
+        className="border-0 shadow-xl bg-white/90 cursor-pointer"
+        onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
+      >
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" /> Listing Receipt
-            <Badge variant="outline">{receiptNumber}</Badge>
+          <CardTitle className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5" /> Listing Receipt
+              <Badge variant="outline">{receiptNumber}</Badge>
+            </div>
+            <ChevronDown className={`w-5 h-5 transition-transform ${isDetailsExpanded ? "rotate-180" : ""}`} />
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-2">
-          <div>
-            <h3 className="font-bold text-[#2C4F4E] mb-3">Listing Details</h3>
-            <DetailRow label="Title" value={getListingTitle(listing)} />
-            <DetailRow label="Address / Location" value={getListingAddress(listing)} />
-            <DetailRow label="Dates" value={getListingDates(listing)} />
-            <DetailRow label="Listing Type" value={listing?.listingType || transaction.transaction_type || "Not available"} />
-            <DetailRow label="Tier" value={listing?.tier || "Not available"} />
-            <DetailRow label="Status" value={listing?.status || "Needs Review"} />
-            <DetailRow label="Listing ID" value={listingId} />
-          </div>
+        {isDetailsExpanded && (
+          <CardContent className="grid gap-6 md:grid-cols-2">
+            <div>
+              <h3 className="font-bold text-[#2C4F4E] mb-3">Listing Details</h3>
+              <DetailRow label="Title" value={getListingTitle(listing)} />
+              <DetailRow label="Address / Location" value={getListingAddress(listing)} />
+              <DetailRow label="Dates" value={getListingDates(listing)} />
+              <DetailRow label="Listing Type" value={listing?.listingType || transaction.transaction_type || "Not available"} />
+              <DetailRow label="Tier" value={listing?.tier || "Not available"} />
+              <DetailRow label="Status" value={listing?.status || "Needs Review"} />
+              <DetailRow label="Listing ID" value={listingId} />
+            </div>
 
-          <div>
-            <h3 className="font-bold text-[#2C4F4E] mb-3">Billing Details</h3>
-            <DetailRow label="Transaction ID" value={transaction.stripe_payment_intent_id || transaction.stripe_checkout_session_id || transaction.id} />
-            <DetailRow label="Receipt Number" value={receiptNumber} />
-            <DetailRow label="Stripe Checkout Session ID" value={transaction.stripe_checkout_session_id} />
-            <DetailRow label="Stripe Payment Intent ID" value={transaction.stripe_payment_intent_id} />
-            <DetailRow label="Stripe Charge ID" value={transaction.stripe_charge_id} />
-            <DetailRow label="Original Amount" value={formatMoney(original)} />
-            <DetailRow label="Discount" value={formatMoney(discount)} />
-            <DetailRow label="Promo Code" value={transaction.promo_code || "None"} />
-            <DetailRow label="Final Amount Paid" value={formatMoney(finalAmount)} />
-            <DetailRow label="Payment Status" value={transaction.status || transaction.payment_status} />
-            <DetailRow label="Refund Status" value={transaction.refund_status || "none"} />
-            <DetailRow label="Payment Date" value={formatDate(transaction.processed_at || transaction.received_at || transaction.created_date)} />
-            <DetailRow label="Non-Refund Acknowledgement" value={transaction.non_refund_acknowledged ? `Acknowledged${transaction.non_refund_acknowledged_at ? ` on ${formatDate(transaction.non_refund_acknowledged_at)}` : ""}` : "Not acknowledged"} />
-          </div>
-        </CardContent>
+            <div>
+              <h3 className="font-bold text-[#2C4F4E] mb-3">Billing Details</h3>
+              <DetailRow label="Transaction ID" value={transaction.stripe_payment_intent_id || transaction.stripe_checkout_session_id || transaction.id} />
+              <DetailRow label="Receipt Number" value={receiptNumber} />
+              <DetailRow label="Stripe Checkout Session ID" value={transaction.stripe_checkout_session_id} />
+              <DetailRow label="Stripe Payment Intent ID" value={transaction.stripe_payment_intent_id} />
+              <DetailRow label="Stripe Charge ID" value={transaction.stripe_charge_id} />
+              <DetailRow label="Original Amount" value={formatMoney(original)} />
+              <DetailRow label="Discount" value={formatMoney(discount)} />
+              <DetailRow label="Promo Code" value={transaction.promo_code || "None"} />
+              <DetailRow label="Final Amount Paid" value={formatMoney(finalAmount)} />
+              <DetailRow label="Payment Status" value={transaction.status || transaction.payment_status} />
+              <DetailRow label="Refund Status" value={transaction.refund_status || "none"} />
+              <DetailRow label="Payment Date" value={formatDate(transaction.processed_at || transaction.received_at || transaction.created_date)} />
+              <DetailRow label="Non-Refund Acknowledgement" value={transaction.non_refund_acknowledged ? `Acknowledged${transaction.non_refund_acknowledged_at ? ` on ${formatDate(transaction.non_refund_acknowledged_at)}` : ""}` : "Not acknowledged"} />
+            </div>
+          </CardContent>
+        )}
       </Card>
     </div>
   );
