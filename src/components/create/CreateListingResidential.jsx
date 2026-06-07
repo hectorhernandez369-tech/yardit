@@ -22,8 +22,6 @@ export default function CreateListingResidential({
   setStep,
   handlePaymentStepSubmit,
   residentialTierPrices,
-  isNeighborhoodDiscoveryDismissed,
-  setIsNeighborhoodDiscoveryDismissed,
   onAddressSelected,
 }) {
   if (step === 1) {
@@ -40,8 +38,6 @@ export default function CreateListingResidential({
         formData={formData}
         setFormData={setFormData}
         reservedDates={reservedDates}
-        isNeighborhoodDiscoveryDismissed={isNeighborhoodDiscoveryDismissed}
-        setIsNeighborhoodDiscoveryDismissed={setIsNeighborhoodDiscoveryDismissed}
       />
     );
   }

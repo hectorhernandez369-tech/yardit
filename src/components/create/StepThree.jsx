@@ -70,12 +70,11 @@ export default function StepThree({
   formData,
   setFormData,
   reservedDates = new Set(),
-  isNeighborhoodDiscoveryDismissed = false,
-  setIsNeighborhoodDiscoveryDismissed,
 }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
   const [nearbyNeighborhoodSales, setNearbyNeighborhoodSales] = useState([]);
+  const [areNeighborhoodSalesCollapsed, setAreNeighborhoodSalesCollapsed] = useState(false);
 
   const freeTierDateRange = useMemo(() => {
     const freeWindow = computeFreeWindow(new Date(), formData?.timeZoneId || "America/Los_Angeles");
@@ -132,7 +131,7 @@ export default function StepThree({
     let cancelled = false;
 
     const loadNearbyNeighborhoodSales = async () => {
-      if (isNeighborhoodSale || formData?.listingType !== "yard_sale" || isNeighborhoodDiscoveryDismissed) {
+      if (isNeighborhoodSale || formData?.listingType !== "yard_sale") {
         setNearbyNeighborhoodSales([]);
         return;
       }
@@ -167,7 +166,7 @@ export default function StepThree({
     return () => {
       cancelled = true;
     };
-  }, [isNeighborhoodDiscoveryDismissed, formData?.lat, formData?.lng, formData?.listingType, isNeighborhoodSale]);
+  }, [formData?.lat, formData?.lng, formData?.listingType, isNeighborhoodSale]);
 
   const inviteUrl = useMemo(() => {
     if (!isNeighborhoodSale) return "";
@@ -237,11 +236,29 @@ export default function StepThree({
             </p>
           </div>
 
-          {nearbyNeighborhoodSales.length > 0 && !isNeighborhoodDiscoveryDismissed && (
-            <NeighborhoodSaleNoticeCard
-              sales={nearbyNeighborhoodSales}
-              onDismiss={() => setIsNeighborhoodDiscoveryDismissed?.(true)}
-            />
+          {nearbyNeighborhoodSales.length > 0 && (
+            areNeighborhoodSalesCollapsed ? (
+              <Card className="border border-[#F4A849]/60 bg-[#FFF8EA] p-3 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm font-semibold text-[#2C4F4E]">
+                    {nearbyNeighborhoodSales.length} nearby Neighborhood Sale option{nearbyNeighborhoodSales.length === 1 ? "" : "s"} hidden.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAreNeighborhoodSalesCollapsed(false)}
+                    className="border-[#2C4F4E] text-[#2C4F4E] hover:bg-white"
+                  >
+                    Show NS
+                  </Button>
+                </div>
+              </Card>
+            ) : (
+              <NeighborhoodSaleNoticeCard
+                sales={nearbyNeighborhoodSales}
+                onDismiss={() => setAreNeighborhoodSalesCollapsed(true)}
+              />
+            )
           )}
 
           <div className="space-y-3 mt-4">

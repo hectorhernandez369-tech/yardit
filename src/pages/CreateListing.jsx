@@ -104,7 +104,6 @@ export default function CreateListingPage() {
   const [geocodeRef, setGeocodeRef] = useState(null);
   const [isStartingPayment, setIsStartingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
-  const [isNeighborhoodDiscoveryDismissed, setIsNeighborhoodDiscoveryDismissed] = useState(false);
   const handledCheckoutSessionRef = useRef(null);
   const handledNeighborhoodSetupSessionRef = useRef(null);
   const recoveringPaidCheckoutRef = useRef(false);
@@ -1709,8 +1708,6 @@ export default function CreateListingPage() {
                 setStep={setStep}
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
                 residentialTierPrices={RESIDENTIAL_TIER_PRICES}
-                isNeighborhoodDiscoveryDismissed={isNeighborhoodDiscoveryDismissed}
-                setIsNeighborhoodDiscoveryDismissed={setIsNeighborhoodDiscoveryDismissed}
                 onAddressSelected={(selectedAddress) => {
                   if (!isGlobalDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
                     setPendingHomeAddress(buildResolvedListingLocation(selectedAddress));
