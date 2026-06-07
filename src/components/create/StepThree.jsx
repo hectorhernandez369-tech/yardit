@@ -66,11 +66,16 @@ function getSaleHomeCount(sale) {
 
 const ELIGIBLE_NEIGHBORHOOD_STATES = new Set(["pending_activation", "activated", "activated_locked", "coming_soon", "active", "scheduled", "upcoming"]);
 
-export default function StepThree({ formData, setFormData, reservedDates = new Set() }) {
+export default function StepThree({
+  formData,
+  setFormData,
+  reservedDates = new Set(),
+  isNeighborhoodDiscoveryDismissed = false,
+  setIsNeighborhoodDiscoveryDismissed,
+}) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
   const [nearbyNeighborhoodSales, setNearbyNeighborhoodSales] = useState([]);
-  const [dismissedNeighborhoodNotice, setDismissedNeighborhoodNotice] = useState(false);
 
   const freeTierDateRange = useMemo(() => {
     const freeWindow = computeFreeWindow(new Date(), formData?.timeZoneId || "America/Los_Angeles");
@@ -127,7 +132,7 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
     let cancelled = false;
 
     const loadNearbyNeighborhoodSales = async () => {
-      if (isNeighborhoodSale || formData?.listingType !== "yard_sale" || dismissedNeighborhoodNotice) {
+      if (isNeighborhoodSale || formData?.listingType !== "yard_sale" || isNeighborhoodDiscoveryDismissed) {
         setNearbyNeighborhoodSales([]);
         return;
       }
@@ -162,7 +167,7 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
     return () => {
       cancelled = true;
     };
-  }, [dismissedNeighborhoodNotice, formData?.lat, formData?.lng, formData?.listingType, isNeighborhoodSale]);
+  }, [isNeighborhoodDiscoveryDismissed, formData?.lat, formData?.lng, formData?.listingType, isNeighborhoodSale]);
 
   const inviteUrl = useMemo(() => {
     if (!isNeighborhoodSale) return "";
@@ -232,10 +237,10 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
             </p>
           </div>
 
-          {nearbyNeighborhoodSales.length > 0 && !dismissedNeighborhoodNotice && (
+          {nearbyNeighborhoodSales.length > 0 && !isNeighborhoodDiscoveryDismissed && (
             <NeighborhoodSaleNoticeCard
               sales={nearbyNeighborhoodSales}
-              onDismiss={() => setDismissedNeighborhoodNotice(true)}
+              onDismiss={() => setIsNeighborhoodDiscoveryDismissed?.(true)}
             />
           )}
 

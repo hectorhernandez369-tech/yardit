@@ -22,6 +22,8 @@ export default function CreateListingResidential({
   setStep,
   handlePaymentStepSubmit,
   residentialTierPrices,
+  isNeighborhoodDiscoveryDismissed,
+  setIsNeighborhoodDiscoveryDismissed,
   onAddressSelected,
 }) {
   if (step === 1) {
@@ -33,7 +35,15 @@ export default function CreateListingResidential({
   }
 
   if (step === 3) {
-    return <StepThree formData={formData} setFormData={setFormData} reservedDates={reservedDates} />;
+    return (
+      <StepThree
+        formData={formData}
+        setFormData={setFormData}
+        reservedDates={reservedDates}
+        isNeighborhoodDiscoveryDismissed={isNeighborhoodDiscoveryDismissed}
+        setIsNeighborhoodDiscoveryDismissed={setIsNeighborhoodDiscoveryDismissed}
+      />
+    );
   }
 
   if (step === 4) {

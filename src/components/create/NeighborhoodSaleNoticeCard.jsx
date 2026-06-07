@@ -38,7 +38,8 @@ export default function NeighborhoodSaleNoticeCard({ sales = [], onDismiss }) {
   if (!sales.length) return null;
 
   const openSale = (sale) => {
-    window.location.href = `/ListingDetail?id=${encodeURIComponent(sale.id)}`;
+    const url = `/ListingDetail?id=${encodeURIComponent(sale.id)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const requestJoin = (sale) => {
