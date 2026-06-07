@@ -15,13 +15,11 @@ import CreateListingResidential from "../components/create/CreateListingResident
 import CreateListingNeighborhood from "../components/create/CreateListingNeighborhood";
 import CreateListingEvent from "../components/create/CreateListingEvent";
 import ConfirmHomeAddressModal from "../components/create/ConfirmHomeAddressModal";
-import NeighborhoodJoinDialogs from "../components/create/NeighborhoodJoinDialogs";
 import { clearStaleTrustProgress, hasVerifiedPrimaryAddress } from "@/lib/trustActions";
 import { useAppMode } from "../components/shared/DemoMode";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import {
   deriveNeighborhoodEventState,
-  doesListingOverlapNeighborhoodSale,
   getNeighborhoodCreationLeadTimeError,
   isNeighborhoodJoinAllowed,
   normalizeNeighborhoodJoinStatus,
@@ -502,7 +500,7 @@ export default function CreateListingPage() {
     initialData: []
   });
 
-  // Sale in area check is done on submit
+  // Neighborhood Sale discovery is shown during residential tier selection.
 
   const isEventFlow = formData.listingType === "event";
   const paymentStepNumber = isEventFlow ? 5 : 4;
@@ -1114,7 +1112,7 @@ export default function CreateListingPage() {
         });
         setFormData(nextData);
 
-        // Do NOT show Ask-to-Join yet — wait until after dates are selected (handled at handleSubmit)
+        // Neighborhood Sale discovery appears on tier selection.
         setStep(3);
         return;
       }
@@ -1563,22 +1561,6 @@ export default function CreateListingPage() {
       return;
     }
 
-    if (formData.listingType === "yard_sale" && !isAdminCreate) {
-      const nearbySale = await findNearbyNeighborhoodSale();
-      if (nearbySale) {
-        const freeWindow = formData.tier === "free" ? computeFreeWindow(new Date(), formData.timeZoneId) : null;
-        const selectedListing = {
-          selectedRangeStartDate: formData.selectedRangeStartDate || formData.startDateTime?.slice(0, 10) || freeWindow?.startYMD,
-          selectedRangeEndDate: formData.selectedRangeEndDate || formData.endDateTime?.slice(0, 10) || freeWindow?.endYMD,
-        };
-        if (doesListingOverlapNeighborhoodSale(selectedListing, nearbySale)) {
-          setMatchedSale(nearbySale);
-          setSaleModalStep(1);
-          return;
-        }
-      }
-    }
-
     if (formData.listingType !== "neighborhood_sale" && ["featured", "premium"].includes(formData.tier)) {
       setPaymentError("");
       setStep(4);
@@ -1956,14 +1938,6 @@ export default function CreateListingPage() {
         onConfirm={confirmSelectedHomeAddress}
       />
 
-      <NeighborhoodJoinDialogs
-        saleModalStep={saleModalStep}
-        setSaleModalStep={setSaleModalStep}
-        matchedSale={matchedSale}
-        setJoinAction={setJoinAction}
-        setStep={setStep}
-        executeSubmit={executeSubmit}
-      />
       <YardSaleGuideModal open={showGuideModal} onOpenChange={setShowGuideModal} />
     </div>
   );

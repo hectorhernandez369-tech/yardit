@@ -1,11 +1,15 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { hasDateConflict } from "@/lib/residentialDateConflict";
 import { computeFreeWindow } from "@/components/shared/listingTierEngine";
+import { deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
+import { NEIGHBORHOOD_MAX_HOMES } from "@/lib/neighborhoodSalePricing";
+import NeighborhoodSaleNoticeCard from "./NeighborhoodSaleNoticeCard";
 
 function makeId() {
   try {
@@ -38,9 +42,35 @@ function formatDisplayRange(startDate, endDate, suffix = "") {
   return `${formatDisplayDate(startDate)} to ${formatDisplayDate(endDate)}${suffix}`;
 }
 
+function getDistanceFeet(lat1, lon1, lat2, lon2) {
+  if (typeof lat1 !== "number" || typeof lon1 !== "number" || typeof lat2 !== "number" || typeof lon2 !== "number") return Infinity;
+  const R = 20902231;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function getSaleStartDate(sale) {
+  return sale?.selectedRangeStartDate || sale?.startDateTime?.slice(0, 10) || "9999-12-31";
+}
+
+function getSaleHomeCount(sale) {
+  const value = sale?.homeCount ?? sale?.confirmed_count ?? sale?.confirmedCount ?? sale?.confirmedHomes ?? sale?.participantsCount ?? 0;
+  const count = Number(value);
+  return Number.isFinite(count) ? count : 0;
+}
+
+const ELIGIBLE_NEIGHBORHOOD_STATES = new Set(["pending_activation", "activated", "activated_locked", "coming_soon", "active", "scheduled", "upcoming"]);
+
 export default function StepThree({ formData, setFormData, reservedDates = new Set() }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
+  const [nearbyNeighborhoodSales, setNearbyNeighborhoodSales] = useState([]);
+  const [dismissedNeighborhoodNotice, setDismissedNeighborhoodNotice] = useState(false);
 
   const freeTierDateRange = useMemo(() => {
     const freeWindow = computeFreeWindow(new Date(), formData?.timeZoneId || "America/Los_Angeles");
@@ -92,6 +122,47 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
       invite_code: id,
     }));
   }, [isNeighborhoodSale, formData?.neighborhoodDraftId, setFormData]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadNearbyNeighborhoodSales = async () => {
+      if (isNeighborhoodSale || formData?.listingType !== "yard_sale" || dismissedNeighborhoodNotice) {
+        setNearbyNeighborhoodSales([]);
+        return;
+      }
+      if (typeof formData?.lat !== "number" || typeof formData?.lng !== "number") {
+        setNearbyNeighborhoodSales([]);
+        return;
+      }
+
+      try {
+        const sales = await base44.entities.Listing.filter({ listingType: "neighborhood_sale" }, "startDateTime", 250);
+        const now = new Date();
+        const nearby = (sales || [])
+          .map((sale) => {
+            const discoveryState = deriveNeighborhoodEventState(sale, now) || sale.event_state || sale.status;
+            const centerLat = typeof sale.event_center_lat === "number" ? sale.event_center_lat : sale.lat;
+            const centerLng = typeof sale.event_center_lng === "number" ? sale.event_center_lng : sale.lng;
+            const distanceFeet = getDistanceFeet(formData.lat, formData.lng, centerLat, centerLng);
+            return { ...sale, discoveryState, distanceFeet };
+          })
+          .filter((sale) => ELIGIBLE_NEIGHBORHOOD_STATES.has(sale.discoveryState))
+          .filter((sale) => getSaleHomeCount(sale) < NEIGHBORHOOD_MAX_HOMES)
+          .filter((sale) => sale.distanceFeet <= 500)
+          .sort((a, b) => getSaleStartDate(a).localeCompare(getSaleStartDate(b)));
+
+        if (!cancelled) setNearbyNeighborhoodSales(nearby);
+      } catch {
+        if (!cancelled) setNearbyNeighborhoodSales([]);
+      }
+    };
+
+    loadNearbyNeighborhoodSales();
+    return () => {
+      cancelled = true;
+    };
+  }, [dismissedNeighborhoodNotice, formData?.lat, formData?.lng, formData?.listingType, isNeighborhoodSale]);
 
   const inviteUrl = useMemo(() => {
     if (!isNeighborhoodSale) return "";
@@ -160,6 +231,13 @@ export default function StepThree({ formData, setFormData, reservedDates = new S
               Select a tier and your event dates
             </p>
           </div>
+
+          {nearbyNeighborhoodSales.length > 0 && !dismissedNeighborhoodNotice && (
+            <NeighborhoodSaleNoticeCard
+              sales={nearbyNeighborhoodSales}
+              onDismiss={() => setDismissedNeighborhoodNotice(true)}
+            />
+          )}
 
           <div className="space-y-3 mt-4">
             <Label className="text-[#2C4F4E] font-semibold block mb-2 text-base">Choose your tier</Label>
