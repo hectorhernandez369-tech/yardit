@@ -109,6 +109,14 @@ export default function CreateListingPage() {
   const handledNeighborhoodSetupSessionRef = useRef(null);
   const recoveringPaidCheckoutRef = useRef(false);
 
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [step]);
+
   const [showHomeAddressConfirm, setShowHomeAddressConfirm] = useState(false);
   const [pendingHomeAddress, setPendingHomeAddress] = useState(null);
   const [isConfirmingHomeAddress, setIsConfirmingHomeAddress] = useState(false);
