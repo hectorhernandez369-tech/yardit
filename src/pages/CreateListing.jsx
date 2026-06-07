@@ -9,19 +9,11 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getAdminSession } from "../components/admin/AdminLoginModal";
 
-import StepOne from "../components/create/StepOne";
 import NeighborhoodIntroModal from "../components/create/NeighborhoodIntroModal";
-import StepTwo from "../components/create/StepTwo";
-import StepThree from "../components/create/StepThree";
-import ResidentialPaymentStep from "../components/payment/ResidentialPaymentStep";
-import NeighborhoodSetupStep from "../components/payment/NeighborhoodSetupStep";
 import FormScrollHelper from "../components/create/FormScrollHelper";
-import EventDetailsStep from "../components/create/event/EventDetailsStep";
-import EventLocationStep from "../components/create/event/EventLocationStep";
-import EventScheduleStep from "../components/create/event/EventScheduleStep";
-import EventTierStep from "../components/create/event/EventTierStep";
-import MarqueeSlotsEditor from "../components/create/event/MarqueeSlotsEditor";
-import AdminAssignUserStep from "../components/admin/AdminAssignUserStep";
+import CreateListingResidential from "../components/create/CreateListingResidential";
+import CreateListingNeighborhood from "../components/create/CreateListingNeighborhood";
+import CreateListingEvent from "../components/create/CreateListingEvent";
 import ConfirmHomeAddressModal from "../components/create/ConfirmHomeAddressModal";
 import NeighborhoodJoinDialogs from "../components/create/NeighborhoodJoinDialogs";
 import { clearStaleTrustProgress, hasVerifiedPrimaryAddress } from "@/lib/trustActions";
@@ -1837,79 +1829,60 @@ export default function CreateListingPage() {
           <FormScrollHelper containerRef={formContainerRef} />
 
           <div className="p-6 md:p-8">
-            {step === 1 && (formData.listingType === "event" ? <EventDetailsStep formData={formData} setFormData={setFormData} /> : <StepOne formData={formData} setFormData={setFormData} />)}
-            {step === 2 && (
-              formData.listingType === "event"
-                ? <EventLocationStep formData={formData} setFormData={setFormData} />
-                : <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} />
+            {formData.listingType === "event" && (
+              <CreateListingEvent
+                step={step}
+                formData={formData}
+                setFormData={setFormData}
+                isAdminCreate={isAdminCreate}
+                selectedUserForAdmin={selectedUserForAdmin}
+                setSelectedUserForAdmin={setSelectedUserForAdmin}
+                isGlobalDemoMode={isGlobalDemoMode}
+                isStartingPayment={isStartingPayment}
+                paymentError={paymentError}
+                setPaymentError={setPaymentError}
+                setStep={setStep}
+                handlePaymentStepSubmit={handlePaymentStepSubmit}
+                eventTierPrices={EVENT_TIER_PRICES}
+              />
             )}
-            {step === 3 && (formData.listingType === "event" ? <EventScheduleStep formData={formData} setFormData={setFormData} /> : <StepThree formData={formData} setFormData={setFormData} reservedDates={reservedDates} />)}
-            {step === 4 && formData.listingType === "event" && (
-              <div className="space-y-6">
-                <EventTierStep formData={formData} setFormData={setFormData} />
-                {(formData.event_tier || formData.tier) === "marquee" && (
-                  <MarqueeSlotsEditor
-                    value={formData.marquee_schedule_slots || []}
-                    onChange={(slots) => setFormData((prev) => ({ ...prev, marquee_schedule_slots: slots }))}
-                    eventStartDate={formData.event_start_date}
-                    eventEndDate={formData.event_end_date}
-                  />
-                )}
-              </div>
-            )}
-            {step === 4 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (
-              isAdminCreate ? (
-                <AdminAssignUserStep selectedUser={selectedUserForAdmin} setSelectedUser={setSelectedUserForAdmin} />
-              ) : (
-              <ResidentialPaymentStep
-                tier={formData.tier}
-                amount={RESIDENTIAL_TIER_PRICES[formData.tier] || 0}
-                listing={formData}
-                isDemoMode={isGlobalDemoMode}
-                isProcessing={isStartingPayment}
-                errorMessage={paymentError}
+            {formData.listingType === "neighborhood_sale" && (
+              <CreateListingNeighborhood
+                step={step}
+                formData={formData}
+                setFormData={setFormData}
+                setGeocodeRef={setGeocodeRef}
                 user={user}
-                onBack={() => {
-                  setPaymentError("");
-                  setStep(3);
-                }}
-                onPay={handlePaymentStepSubmit}
+                reservedDates={reservedDates}
+                isAdminCreate={isAdminCreate}
+                selectedUserForAdmin={selectedUserForAdmin}
+                setSelectedUserForAdmin={setSelectedUserForAdmin}
+                isStartingPayment={isStartingPayment}
+                paymentError={paymentError}
+                setPaymentError={setPaymentError}
+                setStep={setStep}
+                handleNeighborhoodSetupSubmit={handleNeighborhoodSetupSubmit}
               />
-              )
             )}
-            {step === 5 && formData.listingType === "event" && (
-              isAdminCreate ? (
-                <AdminAssignUserStep selectedUser={selectedUserForAdmin} setSelectedUser={setSelectedUserForAdmin} />
-              ) : (
-              <ResidentialPaymentStep
-                tier={formData.event_tier}
-                amount={(EVENT_TIER_PRICES[formData.event_tier] || 0) / 100}
-                listing={formData}
-                isDemoMode={isGlobalDemoMode}
-                isProcessing={isStartingPayment}
-                errorMessage={paymentError}
-                onBack={() => {
-                  setPaymentError("");
-                  setStep(4);
-                }}
-                onPay={handlePaymentStepSubmit}
+            {formData.listingType === "yard_sale" && (
+              <CreateListingResidential
+                step={step}
+                formData={formData}
+                setFormData={setFormData}
+                setGeocodeRef={setGeocodeRef}
+                user={user}
+                reservedDates={reservedDates}
+                isAdminCreate={isAdminCreate}
+                selectedUserForAdmin={selectedUserForAdmin}
+                setSelectedUserForAdmin={setSelectedUserForAdmin}
+                isGlobalDemoMode={isGlobalDemoMode}
+                isStartingPayment={isStartingPayment}
+                paymentError={paymentError}
+                setPaymentError={setPaymentError}
+                setStep={setStep}
+                handlePaymentStepSubmit={handlePaymentStepSubmit}
+                residentialTierPrices={RESIDENTIAL_TIER_PRICES}
               />
-              )
-            )}
-            {step === 4 && formData.listingType === "neighborhood_sale" && (
-              isAdminCreate ? (
-                <AdminAssignUserStep selectedUser={selectedUserForAdmin} setSelectedUser={setSelectedUserForAdmin} />
-              ) : (
-              <NeighborhoodSetupStep
-                isProcessing={isStartingPayment}
-                errorMessage={paymentError}
-                onBack={() => {
-                  setPaymentError("");
-                  setStep(3);
-                }}
-                onSetup={handleNeighborhoodSetupSubmit}
-              />
-              )
             )}
 
             {(step !== paymentStepNumber || isAdminCreate) && (
