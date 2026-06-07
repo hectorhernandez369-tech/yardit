@@ -22,8 +22,9 @@ import EventScheduleStep from "../components/create/event/EventScheduleStep";
 import EventTierStep from "../components/create/event/EventTierStep";
 import MarqueeSlotsEditor from "../components/create/event/MarqueeSlotsEditor";
 import AdminAssignUserStep from "../components/admin/AdminAssignUserStep";
-import PrimaryAddressVerificationGate from "../components/create/PrimaryAddressVerificationGate";
-import { canPerformTrustAction, clearStaleTrustProgress, hasVerifiedPrimaryAddress } from "@/lib/trustActions";
+import ConfirmHomeAddressModal from "../components/create/ConfirmHomeAddressModal";
+import NeighborhoodJoinDialogs from "../components/create/NeighborhoodJoinDialogs";
+import { clearStaleTrustProgress, hasVerifiedPrimaryAddress } from "@/lib/trustActions";
 import { useAppMode } from "../components/shared/DemoMode";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import {
@@ -137,6 +138,9 @@ export default function CreateListingPage() {
   const [saleModalStep, setSaleModalStep] = useState(0); // 0: none, 1: popup1, 2: popup2
   const [matchedSale, setMatchedSale] = useState(null);
   const [joinAction, setJoinAction] = useState(null); // null, "requested", "none"
+  const [showHomeAddressConfirm, setShowHomeAddressConfirm] = useState(false);
+  const [pendingHomeAddress, setPendingHomeAddress] = useState(null);
+  const [isConfirmingHomeAddress, setIsConfirmingHomeAddress] = useState(false);
 
   const isAdminCreate = new URLSearchParams(location.search).get("adminCreate") === "1";
   const [selectedUserForAdmin, setSelectedUserForAdmin] = useState(null);
@@ -479,10 +483,10 @@ export default function CreateListingPage() {
   }, [navigateToLogin]);
 
   const { isDemoMode: isGlobalDemoMode } = useAppMode();
-  const userHasVerifiedPrimaryAddress = hasVerifiedPrimaryAddress(user);
+  const userHasVerifiedPrimaryAddress = hasVerifiedPrimaryAddress(user) && typeof (user?.primary_latitude ?? user?.address_lat) === "number" && typeof (user?.primary_longitude ?? user?.address_lng) === "number";
   const profileAddressMissing = !userHasVerifiedPrimaryAddress;
   const profileAddressUnconfirmed = !userHasVerifiedPrimaryAddress;
-  const profileIncomplete = !canPerformTrustAction(user);
+  const profileIncomplete = user?.email_verified === false;
   const regularAddressIncomplete = !formData.addressText || !formData.city || !formData.state || !formData.zip;
 
   // Pull all user listings (used for “1 active listing” rule)
@@ -534,6 +538,42 @@ export default function CreateListingPage() {
     const freshListings = await base44.entities.Listing.filter({ ownerUserId: user.id });
     const freshReserved = getReservedDatesForAddress(freshListings, null, addressRef);
     return hasDateConflict(startDate, endDate, freshReserved);
+  };
+
+  const getHomeAddressLabel = (a = formData) => a?.selected_geocode_place_name || a?.geocoded_address || [a?.addressText, a?.city, getStateAbbreviation(a?.state || ""), a?.zip].filter(Boolean).join(", ");
+
+  const confirmSelectedHomeAddress = async () => {
+    const selected = pendingHomeAddress || formData;
+    if (!selected?.selected_geocode_confirmed || typeof selected?.lat !== "number" || typeof selected?.lng !== "number") {
+      toast.error("Please select an address from the suggested matches before continuing.");
+      setShowHomeAddressConfirm(false);
+      return;
+    }
+    setIsConfirmingHomeAddress(true);
+    try {
+      const now = new Date().toISOString();
+      const stateCode = getStateAbbreviation(selected.state || "");
+      const fullAddress = getHomeAddressLabel(selected);
+      await base44.auth.updateMe({
+        has_primary_address: true, primary_address_verified: true, address_verified: true, primary_address: fullAddress,
+        primary_latitude: selected.lat, primary_longitude: selected.lng, primary_address_verified_at: now,
+        primary_address_last_changed_at: user?.primary_address_last_changed_at || now, address_verification_required: false,
+        street_address: selected.addressText, city: selected.city, state: stateCode, zip_code: selected.zip,
+        address_lat: selected.lat, address_lng: selected.lng, address_confirmation_status: "confirmed", address: fullAddress,
+        ...(selected.timeZoneId ? { timeZoneId: selected.timeZoneId } : {}),
+      });
+      const refreshedUser = await base44.auth.me();
+      setUser(refreshedUser);
+      setFormData(buildResolvedListingLocation({ ...selected, addressText: fullAddress, state: stateCode, locationMethod: "verified_primary_address" }));
+      setShowHomeAddressConfirm(false);
+      setPendingHomeAddress(null);
+      toast.success("Home address confirmed. You can now continue creating your listing.");
+      setStep(3);
+    } catch (error) {
+      toast.error(error?.message || "We couldn't update your profile address. Please try again.");
+    } finally {
+      setIsConfirmingHomeAddress(false);
+    }
   };
 
   const buildNonRefundFields = (nonRefundAcknowledgement = {}) => ({
@@ -1041,15 +1081,27 @@ export default function CreateListingPage() {
           return;
         }
 
-        if (profileAddressUnconfirmed) {
-          toast.error("Your address must be confirmed in Settings before you can complete account setup or create a live listing.");
-          navigate(createPageUrl("Settings"));
+        if (!userHasVerifiedPrimaryAddress) {
+          if (!geocodeRef || typeof geocodeRef !== "function") {
+            toast.error("Please select an address from the suggested matches before continuing.");
+            return;
+          }
+          if (!formData.selected_geocode_confirmed || typeof formData.lat !== "number" || typeof formData.lng !== "number") {
+            await geocodeRef();
+            toast.error("Please select your address from the suggested matches below.");
+            return;
+          }
+          const normalizedSelected = buildResolvedListingLocation(formData);
+          setPendingHomeAddress(normalizedSelected);
+          setShowHomeAddressConfirm(true);
           return;
         }
 
         let resolvedProfileTimeZoneId = user?.timeZoneId || formData.timeZoneId || "";
-        if (!resolvedProfileTimeZoneId && typeof user?.address_lat === "number" && typeof user?.address_lng === "number") {
-          resolvedProfileTimeZoneId = resolveTimeZoneFromCoordinates(user.address_lat, user.address_lng) || "";
+        const profileLat = user.primary_latitude ?? user.address_lat;
+        const profileLng = user.primary_longitude ?? user.address_lng;
+        if (!resolvedProfileTimeZoneId && typeof profileLat === "number" && typeof profileLng === "number") {
+          resolvedProfileTimeZoneId = resolveTimeZoneFromCoordinates(profileLat, profileLng) || "";
           if (resolvedProfileTimeZoneId) {
             await base44.auth.updateMe({ timeZoneId: resolvedProfileTimeZoneId });
             const refreshedUser = await base44.auth.me();
@@ -1063,8 +1115,8 @@ export default function CreateListingPage() {
           city: user.city,
           state: (user.state || "").toUpperCase().slice(0, 2),
           zip: user.zip_code,
-          lat: user.primary_latitude,
-          lng: user.primary_longitude,
+          lat: profileLat,
+          lng: profileLng,
           timeZoneId: resolvedProfileTimeZoneId,
           locationMethod: "verified_primary_address"
         });
@@ -1159,7 +1211,12 @@ export default function CreateListingPage() {
     }
 
     if (payload.listingType === "yard_sale" && !isGlobalDemoMode && !isAdminCreate) {
-      const selectedDistanceFeet = getDistanceFeet(payload.lat, payload.lng, user.primary_latitude, user.primary_longitude);
+      const profileLat = user.primary_latitude ?? user.address_lat;
+      const profileLng = user.primary_longitude ?? user.address_lng;
+      if (!userHasVerifiedPrimaryAddress || typeof profileLat !== "number" || typeof profileLng !== "number") {
+        throw new Error("Please confirm your home address before publishing.");
+      }
+      const selectedDistanceFeet = getDistanceFeet(payload.lat, payload.lng, profileLat, profileLng);
       if (selectedDistanceFeet > 500) {
         throw new Error("Your listing must use your verified primary address. You can adjust the pin slightly for map accuracy.");
       }
@@ -1170,8 +1227,8 @@ export default function CreateListingPage() {
         city: user.city,
         state: getStateAbbreviation(user.state || ""),
         zip: user.zip_code,
-        lat: typeof payload.lat === "number" ? payload.lat : user.primary_latitude,
-        lng: typeof payload.lng === "number" ? payload.lng : user.primary_longitude,
+        lat: typeof payload.lat === "number" ? payload.lat : profileLat,
+        lng: typeof payload.lng === "number" ? payload.lng : profileLng,
         timeZoneId: user?.timeZoneId || payload.timeZoneId || "",
         locationMethod: "verified_primary_address",
       };
@@ -1429,6 +1486,13 @@ export default function CreateListingPage() {
   };
 
   const handleSubmit = async () => {
+    if (!isAdminCreate && !isGlobalDemoMode && formData.listingType === "yard_sale" &&
+        (!userHasVerifiedPrimaryAddress || typeof (user?.primary_latitude ?? user?.address_lat) !== "number" || typeof (user?.primary_longitude ?? user?.address_lng) !== "number")) {
+      toast.error("Please confirm your home address before publishing.");
+      setStep(2);
+      return;
+    }
+
     if (!isAdminCreate && formData.listingType === "yard_sale" &&
         formData.selectedRangeStartDate && formData.selectedRangeEndDate &&
         hasResidentialDateConflict(formData.selectedRangeStartDate, formData.selectedRangeEndDate)) {
@@ -1712,13 +1776,6 @@ export default function CreateListingPage() {
     return <div className="p-8 text-center">Loading...</div>;
   }
 
-  const shouldRequirePrimaryAddress = !isAdminCreate && !isGlobalDemoMode && !canPerformTrustAction(user);
-
-  if (shouldRequirePrimaryAddress) {
-    sessionStorage.setItem("yardit_pending_trust_action", JSON.stringify({ returnTo: window.location.href, action: "create_listing", createdAt: Date.now() }));
-    return <PrimaryAddressVerificationGate user={user} onVerified={async () => setUser(await base44.auth.me())} />;
-  }
-
   const residentialStepLabels = ["Sale Details", "Your Location", "Tier & Schedule", isAdminCreate ? "Assign User" : "Payment"];
   const eventStepLabels = ["Event Info", "Location", "Date & Time", "Visibility", isAdminCreate ? "Assign User" : "Payment"];
   const stepLabels = isEventFlow ? eventStepLabels : residentialStepLabels;
@@ -1869,7 +1926,7 @@ export default function CreateListingPage() {
                 {(isAdminCreate ? step < paymentStepNumber : step < entryStepNumber) ? (
                   <Button
                     onClick={isAdminCreate && step === entryStepNumber ? () => setStep(paymentStepNumber) : handleNext}
-                    disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (isGlobalDemoMode ? (profileAddressMissing || regularAddressIncomplete) : profileAddressUnconfirmed)}
+                    disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && regularAddressIncomplete}
                     className="flex-1 bg-[#006168] hover:bg-[#004d52] text-white rounded-xl h-11 font-semibold shadow-sm"
                   >
                     Continue →
@@ -1912,85 +1969,22 @@ export default function CreateListingPage() {
       </div>
 
       <NeighborhoodIntroModal open={showNeighborhoodIntro} onClose={() => setShowNeighborhoodIntro(false)} onContinue={() => { setShowNeighborhoodIntro(false); setStep(2); }} />
+      <ConfirmHomeAddressModal
+        open={showHomeAddressConfirm}
+        address={getHomeAddressLabel(pendingHomeAddress || formData)}
+        isConfirming={isConfirmingHomeAddress}
+        onCancel={() => { setShowHomeAddressConfirm(false); setPendingHomeAddress(null); }}
+        onConfirm={confirmSelectedHomeAddress}
+      />
 
-      <Dialog
-        open={saleModalStep === 1}
-        onOpenChange={(open) => {
-          if (!open) {
-            setJoinAction("none");
-            setSaleModalStep(0);
-            setStep(3);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Neighborhood event in your area</DialogTitle>
-          </DialogHeader>
-
-          <div className="py-4">
-            <p className="text-slate-700 mb-2">
-              There is a Neighborhood Sale in your area. Request to Join?
-            </p>
-            <p className="text-sm text-slate-600">
-              {matchedSale?.startDateTime ? new Date(matchedSale.startDateTime).toLocaleDateString() : ""}
-              {matchedSale?.endDateTime ? ` - ${new Date(matchedSale.endDateTime).toLocaleDateString()}` : ""}
-            </p>
-          </div>
-
-          <DialogFooter className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => {
-              setJoinAction("none");
-              setSaleModalStep(0);
-              setStep(3);
-            }}>
-              NO THANKS
-            </Button>
-            <Button onClick={() => setSaleModalStep(2)} className="bg-amber-600 hover:bg-amber-700">
-              ASK TO JOIN
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={saleModalStep === 2}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSaleModalStep(0);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Important</DialogTitle>
-          </DialogHeader>
-
-          <div className="py-4">
-            <p className="text-slate-700 whitespace-pre-line leading-relaxed">
-              Joining a Neighborhood Sale creates a Neighborhood participant listing and skips normal tier/payment checkout.{"\n"}
-              If this Neighborhood Sale is canceled or your participation is removed, you will need to create a normal listing to appear independently.
-            </p>
-          </div>
-
-          <DialogFooter className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => {
-              setJoinAction("none");
-              setSaleModalStep(0);
-              setStep(3);
-            }}>
-              CANCEL
-            </Button>
-            <Button onClick={() => {
-              setJoinAction("requested");
-              setSaleModalStep(0);
-              executeSubmit("requested");
-            }} className="bg-amber-600 hover:bg-amber-700">
-              REQUEST TO JOIN
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NeighborhoodJoinDialogs
+        saleModalStep={saleModalStep}
+        setSaleModalStep={setSaleModalStep}
+        matchedSale={matchedSale}
+        setJoinAction={setJoinAction}
+        setStep={setStep}
+        executeSubmit={executeSubmit}
+      />
       <YardSaleGuideModal open={showGuideModal} onOpenChange={setShowGuideModal} />
     </div>
   );

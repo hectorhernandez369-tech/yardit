@@ -217,7 +217,15 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
     return `${user.street_address}, ${user.city}, ${user.state} ${user.zip_code}`;
   }, [user]);
 
-  const userHasConfirmedAddress = !!(user?.street_address && user?.city && user?.state && user?.zip_code && user?.address_lat && user?.address_lng);
+  const userHasConfirmedAddress = !!(
+    (user?.primary_address_verified === true || user?.address_verified === true || user?.address_confirmation_status === "confirmed") &&
+    user?.street_address &&
+    user?.city &&
+    user?.state &&
+    user?.zip_code &&
+    typeof (user?.primary_latitude ?? user?.address_lat) === "number" &&
+    typeof (user?.primary_longitude ?? user?.address_lng) === "number"
+  );
   const userAddressInRadius = !!(
     isNeighborhood &&
     userHasConfirmedAddress &&
@@ -423,6 +431,15 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
       setDebugInfo({ lastQueryString: usedQuery, lastResponseCount: data?.length ?? 0, lastErrorMessage: "" });
 
       if (data.length > 0) {
+        if (!userHasConfirmedAddress) {
+          confirmedAddressKeyRef.current = "";
+          addressConfirmedRef.current = false;
+          setAddressConfirmed(false);
+          setAddressSuggestions(data.slice(0, 5));
+          setAddressSelectionMessage(`Select your address from the suggested matches below to continue.`);
+          return false;
+        }
+
         if (data.length === 1) {
           confirmedAddressKeyRef.current = currentAddressKey;
           addressConfirmedRef.current = true;
@@ -568,7 +585,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
     return "No host address selected yet";
   }, [formData]);
 
-  const hasProfileAddress = !!(user?.street_address && user?.city && user?.state && user?.zip_code);
+  const hasProfileAddress = userHasConfirmedAddress;
 
   useEffect(() => {
     if (!isMapModalOpen) return;
@@ -963,6 +980,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
           addressSuggestions={addressSuggestions}
           addressSelectionMessage={addressSelectionMessage}
           addressConfirmed={addressConfirmed}
+          canEditAddress={isDemoMode || !userHasConfirmedAddress}
           onSelectSuggestion={(suggestion) => {
             let city = formData.city, state = formData.state, zip = formData.zip;
             suggestion.context?.forEach((c) => {
@@ -991,6 +1009,10 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                   lat: suggestion.center[1],
                   lng: suggestion.center[0],
                   timeZoneId: resolvedTimeZoneId || "",
+                  geocoded_address: suggestion.place_name,
+                  location_source: "address_search",
+                  selected_geocode_confirmed: true,
+                  selected_geocode_place_name: suggestion.place_name,
                 };
                 console.log("[StepTwo] saved timeZoneId", {
                   lat: nextValue.lat,

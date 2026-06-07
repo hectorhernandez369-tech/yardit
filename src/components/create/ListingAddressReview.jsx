@@ -18,8 +18,9 @@ export default function ListingAddressReview({
   addressSelectionMessage,
   addressConfirmed,
   onSelectSuggestion,
+  canEditAddress = false,
 }) {
-  const readOnly = !isDemoMode;
+  const readOnly = !canEditAddress;
   const inputClassName = `bg-[#F3E6CF] border-[#2C4F4E] ${readOnly ? "opacity-70 cursor-not-allowed" : ""}`;
 
   return (
@@ -57,7 +58,7 @@ export default function ListingAddressReview({
             id="addressText"
             value={formData.addressText || ""}
             disabled={readOnly}
-            onChange={(e) => setFormData((prev) => ({ ...prev, addressText: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, addressText: e.target.value, lat: null, lng: null, selected_geocode_confirmed: false, selected_geocode_place_name: "" }))}
             className={inputClassName}
           />
         </div>
@@ -68,7 +69,7 @@ export default function ListingAddressReview({
             id="city"
             value={formData.city || ""}
             disabled={readOnly}
-            onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value, lat: null, lng: null, selected_geocode_confirmed: false, selected_geocode_place_name: "" }))}
             className={inputClassName}
           />
         </div>
@@ -81,7 +82,7 @@ export default function ListingAddressReview({
               value={formData.state || ""}
               disabled={readOnly}
               maxLength={2}
-              onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value.toUpperCase() }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value.toUpperCase(), lat: null, lng: null, selected_geocode_confirmed: false, selected_geocode_place_name: "" }))}
               className={`${inputClassName} uppercase`}
             />
           </div>
@@ -92,25 +93,37 @@ export default function ListingAddressReview({
               id="zip"
               value={formData.zip || ""}
               disabled={readOnly}
-              onChange={(e) => setFormData((prev) => ({ ...prev, zip: e.target.value }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, zip: e.target.value, lat: null, lng: null, selected_geocode_confirmed: false, selected_geocode_place_name: "" }))}
               className={inputClassName}
             />
           </div>
         </div>
       </div>
 
-      {isDemoMode && hasProfileAddress && (
+      {canEditAddress && (
         <div className="flex flex-wrap gap-3">
           <Button
             type="button"
-            onClick={onUseCurrentLocation}
-            disabled={isGettingLocation}
-            variant="outline"
-            className="gap-2 border-2 border-[#2C4F4E] bg-[#F3E6CF] text-[#2C4F4E] hover:bg-[#E7D7B8]"
+            onClick={onLocateAddress}
+            disabled={isGeocoding}
+            className="gap-2 bg-[#5DADA5] hover:bg-[#4A9B93] text-white"
           >
-            {isGettingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-            Use My Location
+            {isGeocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+            Find Address
           </Button>
+
+          {isDemoMode && hasProfileAddress && (
+            <Button
+              type="button"
+              onClick={onUseCurrentLocation}
+              disabled={isGettingLocation}
+              variant="outline"
+              className="gap-2 border-2 border-[#2C4F4E] bg-[#F3E6CF] text-[#2C4F4E] hover:bg-[#E7D7B8]"
+            >
+              {isGettingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+              Use My Location
+            </Button>
+          )}
         </div>
       )}
 
