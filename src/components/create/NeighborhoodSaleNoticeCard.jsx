@@ -65,7 +65,7 @@ export default function NeighborhoodSaleNoticeCard({ sales = [], onDismiss }) {
           </p>
         </div>
         <Button type="button" variant="outline" onClick={onDismiss} className="border-[#2C4F4E] text-[#2C4F4E] hover:bg-white">
-          Hide NS
+          Collapse
         </Button>
       </div>
 

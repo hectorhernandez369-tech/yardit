@@ -213,7 +213,7 @@ export default function StepThree({
                     onClick={() => setAreNeighborhoodSalesCollapsed(false)}
                     className="border-[#2C4F4E] text-[#2C4F4E] hover:bg-white"
                   >
-                    Show NS
+                    Expand
                   </Button>
                 </div>
               </Card>
