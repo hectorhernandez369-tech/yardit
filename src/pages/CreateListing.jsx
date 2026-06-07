@@ -803,12 +803,17 @@ export default function CreateListingPage() {
           return;
         }
         setStep(2);
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
 
       if (formData.listingType === "neighborhood_sale") {
-        if (localStorage.getItem(NEIGHBORHOOD_INTRO_HIDE_KEY) === "true") setStep(2);
-        else setShowNeighborhoodIntro(true);
+        if (localStorage.getItem(NEIGHBORHOOD_INTRO_HIDE_KEY) === "true") {
+          setStep(2);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+          setShowNeighborhoodIntro(true);
+        }
         return;
       }
       if (!formData.title) {
@@ -826,6 +831,7 @@ export default function CreateListingPage() {
         }
       }
       setStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -843,6 +849,7 @@ export default function CreateListingPage() {
           return resolved;
         });
         setStep(3);
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
 
@@ -912,6 +919,7 @@ export default function CreateListingPage() {
         }
 
         setStep(3);
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
 
@@ -965,6 +973,7 @@ export default function CreateListingPage() {
 
         // Neighborhood Sale discovery appears on tier selection.
         setStep(3);
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
 
@@ -1002,6 +1011,7 @@ export default function CreateListingPage() {
 
       // Neighborhood Sale discovery appears on tier selection.
       setStep(3);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -1016,6 +1026,7 @@ export default function CreateListingPage() {
         return;
       }
       setStep(4);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
