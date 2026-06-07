@@ -323,90 +323,13 @@ export default function ListingDetailPage() {
   }, [listing]);
 
   const respondToJoinRequestMutation = useMutation({
-    mutationFn: async ({ requestId, requesterListingId, action, requesterUserId, eventTitle }) => {
-      const sales = await base44.entities.Listing.filter({ id: listingId });
-      const sale = sales[0];
-      const saleRequests = await base44.entities.JoinRequest.filter({ saleListingId: listingId });
-      const lockedState = deriveNeighborhoodEventState(sale);
-
-      if (["activated_locked", "coming_soon", "active"].includes(lockedState)) {
-        throw new Error("This Neighborhood Sale is locked and participant changes must go through the report flow.");
-      }
-
-      if (action === "approve") {
-        const activeHomes = 1 + saleRequests.filter((request) => request.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === "approved").length;
-        if (activeHomes >= NEIGHBORHOOD_MAX_HOMES) {
-          throw new Error("Neighborhood Sale has reached the 25-home limit.");
-        }
-
-        await base44.entities.JoinRequest.update(requestId, { status: "approved" });
-        await base44.entities.Listing.update(requesterListingId, {
-          neighborhood_join_status: "approved",
-          payment_intent_status: "none",
-          hold_deadline_at: null,
-          neighborhood_sale_id: listingId,
-          tier: "free",
-          pricePaid: 0,
-          participant_origin: "neighborhood_invite",
-        });
-        await base44.entities.Notification.create({
-          userId: requesterUserId,
-          title: "Join Request Approved",
-          message: `Approved — you joined ${eventTitle}`,
-          type: "join_response_accept",
-          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
-        });
-        
-        const { summary } = await syncNeighborhoodSaleListing(listingId);
-        
-        // Notify organizer if exactly hitting 5th participant (commitment trigger)
-        if (summary?.totalApprovedHomes === 5) {
-          await base44.entities.Notification.create({
-            userId: user.id,
-            title: "Neighborhood Sale Committed",
-            message: `Your sale has reached 5 homes and is now COMMITTED. Cancelling now will trigger an immediate charge. Otherwise, you will be charged once exactly 24 hours before the event.`,
-            type: "neighborhood_sale_committed",
-            metadata: { sale_listing_id: listingId, event_title: eventTitle }
-          });
-        }
-      } else if (action === "remove") {
-        if (["activated_locked", "coming_soon", "active"].includes(deriveNeighborhoodEventState(sale))) {
-          throw new Error("Locked Neighborhood Sales require the report flow for removal.");
-        }
-        await base44.entities.JoinRequest.update(requestId, { 
-          status: "denied",
-          removed_by_eo: true,
-          removed_at: new Date().toISOString(),
-          removal_reason: "eo_removed"
-        });
-        await base44.entities.Listing.update(requesterListingId, {
-          neighborhood_join_status: "denied",
-          neighborhood_sale_id: null,
-          payment_intent_status: "none"
-        });
-        await base44.entities.Notification.create({
-          userId: requesterUserId,
-          title: "Removed from Neighborhood Sale",
-          message: "Removed from neighborhood sale",
-          type: "removed_from_neighborhood",
-          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
-        });
-        await syncNeighborhoodSaleListing(listingId);
-      } else {
-        await base44.entities.JoinRequest.update(requestId, { status: "denied" });
-        await base44.entities.Listing.update(requesterListingId, {
-          neighborhood_join_status: "denied",
-          payment_intent_status: "none"
-        });
-        await base44.entities.Notification.create({
-          userId: requesterUserId,
-          title: "Join Request Denied",
-          message: "Denied — create a normal listing if you still want to appear independently.",
-          type: "join_response_deny",
-          metadata: { sale_listing_id: listingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle }
-        });
-        await syncNeighborhoodSaleListing(listingId);
-      }
+    mutationFn: async ({ requestId, action, eventTitle }) => {
+      await base44.functions.invoke("respondToJoinRequest", {
+        requestId,
+        saleListingId: listingId,
+        action,
+        eventTitle,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["joinRequests", listingId] });
@@ -416,7 +339,7 @@ export default function ListingDetailPage() {
       toast.success("Response sent");
     },
     onError: (error) => {
-      toast.error(error.message || "Could not update request.");
+      toast.error(error?.response?.data?.error || error.message || "Could not update request.");
     }
   });
 
