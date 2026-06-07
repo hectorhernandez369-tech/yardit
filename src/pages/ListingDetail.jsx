@@ -38,7 +38,7 @@ import ListingPhotoGallery from "@/components/listing/ListingPhotoGallery";
 import ListingShareButton from "@/components/listing/ListingShareButton";
 import NeighborhoodSalePanel from "@/components/listing/NeighborhoodSalePanel";
 import ResidentialBillingList from "@/components/billing/ResidentialBillingList";
-import { getTransactionListingId, isResidentialTransaction } from "@/components/billing/residentialBillingUtils";
+import { isResidentialTransaction } from "@/components/billing/residentialBillingUtils";
 import { getListingOwnerId, isOwnerPreviewVisibleListing, isPubliclyVisibleListing } from "@/lib/listingVisibility";
 
 export default function ListingDetailPage() {
@@ -208,8 +208,7 @@ export default function ListingDetailPage() {
         .filter(isResidentialTransaction)
         .filter((tx) => {
           if (tx.event_type === "checkout.session.created" && completedSessions.has(tx.stripe_checkout_session_id)) return false;
-          const linkedListingId = getTransactionListingId(tx);
-          return linkedListingId === listing.id || tx.stripe_checkout_session_id === listing.stripe_checkout_session_id || tx.stripe_payment_intent_id === listing.stripe_payment_intent_id;
+          return tx.yardit_record_type === "listing" && tx.yardit_record_id === listing.id;
         })
         .filter((tx) => {
           const key = tx.stripe_payment_intent_id || tx.stripe_checkout_session_id || tx.id;

@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, Shield, LogOut, Home, Building2, ShieldCheck, FolderOpen } from "lucide-react";
+import { Search, Loader2, Shield, LogOut, Home, Building2, ShieldCheck, FolderOpen, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logAdminEvent, searchCases } from "../components/caseManagement";
@@ -23,6 +23,7 @@ import AdminLoginModal from "../components/admin/AdminLoginModal";
 import { ensureAdminVendorAccount, isMasterAdminRole } from "../lib/ensureAdminVendorAccount";
 import SupportTicketQueue from "../components/admin/SupportTicketQueue";
 import InQueueTab from "../components/caseManagement/ui/InQueueTab";
+import PaymentAuditDashboard from "../components/admin/payments/PaymentAuditDashboard";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -286,6 +287,17 @@ export default function AdminLitePage() {
               <span>Admin</span>
             </button>
             <button
+              onClick={() => setPrimarySection("payments")}
+              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                primarySection === "payments"
+                  ? "bg-emerald-700 text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <CreditCard className="w-3.5 h-3.5 shrink-0" />
+              <span>Payments</span>
+            </button>
+            <button
               onClick={() => setPrimarySection("case_management")}
               className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 primarySection === "case_management"
@@ -338,6 +350,11 @@ export default function AdminLitePage() {
         {/* ── ADMIN INTERNAL SECTION ── */}
         {primarySection === "admin" && (
           <AdminInternalTab user={user} adminSession={adminSession} />
+        )}
+
+        {/* ── PAYMENTS SECTION ── */}
+        {primarySection === "payments" && (
+          <PaymentAuditDashboard />
         )}
 
         {/* ── CASE MANAGEMENT SECTION ── */}

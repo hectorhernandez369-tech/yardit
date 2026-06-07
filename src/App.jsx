@@ -27,6 +27,7 @@ import VendorEventDetail from './pages/VendorEventDetail';
 import AccountOptions from './pages/AccountOptions';
 import Events from './pages/Events';
 import RewardRedeem from './pages/RewardRedeem';
+import PaymentAudit from './pages/PaymentAudit';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -132,6 +133,7 @@ const AuthenticatedApp = () => {
         <Route path="/ComingSoon" element={<ComingSoon />} />
         <Route path="/assisted-listing" element={<AssistedListingApproval />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/PaymentAudit" element={<LayoutWrapper currentPageName="PaymentAudit"><PaymentAudit /></LayoutWrapper>} />
         <Route path="/reward/redeem/:token" element={<RewardRedeem />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>

@@ -1,0 +1,101 @@
+{
+  "name": "PaymentAuditReview",
+  "type": "object",
+  "properties": {
+    "issue_key": {
+      "type": "string",
+      "description": "Stable key for the audit finding"
+    },
+    "issue_type": {
+      "type": "string",
+      "description": "Audit issue category"
+    },
+    "record_type": {
+      "type": "string",
+      "description": "Linked Yardit record type"
+    },
+    "record_id": {
+      "type": "string",
+      "description": "Linked Yardit record ID"
+    },
+    "payment_transaction_id": {
+      "type": "string",
+      "description": "PaymentTransaction ID if applicable"
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "reviewed",
+        "ignored",
+        "resolved"
+      ],
+      "default": "open",
+      "description": "Admin review status"
+    },
+    "review_note": {
+      "type": "string",
+      "description": "Admin note about the finding"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "Admin user ID who last reviewed this finding"
+    },
+    "reviewed_by_email": {
+      "type": "string",
+      "description": "Admin email who last reviewed this finding"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this finding was last reviewed"
+    }
+  },
+  "required": [
+    "issue_key",
+    "issue_type",
+    "review_status"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    }
+  }
+}
