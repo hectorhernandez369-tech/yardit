@@ -6,14 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getVendorUsageLimitStatus } from "@/lib/vendorUsage";
 import { getVendorAccountCapabilities } from "@/lib/getVendorAccountCapabilities";
-import { hashVendorPasscode } from "@/lib/vendorPasscode";
+
 import TransferOwnershipCard from "./TransferOwnershipCard";
 import { toast } from "sonner";
 
 export default function VendorUsersTab({ account, users, user, pins = [], isOwner, onRefresh }) {
   const [form, setForm] = useState({ authorized_email: "", first_name: "", last_name: "", phone: "" });
-  const [passcode, setPasscode] = useState("");
-  const [savingPasscode, setSavingPasscode] = useState(false);
   // Capabilities always come from the selected business account — never from a user-level tier.
   const caps = getVendorAccountCapabilities(account);
   const activeUserCount = users.filter((u) => u.status === "active" || u.status === "accepted").length;
@@ -71,34 +69,11 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
     onRefresh();
   };
 
-  const savePasscode = async () => {
-    if (!isOwner) return toast.error("Only the business owner can change the passcode.");
-    if (passcode.trim().length < 4) return toast.error("Use at least 4 characters for the passcode.");
-    setSavingPasscode(true);
-    const vendor_dashboard_passcode_hash = await hashVendorPasscode(passcode.trim());
-    await base44.entities.VendorAccount.update(account.id, {
-      vendor_dashboard_passcode_hash,
-      passcode_updated_at: new Date().toISOString(),
-      passcode_updated_by: user?.id,
-    });
-    setPasscode("");
-    setSavingPasscode(false);
-    toast.success("Vendor passcode updated");
-    onRefresh();
-  };
-
   return (
     <div className="space-y-3 sm:space-y-4 min-w-0">
       <div className="grid min-w-0 gap-3 sm:gap-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
-      <div className="space-y-3 sm:space-y-4 min-w-0">
-        <Card className="rounded-2xl overflow-hidden bg-white shadow-sm"><CardHeader className="p-3 sm:p-5 pb-2"><CardTitle className="text-base sm:text-lg">Vendor Portal Passcode</CardTitle></CardHeader><CardContent className="space-y-2.5 p-3 pt-0 sm:p-5 sm:pt-0">
-          <p className="text-sm text-slate-600">Authorized users must enter this shared passcode before accessing the Vendor Dashboard. The current passcode is never shown.</p>
-          <Input type="password" placeholder={account.vendor_dashboard_passcode_hash ? "New passcode" : "Create passcode"} value={passcode} onChange={(e) => setPasscode(e.target.value)} disabled={!isOwner} />
-          <Button onClick={savePasscode} disabled={!isOwner || savingPasscode} className="w-full bg-[#5DADA5] hover:bg-[#4A9B93]">{savingPasscode ? "Saving..." : account.vendor_dashboard_passcode_hash ? "Reset Passcode" : "Create Passcode"}</Button>
-          {!isOwner && <p className="text-xs text-muted-foreground">Only the business owner can change this passcode.</p>}
-        </CardContent></Card>
-
-        <Card className="rounded-2xl overflow-hidden bg-white shadow-sm"><CardHeader className="p-3 sm:p-5 pb-2"><CardTitle className="text-base sm:text-lg">Add Authorized User</CardTitle></CardHeader><CardContent className="space-y-2.5 p-3 pt-0 sm:p-5 sm:pt-0">
+       <div className="space-y-3 sm:space-y-4 min-w-0">
+         <Card className="rounded-2xl overflow-hidden bg-white shadow-sm"><CardHeader className="p-3 sm:p-5 pb-2"><CardTitle className="text-base sm:text-lg">Add Authorized User</CardTitle></CardHeader><CardContent className="space-y-2.5 p-3 pt-0 sm:p-5 sm:pt-0">
           <p className="text-sm text-slate-600">Employees must create their own Yardit account first. This only grants access to this business portal.</p>
           <Input placeholder="Email" value={form.authorized_email} onChange={(e) => setForm({ ...form, authorized_email: e.target.value })} disabled={!isOwner} />
           <Input placeholder="First name" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} disabled={!isOwner} />
