@@ -180,7 +180,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
   );
 }
 
-export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
+export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onAddressSelected }) {
   const { isDemoMode } = useAppMode();
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -999,21 +999,22 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
             setAddressConfirmed(true);
             setAddressSelectionMessage("");
             resolveTimeZoneId(suggestion.center[1], suggestion.center[0]).then((resolvedTimeZoneId) => {
+              const selectedAddress = {
+                ...formData,
+                addressText: nextAddressText,
+                city,
+                state,
+                zip,
+                lat: suggestion.center[1],
+                lng: suggestion.center[0],
+                timeZoneId: resolvedTimeZoneId || "",
+                geocoded_address: suggestion.place_name,
+                location_source: "address_search",
+                selected_geocode_confirmed: true,
+                selected_geocode_place_name: suggestion.place_name,
+              };
               setFormData((prev) => {
-                const nextValue = {
-                  ...prev,
-                  addressText: nextAddressText,
-                  city,
-                  state,
-                  zip,
-                  lat: suggestion.center[1],
-                  lng: suggestion.center[0],
-                  timeZoneId: resolvedTimeZoneId || "",
-                  geocoded_address: suggestion.place_name,
-                  location_source: "address_search",
-                  selected_geocode_confirmed: true,
-                  selected_geocode_place_name: suggestion.place_name,
-                };
+                const nextValue = { ...prev, ...selectedAddress };
                 console.log("[StepTwo] saved timeZoneId", {
                   lat: nextValue.lat,
                   lng: nextValue.lng,
@@ -1021,6 +1022,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user }) {
                 });
                 return nextValue;
               });
+              onAddressSelected?.(selectedAddress);
             });
             setAddressSuggestions([]);
             toast.success("Address selected");

@@ -22,13 +22,14 @@ export default function CreateListingResidential({
   setStep,
   handlePaymentStepSubmit,
   residentialTierPrices,
+  onAddressSelected,
 }) {
   if (step === 1) {
     return <StepOne formData={formData} setFormData={setFormData} />;
   }
 
   if (step === 2) {
-    return <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} />;
+    return <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} onAddressSelected={onAddressSelected} />;
   }
 
   if (step === 3) {

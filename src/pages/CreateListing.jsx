@@ -1563,19 +1563,13 @@ export default function CreateListingPage() {
       return;
     }
 
-    if (formData.listingType !== "neighborhood_sale" && ["featured", "premium"].includes(formData.tier)) {
-      setPaymentError("");
-      setStep(4);
-      return;
-    }
-
     if (formData.listingType === "yard_sale" && !isAdminCreate) {
       const nearbySale = await findNearbyNeighborhoodSale();
       if (nearbySale) {
-        // Only prompt if the user's selected dates overlap the sale
+        const freeWindow = formData.tier === "free" ? computeFreeWindow(new Date(), formData.timeZoneId) : null;
         const selectedListing = {
-          selectedRangeStartDate: formData.selectedRangeStartDate || formData.startDateTime?.slice(0, 10),
-          selectedRangeEndDate: formData.selectedRangeEndDate || formData.endDateTime?.slice(0, 10),
+          selectedRangeStartDate: formData.selectedRangeStartDate || formData.startDateTime?.slice(0, 10) || freeWindow?.startYMD,
+          selectedRangeEndDate: formData.selectedRangeEndDate || formData.endDateTime?.slice(0, 10) || freeWindow?.endYMD,
         };
         if (doesListingOverlapNeighborhoodSale(selectedListing, nearbySale)) {
           setMatchedSale(nearbySale);
@@ -1583,6 +1577,12 @@ export default function CreateListingPage() {
           return;
         }
       }
+    }
+
+    if (formData.listingType !== "neighborhood_sale" && ["featured", "premium"].includes(formData.tier)) {
+      setPaymentError("");
+      setStep(4);
+      return;
     }
 
     executeSubmit();
@@ -1882,6 +1882,12 @@ export default function CreateListingPage() {
                 setStep={setStep}
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
                 residentialTierPrices={RESIDENTIAL_TIER_PRICES}
+                onAddressSelected={(selectedAddress) => {
+                  if (!isGlobalDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
+                    setPendingHomeAddress(buildResolvedListingLocation(selectedAddress));
+                    setShowHomeAddressConfirm(true);
+                  }
+                }}
               />
             )}
 
