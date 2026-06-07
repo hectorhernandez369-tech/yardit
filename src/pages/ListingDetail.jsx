@@ -38,7 +38,7 @@ import ListingPhotoGallery from "@/components/listing/ListingPhotoGallery";
 import ListingShareButton from "@/components/listing/ListingShareButton";
 import NeighborhoodSalePanel from "@/components/listing/NeighborhoodSalePanel";
 import ResidentialBillingList from "@/components/billing/ResidentialBillingList";
-import { isResidentialTransaction } from "@/components/billing/residentialBillingUtils";
+import { getTransactionListingId, isResidentialTransaction } from "@/components/billing/residentialBillingUtils";
 import { getListingOwnerId, isOwnerPreviewVisibleListing, isPubliclyVisibleListing } from "@/lib/listingVisibility";
 
 export default function ListingDetailPage() {
@@ -208,7 +208,34 @@ export default function ListingDetailPage() {
         .filter(isResidentialTransaction)
         .filter((tx) => {
           if (tx.event_type === "checkout.session.created" && completedSessions.has(tx.stripe_checkout_session_id)) return false;
-          return tx.yardit_record_type === "listing" && tx.yardit_record_id === listing.id;
+
+          const hasExplicitRecordLink = !!(tx.yardit_record_type || tx.yardit_record_id);
+          if (hasExplicitRecordLink) {
+            return String(tx.yardit_record_type || "").toLowerCase() === "listing" && tx.yardit_record_id === listing.id;
+          }
+
+          const listingStripeIds = new Set([
+            listing.stripe_checkout_session_id,
+            listing.pending_checkout_session_id,
+            listing.pending_upgrade_checkout_session_id,
+            listing.stripe_payment_intent_id,
+          ].filter(Boolean));
+
+          const txStripeMatchesListing = [tx.stripe_checkout_session_id, tx.stripe_payment_intent_id]
+            .filter(Boolean)
+            .some((id) => listingStripeIds.has(id));
+
+          if (txStripeMatchesListing) return true;
+
+          const legacyListingId = getTransactionListingId(tx);
+          if (legacyListingId === listing.id) return true;
+
+          if (tx.metadata_json) {
+            const metadata = JSON.parse(tx.metadata_json);
+            return [metadata.listing_id, metadata.residential_listing_id, metadata.yardit_record_id].filter(Boolean).includes(listing.id);
+          }
+
+          return false;
         })
         .filter((tx) => {
           const key = tx.stripe_payment_intent_id || tx.stripe_checkout_session_id || tx.id;
