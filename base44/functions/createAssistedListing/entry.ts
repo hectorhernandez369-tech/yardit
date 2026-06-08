@@ -14,6 +14,14 @@ function normalizeListingType(raw) {
   return 'yard_sale';
 }
 
+function getAppBaseUrl(req) {
+  const configured = String(Deno.env.get('APP_BASE_URL') || '').trim().replace(/\/$/, '');
+  if (/^https?:\/\//i.test(configured)) return configured;
+  const origin = req.headers.get('origin');
+  if (origin && /^https?:\/\//i.test(origin)) return origin.replace(/\/$/, '');
+  return new URL(req.url).origin;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -124,8 +132,8 @@ Deno.serve(async (req) => {
     const token = generateToken();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
-    const appBaseUrl = String(Deno.env.get('APP_BASE_URL') || '').replace(/\/$/, '');
-    const approvalUrl = `${appBaseUrl || new URL(req.url).origin}/assisted-listing?token=${token}`;
+    const appBaseUrl = getAppBaseUrl(req);
+    const approvalUrl = `${appBaseUrl}/assisted-listing?token=${token}`;
 
     // Build the sale address string early — used in both Listing and AssistedListing
     const saleFormattedAddress = isMapPin

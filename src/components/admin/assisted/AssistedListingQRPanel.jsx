@@ -5,7 +5,8 @@ import { CheckCircle, Printer, Download, Plus } from "lucide-react";
 const QR_CDN = "https://api.qrserver.com/v1/create-qr-code/";
 
 export default function AssistedListingQRPanel({ created, onCreateAnother }) {
-  const approvalUrl = created.approvalUrl || `${window.location.origin}/assisted-listing?token=${created.token}`;
+  const fallbackApprovalUrl = `${window.location.origin}/assisted-listing?token=${created.token}`;
+  const approvalUrl = created.approvalUrl?.includes(created.token) ? created.approvalUrl : fallbackApprovalUrl;
   const qrUrl = `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
 
   const qrLabel = created.saleAddress || created.address || created.display_address || created.title || "Listing QR";
@@ -68,7 +69,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
       </head><body>
         <h2>Yardit – Your Yard Sale Is Listed!</h2>
         <p>Scan this QR code to approve your free listing:<br/><strong>${created.title}</strong></p>
-        <p style="color:#888;font-size:12px;">${created.address}</p>
+        <p style="color:#888;font-size:12px;">${qrLabel}</p>
         <img src="${qrUrl}" width="220" height="220" />
         <p class="url">${approvalUrl}</p>
         <p style="margin-top:24px;font-size:12px;color:#aaa;">QR code expires in 24 hours</p>

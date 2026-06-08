@@ -6,6 +6,14 @@ function generateToken() {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+function getAppBaseUrl(req) {
+  const configured = String(Deno.env.get('APP_BASE_URL') || '').trim().replace(/\/$/, '');
+  if (/^https?:\/\//i.test(configured)) return configured;
+  const origin = req.headers.get('origin');
+  if (origin && /^https?:\/\//i.test(origin)) return origin.replace(/\/$/, '');
+  return new URL(req.url).origin;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -44,8 +52,8 @@ Deno.serve(async (req) => {
     const now = new Date();
     const newToken = generateToken();
     const newExpiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-    const appBaseUrl = String(Deno.env.get('APP_BASE_URL') || '').replace(/\/$/, '');
-    const approvalUrl = `${appBaseUrl || new URL(req.url).origin}/assisted-listing?token=${newToken}`;
+    const appBaseUrl = getAppBaseUrl(req);
+    const approvalUrl = `${appBaseUrl}/assisted-listing?token=${newToken}`;
 
     const updated = await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
       assisted_qr_token: newToken,

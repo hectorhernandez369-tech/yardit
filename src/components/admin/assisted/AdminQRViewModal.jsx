@@ -74,8 +74,9 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     liveRecord.assisted_qr_token !== "__invalidated__" &&
     new Date(liveRecord.assisted_qr_expires_at) < new Date();
 
+  const fallbackApprovalUrl = `${window.location.origin}/assisted-listing?token=${liveRecord.assisted_qr_token}`;
   const approvalUrl = liveRecord.assisted_qr_token && liveRecord.assisted_qr_token !== "__invalidated__"
-    ? (liveRecord.approval_url || `${window.location.origin}/assisted-listing?token=${liveRecord.assisted_qr_token}`)
+    ? (liveRecord.approval_url?.includes(liveRecord.assisted_qr_token) ? liveRecord.approval_url : fallbackApprovalUrl)
     : null;
 
   const qrUrl = approvalUrl
