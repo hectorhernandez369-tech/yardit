@@ -261,6 +261,14 @@
       "format": "date",
       "description": "The last day the user selected (local listing date)"
     },
+    "openTime": {
+      "type": "string",
+      "description": "Listing-local opening time in HH:MM format"
+    },
+    "closeTime": {
+      "type": "string",
+      "description": "Listing-local closing time in HH:MM format"
+    },
     "earlyVisibilityDays": {
       "type": "number",
       "default": 0,

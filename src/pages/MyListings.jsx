@@ -24,6 +24,7 @@ import { getUserDisplayName } from "@/lib/userIdentity";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import YardSaleGuideModal from "@/components/guide/YardSaleGuideModal";
 import { getPreviewListingsOnMapPreference, setPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
+import { zonedDateTimeToUtcDate } from "@/components/shared/listingTierEngine";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
@@ -254,6 +255,7 @@ export default function MyListingsPage() {
       return deriveNeighborhoodEventState(parentSale, new Date()) === "active" && isWithinParticipationWindow(listing, parentSale, new Date());
     }
 
+    if (listing?.listingType === "yard_sale") return isPubliclyVisibleListing(listing, { now: new Date(), currentUser: user });
     if (listing?.status === "active" || listing?.activation_status === "active") return true;
     return isPubliclyVisibleListing(listing, { now: new Date(), currentUser: user });
   };
@@ -350,8 +352,8 @@ export default function MyListingsPage() {
     setEditEventIcon(latestListing?.event_icon || getDefaultEventIconForCategory(latestListing?.event_category || latestListing?.category));
     setEditEventLogoUrl(latestListing?.event_logo_url || "");
     setEditPhotoUrls(latestListing?.listingType === "event" ? (latestListing?.event_photos || latestListing?.photoUrls || []) : (latestListing?.photoUrls || []));
-    setEditOpenTime(latestListing?.openTime || "");
-    setEditCloseTime(latestListing?.closeTime || "");
+    setEditOpenTime(latestListing?.openTime || "05:00");
+    setEditCloseTime(latestListing?.closeTime || "22:00");
     setEditMarqueeSlots(Array.isArray(latestListing?.marquee_schedule_slots) ? latestListing.marquee_schedule_slots : []);
     setEditMarqueeFlyerUrl(latestListing?.marquee_flyer_url || "");
     setEditMarqueeBackgroundUrl(latestListing?.marquee_background_url || "");
@@ -554,6 +556,11 @@ export default function MyListingsPage() {
       updateData.photoUrls = editPhotoUrls;
       updateData.openTime = editOpenTime;
       updateData.closeTime = editCloseTime;
+      if (!editingListing.neighborhood_sale_id && editingListing.selectedRangeStartDate && editingListing.selectedRangeEndDate) {
+        const listingTimeZone = editingListing.timeZoneId || "America/Los_Angeles";
+        updateData.startDateTime = zonedDateTimeToUtcDate(editingListing.selectedRangeStartDate, `${editOpenTime}:00`, listingTimeZone).toISOString();
+        updateData.endDateTime = zonedDateTimeToUtcDate(editingListing.selectedRangeEndDate, `${editCloseTime}:00`, listingTimeZone).toISOString();
+      }
     }
 
     if (editingListing.listingType === "event") {
