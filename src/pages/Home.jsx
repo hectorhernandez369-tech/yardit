@@ -1465,7 +1465,7 @@ const stats = useMemo(() => {
                                 >
                                   Report
                                 </Button>
-                                <div className="ml-auto flex gap-1">
+                                <div className="flex gap-1 items-center">
                                   {!isPreviewState && listing.listingType !== "event" && HUNT_ENABLED && (() => {
                                     const huntStop = huntStops.find(s => s.id === listing.id);
                                     
