@@ -56,6 +56,7 @@ import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map
 import QuickMapFilters from "@/components/map/QuickMapFilters";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
+import ListingPinFullDetailsPopup from "@/components/map/ListingPinFullDetailsPopup";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
@@ -1388,59 +1389,17 @@ const stats = useMemo(() => {
                       />
                     )}
                     {!isMarquee && (
-                       <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
-                         <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md bg-white/90 border border-white/40 shadow-lg" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
-                          <div className="p-1 overflow-y-auto flex-1 min-h-0 space-y-2">
-                            <div className="flex items-center gap-1 flex-wrap mb-1">
-                              <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
-                                {getListingTypeBadgeLabel(listing)}
-                              </Badge>
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{getListingSecondaryBadgeLabel(listing)}</Badge>
-                              {!isPreviewState && (() => {
-                                const statusUi = getListingStatusUi(listing);
-                                return (
-                                  <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${statusUi.isComingSoon ? "bg-amber-500" : statusUi.isActive ? "bg-green-600" : "bg-slate-500"} text-white`}>
-                                    {statusUi.label}
-                                  </Badge>
-                                );
-                              })()}
-                              {isPreviewState && (
-                                <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-amber-500 text-white">Preview</Badge>
-                              )}
-                              {isHuntStop && !isPreviewState && (
-                                <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
-                              )}
-                            </div>
+                       <Popup maxWidth={360} minWidth={260} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
+                         <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md bg-white/95 border border-white/40 shadow-lg" style={{ maxWidth: "min(92vw, 360px)", maxHeight: "72vh" }}>
+                         <ListingPinFullDetailsPopup
+                           listing={listing}
+                           isPreviewState={isPreviewState}
+                           goLiveLabel={goLiveLabel}
+                           isHuntStop={isHuntStop}
+                           routeIndex={routeIndex}
+                         />
 
-                            <h3 className="font-bold text-sm leading-none">{getListingPrimaryText(listing)}</h3>
-
-                            {isPreviewState ? (
-                              <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2">
-                                <p className="text-[11px] font-semibold text-amber-800">Preview only</p>
-                                <p className="text-[11px] text-amber-700 mt-1">Not visible to public until {goLiveLabel}</p>
-                              </div>
-                            ) : (
-                              <>
-                                {getListingDescriptionText(listing) && (
-                                  <p className="text-[11px] text-slate-600 leading-relaxed">{getListingDescriptionText(listing)}</p>
-                                )}
-                                {!getListingStatusUi(listing).isComingSoon && (
-                                  <div className="flex flex-wrap gap-1">
-                                    {(listing.listingType === "event"
-                                      ? [listing.event_category || formatEventTierLabel(listing.event_tier || listing.tier)].filter(Boolean)
-                                      : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean)
-                                    ).slice(0, 3).map((item, index) => (
-                                      <Badge key={`${item}-${index}`} variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 text-slate-600 border-slate-300 bg-slate-50">
-                                        {item}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-1 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
+                          <div className="flex items-center gap-1 p-2 border-t border-gray-100 flex-shrink-0 flex-wrap">
                             <Button
                               size="sm"
                               onClick={(e) => {
@@ -1673,6 +1632,7 @@ const stats = useMemo(() => {
 
               {neighborhoodParticipantPins.map((pin) => {
                 if (hiddenByMarqueeIds.has(pin.listingId)) return null;
+                const participantListing = listings.find((item) => item.id === pin.listingId) || pin;
                 return (
                 <Marker
                   key={pin.id}
@@ -1684,23 +1644,39 @@ const stats = useMemo(() => {
                     popupclose: () => setSelectedListingId((current) => current === pin.listingId ? null : current),
                   }}
                 >
-                  <Popup minWidth={160} className="leaflet-popup-transparent">
-                    <div className="flex flex-col gap-1 p-0.5 rounded-xl overflow-hidden backdrop-blur-md bg-white/90 border border-white/40 shadow-lg">
-                      <div className="flex">
-                        <Badge className="bg-emerald-600 text-white text-[9px] px-1 py-0 h-4 min-h-0">Participant Home</Badge>
+                  <Popup maxWidth={360} minWidth={260} className="leaflet-popup-transparent">
+                    <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md bg-white/95 border border-white/40 shadow-lg" style={{ maxWidth: "min(92vw, 360px)", maxHeight: "72vh" }}>
+                      <ListingPinFullDetailsPopup
+                        listing={participantListing}
+                        isPreviewState={false}
+                        goLiveLabel=""
+                        isHuntStop={huntStops.some((stop) => stop.id === pin.listingId)}
+                        routeIndex={huntStops.findIndex((stop) => stop.id === pin.listingId)}
+                      />
+                      <div className="flex items-center gap-1 p-2 border-t border-gray-100 flex-shrink-0 flex-wrap">
+                        <Button
+                          size="sm"
+                          className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(createPageUrl("ListingDetail") + `?id=${pin.listingId}`);
+                          }}
+                        >
+                          View Listing
+                        </Button>
+                        <SaveListingButton listing={participantListing} iconOnly size="sm" className="h-6 w-6 p-0 border-slate-200" />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            guardAction(() => setReportListingId(pin.listingId));
+                          }}
+                          className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50"
+                        >
+                          Report
+                        </Button>
                       </div>
-                      <p className="font-semibold text-sm leading-none mt-0.5">{pin.title || "Participant"}</p>
-                      <p className="text-[11px] leading-tight text-slate-600 mb-1">{pin.display_address || pin.addressText || "Address unavailable"}</p>
-                      <Button
-                        size="sm"
-                        className="w-full h-6 text-[11px] py-0 bg-amber-600 hover:bg-amber-700"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(createPageUrl("ListingDetail") + `?id=${pin.listingId}`);
-                        }}
-                      >
-                        View Details
-                      </Button>
                     </div>
                   </Popup>
                 </Marker>
