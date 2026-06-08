@@ -5,6 +5,30 @@ import { toast } from 'sonner';
 
 const CHECKLIST_SECTIONS = [
   {
+    title: '✅ Phase 1 Master Test Setup & Sign-off',
+    items: [
+      { id: 'phase1-test-data', label: 'Use consistent test locations, including 874 Asheville St, Lindsay CA, for repeatable launch testing', critical: true, default: false },
+      { id: 'phase1-new-user-flow', label: 'New user can sign up/log in, complete account setup, and reach Post Sale flow', critical: true, default: false },
+      { id: 'phase1-returning-user-flow', label: 'Returning user can log in and manage existing listings without setup blockers', critical: true, default: false },
+      { id: 'phase1-mobile-desktop', label: 'All Phase 1 flows work on desktop and mobile screen sizes', critical: true, default: false },
+      { id: 'phase1-no-console-errors', label: 'No visible crashes or blocking errors during core listing, map, payment, report, and support flows', critical: true, default: false },
+      { id: 'phase1-final-freeze', label: 'Owner approves Phase 1 after all critical checks pass so residential launch files can be frozen', critical: true, default: false },
+    ]
+  },
+  {
+    title: '🏠 Yard Sale Types — Free, Featured & Premium',
+    items: [
+      { id: 'ys-free-create-live', label: 'Free yard sale can be created and appears live without checkout', critical: true, default: false },
+      { id: 'ys-featured-create-pay', label: 'Featured yard sale reaches checkout, requires payment, and activates only after payment confirmation', critical: true, default: false },
+      { id: 'ys-premium-create-pay', label: 'Premium yard sale reaches checkout, requires payment, and activates only after payment confirmation', critical: true, default: false },
+      { id: 'ys-premium-early-days', label: 'Premium early visibility days display correctly before active sale dates', critical: false, default: false },
+      { id: 'ys-upgrade-featured', label: 'Existing free yard sale can upgrade to Featured through confirmed checkout', critical: true, default: false },
+      { id: 'ys-upgrade-premium', label: 'Existing free/featured yard sale can upgrade to Premium through confirmed checkout', critical: true, default: false },
+      { id: 'ys-cancel-checkout', label: 'Canceled yard sale checkout does not grant paid tier benefits', critical: true, default: false },
+      { id: 'ys-owner-detail-card', label: 'Yard sale detail card shows title, photos, categories, address, dates, tier, save/share/report actions', critical: true, default: false },
+    ]
+  },
+  {
     title: '🏠 Residential Listings — Creation & Editing',
     items: [
       { id: 'res-create-free', label: 'Create a free residential yard sale from start to finish', critical: true, default: false },
@@ -92,6 +116,18 @@ const CHECKLIST_SECTIONS = [
       { id: 'event-promo-upgrade', label: 'Event promotion upgrade payment activates extra promotion days only after payment', critical: false, default: false },
       { id: 'event-marquee-board', label: 'Marquee flyer/background/schedule slots display correctly on map board', critical: false, default: false },
       { id: 'event-expired-hidden', label: 'Expired events stop appearing in public event discovery', critical: true, default: false },
+    ]
+  },
+  {
+    title: '🧾 Listing Detail Cards & Public Detail Pages',
+    items: [
+      { id: 'detail-yard-sale-card', label: 'Yard sale map/list detail card opens and displays the correct listing data', critical: true, default: false },
+      { id: 'detail-featured-premium-styling', label: 'Featured and Premium yard sale detail cards show the correct tier styling and benefits', critical: true, default: false },
+      { id: 'detail-neighborhood-card', label: 'Neighborhood sale detail card shows organizer, participant count, join/share actions, and sale radius context', critical: true, default: false },
+      { id: 'detail-event-card', label: 'Event detail card shows event name, category, icon/logo, schedule, location, photos, and tier', critical: true, default: false },
+      { id: 'detail-actions-auth', label: 'Save, share, report, join, edit, and upgrade actions appear only for eligible users', critical: true, default: false },
+      { id: 'detail-expired-hidden', label: 'Expired/hidden/suspended listings cannot be opened as active public discovery cards', critical: true, default: false },
+      { id: 'detail-mobile-layout', label: 'Detail cards are readable and usable on mobile without clipped buttons or blocked scrolling', critical: true, default: false },
     ]
   },
   {
@@ -217,10 +253,10 @@ export default function LaunchChecklistContent({ embedded = false }) {
       <div className={embedded ? 'w-full' : 'max-w-4xl mx-auto'}>
         <div className="mb-6">
           <h1 className={embedded ? 'text-2xl font-bold text-[#2C4F4E] mb-2' : 'text-3xl sm:text-4xl font-bold text-[#2C4F4E] mb-2'}>
-            🚀 Yardit Phase 1 Residential Launch QA Checklist
+            🚀 Yardit Phase 1 Launch Master Checklist
           </h1>
           <p className="text-gray-600 mb-4">
-            Full launch-readiness checklist for residential listings, neighborhood sales, event listings, payments, reports, expiration, clustering, and Join the Hunt behavior.
+            Full launch-readiness checklist for all yard sale types, neighborhood sales, events, detail cards, payments, reports, support, map behavior, expiration, clustering, and Join the Hunt behavior.
           </p>
 
           <div className="bg-white rounded-lg p-4 border border-[#5DADA5] mb-4">
