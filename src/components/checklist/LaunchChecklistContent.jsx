@@ -174,6 +174,42 @@ const CHECKLIST_SECTIONS = [
     ]
   },
   {
+    title: '🎫 Support, Contact & User Help Flows',
+    items: [
+      { id: 'support-contact-form', label: 'Contact Support form opens, validates required fields, and submits successfully', critical: true, default: false },
+      { id: 'support-photo-upload', label: 'Support ticket photo upload attaches images and keeps them visible to admins', critical: false, default: false },
+      { id: 'support-ticket-number', label: 'Submitted support ticket receives a readable ticket number', critical: true, default: false },
+      { id: 'support-my-tickets', label: 'User can view their submitted support tickets from My Support Tickets', critical: true, default: false },
+      { id: 'support-admin-queue', label: 'Support ticket appears in the correct admin queue with status, priority, and source context', critical: true, default: false },
+      { id: 'support-admin-status', label: 'Admin can update ticket status without losing user-submitted details or photos', critical: true, default: false },
+      { id: 'support-report-routing', label: 'Listing reports and general support requests route to the correct residential support/case workflow', critical: true, default: false },
+      { id: 'support-mobile', label: 'Support forms and ticket views work correctly on mobile', critical: true, default: false },
+    ]
+  },
+  {
+    title: '👤 Account, Address & Guest Guard Readiness',
+    items: [
+      { id: 'account-login-required-post', label: 'Guest user is prompted to log in/sign up before creating a listing', critical: true, default: false },
+      { id: 'account-primary-address-required', label: 'Post Sale flow blocks users without a verified primary address and sends them to Profile', critical: true, default: false },
+      { id: 'account-address-confirmation', label: 'Primary address confirmation saves correctly and removes listing creation blocker', critical: true, default: false },
+      { id: 'account-profile-loads', label: 'Profile page loads user details, saved listings, payment history, and address tools', critical: true, default: false },
+      { id: 'account-logout-login', label: 'Logout and login return users to a stable app state without losing access to their listings', critical: true, default: false },
+      { id: 'account-rls-owner-only', label: 'Users can only edit/delete their own listings while admins retain authorized access', critical: true, default: false },
+    ]
+  },
+  {
+    title: '🔒 Phase 1 Freeze & Launch Approval',
+    items: [
+      { id: 'freeze-create-listing', label: 'Create listing files for yard sale, neighborhood sale, and event flows are approved for freeze', critical: true, default: false },
+      { id: 'freeze-map-discovery', label: 'Home map, list view, filters, clustering, and detail card files are approved for freeze', critical: true, default: false },
+      { id: 'freeze-payments', label: 'Residential payment, promo, upgrade, and webhook functions are approved for freeze', critical: true, default: false },
+      { id: 'freeze-support-report', label: 'Report, support ticket, and admin case routing files are approved for freeze', critical: true, default: false },
+      { id: 'freeze-neighborhood-events', label: 'Neighborhood sale and event listing launch flows are approved for freeze', critical: true, default: false },
+      { id: 'freeze-assisted-locked', label: 'Assisted listing QR code workflow remains locked and untouched', critical: true, default: false },
+      { id: 'freeze-owner-signoff', label: 'Final owner sign-off completed before launch', critical: true, default: false },
+    ]
+  },
+  {
     title: '🛡️ Admin Controls & Data Integrity',
     items: [
       { id: 'admin-auth', label: 'Admin Employee ID + PIN login works', critical: true, default: false },
