@@ -110,6 +110,49 @@ function getDateOnly(value, timeZoneId) {
   }
 }
 
+function getTimeOnly(value, timeZoneId) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: timeZoneId || "UTC",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date);
+  } catch {
+    return "";
+  }
+}
+
+function minutesFromTime(value) {
+  const [hours, minutes] = String(value || "").split(":").map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  return hours * 60 + minutes;
+}
+
+function isResidentialOpenNow(listing, now = new Date()) {
+  if (listing?.listingType !== "yard_sale") return true;
+
+  const today = getDateOnly(now, listing?.timeZoneId);
+  const activeDates = Array.isArray(listing?.activeDates) ? listing.activeDates : [];
+  const isActiveDate = activeDates.length > 0
+    ? activeDates.includes(today)
+    : today >= String(listing?.selectedRangeStartDate || "") && today <= String(listing?.selectedRangeEndDate || "");
+
+  if (!isActiveDate) return false;
+
+  const openMinutes = minutesFromTime(listing?.openTime);
+  const closeMinutes = minutesFromTime(listing?.closeTime);
+  const currentMinutes = minutesFromTime(getTimeOnly(now, listing?.timeZoneId));
+  const earliest = 5 * 60;
+  const latest = 22 * 60;
+
+  if (openMinutes === null || closeMinutes === null || currentMinutes === null) return false;
+  if (openMinutes < earliest || closeMinutes > latest || openMinutes >= closeMinutes) return false;
+  return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
+}
+
 export function isPremiumComingSoonPublicListing(listing, now = new Date()) {
   const tier = getEffectiveTier(listing);
   if (!COMING_SOON_TIERS.has(tier)) return false;
@@ -170,6 +213,10 @@ export function getListingPublicVisibilityDecision(listing, context = {}) {
 
   if (isPremiumComingSoonPublicListing(listing, now)) {
     return { ...base, passedPublicVisibility: true, reason: "public_coming_soon_visible" };
+  }
+
+  if (listing.listingType === "yard_sale" && !isResidentialOpenNow(listing, now)) {
+    return { ...base, reason: "outside_residential_open_hours" };
   }
 
   if (listing.listingType !== "event") {

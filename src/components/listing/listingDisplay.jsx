@@ -119,7 +119,7 @@ export function getListingStatusUi(listing) {
   const label = isComingSoon
     ? "Coming Soon"
     : isActive
-      ? "Active"
+      ? listing?.listingType === "yard_sale" ? "OPEN NOW" : "Active"
       : formatListingStatusLabel(status);
 
   return {

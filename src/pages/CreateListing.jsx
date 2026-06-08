@@ -89,6 +89,26 @@ function isDevBypassUser(user) {
   return !!user?.id && DEV_BYPASS_USER_IDS.includes(user.id);
 }
 
+function minutesFromTime(value) {
+  const [hours, minutes] = String(value || "").split(":").map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  return hours * 60 + minutes;
+}
+
+function getOpenHoursError(data) {
+  const openMinutes = minutesFromTime(data.openTime);
+  const closeMinutes = minutesFromTime(data.closeTime);
+  const earliest = 5 * 60;
+  const latest = 22 * 60;
+
+  if (openMinutes === null) return "Please select an open time";
+  if (closeMinutes === null) return "Please select a close time";
+  if (openMinutes < earliest) return "Open Time cannot be earlier than 5:00 AM";
+  if (closeMinutes > latest) return "Close Time cannot be later than 10:00 PM";
+  if (openMinutes >= closeMinutes) return "Open Time must be before Close Time";
+  return "";
+}
+
 
 export default function CreateListingPage() {
   const navigate = useNavigate();
@@ -173,6 +193,8 @@ export default function CreateListingPage() {
     // Stored as ISO strings
     startDateTime: "",
     endDateTime: "",
+    openTime: "",
+    closeTime: "",
 
     // Date-range selection (YYYY-MM-DD strings)
     selectedRangeStartDate: "",
@@ -1370,6 +1392,14 @@ export default function CreateListingPage() {
     if (!formData.tier) {
       toast.error("Please select a tier");
       return;
+    }
+
+    if (formData.listingType === "yard_sale") {
+      const openHoursError = getOpenHoursError(formData);
+      if (openHoursError) {
+        toast.error(openHoursError);
+        return;
+      }
     }
 
     if ((formData.tier === "featured" || formData.tier === "premium") && (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate)) {

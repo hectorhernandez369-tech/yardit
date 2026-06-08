@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { hasDateConflict } from "@/lib/residentialDateConflict";
 import { computeFreeWindow } from "@/components/shared/listingTierEngine";
 import NeighborhoodSaleNoticeCard from "./NeighborhoodSaleNoticeCard";
+import OpenHoursFields from "./OpenHoursFields";
 
 function makeId() {
   try {
@@ -401,6 +402,10 @@ export default function StepThree({
             </div>
           )}
 
+          {!isNeighborhoodSale && (
+            <OpenHoursFields formData={formData} setFormData={setFormData} />
+          )}
+
           {tier === "premium" && (
             <div className="mt-6 p-4 border-2 border-[#F4A849] bg-[#E7D7B8] rounded-xl shadow-sm">
               <Label className="text-[#2C4F4E] text-base font-bold mb-2 block">Optional Coming Soon / Early Advertising</Label>
@@ -465,6 +470,15 @@ export default function StepThree({
               <div className="text-xs text-[#2C4F4E] font-semibold mb-1">Pre-Activation Advertising</div>
               <div className="font-semibold text-[#2C4F4E]">
                 Starts on <span className="underline decoration-[#F4A849] decoration-2">{formatDisplayDate(premiumAdStartDate)}</span> ({formData.earlyVisibilityDays} days early)
+              </div>
+            </div>
+          )}
+
+          {!isNeighborhoodSale && (
+            <div>
+              <div className="text-xs text-[#1F2937] opacity-70 mb-1">Open Hours</div>
+              <div className="font-semibold text-[#2C4F4E] text-base">
+                {formData.openTime && formData.closeTime ? `${formData.openTime} – ${formData.closeTime}` : "Required"}
               </div>
             </div>
           )}
