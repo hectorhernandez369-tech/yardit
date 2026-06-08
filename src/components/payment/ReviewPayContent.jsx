@@ -14,10 +14,16 @@ function titleCase(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function listingSummary(listing = {}, tier) {
   const start = listing.selectedRangeStartDate || listing.startDateTime?.slice(0, 10) || listing.start_datetime?.slice(0, 10);
   const end = listing.selectedRangeEndDate || listing.endDateTime?.slice(0, 10) || listing.end_datetime?.slice(0, 10);
-  const dates = start && end && start !== end ? `${start} – ${end}` : start || end || "Not selected";
+  const dates = start && end && start !== end ? `${formatDate(start)} – ${formatDate(end)}` : formatDate(start || end) || "Not selected";
   const address = listing.display_address || listing.address_text || listing.addressText || [listing.city, listing.state, listing.zip].filter(Boolean).join(", ") || "Address selected";
 
   return [
