@@ -24,6 +24,7 @@ import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
 import ImageCropEditor from "@/components/admin/ImageCropEditor";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
 import EditParticipantSaleTime from "@/components/listing/EditParticipantSaleTime";
+import EditListingOpenHours from "@/components/listing/EditListingOpenHours";
 import { EVENT_BASIC_ICON_LIBRARY, getDefaultEventIconForCategory, getEventIconEmoji } from "@/lib/eventListingConfig";
 import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
 import { getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
@@ -50,6 +51,8 @@ export default function EditListingDialog({
   editEndDate, setEditEndDate,
   editStartTime, setEditStartTime,
   editEndTime, setEditEndTime,
+  editOpenTime, setEditOpenTime,
+  editCloseTime, setEditCloseTime,
   editEventIcon, setEditEventIcon,
   editEventLogoUrl, setEditEventLogoUrl,
   editPhotoUrls, setEditPhotoUrls,
@@ -294,6 +297,13 @@ export default function EditListingDialog({
                   <Label className="text-[#2C4F4E] mb-2 block">Title</Label>
                   <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Yard Sale Title..." className="bg-[#F3E6CF] border-[#2C4F4E]" />
                 </div>
+                <EditListingOpenHours
+                  openTime={editOpenTime}
+                  setOpenTime={setEditOpenTime}
+                  closeTime={editCloseTime}
+                  setCloseTime={setEditCloseTime}
+                />
+
                 <div>
                   <Label className="text-[#2C4F4E] mb-2 block">Categories (Up to 10) *</Label>
                   <div className="flex flex-wrap gap-2 mt-2">

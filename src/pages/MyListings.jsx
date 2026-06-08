@@ -45,6 +45,8 @@ export default function MyListingsPage() {
   const [editEndDate, setEditEndDate] = useState("");
   const [editStartTime, setEditStartTime] = useState("");
   const [editEndTime, setEditEndTime] = useState("");
+  const [editOpenTime, setEditOpenTime] = useState("");
+  const [editCloseTime, setEditCloseTime] = useState("");
   const [editEventIcon, setEditEventIcon] = useState("");
   const [editEventLogoUrl, setEditEventLogoUrl] = useState("");
   const [editPhotoUrls, setEditPhotoUrls] = useState([]);
@@ -348,6 +350,8 @@ export default function MyListingsPage() {
     setEditEventIcon(latestListing?.event_icon || getDefaultEventIconForCategory(latestListing?.event_category || latestListing?.category));
     setEditEventLogoUrl(latestListing?.event_logo_url || "");
     setEditPhotoUrls(latestListing?.listingType === "event" ? (latestListing?.event_photos || latestListing?.photoUrls || []) : (latestListing?.photoUrls || []));
+    setEditOpenTime(latestListing?.openTime || "");
+    setEditCloseTime(latestListing?.closeTime || "");
     setEditMarqueeSlots(Array.isArray(latestListing?.marquee_schedule_slots) ? latestListing.marquee_schedule_slots : []);
     setEditMarqueeFlyerUrl(latestListing?.marquee_flyer_url || "");
     setEditMarqueeBackgroundUrl(latestListing?.marquee_background_url || "");
@@ -390,10 +394,27 @@ export default function MyListingsPage() {
   const closeEditDescription = () => {
     setEditingListing(null); setEditTitle(""); setEditDescription(""); setEditCategories([]);
     setEditStartDate(""); setEditEndDate(""); setEditStartTime(""); setEditEndTime("");
+    setEditOpenTime(""); setEditCloseTime("");
     setEditEventIcon(""); setEditEventLogoUrl(""); setEditPhotoUrls([]); setEditMarqueeSlots([]);
     setEditEventStartDate(""); setEditEventEndDate(""); setEditEventStartTime(""); setEditEventEndTime("");
     setEditMarqueeFlyerUrl(""); setEditMarqueeBackgroundUrl("");
     setCoHostSearchQuery(""); setSelectedCoHostUserId("");
+  };
+
+  const getOpenHoursError = () => {
+    const toMinutes = (value) => {
+      const [hours, minutes] = String(value || "").split(":").map(Number);
+      if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+      return hours * 60 + minutes;
+    };
+    const openMinutes = toMinutes(editOpenTime);
+    const closeMinutes = toMinutes(editCloseTime);
+    if (openMinutes === null) return "Please select an open time.";
+    if (closeMinutes === null) return "Please select a close time.";
+    if (openMinutes < 5 * 60) return "Open Time cannot be earlier than 5:00 AM.";
+    if (closeMinutes > 22 * 60) return "Close Time cannot be later than 10:00 PM.";
+    if (openMinutes >= closeMinutes) return "Open Time must be before Close Time.";
+    return "";
   };
 
   const sendCoHostInvite = async () => {
@@ -525,7 +546,15 @@ export default function MyListingsPage() {
     const updateData = { title: editTitle, description: editDescription };
 
     if (editingListing.listingType === "event") { updateData.event_name = editTitle; updateData.event_description = editDescription; }
-    if (editingListing.listingType === "yard_sale") { updateData.categories = editCategories; updateData.category = editCategories[0] || ""; updateData.photoUrls = editPhotoUrls; }
+    if (editingListing.listingType === "yard_sale") {
+      const openHoursError = getOpenHoursError();
+      if (openHoursError) { toast.error(openHoursError); return; }
+      updateData.categories = editCategories;
+      updateData.category = editCategories[0] || "";
+      updateData.photoUrls = editPhotoUrls;
+      updateData.openTime = editOpenTime;
+      updateData.closeTime = editCloseTime;
+    }
 
     if (editingListing.listingType === "event") {
       updateData.photoUrls = editPhotoUrls; updateData.event_photos = editPhotoUrls;
@@ -648,6 +677,8 @@ export default function MyListingsPage() {
         city: listing.city || "", state: getStateAbbreviation(listing.state || ""),
         zip: listing.zip || listing.zip_code || "", lat: listing.lat ?? listing.latitude ?? null,
         lng: listing.lng ?? listing.longitude ?? null, tier: listing.tier || "free",
+        openTime: listing.openTime || "",
+        closeTime: listing.closeTime || "",
       };
     }
 
@@ -828,6 +859,8 @@ export default function MyListingsPage() {
         editEndDate={editEndDate} setEditEndDate={setEditEndDate}
         editStartTime={editStartTime} setEditStartTime={setEditStartTime}
         editEndTime={editEndTime} setEditEndTime={setEditEndTime}
+        editOpenTime={editOpenTime} setEditOpenTime={setEditOpenTime}
+        editCloseTime={editCloseTime} setEditCloseTime={setEditCloseTime}
         editEventIcon={editEventIcon} setEditEventIcon={setEditEventIcon}
         editEventLogoUrl={editEventLogoUrl} setEditEventLogoUrl={setEditEventLogoUrl}
         editPhotoUrls={editPhotoUrls} setEditPhotoUrls={setEditPhotoUrls}
