@@ -1180,8 +1180,8 @@ export default function CreateListingPage() {
 
       payload = {
         ...payload,
-        startDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeStartDate, `${sourceFormData.openTime}:00`, payload.timeZoneId || "America/Los_Angeles").toISOString(),
-        endDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeEndDate, `${sourceFormData.closeTime}:00`, payload.timeZoneId || "America/Los_Angeles").toISOString(),
+        startDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeStartDate, "05:00:00", payload.timeZoneId || "America/Los_Angeles").toISOString(),
+        endDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeEndDate, "22:00:00", payload.timeZoneId || "America/Los_Angeles").toISOString(),
         activeDates,
         earlyVisibilityDays: 0,
         earlyVisibilityDates: []
@@ -1219,8 +1219,8 @@ export default function CreateListingPage() {
 
       payload = {
         ...payload,
-        startDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeStartDate, `${sourceFormData.openTime}:00`, payload.timeZoneId || "America/Los_Angeles").toISOString(),
-        endDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeEndDate, `${sourceFormData.closeTime}:00`, payload.timeZoneId || "America/Los_Angeles").toISOString(),
+        startDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeStartDate, "05:00:00", payload.timeZoneId || "America/Los_Angeles").toISOString(),
+        endDateTime: zonedDateTimeToUtcDate(sourceFormData.selectedRangeEndDate, "22:00:00", payload.timeZoneId || "America/Los_Angeles").toISOString(),
         earlyVisibilityDays: earlyDays,
         earlyVisibilityDates,
         activeDates,
