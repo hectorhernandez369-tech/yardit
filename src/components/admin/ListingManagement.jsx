@@ -28,8 +28,16 @@ import {
 // Vendor listing types to exclude from residential view
 const VENDOR_LISTING_TYPES = ["vendor", "vendor_event"];
 
+function hasAssistedQr(record) {
+  const token = record?.assisted_qr_token;
+  const approvalUrl = record?.approval_url;
+  return !!record?.qr_image_url || !!(token && token !== "__invalidated__" && approvalUrl?.includes(token));
+}
+
 function hasListingQrBackup(listing) {
-  return listing?.assisted_qr_token !== "__invalidated__" && !!(listing?.assisted_approval_url || listing?.assisted_qr_image_url);
+  const token = listing?.assisted_qr_token;
+  const approvalUrl = listing?.assisted_approval_url;
+  return !!listing?.assisted_qr_image_url || !!(token && token !== "__invalidated__" && approvalUrl?.includes(token));
 }
 
 function buildListingQrBackupRecord(listing) {
@@ -185,9 +193,10 @@ export default function ListingManagement({ mode, adminUser }) {
         {filteredListings.slice(0, 20).map((listing) => {
           const owner = ownerMap[listing.ownerUserId];
           const assistedRecord = assistedMap[listing.id];
+          const assistedQrRecord = hasAssistedQr(assistedRecord) ? assistedRecord : null;
           const listingQrBackupRecord = buildListingQrBackupRecord(listing);
-          const qrRecord = assistedRecord || listingQrBackupRecord;
-          const isAssisted = listing.created_by_admin === true || listing.assisted_listing === true || !!assistedRecord || !!listingQrBackupRecord;
+          const qrRecord = assistedQrRecord || listingQrBackupRecord;
+          const isAssisted = listing.assisted_listing === true || !!assistedRecord || !!listingQrBackupRecord;
           return (
             <Card key={listing.id}>
               <CardContent className="p-6">

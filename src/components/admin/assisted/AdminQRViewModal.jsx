@@ -62,10 +62,11 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     new Date(liveRecord.assisted_qr_expires_at) < new Date();
 
   const token = liveRecord.assisted_qr_token;
-  const approvalUrl = token !== "__invalidated__" ? liveRecord.approval_url : null;
-  const qrUrl = approvalUrl
-    ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`
-    : liveRecord.qr_image_url || null;
+  const approvalUrl = token && token !== "__invalidated__" && liveRecord.approval_url?.includes(token)
+    ? liveRecord.approval_url
+    : null;
+  const savedQrUrl = liveRecord.qr_image_url || liveRecord.assisted_qr_image_url;
+  const qrUrl = savedQrUrl || (approvalUrl ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M` : null);
 
   const qrLabel = buildQrLabel(liveRecord, listing, liveRecord.listing_id);
 
@@ -79,9 +80,7 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     if (!qrUrl) return;
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.src = approvalUrl
-      ? `${QR_CDN}?size=300x300&data=${encodeURIComponent(approvalUrl)}&ecc=M`
-      : qrUrl;
+    img.src = approvalUrl ? `${QR_CDN}?size=300x300&data=${encodeURIComponent(approvalUrl)}&ecc=M` : qrUrl;
     img.onload = () => {
       const padding = 16;
       const labelHeight = 28;
@@ -147,7 +146,7 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
                 <p className="text-xs text-red-600 mt-1">A new QR code cannot be generated for a declined listing.</p>
               </div>
             </div>
-          ) : (!qrUrl) ? (
+          ) : !qrUrl ? (
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
