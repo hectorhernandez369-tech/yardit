@@ -4,7 +4,15 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const payload = await req.json().catch(() => ({}));
-    const { token, action, claimUserId } = payload;
+    const { token: rawToken, action, claimUserId } = payload;
+    const token = (() => {
+      const value = String(rawToken || '').trim();
+      if (!value) return '';
+      if (value.startsWith('http')) {
+        return new URL(value).searchParams.get('token') || '';
+      }
+      return value;
+    })();
 
     if (!token) {
       return Response.json({ status: 'not_found' });
