@@ -58,11 +58,12 @@ Deno.serve(async (req) => {
     }
 
     const payload = await req.json().catch(() => ({}));
-    const repair = payload.repair !== false;
+    const repair = payload.dryRun === true ? false : payload.repair !== false;
     const appBaseUrl = getAppBaseUrl(req, payload.appBaseUrl);
     const records = await base44.asServiceRole.entities.AssistedListing.list('-created_date', 1000);
+    const assistedListings = await base44.asServiceRole.entities.Listing.filter({ assisted_listing: true }, '-created_date', 1000);
 
-    if (repair && records.length > 0 && /deno\.dev/i.test(appBaseUrl)) {
+    if (repair && (records.length > 0 || assistedListings.length > 0) && /deno\.dev/i.test(appBaseUrl)) {
       return Response.json({ error: 'Safe repair requires a production app URL. Pass appBaseUrl or set APP_BASE_URL.' }, { status: 400 });
     }
 
@@ -75,6 +76,8 @@ Deno.serve(async (req) => {
     const brokenRecords = [];
     const repairedRecords = [];
     const skippedRecords = [];
+    const existingAssistedListingIds = new Set(records.map((record) => String(record.listing_id || '')));
+    const orphanedListings = assistedListings.filter((listing) => !existingAssistedListingIds.has(String(listing.id || '')));
 
     for (const record of records) {
       const existingToken = String(record.assisted_qr_token || '').trim();
@@ -129,11 +132,61 @@ Deno.serve(async (req) => {
       repairedRecords.push({ id: updated.id, listing_id: updated.listing_id, listing_number: updated.listing_number });
     }
 
+    for (const listing of orphanedListings) {
+      const issue = {
+        listing_id: listing.id,
+        listing_number: listing.listingNumber,
+        listing_status: listing.status,
+        missing_assisted_record: true,
+        repair_eligible: true,
+      };
+      brokenRecords.push(issue);
+
+      if (!repair) {
+        skippedRecords.push(issue);
+        continue;
+      }
+
+      const now = new Date();
+      const token = generateToken();
+      const approvalUrl = buildApprovalUrl(appBaseUrl, token);
+      const qrImageUrl = buildQrImageUrl(approvalUrl);
+      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+      const displayAddress = listing.display_address || [listing.addressText, listing.city, listing.state, listing.zip].filter(Boolean).join(', ');
+
+      const created = await base44.asServiceRole.entities.AssistedListing.create({
+        listing_id: listing.id,
+        listing_number: listing.listingNumber || '',
+        assisted_status: listing.status === 'active' ? 'assisted_active_unclaimed' : 'pending_seller_approval',
+        assisted_qr_token: token,
+        approval_url: approvalUrl,
+        qr_image_url: qrImageUrl,
+        assisted_qr_created_at: now.toISOString(),
+        assisted_qr_expires_at: expiresAt,
+        admin_creator_id: listing.ownerUserId || listing.created_by_id || 'system',
+        admin_creator_email: listing.created_by || '',
+        seller_permission_confirmed: true,
+        qr_scan_count: 0,
+        assisted_sale_address: listing.addressText || '',
+        assisted_sale_city: listing.city || '',
+        assisted_sale_state: listing.state || '',
+        assisted_sale_zip: listing.zip || '',
+        assisted_sale_formatted_address: displayAddress,
+        latitude: listing.lat,
+        longitude: listing.lng,
+        location_source: listing.location_source === 'map_pin' ? 'map_pin' : 'address_search',
+      });
+
+      repairedRecords.push({ id: created.id, listing_id: created.listing_id, listing_number: created.listing_number, recreated_missing_record: true });
+    }
+
     return Response.json({
       ok: true,
       repair,
       appBaseUrl,
-      total_assisted_listings: records.length,
+      total_assisted_records: records.length,
+      total_assisted_listings: assistedListings.length,
+      orphaned_listing_count: orphanedListings.length,
       broken_count: brokenRecords.length,
       repaired_count: repairedRecords.length,
       skipped_count: skippedRecords.length,
