@@ -13,7 +13,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
   const token = created.token || getTokenFromUrl(created.approvalUrl);
   const fallbackApprovalUrl = token ? `${window.location.origin}/assisted-listing?token=${token}` : null;
   const approvalUrl = token && created.approvalUrl?.includes(token) ? created.approvalUrl : fallbackApprovalUrl;
-  const qrUrl = approvalUrl ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M` : null;
+  const qrUrl = created.qrImageUrl || (approvalUrl ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M` : null);
 
   const qrLabel = created.saleAddress || created.address || created.display_address || created.title || "Listing QR";
 
@@ -29,6 +29,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
   };
 
   const handleDownload = () => {
+    if (!approvalUrl) return;
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = `${QR_CDN}?size=300x300&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
@@ -62,6 +63,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
   };
 
   const handlePrint = () => {
+    if (!approvalUrl || !qrUrl) return;
     const win = window.open("", "_blank");
     win.document.write(`
       <html><head><title>Yardit QR Code</title>

@@ -74,7 +74,7 @@ export default function AdminAssistedListingHistory({ adminUser }) {
         const token = rec.assisted_qr_token;
         const fallbackApprovalUrl = token && token !== "__invalidated__" ? `${window.location.origin}/assisted-listing?token=${token}` : null;
         const approvalUrl = token && token !== "__invalidated__" && rec.approval_url?.includes(token) ? rec.approval_url : fallbackApprovalUrl;
-        const qrUrl = approvalUrl ? `${QR_CDN}?size=120x120&data=${encodeURIComponent(approvalUrl)}&ecc=M` : null;
+        const qrUrl = rec.qr_image_url || (approvalUrl ? `${QR_CDN}?size=120x120&data=${encodeURIComponent(approvalUrl)}&ecc=M` : null);
         const expired = new Date(rec.assisted_qr_expires_at) < new Date();
         const statusInfo = STATUS_LABELS[rec.assisted_status] || { label: rec.assisted_status, color: "bg-gray-100 text-gray-600" };
         const isExpanded = expandedId === rec.id;

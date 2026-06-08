@@ -6,12 +6,18 @@ function generateToken() {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function getAppBaseUrl(req) {
+function getAppBaseUrl(req, explicitBaseUrl = '') {
   const configured = String(Deno.env.get('APP_BASE_URL') || '').trim().replace(/\/$/, '');
   if (/^https?:\/\//i.test(configured)) return configured;
+  const explicit = String(explicitBaseUrl || '').trim().replace(/\/$/, '');
+  if (/^https?:\/\//i.test(explicit)) return explicit;
   const origin = req.headers.get('origin');
   if (origin && /^https?:\/\//i.test(origin)) return origin.replace(/\/$/, '');
   return new URL(req.url).origin;
+}
+
+function buildQrImageUrl(approvalUrl, size = 220) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
 }
 
 Deno.serve(async (req) => {
@@ -25,7 +31,7 @@ Deno.serve(async (req) => {
     }
 
     const payload = await req.json().catch(() => ({}));
-    const { assisted_id } = payload;
+    const { assisted_id, appBaseUrl: clientAppBaseUrl = '' } = payload;
 
     if (!assisted_id) {
       return Response.json({ error: 'assisted_id is required' }, { status: 400 });
@@ -52,12 +58,14 @@ Deno.serve(async (req) => {
     const now = new Date();
     const newToken = generateToken();
     const newExpiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-    const appBaseUrl = getAppBaseUrl(req);
+    const appBaseUrl = getAppBaseUrl(req, clientAppBaseUrl);
     const approvalUrl = `${appBaseUrl}/assisted-listing?token=${newToken}`;
+    const qrImageUrl = buildQrImageUrl(approvalUrl);
 
     const updated = await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
       assisted_qr_token: newToken,
       approval_url: approvalUrl,
+      qr_image_url: qrImageUrl,
       assisted_qr_created_at: now.toISOString(),
       assisted_qr_expires_at: newExpiresAt,
       // Reset to pending if it was expired

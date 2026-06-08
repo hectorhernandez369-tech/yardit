@@ -14,12 +14,18 @@ function normalizeListingType(raw) {
   return 'yard_sale';
 }
 
-function getAppBaseUrl(req) {
+function getAppBaseUrl(req, explicitBaseUrl = '') {
   const configured = String(Deno.env.get('APP_BASE_URL') || '').trim().replace(/\/$/, '');
   if (/^https?:\/\//i.test(configured)) return configured;
+  const explicit = String(explicitBaseUrl || '').trim().replace(/\/$/, '');
+  if (/^https?:\/\//i.test(explicit)) return explicit;
   const origin = req.headers.get('origin');
   if (origin && /^https?:\/\//i.test(origin)) return origin.replace(/\/$/, '');
   return new URL(req.url).origin;
+}
+
+function buildQrImageUrl(approvalUrl, size = 220) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
 }
 
 Deno.serve(async (req) => {
@@ -103,6 +109,7 @@ Deno.serve(async (req) => {
       sellerEmail = '',
       adminNotes = '',
       sellerPermissionConfirmed = false,
+      appBaseUrl: clientAppBaseUrl = '',
     } = payload;
 
     const isMapPin = location_source === 'map_pin';
@@ -132,8 +139,9 @@ Deno.serve(async (req) => {
     const token = generateToken();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
-    const appBaseUrl = getAppBaseUrl(req);
+    const appBaseUrl = getAppBaseUrl(req, clientAppBaseUrl);
     const approvalUrl = `${appBaseUrl}/assisted-listing?token=${token}`;
+    const qrImageUrl = buildQrImageUrl(approvalUrl);
 
     // Build the sale address string early — used in both Listing and AssistedListing
     const saleFormattedAddress = isMapPin
@@ -198,6 +206,7 @@ Deno.serve(async (req) => {
       assisted_status: 'pending_seller_approval',
       assisted_qr_token: token,
       approval_url: approvalUrl,
+      qr_image_url: qrImageUrl,
       assisted_qr_created_at: now.toISOString(),
       assisted_qr_expires_at: expiresAt.toISOString(),
       admin_creator_id: user.id,
@@ -253,6 +262,7 @@ Deno.serve(async (req) => {
       assistedId: assisted.id,
       token,
       approvalUrl,
+      qrImageUrl,
       expiresAt: expiresAt.toISOString(),
       saleFormattedAddress,
     });

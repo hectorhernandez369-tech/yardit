@@ -9,7 +9,11 @@ Deno.serve(async (req) => {
       const value = String(rawToken || '').trim();
       if (!value) return '';
       if (value.startsWith('http')) {
-        return new URL(value).searchParams.get('token') || '';
+        try {
+          return new URL(value).searchParams.get('token') || '';
+        } catch {
+          return '';
+        }
       }
       return value;
     })();
@@ -22,6 +26,11 @@ Deno.serve(async (req) => {
     const assistedRecords = await base44.asServiceRole.entities.AssistedListing.filter({
       assisted_qr_token: token,
     });
+    if (assistedRecords.length > 1) {
+      console.error('Duplicate assisted QR token found:', token, assistedRecords.map((r) => r.id));
+      return Response.json({ status: 'duplicate_token' }, { status: 409 });
+    }
+
     const assisted = assistedRecords[0];
 
     if (!assisted) {
@@ -46,6 +55,10 @@ Deno.serve(async (req) => {
     // Fetch the listing
     const listings = await base44.asServiceRole.entities.Listing.filter({ id: assisted.listing_id });
     const listing = listings[0] || null;
+
+    if (!listing) {
+      return Response.json({ status: 'listing_missing', assisted });
+    }
 
     // --- Actions (checked FIRST before any early returns) ---
 

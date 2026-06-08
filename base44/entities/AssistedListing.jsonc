@@ -31,6 +31,10 @@
       "type": "string",
       "description": "Stable seller approval URL encoded in the QR code"
     },
+    "qr_image_url": {
+      "type": "string",
+      "description": "Generated QR image URL for the assisted listing approval link"
+    },
     "assisted_qr_created_at": {
       "type": "string",
       "format": "date-time",

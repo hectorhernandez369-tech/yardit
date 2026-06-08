@@ -231,6 +231,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
         sellerEmail: form.sellerEmail,
         adminNotes: form.adminNotes,
         sellerPermissionConfirmed: form.sellerPermissionConfirmed,
+        appBaseUrl: window.location.origin,
       });
 
       const approvalUrl = response.data.approvalUrl || "";
@@ -247,6 +248,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
         listingId: response.data.listingId,
         assistedId: response.data.assistedId,
         approvalUrl,
+        qrImageUrl: response.data.qrImageUrl,
         expiresAt: response.data.expiresAt,
         saleAddress: response.data.saleFormattedAddress || addrPayload.saleFormattedAddress,
         title: form.title,
