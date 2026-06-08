@@ -1388,31 +1388,31 @@ const stats = useMemo(() => {
                       />
                     )}
                     {!isMarquee && (
-                       <Popup maxWidth={320} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
-                         <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md bg-white/90 border border-white/40 shadow-lg" style={{ maxWidth: "min(88vw, 320px)", maxHeight: "60vh" }}>
-                          <div className="p-1 overflow-y-auto flex-1 min-h-0 space-y-2">
-                            <div className="flex items-center gap-1 flex-wrap mb-1">
-                              <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
+                       <Popup maxWidth={340} minWidth={260} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
+                         <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md bg-white/95 border border-white/40 shadow-lg" style={{ maxWidth: "min(90vw, 340px)", maxHeight: "70vh" }}>
+                          <div className="p-3 overflow-y-auto flex-1 min-h-0 space-y-2.5">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <Badge className={`text-[9px] px-1.5 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
                                 {getListingTypeBadgeLabel(listing)}
                               </Badge>
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 min-h-0 capitalize">{getListingSecondaryBadgeLabel(listing)}</Badge>
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 capitalize bg-white">{getListingSecondaryBadgeLabel(listing)}</Badge>
                               {!isPreviewState && (() => {
                                 const statusUi = getListingStatusUi(listing);
                                 return (
-                                  <Badge className={`text-[9px] px-1 py-0 h-4 min-h-0 ${statusUi.isComingSoon ? "bg-amber-500" : statusUi.isActive ? "bg-green-600" : "bg-slate-500"} text-white`}>
+                                  <Badge className={`text-[9px] px-1.5 py-0 h-4 min-h-0 ${statusUi.isComingSoon ? "bg-amber-500" : statusUi.isActive ? "bg-green-600" : "bg-slate-500"} text-white`}>
                                     {statusUi.label}
                                   </Badge>
                                 );
                               })()}
                               {isPreviewState && (
-                                <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-amber-500 text-white">Preview</Badge>
+                                <Badge className="text-[9px] px-1.5 py-0 h-4 min-h-0 bg-amber-500 text-white">Preview</Badge>
                               )}
                               {isHuntStop && !isPreviewState && (
-                                <Badge className="text-[9px] px-1 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
+                                <Badge className="text-[9px] px-1.5 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
                               )}
                             </div>
 
-                            <h3 className="font-bold text-sm leading-none">{getListingPrimaryText(listing)}</h3>
+                            <h3 className="font-bold text-base leading-tight text-slate-950">{getListingPrimaryText(listing)}</h3>
 
                             {isPreviewState ? (
                               <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2">
@@ -1422,14 +1422,24 @@ const stats = useMemo(() => {
                             ) : (
                               <>
                                 {getListingDescriptionText(listing) && (
-                                  <p className="text-[11px] text-slate-600 leading-relaxed">{getListingDescriptionText(listing)}</p>
+                                  <p className="text-xs text-slate-700 leading-relaxed">{getListingDescriptionText(listing)}</p>
                                 )}
+                                <div className="space-y-1 rounded-lg bg-slate-50/80 p-2 text-[11px] text-slate-700">
+                                  <div className="flex gap-1.5">
+                                    <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-slate-400" />
+                                    <span className="break-words">{listing.display_address || listing.address_text || listing.addressText || [listing.city, listing.state, listing.zip].filter(Boolean).join(", ") || "Address unavailable"}</span>
+                                  </div>
+                                  <div className="flex gap-1.5">
+                                    <Calendar className="mt-0.5 h-3 w-3 shrink-0 text-slate-400" />
+                                    <span>{listing.startDateTime ? format(new Date(listing.startDateTime), "MMM d, yyyy h:mm a") : "Date unavailable"}{listing.endDateTime ? ` – ${format(new Date(listing.endDateTime), "h:mm a")}` : ""}</span>
+                                  </div>
+                                </div>
                                 {!getListingStatusUi(listing).isComingSoon && (
                                   <div className="flex flex-wrap gap-1">
                                     {(listing.listingType === "event"
                                       ? [listing.event_category || formatEventTierLabel(listing.event_tier || listing.tier)].filter(Boolean)
                                       : (listing.categories?.length ? listing.categories : [listing.category]).filter(Boolean)
-                                    ).slice(0, 3).map((item, index) => (
+                                    ).slice(0, 6).map((item, index) => (
                                       <Badge key={`${item}-${index}`} variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 text-slate-600 border-slate-300 bg-slate-50">
                                         {item}
                                       </Badge>
@@ -1440,7 +1450,7 @@ const stats = useMemo(() => {
                             )}
                           </div>
 
-                          <div className="flex items-center gap-1 pt-1.5 border-t border-gray-100 flex-shrink-0 flex-wrap">
+                          <div className="flex items-center gap-1.5 border-t border-gray-100 bg-white/90 p-2 flex-shrink-0 flex-wrap">
                             <Button
                               size="sm"
                               onClick={(e) => {
