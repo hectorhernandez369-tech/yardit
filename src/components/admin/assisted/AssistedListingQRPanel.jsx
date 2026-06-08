@@ -5,7 +5,7 @@ import { CheckCircle, Printer, Download, Plus } from "lucide-react";
 const QR_CDN = "https://api.qrserver.com/v1/create-qr-code/";
 
 export default function AssistedListingQRPanel({ created, onCreateAnother }) {
-  const approvalUrl = `${window.location.origin}/assisted-listing?token=${created.token}`;
+  const approvalUrl = created.approvalUrl || `${window.location.origin}/assisted-listing?token=${created.token}`;
   const qrUrl = `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
 
   const qrLabel = created.saleAddress || created.address || created.display_address || created.title || "Listing QR";

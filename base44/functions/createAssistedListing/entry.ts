@@ -124,6 +124,8 @@ Deno.serve(async (req) => {
     const token = generateToken();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+    const appBaseUrl = String(Deno.env.get('APP_BASE_URL') || '').replace(/\/$/, '');
+    const approvalUrl = `${appBaseUrl || new URL(req.url).origin}/assisted-listing?token=${token}`;
 
     // Build the sale address string early — used in both Listing and AssistedListing
     const saleFormattedAddress = isMapPin
@@ -197,6 +199,7 @@ Deno.serve(async (req) => {
       seller_email: sellerEmail,
       admin_notes: adminNotes,
       qr_scan_count: 0,
+      approval_url: approvalUrl,
       // Admin-entered sale address — used as the QR label
       assisted_sale_address: addressText || (isMapPin ? 'Approximate Yard Sale Location' : ''),
       assisted_sale_city: city || '',
@@ -241,6 +244,7 @@ Deno.serve(async (req) => {
       listingId: listing.id,
       assistedId: assisted.id,
       token,
+      approvalUrl,
       expiresAt: expiresAt.toISOString(),
       saleFormattedAddress,
     });
