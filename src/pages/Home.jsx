@@ -118,7 +118,7 @@ function getChestIcon(size, count = 0, isSelected = false, faded = false) {
     const chestFilter = isSelected
       ? "drop-shadow(0 0 0 rgba(244,168,73,0.75)) drop-shadow(0 4px 10px rgba(0,0,0,0.32))"
       : "drop-shadow(0 3px 6px rgba(0,0,0,0.28))";
-    const chestOpacity = faded ? 0.5 : 1;
+    const chestOpacity = faded ? 0.35 : 1;
     chestIconCache[key] = L.divIcon({
       className: "neighborhood-chest-marker",
       html: `<div style="position:relative;width:${iconSize}px;height:${iconSize}px;"><img src="${CHEST_ICON_URL}" alt="Neighborhood Sale" style="width:${iconSize}px;height:${iconSize}px;display:block;opacity:${chestOpacity};filter:${chestFilter};" />${countLabel ? `<div style="position:absolute;top:-4px;right:-4px;min-width:${badgeSize}px;height:${badgeSize}px;padding:0 4px;border-radius:9999px;background:rgba(44,79,78,0.96);border:2px solid #F4A849;color:#ffffff;font-weight:700;font-size:${badgeFont}px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.28);opacity:${faded ? 0.72 : 1};">${countLabel}</div>` : ""}</div>`,
@@ -133,8 +133,9 @@ function getChestIcon(size, count = 0, isSelected = false, faded = false) {
 // Custom marker icons based on tier
 const createIcon = (type, tier, isSelected, location) => {
   const preAct = isPreActivated(location);
-  const opacity = preAct ? 0.6 : 1.0;
-  const isOwnerPendingPreview = type === "neighborhood_sale" && location?.ownerPreviewPending === true;
+  const isPreviewState = location?.mapState === "preview" || location?.ownerUpcomingPreview === true;
+  const opacity = isPreviewState ? 0.35 : preAct ? 0.6 : 1.0;
+  const isOwnerPendingPreview = type === "neighborhood_sale" && (location?.ownerPreviewPending === true || isPreviewState);
 
   if (type === "event") {
     return getEventMarkerIcon(location, isSelected);
@@ -1373,7 +1374,7 @@ const stats = useMemo(() => {
                     key={listing.id}
                     ref={(ref) => { if (ref) markerRefsMap.current[listing.id] = ref; }}
                     position={[listing.lat, listing.lng]}
-                    icon={listing.listingType === "event" ? getEventMarkerIcon(listing, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
+                    icon={listing.listingType === "event" ? getEventMarkerIcon({ ...listing, ownerUpcomingPreview: isPreviewState }, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
                     eventHandlers={{
                       click: () => { handlePinClick(listing); },
                       popupopen: () => setSelectedListingId(listing.id),
