@@ -127,6 +127,7 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     try {
       const response = await base44.functions.invoke("regenerateAssistedQR", {
         assisted_id: liveRecord.id,
+        appBaseUrl: window.location.origin,
       });
       if (response.data?.assisted) {
         setLiveRecord(response.data.assisted);

@@ -177,6 +177,14 @@ Deno.serve(async (req) => {
         location_source: listing.location_source === 'map_pin' ? 'map_pin' : 'address_search',
       });
 
+      await base44.asServiceRole.entities.Listing.update(listing.id, {
+        assisted_listing_id: created.id,
+        assisted_qr_token: token,
+        assisted_approval_url: approvalUrl,
+        assisted_qr_image_url: qrImageUrl,
+        assisted_qr_expires_at: expiresAt,
+      });
+
       repairedRecords.push({ id: created.id, listing_id: created.listing_id, listing_number: created.listing_number, recreated_missing_record: true });
     }
 

@@ -199,34 +199,49 @@ Deno.serve(async (req) => {
 
     console.log('Created assisted listing:', listing.id);
 
-    // Create the AssistedListing record
-    const assisted = await base44.asServiceRole.entities.AssistedListing.create({
-      listing_id: listing.id,
-      listing_number: listingNumber,
-      assisted_status: 'pending_seller_approval',
+    // Create the AssistedListing QR wrapper. If this fails, remove the Listing so QR/listing cannot become detached.
+    let assisted;
+    try {
+      assisted = await base44.asServiceRole.entities.AssistedListing.create({
+        listing_id: listing.id,
+        listing_number: listingNumber,
+        assisted_status: 'pending_seller_approval',
+        assisted_qr_token: token,
+        approval_url: approvalUrl,
+        qr_image_url: qrImageUrl,
+        assisted_qr_created_at: now.toISOString(),
+        assisted_qr_expires_at: expiresAt.toISOString(),
+        admin_creator_id: user.id,
+        admin_creator_email: user.email,
+        seller_permission_confirmed: true,
+        seller_name: sellerName,
+        seller_phone: sellerPhone,
+        seller_email: sellerEmail,
+        admin_notes: adminNotes,
+        qr_scan_count: 0,
+        // Admin-entered sale address — used as the QR label
+        assisted_sale_address: addressText || (isMapPin ? 'Approximate Yard Sale Location' : ''),
+        assisted_sale_city: city || '',
+        assisted_sale_state: state || '',
+        assisted_sale_zip: zip || '',
+        assisted_sale_formatted_address: saleFormattedAddress,
+        // Coordinates for admin/QR verification
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lng),
+        location_source,
+      });
+    } catch (assistedError) {
+      await base44.asServiceRole.entities.Listing.delete(listing.id);
+      console.error('Failed to attach assisted QR record; removed orphan listing:', listing.id, assistedError?.message || assistedError);
+      return Response.json({ error: 'Failed to create QR record. Listing was not saved.' }, { status: 500 });
+    }
+
+    await base44.asServiceRole.entities.Listing.update(listing.id, {
+      assisted_listing_id: assisted.id,
       assisted_qr_token: token,
-      approval_url: approvalUrl,
-      qr_image_url: qrImageUrl,
-      assisted_qr_created_at: now.toISOString(),
+      assisted_approval_url: approvalUrl,
+      assisted_qr_image_url: qrImageUrl,
       assisted_qr_expires_at: expiresAt.toISOString(),
-      admin_creator_id: user.id,
-      admin_creator_email: user.email,
-      seller_permission_confirmed: true,
-      seller_name: sellerName,
-      seller_phone: sellerPhone,
-      seller_email: sellerEmail,
-      admin_notes: adminNotes,
-      qr_scan_count: 0,
-      // Admin-entered sale address — used as the QR label
-      assisted_sale_address: addressText || (isMapPin ? 'Approximate Yard Sale Location' : ''),
-      assisted_sale_city: city || '',
-      assisted_sale_state: state || '',
-      assisted_sale_zip: zip || '',
-      assisted_sale_formatted_address: saleFormattedAddress,
-      // Coordinates for admin/QR verification
-      latitude: parseFloat(lat),
-      longitude: parseFloat(lng),
-      location_source,
     });
 
     console.log('Created assisted record:', assisted.id, 'token:', token);

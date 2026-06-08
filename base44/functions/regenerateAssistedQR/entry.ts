@@ -37,12 +37,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'assisted_id is required' }, { status: 400 });
     }
 
-    // Fetch the record
+    // Fetch the QR wrapper and confirm the linked listing still exists before regenerating.
     const records = await base44.asServiceRole.entities.AssistedListing.filter({ id: assisted_id });
     const assisted = records[0];
 
     if (!assisted) {
       return Response.json({ error: 'Assisted listing not found' }, { status: 404 });
+    }
+
+    const linkedListings = await base44.asServiceRole.entities.Listing.filter({ id: assisted.listing_id });
+    const linkedListing = linkedListings[0];
+    if (!linkedListing) {
+      return Response.json({ error: 'Cannot regenerate QR because the linked listing is missing' }, { status: 400 });
     }
 
     // Do not regenerate for declined listings
@@ -72,6 +78,14 @@ Deno.serve(async (req) => {
       assisted_status: assisted.assisted_status === 'assisted_expired'
         ? 'pending_seller_approval'
         : assisted.assisted_status,
+    });
+
+    await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
+      assisted_listing_id: assisted.id,
+      assisted_qr_token: newToken,
+      assisted_approval_url: approvalUrl,
+      assisted_qr_image_url: qrImageUrl,
+      assisted_qr_expires_at: newExpiresAt,
     });
 
     console.log(`[regenerateAssistedQR] Regenerated token for assisted listing ${assisted.id}`);

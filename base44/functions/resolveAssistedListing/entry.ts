@@ -31,15 +31,35 @@ Deno.serve(async (req) => {
       return Response.json({ status: 'duplicate_token' }, { status: 409 });
     }
 
-    const assisted = assistedRecords[0];
+    let assisted = assistedRecords[0];
+    let listingFromToken = null;
 
     if (!assisted) {
-      return Response.json({ status: 'not_found' });
+      const tokenListings = await base44.asServiceRole.entities.Listing.filter({ assisted_qr_token: token });
+      listingFromToken = tokenListings[0] || null;
+      if (!listingFromToken) {
+        return Response.json({ status: 'not_found' });
+      }
+      assisted = {
+        listing_id: listingFromToken.id,
+        listing_number: listingFromToken.listingNumber,
+        assisted_status: listingFromToken.status === 'active' ? 'assisted_active_unclaimed' : 'pending_seller_approval',
+        assisted_qr_token: token,
+        approval_url: listingFromToken.assisted_approval_url,
+        qr_image_url: listingFromToken.assisted_qr_image_url,
+        assisted_qr_expires_at: listingFromToken.assisted_qr_expires_at,
+        qr_scan_count: listingFromToken.assisted_qr_scan_count || 0,
+      };
     }
 
     // Increment scan count on every load (regardless of action)
-    await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
-      qr_scan_count: (assisted.qr_scan_count || 0) + 1,
+    if (assisted.id) {
+      await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
+        qr_scan_count: (assisted.qr_scan_count || 0) + 1,
+      });
+    }
+    await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
+      assisted_qr_scan_count: (assisted.qr_scan_count || 0) + 1,
     });
 
     // Check if token was invalidated (declined)
@@ -53,7 +73,7 @@ Deno.serve(async (req) => {
     const isExpired = expiresAt <= now;
 
     // Fetch the listing
-    const listings = await base44.asServiceRole.entities.Listing.filter({ id: assisted.listing_id });
+    const listings = listingFromToken ? [listingFromToken] : await base44.asServiceRole.entities.Listing.filter({ id: assisted.listing_id });
     const listing = listings[0] || null;
 
     if (!listing) {
@@ -80,10 +100,17 @@ Deno.serve(async (req) => {
         ownerUserId: claimUserId,
         owner_type: 'user',
       });
-      await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
+      if (assisted.id) {
+        await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
+          assisted_status: 'claimed_active',
+          claimed_by_user_id: claimUserId,
+          claimed_at: claimNow,
+        });
+      }
+      await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
         assisted_status: 'claimed_active',
-        claimed_by_user_id: claimUserId,
-        claimed_at: claimNow,
+        assisted_claimed_by_user_id: claimUserId,
+        assisted_claimed_at: claimNow,
       });
       const updatedListings = await base44.asServiceRole.entities.Listing.filter({ id: assisted.listing_id });
       const updatedListing = updatedListings[0] || listing;
@@ -105,7 +132,12 @@ Deno.serve(async (req) => {
 
     // Check expiry for pending listings
     if (isExpired && assisted.assisted_status === 'pending_seller_approval') {
-      await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
+      if (assisted.id) {
+        await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
+          assisted_status: 'assisted_expired',
+        });
+      }
+      await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
         assisted_status: 'assisted_expired',
       });
       return Response.json({ status: 'expired', listing: null, assisted });
@@ -126,10 +158,18 @@ Deno.serve(async (req) => {
         ...(isClaiming ? { ownerUserId: claimUserId, owner_type: 'user' } : {}),
       });
 
-      await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
+      if (assisted.id) {
+        await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
+          assisted_status: isClaiming ? 'claimed_active' : 'assisted_active_unclaimed',
+          seller_approved_at: claimNow,
+          ...(isClaiming ? { claimed_by_user_id: claimUserId, claimed_at: claimNow } : {}),
+        });
+      }
+
+      await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
         assisted_status: isClaiming ? 'claimed_active' : 'assisted_active_unclaimed',
-        seller_approved_at: claimNow,
-        ...(isClaiming ? { claimed_by_user_id: claimUserId, claimed_at: claimNow } : {}),
+        assisted_seller_approved_at: claimNow,
+        ...(isClaiming ? { assisted_claimed_by_user_id: claimUserId, assisted_claimed_at: claimNow } : {}),
       });
 
       const updatedListings = await base44.asServiceRole.entities.Listing.filter({ id: assisted.listing_id });
@@ -140,9 +180,16 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'decline') {
-      await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
+      if (assisted.id) {
+        await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
+          assisted_status: 'assisted_declined',
+          seller_declined_at: now.toISOString(),
+          assisted_qr_token: '__invalidated__',
+        });
+      }
+      await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
         assisted_status: 'assisted_declined',
-        seller_declined_at: now.toISOString(),
+        assisted_seller_declined_at: now.toISOString(),
         assisted_qr_token: '__invalidated__',
       });
       await base44.asServiceRole.entities.Listing.update(assisted.listing_id, {
