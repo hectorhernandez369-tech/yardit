@@ -53,6 +53,8 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     }
   }, [record]);
 
+  const isListingBackup = liveRecord.source === "listing_backup";
+  const canRegenerate = !isListingBackup;
   const isDeclined = liveRecord.assisted_status === "assisted_declined";
   const isExpired =
     !isDeclined &&
@@ -60,10 +62,10 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     new Date(liveRecord.assisted_qr_expires_at) < new Date();
 
   const token = liveRecord.assisted_qr_token;
-  const approvalUrl = token && token !== "__invalidated__" && liveRecord.approval_url?.includes(token)
-    ? liveRecord.approval_url
-    : null;
-  const qrUrl = approvalUrl ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M` : null;
+  const approvalUrl = token !== "__invalidated__" ? liveRecord.approval_url : null;
+  const qrUrl = approvalUrl
+    ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`
+    : liveRecord.qr_image_url || null;
 
   const qrLabel = buildQrLabel(liveRecord, listing, liveRecord.listing_id);
 
@@ -77,7 +79,9 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     if (!qrUrl) return;
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.src = `${QR_CDN}?size=300x300&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
+    img.src = approvalUrl
+      ? `${QR_CDN}?size=300x300&data=${encodeURIComponent(approvalUrl)}&ecc=M`
+      : qrUrl;
     img.onload = () => {
       const padding = 16;
       const labelHeight = 28;
@@ -105,7 +109,7 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
   };
 
   const handleRegenerate = async () => {
-    if (isDeclined) return;
+    if (isDeclined || !canRegenerate) return;
     setIsRegenerating(true);
     try {
       const response = await base44.functions.invoke("regenerateAssistedQR", {
@@ -143,7 +147,7 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
                 <p className="text-xs text-red-600 mt-1">A new QR code cannot be generated for a declined listing.</p>
               </div>
             </div>
-          ) : (!token || !approvalUrl || !qrUrl) ? (
+          ) : (!qrUrl) ? (
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
@@ -152,14 +156,16 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
                   <p className="text-xs text-amber-700 mt-1">Generate a QR code tied to this listing.</p>
                 </div>
               </div>
-              <Button
-                onClick={handleRegenerate}
-                disabled={isRegenerating}
-                className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                {isRegenerating ? "Generating..." : "Generate QR Code"}
-              </Button>
+              {canRegenerate && (
+                <Button
+                  onClick={handleRegenerate}
+                  disabled={isRegenerating}
+                  className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  {isRegenerating ? "Generating..." : "Generate QR Code"}
+                </Button>
+              )}
             </div>
           ) : isExpired ? (
             <div className="space-y-3">
@@ -172,14 +178,16 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={handleRegenerate}
-                disabled={isRegenerating}
-                className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                {isRegenerating ? "Generating..." : "Generate New QR Code"}
-              </Button>
+              {canRegenerate && (
+                <Button
+                  onClick={handleRegenerate}
+                  disabled={isRegenerating}
+                  className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  {isRegenerating ? "Generating..." : "Generate New QR Code"}
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">

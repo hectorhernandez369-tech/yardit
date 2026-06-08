@@ -28,6 +28,27 @@ import {
 // Vendor listing types to exclude from residential view
 const VENDOR_LISTING_TYPES = ["vendor", "vendor_event"];
 
+function hasListingQrBackup(listing) {
+  return listing?.assisted_qr_token !== "__invalidated__" && !!(listing?.assisted_approval_url || listing?.assisted_qr_image_url);
+}
+
+function buildListingQrBackupRecord(listing) {
+  if (!hasListingQrBackup(listing)) return null;
+
+  return {
+    id: `listing-backup-${listing.id}`,
+    source: "listing_backup",
+    listing_id: listing.id,
+    listing_number: listing.listingNumber,
+    assisted_status: listing.assisted_status,
+    assisted_qr_token: listing.assisted_qr_token,
+    approval_url: listing.assisted_approval_url,
+    qr_image_url: listing.assisted_qr_image_url,
+    assisted_qr_expires_at: listing.assisted_qr_expires_at,
+    assisted_sale_formatted_address: listing.display_address || listing.addressText || listing.address_text,
+  };
+}
+
 export default function ListingManagement({ mode, adminUser }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -164,7 +185,9 @@ export default function ListingManagement({ mode, adminUser }) {
         {filteredListings.slice(0, 20).map((listing) => {
           const owner = ownerMap[listing.ownerUserId];
           const assistedRecord = assistedMap[listing.id];
-          const isAssisted = listing.assisted_listing === true || !!assistedRecord;
+          const listingQrBackupRecord = buildListingQrBackupRecord(listing);
+          const qrRecord = assistedRecord || listingQrBackupRecord;
+          const isAssisted = listing.created_by_admin === true || listing.assisted_listing === true || !!assistedRecord || !!listingQrBackupRecord;
           return (
             <Card key={listing.id}>
               <CardContent className="p-6">
@@ -222,17 +245,17 @@ export default function ListingManagement({ mode, adminUser }) {
                     >
                       View More Details
                     </Button>
-                    {isAssisted && assistedRecord && (
+                    {isAssisted && qrRecord && (
                       <Button
                         size="sm"
                         variant="outline"
                         className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50"
-                        onClick={() => setQrModalRecord(assistedRecord)}
+                        onClick={() => setQrModalRecord(qrRecord)}
                       >
                         <QrCode className="w-3.5 h-3.5" /> View QR
                       </Button>
                     )}
-                    {isAssisted && !assistedRecord && (
+                    {isAssisted && !qrRecord && (
                       <Button size="sm" variant="outline" disabled className="gap-1.5 border-red-200 text-red-400 cursor-not-allowed">
                         <AlertTriangle className="w-3.5 h-3.5" /> QR Missing
                       </Button>
