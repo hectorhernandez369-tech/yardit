@@ -24,7 +24,6 @@ import { getUserDisplayName } from "@/lib/userIdentity";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import YardSaleGuideModal from "@/components/guide/YardSaleGuideModal";
 import { getPreviewListingsOnMapPreference, setPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
-import { zonedDateTimeToUtcDate } from "@/components/shared/listingTierEngine";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 
@@ -255,7 +254,15 @@ export default function MyListingsPage() {
       return deriveNeighborhoodEventState(parentSale, new Date()) === "active" && isWithinParticipationWindow(listing, parentSale, new Date());
     }
 
-    if (listing?.listingType === "yard_sale") return isPubliclyVisibleListing(listing, { now: new Date(), currentUser: user });
+    if (listing?.listingType === "yard_sale") {
+      const now = new Date();
+      const start = listing.startDateTime ? new Date(listing.startDateTime) : null;
+      const end = listing.endDateTime ? new Date(listing.endDateTime) : null;
+      const hasStarted = !start || Number.isNaN(start.getTime()) || now >= start;
+      const hasNotEnded = !end || Number.isNaN(end.getTime()) || now <= end;
+      const lifecycleStatus = listing.status === "active" || listing.activation_status === "active" || listing.status === "scheduled";
+      return lifecycleStatus && hasStarted && hasNotEnded;
+    }
     if (listing?.status === "active" || listing?.activation_status === "active") return true;
     return isPubliclyVisibleListing(listing, { now: new Date(), currentUser: user });
   };
@@ -556,11 +563,6 @@ export default function MyListingsPage() {
       updateData.photoUrls = editPhotoUrls;
       updateData.openTime = editOpenTime;
       updateData.closeTime = editCloseTime;
-      if (!editingListing.neighborhood_sale_id && editingListing.selectedRangeStartDate && editingListing.selectedRangeEndDate) {
-        const listingTimeZone = editingListing.timeZoneId || "America/Los_Angeles";
-        updateData.startDateTime = zonedDateTimeToUtcDate(editingListing.selectedRangeStartDate, `${editOpenTime}:00`, listingTimeZone).toISOString();
-        updateData.endDateTime = zonedDateTimeToUtcDate(editingListing.selectedRangeEndDate, `${editCloseTime}:00`, listingTimeZone).toISOString();
-      }
     }
 
     if (editingListing.listingType === "event") {
