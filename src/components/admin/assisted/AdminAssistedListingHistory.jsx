@@ -7,6 +7,17 @@ import AdminQRViewModal from "@/components/admin/assisted/AdminQRViewModal";
 
 const QR_CDN = "https://api.qrserver.com/v1/create-qr-code/";
 
+function getApprovalUrl(record) {
+  const token = record.assisted_qr_token;
+  if (!token || token === "__invalidated__" || !record.approval_url?.includes(token)) return null;
+  return record.approval_url;
+}
+
+function getQrUrl(record, size = 120) {
+  const approvalUrl = getApprovalUrl(record);
+  return approvalUrl ? `${QR_CDN}?size=${size}x${size}&data=${encodeURIComponent(approvalUrl)}&ecc=M` : null;
+}
+
 const STATUS_LABELS = {
   pending_seller_approval: { label: "Pending Approval", color: "bg-amber-100 text-amber-800" },
   assisted_active_unclaimed: { label: "Active – Unclaimed", color: "bg-blue-100 text-blue-800" },
@@ -71,10 +82,8 @@ export default function AdminAssistedListingHistory({ adminUser }) {
       )}
 
       {records.map((rec) => {
-        const token = rec.assisted_qr_token;
-        const approvalUrl = token && token !== "__invalidated__" && rec.approval_url?.includes(token) ? rec.approval_url : null;
-        const savedQrUrl = approvalUrl && rec.qr_image_url?.includes(encodeURIComponent(approvalUrl)) ? rec.qr_image_url : null;
-        const qrUrl = approvalUrl ? (savedQrUrl || `${QR_CDN}?size=120x120&data=${encodeURIComponent(approvalUrl)}&ecc=M`) : null;
+        const approvalUrl = getApprovalUrl(rec);
+        const qrUrl = getQrUrl(rec, 120);
         const expired = new Date(rec.assisted_qr_expires_at) < new Date();
         const statusInfo = STATUS_LABELS[rec.assisted_status] || { label: rec.assisted_status, color: "bg-gray-100 text-gray-600" };
         const isExpanded = expandedId === rec.id;
@@ -97,14 +106,20 @@ export default function AdminAssistedListingHistory({ adminUser }) {
                   {rec.seller_name || "Unnamed Seller"} · Created {new Date(rec.created_date || rec.assisted_qr_created_at).toLocaleDateString()} · Scans: {rec.qr_scan_count || 0}
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0 gap-1.5 text-xs border-amber-300 text-amber-700 hover:bg-amber-50"
+              <button
+                type="button"
+                className="shrink-0 rounded-xl border border-amber-300 bg-white p-1 shadow-sm hover:bg-amber-50"
                 onClick={(e) => { e.stopPropagation(); setQrModalRecord(rec); }}
+                aria-label="Preview QR code"
               >
-                <QrCode className="w-3.5 h-3.5" /> View QR
-              </Button>
+                {qrUrl ? (
+                  <img src={getQrUrl(rec, 56)} alt="QR preview" className="h-14 w-14 rounded-lg" />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-gray-100 text-gray-400">
+                    <QrCode className="h-6 w-6" />
+                  </div>
+                )}
+              </button>
             </div>
 
             {isExpanded && (

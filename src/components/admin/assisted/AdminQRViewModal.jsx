@@ -41,32 +41,17 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
   const [listing, setListing] = useState(null);
 
   useEffect(() => {
-    const recordId = record.id;
-    const listingId = record.listing_id;
+    setLiveRecord(record);
+    setListing(null);
 
-    // Load fresh AssistedListing by ID to get assisted_sale_formatted_address
-    if (recordId) {
-      base44.entities.AssistedListing.list()
-        .then((all) => {
-          const fresh = all.find((r) => r.id === recordId);
-          console.log("[AdminQRViewModal] assisted listing id:", recordId);
-          console.log("[AdminQRViewModal] assisted_sale_formatted_address:", fresh?.assisted_sale_formatted_address);
-          if (fresh) setLiveRecord(fresh);
+    if (record.listing_id) {
+      base44.entities.Listing.filter({ id: record.listing_id })
+        .then((items) => {
+          if (items?.[0]) setListing(items[0]);
         })
         .catch(() => {});
     }
-
-    // Load Listing as fallback
-    if (listingId) {
-      base44.entities.Listing.list()
-        .then((all) => {
-          const found = all.find((r) => r.id === listingId);
-          console.log("[AdminQRViewModal] related listing id:", listingId);
-          if (found) setListing(found);
-        })
-        .catch(() => {});
-    }
-  }, [record.id, record.listing_id]);
+  }, [record]);
 
   const isDeclined = liveRecord.assisted_status === "assisted_declined";
   const isExpired =
@@ -78,11 +63,9 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
   const approvalUrl = token && token !== "__invalidated__" && liveRecord.approval_url?.includes(token)
     ? liveRecord.approval_url
     : null;
-  const savedQrUrl = approvalUrl && liveRecord.qr_image_url?.includes(encodeURIComponent(approvalUrl)) ? liveRecord.qr_image_url : null;
-  const qrUrl = approvalUrl ? (savedQrUrl || `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`) : null;
+  const qrUrl = approvalUrl ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M` : null;
 
   const qrLabel = buildQrLabel(liveRecord, listing, liveRecord.listing_id);
-  console.log("[AdminQRViewModal] final qrLabel:", qrLabel);
 
   const handleCopyLink = () => {
     if (!approvalUrl) return;
@@ -162,11 +145,11 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
             </div>
           ) : (!token || !approvalUrl || !qrUrl) ? (
             <div className="space-y-3">
-              <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+              <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm font-semibold text-red-800">QR assets are missing.</p>
-                  <p className="text-xs text-red-600 mt-1">Generate a new QR code before giving this to the seller.</p>
+                  <p className="text-sm font-semibold text-amber-800">QR code is not available for this listing.</p>
+                  <p className="text-xs text-amber-700 mt-1">Generate a QR code tied to this listing.</p>
                 </div>
               </div>
               <Button
@@ -175,7 +158,7 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
                 className="w-full gap-2 bg-amber-600 hover:bg-amber-700 text-white"
               >
                 {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                {isRegenerating ? "Generating..." : "Generate New QR Code"}
+                {isRegenerating ? "Generating..." : "Generate QR Code"}
               </Button>
             </div>
           ) : isExpired ? (
