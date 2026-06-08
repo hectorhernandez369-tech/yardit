@@ -11,9 +11,8 @@ function getTokenFromUrl(url) {
 
 export default function AssistedListingQRPanel({ created, onCreateAnother }) {
   const token = created.token || getTokenFromUrl(created.approvalUrl);
-  const fallbackApprovalUrl = token ? `${window.location.origin}/assisted-listing?token=${token}` : null;
-  const approvalUrl = token && created.approvalUrl?.includes(token) ? created.approvalUrl : fallbackApprovalUrl;
-  const qrUrl = created.qrImageUrl || (approvalUrl ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M` : null);
+  const approvalUrl = token && created.approvalUrl?.includes(token) ? created.approvalUrl : null;
+  const qrUrl = approvalUrl ? (created.qrImageUrl || `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`) : null;
 
   const qrLabel = created.saleAddress || created.address || created.display_address || created.title || "Listing QR";
 
@@ -106,7 +105,7 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
           />
         ) : (
           <div className="mx-auto flex h-[220px] w-[220px] items-center justify-center rounded-xl border border-red-200 bg-red-50 text-sm font-semibold text-red-700">
-            QR token missing
+            QR assets missing
           </div>
         )}
         <p className="text-xs text-gray-400 mt-3">

@@ -75,14 +75,11 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     new Date(liveRecord.assisted_qr_expires_at) < new Date();
 
   const token = liveRecord.assisted_qr_token;
-  const fallbackApprovalUrl = token && token !== "__invalidated__" ? `${window.location.origin}/assisted-listing?token=${token}` : null;
-  const approvalUrl = token && token !== "__invalidated__"
-    ? (liveRecord.approval_url?.includes(token) ? liveRecord.approval_url : fallbackApprovalUrl)
+  const approvalUrl = token && token !== "__invalidated__" && liveRecord.approval_url?.includes(token)
+    ? liveRecord.approval_url
     : null;
-
-  const qrUrl = liveRecord.qr_image_url || (approvalUrl
-    ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`
-    : null);
+  const savedQrUrl = approvalUrl && liveRecord.qr_image_url?.includes(encodeURIComponent(approvalUrl)) ? liveRecord.qr_image_url : null;
+  const qrUrl = approvalUrl ? (savedQrUrl || `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M`) : null;
 
   const qrLabel = buildQrLabel(liveRecord, listing, liveRecord.listing_id);
   console.log("[AdminQRViewModal] final qrLabel:", qrLabel);
@@ -130,7 +127,6 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
     try {
       const response = await base44.functions.invoke("regenerateAssistedQR", {
         assisted_id: liveRecord.id,
-        appBaseUrl: window.location.origin,
       });
       if (response.data?.assisted) {
         setLiveRecord(response.data.assisted);
@@ -163,12 +159,12 @@ export default function AdminQRViewModal({ record, onClose, onRefreshed }) {
                 <p className="text-xs text-red-600 mt-1">A new QR code cannot be generated for a declined listing.</p>
               </div>
             </div>
-          ) : (!approvalUrl || !qrUrl) ? (
+          ) : (!token || !approvalUrl || !qrUrl) ? (
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm font-semibold text-red-800">QR token is missing.</p>
+                  <p className="text-sm font-semibold text-red-800">QR assets are missing.</p>
                   <p className="text-xs text-red-600 mt-1">Generate a new QR code before giving this to the seller.</p>
                 </div>
               </div>
