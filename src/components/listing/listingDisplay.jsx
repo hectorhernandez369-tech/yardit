@@ -105,25 +105,31 @@ export function formatListingDateRange(listing) {
 export function getListingStatusUi(listing) {
   const derivedStatus = getListingDisplayStatus(listing);
   const status =
-    listing?.mapState === "coming_soon"
-      ? "coming_soon"
-      : listing?.mapState === "active"
-        ? "active"
-        : derivedStatus;
+    listing?.mapState === "preview"
+      ? "preview"
+      : listing?.mapState === "coming_soon"
+        ? "coming_soon"
+        : listing?.mapState === "active"
+          ? "active"
+          : derivedStatus;
+  const isPreview = status === "preview";
   const isComingSoon =
     status === "coming_soon" ||
     status === "upcoming" ||
     status === "activated" ||
     status === "activated_locked";
   const isActive = status === "active";
-  const label = isComingSoon
-    ? "Coming Soon"
-    : isActive
-      ? listing?.listingType === "yard_sale" ? "OPEN NOW" : "Active"
-      : formatListingStatusLabel(status);
+  const label = isPreview
+    ? "Preview"
+    : isComingSoon
+      ? "Coming Soon"
+      : isActive
+        ? listing?.listingType === "yard_sale" ? "OPEN NOW" : "Active"
+        : formatListingStatusLabel(status);
 
   return {
     status,
+    isPreview,
     isComingSoon,
     isActive,
     label,

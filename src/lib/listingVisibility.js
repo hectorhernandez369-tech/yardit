@@ -158,6 +158,27 @@ export function isPremiumComingSoonPublicListing(listing, now = new Date()) {
   if (!COMING_SOON_TIERS.has(tier)) return false;
   if (!hasValidCoordinates(listing) || isTerminalHidden(listing, now) || !hasPublicPayment(listing)) return false;
 
+  if (listing?.listingType === "yard_sale") {
+    if (isResidentialOpenNow(listing, now)) return false;
+
+    const today = getDateOnly(now, listing?.timeZoneId);
+    const earlyDates = Array.isArray(listing?.earlyVisibilityDates) ? listing.earlyVisibilityDates : [];
+    if (earlyDates.includes(today)) return true;
+
+    const activeDates = Array.isArray(listing?.activeDates) ? [...listing.activeDates].sort() : [];
+    const firstActiveDate = activeDates[0] || listing?.selectedRangeStartDate;
+    const earlyDays = Math.max(0, Number(listing?.earlyVisibilityDays || 0));
+
+    if (firstActiveDate && earlyDays > 0) {
+      const earlyStart = new Date(`${firstActiveDate}T00:00:00`);
+      earlyStart.setDate(earlyStart.getDate() - earlyDays);
+      const earlyStartDate = `${earlyStart.getFullYear()}-${String(earlyStart.getMonth() + 1).padStart(2, "0")}-${String(earlyStart.getDate()).padStart(2, "0")}`;
+      return today >= earlyStartDate && today < firstActiveDate;
+    }
+
+    return false;
+  }
+
   const start = listing?.startDateTime ? new Date(listing.startDateTime) : null;
   if (!start || Number.isNaN(start.getTime()) || now >= start) return false;
 
