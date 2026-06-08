@@ -1476,8 +1476,7 @@ const stats = useMemo(() => {
                                 >
                                   Report
                                 </Button>
-                                <div className="flex gap-1 items-center">
-                                  {!isPreviewState && listing.listingType !== "event" && HUNT_ENABLED && (() => {
+                                {!isPreviewState && listing.listingType !== "event" && HUNT_ENABLED && (() => {
                                     const huntStop = huntStops.find(s => s.id === listing.id);
                                     
                                     if (!huntStop) {
@@ -1594,10 +1593,9 @@ const stats = useMemo(() => {
                                         </span>
                                       </div>
                                     );
-                                  })()}
-                                </div>
-                              </>
-                            )}
+                                    })()}
+                                    </>
+                                    )}
                           </div>
                         </div>
                       </Popup>
