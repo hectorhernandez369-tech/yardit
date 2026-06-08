@@ -1306,18 +1306,21 @@ export default function CreateListingPage() {
     const listingNumber = `${stateCode}${zipLast4}-${rand5}`;
 
     let payload = { ...data, listingNumber, ownerUserId: user.id, participant_origin: "standalone", neighborhood_join_status: "none" };
-    if (data.tier === "featured") {
+    if (["featured", "premium"].includes(data.tier)) {
       const startLocal = new Date(`${data.selectedRangeStartDate}T00:00:00`);
+      const endLocal = new Date(`${data.selectedRangeEndDate}T00:00:00`);
+      const diffDays = Math.round((endLocal - startLocal) / (1000 * 60 * 60 * 24)) + 1;
       const activeDates = [];
       const pad = (n) => String(n).padStart(2, "0");
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < diffDays; i++) {
         const d = new Date(startLocal); d.setDate(d.getDate() + i);
         activeDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
       }
       payload.startDateTime = zonedDateTimeToUtcDate(data.selectedRangeStartDate, "05:00:00", data.timeZoneId || "America/Los_Angeles").toISOString();
       payload.endDateTime = zonedDateTimeToUtcDate(data.selectedRangeEndDate, "22:00:00", data.timeZoneId || "America/Los_Angeles").toISOString();
       payload.activeDates = activeDates;
-      payload.earlyVisibilityDates = [];
+      payload.earlyVisibilityDates = data.tier === "premium" ? (data.earlyVisibilityDates || []) : [];
+      payload.earlyVisibilityDays = data.tier === "premium" ? Math.max(0, Math.min(3, Number(data.earlyVisibilityDays || 0))) : 0;
     }
     payload.status = "pending_payment";
     payload.payment_status = "pending";
