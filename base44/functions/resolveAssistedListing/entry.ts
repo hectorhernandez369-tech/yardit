@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
     let listingFromToken = null;
 
     if (!assisted) {
-      const tokenListings = await base44.asServiceRole.entities.Listing.filter({ assisted_qr_token: token });
-      listingFromToken = tokenListings[0] || null;
+      const assistedListings = await base44.asServiceRole.entities.Listing.filter({ assisted_listing: true }, '-created_date', 500);
+      listingFromToken = assistedListings.find((item) => item.assisted_qr_token === token) || null;
       if (!listingFromToken) {
         return Response.json({ status: 'not_found' });
       }

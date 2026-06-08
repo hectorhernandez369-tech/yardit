@@ -491,6 +491,63 @@
       "default": false,
       "description": "Whether this is an admin-assisted listing"
     },
+    "assisted_listing_id": {
+      "type": "string",
+      "description": "Linked AssistedListing record ID when available"
+    },
+    "assisted_qr_token": {
+      "type": "string",
+      "description": "Backup QR token stored directly on the listing"
+    },
+    "assisted_approval_url": {
+      "type": "string",
+      "description": "Backup assisted approval URL stored directly on the listing"
+    },
+    "assisted_qr_image_url": {
+      "type": "string",
+      "description": "Backup QR image URL stored directly on the listing"
+    },
+    "assisted_qr_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Backup QR expiration timestamp"
+    },
+    "assisted_qr_scan_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Backup QR scan count"
+    },
+    "assisted_status": {
+      "type": "string",
+      "enum": [
+        "pending_seller_approval",
+        "assisted_active_unclaimed",
+        "assisted_active_claim_pending",
+        "claimed_active",
+        "assisted_declined",
+        "assisted_expired"
+      ],
+      "description": "Backup assisted listing lifecycle state"
+    },
+    "assisted_seller_approved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Backup seller approval timestamp"
+    },
+    "assisted_seller_declined_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Backup seller decline timestamp"
+    },
+    "assisted_claimed_by_user_id": {
+      "type": "string",
+      "description": "Backup user ID who claimed the assisted listing"
+    },
+    "assisted_claimed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Backup assisted listing claim timestamp"
+    },
     "owner_type": {
       "type": "string",
       "default": "user",
