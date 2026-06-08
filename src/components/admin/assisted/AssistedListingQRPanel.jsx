@@ -4,15 +4,15 @@ import { CheckCircle, Printer, Download, Plus } from "lucide-react";
 
 const QR_CDN = "https://api.qrserver.com/v1/create-qr-code/";
 
-function getValidApprovalUrl(created) {
-  const token = created?.token || created?.assisted_qr_token;
-  if (!token) return null;
-  if (created?.approvalUrl?.includes(`token=${token}`)) return created.approvalUrl;
-  return `${window.location.origin}/assisted-listing?token=${token}`;
+function getTokenFromUrl(url) {
+  if (!url) return null;
+  return new URL(url, window.location.origin).searchParams.get("token");
 }
 
 export default function AssistedListingQRPanel({ created, onCreateAnother }) {
-  const approvalUrl = getValidApprovalUrl(created);
+  const token = created.token || getTokenFromUrl(created.approvalUrl);
+  const fallbackApprovalUrl = token ? `${window.location.origin}/assisted-listing?token=${token}` : null;
+  const approvalUrl = token && created.approvalUrl?.includes(token) ? created.approvalUrl : fallbackApprovalUrl;
   const qrUrl = approvalUrl ? `${QR_CDN}?size=220x220&data=${encodeURIComponent(approvalUrl)}&ecc=M` : null;
 
   const qrLabel = created.saleAddress || created.address || created.display_address || created.title || "Listing QR";
@@ -29,7 +29,6 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
   };
 
   const handleDownload = () => {
-    if (!approvalUrl) return;
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = `${QR_CDN}?size=300x300&data=${encodeURIComponent(approvalUrl)}&ecc=M`;
@@ -63,7 +62,6 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
   };
 
   const handlePrint = () => {
-    if (!approvalUrl || !qrUrl) return;
     const win = window.open("", "_blank");
     win.document.write(`
       <html><head><title>Yardit QR Code</title>
@@ -105,8 +103,8 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
             height={220}
           />
         ) : (
-          <div className="mx-auto w-[220px] h-[220px] rounded-xl border border-red-200 bg-red-50 flex items-center justify-center text-sm text-red-700 px-4">
-            QR token missing. Please create the listing again.
+          <div className="mx-auto flex h-[220px] w-[220px] items-center justify-center rounded-xl border border-red-200 bg-red-50 text-sm font-semibold text-red-700">
+            QR token missing
           </div>
         )}
         <p className="text-xs text-gray-400 mt-3">
@@ -119,10 +117,10 @@ export default function AssistedListingQRPanel({ created, onCreateAnother }) {
       </p>
 
       <div className="flex flex-col gap-3">
-        <Button onClick={handleDownload} disabled={!approvalUrl} className="w-full gap-2 bg-[#2C4F4E] text-white hover:bg-[#1e3b3a]">
+        <Button onClick={handleDownload} className="w-full gap-2 bg-[#2C4F4E] text-white hover:bg-[#1e3b3a]">
           <Download className="w-4 h-4" /> Download QR Image
         </Button>
-        <Button onClick={handlePrint} disabled={!approvalUrl} variant="outline" className="w-full gap-2 border-[#2C4F4E] text-[#2C4F4E]">
+        <Button onClick={handlePrint} variant="outline" className="w-full gap-2 border-[#2C4F4E] text-[#2C4F4E]">
           <Printer className="w-4 h-4" /> Print QR Code
         </Button>
         <Button variant="ghost" onClick={onCreateAnother} className="w-full gap-2 text-[#2C4F4E]">

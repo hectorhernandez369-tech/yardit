@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Camera, X, Search, MapPin } from "lucide-react";
@@ -61,7 +62,7 @@ const EMPTY_FORM = {
   sellerPhone: "",
   sellerEmail: "",
   adminNotes: "",
-  sellerPermissionConfirmed: true,
+  sellerPermissionConfirmed: false,
 };
 
 export default function AdminAssistedListingForm({ adminUser }) {
@@ -155,6 +156,10 @@ export default function AdminAssistedListingForm({ adminUser }) {
       toast.error("Start and end date/time are required.");
       return;
     }
+    if (!form.sellerPermissionConfirmed) {
+      toast.error("Confirm seller permission before creating the assisted listing.");
+      return;
+    }
 
     // Build ONE final location object from the active method only
     const finalLocation = addressMethod === "pin" ? pinLocation : selectedAddress;
@@ -228,11 +233,20 @@ export default function AdminAssistedListingForm({ adminUser }) {
         sellerPermissionConfirmed: form.sellerPermissionConfirmed,
       });
 
+      const approvalUrl = response.data.approvalUrl || "";
+      const tokenFromUrl = new URL(approvalUrl, window.location.origin).searchParams.get("token");
+      const token = response.data.token || response.data.assisted?.assisted_qr_token || tokenFromUrl;
+
+      if (!token) {
+        toast.error("QR token was not created. Please try again.");
+        return;
+      }
+
       setCreated({
-        token: response.data.token,
+        token,
         listingId: response.data.listingId,
         assistedId: response.data.assistedId,
-        approvalUrl: response.data.approvalUrl,
+        approvalUrl,
         expiresAt: response.data.expiresAt,
         saleAddress: response.data.saleFormattedAddress || addrPayload.saleFormattedAddress,
         title: form.title,
@@ -410,9 +424,21 @@ export default function AdminAssistedListingForm({ adminUser }) {
         <Textarea placeholder="Internal notes about this listing (not shown to seller)" value={form.adminNotes} onChange={e => update("adminNotes", e.target.value)} rows={2} />
       </div>
 
+      <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <Checkbox
+          id="sellerPermissionConfirmed"
+          checked={form.sellerPermissionConfirmed}
+          onCheckedChange={(checked) => update("sellerPermissionConfirmed", checked === true)}
+          className="mt-0.5"
+        />
+        <Label htmlFor="sellerPermissionConfirmed" className="text-sm leading-relaxed text-amber-900 cursor-pointer">
+          I confirm the seller gave permission for Yardit to create this promotional listing and understands they must scan the QR code to approve it.
+        </Label>
+      </div>
+
       <Button
         onClick={handleSubmit}
-        disabled={isSubmitting}
+        disabled={isSubmitting || !form.sellerPermissionConfirmed}
         className="w-full bg-amber-600 hover:bg-amber-700 text-white"
         size="lg"
       >
