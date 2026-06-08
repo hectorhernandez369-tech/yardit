@@ -27,6 +27,10 @@
       "type": "string",
       "description": "Secure random token embedded in the QR code URL"
     },
+    "approval_url": {
+      "type": "string",
+      "description": "Stable seller approval URL encoded in the QR code"
+    },
     "assisted_qr_created_at": {
       "type": "string",
       "format": "date-time",

@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 function generateToken() {
   const bytes = new Uint8Array(24);
@@ -44,9 +44,12 @@ Deno.serve(async (req) => {
     const now = new Date();
     const newToken = generateToken();
     const newExpiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+    const appBaseUrl = String(Deno.env.get('APP_BASE_URL') || '').replace(/\/$/, '');
+    const approvalUrl = `${appBaseUrl || new URL(req.url).origin}/assisted-listing?token=${newToken}`;
 
     const updated = await base44.asServiceRole.entities.AssistedListing.update(assisted.id, {
       assisted_qr_token: newToken,
+      approval_url: approvalUrl,
       assisted_qr_created_at: now.toISOString(),
       assisted_qr_expires_at: newExpiresAt,
       // Reset to pending if it was expired

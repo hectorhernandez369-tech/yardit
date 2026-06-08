@@ -232,6 +232,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
         token: response.data.token,
         listingId: response.data.listingId,
         assistedId: response.data.assistedId,
+        approvalUrl: response.data.approvalUrl,
         expiresAt: response.data.expiresAt,
         saleAddress: response.data.saleFormattedAddress || addrPayload.saleFormattedAddress,
         title: form.title,

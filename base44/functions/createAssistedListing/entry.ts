@@ -124,6 +124,8 @@ Deno.serve(async (req) => {
     const token = generateToken();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+    const appBaseUrl = String(Deno.env.get('APP_BASE_URL') || '').replace(/\/$/, '');
+    const approvalUrl = `${appBaseUrl || new URL(req.url).origin}/assisted-listing?token=${token}`;
 
     // Build the sale address string early — used in both Listing and AssistedListing
     const saleFormattedAddress = isMapPin
@@ -187,6 +189,7 @@ Deno.serve(async (req) => {
       listing_number: listingNumber,
       assisted_status: 'pending_seller_approval',
       assisted_qr_token: token,
+      approval_url: approvalUrl,
       assisted_qr_created_at: now.toISOString(),
       assisted_qr_expires_at: expiresAt.toISOString(),
       admin_creator_id: user.id,
@@ -241,6 +244,7 @@ Deno.serve(async (req) => {
       listingId: listing.id,
       assistedId: assisted.id,
       token,
+      approvalUrl,
       expiresAt: expiresAt.toISOString(),
       saleFormattedAddress,
     });
