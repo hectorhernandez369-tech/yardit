@@ -1390,7 +1390,7 @@ export default function HomePage() {
                   }
                     {!isMarquee &&
                   <Popup maxWidth={340} minWidth={260} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
-                         <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md bg-white/95 border border-white/40 shadow-lg opacity-100 mx-6" style={{ maxWidth: "min(90vw, 340px)", maxHeight: "70vh" }}>
+                         <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md bg-white/95 border border-white/40 shadow-lg opacity-100 mr-5" style={{ maxWidth: "min(90vw, 340px)", maxHeight: "70vh" }}>
                           <div className="p-3 overflow-y-auto flex-1 min-h-0 space-y-2.5">
                             <div className="flex items-center gap-1 flex-wrap">
                               <Badge className={`text-[9px] px-1.5 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
