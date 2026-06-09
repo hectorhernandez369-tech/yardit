@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, SlidersHorizontal, Navigation } from "lucide-react";
+import { Search, MapPin, SlidersHorizontal, Navigation, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
@@ -9,6 +9,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import SaveListingButton from "@/components/listing/SaveListingButton";
 import {
+  formatListingDateTimeDisplay,
   getListingDescriptionText,
   getListingPrimaryText,
   getListingSecondaryBadgeLabel,
@@ -159,6 +160,10 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
                               {distMiles < 0.1 ? "< 0.1 mi" : `${distMiles.toFixed(1)} mi`}
                             </span>
                           )}
+                          <div className="flex items-center gap-1 text-slate-400">
+                            <Clock className="w-3 h-3 flex-shrink-0" />
+                            <span className="text-xs">{formatListingDateTimeDisplay(listing)}</span>
+                          </div>
                         </div>
                       </div>
                     </div>

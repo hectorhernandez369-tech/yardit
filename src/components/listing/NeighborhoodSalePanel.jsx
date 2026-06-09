@@ -4,8 +4,8 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Copy, MapPin, Calendar, Tag, Home, ExternalLink } from "lucide-react";
-import { format } from "date-fns";
 import { toast } from "sonner";
+import { formatListingScheduleText } from "@/components/listing/listingDisplay.jsx";
 import NeighborhoodSalePreviewMap from "@/components/neighborhood/NeighborhoodSalePreviewMap";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import {
@@ -269,8 +269,7 @@ export default function NeighborhoodSalePanel({
                   const photo = ld.photoUrls?.[0];
                   const address = ld.display_address || ld.address_text || ld.addressText || "Address unavailable";
                   const city = [ld.city, getStateAbbreviation(ld.state)].filter(Boolean).join(", ");
-                  const startDate = ld.startDateTime ? format(new Date(ld.startDateTime), "MMM d") : null;
-                  const endDate = ld.endDateTime ? format(new Date(ld.endDateTime), "MMM d, yyyy") : null;
+                  const scheduleText = formatListingScheduleText(ld);
                   const categories = ld.categories?.length ? ld.categories : ld.category ? [ld.category] : [];
 
                   return (
@@ -302,12 +301,10 @@ export default function NeighborhoodSalePanel({
                         </div>
 
                         {/* Dates */}
-                        {startDate && (
-                          <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                            <Calendar className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
-                            <span>{startDate}{endDate && endDate !== startDate ? ` – ${endDate}` : ""}</span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                          <Calendar className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                          <span>{scheduleText}</span>
+                        </div>
 
                         {/* Categories */}
                         {categories.length > 0 && (
@@ -393,9 +390,7 @@ export default function NeighborhoodSalePanel({
           {parentSale && (
             <div className="text-sm text-green-800 mt-2">
               <p><strong>Event:</strong> {parentSale.title}</p>
-              {parentSale.startDateTime && parentSale.endDateTime && (
-                <p><strong>Dates:</strong> {format(new Date(parentSale.startDateTime), "PPp")} -{" "}{format(new Date(parentSale.endDateTime), "PPp")}</p>
-              )}
+              <p><strong>Dates:</strong> {formatListingScheduleText(parentSale)}</p>
               <p className="mt-2">
                 If this Neighborhood Sale is canceled or your participation is removed, you will need to create a normal listing to appear independently.
               </p>

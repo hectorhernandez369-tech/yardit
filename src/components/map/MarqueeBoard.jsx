@@ -1,3 +1,5 @@
+import { formatListingScheduleText } from "@/components/listing/listingDisplay.jsx";
+
 // Board dimensions — single source of truth
 export const MARQUEE_BOARD_WIDTH = 190;
 export const MARQUEE_BOARD_COLLAPSED_WIDTH = 160;
@@ -25,11 +27,7 @@ const formatSlotTime = (slot) => {
 
 const formatEventDate = (listing) => {
   try {
-    const start = listing?.startDateTime || listing?.start_datetime;
-    if (!start) return "";
-    const s = new Date(start);
-    if (Number.isNaN(s.getTime())) return "";
-    return s.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    return formatListingScheduleText(listing);
   } catch {
     return "";
   }

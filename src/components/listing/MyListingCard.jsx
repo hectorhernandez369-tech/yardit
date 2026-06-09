@@ -1,17 +1,17 @@
 import React from "react";
-import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin } from "lucide-react";
 import MyListingActions from "@/components/listing/MyListingActions";
 import {
+  formatListingScheduleText,
   formatListingStatusLabel,
   formatListingTierLabel,
   getListingAddressLine,
   statusColors,
   tierColors,
-} from "@/components/listing/listingDisplay";
+} from "@/components/listing/listingDisplay.jsx";
 import { normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 
 
@@ -47,40 +47,6 @@ const STATUS_PILL = {
   activated: "bg-[#e6f3f4] text-[#006168] border-[#b3d9db]",
   activated_locked: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
-
-function formatOpenCloseHours(listing) {
-  const formatTime = (value) => {
-    if (!value) return "—";
-    const [hourString, minuteString = "00"] = String(value).split(":");
-    const hour = Number(hourString);
-    if (!Number.isFinite(hour)) return value;
-    const suffix = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minuteString.padStart(2, "0")} ${suffix}`;
-  };
-
-  return `Open ${formatTime(listing.openTime || "05:00")} – Close ${formatTime(listing.closeTime || "22:00")}`;
-}
-
-function formatListingDateWindow(listing) {
-  const start = listing.selectedRangeStartDate || listing.activeDates?.[0] || listing.startDateTime;
-  const end = listing.selectedRangeEndDate || listing.activeDates?.[listing.activeDates.length - 1] || listing.endDateTime;
-  const formatDate = (value) => {
-    if (!value) return "";
-    const date = String(value).includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
-    return Number.isNaN(date.getTime()) ? value : format(date, "PP");
-  };
-
-  if (start && end) {
-    const startText = formatDate(start);
-    const endText = formatDate(end);
-    return startText === endText ? startText : `${startText} — ${endText}`;
-  }
-
-  if (start) return formatDate(start);
-  if (end) return formatDate(end);
-  return "No dates set";
-}
 
 export default function MyListingCard({
   listing,
@@ -205,7 +171,7 @@ export default function MyListingCard({
 
           <div className="flex items-start gap-2 text-slate-500">
             <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-slate-400" />
-            <span className="text-xs leading-relaxed">{formatListingDateWindow(listing)} • {formatOpenCloseHours(listing)}</span>
+            <span className="text-xs leading-relaxed">{formatListingScheduleText(listing)}</span>
           </div>
         </div>
 

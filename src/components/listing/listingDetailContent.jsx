@@ -1,3 +1,5 @@
+import { formatListingTime } from "@/components/listing/listingDisplay.jsx";
+
 const KEYWORD_GROUPS = [
   {
     label: "Furniture pieces",
@@ -161,16 +163,18 @@ export function getFormattedDescription(listing) {
 }
 
 export function getUrgencyText(listing) {
-  const start = listing?.startDateTime ? new Date(listing.startDateTime) : null;
-  const end = listing?.endDateTime ? new Date(listing.endDateTime) : null;
-  if (!start || !end) return { starts: "Plan your stop early", ends: "Limited-time listing" };
+  const startValue = listing?.selectedRangeStartDate || listing?.startDateTime;
+  const endValue = listing?.selectedRangeEndDate || listing?.endDateTime;
+  const start = startValue ? new Date(String(startValue).includes("T") ? startValue : `${startValue}T00:00:00`) : null;
+  const end = endValue ? new Date(String(endValue).includes("T") ? endValue : `${endValue}T00:00:00`) : null;
+  if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return { starts: "Plan your stop early", ends: "Limited-time listing" };
 
   const startDay = start.toLocaleDateString("en-US", { weekday: "long" });
-  const startTime = start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const startTime = formatListingTime(listing?.openTime || listing?.startDateTime);
   const endDay = end.toLocaleDateString("en-US", { weekday: "long" });
 
   return {
-    starts: `Starts ${startDay} at ${startTime}`,
+    starts: startTime ? `Starts ${startDay} at ${startTime}` : `Starts ${startDay}`,
     ends: `Ends ${endDay} — don’t miss it`
   };
 }

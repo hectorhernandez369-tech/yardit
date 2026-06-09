@@ -89,18 +89,65 @@ export function getListingAddressLine(listing) {
   return listing?.zip ? `${base} ${listing.zip}` : base;
 }
 
+function formatDateOnly(value) {
+  if (!value) return "";
+  const date = String(value).includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? String(value) : format(date, "PP");
+}
+
+function getTimeFromDateTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function formatDisplayTime(value) {
+  if (!value) return "";
+  const [hourString, minuteString = "00"] = String(value).split(":");
+  const hour = Number(hourString);
+  if (!Number.isFinite(hour)) return String(value);
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minuteString.padStart(2, "0")} ${suffix}`;
+}
+
 export function formatListingDateRange(listing) {
-  const start = listing?.startDateTime;
-  const end = listing?.endDateTime;
+  const start = listing?.selectedRangeStartDate || listing?.startDateTime;
+  const end = listing?.selectedRangeEndDate || listing?.endDateTime;
 
   if (start && end) {
-    return `${format(new Date(start), "PPp")} — ${format(new Date(end), "PPp")}`;
+    const startText = formatDateOnly(start);
+    const endText = formatDateOnly(end);
+    return startText === endText ? startText : `${startText} — ${endText}`;
   }
 
-  if (start) return format(new Date(start), "PPp");
-  if (end) return format(new Date(end), "PPp");
+  if (start) return formatDateOnly(start);
+  if (end) return formatDateOnly(end);
   return "No dates set";
 }
+
+export function formatListingOpenCloseHours(listing) {
+  const open = listing?.openTime || getTimeFromDateTime(listing?.startDateTime);
+  const close = listing?.closeTime || getTimeFromDateTime(listing?.endDateTime);
+  const openText = formatDisplayTime(open);
+  const closeText = formatDisplayTime(close);
+
+  if (openText && closeText) return `Open ${openText} – Close ${closeText}`;
+  if (openText) return `Open ${openText}`;
+  if (closeText) return `Close ${closeText}`;
+  return "Hours unavailable";
+}
+
+export function formatListingDateTimeDisplay(listing) {
+  const dateText = formatListingDateRange(listing);
+  const hoursText = formatListingOpenCloseHours(listing);
+  if (dateText === "No dates set") return hoursText;
+  if (hoursText === "Hours unavailable") return dateText;
+  return `${dateText} • ${hoursText}`;
+}
+
+export const formatListingScheduleText = formatListingDateTimeDisplay;
 
 export function getListingStatusUi(listing) {
   const derivedStatus = getListingDisplayStatus(listing);
@@ -161,7 +208,7 @@ export function getListingPrimaryText(listing) {
 export function getListingDescriptionText(listing) {
   const { isComingSoon } = getListingStatusUi(listing);
   if (isComingSoon) {
-    return `Active: ${formatListingDateRange({ startDateTime: listing?.startDateTime })}`;
+    return `Active: ${formatListingDateTimeDisplay(listing)}`;
   }
 
   return listing?.event_description || listing?.description || "";

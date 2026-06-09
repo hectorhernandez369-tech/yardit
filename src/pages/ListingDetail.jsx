@@ -22,7 +22,7 @@ import {
   NEIGHBORHOOD_MAX_HOMES,
 } from "@/lib/neighborhoodSalePricing";
 import { getStateAbbreviation } from "@/lib/listingLocation";
-import { getListingNumber, getOwnerDisplayName } from "@/components/listing/listingDisplay";
+import { formatListingDateRange, formatListingOpenCloseHours, formatListingScheduleText, getListingNumber, getOwnerDisplayName } from "@/components/listing/listingDisplay.jsx";
 import { deriveNeighborhoodEventState, normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 import { formatEventTierLabel } from "@/lib/eventListingConfig";
 import { formatMarqueeSlotTime, normalizeMarqueeSlots } from "@/lib/marqueeSchedule";
@@ -372,9 +372,7 @@ export default function ListingDetailPage() {
   const inviteLink = listing.invite_code ? `${window.location.origin}${createPageUrl("JoinNeighborhoodSale")}?code=${listing.invite_code}` : "";
   const inviteText = [
     listing.title,
-    listing.startDateTime && listing.endDateTime
-      ? `${format(new Date(listing.startDateTime), "PPp")} - ${format(new Date(listing.endDateTime), "PPp")}`
-      : null,
+    formatListingScheduleText(listing),
     eventAddress,
     inviteLink || null,
   ].filter(Boolean).join("\n");
@@ -497,7 +495,7 @@ export default function ListingDetailPage() {
                     </div>
                     <div className="flex items-center gap-2 min-w-0">
                       <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                      <span className="font-medium truncate">{format(new Date(listing.startDateTime), "MMM d")} - {format(new Date(listing.endDateTime), "MMM d")}</span>
+                      <span className="font-medium truncate">{formatListingDateRange(listing)}</span>
                     </div>
                     <div className="flex items-center gap-2 min-w-0">
                       <Tag className="w-4 h-4 text-slate-400 flex-shrink-0" />
@@ -544,8 +542,8 @@ export default function ListingDetailPage() {
                       <Calendar className="w-5 h-5 text-slate-400 mt-0.5" />
                       <div className="min-w-0">
                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Date & Time</p>
-                        <p className="text-sm font-medium text-slate-900">{format(new Date(listing.startDateTime), "EEEE, MMM d, yyyy")}</p>
-                        <p className="text-sm text-slate-600 mt-0.5">{format(new Date(listing.startDateTime), "h:mm a")} - {format(new Date(listing.endDateTime), "h:mm a")}</p>
+                        <p className="text-sm font-medium text-slate-900">{formatListingDateRange(listing)}</p>
+                        <p className="text-sm text-slate-600 mt-0.5">{formatListingOpenCloseHours(listing)}</p>
                       </div>
                     </div>
                   </div>

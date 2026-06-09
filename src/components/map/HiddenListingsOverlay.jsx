@@ -3,10 +3,38 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Calendar } from "lucide-react";
-import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { getListingPrimaryText, getListingSecondaryBadgeLabel, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
+
+function formatListingScheduleText(listing) {
+  const formatDate = (value) => {
+    if (!value) return "";
+    const date = String(value).includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+  const formatTime = (value) => {
+    if (!value) return "";
+    if (String(value).includes("T")) {
+      const date = new Date(value);
+      if (!Number.isNaN(date.getTime())) return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    }
+    const [hourString, minuteString = "00"] = String(value).split(":");
+    const hour = Number(hourString);
+    if (!Number.isFinite(hour)) return String(value);
+    return `${hour % 12 || 12}:${minuteString.padStart(2, "0")} ${hour >= 12 ? "PM" : "AM"}`;
+  };
+
+  const start = listing?.selectedRangeStartDate || listing?.startDateTime;
+  const end = listing?.selectedRangeEndDate || listing?.endDateTime;
+  const startDate = formatDate(start);
+  const endDate = formatDate(end);
+  const dateText = startDate && endDate && startDate !== endDate ? `${startDate} – ${endDate}` : startDate || endDate || "No dates set";
+  const openText = formatTime(listing?.openTime || listing?.startDateTime);
+  const closeText = formatTime(listing?.closeTime || listing?.endDateTime);
+  const hoursText = openText && closeText ? `Open ${openText} – Close ${closeText}` : openText ? `Open ${openText}` : closeText ? `Close ${closeText}` : "Hours unavailable";
+  return `${dateText} • ${hoursText}`;
+}
 
 export default function HiddenListingsOverlay({ listings, onClose }) {
   const navigate = useNavigate();
@@ -48,12 +76,10 @@ export default function HiddenListingsOverlay({ listings, onClose }) {
                       <span className="line-clamp-2">{listing.display_address}</span>
                     </div>
                   )}
-                  {listing.startDateTime && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3 shrink-0" />
-                      <span>{format(new Date(listing.startDateTime), "MMM d, h:mm a")}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3 shrink-0" />
+                    <span>{formatListingScheduleText(listing)}</span>
+                  </div>
                 </div>
               </div>
             ))}

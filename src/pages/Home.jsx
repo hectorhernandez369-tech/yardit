@@ -47,7 +47,7 @@ import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { formatEventTierLabel } from "@/lib/eventListingConfig";
 import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.jsx";
-import { getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay";
+import { formatListingScheduleText, getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay.jsx";
 import SaveListingButton from "@/components/listing/SaveListingButton";
 import { isLiveVendorCheckIn } from "@/lib/vendorTiers";
 import { getVendorPinActiveSchedule } from "@/lib/vendorPinSchedule";
@@ -296,17 +296,7 @@ function getListingMapState(listing, user, now = new Date()) {
 }
 
 function formatListingGoLive(listing) {
-  if (!listing?.startDateTime) return "Date unavailable";
-  const timeZone = listing.timeZoneId || "UTC";
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short"
-  }).format(new Date(listing.startDateTime));
+  return formatListingScheduleText(listing);
 }
 
 const HUNT_BUTTON_STORAGE_KEY = "yardit_hunt_button_position_v1";
@@ -1432,7 +1422,7 @@ export default function HomePage() {
                                   </div>
                                   <div className="flex gap-1.5">
                                     <Calendar className="mt-0.5 h-3 w-3 shrink-0 text-slate-400" />
-                                    <span>{listing.startDateTime ? format(new Date(listing.startDateTime), "MMM d, yyyy h:mm a") : "Date unavailable"}{listing.endDateTime ? ` – ${format(new Date(listing.endDateTime), "h:mm a")}` : ""}</span>
+                                    <span>{formatListingScheduleText(listing)}</span>
                                   </div>
                                 </div>
                                 {!getListingStatusUi(listing).isComingSoon &&
