@@ -38,7 +38,7 @@ import ListingPhotoGallery from "@/components/listing/ListingPhotoGallery";
 import ListingShareButton from "@/components/listing/ListingShareButton";
 import NeighborhoodSalePanel from "@/components/listing/NeighborhoodSalePanel";
 import ResidentialBillingList from "@/components/billing/ResidentialBillingList";
-import { getTransactionListingId, isResidentialTransaction } from "@/components/billing/residentialBillingUtils";
+import { getTransactionAmounts, getTransactionListingId, isResidentialTransaction } from "@/components/billing/residentialBillingUtils";
 import { getListingOwnerId, isOwnerPreviewVisibleListing, isPubliclyVisibleListing } from "@/lib/listingVisibility";
 
 export default function ListingDetailPage() {
@@ -245,9 +245,15 @@ export default function ListingDetailPage() {
         })
         .sort((a, b) => new Date(b.processed_at || b.received_at || b.created_date || 0) - new Date(a.processed_at || a.received_at || a.created_date || 0));
     },
-    enabled: !!listing?.id && isAdminViewer,
+    enabled: !!listing?.id && (isAdminViewer || canManageNeighborhoodSale),
     initialData: [],
   });
+
+  const neighborhoodPaidAmount = useMemo(() => {
+    return listingBillingTransactions
+      .filter((tx) => tx.status === "succeeded" || tx.payment_status === "paid")
+      .reduce((total, tx) => total + getTransactionAmounts(tx).finalAmount, 0);
+  }, [listingBillingTransactions]);
 
   const syncNeighborhoodSaleListing = async (saleId, paidAmountOverride) => {
     const sales = await base44.entities.Listing.filter({ id: saleId });
@@ -611,6 +617,7 @@ export default function ListingDetailPage() {
               inviteText={inviteText}
               onRespondToJoinRequest={(args) => respondToJoinRequestMutation.mutate(args)}
               onReport={(ctx) => { setReportContext(ctx); setShowReport(true); }}
+              paidAmount={neighborhoodPaidAmount}
             />
 
             {isAdminViewer && ["yard_sale", "neighborhood_sale"].includes(listing.listingType) && (

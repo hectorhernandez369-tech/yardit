@@ -46,6 +46,7 @@ export default function NeighborhoodSalePanel({
   inviteText,
   onRespondToJoinRequest,
   onReport,
+  paidAmount = 0,
 }) {
   // Use the canonical roster if provided, otherwise fall back to approvedRequests
   const rosterHomes = visibleParticipatingHomes ?? approvedRequests;
@@ -121,7 +122,7 @@ export default function NeighborhoodSalePanel({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                 <div className="rounded-md border border-emerald-200 bg-white p-3">
                   <p className="text-xs uppercase tracking-wide text-emerald-700">Paid</p>
-                  <p className="font-semibold text-emerald-950">${Number(listing.pricePaid || 0).toFixed(2)}</p>
+                  <p className="font-semibold text-emerald-950">${Number(paidAmount || 0).toFixed(2)}</p>
                 </div>
                 <div className="rounded-md border border-emerald-200 bg-white p-3">
                   <p className="text-xs uppercase tracking-wide text-emerald-700">Total Current Cost</p>
@@ -135,7 +136,7 @@ export default function NeighborhoodSalePanel({
                 <div className="rounded-md border border-emerald-200 bg-white p-3">
                   <p className="text-xs uppercase tracking-wide text-emerald-700">Additional Due</p>
                   <p className="font-semibold text-emerald-950">
-                    ${Number(Math.max(0, (NEIGHBORHOOD_BASE_PRICE + NEIGHBORHOOD_PRICE_PER_HOME * salePricing.totalApprovedHomes) - (listing.pricePaid || 0))).toFixed(2)}
+                    ${Number(Math.max(0, (NEIGHBORHOOD_BASE_PRICE + NEIGHBORHOOD_PRICE_PER_HOME * salePricing.totalApprovedHomes) - (paidAmount || 0))).toFixed(2)}
                   </p>
                 </div>
               </div>
