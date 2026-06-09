@@ -614,21 +614,14 @@ export default function ListingDetailPage() {
             />
 
             {isAdminViewer && ["yard_sale", "neighborhood_sale"].includes(listing.listingType) && (
-              <details className="group rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
-                <summary className="flex cursor-pointer list-none items-center justify-between rounded-2xl bg-white px-4 py-3 font-semibold text-slate-800 shadow-sm">
-                  <span>Billing</span>
-                  <span className="text-sm text-slate-500 transition-transform group-open:rotate-180">⌄</span>
-                </summary>
-                <div className="pt-4">
-                  <ResidentialBillingList
-                    transactions={listingBillingTransactions}
-                    listings={[listing]}
-                    isLoading={isLoadingListingBilling}
-                    variant="billing"
-                    emptyMessage="No PaymentTransaction records are linked to this listing yet."
-                  />
-                </div>
-              </details>
+              <ResidentialBillingList
+                transactions={listingBillingTransactions}
+                listings={[listing]}
+                isLoading={isLoadingListingBilling}
+                variant="billing"
+                emptyMessage="No PaymentTransaction records are linked to this listing yet."
+                collapsibleTransactions={true}
+              />
             )}
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
