@@ -89,7 +89,7 @@ export default function NotificationBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[calc(100vw-2rem)] max-w-[22rem] sm:w-80 md:w-96 p-0 z-[99999] translate-x-4 sm:translate-x-0" align="end" sideOffset={8}>
+      <PopoverContent className="w-[calc(100vw-2rem)] max-w-[22rem] sm:w-80 md:w-96 p-0 z-[99999] translate-x-10 sm:translate-x-0" align="end" sideOffset={8}>
         <NotificationList 
           notifications={notifications}
           onMarkAllRead={() => markAllReadMutation.mutate()}

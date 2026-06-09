@@ -257,7 +257,7 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
         )}
       </div>
 
-      <ScrollArea className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         {notifications.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <Bell className="w-12 h-12 mx-auto mb-2 text-gray-400" />
@@ -427,7 +427,7 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
             })}
           </div>
         )}
-      </ScrollArea>
+      </div>
       <div className="p-2 border-t border-slate-100 bg-slate-50">
         <Button 
           variant="ghost" 
