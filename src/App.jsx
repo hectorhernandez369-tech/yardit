@@ -40,7 +40,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, isGuest } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, isGuest, isAuthenticated } = useAuth();
 
   const { data: appSettings = [], isLoading: isLoadingAppSettings } = useQuery({
     queryKey: ["appSettings"],
@@ -62,7 +62,7 @@ const AuthenticatedApp = () => {
     return <UserNotRegisteredError />;
   }
 
-  const isComingSoonMode = isGuest && isComingSoonModeEnabled(appSettings) && !getTesterBypass() && !shouldBypassComingSoonForCurrentUrl();
+  const isComingSoonMode = !isAuthenticated && isComingSoonModeEnabled(appSettings) && !getTesterBypass() && !shouldBypassComingSoonForCurrentUrl();
   const AdminPage = Pages.AdminLite;
 
   if (isLoadingAppSettings) {
