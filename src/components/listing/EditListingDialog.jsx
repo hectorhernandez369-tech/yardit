@@ -23,10 +23,8 @@ import EventIconManager from "@/components/events/EventIconManager";
 import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
 import ImageCropEditor from "@/components/admin/ImageCropEditor";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
-import EditParticipantSaleTime from "@/components/listing/EditParticipantSaleTime";
 import EditListingOpenHours from "@/components/listing/EditListingOpenHours";
 import { EVENT_BASIC_ICON_LIBRARY, getDefaultEventIconForCategory, getEventIconEmoji } from "@/lib/eventListingConfig";
-import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
 import { getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import { getUserDisplayName } from "@/lib/userIdentity";
@@ -47,10 +45,6 @@ export default function EditListingDialog({
   editTitle, setEditTitle,
   editDescription, setEditDescription,
   editCategories, setEditCategories,
-  editStartDate, setEditStartDate,
-  editEndDate, setEditEndDate,
-  editStartTime, setEditStartTime,
-  editEndTime, setEditEndTime,
   editOpenTime, setEditOpenTime,
   editCloseTime, setEditCloseTime,
   editEventIcon, setEditEventIcon,
@@ -112,29 +106,6 @@ export default function EditListingDialog({
                     className="bg-[#F3E6CF] border-[#2C4F4E]"
                   />
                 </div>
-                <div className="space-y-3">
-                  <Label className="text-[#2C4F4E] font-semibold block">Event Date &amp; Time</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs text-slate-500 mb-1 block">Start Date</Label>
-                      <Input type="date" min={new Date().toISOString().split("T")[0]} value={editStartDate} onChange={(e) => setEditStartDate(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-slate-500 mb-1 block">Start Time</Label>
-                      <Input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-slate-500 mb-1 block">End Date</Label>
-                      <Input type="date" min={editStartDate || new Date().toISOString().split("T")[0]} value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-slate-500 mb-1 block">End Time</Label>
-                      <Input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} className="bg-[#F3E6CF] border-[#2C4F4E]" />
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500">Changing the start date must be at least 7 days in the future. Time changes take effect immediately for all participants.</p>
-                </div>
-
                 {/* Co-Host Management */}
                 <div className="rounded-lg border border-slate-200 p-4 space-y-3">
                   <div>
@@ -516,15 +487,6 @@ export default function EditListingDialog({
                 )}
               </div>
             )}
-
-            {/* Participant sale time editor (shown for participant yard_sale listings) */}
-            <EditParticipantSaleTime
-              listing={editingListing}
-              startDate={editStartDate} setStartDate={setEditStartDate}
-              startTime={editStartTime} setStartTime={setEditStartTime}
-              endDate={editEndDate} setEndDate={setEditEndDate}
-              endTime={editEndTime} setEndTime={setEditEndTime}
-            />
 
             {/* Photos */}
             {editingListing?.listingType === "yard_sale" && (

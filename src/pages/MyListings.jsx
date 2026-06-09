@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import EditListingDialog from "@/components/listing/EditListingDialog";
 import { toast } from "sonner";
 import { getListingDisplayStatus } from "@/components/listing/listingDisplay";
-import { normalizeNeighborhoodJoinStatus, getNeighborhoodCreationLeadTimeError, deriveNeighborhoodEventState, isWithinParticipationWindow } from "@/lib/neighborhoodSaleState";
+import { normalizeNeighborhoodJoinStatus, deriveNeighborhoodEventState, isWithinParticipationWindow } from "@/lib/neighborhoodSaleState";
 import { isPubliclyVisibleListing } from "@/lib/listingVisibility";
 import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
 import MyListingCard from "@/components/listing/MyListingCard";
@@ -551,7 +551,6 @@ export default function MyListingsPage() {
       if (tier === "premium" && !editEventIcon && !editEventLogoUrl) { toast.error("Please choose an event icon or upload a logo/image"); return; }
     }
 
-    let dateChanged = false;
     const updateData = { title: editTitle, description: editDescription };
 
     if (editingListing.listingType === "event") { updateData.event_name = editTitle; updateData.event_description = editDescription; }
@@ -578,72 +577,10 @@ export default function MyListingsPage() {
       }
     }
 
-    if (editingListing.listingType === "neighborhood_sale") {
-      const oldStartStr = editingListing.selectedRangeStartDate || (editingListing.startDateTime ? new Date(editingListing.startDateTime).toISOString().split("T")[0] : "");
-      const oldEndStr = editingListing.selectedRangeEndDate || (editingListing.endDateTime ? new Date(editingListing.endDateTime).toISOString().split("T")[0] : "");
-      const oldStartTime = editingListing.startDateTime ? new Date(editingListing.startDateTime).toTimeString().slice(0, 5) : "";
-      const oldEndTime = editingListing.endDateTime ? new Date(editingListing.endDateTime).toTimeString().slice(0, 5) : "";
-      const startDateChanged = editStartDate && editStartDate !== oldStartStr;
-      const endDateChanged = editEndDate && editEndDate !== oldEndStr;
-      const startTimeChanged = editStartTime && editStartTime !== oldStartTime;
-      const endTimeChanged = editEndTime && editEndTime !== oldEndTime;
-
-      if (startDateChanged || endDateChanged || startTimeChanged || endTimeChanged) {
-        if (startDateChanged) {
-          const leadTimeError = getNeighborhoodCreationLeadTimeError(editStartDate);
-          if (leadTimeError) { toast.error(leadTimeError); return; }
-        }
-        const newStartDate = editStartDate || oldStartStr;
-        const newEndDate = editEndDate || oldEndStr;
-        const newStartTime = editStartTime || oldStartTime || "08:00";
-        const newEndTime = editEndTime || oldEndTime || "14:00";
-        if (newEndDate < newStartDate) { toast.error("End date cannot be before start date."); return; }
-        updateData.startDateTime = `${newStartDate}T${newStartTime}:00`;
-        updateData.endDateTime = `${newEndDate}T${newEndTime}:00`;
-        updateData.selectedRangeStartDate = newStartDate;
-        updateData.selectedRangeEndDate = newEndDate;
-        dateChanged = true;
-      }
-    }
-
-    const isParticipantYardSale = editingListing.listingType === "yard_sale" && editingListing.neighborhood_sale_id && ["pending","approved"].includes(normalizeNeighborhoodJoinStatus(editingListing.neighborhood_join_status));
-
-    if (isParticipantYardSale && (editStartDate || editStartTime || editEndDate || editEndTime)) {
-      const oldStartStr = editingListing.selectedRangeStartDate || editingListing.startDateTime?.slice(0, 10) || "";
-      const oldEndStr = editingListing.selectedRangeEndDate || editingListing.endDateTime?.slice(0, 10) || "";
-      const oldStartTime = editingListing.startDateTime ? new Date(editingListing.startDateTime).toTimeString().slice(0, 5) : "08:00";
-      const oldEndTime = editingListing.endDateTime ? new Date(editingListing.endDateTime).toTimeString().slice(0, 5) : "14:00";
-      const newStartDate = editStartDate || oldStartStr;
-      const newEndDate = editEndDate || oldEndStr;
-      const newStartTime = editStartTime || oldStartTime;
-      const newEndTime = editEndTime || oldEndTime;
-      const newStart = new Date(`${newStartDate}T${newStartTime}`);
-      const newEnd = new Date(`${newEndDate}T${newEndTime}`);
-      if (newEnd <= newStart) { toast.error("End time must be after start time."); return; }
-      let parentSale = null;
-      try {
-        const results = await base44.entities.Listing.filter({ id: editingListing.neighborhood_sale_id });
-        parentSale = results[0] || null;
-      } catch (_) {}
-      if (parentSale) {
-        const nsStartDate = parentSale.selectedRangeStartDate || parentSale.startDateTime?.slice(0, 10);
-        const nsEndDate = parentSale.selectedRangeEndDate || parentSale.endDateTime?.slice(0, 10);
-        if (!nsStartDate || !nsEndDate || newStartDate > nsEndDate || newEndDate < nsStartDate) {
-          toast.error(`Your sale dates must overlap the Neighborhood Sale window (${nsStartDate} – ${nsEndDate}).`); return;
-        }
-      }
-      updateData.startDateTime = new Date(`${newStartDate}T${newStartTime}`).toISOString();
-      updateData.endDateTime = new Date(`${newEndDate}T${newEndTime}`).toISOString();
-      updateData.selectedRangeStartDate = newStartDate;
-      updateData.selectedRangeEndDate = newEndDate;
-    }
 
     setIsSaving(true);
     try {
       await base44.entities.Listing.update(editingListing.id, updateData);
-      if (dateChanged) {
-        await base44.functions.invoke("syncNeighborhoodDeadlineJobs", { data: { ...editingListing, ...updateData }, event: { type: "update", entity_id: editingListing.id } }).catch(console.error);
-      }
       toast.success("Listing updated");
       closeEditDescription();
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
