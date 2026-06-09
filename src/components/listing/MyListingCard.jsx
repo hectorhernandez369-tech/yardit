@@ -3,8 +3,8 @@ import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Clock, MapPin, Map, Trash2, ExternalLink } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
+import MyListingActions from "@/components/listing/MyListingActions";
 import {
   formatListingStatusLabel,
   formatListingTierLabel,
@@ -13,8 +13,7 @@ import {
   tierColors,
 } from "@/components/listing/listingDisplay";
 import { normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
-import { canSelfServeUpgrade } from "@/lib/listingUpgradeConfig";
-import { getListingOwnerId } from "@/lib/listingVisibility";
+
 
 // Soft pill badge — consistent across status/tier
 function PillBadge({ children, className = "" }) {
@@ -170,89 +169,24 @@ export default function MyListingCard({
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end">
-            <Button
-              size="sm"
-              disabled={!hasCoords(listing)}
-              onClick={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}&ownerPreview=1`)}
-              className="gap-1.5 bg-[#006168] hover:bg-[#004d52] text-white text-xs rounded-xl shadow-sm"
-            >
-              <Map className="w-3 h-3" />
-              View on Map
-            </Button>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
-              className="gap-1.5 border-slate-200 text-slate-600 hover:bg-slate-50 text-xs rounded-xl"
-            >
-              <ExternalLink className="w-3 h-3" />
-              View Details
-            </Button>
-
-            {getListingOwnerId(listing) === user?.id && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onEdit(listing)}
-                className="border-[#006168]/40 text-[#006168] hover:bg-[#e6f3f4] text-xs rounded-xl"
-              >
-                Edit
-              </Button>
-            )}
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onRelist(listing)}
-              className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-xs rounded-xl"
-            >
-              Relist
-            </Button>
-
-            {canSelfServeUpgrade(listing) && listing.listingType !== "neighborhood_sale" && (
-              <Button
-                size="sm"
-                onClick={() => onUpgrade(listing)}
-                className="bg-amber-500 hover:bg-amber-600 text-white text-xs rounded-xl shadow-sm"
-              >
-                Upgrade
-              </Button>
-            )}
-
-            {canCancelListingDirectly(listing) && !isPaidListing ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onCancel(listing)}
-                className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 text-xs rounded-xl"
-              >
-                <Trash2 className="w-3 h-3" />
-                Cancel
-              </Button>
-            ) : isActiveListing(listing) ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(createPageUrl("ContactSupport"))}
-                className="border-slate-200 text-slate-500 hover:bg-slate-50 text-xs rounded-xl"
-              >
-                Need Help?
-              </Button>
-            ) : isEffectivelyPastListing(listing) ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onDelete(listing)}
-                className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 text-xs rounded-xl"
-              >
-                <Trash2 className="w-3 h-3" />
-                Delete
-              </Button>
-            ) : null}
-          </div>
+          <MyListingActions
+            listing={listing}
+            user={user}
+            hasCoords={hasCoords}
+            isActiveListing={isActiveListing}
+            isEffectivelyPastListing={isEffectivelyPastListing}
+            canCancelListingDirectly={canCancelListingDirectly}
+            isPaidListing={isPaidListing}
+            onViewMap={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}&ownerPreview=1`)}
+            onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+            onEdit={onEdit}
+            onRelist={onRelist}
+            onUpgrade={onUpgrade}
+            onCancel={onCancel}
+            onDelete={onDelete}
+            onNeedHelp={() => navigate(createPageUrl("ContactSupport"))}
+            className="hidden sm:flex"
+          />
         </div>
 
         {/* Description */}
@@ -296,6 +230,25 @@ export default function MyListingCard({
             </button>
           </div>
         )}
+
+        <MyListingActions
+          listing={listing}
+          user={user}
+          hasCoords={hasCoords}
+          isActiveListing={isActiveListing}
+          isEffectivelyPastListing={isEffectivelyPastListing}
+          canCancelListingDirectly={canCancelListingDirectly}
+          isPaidListing={isPaidListing}
+          onViewMap={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}&ownerPreview=1`)}
+          onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+          onEdit={onEdit}
+          onRelist={onRelist}
+          onUpgrade={onUpgrade}
+          onCancel={onCancel}
+          onDelete={onDelete}
+          onNeedHelp={() => navigate(createPageUrl("ContactSupport"))}
+          className="mt-4 border-t border-slate-100 pt-4 sm:hidden"
+        />
       </div>
     </div>
   );
