@@ -109,7 +109,9 @@ export default function MyListingCard({
                 </PillBadge>
 
                 {isNeighborhood && (
-                  <PillBadge className="bg-blue-50 text-blue-700 border-blue-200">HOST</PillBadge>
+                  <span className="inline-flex items-center text-xs font-bold uppercase tracking-widest rounded-full px-3 py-1 border-2 bg-blue-100 text-blue-800 border-blue-600 shadow-sm">
+                    HOST
+                  </span>
                 )}
 
                 {listing.co_host_user_id === user?.id && listing.co_host_status === "active" && (
