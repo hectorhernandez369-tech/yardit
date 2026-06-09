@@ -118,21 +118,21 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
             return (
               <div
                 key={listing.id}
-                className={`group relative bg-white rounded-2xl border border-slate-200/70 border-l-4 ${accentBar} shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden`}
+                className={`group relative bg-white rounded-xl border border-slate-200/70 border-l-4 ${accentBar} shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden`}
               >
-                <div className="p-4 sm:p-5">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-start gap-3">
+                <div className="p-2 sm:p-3">
+                  <div className="flex flex-col gap-1.8">
+                    <div className="flex items-start gap-1.8">
                       <div className="flex-1 min-w-0">
                         {/* Badges row */}
-                        <div className="flex items-center gap-1.5 flex-wrap mb-2">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 bg-slate-50 rounded-full px-2 py-0.5 border border-slate-100">
+                        <div className="flex items-center gap-0.9 flex-wrap mb-1.2">
+                          <span className="text-[6px] font-semibold uppercase tracking-wider text-slate-400 bg-slate-50 rounded-full px-1.2 py-0.3 border border-slate-100">
                             {getListingTypeBadgeLabel(listing)}
                           </span>
-                          <span className="text-[10px] font-medium text-slate-400 bg-slate-50 rounded-full px-2 py-0.5 border border-slate-100">
+                          <span className="text-[6px] font-medium text-slate-400 bg-slate-50 rounded-full px-1.2 py-0.3 border border-slate-100">
                             {getListingSecondaryBadgeLabel(listing)}
                           </span>
-                          <span className={`text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-0.5 ${
+                          <span className={`text-[6px] font-semibold uppercase tracking-wider rounded-full px-1.5 py-0.3 ${
                             statusUi.isComingSoon
                               ? "bg-amber-50 text-amber-700 border border-amber-200"
                               : statusUi.isActive
@@ -143,19 +143,19 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
                           </span>
                         </div>
 
-                        <h3 className="text-base font-semibold text-slate-800 leading-snug">
+                        <h3 className="text-xs font-semibold text-slate-800 leading-snug">
                           {getListingPrimaryText(listing)}
                         </h3>
 
-                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        <div className="flex items-center gap-1.8 mt-0.6 flex-wrap">
                           {(listing.city || listing.state) && (
-                            <div className="flex items-center gap-1 text-slate-400">
-                              <MapPin className="w-3 h-3 flex-shrink-0" />
-                              <span className="text-xs">{[listing.city, listing.state].filter(Boolean).join(", ")}</span>
+                            <div className="flex items-center gap-0.6 text-slate-400">
+                              <MapPin className="w-2 h-2 flex-shrink-0" />
+                              <span className="text-[10px]">{[listing.city, listing.state].filter(Boolean).join(", ")}</span>
                             </div>
                           )}
                           {distMiles != null && isFinite(distMiles) && (
-                            <span className="text-xs text-slate-400">
+                            <span className="text-[10px] text-slate-400">
                               {distMiles < 0.1 ? "< 0.1 mi" : `${distMiles.toFixed(1)} mi`}
                             </span>
                           )}
@@ -164,22 +164,22 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
                     </div>
 
                     {descriptionText && (
-                      <p className="text-sm text-slate-500 leading-relaxed line-clamp-2">{descriptionText}</p>
+                      <p className="text-[10px] text-slate-500 leading-relaxed line-clamp-2">{descriptionText}</p>
                     )}
 
                     {categories.length > 0 && !statusUi.isComingSoon && (
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-0.9">
                         {categories.map((item, index) => (
-                          <span key={`${item}-${index}`} className="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-2 py-0.5">
+                          <span key={`${item}-${index}`} className="text-[9px] text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-1.2 py-0.3">
                             {item}
                           </span>
                         ))}
                       </div>
                     )}
 
-                    <div className="flex gap-2 pt-1">
+                    <div className="flex gap-1.2 pt-0.6">
                       <Button
-                        size="sm"
+                        size="xs"
                         onClick={() =>
                           navigate(
                             listing.is_vendor_event
@@ -187,7 +187,7 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
                               : createPageUrl("ListingDetail") + `?id=${listing.id}`
                           )
                         }
-                        className={`flex-1 text-white text-sm font-medium shadow-sm transition-all ${
+                        className={`flex-1 text-white text-[9px] font-medium shadow-sm transition-all h-5 px-1.5 ${
                           isEvent
                             ? "bg-[#006168] hover:bg-[#004d52]"
                             : isNeighborhood
@@ -201,14 +201,14 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
                       <SaveListingButton
                         listing={listing}
                         iconOnly={true}
-                        className="w-9 h-9 px-0 flex-shrink-0 border-slate-200 text-slate-400 hover:text-slate-600 rounded-xl"
+                        className="w-5 h-5 px-0 flex-shrink-0 border-slate-200 text-slate-400 hover:text-slate-600 rounded-lg"
                       />
 
                       {!isEvent && HUNT_ENABLED && (
                         <Button
-                          size="sm"
+                          size="xs"
                           variant="outline"
-                          className="flex-1 border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 rounded-xl text-sm"
+                          className="flex-1 border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 rounded-lg text-[9px] h-5 px-1.5"
                           onClick={() =>
                             guardAction(() => addToHunt(listing), {
                               allowGuest: isGuest && huntStops.length < 2,
