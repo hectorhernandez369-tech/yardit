@@ -1390,8 +1390,8 @@ export default function HomePage() {
                   }
                     {!isMarquee &&
                   <Popup maxWidth={340} minWidth={260} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
-                         <div className="flex flex-col gap-1.5" style={{ maxWidth: "min(90vw, 300px)", maxHeight: "55vh" }}>
-                          <div className="overflow-y-auto flex-1 min-h-0 space-y-1.5">
+                         <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md border border-white/30 shadow-lg opacity-100 bg-white/20" style={{ maxWidth: "min(90vw, 320px)", maxHeight: "70vh" }}>
+                          <div className="p-2 overflow-y-auto flex-1 min-h-0 space-y-2">
                             <div className="flex items-center gap-1 flex-wrap">
                               <Badge className={`text-[9px] px-1.5 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
                                 {getListingTypeBadgeLabel(listing)}
@@ -1413,7 +1413,7 @@ export default function HomePage() {
                           }
                             </div>
 
-                            <h3 className="inline-block rounded-lg border border-gray-200 bg-white px-2 py-1 font-bold text-base leading-tight text-slate-950 shadow-sm">{getListingPrimaryText(listing)}</h3>
+                            <h3 className="font-bold text-base leading-tight text-slate-950">{getListingPrimaryText(listing)}</h3>
 
                             {isPreviewState ?
                         <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2">
@@ -1423,9 +1423,9 @@ export default function HomePage() {
 
                         <>
                                 {getListingDescriptionText(listing) &&
-                          <p className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-slate-700 leading-relaxed shadow-sm">{getListingDescriptionText(listing)}</p>
+                          <p className="text-xs text-slate-700 leading-relaxed">{getListingDescriptionText(listing)}</p>
                           }
-                                <div className="space-y-1 rounded-lg border border-gray-200 bg-white p-1.5 text-[11px] text-slate-700 shadow-sm">
+                                <div className="space-y-1 rounded-lg bg-slate-50/80 p-2 text-[11px] text-slate-700">
                                   <div className="flex gap-1.5">
                                     <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-slate-400" />
                                     <span className="break-words">{listing.display_address || listing.address_text || listing.addressText || [listing.city, listing.state, listing.zip].filter(Boolean).join(", ") || "Address unavailable"}</span>
@@ -1451,7 +1451,7 @@ export default function HomePage() {
                         }
                           </div>
 
-                          <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-center">
+                          <div className="flex items-center gap-1 border-t border-gray-200 bg-white/40 p-1.5 flex-shrink-0 flex-wrap justify-center">
                             <Button
                           size="sm"
                           onClick={(e) => {
