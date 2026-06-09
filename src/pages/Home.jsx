@@ -1390,7 +1390,7 @@ export default function HomePage() {
                   }
                     {!isMarquee &&
                   <Popup maxWidth={340} minWidth={260} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
-                         <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md border border-white/40 shadow-lg opacity-100 bg-white" style={{ maxWidth: "min(90vw, 340px)", maxHeight: "70vh" }}>
+                         <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md border border-white/40 shadow-lg opacity-100 bg-white" style={{ maxWidth: "min(90vw, 320px)", maxHeight: "70vh" }}>
                           <div className="p-2 overflow-y-auto flex-1 min-h-0 space-y-2">
                             <div className="flex items-center gap-1 flex-wrap">
                               <Badge className={`text-[9px] px-1.5 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
@@ -1451,157 +1451,152 @@ export default function HomePage() {
                         }
                           </div>
 
-                          <div className="border-t border-gray-200 bg-white/40 flex-shrink-0 flex flex-col gap-1 p-1.5">
-                            {/* Row 1: View Listing, Save, Report */}
-                            <div className="flex items-center gap-1 justify-center flex-nowrap">
-                              <Button
-                               size="sm"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 navigate(listing.is_vendor_event ? `/VendorEventPublicPage?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`);
-                               }}
-                               className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700">
+                          <div className="flex items-center gap-1 border-t border-gray-200 bg-white/40 p-1.5 flex-shrink-0 flex-wrap justify-center">
+                            <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(listing.is_vendor_event ? `/VendorEventPublicPage?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`);
+                          }}
+                          className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700">
+                          
+                              {listing.is_vendor_event ? "Public View" : "View Listing"}
+                            </Button>
+                            <SaveListingButton listing={listing} iconOnly size="sm" className="h-6 w-6 p-0 border-slate-200" />
+                            {!isPreviewState &&
+                        <>
+                                <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              guardAction(() => setReportListingId(listing.id));
+                            }}
+                            className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50">
+                            
+                                  Report
+                                </Button>
+                                {!isPreviewState && listing.listingType !== "event" && HUNT_ENABLED && (() => {
+                            const huntStop = huntStops.find((s) => s.id === listing.id);
 
-                                   {listing.is_vendor_event ? "Public View" : "View Listing"}
-                                 </Button>
-                                 <SaveListingButton listing={listing} iconOnly size="sm" className="h-6 w-6 p-0 border-slate-200" />
-                                 {!isPreviewState &&
-                             <Button
-                                 size="sm"
-                                 variant="outline"
-                                 onClick={(e) => {
-                                   e.stopPropagation();
-                                   guardAction(() => setReportListingId(listing.id));
-                                 }}
-                                 className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50">
+                            if (!huntStop) {
+                              return (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    guardAction(() => addToHunt(listing), {
+                                      allowGuest: isGuest && huntStops.length < 2,
+                                      modal: {
+                                        title: "Create a Free Account to Save More Stops",
+                                        description: "Guests can preview up to 2 Hunt stops.",
+                                        detail: "Create a free account to save more stops and continue your hunt."
+                                      }
+                                    });
+                                  }}
+                                  className="gap-1 h-6 text-[11px] px-1.5 py-0">
+                                  
+                                          <Plus className="w-3 h-3" /> Add Stop
+                                        </Button>);
 
-                                       Report
-                                     </Button>
-                             }
-                            </div>
+                            }
 
-                            {/* Row 2: Hunt actions (full width) */}
-                            <div className="flex w-full">
-                              {(() => {
-                                 const huntStop = huntStops.find((s) => s.id === listing.id);
+                            const status = huntStop.huntStatus || "not_started";
 
-                                 if (!huntStop) {
-                                   return (
-                                     <Button
-                                       size="sm"
-                                       variant="outline"
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         guardAction(() => addToHunt(listing), {
-                                           allowGuest: isGuest && huntStops.length < 2,
-                                           modal: {
-                                             title: "Create a Free Account to Save More Stops",
-                                             description: "Guests can preview up to 2 Hunt stops.",
-                                             detail: "Create a free account to save more stops and continue your hunt."
-                                           }
-                                         });
-                                       }}
-                                       className="gap-1 h-6 text-[11px] px-1.5 py-0 w-full">
+                            if (status === "completed") {
+                              return (
+                                <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0">
+                                          Completed ✅
+                                        </Badge>);
 
-                                               <Plus className="w-3 h-3" /> Add Stop
-                                             </Button>);
+                            }
 
-                                 }
+                            if (status === "skipped") {
+                              return (
+                                <div className="flex gap-1">
+                                          <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0">
+                                            Skipped
+                                          </Badge>
+                                          <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateStopStatus(listing.id, "not_started");
+                                    }}
+                                    className="h-6 text-[11px] px-1.5 py-0 text-blue-600 border-blue-300 hover:bg-blue-50">
+                                    
+                                            Reset
+                                          </Button>
+                                        </div>);
 
-                                 const status = huntStop.huntStatus || "not_started";
+                            }
 
-                                 if (status === "completed") {
-                                   return (
-                                     <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0 w-full justify-center">
-                                               Completed ✅
-                                             </Badge>);
+                            if (status === "arrived") {
+                              return (
+                                <Button
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateStopStatus(listing.id, "completed");
+                                  }}
+                                  className="h-6 text-[11px] px-1.5 py-0 bg-green-600 hover:bg-green-700 text-white">
+                                  
+                                          Complete
+                                        </Button>);
 
-                                 }
+                            }
 
-                                 if (status === "skipped") {
-                                   return (
-                                     <div className="flex gap-1 w-full">
-                                               <Badge className="bg-gray-400 text-white h-6 flex items-center px-1.5 text-[10px] min-h-0">
-                                                 Skipped
-                                               </Badge>
-                                               <Button
-                                         size="sm"
-                                         variant="outline"
-                                         onClick={(e) => {
-                                           e.stopPropagation();
-                                           updateStopStatus(listing.id, "not_started");
-                                         }}
-                                         className="h-6 text-[11px] px-1.5 py-0 text-blue-600 border-blue-300 hover:bg-blue-50 flex-1">
+                            const uLat = gpsLocation ? Number(gpsLocation.lat) : null;
+                            const uLng = gpsLocation ? Number(gpsLocation.lng) : null;
+                            const lLat = Number(listing.lat);
+                            const lLng = Number(listing.lng);
 
-                                                 Reset
-                                               </Button>
-                                             </div>);
+                            let distanceFeet = Infinity;
 
-                                 }
+                            if (uLat !== null && uLng !== null && !isNaN(lLat) && !isNaN(lLng)) {
+                              const distanceMeters = calculateDistanceMeters(uLat, uLng, lLat, lLng);
+                              distanceFeet = distanceMeters * 3.28084;
+                            }
 
-                                 if (status === "arrived") {
-                                   return (
-                                     <Button
-                                       size="sm"
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         updateStopStatus(listing.id, "completed");
-                                       }}
-                                       className="h-6 text-[11px] px-1.5 py-0 bg-green-600 hover:bg-green-700 text-white w-full">
+                            const isWithinDistance = distanceFeet <= 50;
 
-                                               Complete
-                                             </Button>);
+                            if (isWithinDistance) {
+                              return (
+                                <Button
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateStopStatus(listing.id, "arrived");
+                                  }}
+                                  variant="outline"
+                                  className="h-6 text-[11px] px-1.5 py-0 border-green-600 text-green-700 hover:bg-green-50 bg-white/50">
+                                  
+                                          Check In
+                                        </Button>);
 
-                                 }
+                            }
 
-                                 const uLat = gpsLocation ? Number(gpsLocation.lat) : null;
-                                 const uLng = gpsLocation ? Number(gpsLocation.lng) : null;
-                                 const lLat = Number(listing.lat);
-                                 const lLng = Number(listing.lng);
+                            return (
+                              <div className="flex flex-col items-end">
+                                        <Button
+                                  size="sm"
+                                  disabled
+                                  variant="outline"
+                                  className="h-6 text-[11px] px-1.5 py-0 border-gray-400 text-gray-500 bg-gray-100 opacity-60">
+                                  
+                                          Check In
+                                        </Button>
+                                        <span className="text-[9px] text-gray-500 mt-0.5 leading-tight text-right">
+                                          {distanceFeet !== Infinity ? `Move within 50ft (${distanceFeet.toFixed(0)}ft)` : `Move within 50ft`}
+                                        </span>
+                                      </div>);
 
-                                 let distanceFeet = Infinity;
-
-                                 if (uLat !== null && uLng !== null && !isNaN(lLat) && !isNaN(lLng)) {
-                                   const distanceMeters = calculateDistanceMeters(uLat, uLng, lLat, lLng);
-                                   distanceFeet = distanceMeters * 3.28084;
-                                 }
-
-                                 const isWithinDistance = distanceFeet <= 50;
-
-                                 if (isWithinDistance) {
-                                   return (
-                                     <Button
-                                       size="sm"
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         updateStopStatus(listing.id, "arrived");
-                                       }}
-                                       variant="outline"
-                                       className="h-6 text-[11px] px-1.5 py-0 border-green-600 text-green-700 hover:bg-green-50 bg-white/50 w-full">
-
-                                               Check In
-                                             </Button>);
-
-                                 }
-
-                                 return (
-                                   <div className="flex flex-col items-center justify-center w-full gap-1">
-                                             <Button
-                                       size="sm"
-                                       disabled
-                                       variant="outline"
-                                       className="h-6 text-[11px] px-1.5 py-0 border-gray-400 text-gray-500 bg-gray-100 opacity-60 w-full">
-
-                                               Check In
-                                             </Button>
-                                             <span className="text-[9px] text-gray-500 leading-tight">
-                                               {distanceFeet !== Infinity ? `Move within 50ft (${distanceFeet.toFixed(0)}ft)` : `Move within 50ft`}
-                                             </span>
-                                           </div>);
-
-                               })()}
-                            </div>
-                            </div>
+                          })()}
+                                    </>
+                        }
+                          </div>
                         </div>
                       </Popup>
                   }
