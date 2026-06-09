@@ -3,9 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Map, Trash2, ExternalLink } from "lucide-react";
+import { Clock, MapPin, Map, Trash2, ExternalLink } from "lucide-react";
 import {
-  formatListingDateRange,
   formatListingStatusLabel,
   formatListingTierLabel,
   getListingAddressLine,
@@ -48,6 +47,20 @@ const STATUS_PILL = {
   activated: "bg-[#e6f3f4] text-[#006168] border-[#b3d9db]",
   activated_locked: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
+
+function formatOpenCloseHours(listing) {
+  const formatTime = (value) => {
+    if (!value) return "—";
+    const [hourString, minuteString = "00"] = String(value).split(":");
+    const hour = Number(hourString);
+    if (!Number.isFinite(hour)) return value;
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minuteString.padStart(2, "0")} ${suffix}`;
+  };
+
+  return `Open ${formatTime(listing.openTime || "05:00")} – Close ${formatTime(listing.closeTime || "22:00")}`;
+}
 
 export default function MyListingCard({
   listing,
@@ -228,7 +241,7 @@ export default function MyListingCard({
           </p>
         )}
 
-        {/* Address + Dates */}
+        {/* Address + Open/Close visibility hours */}
         <div className="grid md:grid-cols-2 gap-3 text-sm rounded-xl bg-slate-50/80 border border-slate-100 p-3.5">
           <div className="flex items-start gap-2 text-slate-500">
             <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-slate-400" />
@@ -236,8 +249,8 @@ export default function MyListingCard({
           </div>
 
           <div className="flex items-start gap-2 text-slate-500">
-            <Calendar className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-slate-400" />
-            <span className="text-xs leading-relaxed">{formatListingDateRange(listing)}</span>
+            <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-slate-400" />
+            <span className="text-xs leading-relaxed">{formatOpenCloseHours(listing)}</span>
           </div>
         </div>
 
