@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, MapPin, Map, Trash2, ExternalLink } from "lucide-react";
 import {
+  formatListingDateRange,
   formatListingStatusLabel,
   formatListingTierLabel,
   getListingAddressLine,
@@ -250,7 +251,7 @@ export default function MyListingCard({
 
           <div className="flex items-start gap-2 text-slate-500">
             <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-slate-400" />
-            <span className="text-xs leading-relaxed">{formatOpenCloseHours(listing)}</span>
+            <span className="text-xs leading-relaxed">{formatListingDateRange(listing)} • {formatOpenCloseHours(listing)}</span>
           </div>
         </div>
 
