@@ -246,7 +246,7 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
   };
 
   return (
-    <div className="flex flex-col max-h-[500px]">
+    <div className="flex flex-col h-[70vh] max-h-[500px] min-h-0">
       <div className="p-4 border-b flex items-center justify-between">
         <h3 className="font-semibold text-lg">Notifications</h3>
         {notifications.some((n) => !n.read && !n.is_read) && (
@@ -257,7 +257,7 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
         )}
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0 overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <Bell className="w-12 h-12 mx-auto mb-2 text-gray-400" />
