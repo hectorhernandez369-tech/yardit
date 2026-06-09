@@ -112,6 +112,8 @@ function formatDisplayTime(value) {
   return `${displayHour}:${minuteString.padStart(2, "0")} ${suffix}`;
 }
 
+export const formatListingTime = formatDisplayTime;
+
 export function formatListingDateRange(listing) {
   const start = listing?.selectedRangeStartDate || listing?.startDateTime;
   const end = listing?.selectedRangeEndDate || listing?.endDateTime;
