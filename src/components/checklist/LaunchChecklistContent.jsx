@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Circle, AlertCircle, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { loadSavedLaunchChecklist, readLocalChecklist, saveLaunchChecklist } from '@/lib/launchChecklistStorage';
 
 const CHECKLIST_SECTIONS = [
   {
@@ -227,27 +228,33 @@ const CHECKLIST_SECTIONS = [
 ];
 
 export default function LaunchChecklistContent({ embedded = false }) {
-  const [checkedItems, setCheckedItems] = useState(() => {
+  const getDefaults = () => {
     const defaults = {};
     CHECKLIST_SECTIONS.forEach(section => {
       section.items.forEach(item => {
         defaults[item.id] = item.default;
       });
     });
+    return defaults;
+  };
 
-    const stored = localStorage.getItem('yardit_launch_checklist');
-    if (!stored) return defaults;
-
-    const saved = JSON.parse(stored);
-    return { ...defaults, ...saved };
-  });
-
+  const [checkedItems, setCheckedItems] = useState(() => readLocalChecklist(getDefaults()));
+  const [settingId, setSettingId] = useState(null);
   const [expandedItems, setExpandedItems] = useState({});
+
+  useEffect(() => {
+    loadSavedLaunchChecklist(getDefaults()).then(({ recordId, values }) => {
+      setSettingId(recordId);
+      setCheckedItems(values);
+    });
+  }, []);
 
   const toggleItem = (id) => {
     const updated = { ...checkedItems, [id]: !checkedItems[id] };
     setCheckedItems(updated);
-    localStorage.setItem('yardit_launch_checklist', JSON.stringify(updated));
+    saveLaunchChecklist(updated, settingId).then((savedSettingId) => {
+      if (savedSettingId && !settingId) setSettingId(savedSettingId);
+    });
   };
 
   const allItems = CHECKLIST_SECTIONS.flatMap(s => s.items);
