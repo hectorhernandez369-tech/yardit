@@ -1,11 +1,11 @@
 import React from "react";
+import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, MapPin, Map, Trash2, ExternalLink } from "lucide-react";
 import {
-  formatListingDateRange,
   formatListingStatusLabel,
   formatListingTierLabel,
   getListingAddressLine,
@@ -61,6 +61,26 @@ function formatOpenCloseHours(listing) {
   };
 
   return `Open ${formatTime(listing.openTime || "05:00")} – Close ${formatTime(listing.closeTime || "22:00")}`;
+}
+
+function formatListingDateWindow(listing) {
+  const start = listing.selectedRangeStartDate || listing.activeDates?.[0] || listing.startDateTime;
+  const end = listing.selectedRangeEndDate || listing.activeDates?.[listing.activeDates.length - 1] || listing.endDateTime;
+  const formatDate = (value) => {
+    if (!value) return "";
+    const date = String(value).includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? value : format(date, "PP");
+  };
+
+  if (start && end) {
+    const startText = formatDate(start);
+    const endText = formatDate(end);
+    return startText === endText ? startText : `${startText} — ${endText}`;
+  }
+
+  if (start) return formatDate(start);
+  if (end) return formatDate(end);
+  return "No dates set";
 }
 
 export default function MyListingCard({
@@ -251,7 +271,7 @@ export default function MyListingCard({
 
           <div className="flex items-start gap-2 text-slate-500">
             <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-slate-400" />
-            <span className="text-xs leading-relaxed">{formatListingDateRange(listing)} • {formatOpenCloseHours(listing)}</span>
+            <span className="text-xs leading-relaxed">{formatListingDateWindow(listing)} • {formatOpenCloseHours(listing)}</span>
           </div>
         </div>
 
