@@ -134,7 +134,9 @@ export default function NeighborhoodSalePanel({
                 </div>
                 <div className="rounded-md border border-emerald-200 bg-white p-3">
                   <p className="text-xs uppercase tracking-wide text-emerald-700">Additional Due</p>
-                  <p className="font-semibold text-emerald-950">${Number(salePricing.additionalDue || 0).toFixed(2)}</p>
+                  <p className="font-semibold text-emerald-950">
+                    ${Number(Math.max(0, (NEIGHBORHOOD_BASE_PRICE + NEIGHBORHOOD_PRICE_PER_HOME * salePricing.totalApprovedHomes) - (listing.pricePaid || 0))).toFixed(2)}
+                  </p>
                 </div>
               </div>
               {salePricing.totalApprovedHomes < NEIGHBORHOOD_MIN_HOMES ? (
