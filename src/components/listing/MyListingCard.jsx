@@ -108,6 +108,10 @@ export default function MyListingCard({
                   {isEvent ? "Event" : isNeighborhood ? "Neighborhood Sale" : "Yard Sale"}
                 </PillBadge>
 
+                {isNeighborhood && (
+                  <PillBadge className="bg-blue-50 text-blue-700 border-blue-200">HOST</PillBadge>
+                )}
+
                 {listing.co_host_user_id === user?.id && listing.co_host_status === "active" && (
                   <PillBadge className="bg-indigo-50 text-indigo-700 border-indigo-200">Co-Host</PillBadge>
                 )}
@@ -172,7 +176,7 @@ export default function MyListingCard({
               Relist
             </Button>
 
-            {canSelfServeUpgrade(listing) && (
+            {canSelfServeUpgrade(listing) && listing.listingType !== "neighborhood_sale" && (
               <Button
                 size="sm"
                 onClick={() => onUpgrade(listing)}
