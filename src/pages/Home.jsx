@@ -1396,7 +1396,7 @@ export default function HomePage() {
                               <Badge className={`text-[9px] px-1.5 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
                                 {getListingTypeBadgeLabel(listing)}
                               </Badge>
-                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 min-h-0 capitalize bg-white">{getListingSecondaryBadgeLabel(listing)}</Badge>
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-5 min-h-0 capitalize bg-white">{getListingSecondaryBadgeLabel(listing)}</Badge>
                               {!isPreviewState && (() => {
                             const statusUi = getListingStatusUi(listing);
                             return (
