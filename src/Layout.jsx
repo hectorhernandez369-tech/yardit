@@ -117,7 +117,7 @@ function LayoutContent({ children, user, setUser }) {
   };
 
   const handleLogout = async () => {
-    await logout?.(createPageUrl("Home"));
+    await logout?.("/ComingSoon");
   };
 
   const hasVerifiedPrimaryAddress = Boolean(
