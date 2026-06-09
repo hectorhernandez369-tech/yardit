@@ -10,7 +10,9 @@ import NeighborhoodSalePreviewMap from "@/components/neighborhood/NeighborhoodSa
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import {
   calculateNeighborhoodSalePrice,
+  NEIGHBORHOOD_BASE_PRICE,
   NEIGHBORHOOD_MIN_HOMES,
+  NEIGHBORHOOD_PRICE_PER_HOME,
 } from "@/lib/neighborhoodSalePricing";
 import { normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 
@@ -122,9 +124,12 @@ export default function NeighborhoodSalePanel({
                   <p className="font-semibold text-emerald-950">${Number(listing.pricePaid || 0).toFixed(2)}</p>
                 </div>
                 <div className="rounded-md border border-emerald-200 bg-white p-3">
-                  <p className="text-xs uppercase tracking-wide text-emerald-700">Calculated Cost</p>
+                  <p className="text-xs uppercase tracking-wide text-emerald-700">Total Current Cost</p>
                   <p className="font-semibold text-emerald-950">
                     ${Number(calculateNeighborhoodSalePrice(salePricing.totalApprovedHomes) || 0).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-emerald-700 mt-1">
+                    ${NEIGHBORHOOD_BASE_PRICE.toFixed(2)} flat + ${NEIGHBORHOOD_PRICE_PER_HOME.toFixed(2)} × {salePricing.totalApprovedHomes} homes
                   </p>
                 </div>
                 <div className="rounded-md border border-emerald-200 bg-white p-3">
