@@ -1261,7 +1261,7 @@ export default function HomePage() {
           ref={controlsBtnRef}
           onPointerDown={handleHuntButtonPointerDown}
           onClick={handleHuntButtonClick}
-          className="absolute z-[1002] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent border-2 border-[#2C4F4E]/20 outline-none shadow-none rounded-full"
+          className="absolute z-[1002] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent outline-none shadow-none"
           style={{
             left: `${huntButtonPosition.x}px`,
             top: `${huntButtonPosition.y}px`,
@@ -1276,8 +1276,8 @@ export default function HomePage() {
           <img
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/cb76cc21e_file_00000000cd1c720ca3ac2dd5471be0aa.png"
             alt="Open Map"
-            className="w-[70px] h-[70px] object-contain pointer-events-none"
-            style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }} />
+            className="w-[78px] h-[78px] object-contain pointer-events-none scale-110"
+            style={{ filter: 'drop-shadow(0 5px 12px rgba(0,0,0,0.45)) drop-shadow(0 0 8px rgba(244,168,73,0.45))' }} />
 
           }
           </button>
