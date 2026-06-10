@@ -91,20 +91,23 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-140px)] p-4 md:p-8">
+    <div className="min-h-[calc(100vh-140px)] bg-[#F3E6CF] p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Settings</h1>
+        <div className="bg-[#5DADA5] text-white px-4 py-3 rounded-t-lg mb-0">
+          <h1 className="text-2xl font-bold">Settings</h1>
+        </div>
+        <div className="bg-[#F3E6CF] px-4 py-4">
 
         {canInstallApp && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Install Yardit</CardTitle>
+          <Card className="mb-4 rounded-lg border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Install Yardit</CardTitle>
             </CardHeader>
             <CardContent>
               <Button
                 onClick={handleInstallClick}
                 variant="outline"
-                className="w-full justify-start text-left font-normal"
+                className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
               >
                 Install Yardit
               </Button>
@@ -113,23 +116,23 @@ export default function SettingsPage() {
         )}
 
         {hasVendorAccount && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Startup Page</CardTitle>
+          <Card className="mb-4 rounded-lg border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Startup Page</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <p className="text-sm text-slate-500 mb-3">Choose which page opens when you launch Yardit.</p>
+              <p className="text-sm text-slate-600 mb-3">Choose which page opens when you launch Yardit.</p>
               <Button
                 onClick={() => handleStartupPageChange("map")}
                 variant={startupPage === "map" ? "default" : "outline"}
-                className={`w-full justify-start font-normal ${startupPage === "map" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : ""}`}
+                className={`w-full justify-start font-normal text-slate-700 ${startupPage === "map" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : "border-slate-300 hover:bg-slate-50"}`}
               >
                 {startupPage === "map" ? "✓ " : ""}Open to Map
               </Button>
               <Button
                 onClick={() => handleStartupPageChange("vendor")}
                 variant={startupPage === "vendor" ? "default" : "outline"}
-                className={`w-full justify-start font-normal ${startupPage === "vendor" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : ""}`}
+                className={`w-full justify-start font-normal text-slate-700 ${startupPage === "vendor" ? "bg-[#5DADA5] hover:bg-[#4A9B93] text-white" : "border-slate-300 hover:bg-slate-50"}`}
               >
                 {startupPage === "vendor" ? "✓ " : ""}Open to Vendor Dashboard
               </Button>
@@ -137,71 +140,72 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Help & Support</CardTitle>
+        <Card className="mb-4 rounded-lg border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Help & Support</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
             <Button
               onClick={() => navigate(createPageUrl("StartupGuide"))}
               variant="outline"
-              className="w-full justify-start text-left font-normal"
+              className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
             >
               View Startup Guide
             </Button>
             <Button
               onClick={() => navigate(createPageUrl("FAQ"))}
               variant="outline"
-              className="w-full justify-start text-left font-normal"
+              className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
             >
               FAQ Section
             </Button>
             <Button
               onClick={() => navigate(createPageUrl("ContactSupport"))}
               variant="outline"
-              className="w-full justify-start text-left font-normal"
+              className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
             >
               Contact Support
             </Button>
             <Button
               onClick={() => navigate(createPageUrl("MySupportTickets"))}
               variant="outline"
-              className="w-full justify-start text-left font-normal"
+              className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
             >
               My Support Tickets
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>My Notifications</CardTitle>
+        <Card className="mb-4 rounded-lg border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">My Notifications</CardTitle>
           </CardHeader>
           <CardContent>
             <Button
               onClick={() => navigate(createPageUrl("Notifications") + "?tab=history")}
               variant="outline"
-              className="w-full justify-start text-left font-normal"
+              className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
             >
               Notification History
             </Button>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Actions</CardTitle>
+        <Card className="rounded-lg border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Account Actions</CardTitle>
           </CardHeader>
           <CardContent>
             <Button
               onClick={handleLogout}
               variant="outline"
-              className="w-full"
+              className="w-full text-slate-700 border-slate-300 hover:bg-slate-50"
             >
               Logout
             </Button>
           </CardContent>
         </Card>
+        </div>
 
         <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} />
       </div>

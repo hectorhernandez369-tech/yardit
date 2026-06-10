@@ -167,13 +167,10 @@ export default function NeighborhoodIntroModal({ open, onClose, onContinue }) {
           <NeighborhoodIntroFAQ onBack={() => setShowFaq(false)} />
         ) : (
           <>
-            <div className="bg-gradient-to-br from-[#2C4F4E] via-[#36706C] to-[#5DADA5] px-5 py-5 text-white">
-              <DialogHeader className="space-y-2">
-                <div className="mx-auto mb-1 flex h-14 w-14 items-center justify-center">
-                  <PartyPopper className="h-7 w-7 text-[#F4A849]" />
-                </div>
-                <DialogTitle className="text-center text-xl font-black leading-tight">Create a Neighborhood Sale</DialogTitle>
-                <p className="text-center text-sm text-white/90">Turn multiple yard sales into one larger community event.</p>
+            <div className="bg-[#5DADA5] px-5 py-4 text-white">
+              <DialogHeader className="space-y-1">
+                <DialogTitle className="text-xl font-bold">Create a Neighborhood Sale</DialogTitle>
+                <p className="text-sm text-white/90">Turn multiple yard sales into one larger community event.</p>
               </DialogHeader>
             </div>
 
@@ -194,41 +191,38 @@ export default function NeighborhoodIntroModal({ open, onClose, onContinue }) {
                 ))}
               </div>
 
-              <section className="mt-3 rounded-2xl border border-[#F4A849]/45 bg-white/90 p-3.5 shadow-sm">
-                <div className="flex items-center gap-2 text-[#2C4F4E]">
-                  <BookOpen className="h-4 w-4 text-[#F4A849]" />
-                  <h3 className="text-sm font-bold">📖 Need More Details?</h3>
-                </div>
+              <section className="mt-3 rounded-lg bg-white border-0 p-4 shadow-sm">
+                <h3 className="text-sm font-bold text-[#2C4F4E] mb-1">Need More Details?</h3>
                 <button
                   type="button"
                   onClick={() => setShowFaq(true)}
-                  className="mt-2 text-sm font-bold text-[#006168] underline-offset-4 hover:underline"
+                  className="text-sm font-bold text-[#2C4F4E] hover:text-[#5DADA5]"
                 >
                   View Full Neighborhood Sale FAQ →
                 </button>
               </section>
 
-              <div className="mt-4 space-y-2.5">
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#2C4F4E]/15 bg-white p-3 text-sm text-slate-700 shadow-sm">
+              <div className="mt-4 space-y-2">
+                <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
                   <Checkbox checked={reviewed} onCheckedChange={(checked) => setReviewed(checked === true)} />
                   <span>I have reviewed the information above.</span>
                 </label>
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#2C4F4E]/15 bg-white p-3 text-sm text-slate-700 shadow-sm">
+                <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
                   <Checkbox checked={understandsRole} onCheckedChange={(checked) => setUnderstandsRole(checked === true)} />
                   <span>I understand that I should invite neighbors and use Yardit as the organizing tool.</span>
                 </label>
-                <label className="flex cursor-pointer items-center gap-3 px-1 text-sm text-slate-600">
+                <label className="flex cursor-pointer items-center gap-3 px-0 text-sm text-slate-600">
                   <Checkbox checked={hideAgain} onCheckedChange={(checked) => setHideAgain(checked === true)} />
                   <span>Don&apos;t show this again.</span>
                 </label>
               </div>
             </div>
 
-            <DialogFooter className="shrink-0 border-t border-[#2C4F4E]/10 bg-white/85 px-4 py-3 sm:px-5">
+            <DialogFooter className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 sm:px-5">
               <Button
                 onClick={handleContinue}
                 disabled={!reviewed || !understandsRole}
-                className="w-full rounded-xl border-2 border-[#2C4F4E] bg-[#F4A849] font-bold text-[#2C4F4E] shadow-md hover:bg-[#E39635] disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-lg bg-[#5DADA5] font-bold text-white hover:bg-[#4A9B93] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Continue Creating Event
               </Button>
