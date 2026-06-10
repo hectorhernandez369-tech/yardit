@@ -183,12 +183,15 @@ export default function StepThree({
   }, [formData.tier, formData.earlyVisibilityDays, formData.selectedRangeStartDate]);
 
   const dateConflict = useMemo(() => {
+    if (formData?.listingType !== "yard_sale") return false;
     if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) return false;
     return hasDateConflict(formData.selectedRangeStartDate, formData.selectedRangeEndDate, reservedDates);
-  }, [formData.selectedRangeStartDate, formData.selectedRangeEndDate, reservedDates]);
+  }, [formData?.listingType, formData.selectedRangeStartDate, formData.selectedRangeEndDate, reservedDates]);
 
   // Build a set of YYYY-MM-DD strings that are reserved, for min/max disabling hints
-  const reservedSortedList = useMemo(() => Array.from(reservedDates).sort(), [reservedDates]);
+  const reservedSortedList = useMemo(() => (
+    formData?.listingType === "yard_sale" ? Array.from(reservedDates).sort() : []
+  ), [formData?.listingType, reservedDates]);
 
   return (
     <div className="space-y-6">
