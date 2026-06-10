@@ -45,11 +45,18 @@ export default function StepThree({
   formData,
   setFormData,
   reservedDates = new Set(),
+  onResidentialConflictInteraction,
 }) {
   const isNeighborhoodSale = formData?.listingType === "neighborhood_sale";
   const tier = formData?.tier || "free";
   const [nearbyNeighborhoodSales, setNearbyNeighborhoodSales] = useState([]);
   const [areNeighborhoodSalesCollapsed, setAreNeighborhoodSalesCollapsed] = useState(false);
+
+  const markResidentialConflictInteraction = () => {
+    if (formData?.listingType === "yard_sale") {
+      onResidentialConflictInteraction?.();
+    }
+  };
 
   const freeTierDateRange = useMemo(() => {
     const freeWindow = computeFreeWindow(new Date(), formData?.timeZoneId || "America/Los_Angeles");
@@ -79,6 +86,7 @@ export default function StepThree({
   };
 
   const setTier = (nextTier) => {
+    markResidentialConflictInteraction();
     setFormData((p) => {
       const updated = { ...p, tier: nextTier };
       if (nextTier === "free") {
@@ -183,9 +191,10 @@ export default function StepThree({
   }, [formData.tier, formData.earlyVisibilityDays, formData.selectedRangeStartDate]);
 
   const dateConflict = useMemo(() => {
+    if (formData?.listingType !== "yard_sale") return false;
     if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) return false;
     return hasDateConflict(formData.selectedRangeStartDate, formData.selectedRangeEndDate, reservedDates);
-  }, [formData.selectedRangeStartDate, formData.selectedRangeEndDate, reservedDates]);
+  }, [formData?.listingType, formData.selectedRangeStartDate, formData.selectedRangeEndDate, reservedDates]);
 
   // Build a set of YYYY-MM-DD strings that are reserved, for min/max disabling hints
   const reservedSortedList = useMemo(() => Array.from(reservedDates).sort(), [reservedDates]);
@@ -329,6 +338,7 @@ export default function StepThree({
                     min={new Date().toISOString().split('T')[0]}
                     value={formData.selectedRangeStartDate || ""}
                     onChange={(e) => {
+                      markResidentialConflictInteraction();
                       const newStart = e.target.value;
                       const nextState = { ...formData, selectedRangeStartDate: newStart };
                       
@@ -370,6 +380,7 @@ export default function StepThree({
                     value={formData.selectedRangeEndDate || ""}
                     disabled={tier === "featured"}
                     onChange={(e) => {
+                       markResidentialConflictInteraction();
                        if (tier === "premium") {
                           const newEnd = e.target.value;
                           const dStart = new Date(`${formData.selectedRangeStartDate}T00:00:00`);

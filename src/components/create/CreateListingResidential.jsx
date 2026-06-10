@@ -23,6 +23,7 @@ export default function CreateListingResidential({
   handlePaymentStepSubmit,
   residentialTierPrices,
   onAddressSelected,
+  onResidentialConflictInteraction,
 }) {
   if (step === 1) {
     return <StepOne formData={formData} setFormData={setFormData} />;
@@ -38,6 +39,7 @@ export default function CreateListingResidential({
         formData={formData}
         setFormData={setFormData}
         reservedDates={reservedDates}
+        onResidentialConflictInteraction={onResidentialConflictInteraction}
       />
     );
   }

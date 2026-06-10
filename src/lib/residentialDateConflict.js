@@ -81,6 +81,32 @@ export function getConflictingDates(startDate, endDate, reservedDates) {
   return expandDateRange(startDate, endDate).filter((d) => reservedDates.has(d));
 }
 
+export function findConflictingReservedListingForAddress(listings, startDate, endDate, excludeId, addressRef) {
+  if (!startDate || !endDate) return null;
+  const proposedDates = new Set(expandDateRange(startDate, endDate));
+  const now = new Date();
+
+  for (const listing of listings || []) {
+    if (listing.id === excludeId) continue;
+    if (listing.listingType !== "yard_sale") continue;
+    if (listing.is_demo_listing) continue;
+    if (!isReservedStatus(listing.status)) continue;
+    if (!isSameAddress(listing, addressRef)) continue;
+    if (listing.endDateTime && new Date(listing.endDateTime) < now) continue;
+
+    const listingDates = [
+      ...expandDateRange(listing.selectedRangeStartDate, listing.selectedRangeEndDate),
+      ...(listing.earlyVisibilityDates || []),
+    ];
+    const conflictingDates = listingDates.filter((date) => proposedDates.has(date));
+    if (conflictingDates.length > 0) {
+      return { listing, conflictingDates };
+    }
+  }
+
+  return null;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function expandDateRange(startDate, endDate) {

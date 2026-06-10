@@ -34,7 +34,7 @@ import {
 import {
   getReservedDatesForAddress,
   hasDateConflict,
-  getConflictingDates,
+  findConflictingReservedListingForAddress,
 } from "@/lib/residentialDateConflict";
 import { EVENT_TIER_PRICES } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
@@ -127,6 +127,8 @@ export default function CreateListingPage() {
   const handledCheckoutSessionRef = useRef(null);
   const handledNeighborhoodSetupSessionRef = useRef(null);
   const recoveringPaidCheckoutRef = useRef(false);
+  const [hasUserInteractedWithDates, setHasUserInteractedWithDates] = useState(false);
+  const [hasAttemptedContinue, setHasAttemptedContinue] = useState(false);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -429,28 +431,65 @@ export default function CreateListingPage() {
   const paymentStepNumber = isEventFlow ? 5 : 4;
   const entryStepNumber = isEventFlow ? 4 : 3;
 
-  // Compute reserved dates for user's verified primary address (drives calendar blocking)
+  // Compute reserved dates for residential listings only (drives calendar blocking)
   const addressRef = user ? { lat: user.primary_latitude, lng: user.primary_longitude } : null;
   const reservedDates = React.useMemo(
-    () => (!isGlobalDemoMode && !isDevBypassUser(user) && addressRef
+    () => (formData.listingType === "yard_sale" && !isGlobalDemoMode && !isDevBypassUser(user) && addressRef
       ? getReservedDatesForAddress(userListings, null, addressRef)
       : new Set()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [userListings, user?.primary_latitude, user?.primary_longitude, isGlobalDemoMode]
+    [formData.listingType, userListings, user?.primary_latitude, user?.primary_longitude, isGlobalDemoMode]
   );
 
+  const debugResidentialDateConflict = (reason, details = {}) => {
+    if (!import.meta.env?.DEV) return;
+    console.debug("[Residential date conflict]", {
+      reason,
+      listingType: details.listingType || formData.listingType,
+      selectedRangeStartDate: details.startDate,
+      selectedRangeEndDate: details.endDate,
+      addressRef,
+      lat: formData.lat,
+      lng: formData.lng,
+      conflictingListingId: details.conflict?.listing?.id || null,
+      conflictingListingNumber: details.conflict?.listing?.listingNumber || null,
+      conflictingDates: details.conflict?.conflictingDates || [],
+    });
+  };
+
   // Returns true if the proposed dates conflict with any reserved listing for this address
-  const hasResidentialDateConflict = (startDate, endDate) => {
+  const hasResidentialDateConflict = (startDate, endDate, listingType = formData.listingType) => {
+    if (listingType !== "yard_sale") {
+      debugResidentialDateConflict("skipped_non_residential_listing_type", { startDate, endDate, listingType });
+      return false;
+    }
     if (!startDate || !endDate || isGlobalDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
-    return hasDateConflict(startDate, endDate, reservedDates);
+
+    const conflict = findConflictingReservedListingForAddress(userListings, startDate, endDate, null, addressRef);
+    const hasConflict = hasDateConflict(startDate, endDate, reservedDates);
+    if (hasConflict) debugResidentialDateConflict("toast_ready_after_user_action", { startDate, endDate, listingType, conflict });
+    return hasConflict;
   };
 
   // Live-fetch version used in mutation and Stripe-return handler (avoids stale cache)
-  const checkDateConflictLive = async (startDate, endDate) => {
+  const checkDateConflictLive = async (startDate, endDate, listingType = formData.listingType) => {
+    if (listingType !== "yard_sale") {
+      debugResidentialDateConflict("skipped_live_non_residential_listing_type", { startDate, endDate, listingType });
+      return false;
+    }
     if (!startDate || !endDate || isGlobalDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
     const freshListings = await base44.entities.Listing.filter({ ownerUserId: user.id });
     const freshReserved = getReservedDatesForAddress(freshListings, null, addressRef);
-    return hasDateConflict(startDate, endDate, freshReserved);
+    const conflict = findConflictingReservedListingForAddress(freshListings, startDate, endDate, null, addressRef);
+    const hasConflict = hasDateConflict(startDate, endDate, freshReserved);
+    if (hasConflict) debugResidentialDateConflict("live_toast_ready_after_user_action", { startDate, endDate, listingType, conflict });
+    return hasConflict;
+  };
+
+  const markResidentialConflictInteraction = () => {
+    if (formData.listingType === "yard_sale") {
+      setHasUserInteractedWithDates(true);
+    }
   };
 
   const getHomeAddressLabel = (a = formData) => a?.selected_geocode_place_name || a?.geocoded_address || [a?.addressText, a?.city, getStateAbbreviation(a?.state || ""), a?.zip].filter(Boolean).join(", ");
@@ -478,6 +517,7 @@ export default function CreateListingPage() {
       const refreshedUser = await base44.auth.me();
       setUser(refreshedUser);
       setFormData(buildResolvedListingLocation({ ...selected, addressText: fullAddress, state: stateCode, locationMethod: "verified_primary_address" }));
+      markResidentialConflictInteraction();
       setShowHomeAddressConfirm(false);
       setPendingHomeAddress(null);
       toast.success("Home address confirmed. You can now continue creating your listing.");
@@ -636,7 +676,7 @@ export default function CreateListingPage() {
   const createListingMutation = useMutation({
     mutationFn: async (data) => {
       if (!isAdminCreate && data.listingType === "yard_sale" && data.selectedRangeStartDate && data.selectedRangeEndDate) {
-        const conflict = await checkDateConflictLive(data.selectedRangeStartDate, data.selectedRangeEndDate);
+        const conflict = await checkDateConflictLive(data.selectedRangeStartDate, data.selectedRangeEndDate, data.listingType);
         if (conflict) {
           throw new Error("These dates are already reserved for this address. Please choose different dates or edit your existing listing.");
         }
@@ -825,6 +865,10 @@ export default function CreateListingPage() {
   });
 
   const handleNext = async () => {
+    if (formData.listingType === "yard_sale") {
+      setHasAttemptedContinue(true);
+    }
+
     if (step === 1) {
       if (formData.listingType === "event") {
         if (!formData.event_name || !formData.event_category) {
@@ -1344,7 +1388,10 @@ export default function CreateListingPage() {
     executeSubmit(undefined, { ...formData, ...nonRefundFields });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async ({ userInitiated = false } = {}) => {
+    const canShowResidentialConflictToast = userInitiated || hasUserInteractedWithDates || hasAttemptedContinue;
+    if (userInitiated) setHasAttemptedContinue(true);
+
     if (!isAdminCreate && !isGlobalDemoMode && formData.listingType === "yard_sale" &&
         (!userHasVerifiedPrimaryAddress || typeof (user?.primary_latitude ?? user?.address_lat) !== "number" || typeof (user?.primary_longitude ?? user?.address_lng) !== "number")) {
       toast.error("Please confirm your home address before publishing.");
@@ -1354,8 +1401,10 @@ export default function CreateListingPage() {
 
     if (!isAdminCreate && formData.listingType === "yard_sale" &&
         formData.selectedRangeStartDate && formData.selectedRangeEndDate &&
-        hasResidentialDateConflict(formData.selectedRangeStartDate, formData.selectedRangeEndDate)) {
-      toast.error("These dates are already reserved for this address. Please choose different dates or edit your existing listing.");
+        hasResidentialDateConflict(formData.selectedRangeStartDate, formData.selectedRangeEndDate, formData.listingType)) {
+      if (canShowResidentialConflictToast) {
+        toast.error("These dates are already reserved for this address. Please choose different dates or edit your existing listing.");
+      }
       return;
     }
 
@@ -1591,7 +1640,7 @@ export default function CreateListingPage() {
         }).then(async (response) => {
           if (response?.data?.paid || response?.data?.stripe_paid) {
             if (stored.formData?.listingType === "yard_sale" && stored.formData?.selectedRangeStartDate) {
-              const conflict = await checkDateConflictLive(stored.formData.selectedRangeStartDate, stored.formData.selectedRangeEndDate);
+              const conflict = await checkDateConflictLive(stored.formData.selectedRangeStartDate, stored.formData.selectedRangeEndDate, stored.formData.listingType);
               if (conflict) {
                 setIsStartingPayment(false);
                 setPaymentError("These dates are already reserved for this address. Please choose different dates or edit your existing listing.");
@@ -1747,6 +1796,7 @@ export default function CreateListingPage() {
                     setShowHomeAddressConfirm(true);
                   }
                 }}
+                onResidentialConflictInteraction={markResidentialConflictInteraction}
               />
             )}
 
@@ -1777,7 +1827,7 @@ export default function CreateListingPage() {
                         return;
                       }
                       executeSubmit("admin_create");
-                    } : handleSubmit}
+                    } : () => handleSubmit({ userInitiated: true })}
                     disabled={createListingMutation.isPending || isStartingPayment}
                     className="flex-1 bg-[#006168] hover:bg-[#004d52] text-white rounded-xl h-11 font-semibold shadow-sm"
                   >
