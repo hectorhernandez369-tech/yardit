@@ -9,6 +9,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   // </React.StrictMode>,
 )
 
+requestAnimationFrame(() => {
+  document.getElementById('yardit-initial-splash')?.remove();
+});
+
 if ('serviceWorker' in navigator) {
   const oneSignalEnabled = Boolean(window.OneSignalDeferred);
 
