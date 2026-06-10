@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -127,6 +127,18 @@ export default function NeighborhoodIntroModal({ open, onClose, onContinue }) {
   const [hideAgain, setHideAgain] = useState(false);
   const [showFaq, setShowFaq] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
+  const savedScrollYRef = useRef(0);
+
+  useEffect(() => {
+    if (!open) return;
+    savedScrollYRef.current = window.scrollY || 0;
+
+    return () => {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: savedScrollYRef.current, left: 0, behavior: "auto" });
+      });
+    };
+  }, [open]);
 
   const resetAndClose = () => {
     setReviewed(false);
@@ -162,19 +174,19 @@ export default function NeighborhoodIntroModal({ open, onClose, onContinue }) {
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) resetAndClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[92vh] flex flex-col overflow-hidden border-0 p-0 bg-[#F3E6CF] sm:rounded-3xl">
+      <DialogContent className="max-w-2xl max-h-[92vh] flex flex-col overflow-hidden overscroll-contain border-0 p-0 bg-[#F3E6CF] sm:rounded-3xl">
         {showFaq ? (
           <NeighborhoodIntroFAQ onBack={() => setShowFaq(false)} />
         ) : (
           <>
-            <div className="bg-[#5DADA5] px-5 py-4 text-white">
+            <div className="shrink-0 bg-[#5DADA5] px-5 py-4 text-white">
               <DialogHeader className="space-y-1">
                 <DialogTitle className="text-xl font-bold">Create a Neighborhood Sale</DialogTitle>
                 <p className="text-sm text-white/90">Turn multiple yard sales into one larger community event.</p>
               </DialogHeader>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
               <div className="space-y-3">
                 {cards.map((card, index) => (
                   <div key={card.title} data-neighborhood-intro-card={index}>

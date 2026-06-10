@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -64,6 +64,22 @@ const faqItems = [
 
 export default function NeighborhoodIntroFAQ({ onBack }) {
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const touchStartRef = useRef(null);
+
+  const handlePointerDown = (event) => {
+    touchStartRef.current = { x: event.clientX, y: event.clientY, moved: false };
+  };
+
+  const handlePointerMove = (event) => {
+    const start = touchStartRef.current;
+    if (!start) return;
+
+    const deltaX = Math.abs(event.clientX - start.x);
+    const deltaY = Math.abs(event.clientY - start.y);
+    if (deltaX > 8 || deltaY > 8) {
+      start.moved = true;
+    }
+  };
 
   const toggleFaq = (index) => {
     setExpandedFaq((current) => {
@@ -79,7 +95,7 @@ export default function NeighborhoodIntroFAQ({ onBack }) {
 
   return (
     <>
-      <div className="border-b border-[#2C4F4E]/10 bg-white/90 px-4 py-3 sm:px-5">
+      <div className="shrink-0 border-b border-[#2C4F4E]/10 bg-white/90 px-4 py-3 sm:px-5">
         <button
           type="button"
           onClick={onBack}
@@ -93,16 +109,22 @@ export default function NeighborhoodIntroFAQ({ onBack }) {
         </DialogHeader>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
         <div className="space-y-3">
           {faqItems.map((item, index) => {
             const expanded = expandedFaq === index;
             return (
               <section key={item.question} data-neighborhood-faq-card={index} className="overflow-hidden rounded-2xl border border-[#5DADA5]/20 bg-white shadow-sm">
                 <button
-                  type="button"
-                  onClick={() => toggleFaq(index)}
-                  className="flex w-full items-center justify-between gap-3 p-4 text-left touch-manipulation"
+                type="button"
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (touchStartRef.current?.moved) return;
+                  toggleFaq(index);
+                }}
+                className="flex w-full items-center justify-between gap-3 p-4 text-left touch-pan-y"
                 >
                   <h3 className="text-sm font-bold text-[#2C4F4E]">{item.question}</h3>
                   <ChevronDown className={`h-4 w-4 shrink-0 text-[#5DADA5] transition-transform ${expanded ? "rotate-180" : ""}`} />
