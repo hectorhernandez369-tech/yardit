@@ -30,7 +30,7 @@ export default function CreateListingNeighborhood({
   }
 
   if (step === 3) {
-    return <StepThree formData={formData} setFormData={setFormData} reservedDates={new Set()} />;
+    return <StepThree formData={formData} setFormData={setFormData} reservedDates={reservedDates} />;
   }
 
   if (step === 4) {
