@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X, Home, Users, Calendar, Lock, ChevronDown, ChevronUp, Sparkles, MapPin, Star, Megaphone } from "lucide-react";
 
 // LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
-const LOCKED_LISTING_TYPES = ["event"];
+const LOCKED_LISTING_TYPES = [];
 
 const LOCKED_PREVIEW = {
   neighborhood_sale: {
