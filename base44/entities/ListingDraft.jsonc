@@ -1,0 +1,123 @@
+{
+  "name": "ListingDraft",
+  "type": "object",
+  "properties": {
+    "owner_user_id": {
+      "type": "string",
+      "description": "User who owns this listing draft"
+    },
+    "listing_type": {
+      "type": "string",
+      "enum": [
+        "yard_sale",
+        "neighborhood_sale",
+        "event"
+      ],
+      "description": "Type of listing being drafted"
+    },
+    "title": {
+      "type": "string",
+      "description": "Draft title for display"
+    },
+    "tier": {
+      "type": "string",
+      "description": "Selected tier for the draft"
+    },
+    "last_step": {
+      "type": "number",
+      "description": "Last creation step the user reached"
+    },
+    "data_json": {
+      "type": "string",
+      "description": "Saved listing form data as JSON"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "discarded"
+      ],
+      "default": "active",
+      "description": "Draft status"
+    },
+    "saved_reason": {
+      "type": "string",
+      "description": "Why this draft was saved"
+    }
+  },
+  "required": [
+    "owner_user_id",
+    "listing_type",
+    "data_json",
+    "status"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "data.owner_user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "master"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_master"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.owner_user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "master"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_master"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.owner_user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "master"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_master"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -41,6 +41,7 @@ import { getEventScheduleValidation } from "@/lib/eventSchedule";
 import { buildResolvedListingLocation, isLocationReadyForSubmission, resolveTimeZoneFromCoordinates, getStateAbbreviation } from "@/lib/listingLocation";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
+const DRAFT_RESUME_STORAGE_KEY = "yardit_listing_draft_resume_v1";
 const PAID_LISTING_CHECKOUT_KEY = "yardit_paid_listing_checkout_v1";
 const NEIGHBORHOOD_SETUP_KEY = "yardit_neighborhood_setup_v1";
 const NEIGHBORHOOD_INTRO_HIDE_KEY = "yardit_hide_neighborhood_sale_intro";
@@ -119,6 +120,7 @@ export default function CreateListingPage() {
 
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
+  const [activeDraftId, setActiveDraftId] = useState(null);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showNeighborhoodIntro, setShowNeighborhoodIntro] = useState(false);
   const [geocodeRef, setGeocodeRef] = useState(null);
@@ -229,6 +231,26 @@ export default function CreateListingPage() {
     const requestedStep = getRequestedStep(location.search);
     if (requestedStep) {
       setStep(requestedStep);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("draft") !== "1") return;
+
+    const raw = localStorage.getItem(DRAFT_RESUME_STORAGE_KEY);
+    if (!raw) return;
+
+    try {
+      const draft = JSON.parse(raw);
+      if (!draft?.formData) return;
+      setActiveDraftId(draft.draftId || null);
+      setFormData((prev) => ({ ...prev, ...draft.formData }));
+      setStep(draft.step || (draft.formData.listingType === "event" ? 5 : draft.formData.listingType === "neighborhood_sale" ? 4 : 3));
+      localStorage.removeItem(DRAFT_RESUME_STORAGE_KEY);
+      toast.success("Draft loaded — you can finish where you left off.");
+    } catch {
+      localStorage.removeItem(DRAFT_RESUME_STORAGE_KEY);
     }
   }, [location.search]);
 
@@ -494,6 +516,32 @@ export default function CreateListingPage() {
 
   const getHomeAddressLabel = (a = formData) => a?.selected_geocode_place_name || a?.geocoded_address || [a?.addressText, a?.city, getStateAbbreviation(a?.state || ""), a?.zip].filter(Boolean).join(", ");
 
+  const saveBackedOutDraft = async (sourceFormData, draftStep) => {
+    if (!user?.id || isAdminCreate || !sourceFormData?.listingType) return null;
+
+    const listingType = sourceFormData.listingType;
+    const title = sourceFormData.event_name || sourceFormData.title || (listingType === "event" ? "Event draft" : listingType === "neighborhood_sale" ? "Neighborhood Sale draft" : "Yard Sale draft");
+    const draftData = {
+      owner_user_id: user.id,
+      listing_type: listingType,
+      title,
+      tier: sourceFormData.event_tier || sourceFormData.tier || "",
+      last_step: draftStep,
+      data_json: JSON.stringify(sourceFormData),
+      status: "active",
+      saved_reason: "payment_backed_out",
+    };
+
+    if (activeDraftId) {
+      await base44.entities.ListingDraft.update(activeDraftId, draftData);
+      return activeDraftId;
+    }
+
+    const createdDraft = await base44.entities.ListingDraft.create(draftData);
+    setActiveDraftId(createdDraft.id);
+    return createdDraft.id;
+  };
+
   const confirmSelectedHomeAddress = async () => {
     const selected = pendingHomeAddress || formData;
     if (!selected?.selected_geocode_confirmed || typeof selected?.lat !== "number" || typeof selected?.lng !== "number") {
@@ -720,6 +768,15 @@ export default function CreateListingPage() {
       return listing;
     },
     onSuccess: async (createdListing) => {
+      if (activeDraftId) {
+        try {
+          await base44.entities.ListingDraft.delete(activeDraftId);
+          setActiveDraftId(null);
+        } catch (err) {
+          console.error("Failed to remove completed draft", err);
+        }
+      }
+
       if (createdListing.listingType === "neighborhood_sale") {
         try {
           if (!isAdminCreate && createdListing.organizer_participation !== "organizing_only") {
@@ -1556,10 +1613,13 @@ export default function CreateListingPage() {
       window.history.replaceState({}, "", createPageUrl("CreateListing"));
 
       if (setupState === "cancel") {
-        localStorage.removeItem(NEIGHBORHOOD_SETUP_KEY);
-        setIsStartingPayment(false);
-        setPaymentError("Payment method setup was canceled. Neighborhood Sale was not created.");
-        toast.error("Payment method setup was canceled. Neighborhood Sale was not created.");
+        saveBackedOutDraft(stored.formData, 4).finally(() => {
+          localStorage.removeItem(NEIGHBORHOOD_SETUP_KEY);
+          setIsStartingPayment(false);
+          setPaymentError("Payment method setup was canceled. Your draft was saved.");
+          toast.error("Payment method setup was canceled. Your draft was saved in My Listings.");
+          navigate(createPageUrl("MyListings") + "?tab=drafts");
+        });
         return;
       }
 
@@ -1622,9 +1682,14 @@ export default function CreateListingPage() {
 
       if (paymentState === "cancel") {
         console.log("Return from Stripe cancel");
-        setIsStartingPayment(false);
-        setPaymentError("Payment was canceled. Your listing has not been upgraded or activated as a paid listing.");
-        toast.error("Payment was canceled. Your listing has not been upgraded or activated as a paid listing.");
+        const draftStep = stored.formData?.listingType === "event" ? 5 : 4;
+        saveBackedOutDraft(stored.formData, draftStep).finally(() => {
+          localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
+          setIsStartingPayment(false);
+          setPaymentError("Payment was canceled. Your draft was saved.");
+          toast.error("Payment was canceled. Your draft was saved in My Listings.");
+          navigate(createPageUrl("MyListings") + "?tab=drafts");
+        });
         return;
       }
 

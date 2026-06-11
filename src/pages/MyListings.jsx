@@ -17,6 +17,7 @@ import { normalizeNeighborhoodJoinStatus, deriveNeighborhoodEventState, isWithin
 import { isPubliclyVisibleListing } from "@/lib/listingVisibility";
 import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
 import MyListingCard from "@/components/listing/MyListingCard";
+import ListingDraftCard from "@/components/listing/ListingDraftCard";
 import ResidentialBillingList from "@/components/billing/ResidentialBillingList";
 import { getTransactionListingId, isResidentialTransaction } from "@/components/billing/residentialBillingUtils";
 import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
@@ -26,6 +27,7 @@ import YardSaleGuideModal from "@/components/guide/YardSaleGuideModal";
 import { getPreviewListingsOnMapPreference, setPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
+const DRAFT_RESUME_STORAGE_KEY = "yardit_listing_draft_resume_v1";
 
 export default function MyListingsPage() {
   const navigate = useNavigate();
@@ -105,6 +107,13 @@ export default function MyListingsPage() {
       });
     },
     enabled: !!user,
+    initialData: [],
+  });
+
+  const { data: drafts = [], isLoading: isLoadingDrafts } = useQuery({
+    queryKey: ["myListingDrafts", user?.id],
+    queryFn: () => base44.entities.ListingDraft.filter({ ownerUserId: user.id }, "-updated_date"),
+    enabled: !!user?.id,
     initialData: [],
   });
 
@@ -349,6 +358,19 @@ export default function MyListingsPage() {
   }, [listings, user, queryClient]);
 
   const shownListings = tab === "past" ? pastListings : tab === "pending" ? pendingListings : activeListings;
+
+  const resumeDraft = (draft) => {
+    localStorage.setItem(DRAFT_RESUME_STORAGE_KEY, JSON.stringify(draft));
+    navigate(createPageUrl("CreateListing") + "?draft=1");
+  };
+
+  const deleteDraft = async (draft) => {
+    const ok = window.confirm("Delete this draft?");
+    if (!ok) return;
+    await base44.entities.ListingDraft.delete(draft.id);
+    toast.success("Draft deleted");
+    await queryClient.invalidateQueries({ queryKey: ["myListingDrafts", user?.id] });
+  };
 
   const openEditDescription = async (listing) => {
     setIconPickerOpen(false);
@@ -733,6 +755,7 @@ export default function MyListingsPage() {
           <div className="flex gap-2 flex-wrap rounded-xl border bg-white/70 p-2 shadow-sm max-w-4xl">
             <Button variant={tab === "active" ? "default" : "outline"} onClick={() => setTab("active")}>Active ({activeListings.length})</Button>
             <Button variant={tab === "pending" ? "default" : "outline"} onClick={() => setTab("pending")} className={tab !== "pending" ? "border-yellow-400 text-yellow-700 hover:bg-yellow-50" : ""}>Pending ({pendingListings.length})</Button>
+            <Button variant={tab === "drafts" ? "default" : "outline"} onClick={() => setTab("drafts")} className={tab !== "drafts" ? "border-amber-400 text-amber-700 hover:bg-amber-50" : ""}>Drafts ({drafts.length})</Button>
             <Button variant={tab === "past" ? "default" : "outline"} onClick={() => setTab("past")}>Past Listings ({pastListings.length})</Button>
             <Button variant={tab === "billing" ? "default" : "outline"} onClick={() => setTab("billing")}>Billing / Payments</Button>
           </div>
@@ -758,6 +781,18 @@ export default function MyListingsPage() {
             onBackToListings={() => setTab("active")}
             emptyMessage="Receipts and payment history for your paid listings and Neighborhood Sales will appear here."
           />
+        ) : tab === "drafts" ? (
+          isLoadingDrafts ? (
+            <Card className="rounded-xl border bg-white/80 shadow"><CardContent className="p-12 text-center"><p className="text-slate-500">Loading drafts...</p></CardContent></Card>
+          ) : drafts.length === 0 ? (
+            <Card className="rounded-xl border bg-white/80 shadow"><CardContent className="p-12 text-center"><p className="text-slate-500 mb-4">No saved drafts yet</p><Button onClick={() => navigate(createPageUrl("CreateListing"))} className="bg-amber-600 hover:bg-amber-700 text-white">Create a Listing</Button></CardContent></Card>
+          ) : (
+            <div className="grid gap-4">
+              {drafts.map((draft) => (
+                <ListingDraftCard key={draft.id} draft={draft} onResume={resumeDraft} onDelete={deleteDraft} />
+              ))}
+            </div>
+          )
         ) : isLoading ? (
           <Card className="rounded-xl border bg-white/80 shadow"><CardContent className="p-12 text-center"><p className="text-slate-500">Loading listings...</p></CardContent></Card>
         ) : shownListings.length === 0 ? (
