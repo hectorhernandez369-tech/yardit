@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +31,7 @@ const DRAFT_RESUME_STORAGE_KEY = "yardit_listing_draft_resume_v1";
 
 export default function MyListingsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   const [user, setUser] = useState(null);
@@ -90,6 +91,13 @@ export default function MyListingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const requestedTab = new URLSearchParams(location.search).get("tab");
+    if (["active", "pending", "drafts", "past", "billing"].includes(requestedTab)) {
+      setTab(requestedTab);
+    }
+  }, [location.search]);
+
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ["myListings", user?.id],
     queryFn: async () => {
@@ -112,7 +120,7 @@ export default function MyListingsPage() {
 
   const { data: drafts = [], isLoading: isLoadingDrafts } = useQuery({
     queryKey: ["myListingDrafts", user?.id],
-    queryFn: () => base44.entities.ListingDraft.filter({ ownerUserId: user.id }, "-updated_date"),
+    queryFn: () => base44.entities.ListingDraft.filter({ owner_user_id: user.id, status: "active" }, "-updated_date"),
     enabled: !!user?.id,
     initialData: [],
   });
@@ -360,7 +368,11 @@ export default function MyListingsPage() {
   const shownListings = tab === "past" ? pastListings : tab === "pending" ? pendingListings : activeListings;
 
   const resumeDraft = (draft) => {
-    localStorage.setItem(DRAFT_RESUME_STORAGE_KEY, JSON.stringify(draft));
+    localStorage.setItem(DRAFT_RESUME_STORAGE_KEY, JSON.stringify({
+      draftId: draft.id,
+      step: draft.last_step,
+      formData: JSON.parse(draft.data_json || "{}"),
+    }));
     navigate(createPageUrl("CreateListing") + "?draft=1");
   };
 

@@ -11,7 +11,7 @@ const typeLabels = {
 
 function getDraftSummary(draft) {
   try {
-    const data = JSON.parse(draft.draftData || "{}");
+    const data = JSON.parse(draft.data_json || "{}");
     return [data.city, data.state, data.zip].filter(Boolean).join(", ");
   } catch {
     return "";
@@ -20,7 +20,8 @@ function getDraftSummary(draft) {
 
 export default function ListingDraftCard({ draft, onResume, onDelete }) {
   const summary = getDraftSummary(draft);
-  const title = draft.title || `${typeLabels[draft.listingType] || "Listing"} Draft`;
+  const listingType = draft.listing_type || "yard_sale";
+  const title = draft.title || `${typeLabels[listingType] || "Listing"} Draft`;
 
   return (
     <Card className="rounded-xl border bg-white/85 shadow-sm">
@@ -37,7 +38,7 @@ export default function ListingDraftCard({ draft, onResume, onDelete }) {
               </span>
             </div>
             <p className="text-sm text-slate-500 mt-1">
-              {typeLabels[draft.listingType] || "Listing"}{summary ? ` • ${summary}` : ""}
+              {typeLabels[listingType] || "Listing"}{summary ? ` • ${summary}` : ""}
             </p>
           </div>
         </div>

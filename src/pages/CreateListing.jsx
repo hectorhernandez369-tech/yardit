@@ -110,6 +110,24 @@ function getOpenHoursError(data) {
   return "";
 }
 
+function getTodayYmd() {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+function hasPastSelectedDates(data) {
+  const today = getTodayYmd();
+  return Boolean(
+    (data?.selectedRangeStartDate && data.selectedRangeStartDate < today) ||
+    (data?.selectedRangeEndDate && data.selectedRangeEndDate < today)
+  );
+}
+
+function hasResidentialDraftContent(data) {
+  if (!["yard_sale", "neighborhood_sale"].includes(data?.listingType)) return false;
+  return Boolean(data.title || data.description || data.addressText || data.selectedRangeStartDate || data.selectedRangeEndDate || data.categories?.length || data.category);
+}
 
 export default function CreateListingPage() {
   const navigate = useNavigate();
@@ -248,7 +266,11 @@ export default function CreateListingPage() {
       setFormData((prev) => ({ ...prev, ...draft.formData }));
       setStep(draft.step || (draft.formData.listingType === "event" ? 5 : draft.formData.listingType === "neighborhood_sale" ? 4 : 3));
       localStorage.removeItem(DRAFT_RESUME_STORAGE_KEY);
-      toast.success("Draft loaded — you can finish where you left off.");
+      if (hasPastSelectedDates(draft.formData)) {
+        toast.warning("This draft has dates that have already passed. Please choose new dates before publishing.");
+      } else {
+        toast.success("Draft loaded — you can finish where you left off.");
+      }
     } catch {
       localStorage.removeItem(DRAFT_RESUME_STORAGE_KEY);
     }
@@ -529,7 +551,7 @@ export default function CreateListingPage() {
       last_step: draftStep,
       data_json: JSON.stringify(sourceFormData),
       status: "active",
-      saved_reason: "payment_backed_out",
+      saved_reason: "in_progress",
     };
 
     if (activeDraftId) {
@@ -541,6 +563,16 @@ export default function CreateListingPage() {
     setActiveDraftId(createdDraft.id);
     return createdDraft.id;
   };
+
+  useEffect(() => {
+    if (!user?.id || isAdminCreate || !hasResidentialDraftContent(formData)) return;
+
+    const timeoutId = window.setTimeout(() => {
+      saveBackedOutDraft(formData, step).catch(() => {});
+    }, 900);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [formData, step, user?.id, isAdminCreate]);
 
   const confirmSelectedHomeAddress = async () => {
     const selected = pendingHomeAddress || formData;
@@ -1382,6 +1414,11 @@ export default function CreateListingPage() {
           non_refund_disclosure_text: nonRefundFields.non_refund_disclosure_text,
         });
 
+        if (activeDraftId) {
+          await base44.entities.ListingDraft.delete(activeDraftId);
+          setActiveDraftId(null);
+        }
+
         setIsStartingPayment(false);
         toast.success("🎉 Free promo applied! Your listing is live.");
         queryClient.invalidateQueries({ queryKey: ["listings"] });
@@ -1453,6 +1490,11 @@ export default function CreateListingPage() {
         (!userHasVerifiedPrimaryAddress || typeof (user?.primary_latitude ?? user?.address_lat) !== "number" || typeof (user?.primary_longitude ?? user?.address_lng) !== "number")) {
       toast.error("Please confirm your home address before publishing.");
       setStep(2);
+      return;
+    }
+
+    if (["yard_sale", "neighborhood_sale"].includes(formData.listingType) && hasPastSelectedDates(formData)) {
+      toast.error("The selected dates have already passed. Please choose new dates before publishing.");
       return;
     }
 
