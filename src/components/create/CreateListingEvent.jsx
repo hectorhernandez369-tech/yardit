@@ -58,7 +58,7 @@ export default function CreateListingEvent({
     return (
       <ResidentialPaymentStep
         tier={formData.event_tier}
-        amount={(eventTierPrices[formData.event_tier] || 0) / 100}
+        amount={eventTierPrices[formData.event_tier] || 0}
         listing={formData}
         isDemoMode={isGlobalDemoMode}
         isProcessing={isStartingPayment}
