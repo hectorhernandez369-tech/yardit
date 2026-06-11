@@ -85,6 +85,7 @@ const AuthenticatedApp = () => {
             />
           )}
           <Route path="/ComingSoon" element={<ComingSoon />} />
+          <Route path="/events" element={<Events />} />
           <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
         </Routes>
       </>
