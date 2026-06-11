@@ -400,7 +400,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      if (isTerminalSale(sale)) {
+      if (isTerminalSale(sale) || sale.status === 'draft') {
         await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {
           status: 'cancelled',
           processed_at: now.toISOString(),

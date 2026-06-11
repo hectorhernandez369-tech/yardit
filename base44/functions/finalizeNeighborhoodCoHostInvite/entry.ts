@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const payload = await req.json().catch(() => ({}));
     const listing = payload.data || {};
 
-    if (payload.event?.type !== 'create' || listing.listingType !== 'neighborhood_sale' || !listing.co_host_user_id || listing.co_host_status !== 'pending') {
+    if (payload.event?.type !== 'create' || listing.status === 'draft' || listing.listingType !== 'neighborhood_sale' || !listing.co_host_user_id || listing.co_host_status !== 'pending') {
       return Response.json({ success: true, skipped: true });
     }
 

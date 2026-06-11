@@ -28,6 +28,9 @@ Deno.serve(async (req) => {
 
     const sales = await base44.asServiceRole.entities.Listing.filter({ id: joinRequest.saleListingId }, '-created_date', 1);
     const sale = sales?.[0] || null;
+    if (!sale || sale.status === 'draft') {
+      return Response.json({ skipped: true, reason: 'Sale is not joinable' });
+    }
 
     const users = await base44.asServiceRole.entities.User.filter({ id: joinRequest.requesterUserId }, '-created_date', 1);
     const requester = users?.[0] || null;

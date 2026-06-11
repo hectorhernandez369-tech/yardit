@@ -119,6 +119,11 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      if (['draft', 'pending_payment', 'payment_pending'].includes(currentStatus)) {
+        skipped.push({ id: listing.id, reason: `non_public_pending_status:${currentStatus}` });
+        continue;
+      }
+
       if (['canceled', 'cancelled', 'closed', 'completed', 'suspended', 'under_review', 'hidden'].includes(currentStatus)) {
         skipped.push({ id: listing.id, reason: `terminal_status:${currentStatus}` });
         continue;

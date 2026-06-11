@@ -17,6 +17,10 @@ Deno.serve(async (req) => {
 
     const sessionId = listing?.stripe_checkout_session_id || listing?.pending_checkout_session_id || '';
 
+    if (listing?.status === 'draft') {
+      return Response.json({ ok: true, linked: 0, reason: 'Draft listing skipped' });
+    }
+
     if (!listing?.id || !sessionId) {
       return Response.json({ ok: true, linked: 0, reason: 'No paid listing session to link' });
     }

@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
     }
 
     const sale = await getSale(base44, saleListingId);
-    if (!sale || sale.listingType !== 'neighborhood_sale') {
+    if (!sale || sale.listingType !== 'neighborhood_sale' || sale.status === 'draft') {
       return Response.json({ error: 'Neighborhood Sale not found.' }, { status: 404 });
     }
 

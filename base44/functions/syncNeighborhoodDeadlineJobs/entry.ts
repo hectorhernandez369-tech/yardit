@@ -46,6 +46,10 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, skipped: 'missing_listing_id' });
     }
 
+    if (listing?.status === 'draft') {
+      return Response.json({ success: true, skipped: 'draft_listing' });
+    }
+
     const existingJobs = await base44.asServiceRole.entities.NeighborhoodDeadlineJob.filter({ sale_listing_id: saleListingId });
 
     if (event?.type === 'delete' || isTerminalState(data || oldData) || !listing?.startDateTime) {

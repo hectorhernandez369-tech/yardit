@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
     const updates = [];
 
     for (const listing of listings) {
+      if (listing.status === 'draft') continue;
       const requests = await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId: listing.id });
       const approvedHomes = Math.min(NEIGHBORHOOD_MAX_HOMES, getApprovedHomesCount(requests, listing));
       const nextEventState = deriveNeighborhoodEventState({ ...listing, homeCount: approvedHomes }, now);
