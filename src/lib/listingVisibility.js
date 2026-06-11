@@ -13,17 +13,21 @@ const TERMINAL_HIDDEN_STATUSES = new Set([
   "completed",
 ]);
 
+const NON_PUBLIC_DRAFT_STATUSES = new Set([
+  "draft",
+  "pending_payment",
+  "payment_pending",
+]);
+
 const OWNER_PREVIEW_STATUSES = new Set([
   "active",
   "scheduled",
   "upcoming",
   "coming_soon",
   "pending",
-  "draft",
   "under_review",
   "collecting_participants",
   "ready_for_payment",
-  "payment_pending",
   "payment_pending_adjustment",
   "activated",
   "activated_locked",
@@ -221,6 +225,7 @@ export function getListingPublicVisibilityDecision(listing, context = {}) {
   };
 
   if (!listing) return { ...base, reason: "missing_listing" };
+  if (NON_PUBLIC_DRAFT_STATUSES.has(listing?.status)) return { ...base, reason: "draft_or_payment_pending_hidden" };
   if (isTerminalHidden(listing, now)) return { ...base, reason: "terminal_or_expired" };
   if (!hasValidCoordinates(listing)) return { ...base, reason: "missing_valid_coordinates" };
 
@@ -288,6 +293,7 @@ export function getListingOwnerPreviewDecision(listing, currentUser, context = {
 
   if (!listing) return { ...base, reason: "missing_listing" };
   if (!isListingOwnedByUser(listing, currentUser)) return { ...base, reason: "not_listing_owner" };
+  if (listing?.status === "draft") return { ...base, reason: "drafts_only_visible_in_my_listings" };
   if (isTerminalHidden(listing, now)) return { ...base, reason: "terminal_or_expired" };
   if (!hasValidCoordinates(listing)) return { ...base, reason: "missing_valid_coordinates" };
   if (!listing.listingType) return { ...base, reason: "missing_listing_type" };

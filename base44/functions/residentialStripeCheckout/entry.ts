@@ -44,6 +44,11 @@ async function validateResidentialCheckoutDates(base44, payload, currentUser, ex
   const endDate = payload.selected_range_end_date || payload.selectedRangeEndDate;
   if (!startDate || !endDate) return { ok: false, error: 'Missing selected date range' };
 
+  const today = new Date().toISOString().slice(0, 10);
+  if (startDate < today || endDate < today) {
+    return { ok: false, error: 'The selected dates have already passed. Please choose new dates before checkout.' };
+  }
+
   const ref = {
     addressText: payload.address_text || payload.addressText || currentUser?.primary_address || currentUser?.street_address || '',
     zip: payload.zip || currentUser?.zip_code || '',

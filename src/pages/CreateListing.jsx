@@ -264,11 +264,12 @@ export default function CreateListingPage() {
       if (!draft?.formData) return;
       setActiveDraftId(draft.draftId || null);
       setFormData((prev) => ({ ...prev, ...draft.formData }));
-      setStep(draft.step || (draft.formData.listingType === "event" ? 5 : draft.formData.listingType === "neighborhood_sale" ? 4 : 3));
       localStorage.removeItem(DRAFT_RESUME_STORAGE_KEY);
       if (hasPastSelectedDates(draft.formData)) {
-        toast.warning("This draft has dates that have already passed. Please choose new dates before publishing.");
+        setStep(draft.formData.listingType === "event" ? 3 : 3);
+        toast.warning("This draft has dates that have already passed. Please choose new dates before continuing.");
       } else {
+        setStep(draft.step || (draft.formData.listingType === "event" ? 5 : draft.formData.listingType === "neighborhood_sale" ? 4 : 3));
         toast.success("Draft loaded — you can finish where you left off.");
       }
     } catch {
@@ -1494,7 +1495,8 @@ export default function CreateListingPage() {
     }
 
     if (["yard_sale", "neighborhood_sale"].includes(formData.listingType) && hasPastSelectedDates(formData)) {
-      toast.error("The selected dates have already passed. Please choose new dates before publishing.");
+      setStep(3);
+      toast.error("The selected dates have already passed. Please choose new dates before continuing.");
       return;
     }
 
