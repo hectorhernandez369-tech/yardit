@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const [user, setUser] = useState(null);
   const [hasVendorAccount, setHasVendorAccount] = useState(false);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
+  const [installDialogMode, setInstallDialogMode] = useState("ios");
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [canInstallApp, setCanInstallApp] = useState(false);
   const [startupPage, setStartupPage] = useState(() => localStorage.getItem(STARTUP_PAGE_KEY) || "map");
@@ -55,6 +56,7 @@ export default function SettingsPage() {
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault();
       setDeferredInstallPrompt(event);
+      setCanInstallApp(true);
     };
 
     const handleInstalled = () => {
@@ -75,15 +77,20 @@ export default function SettingsPage() {
 
   const handleInstallClick = async () => {
     if (isIosDevice()) {
+      setInstallDialogMode("ios");
       setShowInstallDialog(true);
       return;
     }
 
-    if (!deferredInstallPrompt) return;
+    if (deferredInstallPrompt) {
+      await deferredInstallPrompt.prompt();
+      setDeferredInstallPrompt(null);
+      setCanInstallApp(false);
+      return;
+    }
 
-    await deferredInstallPrompt.prompt();
-    setDeferredInstallPrompt(null);
-    setCanInstallApp(false);
+    setInstallDialogMode("fallback");
+    setShowInstallDialog(true);
   };
 
   if (!user) {
@@ -207,7 +214,7 @@ export default function SettingsPage() {
         </Card>
         </div>
 
-        <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} />
+        <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} mode={installDialogMode} />
       </div>
     </div>
   );

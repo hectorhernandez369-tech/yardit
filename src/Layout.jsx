@@ -82,6 +82,7 @@ function LayoutContent({ children, user, setUser }) {
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault();
       setDeferredInstallPrompt(event);
+      setCanInstallApp(true);
     };
 
     const handleInstalled = () => {
@@ -171,6 +172,18 @@ function LayoutContent({ children, user, setUser }) {
                 <ClipboardList className="w-4 h-4" />
                 <span className="hidden sm:inline">Checklist</span>
               </Button>
+
+              {canInstallApp && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleInstallClick}
+                  className="gap-2 text-white hover:bg-white/10"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Install App</span>
+                </Button>
+              )}
 
               <Link to={createPageUrl("Home")}>
                 <Button
