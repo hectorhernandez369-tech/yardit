@@ -158,6 +158,14 @@ function isResidentialOpenNow(listing, now = new Date()) {
 }
 
 export function isPremiumComingSoonPublicListing(listing, now = new Date()) {
+  if (listing?.listingType === "event") {
+    if (!hasValidCoordinates(listing) || isTerminalHidden(listing, now) || !hasPublicPayment(listing)) return false;
+    const start = listing?.startDateTime ? new Date(listing.startDateTime) : null;
+    if (!start || Number.isNaN(start.getTime()) || now >= start) return false;
+    const earlyStart = listing?.coming_soon_start_date ? new Date(`${listing.coming_soon_start_date}T00:00:00`) : null;
+    return !!earlyStart && !Number.isNaN(earlyStart.getTime()) && now >= earlyStart;
+  }
+
   const tier = getEffectiveTier(listing);
   if (!COMING_SOON_TIERS.has(tier)) return false;
   if (!hasValidCoordinates(listing) || isTerminalHidden(listing, now) || !hasPublicPayment(listing)) return false;

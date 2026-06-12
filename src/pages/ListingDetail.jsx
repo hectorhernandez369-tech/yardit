@@ -35,6 +35,7 @@ import {
 } from "@/components/listing/listingDetailContent";
 import SaveListingButton from "@/components/listing/SaveListingButton";
 import ListingPhotoGallery from "@/components/listing/ListingPhotoGallery";
+import EventFlyerDisplay from "@/components/listing/EventFlyerDisplay";
 import ListingShareButton from "@/components/listing/ListingShareButton";
 import NeighborhoodSalePanel from "@/components/listing/NeighborhoodSalePanel";
 import ResidentialBillingList from "@/components/billing/ResidentialBillingList";
@@ -299,9 +300,9 @@ export default function ListingDetailPage() {
         const basePhotos = listing?.listingType === "event"
           ? (listing?.event_photos || listing?.photoUrls || [])
           : (listing?.photoUrls || listing?.event_photos || []);
-        return [listing?.event_flyer_url, listing?.marquee_flyer_url].filter(Boolean).concat(basePhotos).filter(Boolean);
+        return (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(basePhotos).filter(Boolean);
       })();
-      const mainImage = listingImages[0];
+      const mainImage = listing.event_flyer_url || listingImages[0];
 
       if (mainImage) {
         document.title = shareTitle;
@@ -388,9 +389,9 @@ export default function ListingDetailPage() {
       ? (listing?.event_photos || listing?.photoUrls || [])
       : (listing?.photoUrls || listing?.event_photos || []);
 
-    return [listing?.event_flyer_url, listing?.marquee_flyer_url].filter(Boolean).concat(basePhotos).filter(Boolean);
+    return (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(basePhotos).filter(Boolean);
   })();
-  const mainImage = listingImages[selectedImageIndex] || listingImages[0];
+  const mainImage = listing.event_flyer_url || listingImages[selectedImageIndex] || listingImages[0];
   const listingUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing.id}`;
   const shareTitle = listing.event_name || listing.title;
   return (
@@ -432,6 +433,10 @@ export default function ListingDetailPage() {
         <Card className="overflow-hidden rounded-[2rem] border-0 bg-white/95 shadow-[0_18px_60px_rgba(15,23,42,0.10)]">
           <CardContent className="space-y-8 p-4 sm:p-6 md:p-8">
             <div className="space-y-5">
+              {listing?.listingType === "event" && listing?.event_flyer_url && (
+                <EventFlyerDisplay flyerUrl={listing.event_flyer_url} title={shareTitle} />
+              )}
+
               {listingImages.length > 0 && (
                 <ListingPhotoGallery
                   images={listingImages}

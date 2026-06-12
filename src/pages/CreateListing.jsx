@@ -1390,6 +1390,13 @@ export default function CreateListingPage() {
       payload.pricePaid = Number(getResidentialEventPriceBreakdown(payload).total || 0) / 100;
     }
 
+    if (actionStr === "paid_success_pending_link" && payload.listingType === "event") {
+      payload.status = "active";
+      payload.payment_status = "pending";
+      payload.pending_checkout_session_id = sourceFormData.pending_checkout_session_id || "";
+      payload.payment_intent_status = sourceFormData.payment_intent_status || "hold_requested";
+    }
+
     if (actionStr === "paid_success_pending_link" && ["featured", "premium"].includes(payload.tier) && payload.listingType !== "event") {
       payload.status = "pending_payment";
       payload.payment_status = "pending";

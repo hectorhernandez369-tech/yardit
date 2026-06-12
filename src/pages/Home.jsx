@@ -198,6 +198,12 @@ const createIcon = (type, tier, isSelected, location) => {
   return getCachedIcon(key, buildPinSvg(fill, stroke, finalStrokeWidth, finalSize, opacity), finalSize);
 };
 
+function isMarqueeListing(listing) {
+  if (!listing) return false;
+  if (listing.listingType === "event" && listing.event_add_ons?.marquee === true) return true;
+  return (listing.event_tier || listing.tier) === "marquee";
+}
+
 function MapController({ center, zoom, onUserMove, onZoomChange, onMapReady }) {
   const map = useMap();
   const lastProgrammaticMove = useRef(null);
@@ -909,7 +915,7 @@ export default function HomePage() {
   }, [showControls]);
 
   const handlePinClick = (listing) => {
-    if ((listing?.event_tier || listing?.tier) === "marquee") {
+    if (isMarqueeListing(listing)) {
       if (currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM) {
         setOpenMarqueeIds((prev) => {
           const cur = prev[listing.id];
@@ -947,7 +953,7 @@ export default function HomePage() {
       const isPreview = listing.mapState === "preview";
       const isComingSoon = listing.mapState === "coming_soon";
       const isActive = listing.mapState === "active";
-      const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
+      const isMarquee = isMarqueeListing(listing);
 
       if (isPreview) {
         pins.push(listing);
@@ -1106,7 +1112,7 @@ export default function HomePage() {
 
     return visiblePins.filter(
       (listing) => {
-        const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
+        const isMarquee = isMarqueeListing(listing);
         if (!isMarquee) return false;
 
         const marqueeState = openMarqueeIds[listing.id];
@@ -1136,7 +1142,7 @@ export default function HomePage() {
 
       const overlapped = currentVisibleCandidates.filter((l) => {
         if (l.id === marquee.id) return false;
-        const isOtherMarquee = (l?.event_tier || l?.tier) === "marquee";
+        const isOtherMarquee = isMarqueeListing(l);
         if (isOtherMarquee) return false; // don't count marquees
         if (typeof l.lat !== "number" || typeof l.lng !== "number") return false;
 
@@ -1349,7 +1355,7 @@ export default function HomePage() {
               {visiblePins.map((listing) => {
               if (hiddenByMarqueeIds.has(listing.id)) return null;
 
-              const isMarquee = (listing?.event_tier || listing?.tier) === "marquee";
+              const isMarquee = isMarqueeListing(listing);
               if (isMarquee && currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM && openMarqueeIds[listing.id] !== false) return null;
 
               const isHuntStop = huntStops.some((loc) => loc.id === listing.id);
