@@ -135,7 +135,7 @@ export default function ReviewPayContent({
 
       {resolvedBenefits.length > 0 && (
         <div className="rounded-2xl border border-[#F4A849]/40 bg-[#FFF7E8] p-4 shadow-sm">
-          <h3 className="text-sm font-bold text-[#2C4F4E]">Tier Summary</h3>
+          <h3 className="text-sm font-bold text-[#2C4F4E]">Included Benefits</h3>
           <ul className="mt-3 grid gap-2 sm:grid-cols-2">
             {resolvedBenefits.map((benefit) => (
               <li key={benefit} className="flex gap-2 text-sm text-slate-700">

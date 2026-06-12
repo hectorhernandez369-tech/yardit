@@ -1,62 +1,52 @@
 import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { getEventScheduleValidation, getNormalizedEventSchedule } from "@/lib/eventSchedule";
+import { getEventScheduleValidation, getNormalizedEventSchedule, shiftDate } from "@/lib/eventSchedule";
 
 export default function EventScheduleStep({ formData, setFormData }) {
   const schedule = getNormalizedEventSchedule(formData);
   const validation = getEventScheduleValidation(formData);
 
   const updateSchedule = (changes) => {
-    const nextFormData = { ...formData, ...changes };
+    const startDate = changes.event_start_date || formData.event_start_date || schedule.eventStartDate;
+    const nextFormData = { ...formData, ...changes, event_end_date: startDate };
     const nextSchedule = getNormalizedEventSchedule(nextFormData);
 
-    setFormData((prev) => ({
-      ...prev,
-      ...changes,
-      event_start_date: nextSchedule.eventStartDate,
-      event_end_date: nextSchedule.eventEndDate,
-      event_start_time: nextSchedule.eventStartTime,
-      event_end_time: nextSchedule.eventEndTime,
-      coming_soon_start_date: nextSchedule.comingSoonStartDate,
-      start_datetime: nextSchedule.startLocal,
-      end_datetime: nextSchedule.endLocal,
-      startDateTime: nextSchedule.startLocal,
-      endDateTime: nextSchedule.endLocal,
-    }));
+    setFormData((prev) => {
+      const comingSoonDays = Number(prev.coming_soon_package || 0);
+      return {
+        ...prev,
+        ...changes,
+        event_start_date: nextSchedule.eventStartDate,
+        event_end_date: nextSchedule.eventStartDate,
+        event_start_time: nextSchedule.eventStartTime,
+        event_end_time: nextSchedule.eventEndTime,
+        coming_soon_start_date: comingSoonDays && nextSchedule.eventStartDate ? shiftDate(nextSchedule.eventStartDate, -comingSoonDays) : prev.coming_soon_start_date || "",
+        start_datetime: nextSchedule.startLocal,
+        end_datetime: nextSchedule.endLocal,
+        startDateTime: nextSchedule.startLocal,
+        endDateTime: nextSchedule.endLocal,
+      };
+    });
   };
 
   return (
     <div className="space-y-6">
-      {/* Live Event Schedule */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
         <div>
-          <h4 className="text-sm font-semibold text-slate-800">Live Event Schedule *</h4>
-          <p className="text-xs text-slate-400 mt-0.5">Your live event can run for up to 5 days total.</p>
+          <h4 className="text-sm font-semibold text-slate-800">Event Schedule *</h4>
+          <p className="text-xs text-slate-400 mt-0.5">Residential Events are limited to one calendar day.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="event_start_date" className="text-xs font-semibold text-slate-600">Start Date *</Label>
-            <Input
-              id="event_start_date"
-              type="date"
-              value={schedule.eventStartDate}
-              onChange={(e) => updateSchedule({ event_start_date: e.target.value })}
-              className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-10"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="event_end_date" className="text-xs font-semibold text-slate-600">End Date *</Label>
-            <Input
-              id="event_end_date"
-              type="date"
-              value={schedule.eventEndDate}
-              min={schedule.eventStartDate || undefined}
-              onChange={(e) => updateSchedule({ event_end_date: e.target.value })}
-              className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-10"
-            />
-          </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="event_start_date" className="text-xs font-semibold text-slate-600">Event Date *</Label>
+          <Input
+            id="event_start_date"
+            type="date"
+            value={schedule.eventStartDate}
+            onChange={(e) => updateSchedule({ event_start_date: e.target.value })}
+            className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-10"
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -83,23 +73,8 @@ export default function EventScheduleStep({ formData, setFormData }) {
         </div>
       </div>
 
-      {/* Coming Soon (optional) */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
-        <div>
-          <h4 className="text-sm font-semibold text-slate-800">Coming Soon <span className="text-slate-400 font-normal">(optional)</span></h4>
-          <p className="text-xs text-slate-400 mt-0.5">Start promoting up to 3 days before your live event begins.</p>
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-600">Coming Soon Start Date</Label>
-          <Input
-            type="date"
-            value={schedule.comingSoonStartDate}
-            min={schedule.eventStartDate ? schedule.comingSoonEarliestDate : undefined}
-            max={schedule.eventStartDate || undefined}
-            onChange={(e) => updateSchedule({ coming_soon_start_date: e.target.value })}
-            className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl h-10"
-          />
-        </div>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        Multi-day events require Vendor Events or Event Organizer tools.
       </div>
 
       {validation.errors.length > 0 && (

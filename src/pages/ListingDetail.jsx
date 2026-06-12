@@ -299,7 +299,7 @@ export default function ListingDetailPage() {
         const basePhotos = listing?.listingType === "event"
           ? (listing?.event_photos || listing?.photoUrls || [])
           : (listing?.photoUrls || listing?.event_photos || []);
-        return (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(basePhotos).filter(Boolean);
+        return [listing?.event_flyer_url, listing?.marquee_flyer_url].filter(Boolean).concat(basePhotos).filter(Boolean);
       })();
       const mainImage = listingImages[0];
 
@@ -388,7 +388,7 @@ export default function ListingDetailPage() {
       ? (listing?.event_photos || listing?.photoUrls || [])
       : (listing?.photoUrls || listing?.event_photos || []);
 
-    return (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(basePhotos).filter(Boolean);
+    return [listing?.event_flyer_url, listing?.marquee_flyer_url].filter(Boolean).concat(basePhotos).filter(Boolean);
   })();
   const mainImage = listingImages[selectedImageIndex] || listingImages[0];
   const listingUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing.id}`;
@@ -618,7 +618,7 @@ export default function ListingDetailPage() {
               paidAmount={neighborhoodPaidAmount}
             />
 
-            {isAdminViewer && ["yard_sale", "neighborhood_sale"].includes(listing.listingType) && (
+            {isAdminViewer && ["yard_sale", "neighborhood_sale", "event"].includes(listing.listingType) && (
               <ResidentialBillingList
                 transactions={listingBillingTransactions}
                 listings={[listing]}

@@ -28,8 +28,15 @@ export function haversineDistanceMiles(lat1, lng1, lat2, lng2) {
 // ---------------------------------------------------------------------------
 function getTierPriority(listing) {
   if (listing?.listingType === "event" || listing?.is_vendor_event) {
-    const t = listing?.event_tier || listing?.tier;
-    return { marquee: 1, premium: 2, featured: 3, basic: 4 }[t] ?? 4;
+    const eventAddOns = !listing?.is_vendor_event ? (listing?.event_add_ons || {}) : {};
+    const t = listing?.is_vendor_event
+      ? (listing?.event_tier || listing?.tier)
+      : eventAddOns.marquee
+      ? "marquee"
+      : eventAddOns.premium_visibility
+      ? "premium"
+      : "featured";
+    return { marquee: 1, premium: 2, featured: 3, event: 3, basic: 4 }[t] ?? 4;
   }
   if (listing?.listingType === "neighborhood_sale") return 5;
   return { premium: 6, featured: 7, basic: 8, free: 9 }[listing?.tier] ?? 9;
@@ -230,7 +237,14 @@ export function buildListViewResults({
     // Tier filter
     if (!showAll) {
       const t = l.tier || "free";
-      const eventT = l.event_tier || l.tier || "basic";
+      const eventAddOns = !l.is_vendor_event ? (l.event_add_ons || {}) : {};
+      const eventT = l.is_vendor_event
+        ? (l.event_tier || l.tier || "basic")
+        : eventAddOns.marquee
+        ? "marquee"
+        : eventAddOns.premium_visibility
+        ? "premium"
+        : "featured";
       const effectiveTier = (l.listingType === "event" || l.is_vendor_event) ? eventT : t;
       if (!tiers.includes(effectiveTier)) return false;
     }

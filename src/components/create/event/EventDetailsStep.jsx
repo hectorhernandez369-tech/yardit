@@ -5,15 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EVENT_CATEGORIES, getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
-import { getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
-import EventPhotoUpload from "./EventPhotoUpload";
 
 export default function EventDetailsStep({ formData, setFormData }) {
   const setListingType = (value) => {
     setFormData((prev) => ({
       ...prev,
       listingType: value,
-      ...(value === "event" ? { tier: "basic", event_tier: "basic" } : {}),
+      ...(value === "event" ? { tier: "event", event_tier: "event", event_add_ons: prev.event_add_ons || {} } : {}),
       ...(value === "neighborhood_sale" ? { categories: [], category: "Neighborhood Sale", description: "" } : {}),
     }));
   };
@@ -27,7 +25,7 @@ export default function EventDetailsStep({ formData, setFormData }) {
           {[
             { value: "yard_sale", title: "Yard Sale", description: "Individual residential sale" },
             { value: "neighborhood_sale", title: "Neighborhood Sale", description: "Up to 25 homes within a 500 ft radius" },
-            { value: "event", title: "Event", description: "Sports, pop-ups, food, auto, community, and more" },
+            { value: "event", title: "Event", description: "Church, school, fundraiser, charity, community, holiday, family, and sports events" },
           ].map((option) => {
             const selected = formData.listingType === option.value;
             return (
@@ -89,14 +87,8 @@ export default function EventDetailsStep({ formData, setFormData }) {
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-slate-400">Your event icon is auto-selected by category. Manage it later from My Listings.</p>
+        <p className="text-xs text-slate-400">Your default graphic icon is selected by category. You can replace it with the Custom Icon add-on later.</p>
       </div>
-
-      <EventPhotoUpload
-        value={formData.event_photos || []}
-        maxPhotos={getPhotoLimitByTier(formData.event_tier || formData.tier || "basic")}
-        onChange={(photos) => setFormData((prev) => ({ ...prev, event_photos: photos, photoUrls: photos }))}
-      />
     </div>
   );
 }

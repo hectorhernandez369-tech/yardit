@@ -1,45 +1,230 @@
-import React from "react";
-import { Card } from "@/components/ui/card";
-import { EVENT_TIERS } from "@/lib/eventListingConfig";
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Loader2, Minus, Plus, Upload, X } from "lucide-react";
+import EventPhotoUpload from "./EventPhotoUpload";
+import MarqueeSlotsEditor from "./MarqueeSlotsEditor";
+import EventIconManager from "@/components/events/EventIconManager";
+import { shiftDate } from "@/lib/eventSchedule";
+import {
+  RESIDENTIAL_EVENT_ADD_ONS,
+  RESIDENTIAL_EVENT_COMING_SOON_PACKAGES,
+  getResidentialEventPriceBreakdown,
+} from "@/lib/eventListingConfig";
 
-export default function EventTierStep({ formData, setFormData }) {
+const money = (cents) => `$${(Number(cents || 0) / 100).toFixed(2)}`;
+
+function AddOnCard({ id, title, price, description, selected, onToggle, children }) {
   return (
-    <div className="space-y-4">
-      <div className="mb-2">
-        <h3 className="text-sm font-semibold text-slate-800">Choose Visibility</h3>
-        <p className="text-xs text-slate-400 mt-0.5">Pick how prominently your event appears on the map.</p>
+    <div className={`rounded-xl border p-4 transition-all ${selected ? "border-[#006168] bg-[#e6f3f4] ring-2 ring-[#006168]/15" : "border-slate-200 bg-white"}`}>
+      <button type="button" onClick={() => onToggle(!selected)} className="w-full text-left flex items-start justify-between gap-3">
+        <div>
+          <h4 className="font-semibold text-slate-800">{title}</h4>
+          <p className="text-sm text-slate-500 mt-1">{description}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-sm font-bold text-[#006168]">{money(price)}</div>
+          <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${selected ? "bg-[#006168] text-white" : "bg-slate-100 text-slate-500"}`}>
+            {selected ? "Added" : "Add"}
+          </span>
+        </div>
+      </button>
+      {selected && children && <div className="mt-4 pt-4 border-t border-[#006168]/15">{children}</div>}
+    </div>
+  );
+}
+
+export default function EventAddOnsStep({ formData, setFormData }) {
+  const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
+  const addOns = formData.event_add_ons || {};
+  const breakdown = getResidentialEventPriceBreakdown(formData);
+
+  const updateAddOns = (changes) => {
+    setFormData((prev) => ({
+      ...prev,
+      tier: "event",
+      event_tier: "event",
+      event_add_ons: { ...(prev.event_add_ons || {}), ...changes },
+    }));
+  };
+
+  const handleFlyerUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingFlyer(true);
+    try {
+      const result = await base44.integrations.Core.UploadFile({ file });
+      setFormData((prev) => ({ ...prev, event_flyer_url: result.file_url, event_add_ons: { ...(prev.event_add_ons || {}), flyer_upload: true } }));
+    } finally {
+      setIsUploadingFlyer(false);
+      event.target.value = "";
+    }
+  };
+
+  const setComingSoonPackage = (packageKey) => {
+    const selected = String(formData.coming_soon_package || "") === packageKey;
+    const nextPackage = selected ? "" : packageKey;
+    const days = RESIDENTIAL_EVENT_COMING_SOON_PACKAGES[nextPackage]?.days;
+    setFormData((prev) => ({
+      ...prev,
+      coming_soon_package: nextPackage,
+      coming_soon_start_date: days && prev.event_start_date ? shiftDate(prev.event_start_date, -days) : "",
+    }));
+  };
+
+  const setPhotoCount = (nextCount) => {
+    const count = Math.max(1, Math.min(10, Number(nextCount || 1)));
+    setFormData((prev) => ({
+      ...prev,
+      event_photo_gallery_count: count,
+      event_photos: (prev.event_photos || []).slice(0, count),
+      photoUrls: (prev.event_photos || []).slice(0, count),
+      event_add_ons: { ...(prev.event_add_ons || {}), photo_gallery: true },
+    }));
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-[#006168]/20 bg-[#e6f3f4] p-4">
+        <h3 className="text-sm font-semibold text-slate-800">Base Event Included — $9.99</h3>
+        <p className="text-sm text-slate-600 mt-1">Includes an event detail page, featured-level visibility, basic event card, standard category icon, event map pin, and one-day event listing.</p>
       </div>
 
-      <div className="grid gap-3">
-        {EVENT_TIERS.map((tier) => {
-          const selected = (formData.event_tier || "basic") === tier.value;
-          return (
-            <div
-              key={tier.value}
-              className={`p-5 rounded-xl border cursor-pointer transition-all ${selected ? "border-[#006168] bg-[#e6f3f4] ring-2 ring-[#006168]/15 shadow-sm" : "border-slate-200 bg-white hover:border-slate-300"}`}
-              onClick={() => setFormData((prev) => ({ ...prev, event_tier: tier.value, tier: tier.value }))}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="font-semibold text-slate-800">{tier.label}</div>
-                  <div className="text-sm font-semibold text-[#006168]">${(tier.price / 100).toFixed(2)}</div>
-                  <p className="text-sm text-slate-500 mt-1">{tier.summary}</p>
-                </div>
-                {selected && (
-                  <span className="text-xs bg-[#006168] text-white px-2.5 py-1 rounded-full font-semibold shrink-0">Selected</span>
-                )}
-              </div>
+      <div className="space-y-3">
+        <AddOnCard
+          id="premium_visibility"
+          title="Premium Visibility"
+          price={RESIDENTIAL_EVENT_ADD_ONS.premium_visibility.price}
+          description="Higher placement than standard Residential Events."
+          selected={!!addOns.premium_visibility}
+          onToggle={(checked) => updateAddOns({ premium_visibility: checked })}
+        />
 
-              <div className="mt-4 grid gap-1.5 sm:grid-cols-2">
-                {tier.features.map((feature) => (
-                  <div key={feature} className={`rounded-lg px-3 py-2 text-xs font-medium ${selected ? "bg-white/70 text-slate-700" : "bg-slate-50 text-slate-600"}`}>
-                    ✓ {feature}
-                  </div>
-                ))}
+        <AddOnCard
+          id="animation"
+          title="Animation"
+          price={RESIDENTIAL_EVENT_ADD_ONS.animation.price}
+          description="Add pulse or bounce animation to the event marker."
+          selected={!!addOns.animation}
+          onToggle={(checked) => setFormData((prev) => ({ ...prev, event_animation: checked ? (prev.event_animation || "pulse") : "", event_add_ons: { ...(prev.event_add_ons || {}), animation: checked } }))}
+        >
+          <div className="grid grid-cols-2 gap-2">
+            {["pulse", "bounce"].map((option) => (
+              <Button key={option} type="button" variant={formData.event_animation === option ? "default" : "outline"} onClick={() => setFormData((prev) => ({ ...prev, event_animation: option }))} className="capitalize">
+                {option}
+              </Button>
+            ))}
+          </div>
+        </AddOnCard>
+
+        <AddOnCard
+          id="flyer_upload"
+          title="Flyer Upload"
+          price={RESIDENTIAL_EVENT_ADD_ONS.flyer_upload.price}
+          description="Use a flyer as the primary promotional, header, and marketing image."
+          selected={!!addOns.flyer_upload}
+          onToggle={(checked) => updateAddOns({ flyer_upload: checked })}
+        >
+          <div className="space-y-3">
+            <label className="inline-flex">
+              <input type="file" accept="image/*" className="hidden" onChange={handleFlyerUpload} disabled={isUploadingFlyer} />
+              <span className="inline-flex items-center gap-2 rounded-md bg-[#5DADA5] px-3 py-2 text-sm font-medium text-white cursor-pointer hover:bg-[#4A9B93]">
+                {isUploadingFlyer ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {isUploadingFlyer ? "Uploading..." : "Upload Flyer"}
+              </span>
+            </label>
+            {formData.event_flyer_url && (
+              <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-white">
+                <img src={formData.event_flyer_url} alt="Event flyer" className="w-full h-40 object-cover" />
+                <Button type="button" size="icon" variant="secondary" className="absolute top-2 right-2 h-8 w-8" onClick={() => setFormData((prev) => ({ ...prev, event_flyer_url: "" }))}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </AddOnCard>
+
+        <AddOnCard
+          id="photo_gallery"
+          title="Photo Gallery"
+          price={RESIDENTIAL_EVENT_ADD_ONS.photo_gallery.price}
+          description="Add smaller gallery photos separate from the flyer. Maximum 10 photos."
+          selected={!!addOns.photo_gallery}
+          onToggle={(checked) => setFormData((prev) => ({ ...prev, event_photo_gallery_count: checked ? (prev.event_photo_gallery_count || 1) : 0, event_photos: checked ? prev.event_photos || [] : [], photoUrls: checked ? prev.event_photos || [] : [], event_add_ons: { ...(prev.event_add_ons || {}), photo_gallery: checked } }))}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-xl bg-white p-3 border border-slate-200">
+              <Label className="text-sm font-semibold text-slate-700">Gallery photo slots</Label>
+              <div className="flex items-center gap-2">
+                <Button type="button" size="icon" variant="outline" onClick={() => setPhotoCount((formData.event_photo_gallery_count || 1) - 1)} disabled={(formData.event_photo_gallery_count || 1) <= 1}>
+                  <Minus className="w-4 h-4" />
+                </Button>
+                <span className="w-8 text-center font-bold text-slate-800">{formData.event_photo_gallery_count || 1}</span>
+                <Button type="button" size="icon" variant="outline" onClick={() => setPhotoCount((formData.event_photo_gallery_count || 1) + 1)} disabled={(formData.event_photo_gallery_count || 1) >= 10}>
+                  <Plus className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-          );
-        })}
+            <EventPhotoUpload value={formData.event_photos || []} maxPhotos={formData.event_photo_gallery_count || 1} onChange={(photos) => setFormData((prev) => ({ ...prev, event_photos: photos, photoUrls: photos }))} />
+          </div>
+        </AddOnCard>
+
+        <AddOnCard
+          id="custom_icon"
+          title="Custom Icon"
+          price={RESIDENTIAL_EVENT_ADD_ONS.custom_icon.price}
+          description="Replace the default category icon using the existing event icon upload standards."
+          selected={!!addOns.custom_icon}
+          onToggle={(checked) => updateAddOns({ custom_icon: checked })}
+        >
+          <EventIconManager
+            tier="premium"
+            selectedIcon={formData.event_icon}
+            setSelectedIcon={(icon) => setFormData((prev) => ({ ...prev, event_icon: icon, event_logo_url: "" }))}
+            uploadedImageUrl={formData.event_logo_url || ""}
+            setUploadedImageUrl={(url) => setFormData((prev) => ({ ...prev, event_logo_url: url }))}
+          />
+        </AddOnCard>
+
+        <AddOnCard
+          id="marquee"
+          title="Marquee"
+          price={RESIDENTIAL_EVENT_ADD_ONS.marquee.price}
+          description="Keep the existing marquee board behavior, now sold as an add-on instead of a tier."
+          selected={!!addOns.marquee}
+          onToggle={(checked) => updateAddOns({ marquee: checked })}
+        >
+          <MarqueeSlotsEditor
+            value={formData.marquee_schedule_slots || []}
+            onChange={(slots) => setFormData((prev) => ({ ...prev, marquee_schedule_slots: slots }))}
+            eventStartDate={formData.event_start_date}
+            eventEndDate={formData.event_start_date}
+          />
+        </AddOnCard>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+        <div>
+          <h4 className="font-semibold text-slate-800">Coming Soon Packages</h4>
+          <p className="text-sm text-slate-500">Optional promotion packages. Individual day pricing is no longer used.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {Object.values(RESIDENTIAL_EVENT_COMING_SOON_PACKAGES).map((pkg) => {
+            const selected = String(formData.coming_soon_package || "") === pkg.key;
+            return (
+              <button key={pkg.key} type="button" onClick={() => setComingSoonPackage(pkg.key)} className={`rounded-xl border p-3 text-left transition-all ${selected ? "border-[#006168] bg-[#e6f3f4] ring-2 ring-[#006168]/15" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                <div className="font-semibold text-slate-800">{pkg.label}</div>
+                <div className="text-sm font-bold text-[#006168]">{money(pkg.price)}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-[#2C4F4E]/20 bg-[#F3E6CF] p-4 flex items-center justify-between">
+        <span className="font-semibold text-[#2C4F4E]">Event Total</span>
+        <span className="text-xl font-bold text-[#2C4F4E]">{money(breakdown.total)}</span>
       </div>
     </div>
   );

@@ -108,8 +108,10 @@ Deno.serve(async (req) => {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       if (session.payment_status !== 'paid') return Response.json({ error: 'Payment not paid' }, { status: 400 });
       const confirmed = await webhookConfirmed(base44, session.id);
-      const dateValidation = await validateResidentialCheckoutDates(base44, listing, user, listingId);
-      if (!dateValidation.ok) return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
+      if (listing.listingType !== 'event') {
+        const dateValidation = await validateResidentialCheckoutDates(base44, listing, user, listingId);
+        if (!dateValidation.ok) return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
+      }
 
       const paymentIntentId = asId(session.payment_intent);
       const patch = {
@@ -137,7 +139,7 @@ Deno.serve(async (req) => {
         stripe_payment_intent_id: paymentIntentId,
         payment_status: 'paid',
         payment_intent_status: 'captured',
-        status: 'scheduled',
+        status: listing.listingType === 'event' ? 'active' : 'scheduled',
         pricePaid: Number(session.amount_total || 0) / 100,
         non_refund_acknowledged: listing.non_refund_acknowledged === true,
         non_refund_acknowledged_at: listing.non_refund_acknowledged_at || '',
@@ -307,11 +309,13 @@ Deno.serve(async (req) => {
     }
 
     // ── CREATE STRIPE CHECKOUT ──────────────────────────────────────
-    const tier = String(body?.tier || 'featured').toLowerCase();
-    const basePrice = RESIDENTIAL_BASE_PRICES[tier];
+    const listingKind = String(body?.listing_kind || 'residential').toLowerCase();
+    const tier = String(body?.tier || (listingKind === 'event' ? 'event' : 'featured')).toLowerCase();
+    const requestedEventAmount = Number(body?.amount_cents || body?.amount || 0);
+    const basePrice = listingKind === 'event' ? requestedEventAmount : RESIDENTIAL_BASE_PRICES[tier];
 
     if (!basePrice) {
-      return Response.json({ error: 'Invalid residential tier' }, { status: 400 });
+      return Response.json({ error: listingKind === 'event' ? 'Missing Residential Event amount' : 'Invalid residential tier' }, { status: 400 });
     }
 
     // Promo fields
@@ -335,7 +339,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Amount too small for Stripe checkout' }, { status: 400 });
     }
 
-    if (body?.listing_kind !== 'event') {
+    if (listingKind !== 'event') {
       const dateValidation = await validateResidentialCheckoutDates(base44, body, currentUser, body?.listing_id || '');
       if (!dateValidation.ok) {
         return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
@@ -352,16 +356,22 @@ Deno.serve(async (req) => {
       listing_id: body?.listing_id || '',
       tier,
       target_tier: tier,
-      listing_kind: 'residential',
-      purpose: 'residential_listing_payment',
+      listing_kind: listingKind,
+      purpose: listingKind === 'event' ? 'event_paid_listing' : 'residential_listing_payment',
       transaction_type: 'listing_payment',
-      final_status: 'scheduled',
+      final_status: listingKind === 'event' ? 'active' : 'scheduled',
       original_amount: String(basePrice),
       final_amount: String(amount),
       non_refund_acknowledged: body?.non_refund_acknowledged ? 'true' : 'false',
       non_refund_acknowledged_at: body?.non_refund_acknowledged_at || '',
       non_refund_acknowledged_by_user_id: body?.non_refund_acknowledged_by_user_id || body?.user_id || currentUser?.id || '',
       non_refund_disclosure_text: body?.non_refund_disclosure_text || '',
+      ...(listingKind === 'event' && body?.event_price_breakdown && {
+        event_price_breakdown: JSON.stringify({
+          total: body.event_price_breakdown.total,
+          add_ons: (body.event_price_breakdown.addOns || []).map((item) => item.key),
+        }),
+      }),
       ...(promoCodeId && {
         promo_code_id: promoCodeId,
         promo_code: promoCode,
@@ -379,8 +389,10 @@ Deno.serve(async (req) => {
         price_data: {
           currency: 'usd',
           product_data: {
-            name: `Yardit ${tier} Listing${promoCode ? ` (${promoCode})` : ''}`,
-            description: promoCode
+            name: listingKind === 'event' ? `Yardit Residential Event${promoCode ? ` (${promoCode})` : ''}` : `Yardit ${tier} Listing${promoCode ? ` (${promoCode})` : ''}`,
+            description: listingKind === 'event'
+              ? 'Residential Event checkout'
+              : promoCode
               ? `${promoDiscountPercent}% promo discount applied — original $${(basePrice / 100).toFixed(2)}`
               : 'Residential paid listing checkout',
           },

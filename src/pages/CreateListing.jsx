@@ -36,7 +36,7 @@ import {
   hasDateConflict,
   findConflictingReservedListingForAddress,
 } from "@/lib/residentialDateConflict";
-import { EVENT_TIER_PRICES } from "@/lib/eventListingConfig";
+import { getResidentialEventPriceBreakdown } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
 import { buildResolvedListingLocation, isLocationReadyForSubmission, resolveTimeZoneFromCoordinates, getStateAbbreviation } from "@/lib/listingLocation";
 
@@ -177,7 +177,12 @@ export default function CreateListingPage() {
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
     tier: "free",
-    event_tier: "basic",
+    event_tier: "event",
+    event_add_ons: {},
+    event_animation: "",
+    event_flyer_url: "",
+    event_photo_gallery_count: 0,
+    coming_soon_package: "",
     event_name: "",
     event_description: "",
     event_category: "",
@@ -337,9 +342,18 @@ export default function CreateListingPage() {
           startDateTime: "",
           endDateTime: "",
 
-          // Step 4 — Tier: preserve original (marquee stays marquee)
-          event_tier: pre.event_tier || "basic",
-          tier: pre.event_tier || "basic",
+          // Step 4 — Add-ons: convert old event tiers into the new add-on model
+          event_tier: "event",
+          tier: "event",
+          event_add_ons: {
+            ...(pre.event_add_ons || {}),
+            premium_visibility: pre.event_add_ons?.premium_visibility || ["premium", "marquee"].includes(pre.event_tier),
+            flyer_upload: pre.event_add_ons?.flyer_upload || Boolean(pre.event_flyer_url || pre.marquee_flyer_url),
+            custom_icon: pre.event_add_ons?.custom_icon || Boolean(pre.event_logo_url),
+            marquee: pre.event_add_ons?.marquee || pre.event_tier === "marquee",
+          },
+          event_flyer_url: pre.event_flyer_url || pre.marquee_flyer_url || "",
+          event_photo_gallery_count: pre.event_photo_gallery_count || Math.min(10, pre.event_photos?.length || 0),
 
           // Marquee extras
           marquee_schedule_slots: pre.marquee_schedule_slots || [],
@@ -625,8 +639,9 @@ export default function CreateListingPage() {
       return;
     }
 
+    const eventPriceBreakdown = formData.listingType === "event" ? getResidentialEventPriceBreakdown(formData) : null;
     const amountCents = formData.listingType === "event"
-      ? EVENT_TIER_PRICES[formData.event_tier || formData.tier]
+      ? eventPriceBreakdown.total
       : RESIDENTIAL_TIER_PRICES[formData.tier];
     if (!amountCents) {
       toast.error("Unsupported paid tier.");
@@ -650,8 +665,10 @@ export default function CreateListingPage() {
         user_id: user?.id,
       } : {};
       const response = await base44.functions.invoke("residentialStripeCheckout", {
-        tier: formData.listingType === "event" ? (formData.event_tier || formData.tier) : formData.tier,
+        tier: formData.listingType === "event" ? "event" : formData.tier,
         listing_kind: formData.listingType === "event" ? "event" : "residential",
+        amount_cents: amountCents,
+        event_price_breakdown: eventPriceBreakdown,
         customer_email: user?.email,
         return_url: returnUrl,
         listing_id: "",
@@ -918,7 +935,7 @@ export default function CreateListingPage() {
         }
       }
 
-      if (createdListing.pending_checkout_session_id && createdListing.listingType === "yard_sale") {
+      if (createdListing.pending_checkout_session_id && ["yard_sale", "event"].includes(createdListing.listingType)) {
         await base44.functions.invoke("residentialStripeCheckout", {
           action: "link_paid_listing",
           session_id: createdListing.pending_checkout_session_id,
@@ -1208,8 +1225,8 @@ export default function CreateListingPage() {
         title: payload.event_name,
         description: payload.event_description || "",
         category: payload.event_category,
-        tier: payload.event_tier || payload.tier || "basic",
-        event_tier: payload.event_tier || payload.tier || "basic",
+        tier: "event",
+        event_tier: "event",
         photoUrls: payload.event_photos || payload.photoUrls || [],
         display_address: payload.display_address || payload.address_text || payload.addressText,
         geocoded_address: payload.geocoded_address || "",
@@ -1221,7 +1238,7 @@ export default function CreateListingPage() {
         start_datetime: payload.start_datetime ? new Date(payload.start_datetime).toISOString() : payload.startDateTime,
         end_datetime: payload.end_datetime ? new Date(payload.end_datetime).toISOString() : payload.endDateTime,
         status: "active",
-        pricePaid: Number(EVENT_TIER_PRICES[payload.event_tier || payload.tier] || 0) / 100,
+        pricePaid: Number(getResidentialEventPriceBreakdown(payload).total || 0) / 100,
       };
     }
 
@@ -1370,7 +1387,7 @@ export default function CreateListingPage() {
 
     if (actionStr === "paid_success" && payload.listingType === "event") {
       payload.status = "active";
-      payload.pricePaid = Number(EVENT_TIER_PRICES[payload.event_tier || payload.tier] || 0) / 100;
+      payload.pricePaid = Number(getResidentialEventPriceBreakdown(payload).total || 0) / 100;
     }
 
     if (actionStr === "paid_success_pending_link" && ["featured", "premium"].includes(payload.tier) && payload.listingType !== "event") {
@@ -1786,14 +1803,14 @@ export default function CreateListingPage() {
   }
 
   const residentialStepLabels = ["Sale Details", "Your Location", "Tier & Schedule", isAdminCreate ? "Assign User" : "Payment"];
-  const eventStepLabels = ["Event Info", "Location", "Date & Time", "Visibility", isAdminCreate ? "Assign User" : "Payment"];
+  const eventStepLabels = ["Event Info", "Location", "Date & Time", "Add-Ons", isAdminCreate ? "Assign User" : "Payment"];
   const stepLabels = isEventFlow ? eventStepLabels : residentialStepLabels;
   const totalSteps = isEventFlow ? 5 : 4;
 
   const stepMeta = {
     yard_sale:      { 1: "Tell buyers what you're selling", 2: "Confirm your sale address",      3: "Pick your visibility & schedule", 4: "Complete your listing" },
     neighborhood_sale: { 1: "Set up your event",            2: "Choose the sale area",            3: "Dates & details",                 4: "Payment setup" },
-    event:          { 1: "Describe your event",             2: "Set the location",                3: "Add dates & times",               4: "Choose visibility tier", 5: "Review & pay" },
+    event:          { 1: "Describe your event",             2: "Set the location",                3: "Add dates & times",               4: "Choose add-ons", 5: "Review & pay" },
   };
   const currentMeta = stepMeta[formData.listingType]?.[step] || "";
 
@@ -1860,7 +1877,6 @@ export default function CreateListingPage() {
                 setPaymentError={setPaymentError}
                 setStep={setStep}
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
-                eventTierPrices={EVENT_TIER_PRICES}
               />
             )}
             {formData.listingType === "neighborhood_sale" && (

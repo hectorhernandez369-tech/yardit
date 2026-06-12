@@ -1,72 +1,92 @@
 export const EVENT_CATEGORIES = [
-  "sports",
-  "pop_up",
-  "food",
-  "auto",
-  "community",
-  "real_estate",
-  "school",
-  "entertainment",
-  "collectibles",
-  "business",
-  "religious",
-  "private",
-  "general",
+  "Community",
+  "School",
+  "Church",
+  "Fundraiser",
+  "Charity",
+  "Sports",
+  "Holiday",
+  "Food",
+  "Entertainment",
+  "Family",
+  "Other",
 ];
 
-export const EVENT_TIER_PRICES = {
-  basic: 999,
-  featured: 1499,
-  premium: 2499,
-  marquee: 3999,
+export const RESIDENTIAL_EVENT_BASE_PRICE = 999;
+
+export const RESIDENTIAL_EVENT_ADD_ONS = {
+  premium_visibility: { key: "premium_visibility", label: "Premium Visibility", price: 199 },
+  animation: { key: "animation", label: "Animation", price: 399 },
+  flyer_upload: { key: "flyer_upload", label: "Flyer Upload", price: 299 },
+  photo_gallery: { key: "photo_gallery", label: "Photo Gallery", price: 199 },
+  custom_icon: { key: "custom_icon", label: "Custom Icon", price: 499 },
+  marquee: { key: "marquee", label: "Marquee", price: 999 },
 };
 
-export const EVENT_TIERS = [
-  {
-    value: "basic",
-    label: "Basic",
-    price: 999,
-    summary: "Black and white outline icon, standard visibility, smallest event pin",
-    features: ["Outline icon library", "Standard visibility", "Smallest event pin"],
-  },
-  {
-    value: "featured",
-    label: "Featured",
-    price: 1499,
-    summary: "Colored icon, larger pin, increased visibility, flyer upload",
-    features: ["Colored icon library", "Larger event pin", "Increased visibility", "Flyer upload"],
-  },
-  {
-    value: "premium",
-    label: "Premium",
-    price: 2499,
-    summary: "Icon or uploaded logo/image, circular branded pin, higher visibility, flyer upload",
-    features: ["Icon library or uploaded logo/image", "Circular branded pin", "Higher visibility", "Flyer upload"],
-  },
-  {
-    value: "marquee",
-    label: "Marquee",
-    price: 3999,
-    summary: "Marquee-style display, largest size, highest visibility, flyer upload",
-    features: ["Marquee-style display", "Largest event size", "Highest visibility", "Flyer upload"],
-  },
-];
+export const RESIDENTIAL_EVENT_COMING_SOON_PACKAGES = {
+  "3": { key: "3", label: "3 Days", days: 3, price: 299 },
+  "7": { key: "7", label: "7 Days", days: 7, price: 499 },
+  "14": { key: "14", label: "14 Days", days: 14, price: 799 },
+};
+
+// Deprecated compatibility exports: Residential Events no longer use Basic/Featured/Premium/Marquee tiers.
+export const EVENT_TIER_PRICES = { event: RESIDENTIAL_EVENT_BASE_PRICE };
+export const EVENT_TIERS = [];
 
 export const EVENT_CATEGORY_DEFAULT_ICONS = {
-  sports: "soccer",
+  Community: "heart",
+  School: "school",
+  Church: "church",
+  Fundraiser: "charity",
+  Charity: "charity",
+  Sports: "trophy",
+  Holiday: "gift",
+  Food: "food",
+  Entertainment: "ticket",
+  Family: "balloons",
+  Other: "calendar",
+  sports: "trophy",
   pop_up: "market",
   food: "food",
   auto: "car",
   real_estate: "house",
-  community: "party",
+  community: "heart",
   collectibles: "collectibles",
   general: "calendar",
-  school: "calendar",
+  school: "school",
   entertainment: "ticket",
   business: "market",
-  religious: "calendar",
+  religious: "church",
   private: "calendar",
 };
+
+export function getResidentialEventPriceBreakdown(formData = {}) {
+  const addOns = formData.event_add_ons || {};
+  const lines = [{ key: "base", label: "Base Event", price: RESIDENTIAL_EVENT_BASE_PRICE }];
+
+  Object.values(RESIDENTIAL_EVENT_ADD_ONS).forEach((addOn) => {
+    if (addOns[addOn.key]) lines.push(addOn);
+  });
+
+  const comingSoonPackage = RESIDENTIAL_EVENT_COMING_SOON_PACKAGES[String(formData.coming_soon_package || "")];
+  if (comingSoonPackage) {
+    lines.push({ key: `coming_soon_${comingSoonPackage.key}`, label: `Coming Soon — ${comingSoonPackage.label}`, price: comingSoonPackage.price });
+  }
+
+  const total = lines.reduce((sum, line) => sum + Number(line.price || 0), 0);
+  return { basePrice: RESIDENTIAL_EVENT_BASE_PRICE, addOns: lines.filter((line) => line.key !== "base"), lines, total };
+}
+
+export function getResidentialEventTotal(formData = {}) {
+  return getResidentialEventPriceBreakdown(formData).total;
+}
+
+export function getResidentialEventVisibilityTier(listing = {}) {
+  const addOns = listing.event_add_ons || {};
+  if (addOns.marquee) return "marquee";
+  if (addOns.premium_visibility) return "premium";
+  return "featured";
+}
 
 // Basic tier: Lucide outline icons with search metadata
 export const EVENT_BASIC_ICON_LIBRARY = [
@@ -246,8 +266,8 @@ export function getDefaultEventIconForCategory(category) {
 }
 
 export function getEventIconOptionsForTier(tier) {
-  if (tier === "basic") return EVENT_BASIC_ICON_OPTIONS;
-  if (["featured", "premium"].includes(tier)) return EVENT_COLORED_ICON_OPTIONS;
+  if (["basic", "event"].includes(tier)) return EVENT_BASIC_ICON_OPTIONS;
+  if (["featured", "premium", "custom_icon"].includes(tier)) return EVENT_COLORED_ICON_OPTIONS;
   return [];
 }
 
@@ -338,14 +358,14 @@ export function getBasicEventIconSvg(iconKey, size = 16, color = "#111827") {
 }
 
 export function formatEventTierLabel(tier) {
-  if (!tier) return "Event";
+  if (!tier || tier === "event") return "Event";
   return String(tier).replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export function getListingSortPriority(listing) {
   if (listing?.listingType === "event") {
-    const eventPriority = { marquee: 1, premium: 2, featured: 3, basic: 4 };
-    return eventPriority[listing?.event_tier || listing?.tier] || 4;
+    const eventPriority = { marquee: 1, premium: 2, featured: 3, event: 3 };
+    return eventPriority[getResidentialEventVisibilityTier(listing)] || 3;
   }
 
   if (listing?.listingType === "neighborhood_sale") return 5;

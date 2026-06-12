@@ -13,6 +13,12 @@ export default function ResidentialPaymentStep({
   onBack,
   onPay,
   user,
+  purchaseName,
+  priceBreakdown,
+  summaryItems,
+  benefits,
+  promoEnabled = true,
+  requireNonRefundAcknowledgement,
 }) {
   const [promoResult, setPromoResult] = useState(null);
 
@@ -40,7 +46,10 @@ export default function ResidentialPaymentStep({
         <ReviewPayContent
           listing={listing}
           tier={tier}
+          purchaseName={purchaseName}
           price={amountDollars}
+          summaryItems={summaryItems}
+          benefits={benefits}
           isDemoMode={isDemoMode}
           isProcessing={isProcessing}
           errorMessage={errorMessage}
@@ -48,8 +57,8 @@ export default function ResidentialPaymentStep({
           onPay={({ nonRefundAcknowledgement } = {}) => onPay({ promoResult, finalAmount, nonRefundAcknowledgement })}
           promoResult={promoResultForDisplay}
           continueLabel={continueLabel}
-          requireNonRefundAcknowledgement={listing?.listingType !== "event"}
-          promoInputSlot={
+          requireNonRefundAcknowledgement={requireNonRefundAcknowledgement ?? listing?.listingType !== "event"}
+          promoInputSlot={promoEnabled ? (
             <PromoCodeInput
               user={user}
               listing={listing}
@@ -57,7 +66,7 @@ export default function ResidentialPaymentStep({
               listingPrice={amount}
               onPromoApplied={handlePromoApplied}
             />
-          }
+          ) : null}
         />
       </CardContent>
     </Card>

@@ -2,10 +2,10 @@ import React from "react";
 import EventDetailsStep from "./event/EventDetailsStep";
 import EventLocationStep from "./event/EventLocationStep";
 import EventScheduleStep from "./event/EventScheduleStep";
-import EventTierStep from "./event/EventTierStep";
-import MarqueeSlotsEditor from "./event/MarqueeSlotsEditor";
+import EventAddOnsStep from "./event/EventTierStep";
 import ResidentialPaymentStep from "../payment/ResidentialPaymentStep";
 import AdminAssignUserStep from "../admin/AdminAssignUserStep";
+import { getResidentialEventPriceBreakdown } from "@/lib/eventListingConfig";
 
 export default function CreateListingEvent({
   step,
@@ -20,8 +20,8 @@ export default function CreateListingEvent({
   setPaymentError,
   setStep,
   handlePaymentStepSubmit,
-  eventTierPrices,
 }) {
+  const eventPriceBreakdown = getResidentialEventPriceBreakdown(formData);
   if (step === 1) {
     return <EventDetailsStep formData={formData} setFormData={setFormData} />;
   }
@@ -35,19 +35,7 @@ export default function CreateListingEvent({
   }
 
   if (step === 4) {
-    return (
-      <div className="space-y-6">
-        <EventTierStep formData={formData} setFormData={setFormData} />
-        {(formData.event_tier || formData.tier) === "marquee" && (
-          <MarqueeSlotsEditor
-            value={formData.marquee_schedule_slots || []}
-            onChange={(slots) => setFormData((prev) => ({ ...prev, marquee_schedule_slots: slots }))}
-            eventStartDate={formData.event_start_date}
-            eventEndDate={formData.event_end_date}
-          />
-        )}
-      </div>
-    );
+    return <EventAddOnsStep formData={formData} setFormData={setFormData} />;
   }
 
   if (step === 5) {
@@ -57,9 +45,17 @@ export default function CreateListingEvent({
 
     return (
       <ResidentialPaymentStep
-        tier={formData.event_tier}
-        amount={eventTierPrices[formData.event_tier] || 0}
+        tier="event"
+        amount={eventPriceBreakdown.total}
         listing={formData}
+        purchaseName="Residential Event"
+        priceBreakdown={eventPriceBreakdown}
+        summaryItems={[
+          { label: "Base Price", value: "$9.99" },
+          { label: "Selected Add-Ons", value: eventPriceBreakdown.addOns.length ? eventPriceBreakdown.addOns.map((item) => `${item.label} ${item.price ? `($${(item.price / 100).toFixed(2)})` : ""}`).join(", ") : "None" },
+          { label: "Total", value: `$${(eventPriceBreakdown.total / 100).toFixed(2)}` },
+        ]}
+        benefits={["Event detail page", "Featured-level visibility", "Basic event card", "Standard category icon", "Event map pin", "One-day event listing"]}
         isDemoMode={isGlobalDemoMode}
         isProcessing={isStartingPayment}
         errorMessage={paymentError}
@@ -68,6 +64,8 @@ export default function CreateListingEvent({
           setStep(4);
         }}
         onPay={handlePaymentStepSubmit}
+        promoEnabled={false}
+        requireNonRefundAcknowledgement={true}
       />
     );
   }
