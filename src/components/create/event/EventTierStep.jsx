@@ -19,7 +19,7 @@ function AddOnCard({ title, price, description, selected, onToggle, children }) 
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={`rounded-xl border bg-white transition-all ${selected ? "border-[#006168] ring-2 ring-[#006168]/10" : "border-slate-200"}`}>
+    <div className={`bg-white transition-all ${selected ? "bg-[#f0fdfa]" : ""}`}>
       <button type="button" onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between gap-3 p-4 text-left">
         <div>
           <h4 className="font-semibold text-slate-800">{title}</h4>
@@ -119,7 +119,7 @@ export default function EventAddOnsStep({ formData, setFormData }) {
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden divide-y divide-slate-100">
          <AddOnCard
            id="premium_visibility"
            title="Be Seen By More People"
