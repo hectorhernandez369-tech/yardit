@@ -112,15 +112,15 @@ export default function EventAddOnsStep({ formData, setFormData }) {
         <p className="text-xs text-green-700 font-medium pt-2">You're ready to publish your event. The options below are completely optional and can help increase visibility and engagement.</p>
       </div>
 
-      <div className="rounded-xl bg-gradient-to-r from-[#e6f3f4] to-[#f0fdfa] border border-[#b3d9db] p-5 space-y-2">
-        <h3 className="text-base font-semibold text-[#006168]">Make Your Event Stand Out</h3>
-        <p className="text-sm text-[#2C4F4E] leading-relaxed">
-          Your event is ready to publish. The options below can help more people discover your event, increase visibility, and make your event stand out from other local listings.
-        </p>
-      </div>
-
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden divide-y divide-slate-100">
-         <AddOnCard
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-[#e6f3f4] to-[#f0fdfa] border-b border-[#b3d9db] p-5">
+          <h3 className="text-base font-semibold text-[#006168]">STAND OUT WITH THESE AD ONS</h3>
+          <p className="text-sm text-[#2C4F4E] leading-relaxed mt-2">
+            Your event is ready to publish. The options below can help more people discover your event, increase visibility, and make your event stand out from other local listings.
+          </p>
+        </div>
+        <div className="divide-y divide-slate-100">
+          <AddOnCard
            id="premium_visibility"
            title="Be Seen By More People"
            price={RESIDENTIAL_EVENT_ADD_ONS.premium_visibility.price}
@@ -264,9 +264,10 @@ export default function EventAddOnsStep({ formData, setFormData }) {
             eventEndDate={formData.event_start_date}
           />
         </AddOnCard>
-      </div>
+        </div>
+        </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
         <div>
           <h4 className="font-semibold text-slate-800">Coming Soon Packages</h4>
           <p className="text-sm text-slate-500">Optional promotion packages. Individual day pricing is no longer used.</p>
