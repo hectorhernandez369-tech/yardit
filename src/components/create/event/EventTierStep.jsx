@@ -86,9 +86,12 @@ export default function EventAddOnsStep({ formData, setFormData }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-[#006168]/20 bg-[#e6f3f4] p-4">
-        <h3 className="text-sm font-semibold text-slate-800">Base Event Included — $9.99</h3>
-        <p className="text-sm text-slate-600 mt-1">Includes an event detail page, featured-level visibility, basic event card, standard category icon, event map pin, and one-day event listing.</p>
+      <div className="space-y-2 rounded-lg border border-green-200 bg-green-50 p-4">
+        <h3 className="text-sm font-semibold text-green-900">✓ Your Event Already Includes</h3>
+        <p className="text-xs text-green-800 leading-relaxed">
+          Your Residential Event comes complete with an event detail page, featured-level visibility on the map, event card, standard category icon, and one-day listing — all for <span className="font-semibold">$9.99</span>. You're ready to publish.
+        </p>
+        <p className="text-xs text-green-700 font-medium mt-2">The options below can help boost visibility and engagement. All enhancements are optional.</p>
       </div>
 
       <div className="space-y-3">
