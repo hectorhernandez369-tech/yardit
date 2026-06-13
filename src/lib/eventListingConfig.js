@@ -15,7 +15,7 @@ export const EVENT_CATEGORIES = [
 export const RESIDENTIAL_EVENT_BASE_PRICE = 999;
 
 export const RESIDENTIAL_EVENT_ADD_ONS = {
-  premium_visibility: { key: "premium_visibility", label: "Expand Your Reach", price: 199 },
+  premium_visibility: { key: "premium_visibility", label: "Be Seen By More People", price: 199 },
   animation: { key: "animation", label: "Animation", price: 399 },
   flyer_upload: { key: "flyer_upload", label: "Flyer Upload", price: 299 },
   photo_gallery: { key: "photo_gallery", label: "Photo Gallery", price: 199 },

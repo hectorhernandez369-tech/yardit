@@ -112,20 +112,24 @@ export default function EventAddOnsStep({ formData, setFormData }) {
         <p className="text-xs text-green-700 font-medium pt-2">You're ready to publish your event. The options below are completely optional and can help increase visibility and engagement.</p>
       </div>
 
+      <div className="rounded-xl bg-gradient-to-r from-[#e6f3f4] to-[#f0fdfa] border border-[#b3d9db] p-5 space-y-2">
+        <h3 className="text-base font-semibold text-[#006168]">Make Your Event Stand Out</h3>
+        <p className="text-sm text-[#2C4F4E] leading-relaxed">
+          Your event is ready to publish. The options below can help more people discover your event, increase visibility, and make your event stand out from other local listings.
+        </p>
+      </div>
+
       <div className="space-y-3">
-        <AddOnCard
-          id="premium_visibility"
-          title="Expand Your Reach"
-          price={RESIDENTIAL_EVENT_ADD_ONS.premium_visibility.price}
-          description={
-            <>
-              <p>Increase how far your event can be discovered.</p>
-              <div className="rounded-lg bg-slate-50 p-3 space-y-2">
-                <p><span className="font-semibold text-slate-800">Standard Event:</span> Visible primarily within your neighborhood and nearby area.</p>
-                <p><span className="font-semibold text-slate-800">Expanded Reach:</span> Visible to more users searching farther away from your event location.</p>
-              </div>
-            </>
-          }
+         <AddOnCard
+           id="premium_visibility"
+           title="Be Seen By More People"
+           price={RESIDENTIAL_EVENT_ADD_ONS.premium_visibility.price}
+           description={
+             <>
+               <p>Help more people discover your event.</p>
+               <p>Your Residential Event is already visible in your local area. This upgrade increases visibility and helps your event appear to more users searching beyond your immediate neighborhood.</p>
+             </>
+           }
           selected={!!addOns.premium_visibility}
           onToggle={(checked) => updateAddOns({ premium_visibility: checked })}
         />
