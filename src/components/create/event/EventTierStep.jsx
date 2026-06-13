@@ -86,12 +86,31 @@ export default function EventAddOnsStep({ formData, setFormData }) {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2 rounded-lg border border-green-200 bg-green-50 p-4">
-        <h3 className="text-sm font-semibold text-green-900">✓ Your Event Already Includes</h3>
-        <p className="text-xs text-green-800 leading-relaxed">
-          Your Residential Event comes complete with an event detail page, featured-level visibility on the map, event card, standard category icon, and one-day listing — all for <span className="font-semibold">$9.99</span>. You're ready to publish.
-        </p>
-        <p className="text-xs text-green-700 font-medium mt-2">The options below can help boost visibility and engagement. All enhancements are optional.</p>
+      <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-green-900">Your Residential Event Package Includes</h3>
+        <ul className="space-y-1.5 text-xs text-green-800">
+          <li className="flex items-start gap-2">
+            <span className="font-bold text-green-600 mt-0.5">✔</span>
+            <span>Event detail page</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="font-bold text-green-600 mt-0.5">✔</span>
+            <span>Featured-level visibility</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="font-bold text-green-600 mt-0.5">✔</span>
+            <span>Event map pin</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="font-bold text-green-600 mt-0.5">✔</span>
+            <span>Standard category icon</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="font-bold text-green-600 mt-0.5">✔</span>
+            <span>One-day event listing</span>
+          </li>
+        </ul>
+        <p className="text-xs text-green-700 font-medium pt-2">You're ready to publish your event. The options below are completely optional and can help increase visibility and engagement.</p>
       </div>
 
       <div className="space-y-3">
