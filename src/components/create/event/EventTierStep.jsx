@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Minus, Plus, Upload, X } from "lucide-react";
+import { ChevronDown, Loader2, Minus, Plus, Upload, X } from "lucide-react";
 import EventPhotoUpload from "./EventPhotoUpload";
 import MarqueeSlotsEditor from "./MarqueeSlotsEditor";
 import EventIconManager from "@/components/events/EventIconManager";
@@ -15,22 +15,28 @@ import {
 
 const money = (cents) => `$${(Number(cents || 0) / 100).toFixed(2)}`;
 
-function AddOnCard({ id, title, price, description, selected, onToggle, children }) {
+function AddOnCard({ title, price, description, selected, onToggle, children }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <div className={`rounded-xl border p-4 transition-all ${selected ? "border-[#006168] bg-[#e6f3f4] ring-2 ring-[#006168]/15" : "border-slate-200 bg-white"}`}>
-      <button type="button" onClick={() => onToggle(!selected)} className="w-full text-left flex items-start justify-between gap-3">
+    <div className={`rounded-xl border bg-white transition-all ${selected ? "border-[#006168] ring-2 ring-[#006168]/10" : "border-slate-200"}`}>
+      <button type="button" onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between gap-3 p-4 text-left">
         <div>
           <h4 className="font-semibold text-slate-800">{title}</h4>
-          <p className="text-sm text-slate-500 mt-1">{description}</p>
+          <div className="text-sm font-bold text-[#006168] mt-0.5">{money(price)}</div>
         </div>
-        <div className="text-right shrink-0">
-          <div className="text-sm font-bold text-[#006168]">{money(price)}</div>
-          <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${selected ? "bg-[#006168] text-white" : "bg-slate-100 text-slate-500"}`}>
-            {selected ? "Added" : "Add"}
-          </span>
-        </div>
+        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${expanded ? "rotate-180" : ""}`} />
       </button>
-      {selected && children && <div className="mt-4 pt-4 border-t border-[#006168]/15">{children}</div>}
+
+      {expanded && (
+        <div className="px-4 pb-4 space-y-4 border-t border-slate-100 pt-4">
+          <div className="text-sm text-slate-600 leading-relaxed space-y-2">{description}</div>
+          <Button type="button" variant={selected ? "secondary" : "default"} onClick={() => onToggle(!selected)} className="w-full sm:w-auto">
+            {selected ? "Remove enhancement" : "Add enhancement"}
+          </Button>
+          {selected && children && <div className="pt-4 border-t border-slate-100">{children}</div>}
+        </div>
+      )}
     </div>
   );
 }
@@ -87,28 +93,21 @@ export default function EventAddOnsStep({ formData, setFormData }) {
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-green-900">Your Residential Event Package Includes</h3>
+        <h3 className="text-sm font-semibold text-green-900">Your Residential Event Package Includes ($9.99)</h3>
         <ul className="space-y-1.5 text-xs text-green-800">
-          <li className="flex items-start gap-2">
-            <span className="font-bold text-green-600 mt-0.5">✔</span>
-            <span>Event detail page</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="font-bold text-green-600 mt-0.5">✔</span>
-            <span>Featured-level visibility</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="font-bold text-green-600 mt-0.5">✔</span>
-            <span>Event map pin</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="font-bold text-green-600 mt-0.5">✔</span>
-            <span>Standard category icon</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="font-bold text-green-600 mt-0.5">✔</span>
-            <span>One-day event listing</span>
-          </li>
+          {[
+            "Event detail page",
+            "Event map pin",
+            "Standard category icon",
+            "One-day event listing",
+            "Visible to people searching your local area and surrounding neighborhood",
+            "Designed to help nearby residents discover your event"
+          ].map((item) => (
+            <li key={item} className="flex items-start gap-2">
+              <span className="font-bold text-green-600 mt-0.5">✔</span>
+              <span>{item}</span>
+            </li>
+          ))}
         </ul>
         <p className="text-xs text-green-700 font-medium pt-2">You're ready to publish your event. The options below are completely optional and can help increase visibility and engagement.</p>
       </div>
@@ -116,9 +115,17 @@ export default function EventAddOnsStep({ formData, setFormData }) {
       <div className="space-y-3">
         <AddOnCard
           id="premium_visibility"
-          title="Premium Visibility"
+          title="Expand Your Reach"
           price={RESIDENTIAL_EVENT_ADD_ONS.premium_visibility.price}
-          description="Higher placement than standard Residential Events."
+          description={
+            <>
+              <p>Increase how far your event can be discovered.</p>
+              <div className="rounded-lg bg-slate-50 p-3 space-y-2">
+                <p><span className="font-semibold text-slate-800">Standard Event:</span> Visible primarily within your neighborhood and nearby area.</p>
+                <p><span className="font-semibold text-slate-800">Expanded Reach:</span> Visible to more users searching farther away from your event location.</p>
+              </div>
+            </>
+          }
           selected={!!addOns.premium_visibility}
           onToggle={(checked) => updateAddOns({ premium_visibility: checked })}
         />
@@ -127,7 +134,13 @@ export default function EventAddOnsStep({ formData, setFormData }) {
           id="animation"
           title="Animation"
           price={RESIDENTIAL_EVENT_ADD_ONS.animation.price}
-          description="Add pulse or bounce animation to the event marker."
+          description={
+            <>
+              <p>Make your event stand out on the map.</p>
+              <p><span className="font-semibold text-slate-800">Choose:</span> Pulse or Bounce</p>
+              <p><span className="font-semibold text-slate-800">Useful for:</span> Fundraisers, community events, and church events.</p>
+            </>
+          }
           selected={!!addOns.animation}
           onToggle={(checked) => setFormData((prev) => ({ ...prev, event_animation: checked ? (prev.event_animation || "pulse") : "", event_add_ons: { ...(prev.event_add_ons || {}), animation: checked } }))}
         >
@@ -144,7 +157,13 @@ export default function EventAddOnsStep({ formData, setFormData }) {
           id="flyer_upload"
           title="Flyer Upload"
           price={RESIDENTIAL_EVENT_ADD_ONS.flyer_upload.price}
-          description="Use a flyer as the primary promotional, header, and marketing image."
+          description={
+            <>
+              <p>Upload a large promotional flyer.</p>
+              <p>The flyer becomes your main event image, event detail header image, and social sharing image.</p>
+              <p><span className="font-semibold text-slate-800">Recommended for:</span> Church events, school events, and fundraisers.</p>
+            </>
+          }
           selected={!!addOns.flyer_upload}
           onToggle={(checked) => updateAddOns({ flyer_upload: checked })}
         >
@@ -171,7 +190,13 @@ export default function EventAddOnsStep({ formData, setFormData }) {
           id="photo_gallery"
           title="Photo Gallery"
           price={RESIDENTIAL_EVENT_ADD_ONS.photo_gallery.price}
-          description="Add smaller gallery photos separate from the flyer. Maximum 10 photos."
+          description={
+            <>
+              <p>Add up to 10 gallery photos.</p>
+              <p>Gallery photos appear separately from your flyer and help visitors learn more about your event.</p>
+              <p><span className="font-semibold text-slate-800">Maximum:</span> 10 photos</p>
+            </>
+          }
           selected={!!addOns.photo_gallery}
           onToggle={(checked) => setFormData((prev) => ({ ...prev, event_photo_gallery_count: checked ? (prev.event_photo_gallery_count || 1) : 0, event_photos: checked ? prev.event_photos || [] : [], photoUrls: checked ? prev.event_photos || [] : [], event_add_ons: { ...(prev.event_add_ons || {}), photo_gallery: checked } }))}
         >
@@ -196,7 +221,12 @@ export default function EventAddOnsStep({ formData, setFormData }) {
           id="custom_icon"
           title="Custom Icon"
           price={RESIDENTIAL_EVENT_ADD_ONS.custom_icon.price}
-          description="Replace the default category icon using the existing event icon upload standards."
+          description={
+            <>
+              <p>Replace the standard category icon with your own approved icon.</p>
+              <p>Must meet existing icon upload requirements.</p>
+            </>
+          }
           selected={!!addOns.custom_icon}
           onToggle={(checked) => updateAddOns({ custom_icon: checked })}
         >
@@ -213,7 +243,13 @@ export default function EventAddOnsStep({ formData, setFormData }) {
           id="marquee"
           title="Marquee"
           price={RESIDENTIAL_EVENT_ADD_ONS.marquee.price}
-          description="Keep the existing marquee board behavior, now sold as an add-on instead of a tier."
+          description={
+            <>
+              <p>Give your event maximum visibility.</p>
+              <p>Marquee events receive the large event-board presentation currently used by marquee events.</p>
+              <p><span className="font-semibold text-slate-800">Best for:</span> Large fundraisers, community-wide events, and holiday events.</p>
+            </>
+          }
           selected={!!addOns.marquee}
           onToggle={(checked) => updateAddOns({ marquee: checked })}
         >
