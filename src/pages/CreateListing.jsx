@@ -124,7 +124,20 @@ function hasPastSelectedDates(data) {
   );
 }
 
-function hasResidentialDraftContent(data) {
+function hasListingDraftContent(data) {
+  if (data?.listingType === "event") {
+    return Boolean(
+      data.event_name ||
+      data.event_description ||
+      data.event_category ||
+      data.display_address ||
+      data.address_text ||
+      data.event_start_date ||
+      data.event_start_time ||
+      Object.keys(data.event_add_ons || {}).length
+    );
+  }
+
   if (!["yard_sale", "neighborhood_sale"].includes(data?.listingType)) return false;
   return Boolean(data.title || data.description || data.addressText || data.selectedRangeStartDate || data.selectedRangeEndDate || data.categories?.length || data.category);
 }
@@ -580,7 +593,7 @@ export default function CreateListingPage() {
   };
 
   useEffect(() => {
-    if (!user?.id || isAdminCreate || !hasResidentialDraftContent(formData)) return;
+    if (!user?.id || isAdminCreate || !hasListingDraftContent(formData)) return;
 
     const timeoutId = window.setTimeout(() => {
       saveBackedOutDraft(formData, step).catch(() => {});
