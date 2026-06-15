@@ -177,6 +177,7 @@ function isResidentialOpenNow(listing, now = new Date()) {
 }
 
 function hasListingEarlyVisibilityPromoWindow(listing, now = new Date()) {
+  if (listing?.listingType !== "yard_sale") return false;
   if (listing?.early_visibility_enabled !== true || !listing?.visibility_start_date) return false;
   const start = listing?.startDateTime ? new Date(listing.startDateTime) : null;
   const visibilityStart = new Date(`${String(listing.visibility_start_date).slice(0, 10)}T00:00:00`);

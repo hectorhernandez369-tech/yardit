@@ -378,6 +378,9 @@ Deno.serve(async (req) => {
         discount_percent: String(promoDiscountPercent),
         discount_bucket: promoDiscountBucket,
         promo_discount_amount: String(promoDiscountAmount),
+        early_visibility_enabled: body?.promo_early_visibility_enabled ? 'true' : 'false',
+        early_visibility_days: String(body?.promo_early_visibility_days || 0),
+        visibility_start_date: body?.promo_visibility_start_date || '',
       }),
     };
 

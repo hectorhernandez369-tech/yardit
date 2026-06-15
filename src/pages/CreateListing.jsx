@@ -410,7 +410,11 @@ export default function CreateListingPage() {
           selectedRangeEndDate: "",
           earlyVisibilityDays: 0,
           earlyVisibilityDates: [],
-          activeDates: []
+          activeDates: [],
+          early_visibility_enabled: false,
+          early_visibility_days: 0,
+          visibility_start_date: "",
+          early_visibility_promo_code: ""
         }));
 
         console.log("[RELIST_DEBUG] applying residential relist tier", {
@@ -465,6 +469,10 @@ export default function CreateListingPage() {
         earlyVisibilityDays: 0,
         earlyVisibilityDates: [],
         activeDates: [],
+        early_visibility_enabled: false,
+        early_visibility_days: 0,
+        visibility_start_date: "",
+        early_visibility_promo_code: "",
       }));
       setStep(3);
       toast.success("Neighborhood rescue loaded — choose a tier to keep your sale live.");
@@ -1360,7 +1368,11 @@ export default function CreateListingPage() {
         activation_status: freeWindow.isCurrentlyWeekend ? "active" : "pending",
         earlyVisibilityDays: 0,
         earlyVisibilityDates: [],
-        activeDates: freeWindow.activeDates
+        activeDates: freeWindow.activeDates,
+        early_visibility_enabled: false,
+        early_visibility_days: 0,
+        visibility_start_date: "",
+        early_visibility_promo_code: ""
       };
     }
 
