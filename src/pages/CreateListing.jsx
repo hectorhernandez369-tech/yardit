@@ -244,6 +244,10 @@ export default function CreateListingPage() {
     earlyVisibilityDays: 0,
     earlyVisibilityDates: [],
     activeDates: [],
+    early_visibility_enabled: false,
+    early_visibility_days: 0,
+    visibility_start_date: "",
+    early_visibility_promo_code: "",
 
     // Categories
     category: "",
@@ -644,6 +648,30 @@ export default function CreateListingPage() {
     non_refund_disclosure_text: nonRefundAcknowledgement.disclosure_text || "",
   });
 
+  const buildPromoEarlyVisibilityFields = (promoResult = null, sourceData = formData) => {
+    const earlyVisibility = promoResult?.earlyVisibility;
+    if (!earlyVisibility?.enabled || !earlyVisibility.visibility_start_date) {
+      return {
+        early_visibility_enabled: false,
+        early_visibility_days: 0,
+        visibility_start_date: "",
+        early_visibility_promo_code: "",
+      };
+    }
+
+    const listingStartDate = sourceData.selectedRangeStartDate || sourceData.startDateTime?.slice?.(0, 10) || "";
+    const safeVisibilityStartDate = listingStartDate && earlyVisibility.visibility_start_date > listingStartDate
+      ? listingStartDate
+      : earlyVisibility.visibility_start_date;
+
+    return {
+      early_visibility_enabled: true,
+      early_visibility_days: Number(earlyVisibility.days || 0),
+      visibility_start_date: safeVisibilityStartDate,
+      early_visibility_promo_code: earlyVisibility.promo_code || promoResult?.promoCode?.code || "",
+    };
+  };
+
   const startPaidListingCheckout = async (promoResult = null, nonRefundAcknowledgement = {}) => {
     if (window.self !== window.top) {
       console.warn("Stripe checkout blocked inside iframe preview");
@@ -665,7 +693,8 @@ export default function CreateListingPage() {
       setPaymentError("");
       setIsStartingPayment(true);
       const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
-      localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({ formData: { ...formData, ...nonRefundFields } }));
+      const earlyVisibilityFields = buildPromoEarlyVisibilityFields(promoResult);
+      localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({ formData: { ...formData, ...nonRefundFields, ...earlyVisibilityFields } }));
 
       const returnUrl = `${window.location.origin}${createPageUrl("CreateListing")}`;
       const promoPayload = promoResult ? {
@@ -676,6 +705,9 @@ export default function CreateListingPage() {
         promo_discount_bucket: promoResult.discountBucket,
         promo_final_amount: promoResult.finalAmount,
         user_id: user?.id,
+        promo_early_visibility_enabled: promoResult.earlyVisibility?.enabled === true,
+        promo_early_visibility_days: promoResult.earlyVisibility?.days || 0,
+        promo_visibility_start_date: promoResult.earlyVisibility?.visibility_start_date || "",
       } : {};
       const response = await base44.functions.invoke("residentialStripeCheckout", {
         tier: formData.listingType === "event" ? "event" : formData.tier,
@@ -1432,7 +1464,8 @@ export default function CreateListingPage() {
         setIsStartingPayment(true);
 
         const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
-        const listingPayload = { ...buildFreePromoListingPayload(formData), ...nonRefundFields };
+        const earlyVisibilityFields = buildPromoEarlyVisibilityFields(promoResult);
+        const listingPayload = { ...buildFreePromoListingPayload({ ...formData, ...earlyVisibilityFields }), ...nonRefundFields };
         const createdListing = await createListingDirectlyWithPromo(listingPayload);
 
         await base44.functions.invoke("residentialStripeCheckout", {

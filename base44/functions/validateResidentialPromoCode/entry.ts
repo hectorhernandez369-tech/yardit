@@ -18,6 +18,25 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function shiftYmd(ymd, dayDelta) {
+  const [year, month, day] = String(ymd || '').slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return '';
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + dayDelta);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+}
+
+function buildEarlyVisibilityResult(promoCode, listingStartDate, normalizedCode) {
+  const days = Math.max(0, Number(promoCode?.early_visibility_days || 0));
+  if (promoCode?.early_visibility_enabled !== true || days <= 0 || !listingStartDate) {
+    return { enabled: false, days: 0, visibility_start_date: '', promo_code: '' };
+  }
+  const startDate = String(listingStartDate).slice(0, 10);
+  let visibilityStartDate = shiftYmd(startDate, -days);
+  if (visibilityStartDate > startDate) visibilityStartDate = startDate;
+  return { enabled: true, days, visibility_start_date: visibilityStartDate, promo_code: promoCode?.code || normalizedCode };
+}
+
 function checkGeoLimit(promo, loc) {
   if (!promo.geographic_limit_enabled) return { valid: true, status: 'skipped', distance: null };
   const geoType = promo.geographic_limit_type || 'none';
@@ -134,6 +153,7 @@ Deno.serve(async (req) => {
     const selectedTier = String(body?.selected_tier || '').toLowerCase();
     const listingPriceCents = Number(body?.listing_price_cents || 0);
     const listingPriceDollars = listingPriceCents / 100;
+    const selectedRangeStartDate = body?.selected_range_start_date || body?.selectedRangeStartDate || body?.listing_start_date || '';
 
     if (!rawCode) {
       return Response.json({ valid: false, reason: 'No promo code provided.' });
@@ -231,12 +251,17 @@ Deno.serve(async (req) => {
         id: promoCode.id,
         code: promoCode.code,
         title: promoCode.title,
+        early_visibility_enabled: promoCode.early_visibility_enabled === true,
+        early_visibility_days: Number(promoCode.early_visibility_days || 0),
       },
+      earlyVisibilityEnabled: promoCode.early_visibility_enabled === true,
+      earlyVisibilityDays: Number(promoCode.early_visibility_days || 0),
       discountPercent,
       discountAmount,
       finalAmount,
       discountBucket,
       originalAmount: listingPriceDollars,
+      earlyVisibility: buildEarlyVisibilityResult(promoCode, selectedRangeStartDate, rawCode),
     });
   } catch (error) {
     console.error('[PROMO] Validation error:', error?.message || error);

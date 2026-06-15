@@ -31,6 +31,8 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
       listingPrice,
       listingLat: listing?.lat,
       listingLng: listing?.lng,
+      selectedRangeStartDate: listing?.selectedRangeStartDate,
+      startDateTime: listing?.startDateTime,
     });
 
     if (res.valid) {

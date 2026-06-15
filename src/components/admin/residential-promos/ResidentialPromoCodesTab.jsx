@@ -62,6 +62,11 @@ function formatDiscount(promo) {
   return `${promo.default_discount_percent}%`;
 }
 
+function formatEarlyVisibility(promo) {
+  if (promo.early_visibility_enabled) return `${promo.early_visibility_days || 0} days`;
+  return "—";
+}
+
 const FILTER_OPTIONS = [
   { label: "All", value: "all" },
   { label: "Active", value: "active" },
@@ -181,7 +186,7 @@ export default function ResidentialPromoCodesTab({ adminUser }) {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                {["Code", "Title", "Status", "Discount", "Early Offer", "Coverage", "Uses", "Starts", "Expires", "Actions"].map((h) => (
+                {["Code", "Title", "Status", "Discount", "Early Discount", "Early Visibility", "Coverage", "Uses", "Starts", "Expires", "Actions"].map((h) => (
                   <th key={h} className="px-3 py-2 text-left text-slate-600 font-semibold whitespace-nowrap text-xs">{h}</th>
                 ))}
               </tr>
@@ -197,6 +202,9 @@ export default function ResidentialPromoCodesTab({ adminUser }) {
                   <td className="px-3 py-2 whitespace-nowrap text-xs">{formatDiscount(promo)}</td>
                   <td className="px-3 py-2 text-xs text-slate-500">
                     {promo.early_discount_enabled ? `${promo.early_discount_used_count || 0}/${promo.early_discount_limit}` : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-slate-500">
+                    {formatEarlyVisibility(promo)}
                   </td>
                   <td className="px-3 py-2 text-xs">
                    <div className="flex items-center gap-1 flex-wrap">
@@ -248,7 +256,8 @@ export default function ResidentialPromoCodesTab({ adminUser }) {
                 </div>
                 <div className="text-xs text-slate-600 space-y-1">
                  <p>Discount: <span className="font-medium">{formatDiscount(promo)}</span></p>
-                 {promo.early_discount_enabled && <p>Early: {promo.early_discount_used_count || 0}/{promo.early_discount_limit} used</p>}
+                 {promo.early_discount_enabled && <p>Early discount: {promo.early_discount_used_count || 0}/{promo.early_discount_limit} used</p>}
+                 {promo.early_visibility_enabled && <p>Early visibility: {formatEarlyVisibility(promo)}</p>}
                  <p className="flex items-center gap-1">Coverage: {formatCoverage(promo)} <GeoChip promo={promo} /></p>
                   <p>Uses: {promo.total_used_count || 0}{promo.max_total_uses ? `/${promo.max_total_uses}` : " (unlimited)"}</p>
                   {promo.expires_at && <p>Expires: {format(new Date(promo.expires_at), "MMM d, yyyy")}</p>}

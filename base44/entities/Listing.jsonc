@@ -269,6 +269,25 @@
       "type": "string",
       "description": "Listing-local closing time in HH:MM format"
     },
+    "early_visibility_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether a promo code granted early Coming Soon visibility to this specific listing"
+    },
+    "early_visibility_days": {
+      "type": "number",
+      "default": 0,
+      "description": "Promo-granted early visibility days stored on this specific listing"
+    },
+    "visibility_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "First local date this specific listing may appear as Coming Soon; must not be later than startDateTime"
+    },
+    "early_visibility_promo_code": {
+      "type": "string",
+      "description": "Promo code that granted early visibility, for admin support/audit context"
+    },
     "earlyVisibilityDays": {
       "type": "number",
       "default": 0,

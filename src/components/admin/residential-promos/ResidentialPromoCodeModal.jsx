@@ -21,6 +21,8 @@ const DEFAULT_FORM = {
   early_discount_limit: 50,
   early_discount_percent: 100,
   early_discount_used_count: 0,
+  early_visibility_enabled: false,
+  early_visibility_days: 0,
   max_total_uses: "",
   total_used_count: 0,
   per_user_limit: 1,
@@ -89,6 +91,9 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
     if ((form.applies_to_tiers || []).length === 0) {
       toast.error("Select at least one tier this code applies to."); return;
     }
+    if (form.early_visibility_enabled && Number(form.early_visibility_days || 0) <= 0) {
+      toast.error("Early Visibility days are required when Early Visibility is enabled."); return;
+    }
 
     setSaving(true);
     try {
@@ -111,6 +116,8 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
         default_discount_percent: Number(form.default_discount_percent),
         early_discount_limit: form.early_discount_enabled ? Number(form.early_discount_limit) : null,
         early_discount_percent: form.early_discount_enabled ? Number(form.early_discount_percent) : null,
+        early_visibility_enabled: form.early_visibility_enabled === true,
+        early_visibility_days: form.early_visibility_enabled ? Number(form.early_visibility_days || 0) : 0,
         per_user_limit: Number(form.per_user_limit) || 1,
         max_total_uses: form.max_total_uses !== "" ? Number(form.max_total_uses) : null,
         starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
@@ -204,6 +211,29 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
                 </Field>
                 <p className="text-xs text-slate-500 sm:col-span-2">
                   Example: First {form.early_discount_limit || "X"} users get {form.early_discount_percent || "Y"}% off. After that, {form.default_discount_percent || "Z"}% off.
+                </p>
+              </div>
+            )}
+          </Section>
+
+          <Section title="Early Visibility">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="early_visibility_enabled"
+                checked={!!form.early_visibility_enabled}
+                onCheckedChange={v => set("early_visibility_enabled", v)}
+              />
+              <label htmlFor="early_visibility_enabled" className="text-sm font-medium text-slate-700 cursor-pointer">
+                Show eligible listings early using Coming Soon
+              </label>
+            </div>
+            {form.early_visibility_enabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 pl-6 border-l-2 border-[#006168]/20">
+                <Field label="Days Before Sale Date">
+                  <Input type="number" min="1" value={form.early_visibility_days} onChange={e => set("early_visibility_days", e.target.value)} placeholder="14" />
+                </Field>
+                <p className="text-xs text-slate-500 sm:col-span-2">
+                  This stores Early Visibility on the specific listing that redeems the code; future listings do not inherit it.
                 </p>
               </div>
             )}

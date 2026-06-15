@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
  * Validate a residential promo code.
  * Returns { valid, reason, promoCode, discountPercent, discountAmount, finalAmount, discountBucket }
  */
-export async function validateResidentialPromoCode({ code, user, listingLocation, selectedTier, listingPrice, listingLat, listingLng }) {
+export async function validateResidentialPromoCode({ code, user, listingLocation, selectedTier, listingPrice, listingLat, listingLng, selectedRangeStartDate, startDateTime }) {
   if (!code || !code.trim()) {
     return { valid: false, reason: "Please enter a promo code." };
   }
@@ -102,6 +102,7 @@ export async function validateResidentialPromoCode({ code, user, listingLocation
 
   const discountAmount = Math.min(Math.round((listingPrice * discountPercent) / 100), listingPrice);
   const finalAmount = Math.max(0, listingPrice - discountAmount);
+  const earlyVisibility = buildEarlyVisibilityResult(promoCode, selectedRangeStartDate || startDateTime?.slice?.(0, 10), normalizedCode);
 
   return {
     valid: true,
@@ -111,6 +112,38 @@ export async function validateResidentialPromoCode({ code, user, listingLocation
     discountAmount,
     finalAmount,
     discountBucket,
+    earlyVisibility,
+  };
+}
+
+function shiftYmd(ymd, dayDelta) {
+  const [year, month, day] = String(ymd || "").slice(0, 10).split("-").map(Number);
+  if (!year || !month || !day) return "";
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + dayDelta);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+}
+
+function buildEarlyVisibilityResult(promoCode, listingStartDate, normalizedCode) {
+  const days = Math.max(0, Number(promoCode?.early_visibility_days || 0));
+  if (promoCode?.early_visibility_enabled !== true || days <= 0 || !listingStartDate) {
+    return {
+      enabled: false,
+      days: 0,
+      visibility_start_date: "",
+      promo_code: "",
+    };
+  }
+
+  const startDate = String(listingStartDate).slice(0, 10);
+  let visibilityStartDate = shiftYmd(startDate, -days);
+  if (visibilityStartDate > startDate) visibilityStartDate = startDate;
+
+  return {
+    enabled: true,
+    days,
+    visibility_start_date: visibilityStartDate,
+    promo_code: promoCode?.code || normalizedCode,
   };
 }
 

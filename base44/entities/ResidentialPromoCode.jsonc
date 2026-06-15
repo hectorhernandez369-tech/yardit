@@ -51,6 +51,16 @@
       "type": "number",
       "default": 0
     },
+    "early_visibility_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this promo grants listing-level Early Visibility using Coming Soon"
+    },
+    "early_visibility_days": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of days before the listing start date that visibility begins"
+    },
     "max_total_uses": {
       "type": "number",
       "description": "Max total uses (null = unlimited)"

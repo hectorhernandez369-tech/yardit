@@ -135,6 +135,25 @@ function minutesFromTime(value) {
   return hours * 60 + minutes;
 }
 
+function getStoredVisibilityStartDate(listing) {
+  const value = listing?.visibility_start_date;
+  if (!value) return "";
+  return String(value).slice(0, 10);
+}
+
+function hasStoredEarlyVisibility(listing) {
+  return listing?.early_visibility_enabled === true && !!getStoredVisibilityStartDate(listing);
+}
+
+function isStoredEarlyVisibilityWindow(listing, now = new Date()) {
+  if (!hasStoredEarlyVisibility(listing)) return false;
+  const visibilityStartDate = getStoredVisibilityStartDate(listing);
+  const listingStartDate = listing?.selectedRangeStartDate || getDateOnly(listing?.startDateTime, listing?.timeZoneId);
+  if (!listingStartDate || visibilityStartDate > listingStartDate) return false;
+  const today = getDateOnly(now, listing?.timeZoneId);
+  return today >= visibilityStartDate && today < listingStartDate;
+}
+
 function isResidentialOpenNow(listing, now = new Date()) {
   if (listing?.listingType !== "yard_sale") return true;
 
@@ -157,6 +176,15 @@ function isResidentialOpenNow(listing, now = new Date()) {
   return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
 }
 
+function hasListingEarlyVisibilityPromoWindow(listing, now = new Date()) {
+  if (listing?.early_visibility_enabled !== true || !listing?.visibility_start_date) return false;
+  const start = listing?.startDateTime ? new Date(listing.startDateTime) : null;
+  const visibilityStart = new Date(`${String(listing.visibility_start_date).slice(0, 10)}T00:00:00`);
+  if (!start || Number.isNaN(start.getTime()) || Number.isNaN(visibilityStart.getTime())) return false;
+  if (visibilityStart > start) return false;
+  return now >= visibilityStart && now < start;
+}
+
 export function isPremiumComingSoonPublicListing(listing, now = new Date()) {
   if (listing?.listingType === "event") {
     if (!hasValidCoordinates(listing) || isTerminalHidden(listing, now) || !hasPublicPayment(listing)) return false;
@@ -166,12 +194,16 @@ export function isPremiumComingSoonPublicListing(listing, now = new Date()) {
     return !!earlyStart && !Number.isNaN(earlyStart.getTime()) && now >= earlyStart;
   }
 
+  if (!hasValidCoordinates(listing) || isTerminalHidden(listing, now) || !hasPublicPayment(listing)) return false;
+
+  if (hasListingEarlyVisibilityPromoWindow(listing, now)) return true;
+
   const tier = getEffectiveTier(listing);
   if (!COMING_SOON_TIERS.has(tier)) return false;
-  if (!hasValidCoordinates(listing) || isTerminalHidden(listing, now) || !hasPublicPayment(listing)) return false;
 
   if (listing?.listingType === "yard_sale") {
     if (isResidentialOpenNow(listing, now)) return false;
+    if (isStoredEarlyVisibilityWindow(listing, now)) return true;
 
     const today = getDateOnly(now, listing?.timeZoneId);
     const earlyDates = Array.isArray(listing?.earlyVisibilityDates) ? listing.earlyVisibilityDates : [];
