@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EVENT_CATEGORIES, getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
+import { EVENT_CATEGORIES, getDefaultEventIconForCategory, getBasicEventIconSvg } from "@/lib/eventListingConfig";
 
 export default function EventDetailsStep({ formData, setFormData }) {
   const setListingType = (value) => {
@@ -82,9 +82,20 @@ export default function EventDetailsStep({ formData, setFormData }) {
             <SelectValue placeholder="Select a category" />
           </SelectTrigger>
           <SelectContent>
-            {EVENT_CATEGORIES.map((category) => (
-              <SelectItem key={category} value={category}>{category.replace(/_/g, " ")}</SelectItem>
-            ))}
+            {EVENT_CATEGORIES.map((category) => {
+              const iconKey = getDefaultEventIconForCategory(category);
+              const iconSvg = getBasicEventIconSvg(iconKey, 16, "#666");
+              return (
+                <SelectItem key={category} value={category}>
+                  <div className="flex items-center gap-2">
+                    {iconSvg && (
+                      <span dangerouslySetInnerHTML={{ __html: iconSvg }} className="inline-block" />
+                    )}
+                    {category.replace(/_/g, " ")}
+                  </div>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
         <p className="text-xs text-slate-400">Your default graphic icon is selected by category. You can replace it with the Custom Icon add-on later.</p>
