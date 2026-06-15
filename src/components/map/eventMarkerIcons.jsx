@@ -35,11 +35,18 @@ export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = fa
     : listing?.event_tier || listing?.tier || "basic";
   const emoji = getEventIconEmoji(listing?.event_icon);
   const image = listing?.event_logo_url;
+  const hasResidentialCustomIcon = !!residentialEventAddOns.custom_icon && !!image;
   const opacity = listing?.ownerUpcomingPreview ? 0.58 : 1;
   const markerAnimation = listing?.listingType === "event" && !listing?.is_vendor_event ? listing?.event_animation : "";
   const animationKeyframes = markerAnimation ? `<style>@keyframes yarditEventPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.16)}}@keyframes yarditEventBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}</style>` : "";
   const animationStyle = markerAnimation === "pulse" ? "animation:yarditEventPulse 1.4s ease-in-out infinite;" : markerAnimation === "bounce" ? "animation:yarditEventBounce 1.1s ease-in-out infinite;" : "";
   const wrapAnimation = (html) => animationStyle ? `${animationKeyframes}<div style="${animationStyle}">${html}</div>` : html;
+
+  if (hasResidentialCustomIcon) {
+    const size = isSelected ? 34 : 30;
+    const html = `<img src="${image}" alt="Event" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:4px;opacity:${opacity};filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45));" />`;
+    return makeDivIcon(`event_custom_icon_${image}_${isSelected}_${opacity}_${markerAnimation}`, wrapAnimation(html), size, size, size / 2, size / 2);
+  }
 
   if (tier === "marquee") {
     if (marqueeOpen && marqueeHtml) {
