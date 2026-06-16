@@ -1211,8 +1211,23 @@ export default function HomePage() {
     setShowVendorSheet(true);
   };
 
+  useEffect(() => {
+    const isMobile = window.matchMedia("(max-width: 639px)").matches;
+    if (!isMobile) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
+
   return (
-    <div className="h-[100svh] overflow-hidden sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0 bg-slate-100">
+    <div className="fixed inset-0 h-[100svh] overflow-hidden overscroll-none sm:relative sm:inset-auto sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0 bg-slate-100">
       {/* Sticky Top Bar */}
       <div className="hidden sm:flex bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex-col w-full">
         {view === "map" &&
@@ -1279,7 +1294,7 @@ export default function HomePage() {
 
       {/* Content area */}
       {view === "list" ?
-      <div className="flex-1 overflow-auto pb-64 sm:pb-0">
+      <div className="flex-1 overflow-auto overscroll-contain pb-64 sm:pb-0">
           <ListView
           listings={listings}
           vendorEvents={vendorEvents}
@@ -1290,7 +1305,7 @@ export default function HomePage() {
         
         </div> :
 
-      <div ref={mapAreaRef} className="flex-1 relative min-w-0 w-full">
+      <div ref={mapAreaRef} className="flex-1 relative min-w-0 w-full overflow-hidden overscroll-none">
           <div className="absolute left-3 right-3 top-3 z-[1002] sm:hidden">
             <div className="flex items-center gap-2">
               <button

@@ -9,7 +9,6 @@ export default function MobileSearchSheet({ open, onOpenChange, searchQuery, onS
     event.preventDefault();
     document.activeElement?.blur?.();
     onOpenChange(false);
-    window.scrollTo(0, 0);
   };
 
   return (
