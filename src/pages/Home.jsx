@@ -1291,7 +1291,7 @@ export default function HomePage() {
         </div> :
 
       <div ref={mapAreaRef} className="flex-1 relative min-w-0 w-full">
-          <div className="fixed left-3 right-3 top-3 z-[1300] sm:hidden">
+          <div className="absolute left-3 right-3 top-3 z-[1300] sm:hidden">
             <div className="flex items-center gap-2">
               <button
                 type="button"
