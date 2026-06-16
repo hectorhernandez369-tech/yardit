@@ -61,12 +61,10 @@ import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import MobileHomeBottomNav from "@/components/home/MobileHomeBottomNav";
 import MobileSearchSheet from "@/components/home/MobileSearchSheet";
 import MobileMapFilterSheet from "@/components/home/MobileMapFilterSheet";
-import MobileLayoutModeToggle from "@/components/home/MobileLayoutModeToggle";
 import VendorOnboardingSheet from "@/components/home/VendorOnboardingSheet";
 import VerifiedAddressRequiredModal from "@/components/profile/VerifiedAddressRequiredModal";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
-const MOBILE_HOME_LAYOUT_MODE_KEY = "mobile_home_layout_mode";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -330,7 +328,7 @@ function clampHuntButtonPosition(position, containerRect) {
 function getDefaultHuntButtonPosition(containerRect) {
   return clampHuntButtonPosition({
     x: containerRect.width - HUNT_BUTTON_SIZE - HUNT_BUTTON_MARGIN,
-    y: 150
+    y: 112
   }, containerRect);
 }
 
@@ -465,8 +463,8 @@ export default function HomePage() {
     offsetY: 0
   });
   const suppressButtonClickRef = useRef(false);
-  const huntButtonPositionRef = useRef({ x: 0, y: 150 });
-  const [huntButtonPosition, setHuntButtonPosition] = useState({ x: 0, y: 150 });
+  const huntButtonPositionRef = useRef({ x: 0, y: 112 });
+  const [huntButtonPosition, setHuntButtonPosition] = useState({ x: 0, y: 112 });
   const [user, setUser] = useState(null);
   const [previewListingsOnMap] = useState(getPreviewListingsOnMapPreference);
   const [userLocation, setUserLocation] = useState(null);
@@ -775,30 +773,6 @@ export default function HomePage() {
     initialData: [],
     enabled: !!user?.id || !!user?.email
   });
-
-  const { data: appSettings = [], isFetching: isSavingLayoutMode } = useQuery({
-    queryKey: ["homeAppSettings"],
-    queryFn: () => base44.entities.AppSetting.list(),
-    initialData: []
-  });
-
-  const mobileLayoutModeSetting = appSettings.find((setting) => setting.key === MOBILE_HOME_LAYOUT_MODE_KEY)?.value || "preview";
-  const isPreviewLayoutMode = mobileLayoutModeSetting !== "publish";
-  const canToggleMobileLayoutMode = !!user && (user.isAdmin || ["admin", "master", "super_master"].includes(user.role));
-
-  const handleMobileLayoutModeToggle = async () => {
-    const nextMode = isPreviewLayoutMode ? "publish" : "preview";
-    const existingSetting = appSettings.find((setting) => setting.key === MOBILE_HOME_LAYOUT_MODE_KEY);
-
-    if (existingSetting) {
-      await base44.entities.AppSetting.update(existingSetting.id, { value: nextMode });
-    } else {
-      await base44.entities.AppSetting.create({ key: MOBILE_HOME_LAYOUT_MODE_KEY, value: nextMode });
-    }
-
-    queryClient.invalidateQueries({ queryKey: ["homeAppSettings"] });
-    toast.success(nextMode === "publish" ? "Publish spacing enabled" : "Dev preview spacing enabled");
-  };
 
   // Live location tracking
   useEffect(() => {
@@ -1305,7 +1279,7 @@ export default function HomePage() {
 
       {/* Content area */}
       {view === "list" ?
-      <div className={`flex-1 overflow-auto ${isPreviewLayoutMode ? "pb-80" : "pb-28"} sm:pb-0`}>
+      <div className="flex-1 overflow-auto pb-64 sm:pb-0">
           <ListView
           listings={listings}
           vendorEvents={vendorEvents}
@@ -1317,7 +1291,7 @@ export default function HomePage() {
         </div> :
 
       <div ref={mapAreaRef} className="flex-1 relative min-w-0 w-full">
-          <div className="absolute left-3 right-3 top-3 z-[1300] sm:hidden">
+          <div className="absolute left-3 right-3 top-3 z-[1002] sm:hidden">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -1354,13 +1328,6 @@ export default function HomePage() {
               >
                 Show all
               </button>
-              {canToggleMobileLayoutMode && (
-                <MobileLayoutModeToggle
-                  mode={mobileLayoutModeSetting}
-                  onToggle={handleMobileLayoutModeToggle}
-                  disabled={isSavingLayoutMode}
-                />
-              )}
             </div>
           </div>
 
@@ -1398,10 +1365,10 @@ export default function HomePage() {
           {/* Controls Panel */}
           <div
           ref={controlsPanelRef}
-          className="absolute top-32 sm:top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1001] transition-all duration-200 ease-out origin-top"
+          className="absolute top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1001] transition-all duration-200 ease-out origin-top"
           style={{
             opacity: showControls ? 1 : 0,
-            transform: showControls ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-8px)",
+            transform: showControls ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-12px)",
             pointerEvents: showControls ? "auto" : "none"
           }}>
           
@@ -2010,7 +1977,6 @@ export default function HomePage() {
         onCreate={handleMobileCreate}
         onVendor={handleMobileVendor}
         onProfile={() => user ? navigate(createPageUrl("Profile")) : navigate("/AccountOptions")}
-        layoutMode={mobileLayoutModeSetting}
       />
 
       <HiddenListingsOverlay
