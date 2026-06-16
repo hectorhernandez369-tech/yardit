@@ -1279,7 +1279,7 @@ export default function HomePage() {
 
       {/* Content area */}
       {view === "list" ?
-      <div className="flex-1 overflow-auto pb-48 sm:pb-0">
+      <div className="flex-1 overflow-auto pb-64 sm:pb-0">
           <ListView
           listings={listings}
           vendorEvents={vendorEvents}
@@ -1897,7 +1897,7 @@ export default function HomePage() {
             {!debugVisible &&
           <button
             onClick={() => {setDebugVisible(true);setDebugPinned(true);}}
-            className="absolute bottom-36 left-4 z-[1001] px-2 py-1 rounded bg-black/50 text-green-400 text-[10px] font-mono hover:bg-black/70 transition-colors sm:bottom-4">
+            className="absolute bottom-52 left-4 z-[1001] px-2 py-1 rounded bg-black/50 text-green-400 text-[10px] font-mono hover:bg-black/70 transition-colors sm:bottom-4">
             
                 Debug
               </button>

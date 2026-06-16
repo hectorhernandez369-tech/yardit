@@ -18,7 +18,7 @@ function NavButton({ active, icon: Icon, label, onClick }) {
 
 export default function MobileHomeBottomNav({ view, onViewChange, onCreate, onVendor, onProfile }) {
   return (
-    <nav className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+4.25rem)] z-[1200] sm:hidden rounded-3xl border border-slate-200/80 bg-white/95 px-2 py-2 shadow-[0_10px_35px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+    <nav className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+7rem)] z-[1200] sm:hidden rounded-3xl border border-slate-200/80 bg-white/95 px-2 py-2 shadow-[0_10px_35px_rgba(15,23,42,0.22)] backdrop-blur-xl">
       <div className="mx-auto grid max-w-md grid-cols-5 items-end gap-1">
         <NavButton active={view === "map"} icon={MapPin} label="Map" onClick={() => onViewChange("map")} />
         <NavButton active={view === "list"} icon={List} label="Listings" onClick={() => onViewChange("list")} />
