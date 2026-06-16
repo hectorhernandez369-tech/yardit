@@ -57,7 +57,7 @@ import QuickMapFilters from "@/components/map/QuickMapFilters";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
-import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
+import { useVendorAccess } from "@/lib/VendorContext";
 import MobileHomeBottomNav from "@/components/home/MobileHomeBottomNav";
 import MobileSearchSheet from "@/components/home/MobileSearchSheet";
 import MobileMapFilterSheet from "@/components/home/MobileMapFilterSheet";
@@ -426,6 +426,11 @@ export default function HomePage() {
   const { huntStops, addToHunt, updateStopStatus, gpsLocation, huntMode: isHuntActive } = huntContext;
 
   const { guardAction, showModal, setShowModal, isGuest, modalProps } = useGuestGuard();
+  const {
+    hasVendorAccess,
+    isLoading: isLoadingVendorAccess,
+    error: vendorAccessError,
+  } = useVendorAccess();
 
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
@@ -767,12 +772,6 @@ export default function HomePage() {
     initialData: []
   });
 
-  const { data: userVendorAccounts = [] } = useQuery({
-    queryKey: ["homeUserVendorAccounts", user?.id, user?.email],
-    queryFn: () => getUserVendorAccounts(user),
-    initialData: [],
-    enabled: !!user?.id || !!user?.email
-  });
 
   // Live location tracking
   useEffect(() => {
@@ -1204,7 +1203,15 @@ export default function HomePage() {
   };
 
   const handleMobileVendor = () => {
-    if (userVendorAccounts.length > 0) {
+    if (isLoadingVendorAccess) {
+      toast.info("Checking vendor access...");
+      return;
+    }
+    if (vendorAccessError) {
+      toast.error("Unable to verify vendor access");
+      return;
+    }
+    if (hasVendorAccess) {
       navigate("/VendorDashboard");
       return;
     }
@@ -1992,6 +1999,8 @@ export default function HomePage() {
           onViewChange={setView}
           onCreate={handleMobileCreate}
           onVendor={handleMobileVendor}
+          isVendorLoading={isLoadingVendorAccess}
+          vendorError={vendorAccessError}
           onProfile={() => user ? navigate(createPageUrl("Profile")) : navigate("/AccountOptions")}
         />
       )}

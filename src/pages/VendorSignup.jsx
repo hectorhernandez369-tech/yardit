@@ -9,7 +9,7 @@ import { AlertTriangle, Building2, CheckCircle2, Loader2, MapPin, Store } from "
 import AddressFields from "@/components/shared/AddressFields";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
 import { buildVendorAccountIdentityFields } from "@/lib/vendorAccountIdentity";
-import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
+import { useVendorAccess } from "@/lib/VendorContext";
 import { toast } from "sonner";
 
 const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
@@ -51,6 +51,12 @@ export default function VendorSignup() {
     tiktok_url: "",
   });
   const [createdAccount, setCreatedAccount] = useState(null);
+  const {
+    hasVendorAccess,
+    isLoading: isLoadingVendorAccess,
+    error: vendorAccessError,
+    refreshVendorAccess,
+  } = useVendorAccess();
 
   const handleClaimAccount = async (accountToClaim) => {
     setClaiming(true);
@@ -59,6 +65,7 @@ export default function VendorSignup() {
       owner_email: user.email,
       owner_name: user.full_name || user.email,
     });
+    await refreshVendorAccess();
     toast.success("Vendor account claimed! Redirecting to your dashboard...");
     navigate("/VendorDashboard");
   };
@@ -66,11 +73,6 @@ export default function VendorSignup() {
   useEffect(() => {
     base44.auth.me().then(async (currentUser) => {
       setUser(currentUser);
-      const existing = await getUserVendorAccounts(currentUser);
-      if (existing.length > 0) {
-        navigate("/VendorDashboard");
-        return;
-      }
       // Check for admin-pre-created accounts matching this email
       const byEmail = await base44.entities.VendorAccount.filter({ owner_email: currentUser.email }).catch(() => []);
       const unclaimed = byEmail.filter((a) => a.is_active !== false && (a.vendor_origin === "admin_auto_created" || !a.owner_user_id || a.owner_user_id === a.owner_email));
@@ -88,6 +90,12 @@ export default function VendorSignup() {
       base44.auth.redirectToLogin(`${window.location.origin}/VendorSignup`);
     });
   }, []);
+
+  useEffect(() => {
+    if (!isLoadingVendorAccess && hasVendorAccess && !createdAccount) {
+      navigate("/VendorDashboard");
+    }
+  }, [hasVendorAccess, isLoadingVendorAccess, createdAccount, navigate]);
 
   const saveResidentialAddress = async () => {
     if (!residentialForm.street_address || !residentialForm.city || !residentialForm.state || !residentialForm.zip_code) {
@@ -185,13 +193,18 @@ export default function VendorSignup() {
       base44.entities.VendorAccountIdentityReservation.update(reservationSlug.id, { vendor_account_id: account.id, status: "assigned" }),
     ]);
     setCreatedAccount(account);
+    await refreshVendorAccess();
     setSaving(false);
     setStep(4);
     toast.success("Vendor account created on the Free tier.");
   };
 
-  if (loading) {
+  if (loading || isLoadingVendorAccess) {
     return <div className="min-h-[70vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" /></div>;
+  }
+
+  if (vendorAccessError) {
+    return <div className="min-h-[70vh] flex items-center justify-center p-4 text-center font-semibold text-amber-700">Unable to verify vendor access</div>;
   }
 
   return (

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { useVendorAccess } from "@/lib/VendorContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, Circle, Loader2 } from "lucide-react";
@@ -13,23 +14,7 @@ export default function VendorSetup() {
   const urlParams = new URLSearchParams(window.location.search);
   const requestedStep = urlParams.get("step");
   const [activeIndex, setActiveIndex] = useState(0);
-
-  const { data: user, isLoading: loadingUser } = useQuery({
-    queryKey: ["vendorSetupUser"],
-    queryFn: () => base44.auth.me(),
-  });
-
-  const { data: accounts = [], isLoading: loadingAccount } = useQuery({
-    queryKey: ["vendorSetupAccount", user?.id, user?.email],
-    queryFn: async () => {
-      const byId = await base44.entities.VendorAccount.filter({ owner_user_id: user.id });
-      if (byId.length) return byId;
-      const byOwnerEmail = await base44.entities.VendorAccount.filter({ owner_email: user.email });
-      if (byOwnerEmail.length) return byOwnerEmail;
-      return base44.entities.VendorAccount.filter({ owner_user_id: user.email });
-    },
-    enabled: !!user?.id,
-  });
+  const { vendorAccounts: accounts, isLoading: loadingAccount, error: vendorAccessError } = useVendorAccess();
 
   const account = accounts.find((item) => item.is_active !== false) || accounts[0];
 
@@ -48,7 +33,7 @@ export default function VendorSetup() {
   }, [account?.id, pins.length, requestedStep]);
 
   const activeStep = VENDOR_SETUP_STEPS[activeIndex] || VENDOR_SETUP_STEPS[0];
-  const loading = loadingUser || loadingAccount || loadingPins;
+  const loading = loadingAccount || loadingPins;
 
   const openActiveStep = () => {
     navigate(getVendorSetupDashboardStepUrl(activeStep.key));
@@ -64,6 +49,14 @@ export default function VendorSetup() {
 
   if (loading) {
     return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" /></div>;
+  }
+
+  if (vendorAccessError) {
+    return (
+      <div className="mx-auto max-w-3xl p-4 sm:p-6">
+        <Card className="rounded-3xl"><CardContent className="p-8 text-center"><p className="font-bold text-amber-700">Unable to verify vendor access</p></CardContent></Card>
+      </div>
+    );
   }
 
   if (!account) {

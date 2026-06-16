@@ -29,6 +29,7 @@ import Events from './pages/Events';
 import RewardRedeem from './pages/RewardRedeem';
 import PaymentAudit from './pages/PaymentAudit';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { VendorProvider } from '@/lib/VendorContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import YarditSplashScreen from '@/components/install/YarditSplashScreen';
 
@@ -147,12 +148,14 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <NavigationTracker />
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-        <VisualEditAgent />
+        <VendorProvider>
+          <Router>
+            <NavigationTracker />
+            <AuthenticatedApp />
+          </Router>
+          <Toaster />
+          <VisualEditAgent />
+        </VendorProvider>
       </QueryClientProvider>
     </AuthProvider>
   )

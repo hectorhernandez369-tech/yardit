@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { HuntProvider, useHunt, HUNT_ENABLED } from "./components/hunt/HuntContext";
 import { Map as MapIcon, Crosshair } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
+import { useVendorAccess } from "@/lib/VendorContext";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { useAppMode } from "./components/shared/DemoMode";
@@ -41,7 +41,6 @@ function LayoutContent({ children, user, setUser }) {
   const { isDemoMode: demoActive } = useAppMode();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [hasAdminProfile, setHasAdminProfile] = useState(false);
-  const [hasVendorAccount, setHasVendorAccount] = useState(false);
   const [adminActivatedBanner, setAdminActivatedBanner] = useState(false);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
   const [installDialogMode, setInstallDialogMode] = useState("ios");
@@ -52,6 +51,11 @@ function LayoutContent({ children, user, setUser }) {
   const { isGuest, isAuthenticated, logout, navigateToLogin } = useAuth() || {};
 
   const { guardAction, showModal, setShowModal, isGuest: guestHookIsGuest } = useGuestGuard();
+  const {
+    hasVendorAccess,
+    isLoading: isLoadingVendorAccess,
+    error: vendorAccessError,
+  } = useVendorAccess();
 
   useEffect(() => {
       if (user?.isAdmin) {
@@ -59,21 +63,19 @@ function LayoutContent({ children, user, setUser }) {
       } else {
           setHasAdminProfile(false);
       }
-
-      if (user?.id) {
-      // Master admins always get vendor dashboard access (auto-provisioned)
-      const masterRoles = new Set(["master", "super_master"]);
-      if (masterRoles.has(user.role)) {
-        setHasVendorAccount(true);
-      } else {
-        getUserVendorAccounts(user).then((accounts) => {
-          setHasVendorAccount(accounts.length > 0);
-        }).catch(() => setHasVendorAccount(false));
-      }
-      } else {
-      setHasVendorAccount(false);
-      }
   }, [user]);
+
+  useEffect(() => {
+    const startupPage = localStorage.getItem("yardit_startup_page");
+    const isRoot = window.location.pathname === "/" || window.location.pathname === createPageUrl("Home");
+    if (startupPage !== "vendor" || !isRoot || isLoadingVendorAccess) return;
+
+    if (hasVendorAccess) {
+      window.location.replace("/VendorDashboard");
+    } else if (!vendorAccessError) {
+      localStorage.removeItem("yardit_startup_page");
+    }
+  }, [hasVendorAccess, isLoadingVendorAccess, vendorAccessError]);
 
   useEffect(() => {
     const updateInstallState = () => {
@@ -243,7 +245,19 @@ function LayoutContent({ children, user, setUser }) {
                             <User className="w-3.5 h-3.5 text-[#5DADA5]" /> My Profile
                           </DropdownMenuItem>
 
-                          {hasVendorAccount && (
+                          {isLoadingVendorAccess && (
+                            <DropdownMenuItem disabled className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-500">
+                              <Store className="w-3.5 h-3.5 text-[#5DADA5]" /> Checking Vendor Access...
+                            </DropdownMenuItem>
+                          )}
+
+                          {vendorAccessError && (
+                            <DropdownMenuItem disabled className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-amber-700">
+                              <Store className="w-3.5 h-3.5 text-amber-600" /> Unable to verify vendor access
+                            </DropdownMenuItem>
+                          )}
+
+                          {!isLoadingVendorAccess && !vendorAccessError && hasVendorAccess && (
                             <DropdownMenuItem onClick={() => navigate("/VendorDashboard")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
                               <Store className="w-3.5 h-3.5 text-[#5DADA5]" /> Vendor Tools
                             </DropdownMenuItem>
@@ -367,18 +381,6 @@ export default function Layout({ children }) {
 
         base44.functions.invoke("syncNeighborhoodCoHostInvite", {}).catch(() => {});
 
-        // Startup page redirect — only if user still has vendor access
-        const startupPage = localStorage.getItem("yardit_startup_page");
-        const isRoot = window.location.pathname === "/" || window.location.pathname === createPageUrl("Home");
-        if (startupPage === "vendor" && isRoot) {
-          const vendorAccounts = await getUserVendorAccounts(currentUser).catch(() => []);
-          if (vendorAccounts.length > 0) {
-            window.location.replace("/VendorDashboard");
-          } else {
-            // User lost vendor access — clear the stale preference
-            localStorage.removeItem("yardit_startup_page");
-          }
-        }
 
       } catch (error) {
         console.error("Error fetching user:", error);
