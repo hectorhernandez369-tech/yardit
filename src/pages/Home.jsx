@@ -1351,7 +1351,7 @@ export default function HomePage() {
           ref={controlsBtnRef}
           onPointerDown={handleHuntButtonPointerDown}
           onClick={handleHuntButtonClick}
-          className="absolute z-[1002] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent outline-none shadow-none"
+          className="absolute z-[1302] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent outline-none shadow-none"
           style={{
             left: `${huntButtonPosition.x}px`,
             top: `${huntButtonPosition.y}px`,
@@ -1374,13 +1374,13 @@ export default function HomePage() {
 
           {/* Backdrop */}
           {showControls &&
-        <div className="absolute inset-0 z-[999] bg-black/5 backdrop-blur-[.90px] transition-opacity duration-200 pointer-events-none" />
+        <div className="absolute inset-0 z-[1299] bg-black/5 backdrop-blur-[.90px] transition-opacity duration-200 pointer-events-none" />
         }
 
           {/* Controls Panel */}
           <div
           ref={controlsPanelRef}
-          className="absolute top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1001] transition-all duration-200 ease-out origin-top"
+          className="absolute top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1301] transition-all duration-200 ease-out origin-top"
           style={{
             opacity: showControls ? 1 : 0,
             transform: showControls ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-12px)",
@@ -1986,13 +1986,15 @@ export default function HomePage() {
           setShowControls(true);
         }}
       />
-      <MobileHomeBottomNav
-        view={view}
-        onViewChange={setView}
-        onCreate={handleMobileCreate}
-        onVendor={handleMobileVendor}
-        onProfile={() => user ? navigate(createPageUrl("Profile")) : navigate("/AccountOptions")}
-      />
+      {!showControls && (
+        <MobileHomeBottomNav
+          view={view}
+          onViewChange={setView}
+          onCreate={handleMobileCreate}
+          onVendor={handleMobileVendor}
+          onProfile={() => user ? navigate(createPageUrl("Profile")) : navigate("/AccountOptions")}
+        />
+      )}
 
       <HiddenListingsOverlay
         listings={hiddenListingsForMarquee}
