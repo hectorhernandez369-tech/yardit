@@ -1294,7 +1294,7 @@ export default function HomePage() {
 
       {/* Content area */}
       {view === "list" ?
-      <div className="flex-1 overflow-auto overscroll-contain pb-64 sm:pb-0">
+      <div className="flex-1 overflow-auto overscroll-contain pb-28 sm:pb-0">
           <ListView
           listings={listings}
           vendorEvents={vendorEvents}
