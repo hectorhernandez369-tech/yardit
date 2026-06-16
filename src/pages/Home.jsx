@@ -1212,7 +1212,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="h-[100dvh] sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0 bg-slate-100">
+    <div className="h-[100svh] overflow-hidden sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0 bg-slate-100">
       {/* Sticky Top Bar */}
       <div className="hidden sm:flex bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex-col w-full">
         {view === "map" &&
