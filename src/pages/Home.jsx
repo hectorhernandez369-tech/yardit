@@ -330,7 +330,7 @@ function clampHuntButtonPosition(position, containerRect) {
 function getDefaultHuntButtonPosition(containerRect) {
   return clampHuntButtonPosition({
     x: containerRect.width - HUNT_BUTTON_SIZE - HUNT_BUTTON_MARGIN,
-    y: 112
+    y: 150
   }, containerRect);
 }
 
@@ -465,8 +465,8 @@ export default function HomePage() {
     offsetY: 0
   });
   const suppressButtonClickRef = useRef(false);
-  const huntButtonPositionRef = useRef({ x: 0, y: 112 });
-  const [huntButtonPosition, setHuntButtonPosition] = useState({ x: 0, y: 112 });
+  const huntButtonPositionRef = useRef({ x: 0, y: 150 });
+  const [huntButtonPosition, setHuntButtonPosition] = useState({ x: 0, y: 150 });
   const [user, setUser] = useState(null);
   const [previewListingsOnMap] = useState(getPreviewListingsOnMapPreference);
   const [userLocation, setUserLocation] = useState(null);
@@ -1398,10 +1398,10 @@ export default function HomePage() {
           {/* Controls Panel */}
           <div
           ref={controlsPanelRef}
-          className="absolute top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1001] transition-all duration-200 ease-out origin-top"
+          className="absolute top-32 sm:top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1001] transition-all duration-200 ease-out origin-top"
           style={{
             opacity: showControls ? 1 : 0,
-            transform: showControls ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-12px)",
+            transform: showControls ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-8px)",
             pointerEvents: showControls ? "auto" : "none"
           }}>
           
