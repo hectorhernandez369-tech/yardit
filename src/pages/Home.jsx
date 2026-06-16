@@ -797,7 +797,7 @@ export default function HomePage() {
     }
 
     queryClient.invalidateQueries({ queryKey: ["homeAppSettings"] });
-    toast.success(nextMode === "publish" ? "Publish spacing enabled" : "Preview spacing enabled");
+    toast.success(nextMode === "publish" ? "Publish spacing enabled" : "Dev preview spacing enabled");
   };
 
   // Live location tracking
@@ -1305,7 +1305,7 @@ export default function HomePage() {
 
       {/* Content area */}
       {view === "list" ?
-      <div className={`flex-1 overflow-auto ${isPreviewLayoutMode ? "pb-64" : "pb-28"} sm:pb-0`}>
+      <div className={`flex-1 overflow-auto ${isPreviewLayoutMode ? "pb-80" : "pb-28"} sm:pb-0`}>
           <ListView
           listings={listings}
           vendorEvents={vendorEvents}

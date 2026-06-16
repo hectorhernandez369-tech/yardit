@@ -19,7 +19,7 @@ function NavButton({ active, icon: Icon, label, onClick }) {
 export default function MobileHomeBottomNav({ view, onViewChange, onCreate, onVendor, onProfile, layoutMode = "preview" }) {
   const bottomPosition = layoutMode === "publish"
     ? "bottom-[calc(env(safe-area-inset-bottom)+0.75rem)]"
-    : "bottom-[calc(env(safe-area-inset-bottom)+7rem)]";
+    : "bottom-[calc(env(safe-area-inset-bottom)+9.5rem)]";
 
   return (
     <nav className={`fixed inset-x-3 ${bottomPosition} z-[1200] sm:hidden rounded-3xl border border-slate-200/80 bg-white/95 px-2 py-2 shadow-[0_10px_35px_rgba(15,23,42,0.22)] backdrop-blur-xl`}>

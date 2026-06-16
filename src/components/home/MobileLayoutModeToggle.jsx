@@ -11,7 +11,7 @@ export default function MobileLayoutModeToggle({ mode, onToggle, disabled }) {
       className="rounded-full border border-white/70 bg-white/95 px-3 py-2 text-xs font-bold text-[#006168] shadow-md backdrop-blur-xl disabled:opacity-60"
       title="Switch mobile spacing for Base44 preview or published app"
     >
-      {isPreview ? "Preview spacing" : "Publish spacing"}
+      {isPreview ? "Dev preview spacing" : "Publish spacing active"}
     </button>
   );
 }
