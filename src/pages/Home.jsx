@@ -61,10 +61,12 @@ import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import MobileHomeBottomNav from "@/components/home/MobileHomeBottomNav";
 import MobileSearchSheet from "@/components/home/MobileSearchSheet";
 import MobileMapFilterSheet from "@/components/home/MobileMapFilterSheet";
+import MobileLayoutModeToggle from "@/components/home/MobileLayoutModeToggle";
 import VendorOnboardingSheet from "@/components/home/VendorOnboardingSheet";
 import VerifiedAddressRequiredModal from "@/components/profile/VerifiedAddressRequiredModal";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
+const MOBILE_HOME_LAYOUT_MODE_KEY = "mobile_home_layout_mode";
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -774,6 +776,30 @@ export default function HomePage() {
     enabled: !!user?.id || !!user?.email
   });
 
+  const { data: appSettings = [], isFetching: isSavingLayoutMode } = useQuery({
+    queryKey: ["homeAppSettings"],
+    queryFn: () => base44.entities.AppSetting.list(),
+    initialData: []
+  });
+
+  const mobileLayoutModeSetting = appSettings.find((setting) => setting.key === MOBILE_HOME_LAYOUT_MODE_KEY)?.value || "preview";
+  const isPreviewLayoutMode = mobileLayoutModeSetting !== "publish";
+  const canToggleMobileLayoutMode = !!user && (user.isAdmin || ["admin", "master", "super_master"].includes(user.role));
+
+  const handleMobileLayoutModeToggle = async () => {
+    const nextMode = isPreviewLayoutMode ? "publish" : "preview";
+    const existingSetting = appSettings.find((setting) => setting.key === MOBILE_HOME_LAYOUT_MODE_KEY);
+
+    if (existingSetting) {
+      await base44.entities.AppSetting.update(existingSetting.id, { value: nextMode });
+    } else {
+      await base44.entities.AppSetting.create({ key: MOBILE_HOME_LAYOUT_MODE_KEY, value: nextMode });
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["homeAppSettings"] });
+    toast.success(nextMode === "publish" ? "Publish spacing enabled" : "Preview spacing enabled");
+  };
+
   // Live location tracking
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -1279,7 +1305,7 @@ export default function HomePage() {
 
       {/* Content area */}
       {view === "list" ?
-      <div className="flex-1 overflow-auto pb-64 sm:pb-0">
+      <div className={`flex-1 overflow-auto ${isPreviewLayoutMode ? "pb-64" : "pb-28"} sm:pb-0`}>
           <ListView
           listings={listings}
           vendorEvents={vendorEvents}
@@ -1328,6 +1354,13 @@ export default function HomePage() {
               >
                 Show all
               </button>
+              {canToggleMobileLayoutMode && (
+                <MobileLayoutModeToggle
+                  mode={mobileLayoutModeSetting}
+                  onToggle={handleMobileLayoutModeToggle}
+                  disabled={isSavingLayoutMode}
+                />
+              )}
             </div>
           </div>
 
@@ -1977,6 +2010,7 @@ export default function HomePage() {
         onCreate={handleMobileCreate}
         onVendor={handleMobileVendor}
         onProfile={() => user ? navigate(createPageUrl("Profile")) : navigate("/AccountOptions")}
+        layoutMode={mobileLayoutModeSetting}
       />
 
       <HiddenListingsOverlay
