@@ -45,7 +45,7 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
     JSON.stringify(filters) !== JSON.stringify(DEFAULT_LIST_FILTERS);
 
   return (
-    <div className="p-4 pb-28 sm:pb-4 max-w-4xl mx-auto">
+    <div className="p-4 max-w-4xl mx-auto">
       {/* Search + Filter bar */}
       <div className="mb-4 flex gap-2 items-center">
         <div className="relative flex-1">

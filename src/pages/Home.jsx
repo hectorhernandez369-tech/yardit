@@ -1173,30 +1173,30 @@ export default function HomePage() {
   }, [marqueeOverlays]);
 
   return (
-    <div className="h-screen sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0 relative bg-slate-950">
-      {/* Mobile floating app controls / desktop sticky top bar */}
-      <div className="absolute sm:relative top-3 left-3 right-3 sm:top-auto sm:left-auto sm:right-auto z-[1000] sm:z-[100] flex-shrink-0 flex flex-col w-auto sm:w-full pointer-events-none sm:pointer-events-auto sm:bg-white sm:border-b sm:border-slate-200">
+    <div className="h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
+      {/* Sticky Top Bar */}
+      <div className="bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex flex-col w-full">
         {view === "map" &&
-        <div className="pb-1 sm:hidden pointer-events-auto">
-            <div className="relative w-full max-w-md mx-auto rounded-2xl bg-white/92 backdrop-blur-xl shadow-2xl shadow-slate-900/20 border border-white/70">
+        <div className="px-3 pt-2 pb-1 sm:hidden">
+            <div className="relative w-full max-w-md mx-auto">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
               placeholder="Search by address or title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-12 text-[15px] rounded-2xl border-0 bg-transparent shadow-none focus-visible:ring-0" />
+              className="pl-9 h-9 text-sm" />
             
             </div>
           </div>
         }
 
-        <div className="fixed sm:static bottom-4 left-3 right-3 sm:left-auto sm:right-auto z-[1000] sm:z-auto px-2 sm:px-3 py-2 sm:py-1.5 flex items-center justify-center gap-2 sm:gap-4 rounded-3xl sm:rounded-none bg-white/94 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border border-white/70 sm:border-0 shadow-2xl shadow-slate-900/25 sm:shadow-none pointer-events-auto">
+        <div className="px-3 py-1.5 flex items-center justify-center gap-4">
           <Tabs value={view} onValueChange={setView} className="w-auto flex shrink-0">
-            <TabsList className="grid grid-cols-2 h-11 sm:h-9 w-32 bg-slate-100 p-1 rounded-2xl sm:rounded-md">
-              <TabsTrigger value="map" className="py-1 data-[state=active]:bg-[#2C4F4E] sm:data-[state=active]:bg-white data-[state=active]:text-white sm:data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-xl sm:rounded-sm flex items-center justify-center">
+            <TabsList className="grid grid-cols-2 h-9 w-32 bg-slate-100 p-1 rounded-md">
+              <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
                 <MapIcon className="w-4 h-4" />
               </TabsTrigger>
-              <TabsTrigger value="list" className="py-1 data-[state=active]:bg-[#2C4F4E] sm:data-[state=active]:bg-white data-[state=active]:text-white sm:data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-xl sm:rounded-sm flex items-center justify-center">
+              <TabsTrigger value="list" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
                 <List className="w-4 h-4" />
               </TabsTrigger>
             </TabsList>
@@ -1212,14 +1212,14 @@ export default function HomePage() {
             
           </div>
 
-          <div className="flex items-center gap-2 ml-auto sm:ml-auto">
+          <div className="flex items-center gap-2 ml-auto">
             {view === "map" &&
             <>
                 <Button
                 variant="outline"
                 size="sm"
                 onClick={handleShowListingsClick}
-                className="h-11 sm:h-9 shrink-0 border-slate-200 text-slate-700 bg-white hover:bg-slate-50 rounded-2xl sm:rounded-full shadow-sm px-3 sm:px-3 font-semibold">
+                className="h-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-full shadow-sm px-2 sm:px-3">
                 
                   <span className="hidden sm:inline mr-1">Show</span>
                   <span>Listings</span>
@@ -1228,7 +1228,7 @@ export default function HomePage() {
                 variant="outline"
                 size="icon"
                 onClick={() => setShowFilterModal(true)}
-                className="h-11 w-11 sm:h-9 sm:w-9 shrink-0 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 rounded-2xl sm:rounded-full shadow-sm">
+                className="h-9 w-9 shrink-0 border-slate-200 text-slate-500 bg-white hover:bg-slate-50 rounded-full shadow-sm">
                 
                   <SlidersHorizontal className="w-4 h-4" />
                 </Button>
@@ -1240,7 +1240,7 @@ export default function HomePage() {
 
       {/* Content area */}
       {view === "list" ?
-      <div className="flex-1 overflow-auto pb-24 sm:pb-0">
+      <div className="flex-1 overflow-auto">
           <ListView
           listings={listings}
           vendorEvents={vendorEvents}
