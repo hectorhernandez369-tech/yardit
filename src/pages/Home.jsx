@@ -1279,7 +1279,7 @@ export default function HomePage() {
 
       {/* Content area */}
       {view === "list" ?
-      <div className="flex-1 overflow-auto pb-24 sm:pb-0">
+      <div className="flex-1 overflow-auto pb-36 sm:pb-0">
           <ListView
           listings={listings}
           vendorEvents={vendorEvents}
