@@ -5,23 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 export default function MobileSearchSheet({ open, onOpenChange, searchQuery, onSearchChange }) {
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-    onOpenChange(false);
-    requestAnimationFrame(() => window.scrollTo(0, 0));
-  };
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="z-[1400] sm:hidden rounded-t-3xl border-0 bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
         <SheetHeader className="text-left">
           <SheetTitle>Search Yardit</SheetTitle>
         </SheetHeader>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+        <div className="mt-4 space-y-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
@@ -42,10 +32,10 @@ export default function MobileSearchSheet({ open, onOpenChange, searchQuery, onS
               </button>
             )}
           </div>
-          <Button type="submit" className="h-12 w-full rounded-2xl bg-[#006168] text-white hover:bg-[#004d52]">
+          <Button onClick={() => onOpenChange(false)} className="h-12 w-full rounded-2xl bg-[#006168] text-white hover:bg-[#004d52]">
             Show Results
           </Button>
-        </form>
+        </div>
       </SheetContent>
     </Sheet>
   );
