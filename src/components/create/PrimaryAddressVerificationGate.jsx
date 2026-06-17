@@ -8,6 +8,7 @@ import { Loader2, MapPin, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import { clearStaleTrustProgress } from "@/lib/trustActions";
+import { buildVerifiedAddressUpdate, normalizeUser } from "@/lib/normalizeUser";
 
 const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 
@@ -31,23 +32,25 @@ function extractAddressParts(feature, fallback) {
 }
 
 export default function PrimaryAddressVerificationGate({ user, onVerified }) {
+  const normalizedUser = normalizeUser(user);
   const [formData, setFormData] = useState({
-    street_address: user?.street_address || "",
-    city: user?.city || "",
-    state: getStateAbbreviation(user?.state || ""),
-    zip_code: user?.zip_code || "",
+    street_address: normalizedUser?.street_address || "",
+    city: normalizedUser?.city || "",
+    state: getStateAbbreviation(normalizedUser?.state || ""),
+    zip_code: normalizedUser?.zip_code || "",
   });
   const [isVerifying, setIsVerifying] = useState(false);
   const [agreedToRules, setAgreedToRules] = useState(user?.listing_rules_accepted === true);
 
   useEffect(() => {
+    const nextUser = normalizeUser(user);
     setFormData({
-      street_address: user?.street_address || "",
-      city: user?.city || "",
-      state: getStateAbbreviation(user?.state || ""),
-      zip_code: user?.zip_code || "",
+      street_address: nextUser?.street_address || "",
+      city: nextUser?.city || "",
+      state: getStateAbbreviation(nextUser?.state || ""),
+      zip_code: nextUser?.zip_code || "",
     });
-    setAgreedToRules(user?.listing_rules_accepted === true);
+    setAgreedToRules(nextUser?.listing_rules_accepted === true);
     clearStaleTrustProgress();
   }, [user]);
 
@@ -86,7 +89,8 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
       const addressParts = extractAddressParts(feature, formData);
       const verifiedAt = new Date().toISOString();
 
-      const isAddressChange = !!user?.primary_address_verified && user?.primary_address !== formattedAddress;
+      const currentUser = normalizeUser(user);
+      const isAddressChange = !!currentUser?.primary_address_verified && currentUser?.primary_address !== formattedAddress;
       const profileUpdate = {
         has_primary_address: true,
         primary_address_verified: true,
@@ -94,10 +98,10 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
         primary_latitude: latitude,
         primary_longitude: longitude,
         primary_address_verified_at: verifiedAt,
-        primary_address_last_changed_at: isAddressChange ? verifiedAt : (user?.primary_address_last_changed_at || verifiedAt),
-        address_change_count: Number(user?.address_change_count || 0) + (isAddressChange ? 1 : 0),
+        primary_address_last_changed_at: isAddressChange ? verifiedAt : (currentUser?.primary_address_last_changed_at || verifiedAt),
+        address_change_count: Number(currentUser?.address_change_count || 0) + (isAddressChange ? 1 : 0),
         listing_rules_accepted: true,
-        listing_rules_agreed_at: user?.listing_rules_agreed_at || verifiedAt,
+        listing_rules_agreed_at: currentUser?.listing_rules_agreed_at || verifiedAt,
         address_verification_required: false,
         street_address: addressParts.street_address,
         city: addressParts.city,
@@ -109,10 +113,12 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
         address: formattedAddress,
       };
 
-      await base44.auth.updateMe(profileUpdate);
+      await base44.auth.updateMe(buildVerifiedAddressUpdate(profileUpdate, currentUser));
+      const refreshedUser = normalizeUser(await base44.auth.me());
       clearStaleTrustProgress();
+      window.dispatchEvent(new CustomEvent("yardit:user-updated", { detail: refreshedUser }));
       toast.success("Address verified. You can now continue creating your listing.");
-      onVerified({ ...user, ...profileUpdate });
+      onVerified(refreshedUser);
     } catch (error) {
       toast.error("Address verification failed. Please try again.");
     } finally {

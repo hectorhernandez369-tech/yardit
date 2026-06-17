@@ -10,25 +10,27 @@ import { Edit2, Save, X, Shield, MapPin, Loader2 } from "lucide-react";
 import AddressFields from "@/components/shared/AddressFields";
 import { toast } from "sonner";
 import { computedAddressVerified } from "@/lib/trustActions";
+import { buildVerifiedAddressUpdate, normalizeUser } from "@/lib/normalizeUser";
 
 export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }) {
+  const normalizedUser = normalizeUser(user);
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingAddress, setIsConfirmingAddress] = useState(false);
 
   // Use the computed helper so a stale verified flag without real address data is treated as unverified
-  const isAddressConfirmed = computedAddressVerified(user);
+  const isAddressConfirmed = computedAddressVerified(normalizedUser);
 
   const [formData, setFormData] = useState({
-    first_name: user.first_name || "",
-    last_name: user.last_name || "", 
-    street_address: user.street_address || "",
-    city: user.city || "",
-    state: user.state || "",
-    zip_code: user.zip_code || "",
-    phone: user.phone || "",
-    address_lat: user.address_lat || null,
-    address_lng: user.address_lng || null,
-    address_confirmation_status: user.address_confirmation_status || "unconfirmed",
+    first_name: normalizedUser.first_name || "",
+    last_name: normalizedUser.last_name || "", 
+    street_address: normalizedUser.street_address || "",
+    city: normalizedUser.city || "",
+    state: normalizedUser.state || "",
+    zip_code: normalizedUser.zip_code || "",
+    phone: normalizedUser.phone || "",
+    address_lat: normalizedUser.address_lat || null,
+    address_lng: normalizedUser.address_lng || null,
+    address_confirmation_status: normalizedUser.address_confirmation_status || "unconfirmed",
   });
 
   useEffect(() => {
@@ -81,9 +83,10 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
         };
         
         setFormData(prev => ({ ...prev, ...confirmedAddressData }));
-        await base44.auth.updateMe(confirmedAddressData);
-        const refreshedUser = await base44.auth.me();
+        await base44.auth.updateMe(buildVerifiedAddressUpdate(confirmedAddressData, user));
+        const refreshedUser = normalizeUser(await base44.auth.me());
         setUser(refreshedUser);
+        window.dispatchEvent(new CustomEvent("yardit:user-updated", { detail: refreshedUser }));
         setIsEditing(false);
         
         toast.success("Address confirmed and saved!");
@@ -104,8 +107,9 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
   const updateUserMutation = useMutation({
     mutationFn: (data) => base44.auth.updateMe(data),
     onSuccess: async () => {
-      const refreshedUser = await base44.auth.me();
+      const refreshedUser = normalizeUser(await base44.auth.me());
       setUser(refreshedUser);
+      window.dispatchEvent(new CustomEvent("yardit:user-updated", { detail: refreshedUser }));
       setIsEditing(false);
       toast.success("Profile updated successfully!");
     },
@@ -124,10 +128,10 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
     }
 
     const addressChanged = 
-      street_address !== user.street_address ||
-      city !== user.city ||
-      state !== user.state ||
-      zip_code !== user.zip_code;
+      street_address !== normalizedUser.street_address ||
+      city !== normalizedUser.city ||
+      state !== normalizedUser.state ||
+      zip_code !== normalizedUser.zip_code;
 
     let currentData = {
       ...formData,
@@ -145,16 +149,16 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
 
   const handleCancel = () => {
     setFormData({
-      first_name: user.first_name || "",
-      last_name: user.last_name || "", 
-      street_address: user.street_address || "",
-      city: user.city || "",
-      state: user.state || "",
-      zip_code: user.zip_code || "",
-      phone: user.phone || "",
-      address_lat: user.address_lat || null,
-      address_lng: user.address_lng || null,
-      address_confirmation_status: user.address_confirmation_status || "unconfirmed",
+      first_name: normalizedUser.first_name || "",
+      last_name: normalizedUser.last_name || "", 
+      street_address: normalizedUser.street_address || "",
+      city: normalizedUser.city || "",
+      state: normalizedUser.state || "",
+      zip_code: normalizedUser.zip_code || "",
+      phone: normalizedUser.phone || "",
+      address_lat: normalizedUser.address_lat || null,
+      address_lng: normalizedUser.address_lng || null,
+      address_confirmation_status: normalizedUser.address_confirmation_status || "unconfirmed",
     });
     setIsEditing(false);
   };

@@ -17,6 +17,7 @@ import { Bookmark } from "lucide-react";
 import { getTrustStatus } from "@/lib/trustActions";
 import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import { getProfileCompletionPercent, isAccountSetupComplete } from "@/lib/accountSetup";
+import { normalizeUser } from "@/lib/normalizeUser";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const currentUser = await base44.auth.me();
+        const currentUser = normalizeUser(await base44.auth.me());
         setUser(currentUser);
         const vendorAccounts = await getUserVendorAccounts(currentUser);
         setHasVendorAccount(vendorAccounts.length > 0);

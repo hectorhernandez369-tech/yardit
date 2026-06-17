@@ -4,6 +4,7 @@ import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { isGuestMode, setGuestMode, clearGuestMode } from './guestMode';
 import { logUserActivity, logUserActivityOncePerSession } from './logUserActivity';
+import { normalizeUser } from '@/lib/normalizeUser';
 
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
@@ -72,7 +73,7 @@ export const AuthProvider = ({ children }) => {
       console.log('AUTH_DEBUG checkUserAuth:start', { hasToken: !!appParams.token });
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      const currentUser = normalizeUser(await base44.auth.me());
       console.log('AUTH_DEBUG base44.auth.me:success', {
         userId: currentUser?.id,
         email: currentUser?.email,
@@ -200,6 +201,17 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAppState();
+  }, []);
+
+  useEffect(() => {
+    const handleUserUpdated = (event) => {
+      setUser(normalizeUser(event.detail));
+      setIsAuthenticated(true);
+      setIsGuest(false);
+    };
+
+    window.addEventListener("yardit:user-updated", handleUserUpdated);
+    return () => window.removeEventListener("yardit:user-updated", handleUserUpdated);
   }, []);
 
   useEffect(() => {

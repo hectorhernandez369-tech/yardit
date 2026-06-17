@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import { useAppMode } from "./components/shared/DemoMode";
 import { syncAdminInvite } from "./components/admin/adminInviteSync";
 import { useAuth } from "@/lib/AuthContext";
+import { normalizeUser } from "@/lib/normalizeUser";
+import { hasVerifiedPrimaryAddress as hasVerifiedPrimaryAddressTrust } from "@/lib/trustActions";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "./components/guest/GuestAuthModal";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
@@ -121,9 +123,7 @@ function LayoutContent({ children, user, setUser }) {
     await logout?.("/ComingSoon");
   };
 
-  const hasVerifiedPrimaryAddress = Boolean(
-    user?.primary_address_verified || user?.address_confirmation_status === "confirmed"
-  );
+  const hasVerifiedPrimaryAddress = hasVerifiedPrimaryAddressTrust(user);
 
   const handlePostSaleClick = () => {
     guardAction(() => {
@@ -346,9 +346,15 @@ export default function Layout({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
+    const handleUserUpdated = (event) => {
+      setUser(normalizeUser(event.detail));
+    };
+
+    window.addEventListener("yardit:user-updated", handleUserUpdated);
+
     const fetchUser = async () => {
       try {
-        const currentUser = await base44.auth.me();
+        const currentUser = normalizeUser(await base44.auth.me());
         setUser(currentUser);
 
         syncAdminInvite(currentUser).then(({ accepted, adminProfile }) => {
@@ -384,6 +390,8 @@ export default function Layout({ children }) {
       }
     };
     fetchUser();
+
+    return () => window.removeEventListener("yardit:user-updated", handleUserUpdated);
   }, []);
 
   return (

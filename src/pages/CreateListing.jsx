@@ -15,6 +15,7 @@ import CreateListingNeighborhood from "../components/create/CreateListingNeighbo
 import CreateListingEvent from "../components/create/CreateListingEvent";
 import ConfirmHomeAddressModal from "../components/create/ConfirmHomeAddressModal";
 import { clearStaleTrustProgress, hasVerifiedPrimaryAddress } from "@/lib/trustActions";
+import { normalizeUser } from "@/lib/normalizeUser";
 import { useAppMode } from "../components/shared/DemoMode";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import {
@@ -485,7 +486,7 @@ export default function CreateListingPage() {
     const fetchUser = async () => {
       try {
         clearStaleTrustProgress();
-        const currentUser = await base44.auth.me();
+        const currentUser = normalizeUser(await base44.auth.me());
         setUser(currentUser);
       } catch (error) {
         navigateToLogin();
@@ -634,7 +635,7 @@ export default function CreateListingPage() {
         address_lat: selected.lat, address_lng: selected.lng, address_confirmation_status: "confirmed", address: fullAddress,
         ...(selected.timeZoneId ? { timeZoneId: selected.timeZoneId } : {}),
       });
-      const refreshedUser = await base44.auth.me();
+      const refreshedUser = normalizeUser(await base44.auth.me());
       setUser(refreshedUser);
       setFormData(buildResolvedListingLocation({ ...selected, addressText: fullAddress, state: stateCode, locationMethod: "verified_primary_address" }));
       markResidentialConflictInteraction();

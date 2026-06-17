@@ -1,3 +1,5 @@
+import { normalizeUser } from "@/lib/normalizeUser";
+
 export const TRUST_ACTIONS = {
   CREATE_LISTING: "create_listing",
   JOIN_NEIGHBORHOOD_SALE: "join_neighborhood_sale",
@@ -15,22 +17,24 @@ export const TRUST_ACTIONS = {
  * the actual address data has been cleared.
  */
 export function computedAddressVerified(user) {
-  if (!user) return false;
+  const normalizedUser = normalizeUser(user);
+  if (!normalizedUser) return false;
 
   const flagSet =
-    user.primary_address_verified === true ||
-    user.address_verified === true ||
-    user.address_confirmation_status === "confirmed";
+    normalizedUser.primary_address_verified === true ||
+    normalizedUser.address_verified === true ||
+    normalizedUser.address_confirmation_status === "confirmed";
 
   if (!flagSet) return false;
 
-  // Required fields must all be non-blank strings
-  const street = String(user.street_address || "").trim();
-  const city   = String(user.city || "").trim();
-  const state  = String(user.state || "").trim();
-  const zip    = String(user.zip_code || "").trim();
+  const street = String(normalizedUser.street_address || "").trim();
+  const city = String(normalizedUser.city || "").trim();
+  const state = String(normalizedUser.state || "").trim();
+  const zip = String(normalizedUser.zip_code || "").trim();
+  const lat = normalizedUser.primary_latitude ?? normalizedUser.address_lat;
+  const lng = normalizedUser.primary_longitude ?? normalizedUser.address_lng;
 
-  return street.length > 0 && city.length > 0 && state.length > 0 && zip.length > 0;
+  return street.length > 0 && city.length > 0 && state.length > 0 && zip.length > 0 && typeof lat === "number" && typeof lng === "number";
 }
 
 export function getTrustStatus(user) {
