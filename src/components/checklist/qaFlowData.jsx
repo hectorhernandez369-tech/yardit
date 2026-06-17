@@ -65,6 +65,10 @@ const authGateSteps = [
   'Click Post Sale again.',
 ];
 
+const createListingStartSteps = [
+  'Click Post Sale.',
+];
+
 const chooseResidentialSteps = [
   'Confirm the listing type selection screen appears.',
   'Confirm the Yard Sale option appears.',
@@ -471,7 +475,6 @@ const expirationRelistAtomicSteps = [
 ];
 
 const neighborhoodStartSteps = [
-  'Open Yardit as a verified residential user.',
   'Click Post Sale.',
   'Confirm the listing type screen opens.',
   'Confirm Neighborhood Sale option is visible.',
@@ -1219,9 +1222,11 @@ const qaFreezeSteps = [
 ];
 
 export const QA_FLOWS = [
-  flow({ category: 'Residential Listings', name: 'Free Listing', slug: 'residential-free-listing', relatedFiles: files.residential, steps: [...openAppSteps, ...authGateSteps, ...chooseResidentialSteps, ...residentialFieldSteps, ...freeLocationSteps, ...photoAtomicSteps, ...freeTierSteps, ...freeSubmitSteps, ...freeVisibilitySteps, ...ownerPreviewSteps] }),
-  flow({ category: 'Residential Listings', name: 'Featured Listing', slug: 'residential-featured-listing', relatedFiles: withFiles(files.residential, files.payments), steps: [...openAppSteps, ...authGateSteps, ...chooseResidentialSteps, ...residentialFieldSteps, ...locationAtomicSteps, ...scheduleAtomicSteps, ...photoAtomicSteps, ...tierSteps('Featured'), ...previewAtomicSteps('Featured'), ...paymentAtomicSteps('Featured'), ...paymentCancelRetrySteps, ...receiptAtomicSteps, ...publicVisibilityAtomicSteps('Featured')] }),
-  flow({ category: 'Residential Listings', name: 'Premium Listing', slug: 'residential-premium-listing', relatedFiles: withFiles(files.residential, files.payments), steps: [...openAppSteps, ...authGateSteps, ...chooseResidentialSteps, ...residentialFieldSteps, ...locationAtomicSteps, ...scheduleAtomicSteps, ...photoAtomicSteps, ...tierSteps('Premium'), ...premiumComingSoonSetupSteps, ...previewAtomicSteps('Premium'), ...paymentAtomicSteps('Premium'), ...receiptAtomicSteps, ...publicVisibilityAtomicSteps('Premium')] }),
+  flow({ category: 'Pre-Listing Setup', name: 'Open Yardit, Login, Verify Address', slug: 'pre-listing-open-login-verify-address', relatedFiles: withFiles(files.profile, files.residential), steps: [...openAppSteps, ...authGateSteps] }),
+
+  flow({ category: 'Residential Listings', name: 'Free Listing', slug: 'residential-free-listing', relatedFiles: files.residential, steps: [...createListingStartSteps, ...chooseResidentialSteps, ...residentialFieldSteps, ...freeLocationSteps, ...photoAtomicSteps, ...freeTierSteps, ...freeSubmitSteps, ...freeVisibilitySteps, ...ownerPreviewSteps] }),
+  flow({ category: 'Residential Listings', name: 'Featured Listing', slug: 'residential-featured-listing', relatedFiles: withFiles(files.residential, files.payments), steps: [...createListingStartSteps, ...chooseResidentialSteps, ...residentialFieldSteps, ...locationAtomicSteps, ...scheduleAtomicSteps, ...photoAtomicSteps, ...tierSteps('Featured'), ...previewAtomicSteps('Featured'), ...paymentAtomicSteps('Featured'), ...paymentCancelRetrySteps, ...receiptAtomicSteps, ...publicVisibilityAtomicSteps('Featured')] }),
+  flow({ category: 'Residential Listings', name: 'Premium Listing', slug: 'residential-premium-listing', relatedFiles: withFiles(files.residential, files.payments), steps: [...createListingStartSteps, ...chooseResidentialSteps, ...residentialFieldSteps, ...locationAtomicSteps, ...scheduleAtomicSteps, ...photoAtomicSteps, ...tierSteps('Premium'), ...premiumComingSoonSetupSteps, ...previewAtomicSteps('Premium'), ...paymentAtomicSteps('Premium'), ...receiptAtomicSteps, ...publicVisibilityAtomicSteps('Premium')] }),
   flow({ category: 'Residential Listings', name: 'Premium Coming Soon', slug: 'residential-premium-coming-soon', relatedFiles: files.residential, steps: [...premiumComingSoonSetupSteps, ...publicVisibilityAtomicSteps('Coming Soon'), ...ownerPreviewSteps] }),
   flow({ category: 'Residential Listings', name: 'Open/Close Hours', slug: 'residential-open-close-hours', relatedFiles: files.residential, steps: [...scheduleAtomicSteps, ...publicVisibilityAtomicSteps('Open or Closed according to hours'), ...ownerPreviewSteps] }),
   flow({ category: 'Residential Listings', name: 'Listing Edit', slug: 'residential-listing-edit', relatedFiles: files.residential, steps: editAtomicSteps }),
