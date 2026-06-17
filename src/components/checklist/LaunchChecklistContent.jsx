@@ -79,6 +79,7 @@ export default function LaunchChecklistContent({ embedded = false }) {
   const [selectedCategory, setSelectedCategory] = useState(QA_CATEGORIES[0]);
   const [selectedFlowId, setSelectedFlowId] = useState(QA_FLOWS[0]?.id);
   const [hideCompleted, setHideCompleted] = useState(false);
+  const [resultFilter, setResultFilter] = useState(null);
   const [approvedBy, setApprovedBy] = useState('');
 
   useEffect(() => {
@@ -103,9 +104,11 @@ export default function LaunchChecklistContent({ embedded = false }) {
   const completedCount = allItems.filter(item => state.steps?.[item.id]?.result === 'pass').length;
   const failedCount = allItems.filter(item => state.steps?.[item.id]?.result === 'fail').length;
   const flowItems = selectedFlow?.items || [];
-  const visibleFlowItems = hideCompleted
-    ? flowItems.filter(item => !['pass', 'fail'].includes(state.steps?.[item.id]?.result))
-    : flowItems;
+  const visibleFlowItems = resultFilter
+    ? flowItems.filter(item => state.steps?.[item.id]?.result === resultFilter)
+    : hideCompleted
+      ? flowItems.filter(item => !['pass', 'fail'].includes(state.steps?.[item.id]?.result))
+      : flowItems;
   const hiddenCompletedCount = flowItems.length - visibleFlowItems.length;
   const flowPassed = flowItems.filter(item => state.steps?.[item.id]?.result === 'pass').length;
   const flowFailed = flowItems.filter(item => state.steps?.[item.id]?.result === 'fail').length;
@@ -265,13 +268,32 @@ export default function LaunchChecklistContent({ embedded = false }) {
                     <Button
                       size="sm"
                       variant={hideCompleted ? 'default' : 'outline'}
-                      onClick={() => setHideCompleted(!hideCompleted)}
+                      onClick={() => {
+                        setResultFilter(null);
+                        setHideCompleted(!hideCompleted);
+                      }}
                       className={hideCompleted ? 'bg-[#2C4F4E] hover:bg-[#244241]' : ''}
                     >
                       {hideCompleted ? `Showing Open (${hiddenCompletedCount} hidden)` : 'Hide Completed'}
                     </Button>
-                    <Badge className="bg-green-100 text-green-800 border-green-300">Pass {flowPassed}</Badge>
-                    <Badge className="bg-red-100 text-red-800 border-red-300">Fail {flowFailed}</Badge>
+                    <button
+                      onClick={() => {
+                        setHideCompleted(false);
+                        setResultFilter(resultFilter === 'pass' ? null : 'pass');
+                      }}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${resultFilter === 'pass' ? 'bg-green-700 text-white border-green-700' : 'bg-green-100 text-green-800 border-green-300'}`}
+                    >
+                      Pass {flowPassed}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setHideCompleted(false);
+                        setResultFilter(resultFilter === 'fail' ? null : 'fail');
+                      }}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${resultFilter === 'fail' ? 'bg-red-700 text-white border-red-700' : 'bg-red-100 text-red-800 border-red-300'}`}
+                    >
+                      Fail {flowFailed}
+                    </button>
                     {approval && !retestInfo && <Badge className="bg-blue-100 text-blue-800 border-blue-300">Approved</Badge>}
                     {freeze?.frozen && <Badge className="bg-slate-800 text-white">Frozen</Badge>}
                     {retestInfo && <Badge className="bg-amber-100 text-amber-800 border-amber-300">Needs Retest</Badge>}
