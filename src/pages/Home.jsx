@@ -1228,7 +1228,7 @@ export default function HomePage() {
                 variant="outline"
                 size="icon"
                 onClick={() => setShowFilterModal(true)}
-                className="h-9 w-9 shrink-0 border-slate-200 text-slate-500 bg-white hover:bg-slate-50 rounded-full shadow-sm">
+                className="relative -top-2 sm:top-0 h-9 w-9 shrink-0 border-slate-200 text-slate-500 bg-white hover:bg-slate-50 rounded-full shadow-sm">
                 
                   <SlidersHorizontal className="w-4 h-4" />
                 </Button>
