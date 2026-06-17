@@ -58,11 +58,20 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
         const formattedAddress = feature.place_name || query;
         const verifiedAt = new Date().toISOString();
         const confirmedAddressData = {
+          street_address: street_address.trim(),
+          street: street_address.trim(),
+          city: city.trim(),
+          state: state.trim(),
+          zip_code: zip_code.trim(),
+          zip: zip_code.trim(),
           address_lat: lat,
           address_lng: lng,
+          latitude: lat,
+          longitude: lng,
           address_confirmation_status: "confirmed",
           has_primary_address: true,
           primary_address_verified: true,
+          address_verified: true,
           primary_address: formattedAddress,
           primary_latitude: lat,
           primary_longitude: lng,
@@ -73,10 +82,12 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
         
         setFormData(prev => ({ ...prev, ...confirmedAddressData }));
         await base44.auth.updateMe(confirmedAddressData);
-        setUser(prev => ({ ...prev, ...confirmedAddressData }));
+        const refreshedUser = await base44.auth.me();
+        setUser(refreshedUser);
+        setIsEditing(false);
         
         toast.success("Address confirmed and saved!");
-        return { lat, lng };
+        return { lat, lng, confirmedAddressData };
       } else {
         toast.error("Could not confirm address. Please double-check it.");
         return null;
@@ -92,8 +103,9 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
 
   const updateUserMutation = useMutation({
     mutationFn: (data) => base44.auth.updateMe(data),
-    onSuccess: (updatedUser) => {
-      setUser(updatedUser);
+    onSuccess: async () => {
+      const refreshedUser = await base44.auth.me();
+      setUser(refreshedUser);
       setIsEditing(false);
       toast.success("Profile updated successfully!");
     },
@@ -125,9 +137,7 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
     if (addressChanged || !formData.address_lat || !formData.address_lng) {
       const coords = await confirmAddress();
       if (!coords) return;
-      currentData.address_lat = coords.lat;
-      currentData.address_lng = coords.lng;
-      currentData.address_confirmation_status = "confirmed";
+      currentData = { ...currentData, ...coords.confirmedAddressData };
     }
 
     updateUserMutation.mutate(currentData);
