@@ -25,6 +25,7 @@ import { getUserDisplayName } from "@/lib/userIdentity";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import YardSaleGuideModal from "@/components/guide/YardSaleGuideModal";
 import { getPreviewListingsOnMapPreference, setPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
+import { getResidentialDescriptionLimitError } from "@/lib/residentialDescriptionLimits";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
 const DRAFT_RESUME_STORAGE_KEY = "yardit_listing_draft_resume_v1";
@@ -588,6 +589,9 @@ export default function MyListingsPage() {
     const updateData = { title: editTitle, description: editDescription };
 
     if (editingListing.listingType === "event") { updateData.event_name = editTitle; updateData.event_description = editDescription; }
+
+    const descriptionLimitError = getResidentialDescriptionLimitError({ ...editingListing, ...updateData });
+    if (descriptionLimitError) { toast.error(descriptionLimitError); return; }
     if (editingListing.listingType === "yard_sale") {
       const openHoursError = getOpenHoursError();
       if (openHoursError) { toast.error(openHoursError); return; }
@@ -614,12 +618,16 @@ export default function MyListingsPage() {
 
     setIsSaving(true);
     try {
-      await base44.entities.Listing.update(editingListing.id, updateData);
+      await base44.functions.invoke("saveResidentialListing", {
+        action: "update",
+        listing_id: editingListing.id,
+        data: updateData,
+      });
       toast.success("Listing updated");
       closeEditDescription();
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
     } catch (e) {
-      toast.error("Could not update listing");
+      toast.error(e?.response?.data?.error || e?.message || "Could not update listing");
     } finally {
       setIsSaving(false);
     }

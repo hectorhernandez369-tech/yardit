@@ -9,11 +9,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import AddressFields from "@/components/shared/AddressFields";
 import ListingAddressReview from "@/components/create/ListingAddressReview";
 import NeighborhoodCoHostSelector from "@/components/create/NeighborhoodCoHostSelector";
+import CharacterCounter from "@/components/shared/CharacterCounter";
 import { useAppMode } from "@/components/shared/DemoMode";
 import { MapPin, Navigation, Loader2, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import { getNeighborhoodCreationLeadTimeError } from "@/lib/neighborhoodSaleState";
 import { buildResolvedListingLocation, resolveTimeZoneFromCoordinates, getStateAbbreviation } from "@/lib/listingLocation";
+import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -202,6 +204,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onA
   const [hostLookupResult, setHostLookupResult] = useState(null);
   const [isCheckingHost, setIsCheckingHost] = useState(false);
   const isNeighborhood = formData.listingType === "neighborhood_sale";
+  const neighborhoodDescriptionLimit = getResidentialDescriptionLimit("neighborhood_sale");
 
   const formDataRef = React.useRef(formData);
   const didPrefillProfileRef = React.useRef(false);
@@ -759,10 +762,12 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onA
                   id="neighborhood-description"
                   placeholder="Tell neighbors what kind of sale this is, what to expect, and any helpful event details."
                   value={formData.description || ""}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: limitText(e.target.value, neighborhoodDescriptionLimit) }))}
+                  maxLength={neighborhoodDescriptionLimit}
                   rows={4}
                   className="bg-[#F3E6CF] border-[#2C4F4E] resize-none"
                 />
+                <CharacterCounter value={formData.description || ""} limit={neighborhoodDescriptionLimit} />
               </div>
             </div>
           </div>

@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Home, Users, Calendar, Lock, ChevronDown, ChevronUp, Sparkles, MapPin, Star, Megaphone } from "lucide-react";
+import CharacterCounter from "@/components/shared/CharacterCounter";
+import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 
 // LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
 const LOCKED_LISTING_TYPES = [];
@@ -83,6 +85,7 @@ export default function StepOne({ formData, setFormData }) {
   const navigate = useNavigate();
   const listingType = formData?.listingType || "yard_sale";
   const isNeighborhood = listingType === "neighborhood_sale";
+  const descriptionLimit = getResidentialDescriptionLimit(listingType);
   const [expandedLocked, setExpandedLocked] = useState(null);
 
   const handleListingTypeSelect = (value) => {
@@ -305,7 +308,7 @@ export default function StepOne({ formData, setFormData }) {
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="description" className="text-sm font-semibold text-slate-900">Description *</Label>
+            <Label htmlFor="description" className="text-sm font-semibold text-slate-900">Description</Label>
             <p className="text-xs text-slate-500">
               Use keywords buyers search for — furniture, baby clothes, tools, Pokémon cards, etc.
             </p>
@@ -313,11 +316,12 @@ export default function StepOne({ formData, setFormData }) {
               id="description"
               placeholder="What are you selling? Be specific — buyers search by item type, brand, and condition."
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: limitText(e.target.value, descriptionLimit) }))}
+              maxLength={descriptionLimit || undefined}
               rows={4}
-              required
               className="mt-1 bg-white border-slate-400 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl text-slate-800 placeholder:text-slate-400 resize-none"
             />
+            <CharacterCounter value={formData.description} limit={descriptionLimit} />
           </div>
         </>
       )}

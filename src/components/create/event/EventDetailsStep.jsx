@@ -5,8 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EVENT_CATEGORIES, getDefaultEventIconForCategory, getBasicEventIconSvg } from "@/lib/eventListingConfig";
+import CharacterCounter from "@/components/shared/CharacterCounter";
+import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 
 export default function EventDetailsStep({ formData, setFormData }) {
+  const descriptionLimit = getResidentialDescriptionLimit("event");
+
   const setListingType = (value) => {
     setFormData((prev) => ({
       ...prev,
@@ -59,11 +63,16 @@ export default function EventDetailsStep({ formData, setFormData }) {
         <Textarea
           id="event_description"
           value={formData.event_description || ""}
-          onChange={(e) => setFormData((prev) => ({ ...prev, event_description: e.target.value, description: e.target.value }))}
+          onChange={(e) => {
+            const nextValue = limitText(e.target.value, descriptionLimit);
+            setFormData((prev) => ({ ...prev, event_description: nextValue, description: nextValue }));
+          }}
+          maxLength={descriptionLimit}
           placeholder="Add event details, schedule notes, or highlights..."
           rows={4}
           className="bg-white border-slate-200 focus-visible:ring-[#006168] focus-visible:border-[#006168] rounded-xl text-slate-800 placeholder:text-slate-300 resize-none"
         />
+        <CharacterCounter value={formData.event_description || ""} limit={descriptionLimit} />
       </div>
 
       {/* Category */}

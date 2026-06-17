@@ -28,6 +28,8 @@ import { EVENT_BASIC_ICON_LIBRARY, getDefaultEventIconForCategory, getEventIconE
 import { getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import { getUserDisplayName } from "@/lib/userIdentity";
+import CharacterCounter from "@/components/shared/CharacterCounter";
+import { getResidentialDescriptionLimit } from "@/lib/residentialDescriptionLimits";
 
 /**
  * EditListingDialog
@@ -85,6 +87,8 @@ export default function EditListingDialog({
 
   user,
 }) {
+  const descriptionLimit = getResidentialDescriptionLimit(editingListing?.listingType);
+
   return (
     <>
       <Dialog open={!!editingListing} onOpenChange={(open) => !open && onClose()}>
@@ -510,7 +514,14 @@ export default function EditListingDialog({
             {/* Description */}
             <div>
               <Label className="text-[#2C4F4E] mb-2 block">Description</Label>
-              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={5} placeholder="Update your description..." />
+              <Textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                maxLength={descriptionLimit || undefined}
+                rows={5}
+                placeholder="Update your description..."
+              />
+              <CharacterCounter value={editDescription} limit={descriptionLimit} />
             </div>
           </div>
 

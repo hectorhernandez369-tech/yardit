@@ -39,6 +39,7 @@ import {
 } from "@/lib/residentialDateConflict";
 import { getResidentialEventPriceBreakdown } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
+import { getResidentialDescriptionLimitError } from "@/lib/residentialDescriptionLimits";
 import { buildResolvedListingLocation, isLocationReadyForSubmission, resolveTimeZoneFromCoordinates, getStateAbbreviation } from "@/lib/listingLocation";
 
 const RELIST_STORAGE_KEY = "yardit_relist_prefill_v1";
@@ -682,6 +683,13 @@ export default function CreateListingPage() {
   };
 
   const startPaidListingCheckout = async (promoResult = null, nonRefundAcknowledgement = {}) => {
+    const descriptionLimitError = getResidentialDescriptionLimitError(formData);
+    if (descriptionLimitError) {
+      setPaymentError(descriptionLimitError);
+      toast.error(descriptionLimitError);
+      return;
+    }
+
     if (window.self !== window.top) {
       console.warn("Stripe checkout blocked inside iframe preview");
       setPaymentError("Stripe checkout must be tested from the published app, not the Base44 preview.");
@@ -727,6 +735,9 @@ export default function CreateListingPage() {
         return_url: returnUrl,
         listing_id: "",
         owner_user_id: user?.id,
+        listingType: formData.listingType,
+        description: formData.description || formData.event_description || "",
+        event_description: formData.event_description || "",
         addressText: formData.addressText || user?.primary_address || user?.street_address || "",
         zip: formData.zip || user?.zip_code || "",
         lat: formData.lat ?? user?.primary_latitude ?? user?.address_lat,
@@ -769,6 +780,13 @@ export default function CreateListingPage() {
   };
 
   const startNeighborhoodSaleSetup = async (nonRefundAcknowledgement = {}) => {
+    const descriptionLimitError = getResidentialDescriptionLimitError(formData);
+    if (descriptionLimitError) {
+      setPaymentError(descriptionLimitError);
+      toast.error(descriptionLimitError);
+      return;
+    }
+
     if (window.self !== window.top) {
       console.warn("Stripe setup blocked inside iframe preview");
       setPaymentError("Stripe setup must be tested from the published app, not the Base44 preview.");
@@ -842,15 +860,19 @@ export default function CreateListingPage() {
       for (let i = 0; i < 5; i++) rand5 += chars[Math.floor(Math.random() * chars.length)];
       const listingNumber = `${stateCode}${zipLast4}-${rand5}`;
 
-      const listing = await base44.entities.Listing.create({
-        ...data,
-        title: data.title,
-        ownerUserId: isAdminCreate ? selectedUserForAdmin?.id : user.id,
-        status: data.status || (data.listingType === "neighborhood_sale" ? "collecting_participants" : "active"),
-        event_state: data.listingType === "neighborhood_sale" ? (data.event_state || "pending_activation") : data.event_state,
-        listingNumber,
-        ...(isAdminCreate ? { created_by_admin: true, created_by_admin_id: user.id } : {})
+      const response = await base44.functions.invoke("saveResidentialListing", {
+        action: "create",
+        data: {
+          ...data,
+          title: data.title,
+          ownerUserId: isAdminCreate ? selectedUserForAdmin?.id : user.id,
+          status: data.status || (data.listingType === "neighborhood_sale" ? "collecting_participants" : "active"),
+          event_state: data.listingType === "neighborhood_sale" ? (data.event_state || "pending_activation") : data.event_state,
+          listingNumber,
+          ...(isAdminCreate ? { created_by_admin: true, created_by_admin_id: user.id } : {})
+        }
       });
+      const listing = response.data.listing;
 
       if (isAdminCreate) {
         const adminSession = getAdminSession();
@@ -1031,6 +1053,12 @@ export default function CreateListingPage() {
     }
 
     if (step === 1) {
+      const descriptionLimitError = getResidentialDescriptionLimitError(formData);
+      if (descriptionLimitError) {
+        toast.error(descriptionLimitError);
+        return;
+      }
+
       if (formData.listingType === "event") {
         if (!formData.event_name || !formData.event_category) {
           toast.error("Please fill in all required event fields");
@@ -1055,7 +1083,7 @@ export default function CreateListingPage() {
         return;
       }
       if (formData.listingType !== "neighborhood_sale") {
-        if (!formData.description || (!formData.category && (!formData.categories || formData.categories.length === 0))) {
+        if (!formData.category && (!formData.categories || formData.categories.length === 0)) {
           toast.error("Please fill in all required fields");
           return;
         }
@@ -1267,6 +1295,12 @@ export default function CreateListingPage() {
   };
 
   const executeSubmit = (actionStr, sourceFormData = formData) => {
+    const descriptionLimitError = getResidentialDescriptionLimitError(sourceFormData);
+    if (descriptionLimitError) {
+      toast.error(descriptionLimitError);
+      return;
+    }
+
     let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId || "" };
 
     if (isAdminCreate) {
@@ -1552,8 +1586,11 @@ export default function CreateListingPage() {
   };
 
   const createListingDirectlyWithPromo = async (payload) => {
-    const listing = await base44.entities.Listing.create(payload);
-    return listing;
+    const response = await base44.functions.invoke("saveResidentialListing", {
+      action: "create",
+      data: payload,
+    });
+    return response.data.listing;
   };
 
   const handleNeighborhoodSetupSubmit = async (nonRefundAcknowledgement = {}) => {
@@ -1567,6 +1604,12 @@ export default function CreateListingPage() {
   };
 
   const handleSubmit = async ({ userInitiated = false } = {}) => {
+    const descriptionLimitError = getResidentialDescriptionLimitError(formData);
+    if (descriptionLimitError) {
+      toast.error(descriptionLimitError);
+      return;
+    }
+
     const canShowResidentialConflictToast = userInitiated || hasUserInteractedWithDates || hasAttemptedContinue;
     if (userInitiated) setHasAttemptedContinue(true);
 

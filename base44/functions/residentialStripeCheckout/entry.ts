@@ -7,6 +7,17 @@ const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
 const RESIDENTIAL_BASE_PRICES = { featured: 499, premium: 799 };
 const DATE_UNAVAILABLE_MESSAGE = 'These dates are no longer available for this address. Please select different dates.';
 const RESERVED_STATUSES = new Set(['active', 'under_review', 'pending_payment', 'scheduled', 'activated_locked', 'coming_soon', 'payment_pending', 'payment_pending_adjustment']);
+const DESCRIPTION_LIMITS = { yard_sale: 500, neighborhood_sale: 1000, event: 1000 };
+
+function validateDescriptionLimit(payload = {}) {
+  const listingType = String(payload.listingType || payload.listing_type || (payload.listing_kind === 'event' ? 'event' : '')).toLowerCase();
+  const limit = DESCRIPTION_LIMITS[listingType];
+  if (!limit) return { ok: true };
+  const value = listingType === 'event' ? (payload.event_description || payload.description || '') : (payload.description || '');
+  return String(value).length > limit
+    ? { ok: false, error: `Description must be ${limit} characters or fewer.` }
+    : { ok: true };
+}
 
 function expandDateRange(startDate, endDate) {
   const dates = [];
@@ -309,6 +320,11 @@ Deno.serve(async (req) => {
     }
 
     // ── CREATE STRIPE CHECKOUT ──────────────────────────────────────
+    const descriptionValidation = validateDescriptionLimit(body);
+    if (!descriptionValidation.ok) {
+      return Response.json({ error: descriptionValidation.error }, { status: 400 });
+    }
+
     const listingKind = String(body?.listing_kind || 'residential').toLowerCase();
     const tier = String(body?.tier || (listingKind === 'event' ? 'event' : 'featured')).toLowerCase();
     const requestedEventAmount = Number(body?.amount_cents || body?.amount || 0);

@@ -7,6 +7,17 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 
 const RESIDENTIAL_PRICES = { featured: 499, premium: 799 };
 const DATE_UNAVAILABLE_MESSAGE = 'These dates are no longer available for this address. Please select different dates.';
+const DESCRIPTION_LIMITS = { yard_sale: 500, neighborhood_sale: 1000, event: 1000 };
+
+function validateDescriptionLimit(payload = {}) {
+  const listingType = String(payload.listingType || payload.listing_type || (payload.listing_kind === 'event' ? 'event' : 'yard_sale')).toLowerCase();
+  const limit = DESCRIPTION_LIMITS[listingType];
+  if (!limit) return { ok: true };
+  const value = listingType === 'event' ? (payload.event_description || payload.description || '') : (payload.description || '');
+  return String(value).length > limit
+    ? { ok: false, error: `Description must be ${limit} characters or fewer.` }
+    : { ok: true };
+}
 
 const RESERVED_STATUSES = new Set([
   'active', 'under_review', 'pending_payment', 'scheduled',
@@ -128,6 +139,11 @@ Deno.serve(async (req) => {
         session_id: session.id,
         amount_total: session.amount_total,
       });
+    }
+
+    const descriptionValidation = validateDescriptionLimit(payload);
+    if (!descriptionValidation.ok) {
+      return Response.json({ error: descriptionValidation.error }, { status: 400 });
     }
 
     const tier = String(payload.tier || '').toLowerCase();
