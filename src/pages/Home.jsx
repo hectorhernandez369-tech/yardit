@@ -1175,7 +1175,7 @@ export default function HomePage() {
   return (
     <div className="h-[100dvh] sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
       {/* Sticky Top Bar */}
-      <div className="bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex flex-col w-full">
+      <div className="relative bg-white border-b border-slate-200 z-[1200] flex-shrink-0 flex flex-col w-full">
         {view === "map" &&
         <div className="px-3 pt-2 pb-1 sm:hidden">
             <div className="relative w-full max-w-md mx-auto">
