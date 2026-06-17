@@ -1190,7 +1190,7 @@ export default function HomePage() {
           </div>
         }
 
-        <div className="px-3 py-1.5 flex items-center justify-center gap-4">
+        <div className="px-3 py-1.5 flex items-center justify-between gap-3 overflow-visible">
           <Tabs value={view} onValueChange={setView} className="w-auto flex shrink-0">
             <TabsList className="grid grid-cols-2 h-9 w-32 bg-slate-100 p-1 rounded-md">
               <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
