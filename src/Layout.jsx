@@ -299,7 +299,7 @@ function LayoutContent({ children, user, setUser }) {
         </div>
       )}
 
-      <main className="flex-1 w-full min-w-0 flex flex-col pb-20 sm:pb-0">
+      <main className="flex-1 w-full min-w-0 flex flex-col">
         {children}
       </main>
       
