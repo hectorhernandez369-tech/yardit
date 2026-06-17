@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, Loader2, Minus, Plus, Upload, X } from "lucide-react";
+import { Loader2, Minus, Plus, Upload, X } from "lucide-react";
+import EventAddOnCard from "./EventAddOnCard";
 import EventPhotoUpload from "./EventPhotoUpload";
 import MarqueeSlotsEditor from "./MarqueeSlotsEditor";
 import EventIconManager from "@/components/events/EventIconManager";
@@ -14,32 +15,6 @@ import {
 } from "@/lib/eventListingConfig";
 
 const money = (cents) => `$${(Number(cents || 0) / 100).toFixed(2)}`;
-
-function AddOnCard({ title, price, description, selected, onToggle, children }) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className={`bg-white transition-all ${selected ? "bg-[#f0fdfa]" : ""}`}>
-      <button type="button" onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between gap-3 p-4 text-left">
-        <div>
-          <h4 className="font-semibold text-slate-800">{title}</h4>
-          <div className="text-sm font-bold text-[#006168] mt-0.5">{money(price)}</div>
-        </div>
-        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${expanded ? "rotate-180" : ""}`} />
-      </button>
-
-      {expanded && (
-        <div className="px-4 pb-4 space-y-4 border-t border-slate-100 pt-4">
-          <div className="text-sm text-slate-600 leading-relaxed space-y-2">{description}</div>
-          <Button type="button" variant={selected ? "secondary" : "default"} onClick={() => onToggle(!selected)} className="w-full sm:w-auto">
-            {selected ? "Remove enhancement" : "Add enhancement"}
-          </Button>
-          {selected && children && <div className="pt-4 border-t border-slate-100">{children}</div>}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function EventAddOnsStep({ formData, setFormData }) {
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
@@ -120,7 +95,7 @@ export default function EventAddOnsStep({ formData, setFormData }) {
           </p>
         </div>
         <div className="divide-y divide-slate-100">
-          <AddOnCard
+          <EventAddOnCard
            id="premium_visibility"
            title="Be Seen By More People"
            price={RESIDENTIAL_EVENT_ADD_ONS.premium_visibility.price}
@@ -134,7 +109,7 @@ export default function EventAddOnsStep({ formData, setFormData }) {
           onToggle={(checked) => updateAddOns({ premium_visibility: checked })}
         />
 
-        <AddOnCard
+        <EventAddOnCard
           id="animation"
           title="Animation"
           price={RESIDENTIAL_EVENT_ADD_ONS.animation.price}
@@ -155,9 +130,9 @@ export default function EventAddOnsStep({ formData, setFormData }) {
               </Button>
             ))}
           </div>
-        </AddOnCard>
+        </EventAddOnCard>
 
-        <AddOnCard
+        <EventAddOnCard
           id="flyer_upload"
           title="Flyer Upload"
           price={RESIDENTIAL_EVENT_ADD_ONS.flyer_upload.price}
@@ -188,9 +163,9 @@ export default function EventAddOnsStep({ formData, setFormData }) {
               </div>
             )}
           </div>
-        </AddOnCard>
+        </EventAddOnCard>
 
-        <AddOnCard
+        <EventAddOnCard
           id="photo_gallery"
           title="Photo Gallery"
           price={RESIDENTIAL_EVENT_ADD_ONS.photo_gallery.price}
@@ -219,9 +194,9 @@ export default function EventAddOnsStep({ formData, setFormData }) {
             </div>
             <EventPhotoUpload value={formData.event_photos || []} maxPhotos={formData.event_photo_gallery_count || 1} onChange={(photos) => setFormData((prev) => ({ ...prev, event_photos: photos, photoUrls: photos }))} />
           </div>
-        </AddOnCard>
+        </EventAddOnCard>
 
-        <AddOnCard
+        <EventAddOnCard
           id="custom_icon"
           title="Custom Icon"
           price={RESIDENTIAL_EVENT_ADD_ONS.custom_icon.price}
@@ -241,9 +216,9 @@ export default function EventAddOnsStep({ formData, setFormData }) {
             uploadedImageUrl={formData.event_logo_url || ""}
             setUploadedImageUrl={(url) => setFormData((prev) => ({ ...prev, event_logo_url: url }))}
           />
-        </AddOnCard>
+        </EventAddOnCard>
 
-        <AddOnCard
+        <EventAddOnCard
           id="marquee"
           title="Marquee"
           price={RESIDENTIAL_EVENT_ADD_ONS.marquee.price}
@@ -263,7 +238,7 @@ export default function EventAddOnsStep({ formData, setFormData }) {
             eventStartDate={formData.event_start_date}
             eventEndDate={formData.event_start_date}
           />
-        </AddOnCard>
+        </EventAddOnCard>
         </div>
         </div>
 
