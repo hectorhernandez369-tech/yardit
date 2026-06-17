@@ -38,7 +38,10 @@ function getRetestInfo(flow, approval) {
 
 function StepRow({ item, value, onChange }) {
   const update = (patch) => onChange(item.id, { ...value, ...patch });
-  const setResult = (result) => update({ result, checked: true, testedDate: value.testedDate || today() });
+  const setResult = (result) => {
+    const nextResult = value.result === result ? '' : result;
+    update({ result: nextResult, checked: !!nextResult, testedDate: nextResult ? (value.testedDate || today()) : value.testedDate });
+  };
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-3">
