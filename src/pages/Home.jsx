@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Calendar, User, Search, ShoppingBag, Plus, Check, Users, Star, Crosshair, Loader2, SlidersHorizontal, X, Map as MapIcon, List, Bell } from "lucide-react";
+import { MapPin, Calendar, User, Search, ShoppingBag, Plus, Check, Users, Star, Crosshair, Loader2, SlidersHorizontal, X, Map as MapIcon, List } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -57,12 +57,6 @@ import QuickMapFilters from "@/components/map/QuickMapFilters";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
-import { useVendorAccess } from "@/lib/VendorContext";
-import MobileHomeBottomNav from "@/components/home/MobileHomeBottomNav";
-import MobileSearchSheet from "@/components/home/MobileSearchSheet";
-import MobileMapFilterSheet from "@/components/home/MobileMapFilterSheet";
-import VendorOnboardingSheet from "@/components/home/VendorOnboardingSheet";
-import VerifiedAddressRequiredModal from "@/components/profile/VerifiedAddressRequiredModal";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 
@@ -406,10 +400,6 @@ export default function HomePage() {
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [showVendorSheet, setShowVendorSheet] = useState(false);
-  const [showAddressRequiredModal, setShowAddressRequiredModal] = useState(false);
   const [hiddenListingsForMarquee, setHiddenListingsForMarquee] = useState(null);
   const queryClient = useQueryClient();
 
@@ -426,11 +416,6 @@ export default function HomePage() {
   const { huntStops, addToHunt, updateStopStatus, gpsLocation, huntMode: isHuntActive } = huntContext;
 
   const { guardAction, showModal, setShowModal, isGuest, modalProps } = useGuestGuard();
-  const {
-    hasVendorAccess,
-    isLoading: isLoadingVendorAccess,
-    error: vendorAccessError,
-  } = useVendorAccess();
 
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
@@ -771,7 +756,6 @@ export default function HomePage() {
     queryFn: () => base44.entities.VendorEvent.list("startDateTime"),
     initialData: []
   });
-
 
   // Live location tracking
   useEffect(() => {
@@ -1188,55 +1172,10 @@ export default function HomePage() {
     return ids;
   }, [marqueeOverlays]);
 
-  const hasVerifiedPrimaryAddress = Boolean(
-    user?.primary_address_verified || user?.address_confirmation_status === "confirmed"
-  );
-
-  const handleMobileCreate = () => {
-    guardAction(() => {
-      if (!hasVerifiedPrimaryAddress) {
-        setShowAddressRequiredModal(true);
-        return;
-      }
-      navigate(createPageUrl("CreateListing"));
-    }, { returnTo: `${window.location.origin}${createPageUrl("CreateListing")}` });
-  };
-
-  const handleMobileVendor = () => {
-    if (isLoadingVendorAccess) {
-      toast.info("Checking vendor access...");
-      return;
-    }
-    if (vendorAccessError) {
-      toast.error("Unable to verify vendor access");
-      return;
-    }
-    if (hasVendorAccess) {
-      navigate("/VendorDashboard");
-      return;
-    }
-    setShowVendorSheet(true);
-  };
-
-  useEffect(() => {
-    const isMobile = window.matchMedia("(max-width: 639px)").matches;
-    if (!isMobile) return;
-
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-    };
-  }, []);
-
   return (
-    <div className="fixed inset-0 h-[100svh] overflow-hidden overscroll-none sm:relative sm:inset-auto sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0 bg-slate-100">
+    <div className="h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
       {/* Sticky Top Bar */}
-      <div className="hidden sm:flex bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex-col w-full">
+      <div className="bg-white border-b border-slate-200 z-[100] flex-shrink-0 flex flex-col w-full">
         {view === "map" &&
         <div className="px-3 pt-2 pb-1 sm:hidden">
             <div className="relative w-full max-w-md mx-auto">
@@ -1301,7 +1240,7 @@ export default function HomePage() {
 
       {/* Content area */}
       {view === "list" ?
-      <div className="flex-1 overflow-auto overscroll-contain pb-28 sm:pb-0">
+      <div className="flex-1 overflow-auto">
           <ListView
           listings={listings}
           vendorEvents={vendorEvents}
@@ -1312,53 +1251,13 @@ export default function HomePage() {
         
         </div> :
 
-      <div ref={mapAreaRef} className="flex-1 relative min-w-0 w-full overflow-hidden overscroll-none">
-          <div className="absolute left-3 right-3 top-3 z-[1002] sm:hidden">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowMobileSearch(true)}
-                className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-white/70 bg-white/95 px-4 text-left text-sm font-semibold text-slate-700 shadow-lg backdrop-blur-xl active:scale-[0.99] transition"
-              >
-                <Search className="h-4 w-4 text-[#006168]" />
-                <span className="min-w-0 flex-1 truncate">{searchQuery || "Search Yardit"}</span>
-                {searchQuery && <span className="rounded-full bg-[#006168]/10 px-2 py-0.5 text-[10px] text-[#006168]">Active</span>}
-              </button>
-              {user && (
-                <button
-                  type="button"
-                  onClick={() => navigate(createPageUrl("Notifications"))}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/70 bg-white/95 text-[#006168] shadow-lg backdrop-blur-xl"
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-5 w-5" />
-                </button>
-              )}
-            </div>
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => setShowMobileFilters(true)}
-                className="rounded-full border border-white/70 bg-white/95 px-3 py-2 text-xs font-bold text-slate-700 shadow-md backdrop-blur-xl"
-              >
-                Filters
-              </button>
-              <button
-                type="button"
-                onClick={handleShowListingsClick}
-                className="rounded-full border border-white/70 bg-white/95 px-3 py-2 text-xs font-bold text-slate-700 shadow-md backdrop-blur-xl"
-              >
-                Show all
-              </button>
-            </div>
-          </div>
-
+      <div ref={mapAreaRef} className="flex-1 relative min-w-0 w-full">
           {/* Route Builder FAB */}
           <button
           ref={controlsBtnRef}
           onPointerDown={handleHuntButtonPointerDown}
           onClick={handleHuntButtonClick}
-          className="absolute z-[1302] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent outline-none shadow-none"
+          className="absolute z-[1002] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent outline-none shadow-none"
           style={{
             left: `${huntButtonPosition.x}px`,
             top: `${huntButtonPosition.y}px`,
@@ -1381,13 +1280,13 @@ export default function HomePage() {
 
           {/* Backdrop */}
           {showControls &&
-        <div className="absolute inset-0 z-[1299] bg-black/5 backdrop-blur-[.90px] transition-opacity duration-200 pointer-events-none" />
+        <div className="absolute inset-0 z-[999] bg-black/5 backdrop-blur-[.90px] transition-opacity duration-200 pointer-events-none" />
         }
 
           {/* Controls Panel */}
           <div
           ref={controlsPanelRef}
-          className="absolute top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1301] transition-all duration-200 ease-out origin-top"
+          className="absolute top-4 left-1/2 -translate-x-1/2 w-[94vw] sm:w-[420px] max-w-[500px] z-[1001] transition-all duration-200 ease-out origin-top"
           style={{
             opacity: showControls ? 1 : 0,
             transform: showControls ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-12px)",
@@ -1919,7 +1818,7 @@ export default function HomePage() {
             {!debugVisible &&
           <button
             onClick={() => {setDebugVisible(true);setDebugPinned(true);}}
-            className="absolute bottom-52 left-4 z-[1001] px-2 py-1 rounded bg-black/50 text-green-400 text-[10px] font-mono hover:bg-black/70 transition-colors sm:bottom-4">
+            className="absolute bottom-4 left-4 z-[1001] px-2 py-1 rounded bg-black/50 text-green-400 text-[10px] font-mono hover:bg-black/70 transition-colors">
             
                 Debug
               </button>
@@ -1957,53 +1856,6 @@ export default function HomePage() {
       }
 
       <GuestAuthModal open={showModal} onClose={setShowModal} {...modalProps} />
-      <VerifiedAddressRequiredModal
-        open={showAddressRequiredModal}
-        onOpenChange={setShowAddressRequiredModal}
-        onAddNow={() => {
-          setShowAddressRequiredModal(false);
-          navigate(createPageUrl("Profile"));
-        }}
-      />
-
-      <MobileSearchSheet
-        open={showMobileSearch}
-        onOpenChange={setShowMobileSearch}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
-      <MobileMapFilterSheet
-        open={showMobileFilters}
-        onOpenChange={setShowMobileFilters}
-        value={quickMapFilters}
-        onChange={setQuickMapFilters}
-        onAdvancedFilters={() => {
-          setShowMobileFilters(false);
-          setShowFilterModal(true);
-        }}
-      />
-      <VendorOnboardingSheet
-        open={showVendorSheet}
-        onOpenChange={setShowVendorSheet}
-        onBecomeVendor={() => navigate("/VendorAccountIntro")}
-        onBrowseOpportunities={() => navigate("/events")}
-        onContinueHunt={() => {
-          setShowVendorSheet(false);
-          setView("map");
-          setShowControls(true);
-        }}
-      />
-      {!showControls && (
-        <MobileHomeBottomNav
-          view={view}
-          onViewChange={setView}
-          onCreate={handleMobileCreate}
-          onVendor={handleMobileVendor}
-          isVendorLoading={isLoadingVendorAccess}
-          vendorError={vendorAccessError}
-          onProfile={() => user ? navigate(createPageUrl("Profile")) : navigate("/AccountOptions")}
-        />
-      )}
 
       <HiddenListingsOverlay
         listings={hiddenListingsForMarquee}

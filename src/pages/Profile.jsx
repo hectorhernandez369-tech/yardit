@@ -15,24 +15,22 @@ import MyCoinsPanel from "../components/jth/MyCoinsPanel";
 import SavedListingsTab from "../components/profile/SavedListingsTab";
 import { Bookmark } from "lucide-react";
 import { getTrustStatus } from "@/lib/trustActions";
-import { useVendorAccess } from "@/lib/VendorContext";
+import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import { getProfileCompletionPercent, isAccountSetupComplete } from "@/lib/accountSetup";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const {
-    hasVendorAccess,
-    isLoading: isLoadingVendorAccess,
-    error: vendorAccessError,
-  } = useVendorAccess();
+  const [hasVendorAccount, setHasVendorAccount] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const currentUser = await base44.auth.me();
         setUser(currentUser);
+        const vendorAccounts = await getUserVendorAccounts(currentUser);
+        setHasVendorAccount(vendorAccounts.length > 0);
       } catch (error) {
         console.error("Error fetching user:", error);
       } finally {
@@ -101,17 +99,6 @@ export default function ProfilePage() {
   const trustStatus = getTrustStatus(user);
   const accountSetupComplete = isAccountSetupComplete(user);
   const profileCompletionPercent = getProfileCompletionPercent(user);
-  const vendorButtonText = isLoadingVendorAccess
-    ? "Checking Vendor Access..."
-    : vendorAccessError
-      ? "Unable to verify vendor access"
-      : hasVendorAccess
-        ? "Open Vendor Dashboard"
-        : "Open Vendor Account";
-  const handleVendorShortcut = () => {
-    if (isLoadingVendorAccess || vendorAccessError) return;
-    navigate(hasVendorAccess ? "/VendorDashboard" : "/VendorAccountIntro");
-  };
 
   if (isLoadingUser) {
     return (
@@ -150,12 +137,11 @@ export default function ProfilePage() {
               <p className="text-gray-600">{user.email}</p>
             </div>
             <Button
-              onClick={handleVendorShortcut}
-              disabled={isLoadingVendorAccess || !!vendorAccessError}
-              className="hidden sm:inline-flex bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold disabled:opacity-70"
+              onClick={() => navigate(hasVendorAccount ? "/VendorDashboard" : "/VendorAccountIntro")}
+              className="hidden sm:inline-flex bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold"
             >
               <Store className="w-4 h-4" />
-              {vendorButtonText}
+              {hasVendorAccount ? "Open Vendor Dashboard" : "Open Vendor Account"}
             </Button>
 
             </div>
@@ -198,12 +184,11 @@ export default function ProfilePage() {
         ) : null}
 
         <Button
-          onClick={handleVendorShortcut}
-          disabled={isLoadingVendorAccess || !!vendorAccessError}
-          className="sm:hidden mb-6 w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold disabled:opacity-70"
+          onClick={() => navigate(hasVendorAccount ? "/VendorDashboard" : "/VendorAccountIntro")}
+          className="sm:hidden mb-6 w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold"
         >
           <Store className="w-4 h-4" />
-          {vendorButtonText}
+          {hasVendorAccount ? "Open Vendor Dashboard" : "Open Vendor Account"}
         </Button>
 
         {/* Tabs */}

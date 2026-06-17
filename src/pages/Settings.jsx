@@ -8,15 +8,15 @@ import { clearAdminSession } from "../components/admin/AdminLoginModal";
 import { useAuth } from "@/lib/AuthContext";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
-import { useVendorAccess } from "@/lib/VendorContext";
+import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 
 const STARTUP_PAGE_KEY = "yardit_startup_page";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const { hasVendorAccess, isLoading: isLoadingVendorAccess, error: vendorAccessError } = useVendorAccess();
   const [user, setUser] = useState(null);
+  const [hasVendorAccount, setHasVendorAccount] = useState(false);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
   const [installDialogMode, setInstallDialogMode] = useState("ios");
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
@@ -28,6 +28,8 @@ export default function SettingsPage() {
       try {
         const currentUser = await base44.auth.me();
         setUser(currentUser);
+        const accounts = await getUserVendorAccounts(currentUser);
+        setHasVendorAccount(accounts.length > 0);
       } catch (error) {
         navigate(createPageUrl("Home"));
       }
@@ -120,19 +122,7 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {isLoadingVendorAccess && (
-          <Card className="mb-4 rounded-lg border-0 shadow-sm">
-            <CardContent className="p-4 text-sm text-slate-600">Checking Vendor Access...</CardContent>
-          </Card>
-        )}
-
-        {vendorAccessError && (
-          <Card className="mb-4 rounded-lg border-0 shadow-sm">
-            <CardContent className="p-4 text-sm font-semibold text-amber-700">Unable to verify vendor access</CardContent>
-          </Card>
-        )}
-
-        {!isLoadingVendorAccess && !vendorAccessError && hasVendorAccess && (
+        {hasVendorAccount && (
           <Card className="mb-4 rounded-lg border-0 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Startup Page</CardTitle>

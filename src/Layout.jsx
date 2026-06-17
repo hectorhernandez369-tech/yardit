@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { HuntProvider, useHunt, HUNT_ENABLED } from "./components/hunt/HuntContext";
 import { Map as MapIcon, Crosshair } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { useVendorAccess } from "@/lib/VendorContext";
+import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { useAppMode } from "./components/shared/DemoMode";
@@ -35,12 +35,12 @@ const relId = (v) => (v && typeof v === "object" ? v.id : v);
 function LayoutContent({ children, user, setUser }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const isMobileHomeRoute = location.pathname === "/" || location.pathname === createPageUrl("Home");
   const { huntStops, isHuntActive } = useHunt();
   
   const { isDemoMode: demoActive } = useAppMode();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [hasAdminProfile, setHasAdminProfile] = useState(false);
+  const [hasVendorAccount, setHasVendorAccount] = useState(false);
   const [adminActivatedBanner, setAdminActivatedBanner] = useState(false);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
   const [installDialogMode, setInstallDialogMode] = useState("ios");
@@ -51,11 +51,6 @@ function LayoutContent({ children, user, setUser }) {
   const { isGuest, isAuthenticated, logout, navigateToLogin } = useAuth() || {};
 
   const { guardAction, showModal, setShowModal, isGuest: guestHookIsGuest } = useGuestGuard();
-  const {
-    hasVendorAccess,
-    isLoading: isLoadingVendorAccess,
-    error: vendorAccessError,
-  } = useVendorAccess();
 
   useEffect(() => {
       if (user?.isAdmin) {
@@ -63,19 +58,21 @@ function LayoutContent({ children, user, setUser }) {
       } else {
           setHasAdminProfile(false);
       }
+
+      if (user?.id) {
+      // Master admins always get vendor dashboard access (auto-provisioned)
+      const masterRoles = new Set(["master", "super_master"]);
+      if (masterRoles.has(user.role)) {
+        setHasVendorAccount(true);
+      } else {
+        getUserVendorAccounts(user).then((accounts) => {
+          setHasVendorAccount(accounts.length > 0);
+        }).catch(() => setHasVendorAccount(false));
+      }
+      } else {
+      setHasVendorAccount(false);
+      }
   }, [user]);
-
-  useEffect(() => {
-    const startupPage = localStorage.getItem("yardit_startup_page");
-    const isRoot = window.location.pathname === "/" || window.location.pathname === createPageUrl("Home");
-    if (startupPage !== "vendor" || !isRoot || isLoadingVendorAccess) return;
-
-    if (hasVendorAccess) {
-      window.location.replace("/VendorDashboard");
-    } else if (!vendorAccessError) {
-      localStorage.removeItem("yardit_startup_page");
-    }
-  }, [hasVendorAccess, isLoadingVendorAccess, vendorAccessError]);
 
   useEffect(() => {
     const updateInstallState = () => {
@@ -142,7 +139,7 @@ function LayoutContent({ children, user, setUser }) {
   return (
     <div className="min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
       <Toaster richColors position="top-center" />
-      <header className={`${isMobileHomeRoute ? "hidden sm:block" : ""} bg-[#5DADA5] border-b-2 border-[#2C4F4E] sticky top-0 z-50 shadow-md`}>
+      <header className="bg-[#5DADA5] border-b-2 border-[#2C4F4E] sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -245,19 +242,7 @@ function LayoutContent({ children, user, setUser }) {
                             <User className="w-3.5 h-3.5 text-[#5DADA5]" /> My Profile
                           </DropdownMenuItem>
 
-                          {isLoadingVendorAccess && (
-                            <DropdownMenuItem disabled className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-500">
-                              <Store className="w-3.5 h-3.5 text-[#5DADA5]" /> Checking Vendor Access...
-                            </DropdownMenuItem>
-                          )}
-
-                          {vendorAccessError && (
-                            <DropdownMenuItem disabled className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-amber-700">
-                              <Store className="w-3.5 h-3.5 text-amber-600" /> Unable to verify vendor access
-                            </DropdownMenuItem>
-                          )}
-
-                          {!isLoadingVendorAccess && !vendorAccessError && hasVendorAccess && (
+                          {hasVendorAccount && (
                             <DropdownMenuItem onClick={() => navigate("/VendorDashboard")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
                               <Store className="w-3.5 h-3.5 text-[#5DADA5]" /> Vendor Tools
                             </DropdownMenuItem>
@@ -341,7 +326,7 @@ function LayoutContent({ children, user, setUser }) {
       <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} mode={installDialogMode} />
       <FloatingLaunchChecklist open={showLaunchChecklist} onClose={() => setShowLaunchChecklist(false)} />
 
-      <footer className={`${isMobileHomeRoute ? "hidden sm:block" : ""} bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3`}>
+      <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-2">
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0ba1ba06_file_00000000fce071fd9ff100a6a9cf19951.png" 
@@ -381,6 +366,18 @@ export default function Layout({ children }) {
 
         base44.functions.invoke("syncNeighborhoodCoHostInvite", {}).catch(() => {});
 
+        // Startup page redirect — only if user still has vendor access
+        const startupPage = localStorage.getItem("yardit_startup_page");
+        const isRoot = window.location.pathname === "/" || window.location.pathname === createPageUrl("Home");
+        if (startupPage === "vendor" && isRoot) {
+          const vendorAccounts = await getUserVendorAccounts(currentUser).catch(() => []);
+          if (vendorAccounts.length > 0) {
+            window.location.replace("/VendorDashboard");
+          } else {
+            // User lost vendor access — clear the stale preference
+            localStorage.removeItem("yardit_startup_page");
+          }
+        }
 
       } catch (error) {
         console.error("Error fetching user:", error);

@@ -65,7 +65,7 @@ export default function QuickMapFilters({ value, onChange }) {
 
   return (
     <div
-      className="absolute z-[1001] hidden sm:block"
+      className="absolute z-[1001]"
       style={{ right: position.right, bottom: position.bottom }}
     >
       <div

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, ChevronDown, Loader2, Minus, Plus, Upload, X } from "lucide-react";
+import { ChevronDown, Loader2, Minus, Plus, Upload, X } from "lucide-react";
 import EventPhotoUpload from "./EventPhotoUpload";
 import MarqueeSlotsEditor from "./MarqueeSlotsEditor";
 import EventIconManager from "@/components/events/EventIconManager";
@@ -18,58 +18,23 @@ const money = (cents) => `$${(Number(cents || 0) / 100).toFixed(2)}`;
 function AddOnCard({ title, price, description, selected, onToggle, children }) {
   const [expanded, setExpanded] = useState(false);
 
-  const handleToggle = () => onToggle(!selected);
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      handleToggle();
-    }
-  };
-
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={handleToggle}
-      onKeyDown={handleKeyDown}
-      className={`transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#006168]/30 ${selected ? "bg-[#e6f7ef] ring-2 ring-emerald-500/70 border-l-4 border-emerald-600" : "bg-white hover:bg-slate-50"}`}
-    >
-      <div className="w-full flex items-center justify-between gap-3 p-4 text-left">
-        <div className="flex min-w-0 items-start gap-3">
-          {selected && <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />}
-          <div>
-            <h4 className={`font-semibold ${selected ? "text-emerald-950" : "text-slate-800"}`}>{title}</h4>
-            <div className={`text-sm font-bold mt-0.5 ${selected ? "text-emerald-800" : "text-[#006168]"}`}>{money(price)}</div>
-          </div>
+    <div className={`bg-white transition-all ${selected ? "bg-[#f0fdfa]" : ""}`}>
+      <button type="button" onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between gap-3 p-4 text-left">
+        <div>
+          <h4 className="font-semibold text-slate-800">{title}</h4>
+          <div className="text-sm font-bold text-[#006168] mt-0.5">{money(price)}</div>
         </div>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            setExpanded(!expanded);
-          }}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/80 text-slate-500 shadow-sm hover:bg-white hover:text-[#006168]"
-          aria-label={expanded ? "Hide add-on details" : "Show add-on details"}
-        >
-          <ChevronDown className={`w-5 h-5 transition-transform ${expanded ? "rotate-180" : ""}`} />
-        </button>
-      </div>
+        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${expanded ? "rotate-180" : ""}`} />
+      </button>
 
       {expanded && (
         <div className="px-4 pb-4 space-y-4 border-t border-slate-100 pt-4">
           <div className="text-sm text-slate-600 leading-relaxed space-y-2">{description}</div>
-          <Button
-            type="button"
-            variant={selected ? "secondary" : "default"}
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggle(!selected);
-            }}
-            className="w-full sm:w-auto"
-          >
+          <Button type="button" variant={selected ? "secondary" : "default"} onClick={() => onToggle(!selected)} className="w-full sm:w-auto">
             {selected ? "Remove enhancement" : "Add enhancement"}
           </Button>
-          {selected && children && <div className="pt-4 border-t border-slate-100" onClick={(event) => event.stopPropagation()}>{children}</div>}
+          {selected && children && <div className="pt-4 border-t border-slate-100">{children}</div>}
         </div>
       )}
     </div>

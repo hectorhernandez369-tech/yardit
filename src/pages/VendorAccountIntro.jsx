@@ -3,38 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Store, MapPin, Users, Megaphone, Loader2 } from "lucide-react";
-import { useVendorAccess } from "@/lib/VendorContext";
+import { base44 } from "@/api/base44Client";
+import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 
 export default function VendorAccountIntro() {
   const navigate = useNavigate();
+  const [checking, setChecking] = useState(true);
   const [alreadyHasAccount, setAlreadyHasAccount] = useState(false);
-  const { hasVendorAccess, isLoading, error } = useVendorAccess();
 
   useEffect(() => {
-    if (!hasVendorAccess) return;
-    setAlreadyHasAccount(true);
-    const timeoutId = setTimeout(() => navigate("/VendorDashboard"), 2500);
-    return () => clearTimeout(timeoutId);
-  }, [hasVendorAccess, navigate]);
+    base44.auth.me().then(async (user) => {
+      const accounts = await getUserVendorAccounts(user);
+      if (accounts.length > 0) {
+        setAlreadyHasAccount(true);
+        setTimeout(() => navigate("/VendorDashboard"), 2500);
+      }
+    }).catch(() => {}).finally(() => setChecking(false));
+  }, []);
 
-  if (isLoading) {
+  if (checking) {
     return (
       <div className="min-h-[calc(100vh-140px)] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-[calc(100vh-140px)] bg-[#F3E6CF] flex items-center justify-center p-4">
-        <Card className="border-2 border-[#2C4F4E] bg-white shadow-xl max-w-md w-full">
-          <CardContent className="p-8 text-center space-y-4">
-            <Store className="w-12 h-12 text-amber-600 mx-auto" />
-            <h2 className="text-xl font-bold text-[#2C4F4E]">Unable to verify vendor access</h2>
-            <p className="text-slate-500 text-sm">Please try again in a moment.</p>
-          </CardContent>
-        </Card>
       </div>
     );
   }

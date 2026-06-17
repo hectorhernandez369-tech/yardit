@@ -17,8 +17,7 @@ import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
 import VendorAccessDenied from "@/components/vendor/VendorAccessDenied";
 import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
-import { useAuth } from "@/lib/AuthContext";
-import { useVendorAccess } from "@/lib/VendorContext";
+import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
@@ -31,23 +30,22 @@ export default function VendorDashboard() {
   // Multi-business: which account is currently active
   const [activeAccountId, setActiveAccountId] = useState(null);
 
-  const { user, isLoadingAuth: loadingUser } = useAuth();
-  const {
-    vendorAccounts,
-    isLoading: loadingVendorAccess,
-    error: vendorAccessError,
-    refreshVendorAccess,
-  } = useVendorAccess();
-
-  const canAdminPreview = adminPreviewAccountId && ["master", "super_master"].includes(user?.role);
-  const { data: previewAccounts = [], isLoading: loadingPreviewAccounts } = useQuery({
-    queryKey: ["vendorDashboardAdminPreviewAccount", adminPreviewAccountId, user?.role],
-    queryFn: () => base44.entities.VendorAccount.filter({ id: adminPreviewAccountId }),
-    enabled: !!canAdminPreview,
+  const { data: user, isLoading: loadingUser } = useQuery({
+    queryKey: ["vendorDashboardUser"],
+    queryFn: () => base44.auth.me(),
   });
 
-  const accounts = canAdminPreview ? previewAccounts : vendorAccounts;
-  const loadingAccounts = canAdminPreview ? loadingPreviewAccounts : loadingVendorAccess;
+  // Use shared helper for consistent account detection
+  const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
+    queryKey: ["vendorDashboardAccounts", user?.id, user?.email, adminPreviewAccountId],
+    queryFn: () => {
+      const canAdminPreview = adminPreviewAccountId && ["master", "super_master"].includes(user?.role);
+      return canAdminPreview
+        ? base44.entities.VendorAccount.filter({ id: adminPreviewAccountId })
+        : getUserVendorAccounts(user);
+    },
+    enabled: !!user?.id || !!user?.email,
+  });
 
   // Set active account: prefer URL param, then previously selected, then first
   // Also clears stale selection if account is no longer accessible
@@ -101,7 +99,7 @@ export default function VendorDashboard() {
   });
 
   const refreshDashboard = () => {
-    refreshVendorAccess();
+    queryClient.invalidateQueries({ queryKey: ["vendorDashboardAccounts"] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardPins"] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardCheckIns"] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardUsers"] });
@@ -148,14 +146,6 @@ export default function VendorDashboard() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" />
-      </div>
-    );
-  }
-
-  if (!canAdminPreview && vendorAccessError) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center p-4 text-center">
-        <p className="font-semibold text-amber-700">Unable to verify vendor access</p>
       </div>
     );
   }

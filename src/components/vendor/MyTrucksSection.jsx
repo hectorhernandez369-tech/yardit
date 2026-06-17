@@ -14,7 +14,6 @@ import { TIER_CONFIG } from "@/lib/tierConfig";
 import { getVendorUsageLimitStatus } from "@/lib/vendorUsage";
 import TruckLogoEditor from "./TruckLogoEditor";
 import VendorPinScheduleDrawer from "./VendorPinScheduleDrawer";
-import { useVendorAccess } from "@/lib/VendorContext";
 
 export default function MyTrucksSection({ vendorAccount: providedVendorAccount, currentUser: providedCurrentUser, onRefresh }) {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -35,14 +34,19 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   });
 
   const currentUser = providedCurrentUser || loadedCurrentUser;
-  const {
-    vendorAccounts: loadedVendorAccounts,
-    isLoading: loadingVendorAccount,
-    error: vendorAccessError,
-  } = useVendorAccess();
+
+  const { data: loadedVendorAccounts = [], isLoading: loadingVendorAccount } = useQuery({
+    queryKey: ["vendorAccountForTrucks", currentUser?.id, currentUser?.email],
+    queryFn: async () => {
+      const byId = await base44.entities.VendorAccount.filter({ owner_user_id: currentUser.id });
+      if (byId.length) return byId;
+      return base44.entities.VendorAccount.filter({ owner_user_id: currentUser.email });
+    },
+    enabled: !providedVendorAccount?.id && !!currentUser?.id,
+  });
 
   const vendorAccount = providedVendorAccount || loadedVendorAccounts.find((account) => account.is_active !== false) || null;
-  const hasVendorAccess = !!vendorAccount?.id;
+  const hasVendorAccount = !!vendorAccount?.id;
   const vendorTier = vendorAccount?.vendor_tier || "free";
   const tierConfig = TIER_CONFIG[vendorTier] || TIER_CONFIG.free;
   const pinUsageStatus = getVendorUsageLimitStatus({ account: vendorAccount, pins: [] });
@@ -51,30 +55,30 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   const { data: pins = [] } = useQuery({
     queryKey: ["vendorPins", vendorAccount?.id],
     queryFn: () => base44.entities.VendorPin.filter({ vendor_account_id: vendorAccount.id }),
-    enabled: hasVendorAccess,
+    enabled: hasVendorAccount,
   });
 
   const { data: allCheckIns = [] } = useQuery({
     queryKey: ["vendorPinCheckIns", vendorAccount?.id],
     queryFn: () => base44.entities.VendorPinCheckIn.filter({ vendor_account_id: vendorAccount.id }, "-created_date"),
-    enabled: hasVendorAccess,
+    enabled: hasVendorAccount,
   });
 
   const { data: authorizedUsers = [] } = useQuery({
     queryKey: ["authorizedUsers", vendorAccount?.id],
     // Include accepted users as they also have active dashboard access
     queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: vendorAccount.id }),
-    enabled: hasVendorAccess,
+    enabled: hasVendorAccount,
   });
 
   const activePins = pins.filter((p) => p.is_active === true);
   const livePinUsageStatus = getVendorUsageLimitStatus({ account: vendorAccount, pins });
-  const canAddPin = hasVendorAccess && livePinUsageStatus.canAddPin;
+  const canAddPin = hasVendorAccount && livePinUsageStatus.canAddPin;
   const isOwner = currentUser?.id === vendorAccount?.owner_user_id || currentUser?.email === vendorAccount?.owner_user_id;
   const canManagePins = isOwner || ["master", "super_master"].includes(currentUser?.role);
 
   // Only accepted/active users have dashboard access
-  const accessibleAuthorizedUsers = authorizedUsers.filter((u) => u.status === "active" || u.status === "accepted" || u.status === "approved");
+  const accessibleAuthorizedUsers = authorizedUsers.filter((u) => u.status === "active" || u.status === "accepted");
 
   // Find the current user's authorized record (accepted/active only) using case-insensitive email match
   const currentAuthorizedUser = !canManagePins
@@ -219,12 +223,8 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
     toast.success("Truck profile deleted");
   };
 
-  if (!hasVendorAccess) {
-    return (
-      <div className="bg-card rounded-2xl border px-5 py-10 text-center">
-        {loadingVendorAccount ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : vendorAccessError ? <p className="text-sm font-semibold text-amber-700">Unable to verify vendor access</p> : <p className="text-sm text-muted-foreground">No vendor account found.</p>}
-      </div>
-    );
+  if (!hasVendorAccount) {
+    return <div className="bg-card rounded-2xl border px-5 py-10 text-center">{loadingVendorAccount ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : <p className="text-sm text-muted-foreground">No vendor account found.</p>}</div>;
   }
 
   return (
