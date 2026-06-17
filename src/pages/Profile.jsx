@@ -21,6 +21,7 @@ import { getProfileCompletionPercent, isAccountSetupComplete } from "@/lib/accou
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [addressEditSignal, setAddressEditSignal] = useState(0);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [hasVendorAccount, setHasVendorAccount] = useState(false);
 
@@ -176,7 +177,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2">{trustStatus.addressVerified ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Circle className="w-4 h-4" />} Verified primary address</div>
                 <div className="flex items-center gap-2">{trustStatus.listingRulesAccepted ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Circle className="w-4 h-4" />} Listing rules agreement</div>
               </div>
-              <Button onClick={() => navigate("/CreateListing")} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
+              <Button onClick={() => setAddressEditSignal((value) => value + 1)} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
                 Complete Profile
               </Button>
             </CardContent>
@@ -216,7 +217,7 @@ export default function ProfilePage() {
           </TabsList>
 
           <TabsContent value="info">
-            <UserInfoSection user={user} setUser={setUser} />
+            <UserInfoSection user={user} setUser={setUser} addressEditSignal={addressEditSignal} />
           </TabsContent>
 
           <TabsContent value="saved">

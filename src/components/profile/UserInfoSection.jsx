@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import AddressFields from "@/components/shared/AddressFields";
 import { toast } from "sonner";
 import { computedAddressVerified } from "@/lib/trustActions";
 
-export default function UserInfoSection({ user, setUser }) {
+export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingAddress, setIsConfirmingAddress] = useState(false);
 
@@ -30,6 +30,12 @@ export default function UserInfoSection({ user, setUser }) {
     address_lng: user.address_lng || null,
     address_confirmation_status: user.address_confirmation_status || "unconfirmed",
   });
+
+  useEffect(() => {
+    if (addressEditSignal > 0) {
+      setIsEditing(true);
+    }
+  }, [addressEditSignal]);
 
   const confirmAddress = async () => {
     const { street_address, city, state, zip_code } = formData;
