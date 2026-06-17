@@ -75,6 +75,7 @@ export default function LaunchChecklistContent({ embedded = false }) {
   const [settingId, setSettingId] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(QA_CATEGORIES[0]);
   const [selectedFlowId, setSelectedFlowId] = useState(QA_FLOWS[0]?.id);
+  const [hideCompleted, setHideCompleted] = useState(false);
   const [approvedBy, setApprovedBy] = useState('');
 
   useEffect(() => {
@@ -99,6 +100,10 @@ export default function LaunchChecklistContent({ embedded = false }) {
   const completedCount = allItems.filter(item => state.steps?.[item.id]?.result === 'pass').length;
   const failedCount = allItems.filter(item => state.steps?.[item.id]?.result === 'fail').length;
   const flowItems = selectedFlow?.items || [];
+  const visibleFlowItems = hideCompleted
+    ? flowItems.filter(item => !['pass', 'fail'].includes(state.steps?.[item.id]?.result))
+    : flowItems;
+  const hiddenCompletedCount = flowItems.length - visibleFlowItems.length;
   const flowPassed = flowItems.filter(item => state.steps?.[item.id]?.result === 'pass').length;
   const flowFailed = flowItems.filter(item => state.steps?.[item.id]?.result === 'fail').length;
   const flowComplete = flowItems.length > 0 && flowItems.every(item => ['pass', 'fail'].includes(state.steps?.[item.id]?.result));
@@ -254,6 +259,14 @@ export default function LaunchChecklistContent({ embedded = false }) {
                     <p className="text-sm text-slate-600">{selectedFlow.category} • Version {selectedFlow.version} • {flowItems.length} click-by-click QA steps</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={hideCompleted ? 'default' : 'outline'}
+                      onClick={() => setHideCompleted(!hideCompleted)}
+                      className={hideCompleted ? 'bg-[#2C4F4E] hover:bg-[#244241]' : ''}
+                    >
+                      {hideCompleted ? `Showing Open (${hiddenCompletedCount} hidden)` : 'Hide Completed'}
+                    </Button>
                     <Badge className="bg-green-100 text-green-800 border-green-300">Pass {flowPassed}</Badge>
                     <Badge className="bg-red-100 text-red-800 border-red-300">Fail {flowFailed}</Badge>
                     {approval && !retestInfo && <Badge className="bg-blue-100 text-blue-800 border-blue-300">Approved</Badge>}
@@ -297,9 +310,15 @@ export default function LaunchChecklistContent({ embedded = false }) {
               </div>
 
               <div className="space-y-3">
-                {flowItems.map(item => (
-                  <StepRow key={item.id} item={item} value={state.steps?.[item.id] || emptyStep} onChange={updateStep} />
-                ))}
+                {visibleFlowItems.length > 0 ? (
+                  visibleFlowItems.map(item => (
+                    <StepRow key={item.id} item={item} value={state.steps?.[item.id] || emptyStep} onChange={updateStep} />
+                  ))
+                ) : (
+                  <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800">
+                    All items in this flow are completed. Turn off Hide Completed to review them.
+                  </div>
+                )}
               </div>
 
               <div className="rounded-xl border border-[#2C4F4E] bg-[#E7D7B8] p-4">
