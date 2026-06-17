@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PRIVACY_VERSION, TERMS_VERSION, isAccountSetupComplete } from "@/lib/accountSetup";
+import { createPageUrl } from "@/utils";
 
 export default function AccountSetupModal({ user, setUser }) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -49,7 +52,7 @@ export default function AccountSetupModal({ user, setUser }) {
     formData.privacy_accepted
   );
 
-  const saveSetup = async (includePhone) => {
+  const saveSetup = async (includePhone, redirectToProfile = false) => {
     if (!requirementsMet) return;
 
     setSaving(true);
@@ -75,6 +78,9 @@ export default function AccountSetupModal({ user, setUser }) {
     setOpen(false);
     setSaving(false);
     toast.success("Profile completed successfully.");
+    if (redirectToProfile) {
+      navigate(createPageUrl("Profile"));
+    }
   };
 
   return (
@@ -170,7 +176,7 @@ export default function AccountSetupModal({ user, setUser }) {
 
             <div className="flex flex-col gap-2 pt-1">
               <Button
-                onClick={() => saveSetup(true)}
+                onClick={() => saveSetup(true, true)}
                 disabled={!requirementsMet || saving}
                 className="h-11 w-full rounded-xl bg-slate-950 font-semibold text-white shadow-lg shadow-slate-950/20 transition hover:bg-slate-800 disabled:opacity-50"
               >
