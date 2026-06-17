@@ -139,7 +139,7 @@ function LayoutContent({ children, user, setUser }) {
   return (
     <div className="min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
       <Toaster richColors position="top-center" />
-      <header className="bg-[#5DADA5] border-b-2 border-[#2C4F4E] sticky top-0 z-50 shadow-md">
+      <header className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] fixed bottom-0 left-0 right-0 z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.18)] sm:sticky sm:top-0 sm:bottom-auto sm:border-t-0 sm:border-b-2 sm:shadow-md">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -299,7 +299,7 @@ function LayoutContent({ children, user, setUser }) {
         </div>
       )}
 
-      <main className="flex-1 w-full min-w-0 flex flex-col">
+      <main className="flex-1 w-full min-w-0 flex flex-col pb-20 sm:pb-0">
         {children}
       </main>
       
@@ -326,7 +326,7 @@ function LayoutContent({ children, user, setUser }) {
       <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} mode={installDialogMode} />
       <FloatingLaunchChecklist open={showLaunchChecklist} onClose={() => setShowLaunchChecklist(false)} />
 
-      <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3">
+      <footer className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3 mb-16 sm:mb-0">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-2">
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0ba1ba06_file_00000000fce071fd9ff100a6a9cf19951.png" 
