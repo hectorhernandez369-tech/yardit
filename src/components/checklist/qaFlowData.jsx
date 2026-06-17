@@ -128,6 +128,27 @@ const locationAtomicSteps = [
   'Click Continue again.',
 ];
 
+const freeLocationSteps = [
+  'Confirm the address search field is visible.',
+  'Click the address search field.',
+  'Type 874 Asheville St.',
+  'Confirm typed address appears in the address field.',
+  'Pause until suggestions load.',
+  'Confirm at least one address suggestion appears.',
+  'Click the 874 Asheville St, Lindsay CA suggestion if visible.',
+  'Confirm the selected address appears in the address summary.',
+  'Confirm city displays Lindsay if the city field is visible.',
+  'Confirm state displays CA if the state field is visible.',
+  'Confirm ZIP displays the correct ZIP if the ZIP field is visible.',
+  'Confirm the map preview is visible.',
+  'Confirm a map pin appears on the preview map.',
+  'Click Continue.',
+  'Confirm the app moves to the next free-listing step without asking for selected dates or future dates.',
+  'Click Back.',
+  'Confirm the selected address remains saved.',
+  'Click Continue again.',
+];
+
 const scheduleAtomicSteps = [
   'Confirm the schedule step is visible.',
   'Confirm the start date control is visible.',
@@ -186,6 +207,19 @@ const tierSteps = (tier) => [
   'Confirm the listing preview step opens.',
 ];
 
+const freeTierSteps = [
+  'Confirm the tier selection step is visible.',
+  'Confirm the Free tier option is visible.',
+  'Confirm the Featured tier option is visible.',
+  'Confirm the Premium tier option is visible.',
+  'Click the Free tier option.',
+  'Confirm the Free tier option shows selected styling.',
+  'Confirm the Free tier price or free label is visible.',
+  'Confirm no payment review step is required for the Free tier.',
+  'Click Publish Free Listing or Submit Listing.',
+  'Confirm the listing publishes directly after the Free tier action.',
+];
+
 const premiumComingSoonSetupSteps = [
   'Confirm Premium early visibility or Coming Soon options are visible.',
   'Click the early visibility day selector if visible.',
@@ -212,15 +246,14 @@ const previewAtomicSteps = (tier) => [
 ];
 
 const freeSubmitSteps = [
-  'Click Publish Free Listing or Submit Listing.',
   'Confirm a saving or publishing state appears.',
   'Confirm a success message appears.',
+  'Confirm the Free listing flow is complete after publishing, with no review or checkout step.',
   'Click View My Listings if a button appears.',
   'Confirm My Listings opens.',
   'Confirm the new listing card appears.',
   'Confirm the listing card shows a Free badge.',
-  'Confirm the listing card shows the selected date range.',
-  'Confirm the listing card shows Open/Close visibility hours.',
+  'Confirm the listing card does not require selected dates or future dates.',
 ];
 
 const paymentAtomicSteps = (tier) => [
@@ -297,6 +330,30 @@ const publicVisibilityAtomicSteps = (statusLabel) => [
   'Click List View.',
   'Confirm list view opens.',
   'Confirm the same listing appears in list view when it is visible on the map.',
+  'Open filters.',
+  'Turn off the matching listing type filter.',
+  'Confirm the listing disappears from list view.',
+  'Confirm the listing disappears from map view.',
+  'Turn the matching listing type filter back on.',
+  'Confirm the listing appears again when visibility rules allow it.',
+];
+
+const freeVisibilitySteps = [
+  'Open Home map as a public viewer or non-owner account.',
+  'Click the map search field.',
+  'Type Lindsay CA.',
+  'Submit the search.',
+  'Confirm the map moves to Lindsay CA.',
+  'Confirm eligible listing pins appear after loading.',
+  'Find the free test listing pin if it is publicly visible under current app rules.',
+  'Click the free test listing pin.',
+  'Confirm the popup opens.',
+  'Confirm popup title matches the listing title.',
+  'Confirm popup tier/status badge is correct for a Free listing.',
+  'Confirm the popup does not require selected dates or future dates for the Free listing.',
+  'Click List View.',
+  'Confirm list view opens.',
+  'Confirm the same Free listing appears in list view when visible on the map.',
   'Open filters.',
   'Turn off the matching listing type filter.',
   'Confirm the listing disappears from list view.',
@@ -1162,7 +1219,7 @@ const qaFreezeSteps = [
 ];
 
 export const QA_FLOWS = [
-  flow({ category: 'Residential Listings', name: 'Free Listing', slug: 'residential-free-listing', relatedFiles: files.residential, steps: [...openAppSteps, ...authGateSteps, ...chooseResidentialSteps, ...residentialFieldSteps, ...locationAtomicSteps, ...scheduleAtomicSteps, ...photoAtomicSteps, ...tierSteps('Free'), ...previewAtomicSteps('Free'), ...freeSubmitSteps, ...publicVisibilityAtomicSteps('Free'), ...ownerPreviewSteps] }),
+  flow({ category: 'Residential Listings', name: 'Free Listing', slug: 'residential-free-listing', relatedFiles: files.residential, steps: [...openAppSteps, ...authGateSteps, ...chooseResidentialSteps, ...residentialFieldSteps, ...freeLocationSteps, ...photoAtomicSteps, ...freeTierSteps, ...freeSubmitSteps, ...freeVisibilitySteps, ...ownerPreviewSteps] }),
   flow({ category: 'Residential Listings', name: 'Featured Listing', slug: 'residential-featured-listing', relatedFiles: withFiles(files.residential, files.payments), steps: [...openAppSteps, ...authGateSteps, ...chooseResidentialSteps, ...residentialFieldSteps, ...locationAtomicSteps, ...scheduleAtomicSteps, ...photoAtomicSteps, ...tierSteps('Featured'), ...previewAtomicSteps('Featured'), ...paymentAtomicSteps('Featured'), ...paymentCancelRetrySteps, ...receiptAtomicSteps, ...publicVisibilityAtomicSteps('Featured')] }),
   flow({ category: 'Residential Listings', name: 'Premium Listing', slug: 'residential-premium-listing', relatedFiles: withFiles(files.residential, files.payments), steps: [...openAppSteps, ...authGateSteps, ...chooseResidentialSteps, ...residentialFieldSteps, ...locationAtomicSteps, ...scheduleAtomicSteps, ...photoAtomicSteps, ...tierSteps('Premium'), ...premiumComingSoonSetupSteps, ...previewAtomicSteps('Premium'), ...paymentAtomicSteps('Premium'), ...receiptAtomicSteps, ...publicVisibilityAtomicSteps('Premium')] }),
   flow({ category: 'Residential Listings', name: 'Premium Coming Soon', slug: 'residential-premium-coming-soon', relatedFiles: files.residential, steps: [...premiumComingSoonSetupSteps, ...publicVisibilityAtomicSteps('Coming Soon'), ...ownerPreviewSteps] }),
