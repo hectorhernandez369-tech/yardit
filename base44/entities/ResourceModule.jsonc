@@ -17,7 +17,7 @@
     },
     "section": {
       "type": "string",
-      "description": "Top-level training section, e.g. Residential Listings"
+      "description": "Top-level training area, e.g. Home Page, Header, Settings, Map, Hunt Map"
     },
     "category": {
       "type": "string",
@@ -35,6 +35,10 @@
       "default": "article",
       "description": "Content type for future authoring and filtering"
     },
+    "golden_rule": {
+      "type": "string",
+      "description": "One-sentence rule the trainee should remember and teach"
+    },
     "content": {
       "type": "string",
       "description": "Main instructional lesson content"
@@ -43,9 +47,28 @@
       "type": "string",
       "description": "Practical examples or sample support explanations"
     },
+    "teacher_notes": {
+      "type": "string",
+      "description": "Teaching tips, misconceptions, and coaching notes"
+    },
     "behind_the_scenes": {
       "type": "string",
       "description": "Internal system behavior or admin-only explanation"
+    },
+    "knowledge_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Test-your-knowledge prompts and expected answers"
     },
     "faq": {
       "type": "array",

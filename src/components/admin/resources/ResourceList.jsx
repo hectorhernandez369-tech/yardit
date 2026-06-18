@@ -19,11 +19,19 @@ function canAccessResources(user) {
 
 function LessonBody({ lesson }) {
   const faqs = Array.isArray(lesson.faq) ? lesson.faq : [];
+  const knowledgeChecks = Array.isArray(lesson.knowledge_checks) ? lesson.knowledge_checks : [];
   const images = Array.isArray(lesson.image_urls) ? lesson.image_urls : [];
   const videos = Array.isArray(lesson.video_urls) ? lesson.video_urls : [];
 
   return (
     <div className="space-y-4 text-sm text-slate-700">
+      {lesson.golden_rule && (
+        <section className="rounded-lg border-2 border-[#F4A849] bg-[#FFF7E8] p-3">
+          <h4 className="font-bold text-[#2C4F4E] mb-1">Golden Rule</h4>
+          <p className="leading-relaxed font-medium text-[#2C4F4E]">{lesson.golden_rule}</p>
+        </section>
+      )}
+
       {lesson.content && (
         <section className="rounded-lg border border-slate-200 bg-white p-3">
           <h4 className="font-bold text-[#2C4F4E] mb-1">Lesson</h4>
@@ -38,10 +46,31 @@ function LessonBody({ lesson }) {
         </section>
       )}
 
+      {lesson.teacher_notes && (
+        <section className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <h4 className="font-bold text-blue-900 mb-1">Teacher Notes</h4>
+          <p className="leading-relaxed whitespace-pre-line text-blue-950">{lesson.teacher_notes}</p>
+        </section>
+      )}
+
       {lesson.behind_the_scenes && (
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-3">
           <h4 className="font-bold text-amber-900 mb-1">Behind The Scenes</h4>
           <p className="leading-relaxed whitespace-pre-line text-amber-950">{lesson.behind_the_scenes}</p>
+        </section>
+      )}
+
+      {knowledgeChecks.length > 0 && (
+        <section className="rounded-lg border border-green-200 bg-green-50 p-3">
+          <h4 className="font-bold text-green-900 mb-2">Test Your Knowledge</h4>
+          <div className="space-y-2">
+            {knowledgeChecks.map((item, index) => (
+              <details key={`${lesson.resource_key}-check-${index}`} className="rounded-md bg-white border border-green-200 p-2">
+                <summary className="cursor-pointer font-semibold text-slate-800">{item.question}</summary>
+                <p className="text-slate-600 mt-2">{item.answer}</p>
+              </details>
+            ))}
+          </div>
         </section>
       )}
 
@@ -251,8 +280,8 @@ export default function ResourceList({ user }) {
   return (
     <div className="bg-[#F3E6CF] p-4 rounded-xl">
       <div className="mb-6">
-        <h1 className="text-3xl sm:text-4xl font-bold text-[#2C4F4E] mb-2">Yardit Admin Resources</h1>
-        <p className="text-gray-700 mb-4">Training lessons for learning how Yardit works. Your completion progress is private and saved to your account.</p>
+        <h1 className="text-3xl sm:text-4xl font-bold text-[#2C4F4E] mb-2">Yardit Residential Academy</h1>
+        <p className="text-gray-700 mb-4">Learn the rules, logic, and flows outside the Vendor Dashboard well enough to teach them to someone else. Your completion progress is private and saved to your account.</p>
 
         <div className="grid md:grid-cols-4 gap-3 mb-4">
           <div className="bg-white rounded-lg p-4 border border-[#5DADA5]"><p className="text-xs text-gray-500">Total Lessons</p><p className="text-2xl font-bold text-[#2C4F4E]">{allStats.total}</p></div>
