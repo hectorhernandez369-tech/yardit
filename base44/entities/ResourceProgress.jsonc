@@ -1,0 +1,57 @@
+{
+  "name": "ResourceProgress",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "User whose private training progress this record belongs to"
+    },
+    "resource_module_id": {
+      "type": "string",
+      "description": "ResourceModule record ID"
+    },
+    "resource_key": {
+      "type": "string",
+      "description": "Stable ResourceModule key captured for reporting and version checks"
+    },
+    "version_number": {
+      "type": "number",
+      "description": "ResourceModule version completed by the user"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user completed this lesson version"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the user marked the lesson complete"
+    },
+    "last_viewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the user last opened or updated this lesson progress"
+    }
+  },
+  "required": [
+    "user_id",
+    "resource_module_id",
+    "resource_key",
+    "version_number"
+  ],
+  "rls": {
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "data.user_id": "{{user.id}}"
+    },
+    "delete": {
+      "data.user_id": "{{user.id}}"
+    }
+  }
+}

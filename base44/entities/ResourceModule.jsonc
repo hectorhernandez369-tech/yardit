@@ -1,0 +1,150 @@
+{
+  "name": "ResourceModule",
+  "type": "object",
+  "properties": {
+    "resource_key": {
+      "type": "string",
+      "description": "Stable unique lesson key that will not change when the title changes"
+    },
+    "version_number": {
+      "type": "number",
+      "default": 1,
+      "description": "Lesson version used to identify major process changes"
+    },
+    "title": {
+      "type": "string",
+      "description": "Lesson title shown to staff"
+    },
+    "section": {
+      "type": "string",
+      "description": "Top-level training section, e.g. Residential Listings"
+    },
+    "category": {
+      "type": "string",
+      "description": "Optional category/grouping within the section"
+    },
+    "lesson_type": {
+      "type": "string",
+      "enum": [
+        "article",
+        "guide",
+        "faq",
+        "video",
+        "checklist"
+      ],
+      "default": "article",
+      "description": "Content type for future authoring and filtering"
+    },
+    "content": {
+      "type": "string",
+      "description": "Main instructional lesson content"
+    },
+    "examples": {
+      "type": "string",
+      "description": "Practical examples or sample support explanations"
+    },
+    "behind_the_scenes": {
+      "type": "string",
+      "description": "Internal system behavior or admin-only explanation"
+    },
+    "faq": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Frequently asked questions for this lesson"
+    },
+    "image_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Screenshot or image URLs for future authoring"
+    },
+    "video_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Video links for future authoring"
+    },
+    "estimated_minutes": {
+      "type": "number",
+      "default": 3,
+      "description": "Estimated lesson completion time in minutes"
+    },
+    "display_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Sort order within the section"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this lesson is currently visible"
+    },
+    "role_visibility": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional future role visibility list"
+    }
+  },
+  "required": [
+    "resource_key",
+    "version_number",
+    "title",
+    "section"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "developer",
+            "owner",
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "developer",
+            "owner",
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "developer",
+            "owner",
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    }
+  }
+}
