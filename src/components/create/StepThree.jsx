@@ -74,7 +74,7 @@ export default function StepThree({
     featured: [
       "Strong visibility on map",
       "Larger pin size / highlighted color",
-      "Active for exactly 3 days (user-selected)",
+      "Active for 1–3 days (user-selected)",
       "Higher placement in results",
     ],
     premium: [
@@ -314,7 +314,7 @@ export default function StepThree({
                 <h3 className="text-[#2C4F4E] font-semibold">Live Event / Sale Schedule</h3>
                 <p className="text-sm text-[#1F2937] opacity-80">
                   {tier === "featured" 
-                    ? "Featured listings must run exactly 3 consecutive days." 
+                    ? "Featured listings can run up to 3 consecutive days." 
                     : "Premium listings can run up to 5 consecutive days."}
                 </p>
                 {reservedSortedList.length > 0 && (
@@ -345,9 +345,17 @@ export default function StepThree({
                       if (newStart) {
                         const d = new Date(`${newStart}T00:00:00`);
                         if (tier === "featured") {
-                          d.setDate(d.getDate() + 2); // exactly 3 days (start + 2)
-                          const pad = (n) => String(n).padStart(2, "0");
-                          nextState.selectedRangeEndDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                          if (!nextState.selectedRangeEndDate) {
+                            nextState.selectedRangeEndDate = newStart;
+                          } else {
+                            const eDt = new Date(`${nextState.selectedRangeEndDate}T00:00:00`);
+                            const diff = Math.round((eDt - d) / (1000 * 60 * 60 * 24));
+                            if (diff < 0 || diff > 2) {
+                              d.setDate(d.getDate() + 2);
+                              const pad = (n) => String(n).padStart(2, "0");
+                              nextState.selectedRangeEndDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                            }
+                          }
                         } else if (tier === "premium") {
                            if (nextState.selectedRangeEndDate) {
                               const eDt = new Date(`${nextState.selectedRangeEndDate}T00:00:00`);
@@ -371,17 +379,26 @@ export default function StepThree({
                   <Input
                     type="date"
                     min={formData.selectedRangeStartDate || new Date().toISOString().split('T')[0]}
-                    max={tier === "premium" && formData.selectedRangeStartDate ? (() => {
+                    max={(tier === "premium" || tier === "featured") && formData.selectedRangeStartDate ? (() => {
                       const d = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
-                      d.setDate(d.getDate() + 4);
+                      d.setDate(d.getDate() + (tier === "featured" ? 2 : 4));
                       const pad = (n) => String(n).padStart(2, "0");
                       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
                     })() : undefined}
                     value={formData.selectedRangeEndDate || ""}
-                    disabled={tier === "featured"}
                     onChange={(e) => {
                        markResidentialConflictInteraction();
-                       if (tier === "premium") {
+                       if (tier === "featured") {
+                          const newEnd = e.target.value;
+                          const dStart = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
+                          const dEnd = new Date(`${newEnd}T00:00:00`);
+                          const diff = Math.round((dEnd - dStart) / (1000 * 60 * 60 * 24));
+                          if (diff >= 0 && diff <= 2) {
+                             setFormData(prev => ({ ...prev, selectedRangeEndDate: newEnd }));
+                          } else {
+                             toast.error("Featured can run up to 3 consecutive days.");
+                          }
+                       } else if (tier === "premium") {
                           const newEnd = e.target.value;
                           const dStart = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
                           const dEnd = new Date(`${newEnd}T00:00:00`);
@@ -396,16 +413,17 @@ export default function StepThree({
                     className={`bg-[#F3E6CF] border-[#2C4F4E]`}
                     required
                   />
-                  {formData.selectedRangeStartDate && formData.selectedRangeEndDate && tier === "premium" && (
+                  {formData.selectedRangeStartDate && formData.selectedRangeEndDate && (tier === "featured" || tier === "premium") && (
                      <p className={`text-xs mt-1 ${
                        (() => {
                          const s = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
                          const e = new Date(`${formData.selectedRangeEndDate}T00:00:00`);
                          const diffDays = Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1;
-                         return diffDays > 0 && diffDays <= 5 ? "hidden" : "text-red-500 font-medium";
+                         const maxDays = tier === "featured" ? 3 : 5;
+                         return diffDays > 0 && diffDays <= maxDays ? "hidden" : "text-red-500 font-medium";
                        })()
                      }`}>
-                       Premium allows up to 5 consecutive days.
+                       {tier === "featured" ? "Featured allows up to 3 consecutive days." : "Premium allows up to 5 consecutive days."}
                      </p>
                   )}
                 </div>
@@ -469,9 +487,9 @@ export default function StepThree({
               ) : formData.tier === "free" ? (
                 freeTierDateRange
               ) : formData.tier === "featured" ? (
-                formatDisplayRange(formData.selectedRangeStartDate, formData.selectedRangeEndDate, " (3 days)")
+                formatDisplayRange(formData.selectedRangeStartDate, formData.selectedRangeEndDate)
               ) : (
-                formatDisplayRange(formData.selectedRangeStartDate, formData.selectedRangeEndDate, " (5 days)")
+                formatDisplayRange(formData.selectedRangeStartDate, formData.selectedRangeEndDate)
               )}
             </div>
           </div>

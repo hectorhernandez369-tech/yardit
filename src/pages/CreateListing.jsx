@@ -1413,9 +1413,11 @@ export default function CreateListingPage() {
 
     if (sourceFormData.tier === "featured" && payload.listingType !== "event") {
       const startLocal = new Date(`${sourceFormData.selectedRangeStartDate}T00:00:00`);
+      const endLocal = new Date(`${sourceFormData.selectedRangeEndDate}T00:00:00`);
+      const diffDays = Math.round((endLocal - startLocal) / (1000 * 60 * 60 * 24)) + 1;
       let activeDates = [];
       const pad = (n) => String(n).padStart(2, "0");
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < diffDays; i++) {
         const d = new Date(startLocal);
         d.setDate(d.getDate() + i);
         activeDates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
@@ -1688,8 +1690,9 @@ export default function CreateListingPage() {
     if (formData.tier === "featured") {
       const startLocal = new Date(`${formData.selectedRangeStartDate}T00:00:00`);
       const endLocal = new Date(`${formData.selectedRangeEndDate}T00:00:00`);
-      if (Math.round((endLocal - startLocal) / (1000 * 60 * 60 * 24)) + 1 !== 3) {
-        toast.error("Featured requires exactly 3 consecutive days");
+      const diff = Math.round((endLocal - startLocal) / (1000 * 60 * 60 * 24)) + 1;
+      if (diff < 1 || diff > 3) {
+        toast.error("Featured allows 1 to 3 consecutive days");
         return;
       }
     }

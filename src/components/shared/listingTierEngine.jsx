@@ -49,16 +49,16 @@ export function computeFreeWindow(now, timeZoneId) {
 
 /**
  * computeFeaturedDates(startDate, endDate)
- * Validates exactly 3 consecutive days and returns activeDates.
+ * Validates 1 to 3 consecutive days and returns activeDates.
  * startDate/endDate are "YYYY-MM-DD" strings.
  */
 export function computeFeaturedDates(startDate, endDate) {
   const dates = getConsecutiveDates(startDate, endDate);
 
-  if (dates.length !== 3) {
+  if (dates.length < 1 || dates.length > 3) {
     return {
       valid: false,
-      error: `Featured tier requires exactly 3 consecutive days. Got ${dates.length}.`,
+      error: `Featured tier allows 1 to 3 consecutive days. Got ${dates.length}.`,
       activeDates: []
     };
   }

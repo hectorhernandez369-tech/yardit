@@ -228,7 +228,7 @@ export default function TierSchedule({ formData, setFormData }) {
 
   // FEATURED / PREMIUM / FREE (demo): date-only range selection
   const tierLabel = tier === "featured" ? "Featured" : tier === "premium" ? "Premium" : "Free";
-  const expectedDays = tier === "featured" ? 3 : tier === "premium" ? 5 : 0;
+  const scheduleLimitLabel = tier === "featured" ? "Up to 3 consecutive days" : tier === "premium" ? "Up to 5 consecutive days" : "";
 
   return (
     <div className="space-y-3 mt-4">
@@ -239,7 +239,7 @@ export default function TierSchedule({ formData, setFormData }) {
 
           {tier !== "free" && (
             <Badge className="bg-[#5DADA5] text-white text-xs ml-auto">
-              {expectedDays} consecutive days
+              {scheduleLimitLabel}
             </Badge>
           )}
 
@@ -253,7 +253,7 @@ export default function TierSchedule({ formData, setFormData }) {
         <p className="text-sm text-[#1F2937] opacity-80 mb-4">
           {tier === "free"
             ? "Demo mode: you can select dates, but Free normally auto-schedules for the weekend."
-            : `${tierLabel} requires exactly ${expectedDays} consecutive days.`}
+            : `${tierLabel} lets you choose ${tier === "featured" ? "1 to 3" : "1 to 5"} consecutive days.`}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
