@@ -191,7 +191,7 @@ export default function CreateListingPage() {
 
   const [formData, setFormData] = useState({
     listingType: "yard_sale",
-    tier: "free",
+    tier: "featured",
     event_tier: "event",
     event_add_ons: {},
     event_animation: "",

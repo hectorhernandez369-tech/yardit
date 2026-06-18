@@ -269,9 +269,10 @@ export default function StepThree({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-[#2C4F4E] flex items-center gap-2 text-base">
+                    <div className="font-semibold text-[#2C4F4E] flex flex-wrap items-center gap-2 text-base">
                       Featured
-                      {tier === "featured" && <span className="text-xs bg-[#5DADA5] text-white px-2 py-0.5 rounded-full">Selected</span>}
+                      <span className="text-[10px] bg-[#5DADA5] text-white px-2 py-0.5 rounded-full font-bold tracking-wide">RECOMMENDED</span>
+                      {tier === "featured" && <span className="text-xs bg-[#2C4F4E] text-white px-2 py-0.5 rounded-full">Selected</span>}
                     </div>
                     {tier === "featured" && (
                       <ul className="mt-3 space-y-1 text-sm text-[#1F2937] opacity-90 list-disc pl-5">
@@ -291,9 +292,10 @@ export default function StepThree({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-[#2C4F4E] flex items-center gap-2 text-base">
+                    <div className="font-semibold text-[#2C4F4E] flex flex-wrap items-center gap-2 text-base">
                       Premium
-                      {tier === "premium" && <span className="text-xs bg-[#F4A849] text-[#2C4F4E] px-2 py-0.5 rounded-full">Selected</span>}
+                      <span className="text-[10px] bg-[#F4A849] text-[#2C4F4E] px-2 py-0.5 rounded-full font-bold tracking-wide">BEST VISIBILITY</span>
+                      {tier === "premium" && <span className="text-xs bg-[#2C4F4E] text-white px-2 py-0.5 rounded-full">Selected</span>}
                     </div>
                     {tier === "premium" && (
                       <ul className="mt-3 space-y-1 text-sm text-[#1F2937] opacity-90 list-disc pl-5">
