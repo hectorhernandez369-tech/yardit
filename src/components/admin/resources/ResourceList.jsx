@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Loader2, Search, Clock, CheckCircle2, Circle, BookOpen, Image as ImageIcon, Video } from "lucide-react";
 import { toast } from "sonner";
+import { STARTER_RESOURCE_MODULES } from "./resourceStarterModules";
 
 const normalize = (value) => String(value || "").toLowerCase();
 const isCurrentProgress = (progress, lesson) => progress?.completed && Number(progress.version_number || 1) === Number(lesson.version_number || 1);
@@ -160,7 +161,7 @@ export default function ResourceList({ user }) {
   const [progressRecords, setProgressRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSection, setSelectedSection] = useState("Residential Listings");
+  const [selectedSection, setSelectedSection] = useState("Home Page");
 
   const hasAccess = canAccessResources(user);
 
@@ -172,7 +173,7 @@ export default function ResourceList({ user }) {
       base44.entities.ResourceProgress.filter({ user_id: user.id }),
     ]);
 
-    setModules(moduleRows);
+    setModules(moduleRows.length ? moduleRows : STARTER_RESOURCE_MODULES);
     setProgressRecords(progressRows || []);
     setLoading(false);
   };
@@ -210,7 +211,8 @@ export default function ResourceList({ user }) {
       if (!inSection) return false;
       if (!query) return true;
       const faqText = Array.isArray(lesson.faq) ? lesson.faq.map((item) => `${item.question} ${item.answer}`).join(" ") : "";
-      const haystack = normalize(`${lesson.title} ${lesson.section} ${lesson.category} ${lesson.content} ${lesson.examples} ${lesson.behind_the_scenes} ${faqText}`);
+      const knowledgeText = Array.isArray(lesson.knowledge_checks) ? lesson.knowledge_checks.map((item) => `${item.question} ${item.answer}`).join(" ") : "";
+      const haystack = normalize(`${lesson.title} ${lesson.section} ${lesson.category} ${lesson.golden_rule} ${lesson.content} ${lesson.examples} ${lesson.teacher_notes} ${lesson.behind_the_scenes} ${faqText} ${knowledgeText}`);
       return haystack.includes(query);
     });
   }, [activeModules, searchQuery, selectedSection]);
@@ -238,7 +240,7 @@ export default function ResourceList({ user }) {
     const now = new Date().toISOString();
     const payload = {
       user_id: user.id,
-      resource_module_id: lesson.id,
+      resource_module_id: lesson.id || lesson.resource_key,
       resource_key: lesson.resource_key,
       version_number: lesson.version_number || 1,
       completed,
