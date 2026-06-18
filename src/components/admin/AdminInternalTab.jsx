@@ -6,7 +6,6 @@ import EmployeeUsersTab from "./EmployeeUsersTab";
 import MySettingsTab from "./MySettingsTab";
 import SystemHealthDashboard from "./system-health/SystemHealthDashboard";
 import AdminAssistedListingsTab from "./assisted/AdminAssistedListingsTab";
-import ResourceList from "./resources/ResourceList";
 import { hasCapability } from "./adminCapabilities";
 
 export default function AdminInternalTab({ user, adminSession }) {
@@ -29,7 +28,6 @@ export default function AdminInternalTab({ user, adminSession }) {
           {canManageAdmins && <TabsTrigger value="employee-users" className="whitespace-nowrap">Employee Users</TabsTrigger>}
           {canViewLogs && <TabsTrigger value="logs" className="whitespace-nowrap">Logs</TabsTrigger>}
           {isMaster && <TabsTrigger value="system-health" className="whitespace-nowrap">System Health</TabsTrigger>}
-          <TabsTrigger value="resources" className="whitespace-nowrap">Resources</TabsTrigger>
           <TabsTrigger value="assisted" className="whitespace-nowrap">Assisted Listings</TabsTrigger>
           <TabsTrigger value="settings" className="whitespace-nowrap">My Settings</TabsTrigger>
         </TabsList>
@@ -58,10 +56,6 @@ export default function AdminInternalTab({ user, adminSession }) {
           </TabsContent>
         )}
 
-
-        <TabsContent value="resources">
-          <ResourceList user={{ ...user, isAdmin: true }} />
-        </TabsContent>
 
         <TabsContent value="assisted">
           <AdminAssistedListingsTab adminUser={user} />

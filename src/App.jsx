@@ -28,7 +28,6 @@ import AccountOptions from './pages/AccountOptions';
 import Events from './pages/Events';
 import RewardRedeem from './pages/RewardRedeem';
 import PaymentAudit from './pages/PaymentAudit';
-import AdminResources from './pages/AdminResources';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import YarditSplashScreen from '@/components/install/YarditSplashScreen';
@@ -135,7 +134,6 @@ const AuthenticatedApp = () => {
         <Route path="/assisted-listing" element={<AssistedListingApproval />} />
         <Route path="/events" element={<Events />} />
         <Route path="/PaymentAudit" element={<LayoutWrapper currentPageName="PaymentAudit"><PaymentAudit /></LayoutWrapper>} />
-        <Route path="/AdminResources" element={<LayoutWrapper currentPageName="AdminResources"><AdminResources /></LayoutWrapper>} />
         <Route path="/reward/redeem/:token" element={<RewardRedeem />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
