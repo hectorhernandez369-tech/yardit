@@ -307,24 +307,24 @@ export default function StepThree({
                 </div>
               </Card>
             </div>
-          </div>
 
-          <div className="mt-6 rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
-            <div className="mb-4">
-              <h3 className="text-[#2C4F4E] font-semibold">Add Photos</h3>
-              <p className="text-sm text-[#1F2937] opacity-80">
-                Upload photos for your listing. The limit updates based on the tier you choose.
-              </p>
+            <div className="mt-4 rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
+              <div className="mb-4">
+                <h3 className="text-[#2C4F4E] font-semibold">Add Photos</h3>
+                <p className="text-sm text-[#1F2937] opacity-80">
+                  Upload photos for your listing. The limit updates based on the tier you choose.
+                </p>
+              </div>
+              <EditListingPhotos
+                label="Add Photos"
+                value={formData.photoUrls || []}
+                maxPhotos={getPhotoLimitByTier(tier)}
+                onChange={(photos) => {
+                  markResidentialConflictInteraction();
+                  setFormData((prev) => ({ ...prev, photoUrls: photos }));
+                }}
+              />
             </div>
-            <EditListingPhotos
-              label="Add Photos"
-              value={formData.photoUrls || []}
-              maxPhotos={getPhotoLimitByTier(tier)}
-              onChange={(photos) => {
-                markResidentialConflictInteraction();
-                setFormData((prev) => ({ ...prev, photoUrls: photos }));
-              }}
-            />
           </div>
 
           <div className="my-8 border-t border-dashed border-[#2C4F4E]/20" />
