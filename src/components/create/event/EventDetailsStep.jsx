@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EVENT_CATEGORIES, getDefaultEventIconForCategory, getBasicEventIconSvg } from "@/lib/eventListingConfig";
+import { EVENT_CATEGORIES, getDefaultEventIconForCategory, getEventIconEmoji } from "@/lib/eventListingConfig";
 import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 
@@ -93,14 +93,13 @@ export default function EventDetailsStep({ formData, setFormData }) {
           <SelectContent>
             {EVENT_CATEGORIES.map((category) => {
               const iconKey = getDefaultEventIconForCategory(category);
-              const iconSvg = getBasicEventIconSvg(iconKey, 16, "#666");
               return (
                 <SelectItem key={category} value={category}>
                   <div className="flex items-center gap-2">
-                    {iconSvg && (
-                      <span dangerouslySetInnerHTML={{ __html: iconSvg }} className="inline-block" />
-                    )}
-                    {category.replace(/_/g, " ")}
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F3E6CF] text-lg shadow-sm">
+                      {getEventIconEmoji(iconKey)}
+                    </span>
+                    <span>{category.replace(/_/g, " ")}</span>
                   </div>
                 </SelectItem>
               );

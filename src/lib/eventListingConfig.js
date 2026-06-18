@@ -322,7 +322,39 @@ export function getEventIconOptionsForTier(tier) {
 }
 
 export function getEventIconEmoji(icon) {
-  return EVENT_ICON_EMOJIS[icon] || "📍";
+  const basicGraphicFallbacks = {
+    trophy: "🏆",
+    tennis: "🎾",
+    golf: "⛳",
+    boxing: "🥊",
+    running: "👟",
+    food: "🍔",
+    bbq: "🍖",
+    truck: "🚚",
+    coffee: "☕",
+    ticket: "🎟️",
+    music: "🎵",
+    microphone: "🎤",
+    stage: "🎬",
+    market: "🛍️",
+    booth: "🏪",
+    car: "🚗",
+    house: "🏠",
+    open_house: "🔑",
+    collectibles: "🧸",
+    dice: "🎲",
+    goods: "📦",
+    balloons: "🎈",
+    cake: "🎂",
+    gift: "🎁",
+    sparkle: "✨",
+    school: "🏫",
+    church: "⛪",
+    charity: "❤️",
+    heart: "❤️",
+    calendar: "📅",
+  };
+  return EVENT_ICON_EMOJIS[icon] || basicGraphicFallbacks[icon] || "📍";
 }
 
 // Inline SVG paths for Basic tier Lucide icons — used by map marker renderer
