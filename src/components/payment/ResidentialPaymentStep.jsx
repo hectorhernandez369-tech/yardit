@@ -41,8 +41,8 @@ export default function ResidentialPaymentStep({
   } : null;
 
   return (
-    <Card className="border-0 shadow-xl bg-white/95">
-      <CardContent className="p-4 sm:p-6">
+    <Card className="border-0 bg-transparent shadow-none">
+      <CardContent className="p-0">
         <ReviewPayContent
           listing={listing}
           tier={tier}

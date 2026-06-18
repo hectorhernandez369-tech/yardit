@@ -57,7 +57,7 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white/90 p-4 space-y-3">
+    <div className="space-y-3 p-4">
       <div className="flex items-center gap-2">
         <Tag className="w-4 h-4 text-[#5DADA5]" />
         <h3 className="text-sm font-bold text-[#2C4F4E]">Promo Code</h3>

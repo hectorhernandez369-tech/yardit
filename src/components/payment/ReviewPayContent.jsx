@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertTriangle, CreditCard, Loader2, Tag } from "lucide-react";
+import { CreditCard, Loader2, Tag } from "lucide-react";
 
 function money(amount) {
   return `$${Number(amount || 0).toFixed(2)}`;
@@ -71,115 +71,123 @@ export default function ReviewPayContent({
   const resolvedBenefits = benefits || benefitMap[key] || benefitMap[tier] || [];
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <div className="rounded-2xl bg-gradient-to-br from-[#5DADA5] to-[#2C4F4E] p-4 text-white shadow-md">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/75">Review & Pay</p>
-            <h2 className="mt-1 text-xl font-bold sm:text-2xl break-words">{resolvedName}</h2>
-            {badge && <Badge className="mt-2 bg-[#F4A849] text-[#2C4F4E]">{badge}</Badge>}
+    <div className="mx-auto max-w-5xl space-y-5">
+      <div className="rounded-3xl border border-[#2C4F4E]/10 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-2">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#5DADA5]">Review & Pay</p>
+            <h2 className="text-2xl font-bold leading-tight text-[#2C4F4E] sm:text-3xl break-words">{resolvedName}</h2>
+            <p className="text-sm text-slate-600">Confirm your listing details before moving to secure checkout.</p>
+            {badge && <Badge className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#F4A849]">{badge}</Badge>}
           </div>
-          <div className="shrink-0 rounded-xl bg-white/15 px-3 py-2 text-right">
+
+          <div className="rounded-2xl border border-[#2C4F4E]/10 bg-[#F8F2E8] px-5 py-4 text-left sm:min-w-[190px] sm:text-right">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total due</p>
             {promoResult ? (
               <>
-                <p className="text-xs text-white/75 line-through">{money(price)}</p>
-                <p className="font-bold text-[#F4A849]">{money(promoResult.finalAmount)}</p>
-                <p className="text-[10px] text-white/60">after promo</p>
+                <p className="mt-1 text-sm text-slate-500 line-through">{money(price)}</p>
+                <p className="text-3xl font-black text-[#2C4F4E]">{money(promoResult.finalAmount)}</p>
+                <p className="text-xs font-medium text-green-700">Promo applied</p>
               </>
             ) : (
-              <>
-                <p className="text-xs text-white/75">Price</p>
-                <p className="font-bold">{money(price)}</p>
-              </>
+              <p className="mt-1 text-3xl font-black text-[#2C4F4E]">{money(price)}</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Promo code input slot — injected by parent */}
-      {promoInputSlot && promoInputSlot}
-
-      {/* Promo discount summary */}
-      {promoResult && (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm space-y-1">
-          <div className="flex items-center gap-2 font-semibold text-green-800">
-            <Tag className="w-4 h-4" /> Promo Applied: {promoResult.promoCode?.code}
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-xs text-green-700 mt-2">
-            <div><p className="text-slate-500">Original</p><p className="font-medium">{money(price)}</p></div>
-            <div><p className="text-slate-500">Discount</p><p className="font-medium text-red-600">-{money(promoResult.discountAmount)}</p></div>
-            <div><p className="text-slate-500">Total Due</p><p className="font-bold text-green-900">{money(promoResult.finalAmount)}</p></div>
-          </div>
-        </div>
-      )}
-
       {errorMessage && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
           {errorMessage}
         </div>
       )}
 
-      {resolvedSummary.length > 0 && (
-        <div className="rounded-2xl border border-[#2C4F4E]/15 bg-white/90 p-4 shadow-sm">
-          <h3 className="text-sm font-bold text-[#2C4F4E]">{summaryTitle}</h3>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {resolvedSummary.map((item) => (
-              <div key={item.label} className="min-w-0 rounded-xl bg-[#F3E6CF]/45 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{item.label}</p>
-                <p className="mt-1 text-sm font-semibold text-slate-900 break-words">{item.value || "—"}</p>
+      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
+        <div className="space-y-5">
+          {resolvedSummary.length > 0 && (
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-base font-bold text-[#2C4F4E]">{summaryTitle}</h3>
+              <div className="mt-4 divide-y divide-slate-100">
+                {resolvedSummary.map((item) => (
+                  <div key={item.label} className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[130px_1fr] sm:gap-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{item.label}</p>
+                    <p className="text-sm font-semibold text-slate-900 break-words">{item.value || "—"}</p>
+                  </div>
+                ))}
               </div>
-            ))}
+            </section>
+          )}
+
+          {resolvedBenefits.length > 0 && (
+            <section className="rounded-3xl border border-[#F4A849]/35 bg-[#FFF9EE] p-5 shadow-sm">
+              <h3 className="text-base font-bold text-[#2C4F4E]">What’s included</h3>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {resolvedBenefits.map((benefit) => (
+                  <li key={benefit} className="flex items-start gap-3 text-sm text-slate-700">
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#F4A849]" />
+                    <span>{benefit}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+          {promoInputSlot && (
+            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              {promoInputSlot}
+            </div>
+          )}
+
+          {promoResult && (
+            <div className="rounded-3xl border border-green-200 bg-green-50 p-4 text-sm shadow-sm">
+              <div className="flex items-center gap-2 font-bold text-green-800">
+                <Tag className="h-4 w-4" /> Promo Applied: {promoResult.promoCode?.code}
+              </div>
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex justify-between text-slate-600"><span>Original</span><span>{money(price)}</span></div>
+                <div className="flex justify-between text-green-700"><span>Discount</span><span>-{money(promoResult.discountAmount)}</span></div>
+                <div className="border-t border-green-200 pt-2 flex justify-between font-black text-green-900"><span>Total Due</span><span>{money(promoResult.finalAmount)}</span></div>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3 text-sm text-slate-700">
+              <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-[#2C4F4E]" />
+              <div>
+                <p className="font-bold text-[#2C4F4E]">Secure checkout</p>
+                <p className="text-xs text-slate-500">Powered by Stripe. Paid access activates after payment is confirmed.</p>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
 
-      {resolvedBenefits.length > 0 && (
-        <div className="rounded-2xl border border-[#F4A849]/40 bg-[#FFF7E8] p-4 shadow-sm">
-          <h3 className="text-sm font-bold text-[#2C4F4E]">Included Benefits</h3>
-          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-            {resolvedBenefits.map((benefit) => (
-              <li key={benefit} className="flex gap-2 text-sm text-slate-700">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F4A849]" />
-                <span>{benefit}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+          {requireNonRefundAcknowledgement && (
+            <label className="flex cursor-pointer items-start gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 shadow-sm">
+              <Checkbox checked={nonRefundAcknowledged} onCheckedChange={(checked) => setNonRefundAcknowledged(checked === true)} className="mt-0.5" />
+              <span><strong>Required:</strong> {nonRefundDisclosure}</span>
+            </label>
+          )}
 
-      <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-        <CreditCard className="h-4 w-4 shrink-0 text-[#2C4F4E]" />
-        <span>Secure checkout powered by Stripe.</span>
-      </div>
-
-      <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-        <span>Paid access activates only after Stripe confirms payment.</span>
-      </div>
-
-      {requireNonRefundAcknowledgement && (
-        <label className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900 cursor-pointer">
-          <Checkbox checked={nonRefundAcknowledged} onCheckedChange={(checked) => setNonRefundAcknowledged(checked === true)} className="mt-0.5" />
-          <span><strong>Required:</strong> {nonRefundDisclosure}</span>
-        </label>
-      )}
-
-      <div className="grid gap-2 pt-1 sm:grid-cols-2">
-        <Button type="button" variant="outline" onClick={onBack} disabled={isProcessing} className="border-[#2C4F4E] text-[#2C4F4E]">
-          {backLabel}
-        </Button>
-        <Button
-          type="button"
-          onClick={() => onPay?.({ nonRefundAcknowledgement: {
-            acknowledged: nonRefundAcknowledged,
-            acknowledged_at: nonRefundAcknowledged ? new Date().toISOString() : "",
-            disclosure_text: nonRefundDisclosure,
-          }})}
-          disabled={isProcessing || (requireNonRefundAcknowledgement && !nonRefundAcknowledged)}
-          className="bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] font-semibold"
-        >
-          {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</> : continueLabel}
-        </Button>
+          <div className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <Button type="button" variant="outline" onClick={onBack} disabled={isProcessing} className="border-[#2C4F4E]/35 text-[#2C4F4E]">
+              {backLabel}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => onPay?.({ nonRefundAcknowledgement: {
+                acknowledged: nonRefundAcknowledged,
+                acknowledged_at: nonRefundAcknowledged ? new Date().toISOString() : "",
+                disclosure_text: nonRefundDisclosure,
+              }})}
+              disabled={isProcessing || (requireNonRefundAcknowledgement && !nonRefundAcknowledged)}
+              className="bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] font-bold shadow-sm"
+            >
+              {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</> : continueLabel}
+            </Button>
+          </div>
+        </aside>
       </div>
     </div>
   );
