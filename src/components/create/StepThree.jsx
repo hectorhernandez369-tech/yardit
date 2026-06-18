@@ -6,9 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { hasDateConflict } from "@/lib/residentialDateConflict";
-import { computeFreeWindow } from "@/components/shared/listingTierEngine";
+import { computeFreeWindow, getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
 import NeighborhoodSaleNoticeCard from "./NeighborhoodSaleNoticeCard";
 import OpenHoursFields from "./OpenHoursFields";
+import EditListingPhotos from "@/components/listing/EditListingPhotos";
 
 function makeId() {
   try {
@@ -89,6 +90,8 @@ export default function StepThree({
     markResidentialConflictInteraction();
     setFormData((p) => {
       const updated = { ...p, tier: nextTier };
+      const maxPhotos = getPhotoLimitByTier(nextTier);
+      updated.photoUrls = (updated.photoUrls || []).slice(0, maxPhotos);
       if (nextTier === "free") {
         delete updated.selectedRangeStartDate;
         delete updated.selectedRangeEndDate;
@@ -304,6 +307,24 @@ export default function StepThree({
                 </div>
               </Card>
             </div>
+          </div>
+
+          <div className="mt-6 rounded-xl border-2 border-[#2C4F4E] bg-[#E7D7B8] p-4">
+            <div className="mb-4">
+              <h3 className="text-[#2C4F4E] font-semibold">Add Photos</h3>
+              <p className="text-sm text-[#1F2937] opacity-80">
+                Upload photos for your listing. The limit updates based on the tier you choose.
+              </p>
+            </div>
+            <EditListingPhotos
+              label="Add Photos"
+              value={formData.photoUrls || []}
+              maxPhotos={getPhotoLimitByTier(tier)}
+              onChange={(photos) => {
+                markResidentialConflictInteraction();
+                setFormData((prev) => ({ ...prev, photoUrls: photos }));
+              }}
+            />
           </div>
 
           <div className="my-8 border-t border-dashed border-[#2C4F4E]/20" />
