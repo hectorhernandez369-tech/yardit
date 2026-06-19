@@ -62,7 +62,8 @@ Users begin from **Post Sale**.
 Important rule:
 
 - A user must have a verified primary address before creating/posting a residential sale.
-- If the user does not have a verified address, the app shows a verified-address-required message and sends them to Profile.
+- If the user does not have a verified address, the app blocks publishing and sends them through the address confirmation flow.
+- The user’s verified primary address is the trusted source of truth for normal residential yard sales.
 
 ### Residential yard sale steps
 
@@ -74,21 +75,96 @@ The general flow is:
    - User enters sale title, description, categories, and related details.
 
 2. **Address / location**
-   - Sale is tied to a residential location.
-   - Address verification and normalized address data are important because date availability is checked by address.
+   - For normal users in Live Mode, the sale must use the user’s verified primary home address.
+   - If the user does not have a verified address yet, they must select a suggested Mapbox address match and then confirm it as their home address.
+   - Once confirmed, the address is saved to the user profile with verification flags, coordinates, and timezone data.
+   - After verification, the listing flow reuses that confirmed address instead of allowing a different public sale address.
 
-3. **Tier, schedule, photos, and open hours**
+3. **Tier, schedule, photos, and open/view hours**
    - User chooses Free, Featured, or Premium.
    - Photo upload appears in this step.
    - Photo limit updates based on selected tier.
-   - Featured and Premium require user-selected date ranges.
+   - Featured and Premium require user-selected calendar date ranges.
    - Free follows the locked weekend schedule.
-   - Open hours are required for non-neighborhood yard sales.
+   - Open and close times are required for normal yard sales and control when the listing is publicly visible during its active date window.
 
 4. **Review and payment**
-   - Free listings do not require payment.
-   - Paid listings go through Stripe checkout unless waived/admin promo applies.
+   - Free listings publish without Stripe payment.
+   - Featured and Premium listings go through Stripe checkout unless waived/admin promo applies.
    - Paid residential listings require non-refund acknowledgement.
+   - After successful payment, paid yard sales are stored as `scheduled` until their active window is reached.
+
+---
+
+## 3A. Address verification rules for residential yard sales
+
+Address verification is not just a visual check. It controls whether a user is allowed to post a residential yard sale and which address can be used.
+
+### What counts as verified
+
+The app treats a user as address verified only when both are true:
+
+1. A verification flag is present:
+   - `primary_address_verified === true`, or
+   - `address_verified === true`, or
+   - `address_confirmation_status === "confirmed"`
+2. The actual address data is complete:
+   - Street address
+   - City
+   - State
+   - ZIP code
+   - Latitude
+   - Longitude
+
+This prevents an old/stale verified flag from allowing posting if the actual address fields were cleared.
+
+### What gets saved when a user confirms an address
+
+When a user confirms a suggested address, the app updates the user profile with:
+
+- `has_primary_address: true`
+- `primary_address_verified: true`
+- `address_verified: true`
+- `address_confirmation_status: "confirmed"`
+- `primary_address`
+- `street_address`
+- `city`
+- `state`
+- `zip_code`
+- `primary_latitude`
+- `primary_longitude`
+- `address_lat`
+- `address_lng`
+- `primary_address_verified_at`
+- `primary_address_last_changed_at`
+- `address_verification_required: false`
+- `timeZoneId`, when it can be resolved
+
+### How address suggestions work
+
+If the user enters an address manually and the account is not verified yet:
+
+1. The app requires street, city, state, and ZIP.
+2. The app searches Mapbox for possible matches.
+3. The user must select one of the suggested matches.
+4. The selected match provides coordinates and a formatted/geocoded address.
+5. The user confirms that selected address as the home address.
+6. Only then can they continue.
+
+### Profile address lock in Live Mode
+
+In Live Mode, regular residential yard sale listings are locked to the verified profile address:
+
+- The listing uses the user’s verified `primary_address` / `street_address` data.
+- The listing uses the verified latitude/longitude from the user profile unless the listing pin is still within allowed tolerance.
+- The listing may allow slight pin adjustment for map accuracy, but it cannot be moved far away from the verified home.
+- If the selected location is more than about **500 ft** from the verified home coordinates, publishing is blocked with: “Your listing must use your verified primary address. You can adjust the pin slightly for map accuracy.”
+
+### Demo Mode and admin exceptions
+
+- Demo Mode can loosen address testing so the builder can test flows more easily.
+- Admin-created listings can use an admin-selected location.
+- Admin-assisted listing flows are separate and are not covered in this guide.
 
 ---
 
@@ -198,31 +274,188 @@ Premium supports optional pre-activation advertising:
 
 ---
 
-## 5. Residential yard sale open-hours rules
+## 5. Residential yard sale date window vs open/close view times
+
+This is one of the most important rules to understand.
+
+Yardit stores and uses two different kinds of time for residential yard sales:
+
+1. **Actual listing date window** — `startDateTime` and `endDateTime`
+2. **Daily public viewing/open hours** — `openTime` and `closeTime`
+
+They are related, but they are not the same thing.
+
+### Actual listing date window: `startDateTime` / `endDateTime`
+
+`startDateTime` and `endDateTime` define the broad date span when the listing is allowed to exist as active/scheduled.
+
+For residential yard sales:
+
+- Featured and Premium start at **5:00 AM** on the selected start date.
+- Featured and Premium end at **10:00 PM** on the selected end date.
+- These are converted from the listing’s local timezone into stored ISO timestamps.
+- Free listings use the locked weekend window:
+  - Friday 5:00 AM through Sunday 10:00 PM.
+
+Example:
+
+If a Featured sale is selected for Saturday only:
+
+```text
+selectedRangeStartDate = Saturday
+selectedRangeEndDate = Saturday
+startDateTime = Saturday 5:00 AM local time
+endDateTime = Saturday 10:00 PM local time
+```
+
+If a Premium sale is selected for Friday through Sunday:
+
+```text
+selectedRangeStartDate = Friday
+selectedRangeEndDate = Sunday
+startDateTime = Friday 5:00 AM local time
+endDateTime = Sunday 10:00 PM local time
+```
+
+That does **not** mean the sale is publicly shown all day from 5 AM to 10 PM. It only means the listing’s date window is allowed during that broad period.
+
+### Open/close view times: `openTime` / `closeTime`
+
+`openTime` and `closeTime` are the daily hours chosen by the seller.
+
+These control whether the listing is publicly visible as an active sale during the selected dates.
 
 For residential `yard_sale` listings:
 
 - The listing must be active on today’s date.
-- The listing must be within the user’s open and close times.
+- Today must be included in `activeDates`, or within the selected date range.
+- The current local time must be between `openTime` and `closeTime`.
 - Open and close times must be valid.
 - Open time must be before close time.
 - Open time cannot be earlier than **5:00 AM**.
 - Close time cannot be later than **10:00 PM**.
 - If the sale is outside open hours, it is hidden from the public map/list as an active sale.
 
+### Why both systems exist
+
+The broad date window lets Yardit reserve the correct calendar dates and know when the listing lifecycle begins/ends.
+
+The open/close view times control the shopper experience so buyers do not see a sale as “open now” outside the seller’s posted hours.
+
+### Example: one-day Featured sale
+
+Seller chooses:
+
+```text
+Date: Saturday
+Open Time: 8:00 AM
+Close Time: 2:00 PM
+```
+
+System stores:
+
+```text
+startDateTime = Saturday 5:00 AM local
+endDateTime = Saturday 10:00 PM local
+openTime = 08:00
+closeTime = 14:00
+```
+
+Public behavior:
+
+- Before Saturday 5:00 AM: not active yet.
+- Saturday 5:00 AM–7:59 AM: inside date window, but not visible as open because open time has not arrived.
+- Saturday 8:00 AM–2:00 PM: visible as active/open.
+- Saturday after 2:00 PM: inside date window, but hidden as active because close time has passed.
+- After Saturday 10:00 PM: expired/ended by lifecycle.
+
+### Example: multi-day Premium sale
+
+Seller chooses:
+
+```text
+Dates: Friday through Sunday
+Open Time: 9:00 AM
+Close Time: 3:00 PM
+```
+
+System stores:
+
+```text
+startDateTime = Friday 5:00 AM local
+endDateTime = Sunday 10:00 PM local
+activeDates = [Friday, Saturday, Sunday]
+openTime = 09:00
+closeTime = 15:00
+```
+
+Public behavior:
+
+- Friday, Saturday, and Sunday can each be visible only from 9:00 AM to 3:00 PM.
+- Outside 9:00 AM–3:00 PM on those dates, the sale is not shown as publicly open.
+- Monday is not visible because it is outside the selected active dates and after `endDateTime`.
+
+### Coming Soon exception
+
+Premium early advertising can show the listing before the real sale starts, but only as a Coming Soon / advertising listing.
+
+It does not mean the sale is open early.
+
 ---
 
 ## 6. Residential date conflict / address reservation rules
 
-Residential yard sale date availability is checked by address.
+Residential yard sale date availability is checked by verified address.
 
-A listing can be blocked if the selected dates overlap already-reserved dates for that address.
+A listing can be blocked if the selected dates overlap dates already reserved for that same address.
 
-Important training note:
+### What counts as the same address
 
-- Draft or pending records can still create date conflicts if they reserve the same address/date range.
-- If a tester sees “These dates are already reserved for this address,” check existing drafts, pending listings, or active listings for that address.
-- The cleanest fix is usually to edit/delete the conflicting draft or choose different dates.
+The system primarily compares coordinates:
+
+- If the existing listing and verified address are within about **0.0003 degrees** latitude/longitude, they are treated as the same address.
+- This is roughly about **100 ft**.
+- Checkout validation can also fall back to normalized street + ZIP matching.
+
+### Which statuses reserve dates
+
+A residential yard sale can reserve dates when it has one of these statuses:
+
+- `active`
+- `under_review`
+- `pending_payment`
+- `scheduled`
+- `activated_locked`
+- `coming_soon`
+- `payment_pending`
+- `payment_pending_adjustment`
+
+Expired listings do not reserve future dates after their `endDateTime` has passed.
+
+### Which dates are reserved
+
+The reservation includes:
+
+- Every date from `selectedRangeStartDate` through `selectedRangeEndDate`.
+- Any `earlyVisibilityDates` connected to the listing.
+
+This matters because Premium early advertising dates can also block overlapping new date selections for the same address.
+
+### Frontend and checkout both check conflicts
+
+The app checks conflicts in more than one place:
+
+1. During the listing flow, using the user’s current listings and verified address.
+2. Again when starting Stripe checkout.
+3. Again after returning from payment before creating/linking the final listing.
+
+This prevents two overlapping paid listings from being created for the same home if something changes during checkout.
+
+### Important training note
+
+- Drafts may be saved separately, but active/pending/payment-related listing records can reserve dates.
+- If a tester sees “These dates are already reserved for this address,” check existing active, scheduled, pending payment, payment pending, or coming soon listings for that address.
+- The cleanest fix is usually to edit/end/delete the conflicting listing or choose different dates.
 
 ---
 
@@ -281,6 +514,28 @@ A Neighborhood Sale groups multiple nearby yard sales under one public event so 
 ### Area size
 
 - Neighborhood Sale area is shown as a **500 ft radius**.
+- The organizer chooses the event center point on the map.
+- The host address must be within that 500 ft radius.
+
+### Neighborhood host address verification
+
+Neighborhood Sales have a separate address concept from normal residential yard sales:
+
+1. **Event center**
+   - The organizer picks the center of the Neighborhood Sale area.
+   - The 500 ft radius is drawn from this center point.
+
+2. **Host address**
+   - The Neighborhood Sale must be anchored to a confirmed host address inside the radius.
+   - If the organizer’s own confirmed address is inside the radius, the app uses the organizer’s address.
+   - If the organizer’s confirmed address is not inside the radius, the organizer must use the alternate host/co-host flow.
+
+3. **Alternate host / co-host flow**
+   - Organizer enters an alternate host address.
+   - The alternate host address is geocoded and must be within 500 ft of the selected center.
+   - If an active account exists at that confirmed address, a co-host request can be sent.
+   - If no active account exists yet, the organizer can send an invite link.
+   - The host must create or have an account, confirm the matching address, and accept before that address can be used.
 
 ### Pricing
 
