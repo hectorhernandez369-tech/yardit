@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Info, Loader2 } from "lucide-react";
 
 export default function SystemSettings() {
   const queryClient = useQueryClient();
+  const [showDemoModeInfo, setShowDemoModeInfo] = React.useState(false);
 
   const { data: currentUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ["currentUserForSystemSettings"],
@@ -43,9 +45,12 @@ export default function SystemSettings() {
         await base44.entities.AppSetting.create({ key: "app_mode", value: mode });
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, newValue) => {
       queryClient.invalidateQueries({ queryKey: ["appSettings"] });
       toast.success("App mode updated");
+      if (newValue) {
+        setShowDemoModeInfo(true);
+      }
     }
   });
 
@@ -117,6 +122,41 @@ export default function SystemSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showDemoModeInfo} onOpenChange={setShowDemoModeInfo}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                <Info className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Demo Mode is now on</DialogTitle>
+                <DialogDescription>Here is what changes while Demo Mode is active.</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm text-slate-700">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="font-semibold text-slate-900">Address testing is unlocked</p>
+              <p>You can select test addresses more freely while creating listings.</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="font-semibold text-slate-900">One-listing test limit is unlocked</p>
+              <p>You can create more test listings without the normal testing restriction.</p>
+            </div>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+              <p className="font-semibold">Payments are still live</p>
+              <p>Demo Mode does not change Stripe payment processing, so payment actions still use the live flow.</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setShowDemoModeInfo(false)}>Got it</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
