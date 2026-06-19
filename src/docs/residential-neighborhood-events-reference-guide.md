@@ -1,1205 +1,1214 @@
-# Yardit Reference Guide — Residential Yard Sales, Neighborhood Sales, and Residential Events
+# Yardit Training Guide — Residential Yard Sales, Neighborhood Sales, and Residential Events
 
 _Last updated: June 19, 2026_
 
-This guide covers the public-facing Yardit flows outside the Vendor Dashboard. It is meant as a training reference for residential yard sales, neighborhood sales, residential events, public map behavior, list view behavior, zoom rules, clustering rules, and visibility rules.
+This guide explains the public Yardit flows outside the Vendor Dashboard in plain English. It is written as a training document for learning how Yardit handles residential yard sales, neighborhood sales, residential events, address verification, time rules, map visibility, zoom priority, clustering, and examples.
+
+This guide does not cover Vendor Dashboard tools or assisted listing QR code flows.
 
 ---
 
-## 1. What this guide covers
+## 1. The three public listing types
 
-Covered:
+Yardit has three main public listing types outside the Vendor Dashboard.
 
-- Residential individual yard sales
-- Residential yard sale tiers: Free, Featured, Premium
-- Neighborhood Sales
-- Residential Events
-- Map visibility
-- List view visibility and sorting
-- Zoom priority rules
-- Clustering behavior
-- Coming Soon / early advertising behavior
-- Payment and non-refund acknowledgement behavior
+### 1. Individual Yard Sale
 
-Not covered:
+This is a regular residential yard sale at one home.
 
-- Vendor Dashboard tools
-- Vendor subscriptions
-- Vendor pins
-- Vendor event management tools
-- Assisted listing QR code flows
+The seller chooses one of three visibility tiers:
 
----
+- Free
+- Featured
+- Premium
 
-## 2. Main public listing types
-
-Yardit has three main non-vendor public listing types:
-
-1. **Yard Sale**
-   - Individual residential sale.
-   - Uses Free, Featured, or Premium tier.
-   - Tied to a home/address.
-
-2. **Neighborhood Sale**
-   - One organized event that groups multiple nearby yard sales together.
-   - Organizer invites and approves nearby homes.
-   - Participants join free.
-   - Organizer pays the neighborhood sale cost.
-
-3. **Residential Event**
-   - One-day community-style event such as church, school, fundraiser, charity, holiday, family, sports, food, entertainment, market, open house, car show, etc.
-   - Uses a base event package plus optional add-ons.
-   - Multi-day events are directed to Vendor Events / Event Organizer tools.
-
----
-
-## 3. Residential yard sale creation flow
-
-### Entry point
-
-Users begin from **Post Sale**.
-
-Important rule:
-
-- A user must have a verified primary address before creating/posting a residential sale.
-- If the user does not have a verified address, the app blocks publishing and sends them through the address confirmation flow.
-- The user’s verified primary address is the trusted source of truth for normal residential yard sales.
-
-### Residential yard sale steps
-
-The general flow is:
-
-1. **Listing details**
-   - User chooses listing type.
-   - For a normal residential sale, listing type is `yard_sale`.
-   - User enters sale title, description, categories, and related details.
-
-2. **Address / location**
-   - For normal users in Live Mode, the sale must use the user’s verified primary home address.
-   - If the user does not have a verified address yet, they must select a suggested Mapbox address match and then confirm it as their home address.
-   - Once confirmed, the address is saved to the user profile with verification flags, coordinates, and timezone data.
-   - After verification, the listing flow reuses that confirmed address instead of allowing a different public sale address.
-
-3. **Tier, schedule, photos, and open/view hours**
-   - User chooses Free, Featured, or Premium.
-   - Photo upload appears in this step.
-   - Photo limit updates based on selected tier.
-   - Featured and Premium require user-selected calendar date ranges.
-   - Free follows the locked weekend schedule.
-   - Open and close times are required for normal yard sales and control when the listing is publicly visible during its active date window.
-
-4. **Review and payment**
-   - Free listings publish without Stripe payment.
-   - Featured and Premium listings go through Stripe checkout unless waived/admin promo applies.
-   - Paid residential listings require non-refund acknowledgement.
-   - After successful payment, paid yard sales are stored as `scheduled` until their active window is reached.
-
----
-
-## 3A. Address verification rules for residential yard sales
-
-Address verification is not just a visual check. It controls whether a user is allowed to post a residential yard sale and which address can be used.
-
-### What counts as verified
-
-The app treats a user as address verified only when both are true:
-
-1. A verification flag is present:
-   - `primary_address_verified === true`, or
-   - `address_verified === true`, or
-   - `address_confirmation_status === "confirmed"`
-2. The actual address data is complete:
-   - Street address
-   - City
-   - State
-   - ZIP code
-   - Latitude
-   - Longitude
-
-This prevents an old/stale verified flag from allowing posting if the actual address fields were cleared.
-
-### What gets saved when a user confirms an address
-
-When a user confirms a suggested address, the app updates the user profile with:
-
-- `has_primary_address: true`
-- `primary_address_verified: true`
-- `address_verified: true`
-- `address_confirmation_status: "confirmed"`
-- `primary_address`
-- `street_address`
-- `city`
-- `state`
-- `zip_code`
-- `primary_latitude`
-- `primary_longitude`
-- `address_lat`
-- `address_lng`
-- `primary_address_verified_at`
-- `primary_address_last_changed_at`
-- `address_verification_required: false`
-- `timeZoneId`, when it can be resolved
-
-### How address suggestions work
-
-If the user enters an address manually and the account is not verified yet:
-
-1. The app requires street, city, state, and ZIP.
-2. The app searches Mapbox for possible matches.
-3. The user must select one of the suggested matches.
-4. The selected match provides coordinates and a formatted/geocoded address.
-5. The user confirms that selected address as the home address.
-6. Only then can they continue.
-
-### Profile address lock in Live Mode
-
-In Live Mode, regular residential yard sale listings are locked to the verified profile address:
-
-- The listing uses the user’s verified `primary_address` / `street_address` data.
-- The listing uses the verified latitude/longitude from the user profile unless the listing pin is still within allowed tolerance.
-- The listing may allow slight pin adjustment for map accuracy, but it cannot be moved far away from the verified home.
-- If the selected location is more than about **500 ft** from the verified home coordinates, publishing is blocked with: “Your listing must use your verified primary address. You can adjust the pin slightly for map accuracy.”
-
-### Demo Mode and admin exceptions
-
-- Demo Mode can loosen address testing so the builder can test flows more easily.
-- Admin-created listings can use an admin-selected location.
-- Admin-assisted listing flows are separate and are not covered in this guide.
-
----
-
-## 4. Residential yard sale tier rules
-
-## Free Yard Sale
-
-### Price
-
-- Free.
-
-### Schedule rule
-
-Free listings use a locked weekend policy:
-
-- Users do **not** pick future dates/times for Free listings.
-- Free window runs **Friday 5:00 AM through Sunday 10:00 PM** in the listing timezone.
-- If created during the active weekend window, it activates immediately and ends Sunday at 10:00 PM.
-- If created outside the active weekend window, it is scheduled for the next Friday at 5:00 AM through Sunday at 10:00 PM.
-
-### Photos
-
-- Maximum 3 photos.
-
-### Public positioning
-
-- Product copy says Free is primarily/list-view focused.
-- Current map helper treats default/free pins as individual pins only at very close zoom, **zoom 15+**, if the listing is otherwise eligible and visible.
-
-### Visibility limits
-
-A Free listing must still pass standard visibility checks:
-
-- Not draft.
-- Not payment pending.
-- Not expired/canceled/deleted/hidden/suspended/rejected/closed/completed.
-- Has valid coordinates.
-- Is within active dates.
-- Is within open hours.
-
----
-
-## Featured Yard Sale
-
-### Price
-
-- $4.99.
-
-### Schedule rule
-
-- User selects active dates.
-- Featured allows **1 to 3 consecutive days**.
-- If the selected end date is outside the allowed range, the UI corrects or blocks it.
-
-### Photos
-
-- Maximum 10 photos.
-
-### Visibility / positioning
-
-- Strong map visibility.
-- Highlighted color / larger pin than Free.
-- Higher placement than Free in list sorting.
-- Individual map pin shows at **zoom 13+**.
-
-### Current UI guidance
-
-- Featured is marked **RECOMMENDED**.
-- Featured is currently the default selected tier in the listing flow.
-
----
-
-## Premium Yard Sale
-
-### Price
-
-- $7.99.
-
-### Schedule rule
-
-- User selects active dates.
-- Premium allows **1 to 5 consecutive days**.
-
-### Photos
-
-- Maximum 25 photos.
-
-### Coming Soon / early advertising
-
-Premium supports optional pre-activation advertising:
-
-- User may choose 0 to 3 days before the sale start.
-- This shows the pin early for advertising only.
-- It does **not** start the sale early.
-- The listing becomes public as Coming Soon during the configured early advertising window.
-
-### Visibility / positioning
-
-- Highest residential yard sale tier.
-- Largest highlighted residential pin.
-- Higher placement than Featured and Free.
-- Individual map pin shows at **zoom 11+**.
-
-### Current UI guidance
-
-- Premium is marked **BEST VISIBILITY**.
-
----
-
-## 5. Residential yard sale date window vs open/close view times
-
-This is one of the most important rules to understand.
-
-Yardit stores and uses two different kinds of time for residential yard sales:
-
-1. **Actual listing date window** — `startDateTime` and `endDateTime`
-2. **Daily public viewing/open hours** — `openTime` and `closeTime`
-
-They are related, but they are not the same thing.
-
-### Actual listing date window: `startDateTime` / `endDateTime`
-
-`startDateTime` and `endDateTime` define the broad date span when the listing is allowed to exist as active/scheduled.
-
-For residential yard sales:
-
-- Featured and Premium start at **5:00 AM** on the selected start date.
-- Featured and Premium end at **10:00 PM** on the selected end date.
-- These are converted from the listing’s local timezone into stored ISO timestamps.
-- Free listings use the locked weekend window:
-  - Friday 5:00 AM through Sunday 10:00 PM.
+The listing is tied to the seller’s verified home address.
 
 Example:
 
-If a Featured sale is selected for Saturday only:
-
-```text
-selectedRangeStartDate = Saturday
-selectedRangeEndDate = Saturday
-startDateTime = Saturday 5:00 AM local time
-endDateTime = Saturday 10:00 PM local time
-```
-
-If a Premium sale is selected for Friday through Sunday:
-
-```text
-selectedRangeStartDate = Friday
-selectedRangeEndDate = Sunday
-startDateTime = Friday 5:00 AM local time
-endDateTime = Sunday 10:00 PM local time
-```
-
-That does **not** mean the sale is publicly shown all day from 5 AM to 10 PM. It only means the listing’s date window is allowed during that broad period.
-
-### Open/close view times: `openTime` / `closeTime`
-
-`openTime` and `closeTime` are the daily hours chosen by the seller.
-
-These control whether the listing is publicly visible as an active sale during the selected dates.
-
-For residential `yard_sale` listings:
-
-- The listing must be active on today’s date.
-- Today must be included in `activeDates`, or within the selected date range.
-- The current local time must be between `openTime` and `closeTime`.
-- Open and close times must be valid.
-- Open time must be before close time.
-- Open time cannot be earlier than **5:00 AM**.
-- Close time cannot be later than **10:00 PM**.
-- If the sale is outside open hours, it is hidden from the public map/list as an active sale.
-
-### Why both systems exist
-
-The broad date window lets Yardit reserve the correct calendar dates and know when the listing lifecycle begins/ends.
-
-The open/close view times control the shopper experience so buyers do not see a sale as “open now” outside the seller’s posted hours.
-
-### Example: one-day Featured sale
-
-Seller chooses:
-
-```text
-Date: Saturday
-Open Time: 8:00 AM
-Close Time: 2:00 PM
-```
-
-System stores:
-
-```text
-startDateTime = Saturday 5:00 AM local
-endDateTime = Saturday 10:00 PM local
-openTime = 08:00
-closeTime = 14:00
-```
-
-Public behavior:
-
-- Before Saturday 5:00 AM: not active yet.
-- Saturday 5:00 AM–7:59 AM: inside date window, but not visible as open because open time has not arrived.
-- Saturday 8:00 AM–2:00 PM: visible as active/open.
-- Saturday after 2:00 PM: inside date window, but hidden as active because close time has passed.
-- After Saturday 10:00 PM: expired/ended by lifecycle.
-
-### Example: multi-day Premium sale
-
-Seller chooses:
-
-```text
-Dates: Friday through Sunday
-Open Time: 9:00 AM
-Close Time: 3:00 PM
-```
-
-System stores:
-
-```text
-startDateTime = Friday 5:00 AM local
-endDateTime = Sunday 10:00 PM local
-activeDates = [Friday, Saturday, Sunday]
-openTime = 09:00
-closeTime = 15:00
-```
-
-Public behavior:
-
-- Friday, Saturday, and Sunday can each be visible only from 9:00 AM to 3:00 PM.
-- Outside 9:00 AM–3:00 PM on those dates, the sale is not shown as publicly open.
-- Monday is not visible because it is outside the selected active dates and after `endDateTime`.
-
-### Coming Soon exception
-
-Premium early advertising can show the listing before the real sale starts, but only as a Coming Soon / advertising listing.
-
-It does not mean the sale is open early.
+A homeowner wants to sell furniture, clothes, and toys from their driveway this Saturday. They create an individual yard sale.
 
 ---
 
-## 6. Residential date conflict / address reservation rules
+### 2. Neighborhood Sale
 
-Residential yard sale date availability is checked by verified address.
+This is one organized sale event that brings several nearby homes together under one shared event.
 
-A listing can be blocked if the selected dates overlap dates already reserved for that same address.
+The organizer chooses the sale area, invites neighbors, approves participants, and pays the neighborhood sale cost once it is ready.
 
-### What counts as the same address
+Participants join free.
 
-The system primarily compares coordinates:
+Example:
 
-- If the existing listing and verified address are within about **0.0003 degrees** latitude/longitude, they are treated as the same address.
-- This is roughly about **100 ft**.
-- Checkout validation can also fall back to normalized street + ZIP matching.
-
-### Which statuses reserve dates
-
-A residential yard sale can reserve dates when it has one of these statuses:
-
-- `active`
-- `under_review`
-- `pending_payment`
-- `scheduled`
-- `activated_locked`
-- `coming_soon`
-- `payment_pending`
-- `payment_pending_adjustment`
-
-Expired listings do not reserve future dates after their `endDateTime` has passed.
-
-### Which dates are reserved
-
-The reservation includes:
-
-- Every date from `selectedRangeStartDate` through `selectedRangeEndDate`.
-- Any `earlyVisibilityDates` connected to the listing.
-
-This matters because Premium early advertising dates can also block overlapping new date selections for the same address.
-
-### Frontend and checkout both check conflicts
-
-The app checks conflicts in more than one place:
-
-1. During the listing flow, using the user’s current listings and verified address.
-2. Again when starting Stripe checkout.
-3. Again after returning from payment before creating/linking the final listing.
-
-This prevents two overlapping paid listings from being created for the same home if something changes during checkout.
-
-### Important training note
-
-- Drafts may be saved separately, but active/pending/payment-related listing records can reserve dates.
-- If a tester sees “These dates are already reserved for this address,” check existing active, scheduled, pending payment, payment pending, or coming soon listings for that address.
-- The cleanest fix is usually to edit/end/delete the conflicting listing or choose different dates.
+A person on Oak Street wants five or more nearby homes to hold sales on the same weekend. They create a Neighborhood Sale, share the invite link, approve neighbors, and Yardit shows the neighborhood as one larger event.
 
 ---
 
-## 7. Neighborhood Sale flow
+### 3. Residential Event
 
-### What it is
+This is a one-day local event outside the Vendor Dashboard.
 
-A Neighborhood Sale groups multiple nearby yard sales under one public event so shoppers can find the whole neighborhood at once.
+Examples include:
 
-### Who it is for
+- Church event
+- School fundraiser
+- Charity event
+- Community event
+- Holiday event
+- Sports event
+- Open house
+- Car show
+- Food event
+- Craft fair
+- Family event
 
-- Neighbors who want shared visibility.
-- Multiple homes coordinating one sale weekend/event.
-- Organizers who want to invite and manage participating homes.
+Residential Events have a base event package and optional add-ons.
 
-### Creation flow
+Example:
 
-1. User chooses **Neighborhood Sale** as listing type.
-2. The app creates or assigns a neighborhood draft/invite code.
-3. Organizer sets event dates and area details.
-4. Organizer receives a shareable invite link.
-5. Neighbor homes request to join.
-6. Organizer approves participants.
-7. Once enough homes are approved, the organizer can activate/pay.
-8. The public map shows the Neighborhood Sale once it reaches the required visible state.
-
-### Organizer responsibilities
-
-- Invite nearby homes.
-- Review and approve join requests.
-- Confirm event details.
-- Use Yardit as the organizing tool.
-
-### Participant payment rule
-
-- Participants join free.
-- Organizer pays the neighborhood sale cost.
+A church is hosting a Saturday fundraiser from 10 AM to 2 PM. They create a Residential Event, choose the church address, pick the event category, and add optional visibility upgrades.
 
 ---
 
-## 8. Neighborhood Sale rules
+## 2. Address verification for individual residential yard sales
 
-### Minimum homes
+Address verification is one of the most important rules in Yardit.
 
-- Minimum required homes: **5**.
-- The organizer counts as 1 home when counting approved homes.
-
-### Maximum homes
-
-- Maximum pricing/count cap: **25 homes**.
-
-### Lead time
-
-- Neighborhood Sales must be scheduled at least **7 days in advance**.
-
-### Area size
-
-- Neighborhood Sale area is shown as a **500 ft radius**.
-- The organizer chooses the event center point on the map.
-- The host address must be within that 500 ft radius.
-
-### Neighborhood host address verification
-
-Neighborhood Sales have a separate address concept from normal residential yard sales:
-
-1. **Event center**
-   - The organizer picks the center of the Neighborhood Sale area.
-   - The 500 ft radius is drawn from this center point.
-
-2. **Host address**
-   - The Neighborhood Sale must be anchored to a confirmed host address inside the radius.
-   - If the organizer’s own confirmed address is inside the radius, the app uses the organizer’s address.
-   - If the organizer’s confirmed address is not inside the radius, the organizer must use the alternate host/co-host flow.
-
-3. **Alternate host / co-host flow**
-   - Organizer enters an alternate host address.
-   - The alternate host address is geocoded and must be within 500 ft of the selected center.
-   - If an active account exists at that confirmed address, a co-host request can be sent.
-   - If no active account exists yet, the organizer can send an invite link.
-   - The host must create or have an account, confirm the matching address, and accept before that address can be used.
-
-### Pricing
-
-- Base price: **$19.99**.
-- Plus **$2 per approved participating home**.
-- If fewer than 5 homes are approved, total due is $0 because it is not ready.
-- Once 5+ homes are approved, total due is calculated as:
-
-```text
-$19.99 + ($2 × approved home count)
-```
-
-### Join status normalization
-
-The system normalizes some statuses:
-
-- `requested` becomes `pending`.
-- `approved_pending_payment` becomes `approved`.
-
-### Active approved home count excludes
-
-A request does not count if:
-
-- Removed by event organizer.
-- Removed by listing owner.
-- Status is canceled/cancelled.
+A normal residential yard sale must use the seller’s verified primary home address. Yardit does this to prevent users from posting fake sales, posting at someone else’s house, or moving a residential listing far away from their confirmed address.
 
 ---
 
-## 9. Neighborhood Sale lifecycle states
+## 3. What “verified address” means
 
-Neighborhood Sale event states include:
+A user is considered address verified only when Yardit has both:
 
-- `pending_activation`
-- `committed`
-- `activated`
-- `activated_locked`
-- `coming_soon`
-- `active`
-- `expired`
-- `downgraded`
-- `canceled`
+1. A confirmed address flag on the user account.
+2. Complete address details saved on the user account.
 
-### State rules
+Complete address details means Yardit has:
 
-- If canceled/cancelled, state is canceled.
-- If downgraded, state is downgraded.
-- If end time has passed, state is expired.
-- `ready_for_payment` becomes committed.
-- `collecting_participants` or `payment_pending` becomes pending activation.
-- If active/activated and before start:
-  - If advertising has started, state is coming soon.
-  - If payment is locked/captured, state is activated locked.
-  - Otherwise state is activated.
-- If active/activated and within start/end time, state is active.
+- Street address
+- City
+- State
+- ZIP code
+- Latitude
+- Longitude
 
-### When a Neighborhood Sale appears on the main map
+This matters because an account might have an old verification flag, but if the actual address fields are missing, Yardit should not let that user post a residential sale.
 
-A Neighborhood Sale appears publicly only when:
+Example:
 
-- It is in `coming_soon` or `active` state.
-- It has at least **5 homes**.
-- It has valid coordinates.
-- It is not terminal/expired/canceled/hidden.
-
-### When joining is allowed
-
-Joining is allowed only while the Neighborhood Sale is in:
-
-- `pending_activation`
+If Sarah’s account says “address verified,” but her street address or coordinates are missing, Yardit treats the address as not ready. She must confirm her address again before posting.
 
 ---
 
-## 10. Neighborhood participant display rules
+## 4. How a user verifies an address
 
-Participant homes are not shown as normal standalone yard sale pins when they are part of a Neighborhood Sale.
+When a user does not already have a verified address, Yardit asks them to confirm one during the listing flow.
 
-A participant home can show in the Neighborhood participant view only when:
+The process works like this:
 
-- The Neighborhood Sale is visible on the map.
-- Participant listing status is active.
-- Participant listing is linked to the Neighborhood Sale.
-- Participant join status is approved.
-- Join request status is approved.
-- The request has not been removed by the organizer or listing owner.
-- The request is not canceled/cancelled.
-- The participant listing date range overlaps the Neighborhood Sale date range.
-- Today is within that overlap window.
+1. The user enters their street address, city, state, and ZIP code.
+2. Yardit searches for matching addresses.
+3. The user must select one of the suggested address matches.
+4. Yardit saves the selected address as the user’s verified home address.
+5. Yardit saves the address coordinates and timezone.
+6. The user can then continue creating the listing.
 
-### Participant map zoom rule
+The important point is that typing an address is not enough. The user must select and confirm a suggested address match.
 
-- Participant homes show only at very close zoom: **zoom 18+**.
+Example:
 
----
-
-## 11. Residential Event flow
-
-### What it is
-
-Residential Events are for non-vendor community events such as:
-
-- Community events
-- Block parties
-- Neighborhood meetups
-- School events
-- Church events
-- Fundraisers
-- Charity events
-- Sports events
-- Food events
-- Entertainment events
-- Family events
-- Holiday events
-- Craft fairs
-- Art / makers markets
-- Vendor markets
-- Car shows
-- Open houses
-- Collectibles events
-- Games / tabletop events
-- Other local events
-
-### Creation flow
-
-1. **Event details**
-   - User selects listing type `event`.
-   - User enters event name.
-   - User enters event description.
-   - User selects event category.
-   - A default graphic icon is chosen based on category.
-
-2. **Event location**
-   - User can search for an event address.
-   - Or user can drop a pin on the map.
-   - User can edit the public display address.
-
-3. **Event schedule**
-   - Residential Events are limited to **one calendar day**.
-   - User selects date, start time, and end time.
-   - Multi-day events require Vendor Events or Event Organizer tools.
-
-4. **Event package and add-ons**
-   - Base Residential Event package is required.
-   - Add-ons are optional.
-
-5. **Review and payment**
-   - Event goes through the Residential Payment Step.
-   - Event payments require non-refund acknowledgement.
-   - Promo input is disabled for residential events.
+John types “123 Main St, Fresno, CA 93720.” Yardit finds a matching address suggestion. John taps that suggestion and confirms it. Now Yardit saves it as his verified primary address and allows him to continue.
 
 ---
 
-## 12. Residential Event pricing and add-ons
+## 5. Why the verified address becomes locked
 
-### Base Residential Event package
+Once the user has a verified address, Yardit uses that address as the trusted source for individual residential yard sales.
+
+In Live Mode:
+
+- The sale address comes from the verified profile address.
+- The seller cannot freely change the sale to a different house.
+- The map pin can only be adjusted slightly for map accuracy.
+- If the selected location is too far away from the verified home, Yardit blocks publishing.
+
+The current allowed distance is about 500 feet from the verified home. This is meant to allow small map corrections, not a different location.
+
+Example:
+
+Maria’s verified address is 55 Pine Ave. She can slightly adjust the pin if the map places it on the wrong side of the street. But she cannot move the sale pin two miles away to a park or another person’s house.
+
+---
+
+## 6. Individual yard sale creation flow
+
+The normal yard sale flow is:
+
+1. Enter sale details.
+2. Confirm the home address.
+3. Choose a tier.
+4. Add photos.
+5. Choose dates if using Featured or Premium.
+6. Choose open and close times.
+7. Review and publish or pay.
+
+Free listings publish without payment.
+
+Featured and Premium listings go to payment before final publishing.
+
+Example:
+
+A user chooses Featured, selects Saturday and Sunday, uploads six photos, sets open hours from 8 AM to 1 PM, reviews the listing, accepts the non-refundable notice, and pays.
+
+---
+
+## 7. The difference between sale dates and open hours
+
+This is one of the most important rules in the system.
+
+Yardit uses two separate time ideas:
+
+1. The full date window for the listing.
+2. The daily open and close times shown to shoppers.
+
+They are not the same thing.
+
+---
+
+## 8. The full date window
+
+The full date window tells Yardit which calendar dates the listing belongs to.
+
+For Featured and Premium yard sales:
+
+- The listing date window starts at 5:00 AM on the first selected date.
+- The listing date window ends at 10:00 PM on the last selected date.
+
+This wide window helps Yardit manage the listing lifecycle, date reservations, and expiration.
+
+It does not mean the sale is visible as open all day.
+
+Example:
+
+A seller chooses Saturday only. Yardit treats the listing’s full date window as Saturday from 5:00 AM to 10:00 PM.
+
+But if the seller’s open hours are 8:00 AM to 2:00 PM, shoppers should only see it as open during 8:00 AM to 2:00 PM.
+
+---
+
+## 9. Open and close times
+
+Open and close times are the seller’s actual shopper-facing sale hours.
+
+For individual yard sales:
+
+- The open time cannot be earlier than 5:00 AM.
+- The close time cannot be later than 10:00 PM.
+- The open time must be before the close time.
+- The sale is only publicly visible as active during those open hours.
+
+Example:
+
+A seller chooses:
+
+- Date: Saturday
+- Open time: 9:00 AM
+- Close time: 3:00 PM
+
+Yardit’s full date window is Saturday 5:00 AM to 10:00 PM, but the sale is only visible to shoppers as active from 9:00 AM to 3:00 PM.
+
+---
+
+## 10. Example: one-day Featured yard sale
+
+A seller creates a Featured yard sale.
+
+They choose:
+
+- Date: Saturday
+- Open time: 8:00 AM
+- Close time: 2:00 PM
+
+What happens:
+
+- Before Saturday 5:00 AM, the listing has not reached its full date window yet.
+- From 5:00 AM to 7:59 AM, the listing is inside the date window but is not open to shoppers yet.
+- From 8:00 AM to 2:00 PM, the listing is visible as active/open.
+- After 2:00 PM, the listing is outside the seller’s open hours.
+- After 10:00 PM, the listing is considered ended for that date window.
+
+Plain English summary:
+
+The 5 AM to 10 PM window is the system’s daily boundary. The seller’s open and close times are what shoppers actually care about.
+
+---
+
+## 11. Example: three-day Premium yard sale
+
+A seller creates a Premium sale.
+
+They choose:
+
+- Dates: Friday through Sunday
+- Open time: 9:00 AM
+- Close time: 4:00 PM
+
+What happens:
+
+- Yardit reserves Friday, Saturday, and Sunday.
+- The full listing window begins Friday at 5:00 AM.
+- The full listing window ends Sunday at 10:00 PM.
+- The sale can be shown as open only from 9:00 AM to 4:00 PM on each selected day.
+
+Plain English summary:
+
+Premium gives the seller multiple calendar days, but each day still follows the seller’s daily open and close times.
+
+---
+
+## 12. Free yard sale rules
+
+Free yard sales use a locked weekend schedule.
+
+The seller does not choose future dates for Free listings.
+
+Free listing schedule:
+
+- Friday 5:00 AM through Sunday 10:00 PM.
+- If the user creates the listing during that weekend window, it can activate immediately.
+- If the user creates it outside that weekend window, it is scheduled for the next Friday.
+
+Photo limit:
+
+- Up to 3 photos.
+
+Map visibility:
+
+- Free listings have the lowest map priority.
+- They generally require close zoom before showing as individual pins.
+
+Example:
+
+A user creates a Free listing on Wednesday. Yardit schedules it for the upcoming Friday at 5:00 AM through Sunday at 10:00 PM.
+
+Example:
+
+A user creates a Free listing on Saturday at 10:00 AM. Since it is already inside the active weekend window, Yardit can activate it right away and keep it active until Sunday at 10:00 PM.
+
+---
+
+## 13. Featured yard sale rules
+
+Featured is the recommended paid residential tier.
 
 Price:
 
-- **$9.99**
+- $4.99
+
+Date rules:
+
+- Seller chooses 1 to 3 consecutive days.
+
+Photo limit:
+
+- Up to 10 photos.
+
+Map visibility:
+
+- Stronger than Free.
+- Shows as an individual map pin sooner than Free when users zoom in.
+
+Example:
+
+A seller wants a Saturday and Sunday yard sale with several photos. Featured is a good fit because it supports up to 3 consecutive days and 10 photos.
+
+---
+
+## 14. Premium yard sale rules
+
+Premium is the highest residential yard sale tier.
+
+Price:
+
+- $7.99
+
+Date rules:
+
+- Seller chooses 1 to 5 consecutive days.
+
+Photo limit:
+
+- Up to 25 photos.
+
+Early advertising:
+
+- Seller can choose up to 3 days of early advertising before the sale starts.
+- Early advertising shows the listing as Coming Soon.
+- Early advertising does not mean the sale is open early.
+
+Map visibility:
+
+- Premium has the best residential yard sale map priority.
+- Premium pins appear at wider zoom levels than Featured and Free.
+
+Example:
+
+A seller wants a Friday through Monday estate sale with many photos and wants people to see it early. Premium is the right choice because it supports up to 5 days, 25 photos, and early advertising.
+
+---
+
+## 15. Early advertising and Coming Soon
+
+Coming Soon means the listing can be advertised before the sale starts.
+
+It does not mean the seller is open for shoppers.
+
+For Premium yard sales:
+
+- The seller may choose 0 to 3 early advertising days.
+- During that early window, shoppers may see the listing as Coming Soon.
+- When the sale date arrives and the open time is reached, the sale becomes active/open.
+
+Example:
+
+A Premium sale starts Saturday at 8:00 AM. The seller chooses 2 early advertising days.
+
+Yardit can show it as Coming Soon on Thursday and Friday. It should not show as open until Saturday at 8:00 AM.
+
+---
+
+## 16. Date conflict rules for residential yard sales
+
+Yardit prevents overlapping yard sales at the same verified address.
+
+The same home can have multiple listings over time, but the dates cannot overlap.
+
+Example:
+
+A seller has a Featured sale scheduled for Saturday and Sunday. They try to create another yard sale at the same address for Sunday. Yardit blocks it because Sunday is already reserved.
+
+Example:
+
+A seller has a sale scheduled for Saturday. They create a new sale for the following Saturday. Yardit allows it because the dates do not overlap.
+
+---
+
+## 17. Which listings can reserve dates
+
+A listing can reserve dates if it is active, scheduled, under review, coming soon, or waiting on payment.
+
+This means a listing does not have to be fully live to block the same dates.
+
+Examples of listings that can block dates:
+
+- Active listing
+- Scheduled listing
+- Coming Soon listing
+- Pending payment listing
+- Payment adjustment listing
+- Under review listing
+
+Expired listings do not continue blocking future dates after their end time has passed.
+
+Example:
+
+A seller starts checkout for a Premium listing, but payment is still pending. That listing can still reserve those dates so another overlapping listing is not created while payment is being completed.
+
+---
+
+## 18. Early advertising dates can also reserve dates
+
+Premium early advertising dates can count as reserved dates.
+
+Example:
+
+A Premium sale is scheduled for Saturday and Sunday, with 2 early advertising days on Thursday and Friday.
+
+Yardit may treat Thursday, Friday, Saturday, and Sunday as protected dates for that address. This prevents a second listing from interfering with the Premium promotion window.
+
+---
+
+## 19. Neighborhood Sale overview
+
+A Neighborhood Sale groups several nearby homes into one larger event.
+
+The organizer:
+
+- Creates the event.
+- Chooses the center of the sale area.
+- Confirms a host address inside the area.
+- Invites neighbors.
+- Reviews and approves participants.
+- Pays when enough homes are approved.
+
+Participants:
+
+- Join for free.
+- Request to join.
+- Must be approved.
+
+Example:
+
+A homeowner wants to organize a block-wide sale. They create the Neighborhood Sale, choose the center of the block, invite nearby homes, and approve participants as they join.
+
+---
+
+## 20. Neighborhood Sale area and host address
+
+Neighborhood Sales use two location ideas:
+
+1. Sale center
+2. Host address
+
+The sale center is the middle of the 500-foot Neighborhood Sale radius.
+
+The host address is the confirmed home address that anchors the sale.
+
+The host address must be inside the 500-foot radius.
+
+Example:
+
+An organizer drops the sale center pin in the middle of Oak Street. Their own verified address is 250 feet from that center. Yardit allows their address to be used as the host address.
+
+Example:
+
+An organizer drops the sale center pin in another neighborhood two miles away. Their own verified address is not inside the 500-foot radius. Yardit requires an alternate host/co-host address inside the radius.
+
+---
+
+## 21. Neighborhood Sale alternate host flow
+
+If the organizer does not live inside the selected 500-foot radius, they must use an alternate host.
+
+The alternate host flow works like this:
+
+1. Organizer enters an alternate host address.
+2. Yardit checks that the address is inside the 500-foot radius.
+3. If a user account already exists at that confirmed address, Yardit can send a co-host request.
+4. If no account exists yet, Yardit can provide an invite link.
+5. The host must create or have an account, confirm the matching address, and accept.
+6. The Neighborhood Sale cannot use that address until the host accepts.
+
+Example:
+
+A PTA parent wants to organize a Neighborhood Sale near the school but does not live there. They choose a parent who lives inside the radius as the host. That parent must confirm their address and accept the co-host request before the sale can continue.
+
+---
+
+## 22. Neighborhood Sale date rules
+
+Neighborhood Sales have their own date rules.
+
+Rules:
+
+- Must be scheduled at least 7 days in advance.
+- Can run up to 3 days total.
+- End date cannot be before start date.
+- The system uses 5:00 AM on the start date through 10:00 PM on the end date as the broad event window.
+
+Example:
+
+Today is June 1. A Neighborhood Sale cannot start on June 3 because that is less than 7 days away. It must start June 8 or later.
+
+Example:
+
+An organizer chooses Friday through Sunday. That is 3 days, so it is allowed. Friday through Monday would be 4 days, so it is blocked.
+
+---
+
+## 23. Neighborhood Sale participation rules
+
+Minimum homes:
+
+- At least 5 homes are required for the Neighborhood Sale to be ready.
+
+Maximum counted homes:
+
+- Up to 25 homes are counted for pricing.
+
+Organizer count:
+
+- If the organizer is hosting a sale at their own address, they count as one home.
+- If the organizer is only organizing and not hosting a sale, they do not count as a participant home.
+
+Participants:
+
+- Join free.
+- Must request to join.
+- Must be approved.
+- Can be removed by the organizer or by their own action.
+
+Example:
+
+The organizer is also selling at home, and four neighbors are approved. That equals 5 homes, so the Neighborhood Sale reaches the minimum.
+
+Example:
+
+The organizer is only organizing and not selling. Five neighbors must be approved before the sale reaches the minimum.
+
+---
+
+## 24. Neighborhood Sale pricing
+
+Neighborhood Sale pricing:
+
+- $19.99 base price.
+- Plus $2 for each approved participating home.
+- Participants do not pay.
+- Organizer pays.
+
+Example:
+
+A Neighborhood Sale has 6 approved homes.
+
+Price is:
+
+$19.99 base plus $12 for six homes.
+
+Total is $31.99.
+
+Example:
+
+A Neighborhood Sale has only 4 homes. It has not reached the 5-home minimum, so it is not ready for paid activation yet.
+
+---
+
+## 25. When a Neighborhood Sale appears publicly
+
+A Neighborhood Sale appears on the public map only when it is ready enough to show.
+
+It must:
+
+- Be active or in Coming Soon state.
+- Have at least 5 homes.
+- Have valid map coordinates.
+- Not be canceled, hidden, removed, or expired.
+
+Example:
+
+A Neighborhood Sale has 3 approved homes. It is still being built and does not appear publicly as a full Neighborhood Sale yet.
+
+Example:
+
+A Neighborhood Sale has 6 approved homes, has been activated, and the event window is approaching. Yardit can show it publicly as Coming Soon or active depending on timing.
+
+---
+
+## 26. Neighborhood participant display rules
+
+Participant homes do not behave exactly like normal standalone yard sale pins.
+
+A participant home can show under the Neighborhood Sale only when:
+
+- The Neighborhood Sale itself is visible.
+- The participant listing is active.
+- The participant was approved.
+- The participant was not removed or canceled.
+- The participant’s sale dates overlap the Neighborhood Sale dates.
+- Today is inside that overlap.
+
+Participant homes appear only at very close zoom.
+
+Example:
+
+The Neighborhood Sale runs Friday through Sunday. A participant is approved but only sells Saturday. Their home should show as a participant on Saturday, not necessarily on Friday or Sunday.
+
+---
+
+## 27. Residential Event flow
+
+Residential Events are one-day local events outside the Vendor Dashboard.
+
+The flow is:
+
+1. Enter event name, description, and category.
+2. Choose event location by address search or map pin.
+3. Choose event date, start time, and end time.
+4. Choose optional add-ons.
+5. Review and pay.
+
+Example:
+
+A school fundraiser is happening Saturday from 11 AM to 3 PM. The organizer creates a Residential Event, picks the school address, selects “School Fundraiser,” chooses the event time, optionally uploads a flyer, and pays.
+
+---
+
+## 28. Residential Event schedule rules
+
+Residential Events are limited to one calendar day.
+
+Rules:
+
+- Event date is required.
+- Start time is required.
+- End time is required.
+- End time must be after start time.
+- Multi-day events require Vendor Events or Event Organizer tools.
+
+Example:
+
+A charity car wash runs Saturday from 9 AM to 1 PM. This is allowed as a Residential Event.
+
+Example:
+
+A festival runs Friday, Saturday, and Sunday. This is not a Residential Event. It should use Vendor Events or Event Organizer tools.
+
+---
+
+## 29. Residential Event address and location rules
+
+Residential Events can use an event location instead of the user’s verified home address.
+
+The user can:
+
+- Search for an event address.
+- Drop a pin on the map.
+- Edit the public display address.
+
+This is different from individual residential yard sales, which are tied to the seller’s verified home address.
+
+Example:
+
+A church fundraiser can use the church address, even if the organizer’s home address is somewhere else.
+
+Example:
+
+A community cleanup meeting at a park can use the park location as the event location.
+
+---
+
+## 30. Residential Event pricing
+
+Base Residential Event package:
+
+- $9.99
 
 Includes:
 
-- Event detail page.
-- Event map pin.
-- Standard category icon.
-- One-day event listing.
-- Local/neighborhood visibility.
-- Basic event card.
+- Event detail page
+- Event map pin
+- Standard category icon
+- One-day event listing
+- Local visibility
 
-### Optional event add-ons
+Optional add-ons:
 
-| Add-on | Price | Purpose |
-|---|---:|---|
-| Be Seen By More People / Premium Visibility | $1.99 | Increases visibility beyond the immediate neighborhood |
-| Animation | $3.99 | Adds Pulse or Bounce animation to stand out on map |
-| Flyer Upload | $2.99 | Flyer becomes main event image/header/share image |
-| Photo Gallery | $1.99 | Adds up to 10 gallery photos |
-| Custom Icon | $4.99 | Replaces standard category icon with approved uploaded/custom icon |
-| Marquee | $9.99 | Gives maximum visibility with large event-board presentation |
+- Premium visibility: $1.99
+- Animation: $3.99
+- Flyer upload: $2.99
+- Photo gallery: $1.99
+- Custom icon: $4.99
+- Marquee: $9.99
 
-### Coming Soon packages
+Coming Soon packages:
 
-| Package | Price |
-|---|---:|
-| 3 Days | $2.99 |
-| 7 Days | $4.99 |
-| 14 Days | $7.99 |
+- 3 days: $2.99
+- 7 days: $4.99
+- 14 days: $7.99
 
-Coming Soon packages make the event visible before the event start date based on the package selected.
+Example:
 
----
+A school chooses the base event package and flyer upload. The base is $9.99 and flyer upload is $2.99, so the total is $12.98.
 
-## 13. Residential Event visibility tiers
+Example:
 
-Residential Events do not use the old Basic/Featured/Premium tier picker. Instead, visibility is derived from add-ons:
-
-1. If Marquee add-on is selected → visibility tier is `marquee`.
-2. Else if Premium Visibility add-on is selected → visibility tier is `premium`.
-3. Otherwise → visibility tier is `featured`.
-
-### Event public visibility
-
-Events are public when:
-
-- They have valid coordinates.
-- They are not terminal/expired/canceled/hidden.
-- They are active or scheduled.
-- End time has not passed.
-- Coming Soon applies if configured and current date is inside the coming soon window before the event start.
+A large fundraiser chooses base event, premium visibility, flyer upload, and marquee. It pays more, but receives much stronger presentation on the map.
 
 ---
 
-## 14. Public visibility rules for all listing types
+## 31. Residential Event visibility levels
 
-A listing is hidden if it has a terminal status or terminal timestamp.
+Residential Events do not use the same Free, Featured, and Premium picker as yard sales.
 
-Terminal hidden statuses include:
+Instead, visibility is based on add-ons:
 
-- `expired`
-- `canceled`
-- `cancelled`
-- `deleted`
-- `removed`
-- `hidden`
-- `suspended`
-- `rejected`
-- `closed`
-- `completed`
+- If Marquee is selected, it gets the strongest event presentation.
+- If Premium Visibility is selected, it gets stronger visibility than the base event.
+- If neither is selected, it uses the standard event visibility.
 
-Terminal timestamp fields also hide a listing:
+Example:
 
-- `canceled_at`
-- `cancelled_at`
-- `deleted_at`
-- `removed_at`
-- `expired_at`
+A simple community meetup uses the base event package. It appears as a standard event.
 
-Draft/payment statuses hidden publicly:
+Example:
 
-- `draft`
-- `pending_payment`
-- `payment_pending`
-
-Coordinate rule:
-
-- Listings must have valid numeric latitude and longitude.
-
-Payment rule:
-
-- Events are treated as payment-valid after creation.
-- Paid residential tiers need a public-valid payment state.
-- Accepted paid states include `paid`, `skipped_admin_promo`, or `waived`.
-- Captured payment intent is also treated as valid.
-- Blocked payment states include `pending`, `failed`, `unpaid`, `none`, `canceled`, `cancelled`, `requires_payment_method`, and `requires_payment_action`.
+A major charity event chooses Marquee. It receives the large event-board style presentation on the map.
 
 ---
 
-## 15. Coming Soon / preview visibility
+## 32. Public map visibility rules
 
-### Residential Premium Coming Soon
+A listing must pass several checks before it appears publicly.
 
-Residential Premium can show as Coming Soon when:
+A listing is hidden if:
 
-- Early visibility is enabled.
-- Visibility start date is before the listing start date.
-- Today is between visibility start date and listing start date.
-- Or `earlyVisibilityDates` / `earlyVisibilityDays` places today inside the early window.
+- It is expired.
+- It is canceled.
+- It is deleted or removed.
+- It is hidden or suspended.
+- It is rejected or closed.
+- It does not have valid coordinates.
+- It is a draft.
+- It is waiting for payment and not ready to show.
+- It is a yard sale outside its open hours.
+- It is a yard sale outside its active dates.
 
-### Event Coming Soon
+Example:
 
-Residential Events can show as Coming Soon when:
+A Premium sale is paid and scheduled for Saturday, but today is Wednesday. If it does not have early advertising, it should not show publicly yet.
 
-- Event has a configured coming soon start date.
-- Current time is after that coming soon start.
-- Current time is before event start.
+Example:
 
-### Owner preview
-
-Owners can see some non-public/pre-live listings in preview mode when:
-
-- They own the listing.
-- Listing is not draft.
-- Listing is not terminal/expired.
-- Listing has valid coordinates.
-- Listing has enough basic label data.
-- Status is previewable, such as active, scheduled, upcoming, coming soon, pending, under review, collecting participants, ready for payment, payment pending adjustment, activated, or activated locked.
-
-Preview pins are faded and labeled as preview.
+A sale ended yesterday. Even if it still exists in the database, it should not appear publicly as active.
 
 ---
 
-## 16. Map zoom priority rules
+## 33. Owner preview
 
-The map does not show every listing pin at every zoom level. Higher-value or broader-visibility listings appear earlier.
+Owners may be able to preview some of their own listings before the public can see them.
 
-### Residential yard sale individual pin thresholds
+Preview listings are usually faded or labeled as preview.
 
-| Type / Tier | Individual pin appears at |
-|---|---:|
-| Premium yard sale | Zoom 11+ |
-| Featured yard sale | Zoom 13+ |
-| Map pin tier | Zoom 13+ |
-| Free/default yard sale | Zoom 15+ |
+This helps the owner understand what will appear later without making it public early.
 
-### Neighborhood Sale pin threshold
+Example:
 
-| Type | Individual pin appears at |
-|---|---:|
-| Neighborhood Sale | Zoom 12+ |
-| Neighborhood participant homes | Zoom 18+ |
-
-### Residential Event pin thresholds
-
-| Event visibility | Individual pin appears at |
-|---|---:|
-| Marquee event | Zoom 11+ |
-| Premium event | Zoom 12+ |
-| Featured event | Zoom 13+ |
-| Basic/default event | Zoom 14+ |
-
-### Marquee special zoom rules
-
-- Marquee listing can appear starting around **zoom 10+**.
-- Marquee board overlay appears at **zoom 12+**.
-- Marquee board can be collapsed or expanded.
-- Marquee board state persists across zoom changes.
-- Other nearby pins overlapped by the visual marquee board can be hidden so the board stays readable.
-- Hidden overlapped listings can be reviewed through the hidden listings overlay.
-
-### Temporary Show Listings rule
-
-The **Show Listings** button temporarily bypasses normal zoom reveal behavior for about 3 seconds, making eligible listings appear even if they would normally be clustered at the current zoom.
-
-### Premium fallback rule
-
-If no pins are visible, there are active eligible listings, and the map is at **zoom 11+**, the map can reveal active Premium residential pins as a fallback.
+A seller schedules a Premium sale for next weekend. They may see a preview of their own listing, but shoppers do not see it until the public visibility rules allow it.
 
 ---
 
-## 17. Clustering rules
+## 34. Map zoom priority rules
 
-When listings should not yet appear as individual pins, they can be grouped into clusters.
+Yardit does not show every pin at every zoom level.
 
-### Cluster algorithm
+Higher-priority listings appear sooner. Lower-priority listings require closer zoom or appear inside clusters.
 
-- Clustering is pixel-distance based.
-- Cluster radius: **50 pixels**.
-- Minimum points per cluster: **2**.
-- A cluster is formed when two or more points are within the cluster radius at the current map zoom.
-- Cluster location is the average latitude/longitude of grouped points.
+General yard sale zoom priority:
 
-### Cluster display styles
+- Premium yard sales appear before Featured.
+- Featured yard sales appear before Free.
+- Free yard sales require the closest zoom.
 
-| Cluster count | Color | Radius |
-|---:|---|---:|
-| 25+ | Gold `#F4A849` | 20 |
-| 10–24 | Teal `#5DADA5` | 16 |
-| 2–9 | Teal `#5DADA5` | 14 |
+General event zoom priority:
 
-All cluster markers use:
+- Marquee events appear before Premium-style events.
+- Premium-style events appear before standard events.
+- Standard/basic events require closer zoom.
 
-- Dark teal border `#2C4F4E`.
-- White text.
-- Bold count label.
-- Drop shadow.
+Neighborhood Sales:
 
-### Cluster click behavior
+- Neighborhood Sale markers appear before individual participant homes.
+- Participant homes appear only at very close zoom.
 
-Clicking a cluster zooms the map in by 2 levels, capped at zoom 18.
+Example:
 
-```text
-new zoom = min(current zoom + 2, 18)
-```
+At a city-level zoom, a Premium sale may appear while a Free sale is still hidden inside a cluster.
+
+Example:
+
+A shopper zooms closer into a neighborhood. Featured and Free sales begin appearing individually as the map gets closer.
 
 ---
 
-## 18. Map quick filters
+## 35. Practical zoom examples
 
-The floating map filters can toggle these groups on/off:
+Approximate current behavior:
+
+- Premium yard sale: individual pin around zoom 11 and closer.
+- Featured yard sale: individual pin around zoom 13 and closer.
+- Free yard sale: individual pin around zoom 15 and closer.
+- Neighborhood Sale: individual marker around zoom 12 and closer.
+- Neighborhood participant homes: individual participant dots around zoom 18 and closer.
+- Marquee event: visible earlier than normal events and can show a board-style display.
+- Standard event: requires closer zoom than upgraded events.
+
+Example:
+
+A shopper viewing the whole city may see upgraded listings first. As they zoom into a specific neighborhood, more individual pins appear.
+
+---
+
+## 36. Clustering rules in plain English
+
+When too many listings are close together or the user is zoomed too far out, Yardit groups them into clusters.
+
+A cluster is a circle with a number inside it.
+
+The number tells the shopper how many listings are grouped nearby.
+
+Clicking a cluster zooms the map closer.
+
+Example:
+
+There are 12 yard sales in the same neighborhood, but the shopper is zoomed out. Instead of showing 12 overlapping pins, Yardit shows one cluster marker with “12.” When the shopper taps it, the map zooms closer and begins separating the listings.
+
+---
+
+## 37. Cluster size and color
+
+Clusters visually change based on how many listings they contain.
+
+Small cluster:
+
+- Used for a few nearby listings.
+- Teal color.
+
+Medium cluster:
+
+- Used for more nearby listings.
+- Teal color with a larger size.
+
+Large cluster:
+
+- Used for many nearby listings.
+- Gold color and larger size.
+
+Example:
+
+A cluster with 3 listings is a smaller teal circle. A cluster with 30 listings is a larger gold circle.
+
+---
+
+## 38. Show Listings button
+
+The Show Listings button temporarily reveals eligible listings that might otherwise still be clustered or hidden by zoom priority.
+
+It is temporary and lasts only a few seconds.
+
+Example:
+
+A shopper is zoomed out and wants to quickly see what listings are nearby. They tap Show Listings, and Yardit briefly reveals more eligible pins before returning to normal zoom behavior.
+
+---
+
+## 39. Marquee event behavior
+
+Marquee events are designed for maximum visibility.
+
+They can show as a large board-style display on the map.
+
+The board can collapse or expand.
+
+If the board overlaps smaller nearby pins, Yardit may hide those smaller pins temporarily so the board remains readable.
+
+The user can still view the hidden nearby listings through the overlay option.
+
+Example:
+
+A large charity festival buys Marquee. On the map, it appears as a large event board. A nearby standard event pin would overlap the board, so Yardit hides the smaller pin until the user asks to view hidden nearby listings.
+
+---
+
+## 40. Map filters
+
+The map has quick filters for:
 
 - Yard Sales
 - Neighborhood Sales
 - Events
 - Vendors
 
-For this guide, the first three are relevant. Vendor behavior is outside the scope of this document.
+This guide focuses on Yard Sales, Neighborhood Sales, and Events.
 
-If a filter is off, matching listings are not shown on the map even if they otherwise pass visibility rules.
+If a filter is turned off, that type is hidden even if the listing would normally qualify.
+
+Example:
+
+If Events are turned off, a church fundraiser will not show on the map until Events are turned back on.
 
 ---
 
-## 19. Map search behavior
+## 41. Search behavior
 
-Search checks fields such as:
+Search can match things like:
 
-- Title
+- Listing title
+- Event name
 - Description
-- Categories
 - Category
-- Display address
-- Address text
+- Address
 - City
+- Listing number
 
-If a search exactly matches a listing title or listing number, normal exact match behavior is preserved.
+If the user searches a city name, Yardit can center the map around listings in that city.
 
-If a search matches a city exactly, the map centers on the average location of valid listings in that city and sets a city-level zoom around zoom 12.
+Example:
 
-Fuzzy matching is used when strict matches do not return results.
+A shopper searches “Fresno.” Yardit finds listings in Fresno and moves the map toward that area.
+
+Example:
+
+A shopper searches “toys.” Yardit can match listings with “toys” in the title, description, or category.
 
 ---
 
-## 20. List view rules
+## 42. List view behavior
 
 List View is separate from Map View.
 
-### Public visibility gate
+The map is controlled heavily by zoom and clusters.
 
-List View starts from listings that pass public/owner-preview visibility rules.
-
-### Default tier filter
-
-List View defaults to showing:
-
-- Premium
-- Featured
-
-This means Free listings may not appear by default unless filters are changed.
-
-### List View supported filters
+List View is controlled by filters, distance, visibility, and sorting.
 
 List View can filter by:
 
 - Tier
-- Listing type
+- Type
 - Category
 - Date
 - Distance
-- Search query
+- Search
 
-### List View search fields
+List View usually prioritizes:
 
-Search can match:
+1. Closest listings first.
+2. Higher visibility tiers next.
+3. Soonest start time next.
 
-- Title
-- Event name
-- Description
-- Event description
-- City
-- State
-- ZIP
-- Address fields
-- Listing number
-- Listing type
-- Category
-- Collectible type
-- Event category
-- Event type
-- Categories array
+Example:
 
-### List View sorting
+If two sales are both nearby, the Premium sale may rank above the Featured sale when distance is similar.
 
-List View sorts by:
+Example:
 
-1. Distance ascending, if user/map location is available.
-2. Tier priority.
-3. Soonest start time.
-
-### Tier priority order in List View
-
-Lower number = higher priority.
-
-| Listing type / tier | Priority |
-|---|---:|
-| Marquee event | 1 |
-| Premium event | 2 |
-| Featured/event default | 3 |
-| Basic event | 4 |
-| Neighborhood Sale | 5 |
-| Premium yard sale | 6 |
-| Featured yard sale | 7 |
-| Basic yard sale | 8 |
-| Free/default yard sale | 9 |
-
-List View returns up to 20 results.
+If one sale is 0.5 miles away and another is 10 miles away, the closer sale usually appears first unless filters change the result.
 
 ---
 
-## 21. Map marker visual hierarchy
+## 43. Payment rules
 
-### Residential yard sales
+Individual yard sales:
 
-- Premium:
-  - Teal fill.
-  - Gold stroke.
-  - Larger pin.
-- Featured / map pin:
-  - Teal fill.
-  - Dark teal stroke.
-  - Medium pin.
-- Free/default:
-  - Gray fill.
-  - Gray stroke.
-  - Smaller pin.
+- Free does not require payment.
+- Featured requires payment unless covered by promo/admin waiver.
+- Premium requires payment unless covered by promo/admin waiver.
 
-### Neighborhood Sales
+Residential Events:
 
-- Neighborhood Sales use a treasure chest-style marker.
-- Marker size scales by home count:
-  - 5+ homes: 1.05 scale.
-  - 12+ homes: 1.2 scale.
-  - 20+ homes: 1.35 scale.
-- Badge shows the home count.
+- Base event and selected add-ons require payment.
+- Promo input is not used for Residential Events in the current event checkout.
 
-### Neighborhood participant homes
+Neighborhood Sales:
 
-- Participant homes use a small teal dot marker with white border.
-- They only show at close zoom when the participant view is allowed.
+- Organizer handles the cost.
+- Participants join free.
+- A payment method may be collected for the organizer as part of setup.
 
-### Residential Events
+Non-refundable acknowledgement:
 
-- Event marker icon is based on event category/icon/add-ons.
-- Marquee events receive special large board-style map presentation.
-- Event animation add-on can create pulse or bounce behavior.
+- Paid residential listings and events require the user to acknowledge the non-refundable notice before continuing.
+
+Example:
+
+A seller chooses Premium for $7.99. Before checkout, they must acknowledge that the payment is non-refundable.
 
 ---
 
-## 22. Public popup behavior
+## 44. Payment timing example for a paid yard sale
 
-Public map popups can show:
+A user creates a Featured sale for Saturday.
 
-- Listing type badge.
-- Tier/status badge.
-- Title or event name.
-- Description.
-- Address/display address.
-- Schedule text.
-- Categories.
-- View Listing / Public View button.
-- Save Listing button.
-- Report button.
-- Add Stop / route planning controls for eligible residential listings.
+Flow:
 
-Preview listings show a preview warning instead of normal public details.
+1. User enters details.
+2. User confirms verified address.
+3. User chooses Featured.
+4. User selects Saturday.
+5. User sets open hours.
+6. User continues to payment.
+7. Yardit checks date availability before checkout.
+8. User pays.
+9. Yardit checks date availability again after payment.
+10. Yardit creates or links the final listing.
+11. The listing is scheduled until its active window.
 
----
+Why Yardit checks more than once:
 
-## 23. Route / Hunt behavior outside vendor tools
-
-For public residential listings:
-
-- Users can add eligible stops to their route/hunt.
-- Guest users can preview a limited number of stops.
-- Check-in requires the user to be within about **50 feet** of the listing location.
-- Check-in states include not started, arrived, completed, and skipped.
-
-Events are excluded from normal yard-sale Hunt stop behavior in the current popup logic.
+Another listing could reserve the same date while the user is in checkout. Rechecking prevents duplicate overlapping sales at the same home.
 
 ---
 
-## 24. Payment and non-refund notes
+## 45. Common training scenarios
 
-### Residential yard sales
+### Scenario 1: User cannot post because address is not verified
 
-- Featured and Premium go through Stripe unless waived or promo-covered.
-- Non-refund acknowledgement is required.
-- Promo codes can apply to residential yard sale checkout where enabled.
+What happened:
 
-### Residential Events
+The account does not have a complete confirmed address with coordinates.
 
-- Events go through Stripe payment.
-- Non-refund acknowledgement is required.
-- Promo input is disabled for residential events.
+What to explain:
 
-### Neighborhood Sales
-
-- Organizer pays once the neighborhood sale reaches the required state/count.
-- Participants are not charged.
+The user must select and confirm an address suggestion first. Yardit needs the verified home address before allowing a residential yard sale.
 
 ---
 
-## 25. Admin / demo notes for training
+### Scenario 2: User says they changed the address but it keeps going back
 
-### Demo Mode
+What happened:
 
-Demo Mode changes testing behavior, but payment processing still uses the live Stripe flow.
+In Live Mode, individual residential yard sales are locked to the verified profile address.
 
-Currently documented Demo Mode changes:
+What to explain:
 
-- Address testing is unlocked.
-- One-listing test limit is unlocked.
-- Stripe payment flow remains live.
-
-### Common tester issue
-
-If a tester cannot create a listing for dates at an address, check for:
-
-- Existing active listing.
-- Draft listing.
-- Pending payment listing.
-- Any address/date reservation conflict.
+A normal yard sale must happen at the verified home address. The user can only adjust the pin slightly for accuracy, not move the sale to another location.
 
 ---
 
-## 26. Quick cheat sheet
+### Scenario 3: User says their sale is not visible at 6 AM
 
-### Residential tier quick rules
+What happened:
 
-| Tier | Price | Dates | Photos | Early advertising | Map pin zoom |
-|---|---:|---|---:|---|---:|
-| Free | $0 | Locked Fri 5 AM–Sun 10 PM | 3 | No | 15+ if map-eligible |
-| Featured | $4.99 | 1–3 consecutive days | 10 | No | 13+ |
-| Premium | $7.99 | 1–5 consecutive days | 25 | 0–3 days | 11+ |
+The sale may be inside the broad date window but outside the seller’s open hours.
 
-### Neighborhood quick rules
+What to explain:
 
-| Rule | Value |
-|---|---:|
-| Minimum homes | 5 |
-| Maximum counted homes | 25 |
-| Lead time | 7 days |
-| Area radius | 500 ft |
-| Base price | $19.99 |
-| Per approved home | $2 |
-| Main map visible | Coming Soon or Active + 5 homes |
-| Participant pin zoom | 18+ |
+The system window may begin at 5 AM, but shoppers only see the sale as open once the seller’s chosen open time arrives.
 
-### Residential Event quick rules
+Example:
 
-| Rule | Value |
-|---|---:|
-| Base price | $9.99 |
-| Event length | 1 calendar day |
-| Premium visibility add-on | $1.99 |
-| Animation add-on | $3.99 |
-| Flyer upload add-on | $2.99 |
-| Photo gallery add-on | $1.99, up to 10 photos |
-| Custom icon add-on | $4.99 |
-| Marquee add-on | $9.99 |
-| Coming Soon packages | 3, 7, or 14 days |
-
-### Map zoom quick rules
-
-| Listing | Pin zoom |
-|---|---:|
-| Premium yard sale | 11+ |
-| Featured yard sale | 13+ |
-| Free yard sale | 15+ |
-| Neighborhood Sale | 12+ |
-| Neighborhood participant | 18+ |
-| Marquee event | 11+ |
-| Premium event | 12+ |
-| Featured event | 13+ |
-| Basic/default event | 14+ |
+If open time is 8 AM, it should not appear as open at 6 AM.
 
 ---
 
-## 27. Teaching summary
+### Scenario 4: User says their Premium sale is showing before the sale starts
 
-The simple way to teach the system:
+What happened:
 
-1. **Free yard sales** are basic weekend listings with limited photos and lowest visibility.
-2. **Featured yard sales** are the recommended paid option for stronger local visibility and up to 3 days.
-3. **Premium yard sales** are the highest residential yard sale tier with the best zoom priority, most photos, up to 5 days, and optional early advertising.
-4. **Neighborhood Sales** are organizer-led group events that need at least 5 homes and are priced by approved home count.
-5. **Residential Events** are one-day community events with a $9.99 base package and optional add-ons for visibility, media, icons, coming soon, and marquee presentation.
-6. **Map visibility is controlled by status, payment, dates, open hours, coordinates, listing type, tier, and zoom level.**
-7. **Clusters are used when listings should not appear as individual pins yet. Higher-value listings appear earlier as users zoom out/in.**
+They may have early advertising enabled.
+
+What to explain:
+
+Premium can show as Coming Soon before the sale starts. That does not mean the sale is open early.
+
+---
+
+### Scenario 5: User gets a date unavailable message
+
+What happened:
+
+Another listing at the same address is already reserving one or more selected dates.
+
+What to check:
+
+- Active listings
+- Scheduled listings
+- Coming Soon listings
+- Pending payment listings
+- Payment adjustment listings
+- Under review listings
+
+What to explain:
+
+Yardit prevents overlapping sales at the same verified address.
+
+---
+
+### Scenario 6: Neighborhood Sale cannot continue because host address is outside radius
+
+What happened:
+
+The host address is not within 500 feet of the selected sale center.
+
+What to explain:
+
+A Neighborhood Sale must be anchored to a confirmed host address inside the sale area. Either move the center or use an accepted alternate host inside the radius.
+
+---
+
+### Scenario 7: Neighborhood Sale is not public yet
+
+What happened:
+
+It may not have enough approved homes or may not be activated yet.
+
+What to explain:
+
+A Neighborhood Sale needs at least 5 homes and the right active or Coming Soon state before it appears publicly.
+
+---
+
+### Scenario 8: Event organizer wants a three-day event
+
+What happened:
+
+Residential Events are limited to one calendar day.
+
+What to explain:
+
+Multi-day events need Vendor Events or Event Organizer tools.
+
+---
+
+## 46. Quick reference: yard sale tiers
+
+Free:
+
+- No payment.
+- Locked weekend schedule.
+- Up to 3 photos.
+- Lowest map priority.
+
+Featured:
+
+- $4.99.
+- 1 to 3 consecutive days.
+- Up to 10 photos.
+- Recommended tier.
+- Stronger map visibility than Free.
+
+Premium:
+
+- $7.99.
+- 1 to 5 consecutive days.
+- Up to 25 photos.
+- Best residential yard sale visibility.
+- Can use early advertising.
+
+---
+
+## 47. Quick reference: Neighborhood Sales
+
+Main rules:
+
+- 500-foot radius.
+- Host address must be inside the radius.
+- Must be scheduled at least 7 days in advance.
+- Can run up to 3 days.
+- Needs at least 5 homes.
+- Organizer pays.
+- Participants join free.
+- Price is $19.99 plus $2 per approved home.
+- Public visibility requires the right state and at least 5 homes.
+
+---
+
+## 48. Quick reference: Residential Events
+
+Main rules:
+
+- One calendar day only.
+- Base price is $9.99.
+- Uses event location, not necessarily the user’s home address.
+- Requires event date, start time, and end time.
+- End time must be after start time.
+- Optional add-ons increase presentation and visibility.
+- Multi-day events belong in Vendor/Event Organizer tools.
+
+---
+
+## 49. Simple teaching summary
+
+Teach it this way:
+
+1. Individual yard sales are tied to the seller’s verified home address.
+2. The full date window is not the same thing as the seller’s open hours.
+3. The 5 AM to 10 PM window is the system boundary for the selected dates.
+4. The seller’s open and close times decide when shoppers see the sale as open.
+5. Free is basic and weekend-based.
+6. Featured is recommended for better visibility and up to 3 days.
+7. Premium gives the best residential visibility, up to 5 days, more photos, and early advertising.
+8. Neighborhood Sales need a 500-foot area, a confirmed host address, and at least 5 homes.
+9. Residential Events are one-day community events with optional visibility add-ons.
+10. The map uses zoom priority and clustering so higher-priority listings appear sooner and crowded areas stay readable.
