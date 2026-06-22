@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { normalizeNeighborhoodJoinStatus, doesListingOverlapNeighborhoodSale } from "@/lib/neighborhoodSaleState";
 import NeighborhoodSalePreviewMap from "@/components/neighborhood/NeighborhoodSalePreviewMap";
+import PrimaryAddressVerificationGate from "@/components/create/PrimaryAddressVerificationGate";
+import { computedAddressVerified } from "@/lib/trustActions";
+import { normalizeUser } from "@/lib/normalizeUser";
 
 function buildListingNumber(state = "XX", zip = "0000") {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -26,7 +29,7 @@ export default function JoinNeighborhoodSale() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const currentUser = await base44.auth.me();
+        const currentUser = normalizeUser(await base44.auth.me());
         setUser(currentUser);
       } catch {
         setUser(null);
@@ -79,8 +82,9 @@ export default function JoinNeighborhoodSale() {
 
   const requestMutation = useMutation({
     mutationFn: async () => {
-      if (!user?.street_address || !user?.city || !user?.state || !user?.zip_code || !user?.address_lat || !user?.address_lng) {
-        throw new Error("Please confirm your address in Settings before joining this Neighborhood Sale.");
+      const verifiedUser = normalizeUser(user);
+      if (!computedAddressVerified(verifiedUser)) {
+        throw new Error("Please verify your address before joining this Neighborhood Sale.");
       }
 
       const existing = await base44.entities.JoinRequest.filter({ requesterUserId: user.id, saleListingId: sale.id });
@@ -94,17 +98,17 @@ export default function JoinNeighborhoodSale() {
       const saleEndDate = sale.selectedRangeEndDate || sale.endDateTime?.slice(0, 10);
 
       const inviteListing = await base44.entities.Listing.create({
-        ownerUserId: user.id,
+        ownerUserId: verifiedUser.id,
         listingType: "yard_sale",
-        title: user.street_address ? `Yard Sale at ${user.street_address}` : "Yard Sale",
+        title: verifiedUser.street_address ? `Yard Sale at ${verifiedUser.street_address}` : "Yard Sale",
         description: "",
-        addressText: user.street_address,
-        city: user.city,
-        state: String(user.state || "").toUpperCase().slice(0, 2),
-        zip: user.zip_code,
-        lat: user.address_lat,
-        lng: user.address_lng,
-        timeZoneId: sale.timeZoneId || "America/Los_Angeles",
+        addressText: verifiedUser.street_address,
+        city: verifiedUser.city,
+        state: String(verifiedUser.state || "").toUpperCase().slice(0, 2),
+        zip: verifiedUser.zip_code,
+        lat: verifiedUser.address_lat,
+        lng: verifiedUser.address_lng,
+        timeZoneId: verifiedUser.timeZoneId || sale.timeZoneId || "America/Los_Angeles",
         tier: "free",
         pricePaid: 0,
         status: "active",
@@ -121,7 +125,7 @@ export default function JoinNeighborhoodSale() {
         neighborhood_sale_id: sale.id,
         participant_origin: "neighborhood_invite",
         origin_sale_listing_id: sale.id,
-        listingNumber: buildListingNumber(user.state, user.zip_code),
+        listingNumber: buildListingNumber(verifiedUser.state, verifiedUser.zip_code),
       });
 
       await base44.entities.Notification.create({
@@ -185,7 +189,7 @@ export default function JoinNeighborhoodSale() {
   const startDate = sale.startDateTime ? new Date(sale.startDateTime).toLocaleDateString() : "";
   const endDate = sale.endDateTime ? new Date(sale.endDateTime).toLocaleDateString() : "";
   const activeRequest = existingRequests.find((request) => ["pending", "approved"].includes(normalizeNeighborhoodJoinStatus(request.status)));
-  const missingConfirmedAddress = user && (!user.street_address || !user.city || !user.state || !user.zip_code || !user.address_lat || !user.address_lng);
+  const missingConfirmedAddress = user && !computedAddressVerified(user);
   // A listing only blocks joining if it is active, standalone, AND overlaps the sale's date range
   const hasBlockingResidentialListing = sale && existingListings.some((listing) =>
     listing.listingType !== "neighborhood_sale" &&
@@ -220,6 +224,10 @@ export default function JoinNeighborhoodSale() {
   };
 
   const handleRequest = () => {
+    if (missingConfirmedAddress) {
+      toast.error("Please verify your address before joining this Neighborhood Sale.");
+      return;
+    }
     if (sale.ownerUserId === user.id) {
       toast.error("You are the organizer of this event.");
       return;
@@ -230,6 +238,15 @@ export default function JoinNeighborhoodSale() {
     }
     requestMutation.mutate();
   };
+
+  if (user && missingConfirmedAddress) {
+    return (
+      <PrimaryAddressVerificationGate
+        user={user}
+        onVerified={(verifiedUser) => setUser(normalizeUser(verifiedUser))}
+      />
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-140px)] flex items-center justify-center p-4">

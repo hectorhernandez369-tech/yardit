@@ -127,11 +127,6 @@ function LayoutContent({ children, user, setUser }) {
 
   const handlePostSaleClick = () => {
     guardAction(() => {
-      if (!hasVerifiedPrimaryAddress) {
-        setShowAddressRequiredModal(true);
-        return;
-      }
-
       navigate(createPageUrl("CreateListing"));
     }, { returnTo: `${window.location.origin}${createPageUrl("CreateListing")}` });
   };
