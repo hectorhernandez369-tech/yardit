@@ -45,11 +45,14 @@ const AuthenticatedApp = () => {
 
   const isAuthRequired = authError?.type === 'auth_required';
 
-  const { data: appSettings = [], isLoading: isLoadingAppSettings } = useQuery({
-    queryKey: ["appSettings"],
-    queryFn: () => base44.entities.AppSetting.list(),
+  const { data: publicAppSettings = [], isLoading: isLoadingAppSettings } = useQuery({
+    queryKey: ["publicAppSettings"],
+    queryFn: async () => {
+      const response = await base44.functions.invoke("getPublicAppSettings", {});
+      return response?.data?.settings || [];
+    },
     initialData: [],
-    enabled: !isAuthRequired,
+    enabled: !isAuthenticated,
   });
 
   // Show loading spinner while checking app public settings or auth
@@ -64,7 +67,7 @@ const AuthenticatedApp = () => {
     return <UserNotRegisteredError />;
   }
 
-  const isComingSoonMode = !isAuthenticated && (isAuthRequired || isComingSoonModeEnabled(appSettings)) && !getTesterBypass() && !shouldBypassComingSoonForCurrentUrl();
+  const isComingSoonMode = !isAuthenticated && (isAuthRequired || isComingSoonModeEnabled(publicAppSettings)) && !getTesterBypass() && !shouldBypassComingSoonForCurrentUrl();
   const AdminPage = Pages.AdminLite;
 
   if (isLoadingAppSettings) {
