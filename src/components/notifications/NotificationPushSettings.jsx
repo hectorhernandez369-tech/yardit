@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, pushStatusLabel } from "@/lib/pushNotifications";
+import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, pushStatusLabel } from "@/lib/pushNotifications";
 import { hasVerifiedPrimaryAddress } from "@/lib/trustActions";
 import PushCategoryRow from "./PushCategoryRow";
 import VendorSubscriptionManager from "./VendorSubscriptionManager";
@@ -45,7 +45,8 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
   useEffect(() => {
     if (!user?.id || browserStatus !== "enabled") return;
     enableOneSignalPush({ userId: user.id }).then((result) => {
-      if (result.subscriptionId) savePushSubscription("enabled", result.subscriptionId);
+      if (result.status === "enabled" && result.subscriptionId) savePushSubscription("enabled", result.subscriptionId);
+      else if (result.status !== "enabled") setBrowserStatus(result.status);
     });
   }, [user?.id, browserStatus]);
 
@@ -53,11 +54,14 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     setEnabling(true);
     const result = await enableOneSignalPush({ userId: user.id });
     setBrowserStatus(result.status);
-    if (["enabled", "not_enabled", "blocked", "unsupported"].includes(result.status)) {
+    if (canStorePushStatus(result.status)) {
       await savePushSubscription(result.status, result.subscriptionId || await getOneSignalSubscriptionId());
     }
     if (result.status === "enabled" && result.subscriptionId) { await saveMutation.mutateAsync({ push_enabled: true }); toast.success("Push notifications enabled and connected to this account"); }
-    else if (result.status === "needs_install") toast.error("Install Yardit to your home screen first, then open the installed app to enable push notifications.");
+    else if (result.status === "needs_install") toast.error("Install Yardit to your Home Screen first, then open the installed app to enable push notifications.");
+    else if (result.status === "onesignal_not_ready") toast.error("The push service is still loading. Please wait a few seconds and try again.");
+    else if (result.status === "registration_timeout") toast.error("Notifications were allowed, but browser registration did not finish. Refresh Yardit and try again.");
+    else if (result.status === "service_worker_not_ready") toast.error("The push service worker is not ready yet. Refresh Yardit and try again.");
     else if (result.status === "blocked") toast.error("Notifications are blocked in your browser or device settings.");
     else if (result.status === "unsupported") toast.error("Push notifications are not supported by this browser or device.");
     else toast.error("Push permission was not completed. Please try again.");
@@ -79,8 +83,8 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     <CardContent className="space-y-4">
       <p className="text-sm text-slate-600">Choose which notifications you want sent as push alerts. These settings do not remove notifications from your Yardit notification history.</p>
       <div className="flex flex-col gap-3 rounded-2xl bg-[#F3E6CF] p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div><p className="font-bold text-[#2C4F4E]">Push permission: {pushStatusLabel(browserStatus)}</p><p className="text-xs text-slate-600">Bell/history notifications are always kept separately.</p>{browserStatus === "needs_install" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">On iPhone or iPad, install Yardit to your Home Screen first, then open the installed app to enable push.</p>}</div>
-        {browserStatus !== "enabled" && <Button onClick={handleEnablePush} disabled={enabling || browserStatus === "blocked" || browserStatus === "unsupported" || browserStatus === "needs_install"} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{enabling && <Loader2 className="h-4 w-4 animate-spin" />} Enable Push Notifications</Button>}
+        <div><p className="font-bold text-[#2C4F4E]">Push permission: {pushStatusLabel(browserStatus)}</p><p className="text-xs text-slate-600">Bell/history notifications are always kept separately.</p>{browserStatus === "needs_install" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">On iPhone or iPad, install Yardit to your Home Screen first, then open the installed app to enable push.</p>}{browserStatus === "onesignal_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">The push service is still loading. Wait a few seconds, then try again.</p>}{browserStatus === "service_worker_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">The push service worker is not ready. Refresh Yardit, then try again.</p>}</div>
+        {browserStatus !== "enabled" && <Button onClick={handleEnablePush} disabled={enabling || browserStatus === "blocked" || browserStatus === "unsupported" || browserStatus === "needs_install" || browserStatus === "service_worker_not_ready"} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{enabling && <Loader2 className="h-4 w-4 animate-spin" />} Enable Push Notifications</Button>}
       </div>
       <PushCategoryRow title="Alerts" description="Important account, platform, billing, approval, safety, support, and policy notices." checked={pref.alerts_push_enabled} onCheckedChange={(v) => saveMutation.mutate({ alerts_push_enabled: v })} />
       <PushCategoryRow title="Listings Near Me" description="Get push alerts when new yard sales, neighborhood sales, or events appear near your verified address." checked={pref.listings_near_me_push_enabled} onCheckedChange={(v) => guardedToggle("listings_near_me_push_enabled", v)} radius={pref.listings_near_me_radius_miles} onRadiusChange={(v) => saveMutation.mutate({ listings_near_me_radius_miles: v })} note={!verifiedAddress ? "Requires a verified address." : ""} />
