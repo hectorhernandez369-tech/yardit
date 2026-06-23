@@ -52,7 +52,7 @@ const AuthenticatedApp = () => {
       return response?.data?.settings || [];
     },
     initialData: [],
-    enabled: !isAuthenticated,
+    enabled: !isAuthenticated && !isAuthRequired,
   });
 
   // Show loading spinner while checking app public settings or auth
