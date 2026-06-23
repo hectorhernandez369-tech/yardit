@@ -351,7 +351,6 @@ export default function NotificationsPage() {
             </TabsContent>
             
             <TabsContent value="history" className="space-y-4">
-              <NotificationPushSettings user={user} onVerifyAddress={() => setShowAddressRequiredModal(true)} />
               {historyNotifications.length === 0 ? (
                 <div className="text-center py-8 bg-white rounded-lg border border-dashed border-slate-300">
                   <p className="text-slate-600">Your notification history is empty.</p>
