@@ -26,8 +26,9 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, dry_run: true, title: cleanTitle, message: cleanMessage, url: launchUrl });
     }
 
-    const apiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
-    if (!apiKey) return Response.json({ error: 'OneSignal API key is not configured.' }, { status: 500 });
+    const rawApiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
+    if (!rawApiKey) return Response.json({ error: 'OneSignal API key is not configured.' }, { status: 500 });
+    const apiKey = rawApiKey.trim().replace(/^Basic\s+/i, '').replace(/^Key\s+/i, '');
 
     const payload = {
       app_id: ONESIGNAL_APP_ID,
@@ -37,11 +38,11 @@ Deno.serve(async (req) => {
       ...(launchUrl ? { url: launchUrl } : {})
     };
 
-    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+    const response = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        Authorization: `Basic ${apiKey}`
+        Authorization: `Key ${apiKey}`
       },
       body: JSON.stringify(payload)
     });
