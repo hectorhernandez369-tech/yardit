@@ -335,7 +335,7 @@ export default function NotificationsPage() {
                 History ({historyNotifications.length})
               </TabsTrigger>
               <TabsTrigger value="settings" className="data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white">
-                Settings
+                Alert Settings
               </TabsTrigger>
             </TabsList>
             
