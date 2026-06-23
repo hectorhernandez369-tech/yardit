@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+
 import { Shield, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LaunchNotificationForm from "@/components/coming-soon/LaunchNotificationForm";
@@ -7,13 +7,13 @@ import ComingSoonPreviewCard from "@/components/coming-soon/ComingSoonPreviewCar
 import ComingSoonActionPills from "@/components/coming-soon/ComingSoonActionPills";
 import TesterLoginModal from "@/components/coming-soon/TesterLoginModal";
 import AdminLoginModal, { getAdminSession } from "@/components/admin/AdminLoginModal";
+import { setTesterBypass } from "@/lib/comingSoonMode";
 
 const logoUrl = "https://media.base44.com/images/public/690f554506edf795e5d84121/418a5e7a0_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
 const shipWatermarkUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0ba1ba06_file_00000000fce071fd9ff100a6a9cf19951.png";
 const mapScreenshotUrl = "https://media.base44.com/images/public/690f554506edf795e5d84121/3b0113ec3_Screenshot_20260318_085622_Base44.jpg";
 
 export default function ComingSoon() {
-  const navigate = useNavigate();
   const [showTesterModal, setShowTesterModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
 
@@ -34,7 +34,11 @@ export default function ComingSoon() {
       <AdminLoginModal
         open={showAdminModal}
         onClose={() => setShowAdminModal(false)}
-        onSuccess={() => { setShowAdminModal(false); navigate("/AdminLite"); }}
+        onSuccess={() => {
+          setShowAdminModal(false);
+          setTesterBypass();
+          window.location.href = "/";
+        }}
       />
 
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-8">
@@ -50,8 +54,12 @@ export default function ComingSoon() {
           <Button
             onClick={() => {
               const session = getAdminSession();
-              if (session) navigate("/AdminLite");
-              else setShowAdminModal(true);
+              if (session) {
+                setTesterBypass();
+                window.location.href = "/";
+              } else {
+                setShowAdminModal(true);
+              }
             }}
             className="gap-2 border-2 border-[#2C4F4E] bg-[#5DADA5] text-white hover:bg-[#4A9B93]"
           >

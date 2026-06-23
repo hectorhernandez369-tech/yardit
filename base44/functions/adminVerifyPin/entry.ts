@@ -4,9 +4,11 @@ import bcrypt from 'npm:bcryptjs@2.4.3';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) {
-      return Response.json({ ok: false, reason: "unauthorized" }, { status: 401 });
+    let user = null;
+    try {
+      user = await base44.auth.me();
+    } catch {
+      user = null;
     }
 
     const { employee_id, pin } = await req.json();
@@ -21,7 +23,7 @@ Deno.serve(async (req) => {
 
     if (!accessKey || !accessKey.is_active) {
       await base44.asServiceRole.entities.AdminAuditLog.create({
-        user_id: user.id,
+        user_id: user?.id,
         admin_employee_id: employee_id,
         action_type: "admin_pin_fail",
         target_type: "system",
@@ -65,7 +67,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.AdminAccessKey.update(accessKey.id, updatePayload);
 
       await base44.asServiceRole.entities.AdminAuditLog.create({
-        user_id: user.id,
+        user_id: user?.id,
         admin_employee_id: employee_id,
         action_type: "admin_pin_fail",
         target_type: "system",
@@ -89,18 +91,18 @@ Deno.serve(async (req) => {
     });
 
     await base44.asServiceRole.entities.AdminAuditLog.create({
-      user_id: accessKey.user_id || user.id,
+      user_id: accessKey.user_id || user?.id,
       admin_employee_id: employee_id,
       action_type: "admin_pin_success",
       target_type: "system",
       success: true,
-      metadata: JSON.stringify({ user_id: accessKey.user_id || user.id })
+      metadata: JSON.stringify({ user_id: accessKey.user_id || user?.id || null })
     });
 
     return Response.json({
       ok: true,
       employee_id: accessKey.employee_id,
-      user_id: accessKey.user_id || user.id
+      user_id: accessKey.user_id || user?.id || null
     });
 
   } catch (error) {
