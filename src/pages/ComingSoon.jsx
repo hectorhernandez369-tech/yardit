@@ -4,6 +4,7 @@ import { Shield, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LaunchNotificationForm from "@/components/coming-soon/LaunchNotificationForm";
 import ComingSoonPreviewCard from "@/components/coming-soon/ComingSoonPreviewCard";
+import ComingSoonActionPills from "@/components/coming-soon/ComingSoonActionPills";
 import TesterLoginModal from "@/components/coming-soon/TesterLoginModal";
 import AdminLoginModal, { getAdminSession } from "@/components/admin/AdminLoginModal";
 
@@ -74,6 +75,7 @@ export default function ComingSoon() {
               <p className="text-xl font-semibold leading-8 text-[#2C4F4E] sm:text-2xl">
                 Discover yard sales, local vendors, and neighborhood events all in one place.
               </p>
+              <ComingSoonActionPills />
             </div>
 
             <p className="text-base leading-8 text-[#2C4F4E]/90 sm:text-lg">
