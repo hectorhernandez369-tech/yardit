@@ -16,7 +16,14 @@ requestAnimationFrame(() => {
 if ('serviceWorker' in navigator) {
   const oneSignalEnabled = Boolean(window.OneSignalDeferred);
 
-  if (import.meta.env.PROD && !oneSignalEnabled) {
+  if (import.meta.env.PROD && oneSignalEnabled) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((reg) => {
+        const activeScript = reg.active?.scriptURL || reg.waiting?.scriptURL || reg.installing?.scriptURL || '';
+        if (activeScript.endsWith('/sw.js')) reg.unregister();
+      });
+    });
+  } else if (import.meta.env.PROD && !oneSignalEnabled) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js');
     });

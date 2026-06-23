@@ -74,6 +74,19 @@ function registrationScopeIncludesRoot(registration) {
   return new URL("/", window.location.origin).href.startsWith(registration.scope);
 }
 
+function workerScriptUrl(registration) {
+  return registration?.active?.scriptURL || registration?.waiting?.scriptURL || registration?.installing?.scriptURL || "";
+}
+
+function isOneSignalWorkerRegistration(registration) {
+  const scriptUrl = workerScriptUrl(registration);
+  return scriptUrl.includes("/OneSignalSDKWorker.js") || scriptUrl.includes("/OneSignalSDKUpdaterWorker.js") || scriptUrl.includes("OneSignalSDK.sw.js");
+}
+
+function isBlockingAppWorker(registration) {
+  return registrationScopeIncludesRoot(registration) && workerScriptUrl(registration).endsWith("/sw.js");
+}
+
 async function getServiceWorkerRegistrations() {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return [];
   const registrations = await navigator.serviceWorker.getRegistrations();
@@ -103,19 +116,37 @@ async function waitForServiceWorkerReady() {
 
   const deadline = Date.now() + 12000;
   while (Date.now() < deadline) {
+    let registrations = await getServiceWorkerRegistrations();
+    const blockingWorkers = registrations.filter(isBlockingAppWorker);
+    if (blockingWorkers.length) {
+      logPushDebug("unregister_blocking_app_worker", { registrations: blockingWorkers.map(describeRegistration) });
+      await Promise.all(blockingWorkers.map((registration) => registration.unregister()));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      registrations = await getServiceWorkerRegistrations();
+    }
+
+    let oneSignalRegistration = registrations.find((registration) => registrationScopeIncludesRoot(registration) && isOneSignalWorkerRegistration(registration));
+    if (!oneSignalRegistration) {
+      try {
+        oneSignalRegistration = await navigator.serviceWorker.register("/OneSignalSDKWorker.js", { scope: "/" });
+        logPushDebug("onesignal_worker_register_attempt", { registration: describeRegistration(oneSignalRegistration) });
+      } catch (error) {
+        logPushDebug("onesignal_worker_register_failed", { error: error?.message || String(error) });
+      }
+    }
+
     const readyRegistration = await withTimeout(navigator.serviceWorker.ready.then((registration) => registration).catch(() => null), 2500, null);
-    const registrations = await getServiceWorkerRegistrations();
-    const activeRootRegistration = registrations.find((registration) => registration.active && registrationScopeIncludesRoot(registration));
-    const readyRootRegistration = readyRegistration && registrationScopeIncludesRoot(readyRegistration) ? readyRegistration : null;
-    const registration = readyRootRegistration || activeRootRegistration;
+    const readyOneSignalRegistration = readyRegistration && registrationScopeIncludesRoot(readyRegistration) && isOneSignalWorkerRegistration(readyRegistration) ? readyRegistration : null;
+    const registration = readyOneSignalRegistration || oneSignalRegistration;
 
     logPushDebug("service_worker_ready_check", {
       readyRegistration: describeRegistration(readyRegistration),
       selectedRegistration: describeRegistration(registration),
+      selectedIsOneSignal: isOneSignalWorkerRegistration(registration),
       oneSignalLoaded: !!window.OneSignalDeferred,
     });
 
-    if (registration?.active && registrationScopeIncludesRoot(registration)) return true;
+    if (registration?.active && registrationScopeIncludesRoot(registration) && isOneSignalWorkerRegistration(registration)) return true;
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
