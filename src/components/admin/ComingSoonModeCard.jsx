@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { COMING_SOON_SETTING_KEY, isComingSoonModeEnabled } from "@/lib/comingSoonMode";
+import LaunchPushAlertCard from "@/components/admin/LaunchPushAlertCard";
 
 export default function ComingSoonModeCard() {
   const queryClient = useQueryClient();
@@ -58,7 +59,7 @@ export default function ComingSoonModeCard() {
           When enabled, public users will see the Coming Soon page instead of the normal Yardit app.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <div className="flex items-center justify-between gap-4 rounded-xl border border-[#2C4F4E]/15 bg-[#F3E6CF]/60 p-4">
           <div>
             <p className="font-semibold text-[#2C4F4E]">Global app visibility</p>
@@ -74,6 +75,8 @@ export default function ComingSoonModeCard() {
             <span className={enabled ? "font-semibold text-[#5DADA5]" : "text-slate-500"}>On</span>
           </div>
         </div>
+
+        <LaunchPushAlertCard />
       </CardContent>
     </Card>
   );
