@@ -16,7 +16,7 @@ export default function LaunchPushAlertCard() {
         message,
         url: window.location.origin + "/ComingSoon",
       });
-      if (response.data?.error) throw new Error(Array.isArray(response.data.error) ? response.data.error.join(", ") : response.data.error);
+      if (response.data?.error || response.data?.success === false) throw new Error(Array.isArray(response.data.error) ? response.data.error.join(", ") : response.data.error);
       return response.data;
     },
     onSuccess: (data) => toast.success(`Launch alert sent to ${data.recipients || 0} subscriber(s)`),

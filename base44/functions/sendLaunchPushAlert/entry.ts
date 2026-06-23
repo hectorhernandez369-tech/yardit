@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
     const profiles = await base44.asServiceRole.entities.AdminProfile.filter({ user_id: user.id });
     const emailProfiles = profiles.length ? [] : await base44.asServiceRole.entities.AdminProfile.filter({ email: user.email?.toLowerCase() });
     const adminProfile = profiles[0] || emailProfiles[0];
-    const isMasterAdmin = user.role === 'super_master' || adminProfile?.role_label === 'master';
+    const isMasterAdmin = ['master', 'super_master'].includes(user.role) || adminProfile?.role_label === 'master';
 
     if (!isMasterAdmin) {
       return Response.json({ error: 'Only master admins can send launch push alerts.' }, { status: 403 });
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     const result = await response.json();
     if (!response.ok) {
-      return Response.json({ error: result.errors || result.error || 'Failed to send push alert.' }, { status: response.status });
+      return Response.json({ success: false, error: result.errors || result.error || 'OneSignal rejected the push alert.' });
     }
 
     return Response.json({ success: true, notification_id: result.id, recipients: result.recipients || 0 });
