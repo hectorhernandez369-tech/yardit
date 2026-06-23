@@ -11,13 +11,17 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { respondToCoHostInvite } from "@/lib/coHostInviteActions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import NotificationPushSettings from "@/components/notifications/NotificationPushSettings";
+import VerifiedAddressRequiredModal from "@/components/profile/VerifiedAddressRequiredModal";
 
 export default function NotificationsPage() {
   const [user, setUser] = useState(null);
+  const [showAddressRequiredModal, setShowAddressRequiredModal] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
-  const defaultTab = new URLSearchParams(location.search).get("tab") === "history" ? "history" : "recent";
+  const tabParam = new URLSearchParams(location.search).get("tab");
+  const defaultTab = tabParam === "history" || tabParam === "settings" ? tabParam : "recent";
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -321,28 +325,17 @@ export default function NotificationsPage() {
               </div>
             ))}
           </div>
-        ) : notifications.length === 0 ? (
-          <Card className="border-0 shadow-sm text-center py-12">
-            <BellOff className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">No notifications yet</h3>
-            <p className="text-slate-500 mb-6">
-              You're all caught up!
-            </p>
-            <Button
-              onClick={() => navigate(createPageUrl("Home"))}
-              className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] font-semibold"
-            >
-              Explore Map
-            </Button>
-          </Card>
         ) : (
           <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-6">
+            <TabsList className="grid w-full grid-cols-3 max-w-[560px] mb-6">
               <TabsTrigger value="recent" className="data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white">
                 Recent ({unreadCount})
               </TabsTrigger>
               <TabsTrigger value="history" className="data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white">
                 History ({historyNotifications.length})
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="data-[state=active]:bg-[#5DADA5] data-[state=active]:text-white">
+                Settings
               </TabsTrigger>
             </TabsList>
             
@@ -358,6 +351,7 @@ export default function NotificationsPage() {
             </TabsContent>
             
             <TabsContent value="history" className="space-y-4">
+              <NotificationPushSettings user={user} onVerifyAddress={() => setShowAddressRequiredModal(true)} />
               {historyNotifications.length === 0 ? (
                 <div className="text-center py-8 bg-white rounded-lg border border-dashed border-slate-300">
                   <p className="text-slate-600">Your notification history is empty.</p>
@@ -366,8 +360,20 @@ export default function NotificationsPage() {
                 historyNotifications.map(renderNotificationCard)
               )}
             </TabsContent>
+
+            <TabsContent value="settings" className="space-y-4">
+              <NotificationPushSettings user={user} onVerifyAddress={() => setShowAddressRequiredModal(true)} />
+            </TabsContent>
           </Tabs>
         )}
+        <VerifiedAddressRequiredModal
+          open={showAddressRequiredModal}
+          onOpenChange={setShowAddressRequiredModal}
+          onAddNow={() => {
+            setShowAddressRequiredModal(false);
+            navigate(createPageUrl("Profile") + "?returnTo=Notifications&tab=settings");
+          }}
+        />
       </div>
     </div>
   );

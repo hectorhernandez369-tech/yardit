@@ -1,0 +1,42 @@
+{
+  "name": "PushNotificationDeliveryLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "notification_id": {
+      "type": "string"
+    },
+    "notification_type": {
+      "type": "string"
+    },
+    "source_type": {
+      "type": "string"
+    },
+    "source_id": {
+      "type": "string"
+    },
+    "push_sent": {
+      "type": "boolean",
+      "default": false
+    },
+    "push_sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "onesignal_player_id": {
+      "type": "string"
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "dedupe_key": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "dedupe_key"
+  ]
+}

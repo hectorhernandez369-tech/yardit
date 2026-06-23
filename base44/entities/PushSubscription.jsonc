@@ -1,0 +1,41 @@
+{
+  "name": "PushSubscription",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "onesignal_subscription_id": {
+      "type": "string"
+    },
+    "permission_status": {
+      "type": "string",
+      "enum": [
+        "enabled",
+        "not_enabled",
+        "blocked",
+        "unsupported"
+      ],
+      "default": "not_enabled"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "user_agent": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_id",
+    "permission_status"
+  ]
+}

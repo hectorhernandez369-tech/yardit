@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BadgeCheck, ChevronDown, ExternalLink, Facebook, Globe, Heart, Instagram, MapPin, MessageCircle, Music2, Send } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import BusinessHero from "@/components/vendor/BusinessHero";
+import VendorNotifyButton from "@/components/vendor/VendorNotifyButton";
 import { format } from "date-fns";
 import { getVendorTierConfig, isLiveVendorCheckIn } from "@/lib/vendorTiers";
 
@@ -121,6 +122,8 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
             </a>
           ))}
         </div>
+
+        <VendorNotifyButton account={account} />
 
 
         <section>
