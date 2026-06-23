@@ -44,17 +44,18 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
 
   useEffect(() => {
     if (!user?.id || browserStatus !== "enabled") return;
-    getOneSignalSubscriptionId().then((subscriptionId) => {
-      if (subscriptionId) savePushSubscription("enabled", subscriptionId);
+    enableOneSignalPush({ userId: user.id }).then((result) => {
+      if (result.subscriptionId) savePushSubscription("enabled", result.subscriptionId);
     });
   }, [user?.id, browserStatus]);
 
   const handleEnablePush = async () => {
     setEnabling(true);
-    const result = await enableOneSignalPush();
+    const result = await enableOneSignalPush({ userId: user.id });
     setBrowserStatus(result.status);
     await savePushSubscription(result.status, result.subscriptionId || await getOneSignalSubscriptionId());
-    if (result.status === "enabled") { await saveMutation.mutateAsync({ push_enabled: true }); toast.success("Push notifications enabled"); }
+    if (result.status === "enabled" && result.subscriptionId) { await saveMutation.mutateAsync({ push_enabled: true }); toast.success("Push notifications enabled and connected to this account"); }
+    else if (result.status !== "enabled") toast.error("Push notifications could not be enabled on this device.");
     setEnabling(false);
   };
 
