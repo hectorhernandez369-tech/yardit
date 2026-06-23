@@ -168,6 +168,7 @@ export function canStorePushStatus(status) {
 
 export function pushStatusLabel(status) {
   if (status === "enabled") return "Enabled";
+  if (status === "not_connected") return "Allowed, not connected";
   if (status === "blocked") return "Blocked by browser/device";
   if (status === "needs_install") return "Install app first";
   if (status === "onesignal_not_ready") return "Push service loading";

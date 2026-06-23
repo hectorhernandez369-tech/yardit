@@ -26,6 +26,12 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     enabled: !!user?.id,
   });
 
+  const { data: pushSubscription } = useQuery({
+    queryKey: ["pushSubscription", user?.id],
+    queryFn: async () => (await base44.entities.PushSubscription.filter({ user_id: user.id }))[0] || null,
+    enabled: !!user?.id,
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (patch) => {
       const data = { ...defaults, ...(preference || {}), ...patch, user_id: user.id, last_updated_at: new Date().toISOString() };
@@ -40,6 +46,7 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     const data = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: status, is_active: status === "enabled", user_agent: navigator.userAgent, updated_at: new Date().toISOString() };
     if (existing[0]) await base44.entities.PushSubscription.update(existing[0].id, data);
     else await base44.entities.PushSubscription.create({ ...data, created_at: new Date().toISOString() });
+    queryClient.invalidateQueries({ queryKey: ["pushSubscription", user?.id] });
   };
 
   useEffect(() => {
@@ -69,6 +76,11 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
   };
 
   const pref = { ...defaults, ...(preference || {}) };
+  const hasConnectedSubscription = pushSubscription?.permission_status === "enabled" && pushSubscription?.is_active === true && !!pushSubscription?.onesignal_subscription_id;
+  const displayStatus = browserStatus === "enabled" && !hasConnectedSubscription ? "not_connected" : browserStatus;
+  const showEnableButton = displayStatus !== "enabled";
+  const disableEnableButton = enabling || browserStatus === "blocked" || browserStatus === "unsupported" || browserStatus === "needs_install";
+
   const guardedToggle = (field, value) => {
     if ((field === "listings_near_me_push_enabled" || field === "vendor_near_me_push_enabled") && value && !verifiedAddress) {
       localStorage.setItem("yardit_pending_push_intent", field);
@@ -83,8 +95,8 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     <CardContent className="space-y-4">
       <p className="text-sm text-slate-600">Choose which notifications you want sent as push alerts. These settings do not remove notifications from your Yardit notification history.</p>
       <div className="flex flex-col gap-3 rounded-2xl bg-[#F3E6CF] p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div><p className="font-bold text-[#2C4F4E]">Push permission: {pushStatusLabel(browserStatus)}</p><p className="text-xs text-slate-600">Bell/history notifications are always kept separately.</p>{browserStatus === "needs_install" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">On iPhone or iPad, install Yardit to your Home Screen first, then open the installed app to enable push.</p>}{browserStatus === "onesignal_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">The push service is still loading. Wait a few seconds, then try again.</p>}{browserStatus === "service_worker_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Preparing notifications, please try again in a moment.</p>}</div>
-        {browserStatus !== "enabled" && <Button onClick={handleEnablePush} disabled={enabling || browserStatus === "blocked" || browserStatus === "unsupported" || browserStatus === "needs_install"} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{enabling && <Loader2 className="h-4 w-4 animate-spin" />} Enable Push Notifications</Button>}
+        <div><p className="font-bold text-[#2C4F4E]">Push permission: {pushStatusLabel(displayStatus)}</p><p className="text-xs text-slate-600">Bell/history notifications are always kept separately.</p>{displayStatus === "not_connected" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Your browser allowed notifications, but Yardit still needs to connect this device to your account.</p>}{browserStatus === "needs_install" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">On iPhone or iPad, install Yardit to your Home Screen first, then open the installed app to enable push.</p>}{browserStatus === "onesignal_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">The push service is still loading. Wait a few seconds, then try again.</p>}{browserStatus === "service_worker_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Preparing notifications, please try again in a moment.</p>}</div>
+        {showEnableButton && <Button onClick={handleEnablePush} disabled={disableEnableButton} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{enabling && <Loader2 className="h-4 w-4 animate-spin" />} {displayStatus === "not_connected" ? "Connect Push Notifications" : "Enable Push Notifications"}</Button>}
       </div>
       <PushCategoryRow title="Alerts" description="Important account, platform, billing, approval, safety, support, and policy notices." checked={pref.alerts_push_enabled} onCheckedChange={(v) => saveMutation.mutate({ alerts_push_enabled: v })} />
       <PushCategoryRow title="Listings Near Me" description="Get push alerts when new yard sales, neighborhood sales, or events appear near your verified address." checked={pref.listings_near_me_push_enabled} onCheckedChange={(v) => guardedToggle("listings_near_me_push_enabled", v)} radius={pref.listings_near_me_radius_miles} onRadiusChange={(v) => saveMutation.mutate({ listings_near_me_radius_miles: v })} note={!verifiedAddress ? "Requires a verified address." : ""} />
