@@ -54,10 +54,72 @@ function withTimeout(promise, ms, timeoutValue) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
 }
 
+function describeWorker(worker) {
+  if (!worker) return null;
+  return { scriptURL: worker.scriptURL, state: worker.state };
+}
+
+function describeRegistration(registration) {
+  if (!registration) return null;
+  return {
+    scope: registration.scope,
+    active: describeWorker(registration.active),
+    waiting: describeWorker(registration.waiting),
+    installing: describeWorker(registration.installing),
+  };
+}
+
+function registrationScopeIncludesRoot(registration) {
+  if (typeof window === "undefined" || !registration?.scope) return false;
+  return new URL("/", window.location.origin).href.startsWith(registration.scope);
+}
+
+async function getServiceWorkerRegistrations() {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return [];
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  logPushDebug("service_worker_registrations", { registrations: registrations.map(describeRegistration) });
+  return registrations;
+}
+
+async function rootWorkerFileExists(path) {
+  try {
+    const response = await fetch(path, { cache: "no-store" });
+    logPushDebug("worker_file_check", { path, ok: response.ok, statusCode: response.status });
+    return response.ok;
+  } catch (error) {
+    logPushDebug("worker_file_check_failed", { path, error: error?.message || String(error) });
+    return false;
+  }
+}
+
 async function waitForServiceWorkerReady() {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return false;
-  const registration = await withTimeout(navigator.serviceWorker.ready.then(() => true).catch(() => false), 8000, false);
-  return registration === true;
+
+  const workerFilesReady = await Promise.all([
+    rootWorkerFileExists("/OneSignalSDKWorker.js"),
+    rootWorkerFileExists("/OneSignalSDKUpdaterWorker.js"),
+  ]);
+  if (!workerFilesReady.every(Boolean)) return false;
+
+  const deadline = Date.now() + 12000;
+  while (Date.now() < deadline) {
+    const readyRegistration = await withTimeout(navigator.serviceWorker.ready.then((registration) => registration).catch(() => null), 2500, null);
+    const registrations = await getServiceWorkerRegistrations();
+    const activeRootRegistration = registrations.find((registration) => registration.active && registrationScopeIncludesRoot(registration));
+    const readyRootRegistration = readyRegistration && registrationScopeIncludesRoot(readyRegistration) ? readyRegistration : null;
+    const registration = readyRootRegistration || activeRootRegistration;
+
+    logPushDebug("service_worker_ready_check", {
+      readyRegistration: describeRegistration(readyRegistration),
+      selectedRegistration: describeRegistration(registration),
+      oneSignalLoaded: !!window.OneSignalDeferred,
+    });
+
+    if (registration?.active && registrationScopeIncludesRoot(registration)) return true;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  return false;
 }
 
 export function getBrowserPushStatus() {
