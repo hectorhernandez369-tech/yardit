@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, Shield, LogOut, Home, Building2, ShieldCheck, FolderOpen, CreditCard } from "lucide-react";
+import { Search, Loader2, Shield, LogOut, Home, Building2, ShieldCheck, FolderOpen, CreditCard, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logAdminEvent, searchCases } from "../components/caseManagement";
@@ -24,6 +24,7 @@ import { ensureAdminVendorAccount, isMasterAdminRole } from "../lib/ensureAdminV
 import SupportTicketQueue from "../components/admin/SupportTicketQueue";
 import InQueueTab from "../components/caseManagement/ui/InQueueTab";
 import PaymentAuditDashboard from "../components/admin/payments/PaymentAuditDashboard";
+import AdminInboxPanel from "../components/admin/AdminInboxPanel";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -254,6 +255,17 @@ export default function AdminLitePage() {
           {/* 3 primary section tabs — full width on mobile */}
           <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 flex-1 sm:flex-none">
             <button
+              onClick={() => setPrimarySection("inbox")}
+              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                primarySection === "inbox"
+                  ? "bg-slate-700 text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <Inbox className="w-3.5 h-3.5 shrink-0" />
+              <span>Inbox</span>
+            </button>
+            <button
               onClick={() => setPrimarySection("residential")}
               className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 primarySection === "residential"
@@ -325,6 +337,11 @@ export default function AdminLitePage() {
             <span className="hidden sm:inline">Exit Admin</span>
           </Button>
         </div>
+
+        {/* ── ADMIN INBOX SECTION ── */}
+        {primarySection === "inbox" && (
+          <AdminInboxPanel user={user} />
+        )}
 
         {/* ── RESIDENTIAL SECTION ── */}
         {primarySection === "residential" && (

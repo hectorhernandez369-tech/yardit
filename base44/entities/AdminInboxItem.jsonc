@@ -1,0 +1,86 @@
+{
+  "name": "AdminInboxItem",
+  "type": "object",
+  "properties": {
+    "recipient_admin_id": {
+      "type": "string",
+      "description": "Specific admin user assigned to this inbox item. Empty means visible to eligible admins."
+    },
+    "recipient_role": {
+      "type": "string",
+      "description": "Admin role or queue audience, such as admin, supervisor, master, billing, or system."
+    },
+    "type": {
+      "type": "string",
+      "description": "Notification registry type for the admin inbox item"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "reports",
+        "cases",
+        "admin_notes",
+        "assisted_listings",
+        "vendor_admin",
+        "permissions",
+        "billing",
+        "audit",
+        "system"
+      ],
+      "description": "Admin Inbox category"
+    },
+    "title": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "normal",
+        "high",
+        "critical"
+      ],
+      "default": "normal"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "unread",
+        "open",
+        "resolved",
+        "archived"
+      ],
+      "default": "unread"
+    },
+    "related_entity_type": {
+      "type": "string"
+    },
+    "related_entity_id": {
+      "type": "string"
+    },
+    "deep_link": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "source_notification_id": {
+      "type": "string",
+      "description": "Legacy Notification or CaseNotification ID, when migrated or mirrored"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "type",
+    "category",
+    "title",
+    "message",
+    "status"
+  ]
+}

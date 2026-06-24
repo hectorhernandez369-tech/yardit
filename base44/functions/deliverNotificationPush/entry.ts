@@ -1,25 +1,55 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const ONESIGNAL_APP_ID = "44d72407-6c94-4258-95f7-fd22c3157040";
-const ALERT_PREFIXES = ["listing_", "report_", "support_", "join_", "vendor_", "event_", "payment_", "billing_", "admin_", "case_", "assign_"];
+const PUSH_TYPES = new Set([
+  'nearby_listings_daily_digest',
+  'listing_open',
+  'saved_listing_active',
+  'listing_removed',
+  'join_request',
+  'join_request_accepted',
+  'join_request_denied',
+  'co_host_invite',
+  'neighborhood_sale_warning_48h',
+  'neighborhood_sale_payment_retry_scheduled',
+  'neighborhood_sale_payment_failed_cancelled',
+  'vendor_event',
+  'vendor_event_invite',
+  'event_collaboration_invite',
+  'vendor_access_invite',
+  'vendor_checkin',
+  'vendor_subscription',
+  'reserve_deposit',
+  'payment_webhook_failure',
+]);
+const ADMIN_INBOX_TYPES = new Set(['admin', 'admin_note', 'admin_report', 'admin_case', 'admin_billing', 'admin_vendor_account_auto_created', 'billing_cycles']);
+const DEPRECATED_PUSH_TYPES = new Set(['fallback_listing', 'vendor', 'nearby_listing', 'vendor_near_me']);
 
-function isAlertType(type = "") {
-  return ALERT_PREFIXES.some((prefix) => type.startsWith(prefix)) || ["own_expiring", "co_host_invite", "event_collaboration_invite"].includes(type);
+function deliveryMethodsFor(notification, type) {
+  if (Array.isArray(notification.delivery_methods) && notification.delivery_methods.length) return notification.delivery_methods;
+  if (ADMIN_INBOX_TYPES.has(type)) return ['admin_inbox'];
+  if (PUSH_TYPES.has(type)) return ['push'];
+  return ['bell'];
 }
 
-function getAlertPreferenceField(type = "") {
+function getPreferenceField(type = '') {
   const normalized = String(type).toLowerCase();
-  if (normalized.startsWith("billing_") || normalized.startsWith("payment_") || normalized.includes("billing") || normalized.includes("payment")) return "billing_alerts_push_enabled";
-  if (normalized.startsWith("support_") || normalized.startsWith("case_") || normalized.startsWith("assign_") || normalized.includes("support")) return "support_alerts_push_enabled";
-  if (normalized.startsWith("report_") || normalized.includes("safety") || normalized.includes("fraud") || normalized.includes("violation")) return "safety_alerts_push_enabled";
-  if (normalized.startsWith("join_") || normalized.startsWith("vendor_") || normalized.startsWith("event_") || normalized.includes("approval") || normalized.includes("invite")) return "approval_alerts_push_enabled";
-  if (normalized.includes("policy") || normalized.includes("terms")) return "policy_alerts_push_enabled";
-  return "account_alerts_push_enabled";
+  if (normalized === 'nearby_listings_daily_digest') return 'listings_near_me_push_enabled';
+  if (normalized === 'vendor_checkin' || normalized === 'vendor_subscription') return 'vendor_near_me_push_enabled';
+  if (normalized.includes('billing') || normalized.includes('payment') || normalized === 'reserve_deposit') return 'billing_alerts_push_enabled';
+  if (normalized.startsWith('support_') || normalized.startsWith('case_')) return 'support_alerts_push_enabled';
+  if (normalized.startsWith('report_') || normalized.includes('safety') || normalized.includes('fraud')) return 'safety_alerts_push_enabled';
+  if (normalized.startsWith('join_') || normalized.includes('invite') || normalized.includes('approval') || normalized.startsWith('vendor_event')) return 'approval_alerts_push_enabled';
+  if (normalized.includes('policy') || normalized.includes('terms')) return 'policy_alerts_push_enabled';
+  return 'account_alerts_push_enabled';
 }
 
-function isAlertAllowed(type, pref) {
-  if (!isAlertType(type) || pref.alerts_push_enabled === false) return false;
-  return pref[getAlertPreferenceField(type)] !== false;
+function isPushAllowedByPreferences(type, pref) {
+  if (type === 'nearby_listings_daily_digest') return pref.listings_near_me_push_enabled === true;
+  if (type === 'vendor_subscription') return true;
+  if (type === 'vendor_checkin') return pref.vendor_near_me_push_enabled === true;
+  if (pref.alerts_push_enabled === false) return false;
+  return pref[getPreferenceField(type)] !== false;
 }
 
 async function sendOneSignal(subscriptionId, title, message, url) {
@@ -45,18 +75,18 @@ Deno.serve(async (req) => {
     if (!userId || !notification.id) return Response.json({ skipped: true, reason: 'No user or notification id' });
 
     const type = notification.type || 'notification';
-    const dedupeKey = notification.metadata?.dedupe_key || `notification_${userId}_${notification.id}`;
+    const methods = deliveryMethodsFor(notification, type);
+    if (!methods.includes('push') || ADMIN_INBOX_TYPES.has(type) || DEPRECATED_PUSH_TYPES.has(type)) {
+      return Response.json({ skipped: true, reason: 'Notification registry does not allow push for this type', type, delivery_methods: methods });
+    }
+
+    const dedupeKey = notification.dedupe_key || notification.metadata?.dedupe_key || `notification_${userId}_${notification.id}`;
     const existing = await base44.asServiceRole.entities.PushNotificationDeliveryLog.filter({ dedupe_key: dedupeKey });
     if (existing.length) return Response.json({ skipped: true, reason: 'Duplicate push' });
 
     const prefs = await base44.asServiceRole.entities.NotificationPreference.filter({ user_id: userId });
     const pref = prefs[0] || { push_enabled: false, alerts_push_enabled: true };
-    const categoryAllowed = type === 'nearby_listing'
-      ? pref.listings_near_me_push_enabled === true
-      : (type === 'vendor_near_me' || type === 'vendor_subscription')
-        ? true
-        : isAlertAllowed(type, pref);
-    if (!pref.push_enabled || !categoryAllowed) {
+    if (!pref.push_enabled || !isPushAllowedByPreferences(type, pref)) {
       await base44.asServiceRole.entities.PushNotificationDeliveryLog.create({ user_id: userId, notification_id: notification.id, notification_type: type, source_type: notification.related_entity_type, source_id: notification.related_entity_id, push_sent: false, error_message: 'Push disabled by preference', dedupe_key: dedupeKey });
       return Response.json({ skipped: true, reason: 'Push disabled' });
     }
@@ -65,7 +95,7 @@ Deno.serve(async (req) => {
     const subscriptionId = subscriptions[0]?.onesignal_subscription_id;
     if (!subscriptionId) return Response.json({ skipped: true, reason: 'No active push subscription' });
 
-    await sendOneSignal(subscriptionId, String(notification.title || 'Yardit notification').slice(0, 80), String(notification.message || '').slice(0, 180), notification.metadata?.url || '');
+    await sendOneSignal(subscriptionId, String(notification.title || 'Yardit notification').slice(0, 80), String(notification.message || '').slice(0, 180), notification.deep_link || notification.metadata?.url || '');
     await base44.asServiceRole.entities.PushNotificationDeliveryLog.create({ user_id: userId, notification_id: notification.id, notification_type: type, source_type: notification.related_entity_type, source_id: notification.related_entity_id, push_sent: true, push_sent_at: new Date().toISOString(), onesignal_player_id: subscriptionId, dedupe_key: dedupeKey });
     return Response.json({ success: true });
   } catch (error) {

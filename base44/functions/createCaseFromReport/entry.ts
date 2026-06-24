@@ -46,6 +46,20 @@ async function ensureCaseForReport(base44, rawReport) {
     safety_flag: safetyFlag,
   });
 
+  await base44.asServiceRole.entities.AdminInboxItem.create({
+    recipient_role: 'admin',
+    type: 'admin_report',
+    category: 'reports',
+    title: safetyFlag ? 'Safety report needs review' : 'New report needs review',
+    message: `A report created case ${createdCase.account_number || createdCase.id}.`,
+    priority: safetyFlag ? 'high' : 'normal',
+    status: 'unread',
+    related_entity_type: 'case',
+    related_entity_id: createdCase.id,
+    deep_link: `/AdminLite?section=case_management&openCaseId=${createdCase.id}`,
+    metadata: { listing_id: listingId, report_id: report.id || '', safety_flag: safetyFlag },
+  });
+
   return { created: true, caseId: createdCase.id, listingId };
 }
 

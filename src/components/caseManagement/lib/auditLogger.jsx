@@ -38,30 +38,23 @@ export async function logAdminAction({
  * Create a CaseNotification for a specific admin.
  */
 export async function notifyAdmin({ caseId, adminId, message, title = "Case Update", type = "case_update" }) {
-  // We no longer create CaseNotification because we migrated to the global Notification system
   try {
-    const notif = await base44.entities.Notification.create({
-      user_id: adminId,
-      userId: adminId,
-      type,
+    await base44.entities.AdminInboxItem.create({
+      recipient_admin_id: adminId,
+      recipient_role: "admin",
+      type: type?.startsWith("case_") ? "admin_case" : type,
+      category: "cases",
       title,
       message,
+      priority: "normal",
+      status: "unread",
       related_entity_type: "case",
       related_entity_id: caseId,
-      is_read: false,
-      read: false,
-    });
-    console.log("Created Notification:", {
-      user_id: notif.user_id || notif.userId,
-      type: notif.type,
-      title: notif.title,
-      message: notif.message,
-      related_entity_type: notif.related_entity_type,
-      related_entity_id: notif.related_entity_id,
-      created_at: notif.created_date
+      deep_link: `/AdminLite?section=case_management&openCaseId=${caseId}`,
+      metadata: { original_type: type },
     });
   } catch (e) {
-    console.error("Failed to create case notification:", e);
+    console.error("Failed to create admin inbox item:", e);
   }
 }
 

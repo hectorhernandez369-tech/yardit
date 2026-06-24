@@ -170,9 +170,16 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
         title: "Employee ID Updated",
         message: "Your Employee ID has been updated by an administrator.",
         type: "account_update",
+        recipient: "affected user",
+        trigger: "Admin updated employee ID",
+        delivery_methods: ["bell"],
+        deep_link: "/Profile",
+        registry_status: "active",
+        registry_version: "2026-06-24",
         related_entity_type: "AdminProfile",
         related_entity_id: admin.id,
-        read: false
+        read: false,
+        is_read: false
       });
     }
 

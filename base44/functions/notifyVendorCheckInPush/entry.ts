@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
 
     const globalPrefs = await base44.asServiceRole.entities.NotificationPreference.filter({ vendor_near_me_push_enabled: true });
     const vendorSubs = await base44.asServiceRole.entities.VendorNotificationSubscription.filter({ vendor_account_id: checkIn.vendor_account_id, subscription_enabled: true });
-    const targets = [...vendorSubs.map((s) => ({ user_id: s.user_id, radius: s.radius_miles || 2, mode: 'vendor_subscription', sub: s })), ...globalPrefs.map((p) => ({ user_id: p.user_id, radius: p.vendor_near_me_radius_miles || 2, mode: 'vendor_near_me' }))];
+    const targets = [...vendorSubs.map((s) => ({ user_id: s.user_id, radius: s.radius_miles || 2, mode: 'vendor_subscription', sub: s })), ...globalPrefs.map((p) => ({ user_id: p.user_id, radius: p.vendor_near_me_radius_miles || 2, mode: 'vendor_checkin' }))];
     const seenUsers = new Set();
 
     for (const target of targets) {
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
       const dedupeKey = `${target.mode}_${target.user_id}_${checkIn.vendor_account_id}_${checkIn.id}`;
       const existing = await base44.asServiceRole.entities.PushNotificationDeliveryLog.filter({ dedupe_key: dedupeKey });
       if (existing.length) continue;
-      await base44.asServiceRole.entities.Notification.create({ userId: target.user_id, user_id: target.user_id, title: `${vendor.business_name || 'A vendor'} just checked in`, message: `${vendor.business_name || 'A vendor'} just checked in ${distance.toFixed(1)} miles from you.`, type: target.mode, related_entity_type: 'vendor_checkin', related_entity_id: checkIn.id, metadata: { dedupe_key: dedupeKey, vendor_account_id: checkIn.vendor_account_id, checkin_id: checkIn.id }, read: false, is_read: false });
+      await base44.asServiceRole.entities.Notification.create({ userId: target.user_id, user_id: target.user_id, title: `${vendor.business_name || 'A vendor'} just checked in`, message: `${vendor.business_name || 'A vendor'} just checked in ${distance.toFixed(1)} miles from you.`, type: target.mode, recipient: target.mode === 'vendor_subscription' ? 'users subscribed to a specific vendor' : 'users near a live vendor check-in', trigger: 'Vendor checks in at a public live location', delivery_methods: ['push'], deep_link: `/?vendorCheckIn=${checkIn.id}`, dedupe_key: dedupeKey, registry_status: 'active', registry_version: '2026-06-24', related_entity_type: 'vendor_checkin', related_entity_id: checkIn.id, metadata: { dedupe_key: dedupeKey, vendor_account_id: checkIn.vendor_account_id, checkin_id: checkIn.id, url: `/?vendorCheckIn=${checkIn.id}` }, read: true, is_read: true });
       if (target.sub?.id) await base44.asServiceRole.entities.VendorNotificationSubscription.update(target.sub.id, { last_notified_checkin_id: checkIn.id, last_notified_at: new Date().toISOString(), updated_at: new Date().toISOString() });
       created++;
     }

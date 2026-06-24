@@ -46,6 +46,48 @@
     "metadata": {
       "type": "object",
       "description": "Additional context data for the notification"
+    },
+    "recipient": {
+      "type": "string",
+      "description": "Registry-defined recipient role or audience"
+    },
+    "trigger": {
+      "type": "string",
+      "description": "Registry-defined trigger that created the notification"
+    },
+    "delivery_methods": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "push",
+          "bell",
+          "admin_inbox",
+          "email"
+        ]
+      },
+      "description": "Delivery methods selected by the notification registry"
+    },
+    "deep_link": {
+      "type": "string",
+      "description": "Destination URL or app path for this notification"
+    },
+    "dedupe_key": {
+      "type": "string",
+      "description": "Stable key used to prevent duplicate deliveries"
+    },
+    "registry_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "deprecated",
+        "future"
+      ],
+      "default": "active"
+    },
+    "registry_version": {
+      "type": "string",
+      "description": "Notification registry version used when the item was created"
     }
   },
   "required": []

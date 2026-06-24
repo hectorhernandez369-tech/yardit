@@ -13,6 +13,7 @@ import { respondToCoHostInvite } from "@/lib/coHostInviteActions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NotificationPushSettings from "@/components/notifications/NotificationPushSettings";
 import VerifiedAddressRequiredModal from "@/components/profile/VerifiedAddressRequiredModal";
+import { isBellNotification } from "@/lib/notificationRegistry";
 
 export default function NotificationsPage() {
   const [user, setUser] = useState(null);
@@ -42,13 +43,7 @@ export default function NotificationsPage() {
        const byUserId = await base44.entities.Notification.filter({ userId: user.id }, "-created_date");
        const byEmail = await base44.entities.Notification.filter({ user_email: user.email }, "-created_date");
        
-       let adminNotifs = [];
-       if (user?.isAdmin) {
-         adminNotifs = await base44.entities.CaseNotification.filter({ admin_id: user.id }, "-created_date");
-         adminNotifs = adminNotifs.map(n => ({ ...n, _isCaseNotif: true, title: "Case Management", type: "report_case" }));
-       }
-
-       const all = [...byEmail, ...byId, ...byUserId, ...adminNotifs];
+       const all = [...byEmail, ...byId, ...byUserId];
        const unique = [];
        const seen = new Set();
        for (const n of all) {
@@ -57,7 +52,7 @@ export default function NotificationsPage() {
                unique.push(n);
            }
        }
-       return unique.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+       return unique.filter(isBellNotification).sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
     },
     enabled: !!user,
     initialData: [],
