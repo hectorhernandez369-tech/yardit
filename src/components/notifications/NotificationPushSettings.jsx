@@ -8,9 +8,24 @@ import { toast } from "sonner";
 import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, pushStatusLabel } from "@/lib/pushNotifications";
 import { hasVerifiedPrimaryAddress } from "@/lib/trustActions";
 import PushCategoryRow from "./PushCategoryRow";
+import AlertsPushGroup from "./AlertsPushGroup";
 import VendorSubscriptionManager from "./VendorSubscriptionManager";
 
-const defaults = { push_enabled: false, alerts_push_enabled: true, listings_near_me_push_enabled: false, listings_near_me_radius_miles: 2, vendor_near_me_push_enabled: false, vendor_near_me_radius_miles: 2, marketing_push_enabled: false };
+const defaults = {
+  push_enabled: false,
+  alerts_push_enabled: true,
+  account_alerts_push_enabled: true,
+  billing_alerts_push_enabled: true,
+  approval_alerts_push_enabled: true,
+  safety_alerts_push_enabled: true,
+  support_alerts_push_enabled: true,
+  policy_alerts_push_enabled: true,
+  listings_near_me_push_enabled: false,
+  listings_near_me_radius_miles: 2,
+  vendor_near_me_push_enabled: false,
+  vendor_near_me_radius_miles: 2,
+  marketing_push_enabled: false
+};
 
 export default function NotificationPushSettings({ user, onVerifyAddress }) {
   const queryClient = useQueryClient();
@@ -98,7 +113,11 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
         <div><p className="font-bold text-[#2C4F4E]">Push permission: {pushStatusLabel(displayStatus)}</p><p className="text-xs text-slate-600">Bell/history notifications are always kept separately.</p>{displayStatus === "not_connected" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Your browser allowed notifications, but Yardit still needs to connect this device to your account.</p>}{browserStatus === "needs_install" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">On iPhone or iPad, install Yardit to your Home Screen first, then open the installed app to enable push.</p>}{browserStatus === "onesignal_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">The push service is still loading. Wait a few seconds, then try again.</p>}{browserStatus === "service_worker_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Preparing notifications, please try again in a moment.</p>}</div>
         {showEnableButton && <Button onClick={handleEnablePush} disabled={disableEnableButton} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{enabling && <Loader2 className="h-4 w-4 animate-spin" />} {displayStatus === "not_connected" ? "Connect Push Notifications" : "Enable Push Notifications"}</Button>}
       </div>
-      <PushCategoryRow title="Alerts" description="Important account, platform, billing, approval, safety, support, and policy notices." checked={pref.alerts_push_enabled} onCheckedChange={(v) => saveMutation.mutate({ alerts_push_enabled: v })} />
+      <AlertsPushGroup
+        pref={pref}
+        onGroupChange={(v) => saveMutation.mutate({ alerts_push_enabled: v })}
+        onItemChange={(field, value) => saveMutation.mutate({ [field]: value })}
+      />
       <PushCategoryRow title="Listings Near Me" description="Get push alerts when new yard sales, neighborhood sales, or events appear near your verified address." checked={pref.listings_near_me_push_enabled} onCheckedChange={(v) => guardedToggle("listings_near_me_push_enabled", v)} radius={pref.listings_near_me_radius_miles} onRadiusChange={(v) => saveMutation.mutate({ listings_near_me_radius_miles: v })} note={!verifiedAddress ? "Requires a verified address." : ""} />
       <PushCategoryRow title="Vendor Check-Ins Near Me" description="Get push alerts when vendors check in near your verified address." checked={pref.vendor_near_me_push_enabled} onCheckedChange={(v) => guardedToggle("vendor_near_me_push_enabled", v)} radius={pref.vendor_near_me_radius_miles} onRadiusChange={(v) => saveMutation.mutate({ vendor_near_me_radius_miles: v })} note={!verifiedAddress ? "Requires a verified address." : ""} />
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><h4 className="mb-2 font-bold text-[#2C4F4E]">Vendor Subscriptions</h4><VendorSubscriptionManager user={user} /></div>

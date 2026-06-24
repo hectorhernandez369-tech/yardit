@@ -7,6 +7,21 @@ function isAlertType(type = "") {
   return ALERT_PREFIXES.some((prefix) => type.startsWith(prefix)) || ["own_expiring", "co_host_invite", "event_collaboration_invite"].includes(type);
 }
 
+function getAlertPreferenceField(type = "") {
+  const normalized = String(type).toLowerCase();
+  if (normalized.startsWith("billing_") || normalized.startsWith("payment_") || normalized.includes("billing") || normalized.includes("payment")) return "billing_alerts_push_enabled";
+  if (normalized.startsWith("support_") || normalized.startsWith("case_") || normalized.startsWith("assign_") || normalized.includes("support")) return "support_alerts_push_enabled";
+  if (normalized.startsWith("report_") || normalized.includes("safety") || normalized.includes("fraud") || normalized.includes("violation")) return "safety_alerts_push_enabled";
+  if (normalized.startsWith("join_") || normalized.startsWith("vendor_") || normalized.startsWith("event_") || normalized.includes("approval") || normalized.includes("invite")) return "approval_alerts_push_enabled";
+  if (normalized.includes("policy") || normalized.includes("terms")) return "policy_alerts_push_enabled";
+  return "account_alerts_push_enabled";
+}
+
+function isAlertAllowed(type, pref) {
+  if (!isAlertType(type) || pref.alerts_push_enabled === false) return false;
+  return pref[getAlertPreferenceField(type)] !== false;
+}
+
 async function sendOneSignal(subscriptionId, title, message, url) {
   const rawApiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
   if (!rawApiKey) throw new Error('OneSignal API key is not configured.');
@@ -40,7 +55,7 @@ Deno.serve(async (req) => {
       ? pref.listings_near_me_push_enabled === true
       : (type === 'vendor_near_me' || type === 'vendor_subscription')
         ? true
-        : isAlertType(type) && pref.alerts_push_enabled !== false;
+        : isAlertAllowed(type, pref);
     if (!pref.push_enabled || !categoryAllowed) {
       await base44.asServiceRole.entities.PushNotificationDeliveryLog.create({ user_id: userId, notification_id: notification.id, notification_type: type, source_type: notification.related_entity_type, source_id: notification.related_entity_id, push_sent: false, error_message: 'Push disabled by preference', dedupe_key: dedupeKey });
       return Response.json({ skipped: true, reason: 'Push disabled' });
