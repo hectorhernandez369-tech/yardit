@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const PUBLIC_STATUSES = ['active', 'scheduled', 'activated', 'activated_locked'];
 const PUBLIC_LISTING_TYPES = ['yard_sale', 'neighborhood_sale', 'event'];
+const PUBLIC_VISIBILITY_FIELDS = ['status', 'listingType', 'type', 'lat', 'lng', 'latitude', 'longitude'];
 
 function milesBetween(lat1, lon1, lat2, lon2) {
   const toRad = (v) => v * Math.PI / 180;
@@ -45,6 +46,13 @@ Deno.serve(async (req) => {
     const payload = await req.json();
     const listing = payload.data || payload.listing || payload;
     const previousListing = payload.old_data || payload.oldData || payload.previous || payload.previous_listing || null;
+    const changedFields = Array.isArray(payload.changed_fields) ? payload.changed_fields : [];
+    const isUpdateEvent = payload.event?.type === 'update';
+
+    if (!previousListing && isUpdateEvent && changedFields.length && !changedFields.some((field) => PUBLIC_VISIBILITY_FIELDS.includes(field))) {
+      console.log(`nearby_listing skipped for listing ${listing?.id || 'unknown'}: already discoverable or normal edit with no public visibility change`);
+      return Response.json({ skipped: true, reason: 'already discoverable' });
+    }
 
     if (!listing?.id) {
       console.log('nearby_listing skipped: not public - missing listing id');
