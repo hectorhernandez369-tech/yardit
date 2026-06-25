@@ -124,6 +124,7 @@ function LayoutContent({ children, user, setUser }) {
   };
 
   const hasVerifiedPrimaryAddress = hasVerifiedPrimaryAddressTrust(user);
+  const canViewLaunchChecklist = user?.email === "romancaesarempire@gmail.com";
 
   const handlePostSaleClick = () => {
     guardAction(() => {
@@ -158,15 +159,17 @@ function LayoutContent({ children, user, setUser }) {
             <nav className="flex items-center gap-1 sm:gap-2 flex-wrap">
               {/* My Hunt link moved to My Listings */}
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowLaunchChecklist(true)}
-                className="gap-2 text-white hover:bg-white/10"
-              >
-                <ClipboardList className="w-4 h-4" />
-                <span className="hidden sm:inline">Checklist</span>
-              </Button>
+              {canViewLaunchChecklist && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowLaunchChecklist(true)}
+                  className="gap-2 text-white hover:bg-white/10"
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  <span className="hidden sm:inline">Checklist</span>
+                </Button>
+              )}
 
               {canInstallApp && (
                 <Button
@@ -319,7 +322,9 @@ function LayoutContent({ children, user, setUser }) {
       />
 
       <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} mode={installDialogMode} />
-      <FloatingLaunchChecklist open={showLaunchChecklist} onClose={() => setShowLaunchChecklist(false)} />
+      {canViewLaunchChecklist && (
+        <FloatingLaunchChecklist open={showLaunchChecklist} onClose={() => setShowLaunchChecklist(false)} />
+      )}
 
       <footer className="hidden sm:block bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-2">
