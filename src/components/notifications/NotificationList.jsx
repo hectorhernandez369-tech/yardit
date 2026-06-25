@@ -4,11 +4,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MapPin, Clock, CheckCheck, Trash2, Users, Check, X, Bell, AlertTriangle, LifeBuoy } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { respondToCoHostInvite } from "@/lib/coHostInviteActions";
+import { formatDeviceRelativeTime } from "@/lib/dateTime";
 
 export default function NotificationList({ notifications, onMarkAllRead, onClose }) {
   const queryClient = useQueryClient();
@@ -405,7 +405,7 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
 
                       <div className="flex items-center justify-between mt-1">
                         <p className="text-xs text-gray-400">
-                          {formatDistanceToNow(new Date(notification.created_date), { addSuffix: true })}
+                          {formatDeviceRelativeTime(notification.created_date)}
                         </p>
 
                         <Button

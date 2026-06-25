@@ -5,7 +5,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, BellOff, Trash2, Check, MapPin, Calendar, Loader2, Users, AlertTriangle, LifeBuoy, ArrowRight } from "lucide-react";
-import { format } from "date-fns";
 import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -14,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NotificationPushSettings from "@/components/notifications/NotificationPushSettings";
 import VerifiedAddressRequiredModal from "@/components/profile/VerifiedAddressRequiredModal";
 import { isBellNotification } from "@/lib/notificationRegistry";
+import { formatDeviceDateTime, parseUtcTimestamp } from "@/lib/dateTime";
 
 export default function NotificationsPage() {
   const [user, setUser] = useState(null);
@@ -52,7 +52,7 @@ export default function NotificationsPage() {
                unique.push(n);
            }
        }
-       return unique.filter(isBellNotification).sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+       return unique.filter(isBellNotification).sort((a, b) => (parseUtcTimestamp(b.created_date)?.getTime() || 0) - (parseUtcTimestamp(a.created_date)?.getTime() || 0));
     },
     enabled: !!user,
     initialData: [],
@@ -201,7 +201,7 @@ export default function NotificationsPage() {
               </div>
               <p className="text-sm text-gray-700 mb-1">{notification.message}</p>
               <p className="text-xs text-gray-500">
-                {format(new Date(notification.created_date), "MMM d, yyyy 'at' h:mm a")}
+                {formatDeviceDateTime(notification.created_date)}
               </p>
             </div>
           </div>

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/popover";
 import NotificationList from "./NotificationList";
 import { isBellNotification } from "@/lib/notificationRegistry";
+import { parseUtcTimestamp } from "@/lib/dateTime";
 
 export default function NotificationBell() {
   const [user, setUser] = useState(null);
@@ -45,7 +46,7 @@ export default function NotificationBell() {
                unique.push(n);
            }
        }
-       return unique.filter(isBellNotification).sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+       return unique.filter(isBellNotification).sort((a, b) => (parseUtcTimestamp(b.created_date)?.getTime() || 0) - (parseUtcTimestamp(a.created_date)?.getTime() || 0));
     },
     enabled: !!user,
     initialData: [],
