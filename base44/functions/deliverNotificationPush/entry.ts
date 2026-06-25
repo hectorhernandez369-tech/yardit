@@ -28,8 +28,52 @@ const DEPRECATED_PUSH_TYPES = new Set(['fallback_listing', 'vendor', 'nearby_lis
 function deliveryMethodsFor(notification, type) {
   if (Array.isArray(notification.delivery_methods) && notification.delivery_methods.length) return notification.delivery_methods;
   if (ADMIN_INBOX_TYPES.has(type)) return ['admin_inbox'];
-  if (PUSH_TYPES.has(type)) return ['push'];
+  if (PUSH_TYPES.has(type)) return ['push', 'bell'];
   return ['bell'];
+}
+
+function withBell(methods) {
+  return methods.includes('bell') ? methods : [...methods, 'bell'];
+}
+
+function compactRecord(record) {
+  return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined && value !== null && value !== ''));
+}
+
+async function ensureBellHistory(base44, notification, userId, type, methods, dedupeKey) {
+  const deliveryMethods = withBell(methods);
+  const existingByDedupe = await base44.asServiceRole.entities.Notification.filter({ dedupe_key: dedupeKey });
+  const existingById = notification.id ? await base44.asServiceRole.entities.Notification.filter({ id: notification.id }) : [];
+  const existing = existingByDedupe[0] || existingById[0];
+
+  if (existing) {
+    const currentMethods = Array.isArray(existing.delivery_methods) ? existing.delivery_methods : [];
+    if (!currentMethods.includes('bell')) {
+      await base44.asServiceRole.entities.Notification.update(existing.id, { delivery_methods: withBell(currentMethods.length ? currentMethods : deliveryMethods) });
+    }
+    return existing.id;
+  }
+
+  const created = await base44.asServiceRole.entities.Notification.create(compactRecord({
+    userId,
+    user_id: userId,
+    title: String(notification.title || 'Yardit notification').slice(0, 120),
+    message: String(notification.message || '').slice(0, 500),
+    read: false,
+    is_read: false,
+    type,
+    related_entity_type: notification.related_entity_type,
+    related_entity_id: notification.related_entity_id,
+    metadata: notification.metadata || {},
+    recipient: notification.recipient,
+    trigger: notification.trigger,
+    delivery_methods: deliveryMethods,
+    deep_link: notification.deep_link || notification.metadata?.url,
+    dedupe_key: dedupeKey,
+    registry_status: notification.registry_status,
+    registry_version: notification.registry_version,
+  }));
+  return created.id;
 }
 
 function getPreferenceField(type = '') {
@@ -72,7 +116,7 @@ Deno.serve(async (req) => {
     const payload = await req.json();
     const notification = payload.data || payload.notification || payload;
     const userId = notification.user_id || notification.userId;
-    if (!userId || !notification.id) return Response.json({ skipped: true, reason: 'No user or notification id' });
+    if (!userId) return Response.json({ skipped: true, reason: 'No user id' });
 
     const type = notification.type || 'notification';
     const methods = deliveryMethodsFor(notification, type);
@@ -80,14 +124,15 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'Notification registry does not allow push for this type', type, delivery_methods: methods });
     }
 
-    const dedupeKey = notification.dedupe_key || notification.metadata?.dedupe_key || `notification_${userId}_${notification.id}`;
+    const dedupeKey = notification.dedupe_key || notification.metadata?.dedupe_key || `notification_${userId}_${notification.id || type}_${notification.related_entity_id || 'general'}`;
+    const historyNotificationId = await ensureBellHistory(base44, notification, userId, type, methods, dedupeKey);
     const existing = await base44.asServiceRole.entities.PushNotificationDeliveryLog.filter({ dedupe_key: dedupeKey });
-    if (existing.length) return Response.json({ skipped: true, reason: 'Duplicate push' });
+    if (existing.length) return Response.json({ skipped: true, reason: 'Duplicate push', history_notification_id: historyNotificationId });
 
     const prefs = await base44.asServiceRole.entities.NotificationPreference.filter({ user_id: userId });
     const pref = prefs[0] || { push_enabled: false, alerts_push_enabled: true };
     if (!pref.push_enabled || !isPushAllowedByPreferences(type, pref)) {
-      await base44.asServiceRole.entities.PushNotificationDeliveryLog.create({ user_id: userId, notification_id: notification.id, notification_type: type, source_type: notification.related_entity_type, source_id: notification.related_entity_id, push_sent: false, error_message: 'Push disabled by preference', dedupe_key: dedupeKey });
+      await base44.asServiceRole.entities.PushNotificationDeliveryLog.create({ user_id: userId, notification_id: historyNotificationId, notification_type: type, source_type: notification.related_entity_type, source_id: notification.related_entity_id, push_sent: false, error_message: 'Push disabled by preference', dedupe_key: dedupeKey });
       return Response.json({ skipped: true, reason: 'Push disabled' });
     }
 
@@ -96,8 +141,8 @@ Deno.serve(async (req) => {
     if (!subscriptionId) return Response.json({ skipped: true, reason: 'No active push subscription' });
 
     await sendOneSignal(subscriptionId, String(notification.title || 'Yardit notification').slice(0, 80), String(notification.message || '').slice(0, 180), notification.deep_link || notification.metadata?.url || '');
-    await base44.asServiceRole.entities.PushNotificationDeliveryLog.create({ user_id: userId, notification_id: notification.id, notification_type: type, source_type: notification.related_entity_type, source_id: notification.related_entity_id, push_sent: true, push_sent_at: new Date().toISOString(), onesignal_player_id: subscriptionId, dedupe_key: dedupeKey });
-    return Response.json({ success: true });
+    await base44.asServiceRole.entities.PushNotificationDeliveryLog.create({ user_id: userId, notification_id: historyNotificationId, notification_type: type, source_type: notification.related_entity_type, source_id: notification.related_entity_id, push_sent: true, push_sent_at: new Date().toISOString(), onesignal_player_id: subscriptionId, dedupe_key: dedupeKey });
+    return Response.json({ success: true, history_notification_id: historyNotificationId });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

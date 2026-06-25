@@ -18,7 +18,7 @@ export const NOTIFICATION_REGISTRY = {
   nearby_listings_daily_digest: {
     recipient: "users with Listings Near Me enabled",
     trigger: "Daily 5:00 AM summary of listings opening today within the user's radius",
-    delivery_methods: [DELIVERY.PUSH],
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
     status: "active",
     title: "Yard sales near you today",
     message: "Summarized count of nearby listings happening today.",
@@ -216,7 +216,7 @@ export const NOTIFICATION_REGISTRY = {
   vendor_checkin: {
     recipient: "users near a live vendor check-in who enabled vendor-near-me alerts",
     trigger: "Vendor checks in at a public live location",
-    delivery_methods: [DELIVERY.PUSH],
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
     status: "active",
     title: "Vendor near you",
     message: "A vendor checked in near you.",
@@ -225,7 +225,7 @@ export const NOTIFICATION_REGISTRY = {
   vendor_subscription: {
     recipient: "users subscribed to a specific vendor",
     trigger: "Subscribed vendor checks in at a public live location",
-    delivery_methods: [DELIVERY.PUSH],
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
     status: "active",
     title: "Vendor you follow checked in",
     message: "A vendor you follow checked in.",
