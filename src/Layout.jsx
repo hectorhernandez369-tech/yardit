@@ -78,7 +78,8 @@ function LayoutContent({ children, user, setUser }) {
 
   useEffect(() => {
     const updateInstallState = () => {
-      setCanInstallApp(shouldShowInstallButton());
+      const appInstalled = localStorage.getItem("yardit_app_installed") === "true";
+      setCanInstallApp(!appInstalled && shouldShowInstallButton());
     };
 
     const handleBeforeInstallPrompt = (event) => {
@@ -88,6 +89,7 @@ function LayoutContent({ children, user, setUser }) {
     };
 
     const handleInstalled = () => {
+      localStorage.setItem("yardit_app_installed", "true");
       setDeferredInstallPrompt(null);
       setCanInstallApp(false);
       setShowInstallDialog(false);
@@ -111,7 +113,12 @@ function LayoutContent({ children, user, setUser }) {
     }
 
     if (deferredInstallPrompt) {
-      await deferredInstallPrompt.prompt();
+      const choiceResult = await deferredInstallPrompt.prompt();
+      if (choiceResult?.outcome === "accepted") {
+        localStorage.setItem("yardit_app_installed", "true");
+        setDeferredInstallPrompt(null);
+        setCanInstallApp(false);
+      }
       return;
     }
 
@@ -176,7 +183,7 @@ function LayoutContent({ children, user, setUser }) {
                   variant="ghost"
                   size="sm"
                   onClick={handleInstallClick}
-                  className="gap-2 text-white hover:bg-white/10"
+                  className="gap-2 rounded-full border border-white/60 bg-white/15 px-3 text-white shadow-sm hover:bg-white/25"
                 >
                   <Download className="w-4 h-4" />
                   <span className="hidden sm:inline">Install App</span>
