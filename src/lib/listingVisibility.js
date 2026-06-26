@@ -191,8 +191,9 @@ function isResidentialOpenNow(listing, now = new Date()) {
 
 export function isResidentialDailyPreviewMode(listing, now = new Date()) {
   if (listing?.listingType !== "yard_sale") return false;
-  const isActiveStatus = listing?.status === "active" || listing?.activation_status === "active";
-  if (!isActiveStatus) return false;
+  const publicDayStatuses = new Set(["active", "scheduled", "activated", "activated_locked"]);
+  const isPublicDayStatus = publicDayStatuses.has(listing?.status) || listing?.activation_status === "active";
+  if (!isPublicDayStatus) return false;
   if (!isResidentialScheduledToday(listing, now)) return false;
   if (!hasValidResidentialHours(listing, now)) return false;
   return !isResidentialOpenNow(listing, now);
