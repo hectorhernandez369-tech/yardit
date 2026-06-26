@@ -36,8 +36,12 @@ export default function ActiveOpenCasesTab({ user, searchResults, onOpenCase, re
 
   return (
     <div className="mt-4">
+      <div className="mb-3 rounded-xl border-2 border-[#5DADA5] bg-teal-50 p-3">
+        <p className="text-sm font-bold text-[#2C4F4E]">My Open Cases</p>
+        <p className="text-xs text-[#2C4F4E]">These are open cases currently assigned to you.</p>
+      </div>
       {displayed.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">No open cases.</p>
+        <p className="text-gray-500 text-center py-8">No open cases are assigned to you.</p>
       ) : (
         <>
           <div className="hidden md:block overflow-x-auto">
@@ -46,7 +50,7 @@ export default function ActiveOpenCasesTab({ user, searchResults, onOpenCase, re
                 <tr className="bg-[#E7D7B8] border-b-2 border-[#2C4F4E]">
                   <th className="text-left p-3">Acct #</th>
                   <th className="text-left p-3">Title</th>
-                  <th className="text-left p-3">Assigned Admin</th>
+                  <th className="text-left p-3">Assigned To</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-left p-3">Priority</th>
                 </tr>

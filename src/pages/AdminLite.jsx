@@ -62,8 +62,8 @@ export default function AdminLitePage() {
           if (c.status === "in_queue") newCounts.in_queue++;
           else if (c.status === "assigned" && c.assigned_admin_id === user.id) newCounts.assigned++;
           else if (c.status === "open" && c.assigned_admin_id === user.id) newCounts.open++;
-          else if (c.status === "closed") newCounts.closed++;
-          else if (["submitted", "submitted_for_review", "escalated_to_supervisor", "escalated_to_master"].includes(c.status)) newCounts.submitted++;
+          else if (c.status === "closed" && c.assigned_admin_id === user.id) newCounts.closed++;
+          else if (["submitted", "submitted_for_review", "escalated_to_supervisor", "escalated_to_master"].includes(c.status) && c.assigned_admin_id === user.id) newCounts.submitted++;
         });
         setCounts(newCounts);
       } catch (e) {
@@ -402,13 +402,24 @@ export default function AdminLitePage() {
               <p className="text-sm text-gray-600 mb-2">Showing {searchResults.length} search result(s).</p>
             )}
 
+            <div className="grid sm:grid-cols-2 gap-3 mb-4">
+              <div className="rounded-xl border-2 border-orange-300 bg-orange-50 p-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-orange-700">General queues</p>
+                <p className="text-sm text-orange-900">Unassigned cases waiting for any admin to claim or assign.</p>
+              </div>
+              <div className="rounded-xl border-2 border-[#5DADA5] bg-teal-50 p-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#2C4F4E]">My assigned work</p>
+                <p className="text-sm text-[#2C4F4E]">Cases already assigned to you, including queued, open, submitted, and closed work.</p>
+              </div>
+            </div>
+
             <Tabs value={caseManagementTab} onValueChange={setCaseManagementTab}>
               <TabsList className="flex flex-wrap gap-1 h-auto w-full p-1">
                 <TabsTrigger value="pending_review" className="whitespace-nowrap">
-                  Pending Review
+                  My Assigned Cases
                 </TabsTrigger>
                 <TabsTrigger value="reports_queue" className="whitespace-nowrap">
-                  Reports Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
+                  General Unassigned Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
                 </TabsTrigger>
                 <TabsTrigger value="support_tickets" className="whitespace-nowrap">Support Tickets</TabsTrigger>
               </TabsList>
@@ -416,10 +427,10 @@ export default function AdminLitePage() {
               <TabsContent value="pending_review">
                 <Tabs value={caseTab} onValueChange={handleCaseTabChange}>
                   <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-3xl p-1 mt-2">
-                    <TabsTrigger value="queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Queue ({counts.assigned})</TabsTrigger>
-                    <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Open ({counts.open})</TabsTrigger>
-                    <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Submitted ({counts.submitted})</TabsTrigger>
-                    <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
+                    <TabsTrigger value="queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Assigned to Me ({counts.assigned})</TabsTrigger>
+                    <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">My Open Cases ({counts.open})</TabsTrigger>
+                    <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">My Submitted ({counts.submitted})</TabsTrigger>
+                    <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">My Closed ({counts.closed})</TabsTrigger>
                   </TabsList>
                   <TabsContent value="queue">
                     <OpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} triggerRefresh={triggerRefresh} />

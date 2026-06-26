@@ -89,8 +89,12 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
 
   return (
     <div className="mt-4">
+      <div className="mb-3 rounded-xl border-2 border-orange-300 bg-orange-50 p-3">
+        <p className="text-sm font-bold text-orange-900">General Unassigned Queue</p>
+        <p className="text-xs text-orange-700">These cases are not assigned to an admin yet. Claim one with “Assign Self” or assign it to another admin.</p>
+      </div>
       {displayed.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">No cases in queue.</p>
+        <p className="text-gray-500 text-center py-8">No unassigned cases are waiting in the general queue.</p>
       ) : (
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm border-collapse">

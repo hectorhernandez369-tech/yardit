@@ -14,7 +14,7 @@ export default function SubmittedCasesTab({ user, searchResults, onOpenCase, ref
   const loadData = async () => {
     setLoading(true);
     const allCasesRaw = await base44.entities.Case.list();
-    const allCases = allCasesRaw.filter(c => ["submitted", "submitted_for_review", "escalated_to_supervisor", "escalated_to_master"].includes(c.status));
+    const allCases = allCasesRaw.filter(c => ["submitted", "submitted_for_review", "escalated_to_supervisor", "escalated_to_master"].includes(c.status) && c.assigned_admin_id === user.id);
     setCases(allCases);
 
     const users = await base44.entities.User.list();
@@ -37,8 +37,12 @@ export default function SubmittedCasesTab({ user, searchResults, onOpenCase, ref
 
   return (
     <div className="mt-4">
+      <div className="mb-3 rounded-xl border-2 border-[#5DADA5] bg-teal-50 p-3">
+        <p className="text-sm font-bold text-[#2C4F4E]">My Submitted Cases</p>
+        <p className="text-xs text-[#2C4F4E]">These are your assigned cases submitted for review or escalation.</p>
+      </div>
       {displayed.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">No submitted cases.</p>
+        <p className="text-gray-500 text-center py-8">No submitted cases are assigned to you.</p>
       ) : (
         <>
           <div className="hidden md:block overflow-x-auto">
@@ -47,7 +51,7 @@ export default function SubmittedCasesTab({ user, searchResults, onOpenCase, ref
                 <tr className="bg-[#E7D7B8] border-b-2 border-[#2C4F4E]">
                   <th className="text-left p-3">Acct #</th>
                   <th className="text-left p-3">Title</th>
-                  <th className="text-left p-3">Admin</th>
+                  <th className="text-left p-3">Assigned To</th>
                   <th className="text-left p-3">Disposition</th>
                   <th className="text-left p-3">Priority</th>
                 </tr>

@@ -52,8 +52,12 @@ export default function OpenCasesTab({ user, searchResults, onOpenCase, refreshK
 
   return (
     <div className="mt-4">
+      <div className="mb-3 rounded-xl border-2 border-[#5DADA5] bg-teal-50 p-3">
+        <p className="text-sm font-bold text-[#2C4F4E]">Assigned to Me</p>
+        <p className="text-xs text-[#2C4F4E]">These cases have already been assigned to you and are waiting for you to open.</p>
+      </div>
       {displayed.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">No cases in your queue.</p>
+        <p className="text-gray-500 text-center py-8">No cases are assigned to you and waiting to be opened.</p>
       ) : (
         <>
           <div className="hidden md:block overflow-x-auto">
@@ -77,7 +81,7 @@ export default function OpenCasesTab({ user, searchResults, onOpenCase, refreshK
                       <td className="p-3 font-mono text-xs">{c.account_number}</td>
                       <td className="p-3 max-w-[200px] truncate">{listing?.title || "—"}</td>
                       <td className="p-3">{admin?.full_name || admin?.email || "—"}</td>
-                      <td className="p-3"><Badge className="bg-amber-100 text-amber-800">Queue</Badge></td>
+                      <td className="p-3"><Badge className="bg-teal-100 text-teal-800">Assigned to me</Badge></td>
                       <td className="p-3"><Badge className={c.case_priority === "high" ? "bg-red-100 text-red-800" : c.case_priority === "medium" ? "bg-yellow-100 text-yellow-800" : "bg-blue-100 text-blue-800"}>{c.case_priority}</Badge></td>
                       <td className="p-3">
                         <Button size="sm" variant="outline" onClick={() => handleOpenAssignedCase(c.id)} disabled={openingCaseId === c.id}>
@@ -98,7 +102,7 @@ export default function OpenCasesTab({ user, searchResults, onOpenCase, refreshK
                 <div key={c.id} className="bg-white rounded-lg border p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-xs break-all">{c.account_number}</span>
-                    <div className="flex gap-1"><Badge className="bg-amber-100 text-amber-800">Queue</Badge><Badge className={c.case_priority === "high" ? "bg-red-100 text-red-800" : c.case_priority === "medium" ? "bg-yellow-100 text-yellow-800" : "bg-blue-100 text-blue-800"}>{c.case_priority}</Badge></div>
+                    <div className="flex gap-1"><Badge className="bg-teal-100 text-teal-800">Mine</Badge><Badge className={c.case_priority === "high" ? "bg-red-100 text-red-800" : c.case_priority === "medium" ? "bg-yellow-100 text-yellow-800" : "bg-blue-100 text-blue-800"}>{c.case_priority}</Badge></div>
                   </div>
                   <p className="text-sm font-medium truncate">{listing?.title || "—"}</p>
                   <p className="text-xs text-gray-500">{admin?.full_name || admin?.email || "Unassigned"}</p>
