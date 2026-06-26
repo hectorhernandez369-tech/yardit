@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { base44 } from "@/api/base44Client";
 import { logUserActivity, logUserActivityOncePerSession } from "@/lib/logUserActivity";
 import { Button } from "@/components/ui/button";
-import { MapPin, Search, Plus, Map as MapIcon, Target, Users, Settings, LogOut, Navigation, CheckCircle2, ShoppingBag } from "lucide-react";
+import { MapPin, Search, Plus, Map as MapIcon, Users, Settings, LogOut, Navigation, CheckCircle2, ShoppingBag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -49,7 +49,7 @@ export default function StartupGuidePage() {
     },
     {
       title: "3. Build Your Hunt",
-      icon: <Target className="w-6 h-6 text-purple-500" />,
+      icon: <MapIcon className="w-6 h-6 text-[#5DADA5]" />,
       content: "Planning a day of yard sailing? When you find a sale you like, click 'Add Stop to Hunt'. Yardit will build a custom list for you and can even optimize the driving route to save you time and gas."
     },
     {
