@@ -154,17 +154,19 @@ function isStoredEarlyVisibilityWindow(listing, now = new Date()) {
   return today >= visibilityStartDate && today < listingStartDate;
 }
 
-function isResidentialOpenNow(listing, now = new Date()) {
-  if (listing?.listingType !== "yard_sale") return true;
+function isResidentialScheduledToday(listing, now = new Date()) {
+  if (listing?.listingType !== "yard_sale") return false;
 
   const today = getDateOnly(now, listing?.timeZoneId);
   const activeDates = Array.isArray(listing?.activeDates) ? listing.activeDates : [];
-  const isActiveDate = activeDates.length > 0
-    ? activeDates.includes(today)
-    : today >= String(listing?.selectedRangeStartDate || "") && today <= String(listing?.selectedRangeEndDate || "");
+  if (activeDates.length > 0) return activeDates.includes(today);
 
-  if (!isActiveDate) return false;
+  const startDate = String(listing?.selectedRangeStartDate || getDateOnly(listing?.startDateTime, listing?.timeZoneId) || "").slice(0, 10);
+  const endDate = String(listing?.selectedRangeEndDate || getDateOnly(listing?.endDateTime, listing?.timeZoneId) || startDate || "").slice(0, 10);
+  return !!startDate && !!endDate && today >= startDate && today <= endDate;
+}
 
+function hasValidResidentialHours(listing, now = new Date()) {
   const openMinutes = minutesFromTime(listing?.openTime);
   const closeMinutes = minutesFromTime(listing?.closeTime);
   const currentMinutes = minutesFromTime(getTimeOnly(now, listing?.timeZoneId));
@@ -173,7 +175,27 @@ function isResidentialOpenNow(listing, now = new Date()) {
 
   if (openMinutes === null || closeMinutes === null || currentMinutes === null) return false;
   if (openMinutes < earliest || closeMinutes > latest || openMinutes >= closeMinutes) return false;
+  return true;
+}
+
+function isResidentialOpenNow(listing, now = new Date()) {
+  if (listing?.listingType !== "yard_sale") return true;
+  if (!isResidentialScheduledToday(listing, now)) return false;
+  if (!hasValidResidentialHours(listing, now)) return false;
+
+  const openMinutes = minutesFromTime(listing?.openTime);
+  const closeMinutes = minutesFromTime(listing?.closeTime);
+  const currentMinutes = minutesFromTime(getTimeOnly(now, listing?.timeZoneId));
   return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
+}
+
+export function isResidentialDailyPreviewMode(listing, now = new Date()) {
+  if (listing?.listingType !== "yard_sale") return false;
+  const isActiveStatus = listing?.status === "active" || listing?.activation_status === "active";
+  if (!isActiveStatus) return false;
+  if (!isResidentialScheduledToday(listing, now)) return false;
+  if (!hasValidResidentialHours(listing, now)) return false;
+  return !isResidentialOpenNow(listing, now);
 }
 
 function hasListingEarlyVisibilityPromoWindow(listing, now = new Date()) {
@@ -267,8 +289,13 @@ export function getListingPublicVisibilityDecision(listing, context = {}) {
 
   if (!listing) return { ...base, reason: "missing_listing" };
   if (NON_PUBLIC_DRAFT_STATUSES.has(listing?.status)) return { ...base, reason: "draft_or_payment_pending_hidden" };
-  if (isTerminalHidden(listing, now)) return { ...base, reason: "terminal_or_expired" };
   if (!hasValidCoordinates(listing)) return { ...base, reason: "missing_valid_coordinates" };
+  if (isTerminalHidden(listing, now)) {
+    if (context.enableDailyPreviewPins && isResidentialDailyPreviewMode(listing, now)) {
+      return { ...base, passedPublicVisibility: true, reason: "public_daily_preview_visible" };
+    }
+    return { ...base, reason: "terminal_or_expired" };
+  }
 
   if (listing.listingType === "neighborhood_sale") {
     const visible = shouldShowListingOnMainMap(listing, now);
@@ -283,6 +310,9 @@ export function getListingPublicVisibilityDecision(listing, context = {}) {
   }
 
   if (listing.listingType === "yard_sale" && !isResidentialOpenNow(listing, now)) {
+    if (context.enableDailyPreviewPins && isResidentialDailyPreviewMode(listing, now)) {
+      return { ...base, passedPublicVisibility: true, reason: "public_daily_preview_visible" };
+    }
     return { ...base, reason: "outside_residential_open_hours" };
   }
 
@@ -354,6 +384,7 @@ export function getListingMapVisibilityState(listing, currentUser, context = {})
   const now = context.now instanceof Date ? context.now : new Date();
   const publicDecision = getListingPublicVisibilityDecision(listing, { ...context, now, currentUser });
   if (publicDecision.passedPublicVisibility) {
+    if (publicDecision.reason === "public_daily_preview_visible") return "daily_preview";
     if (listing?.listingType === "neighborhood_sale") {
       return deriveNeighborhoodEventState(listing, now) === "coming_soon" ? "coming_soon" : "active";
     }

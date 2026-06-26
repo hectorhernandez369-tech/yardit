@@ -154,7 +154,7 @@ export const formatListingScheduleText = formatListingDateTimeDisplay;
 export function getListingStatusUi(listing) {
   const derivedStatus = getListingDisplayStatus(listing);
   const status =
-    listing?.mapState === "preview"
+    listing?.mapState === "preview" || listing?.mapState === "daily_preview"
       ? "preview"
       : listing?.mapState === "coming_soon"
         ? "coming_soon"

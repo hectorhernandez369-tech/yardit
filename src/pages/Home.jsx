@@ -133,7 +133,7 @@ function getChestIcon(size, count = 0, isSelected = false, faded = false) {
 // Custom marker icons based on tier
 const createIcon = (type, tier, isSelected, location) => {
   const preAct = isPreActivated(location);
-  const isPreviewState = location?.mapState === "preview" || location?.ownerUpcomingPreview === true;
+  const isPreviewState = location?.mapState === "preview" || location?.mapState === "daily_preview" || location?.ownerUpcomingPreview === true;
   const opacity = isPreviewState ? 0.35 : preAct ? 0.6 : 1.0;
   const isOwnerPendingPreview = type === "neighborhood_sale" && (location?.ownerPreviewPending === true || isPreviewState);
 
@@ -851,8 +851,8 @@ export default function HomePage() {
 
 
   const eligibleListings = useMemo(() => {
-    const now = new Date();
-    const visibilityContext = { now, viewingOwnerPreviewMode, debugVisibility: debugForceOn };
+    const now = scheduleNow;
+    const visibilityContext = { now, viewingOwnerPreviewMode, debugVisibility: debugForceOn, enableDailyPreviewPins: true };
 
     const baseListings = listings.
     map((listing) => {
@@ -878,7 +878,7 @@ export default function HomePage() {
     }
 
     return combinedListings.filter((l) => listingMatchesQuery(l, searchQuery, true));
-  }, [listings, vendorEvents, filter, searchQuery, selectedCategories, demoOn, user, viewingOwnerPreviewMode, debugForceOn, previewListingsOnMap]);
+  }, [listings, vendorEvents, filter, searchQuery, selectedCategories, demoOn, user, viewingOwnerPreviewMode, debugForceOn, previewListingsOnMap, scheduleNow]);
 
   // List View uses its own pipeline in ListView.jsx + lib/listViewPipeline.js
   // No pre-filtering here — raw listings + vendorEvents are passed directly.
@@ -951,11 +951,12 @@ export default function HomePage() {
       if (!quickMapFilters.yardSales && listing.listingType === "yard_sale") return;
 
       const isPreview = listing.mapState === "preview";
+      const isDailyPreview = listing.mapState === "daily_preview";
       const isComingSoon = listing.mapState === "coming_soon";
       const isActive = listing.mapState === "active";
       const isMarquee = isMarqueeListing(listing);
 
-      if (isPreview) {
+      if (isPreview || isDailyPreview) {
         pins.push(listing);
         return;
       }
@@ -1363,6 +1364,7 @@ export default function HomePage() {
               const routeIndex = huntStops.findIndex((loc) => loc.id === listing.id);
               const ownerPreviewPending = listing.listingType === "neighborhood_sale" && user?.id && getListingOwnerId(listing) === user.id && deriveNeighborhoodEventState(listing, new Date()) === "pending_activation";
               const isPreviewState = listing.mapState === "preview";
+              const isDailyPreviewState = listing.mapState === "daily_preview";
               const goLiveLabel = formatListingGoLive(listing);
 
               return (
@@ -1393,7 +1395,7 @@ export default function HomePage() {
                                 {getListingTypeBadgeLabel(listing)}
                               </Badge>
                               <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-5 min-h-0 capitalize bg-white">{getListingSecondaryBadgeLabel(listing)}</Badge>
-                              {!isPreviewState && (() => {
+                              {!isPreviewState && !isDailyPreviewState && (() => {
                             const statusUi = getListingStatusUi(listing);
                             return (
                               <Badge className={`text-[9px] px-1.5 py-0 h-4 min-h-0 ${statusUi.isComingSoon ? "bg-amber-500" : statusUi.isActive ? "bg-green-600" : "bg-slate-500"} text-white`}>
@@ -1403,6 +1405,9 @@ export default function HomePage() {
                           })()}
                               {isPreviewState &&
                           <Badge className="text-[9px] px-1.5 py-0 h-4 min-h-0 bg-amber-500 text-white">Preview</Badge>
+                          }
+                              {isDailyPreviewState &&
+                          <Badge className="text-[9px] px-1.5 py-0 h-4 min-h-0 bg-slate-500 text-white">Preview</Badge>
                           }
                               {isHuntStop && !isPreviewState &&
                           <Badge className="text-[9px] px-1.5 py-0 h-4 min-h-0 bg-blue-600">Stop #{routeIndex + 1}</Badge>
