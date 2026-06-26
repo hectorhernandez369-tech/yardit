@@ -3,9 +3,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Search, Loader2, X, Plus, Crosshair, Undo2 } from "lucide-react";
+import { MapPin, Search, Loader2, X, Plus, Crosshair, Undo2, Maximize2 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Circle, Polygon, Polyline, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
+import PolygonAreaModal from "./PolygonAreaModal";
 import "leaflet/dist/leaflet.css";
 
 // Fix default marker icons
@@ -72,6 +73,7 @@ export default function GeoPromoSection({ form, onChange }) {
   const [zipInput, setZipInput] = useState("");
   const [customRadius, setCustomRadius] = useState("");
   const [flyTarget, setFlyTarget] = useState(null);
+  const [showPolygonModal, setShowPolygonModal] = useState(false);
 
   const geoEnabled = !!form.geographic_limit_enabled;
   const geoType = form.geographic_limit_type || "none";
@@ -215,7 +217,10 @@ export default function GeoPromoSection({ form, onChange }) {
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => onChange("geographic_limit_type", opt.value)}
+                onClick={() => {
+                  onChange("geographic_limit_type", opt.value);
+                  if (opt.value === "polygon") setShowPolygonModal(true);
+                }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                   geoType === opt.value
                     ? "bg-[#2C4F4E] text-white border-[#2C4F4E]"
@@ -438,7 +443,14 @@ export default function GeoPromoSection({ form, onChange }) {
             <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-3">
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-600 font-medium">Draw Area</Label>
-                <p className="text-[10px] text-slate-400">Click/tap the map to add outline points. At least 3 points are required.</p>
+                <p className="text-[10px] text-slate-400">Use the large Mapbox map to search, center on your location, and draw the eligible outline.</p>
+                <button
+                  type="button"
+                  onClick={() => setShowPolygonModal(true)}
+                  className="inline-flex items-center gap-1 rounded-lg bg-[#2C4F4E] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#203c3b]"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" /> Open large drawing map
+                </button>
               </div>
 
               <div className="rounded-lg overflow-hidden border border-slate-200" style={{ height: 260 }}>
@@ -503,6 +515,15 @@ export default function GeoPromoSection({ form, onChange }) {
           )}
         </div>
       )}
+
+      <PolygonAreaModal
+        open={showPolygonModal}
+        onOpenChange={setShowPolygonModal}
+        points={polygonPoints}
+        onChangePoints={(points) => onChange("geo_polygon_coordinates", points)}
+        label={form.geo_display_label || ""}
+        onChangeLabel={(value) => onChange("geo_display_label", value)}
+      />
     </div>
   );
 }
