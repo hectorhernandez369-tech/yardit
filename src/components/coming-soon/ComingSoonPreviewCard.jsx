@@ -17,7 +17,7 @@ export default function ComingSoonPreviewCard({ imageUrl }) {
           <img
             src={imageUrl}
             alt="Yardit map preview"
-            className="h-full max-h-[560px] w-full object-cover object-top"
+            className="h-auto w-full object-contain"
           />
         </div>
       </CardContent>
