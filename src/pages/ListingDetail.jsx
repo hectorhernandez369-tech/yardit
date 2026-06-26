@@ -467,7 +467,7 @@ export default function ListingDetailPage() {
                     {formattedDescription.length > 0 && (
                       <div className="space-y-2 mt-2">
                         {formattedDescription.map((line, index) => (
-                          <p key={index} className="text-slate-700 text-base sm:text-lg leading-relaxed">
+                          <p key={index} className="text-slate-700 text-base sm:text-lg leading-relaxed break-words whitespace-normal">
                             {line}
                           </p>
                         ))}

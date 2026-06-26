@@ -148,7 +148,7 @@ export function getFormattedDescription(listing) {
     .trim();
 
   const lines = [first];
-  for (let i = 1; i < sentences.length && lines.length < 3; i += 1) {
+  for (let i = 1; i < sentences.length; i += 1) {
     lines.push(sentences[i]);
   }
 
