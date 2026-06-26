@@ -131,7 +131,7 @@ function LayoutContent({ children, user, setUser }) {
   };
 
   const hasVerifiedPrimaryAddress = hasVerifiedPrimaryAddressTrust(user);
-  const canViewLaunchChecklist = user?.email === "romancaesarempire@gmail.com";
+  const canViewLaunchChecklist = user?.email === "hectorhernandez369@gmail.com";
 
   const handlePostSaleClick = () => {
     guardAction(() => {
