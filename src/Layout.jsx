@@ -201,6 +201,16 @@ function LayoutContent({ children, user, setUser }) {
                 </Button>
               </Link>
 
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(createPageUrl("StartupGuide"))}
+                className="text-white hover:bg-white/10 h-8 w-8"
+                aria-label="Yardit Startup Guide"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </Button>
+
 
 
               {!isAuthenticated && (
