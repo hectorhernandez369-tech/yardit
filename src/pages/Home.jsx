@@ -1419,7 +1419,7 @@ export default function HomePage() {
 
                         <>
                                 {getListingDescriptionText(listing) &&
-                          <p className="text-xs text-slate-700 leading-relaxed">{getListingDescriptionText(listing)}</p>
+                          <p className="text-xs text-slate-700 leading-relaxed line-clamp-2 overflow-hidden">{getListingDescriptionText(listing)}</p>
                           }
                                 <div className="space-y-1 rounded-lg bg-slate-50/80 p-2 text-[11px] text-slate-700">
                                   <div className="flex gap-1.5">
