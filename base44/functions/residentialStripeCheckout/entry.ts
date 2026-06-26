@@ -50,6 +50,77 @@ function sameResidentialAddress(listing, ref) {
     normalizeAddressPart(listing.zip) === normalizeAddressPart(ref.zip);
 }
 
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 3958.8;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function pointInPolygon(lat, lng, points = []) {
+  if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || points.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const xi = Number(points[i].lng);
+    const yi = Number(points[i].lat);
+    const xj = Number(points[j].lng);
+    const yj = Number(points[j].lat);
+    const intersects = ((yi > lat) !== (yj > lat)) && (lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || 1e-12) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function promoGeoAllowed(promo, loc) {
+  if (!promo?.geographic_limit_enabled) return true;
+  const geoType = promo.geographic_limit_type || 'none';
+  if (geoType === 'none') return true;
+
+  if (geoType === 'city_zip') {
+    const norm = (s) => String(s || '').trim().toLowerCase();
+    const cities = (promo.eligible_cities || []).map(norm);
+    const zips = (promo.eligible_zips || []).map(norm);
+    const locCity = norm(loc.city);
+    const locTown = norm(loc.town);
+    const locZip = norm(loc.zip);
+    const cityMatch = cities.length === 0 || cities.includes(locCity) || cities.includes(locTown);
+    const zipMatch = zips.length === 0 || zips.includes(locZip);
+    if (cities.length > 0 && zips.length > 0) return cityMatch || zipMatch;
+    if (cities.length > 0) return cityMatch;
+    if (zips.length > 0) return zipMatch;
+    return true;
+  }
+
+  const listingLat = Number(loc.lat);
+  const listingLng = Number(loc.lng);
+  if (!Number.isFinite(listingLat) || !Number.isFinite(listingLng)) return false;
+
+  if (geoType === 'radius') {
+    if (!promo.geo_center_lat || !promo.geo_center_lng || !promo.geo_radius_miles) return false;
+    return haversineDistance(promo.geo_center_lat, promo.geo_center_lng, listingLat, listingLng) <= Number(promo.geo_radius_miles);
+  }
+
+  if (geoType === 'polygon') {
+    const points = Array.isArray(promo.geo_polygon_coordinates) ? promo.geo_polygon_coordinates : [];
+    return pointInPolygon(listingLat, listingLng, points);
+  }
+
+  return true;
+}
+
+async function validatePromoGeoForCheckout(base44, promoRef, loc) {
+  if (!promoRef?.promoCodeId && !promoRef?.promoCode) return { ok: true };
+  const promos = promoRef.promoCodeId
+    ? await base44.asServiceRole.entities.ResidentialPromoCode.filter({ id: promoRef.promoCodeId })
+    : await base44.asServiceRole.entities.ResidentialPromoCode.filter({ code: String(promoRef.promoCode || '').trim().toUpperCase() });
+  const promo = promos?.[0];
+  if (!promo || !promo.geographic_limit_enabled || promo.geographic_limit_type === 'none') return { ok: true };
+  return promoGeoAllowed(promo, loc)
+    ? { ok: true }
+    : { ok: false, error: 'This promo code is not available in your area.' };
+}
+
 async function validateResidentialCheckoutDates(base44, payload, currentUser, excludeListingId = '') {
   const startDate = payload.selected_range_start_date || payload.selectedRangeStartDate;
   const endDate = payload.selected_range_end_date || payload.selectedRangeEndDate;
@@ -259,6 +330,8 @@ Deno.serve(async (req) => {
       if (!listing) return Response.json({ error: 'Listing not found' }, { status: 404 });
       const dateValidation = await validateResidentialCheckoutDates(base44, listing, null, listing_id);
       if (!dateValidation.ok) return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
+      const promoGeoValidation = await validatePromoGeoForCheckout(base44, { promoCodeId: promo_code_id, promoCode: promo_code }, listing);
+      if (!promoGeoValidation.ok) return Response.json({ error: promoGeoValidation.error }, { status: 400 });
 
       // Create completed redemption record
       await base44.asServiceRole.entities.ResidentialPromoRedemption.create({
@@ -360,6 +433,13 @@ Deno.serve(async (req) => {
       if (!dateValidation.ok) {
         return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
       }
+      let promoLocation = body;
+      if (body?.listing_id) {
+        const listings = await base44.asServiceRole.entities.Listing.filter({ id: body.listing_id });
+        promoLocation = listings?.[0] || body;
+      }
+      const promoGeoValidation = await validatePromoGeoForCheckout(base44, { promoCodeId, promoCode }, promoLocation);
+      if (!promoGeoValidation.ok) return Response.json({ error: promoGeoValidation.error }, { status: 400 });
     }
 
     const successWithParams = `${successUrl}${successUrl.includes('?') ? '&' : '?'}payment=success&session_id={CHECKOUT_SESSION_ID}`;

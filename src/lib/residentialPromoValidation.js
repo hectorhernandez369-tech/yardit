@@ -159,6 +159,20 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function pointInPolygon(lat, lng, points = []) {
+  if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || points.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const xi = Number(points[i].lng);
+    const yi = Number(points[i].lat);
+    const xj = Number(points[j].lng);
+    const yj = Number(points[j].lat);
+    const intersects = ((yi > lat) !== (yj > lat)) && (lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || 1e-12) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
 function checkGeoLimit(promoCode, loc) {
   if (!promoCode.geographic_limit_enabled) return { valid: true };
   const geoType = promoCode.geographic_limit_type || "none";
@@ -181,10 +195,20 @@ function checkGeoLimit(promoCode, loc) {
   }
 
   if (geoType === "radius") {
-    if (!promoCode.geo_center_lat || !promoCode.geo_center_lng || !promoCode.geo_radius_miles) return { valid: true };
-    if (!loc.lat || !loc.lng) return { valid: true };
-    const dist = haversineDistance(promoCode.geo_center_lat, promoCode.geo_center_lng, loc.lat, loc.lng);
+    if (!promoCode.geo_center_lat || !promoCode.geo_center_lng || !promoCode.geo_radius_miles) return { valid: false };
+    const listingLat = Number(loc.lat);
+    const listingLng = Number(loc.lng);
+    if (!Number.isFinite(listingLat) || !Number.isFinite(listingLng)) return { valid: false };
+    const dist = haversineDistance(promoCode.geo_center_lat, promoCode.geo_center_lng, listingLat, listingLng);
     if (dist > promoCode.geo_radius_miles) return { valid: false };
+    return { valid: true };
+  }
+
+  if (geoType === "polygon") {
+    const listingLat = Number(loc.lat);
+    const listingLng = Number(loc.lng);
+    const points = Array.isArray(promoCode.geo_polygon_coordinates) ? promoCode.geo_polygon_coordinates : [];
+    if (!pointInPolygon(listingLat, listingLng, points)) return { valid: false };
     return { valid: true };
   }
 

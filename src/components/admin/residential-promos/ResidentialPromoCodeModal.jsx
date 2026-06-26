@@ -43,6 +43,7 @@ const DEFAULT_FORM = {
   geo_center_lat: null,
   geo_center_lng: null,
   geo_radius_miles: 5,
+  geo_polygon_coordinates: [],
   geo_display_label: "",
 };
 
@@ -94,6 +95,12 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
     if (form.early_visibility_enabled && Number(form.early_visibility_days || 0) <= 0) {
       toast.error("Early Visibility days are required when Early Visibility is enabled."); return;
     }
+    if (form.geographic_limit_enabled && form.geographic_limit_type === "radius" && (!form.geo_center_lat || !form.geo_center_lng || !form.geo_radius_miles)) {
+      toast.error("Select a center point and radius for this promo area."); return;
+    }
+    if (form.geographic_limit_enabled && form.geographic_limit_type === "polygon" && (form.geo_polygon_coordinates || []).length < 3) {
+      toast.error("Draw at least 3 map points for the promo area."); return;
+    }
 
     setSaving(true);
     try {
@@ -105,6 +112,7 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
         geo_center_lat: form.geographic_limit_type === "radius" ? (form.geo_center_lat || null) : null,
         geo_center_lng: form.geographic_limit_type === "radius" ? (form.geo_center_lng || null) : null,
         geo_radius_miles: form.geographic_limit_type === "radius" ? (Number(form.geo_radius_miles) || 5) : null,
+        geo_polygon_coordinates: form.geographic_limit_type === "polygon" ? (form.geo_polygon_coordinates || []) : [],
         geo_display_label: form.geo_display_label?.trim() || null,
       };
 
@@ -273,8 +281,8 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
             </div>
           </Section>
 
-          {/* New geo radius targeting */}
-          <Section title="Geographic Targeting (Advanced)">
+          {/* Optional geographic restriction */}
+          <Section title="Promotion Area Restriction">
             <GeoPromoSection
               form={form}
               onChange={(k, v) => set(k, v)}

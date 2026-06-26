@@ -18,6 +18,20 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function pointInPolygon(lat, lng, points = []) {
+  if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || points.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const xi = Number(points[i].lng);
+    const yi = Number(points[i].lat);
+    const xj = Number(points[j].lng);
+    const yj = Number(points[j].lat);
+    const intersects = ((yi > lat) !== (yj > lat)) && (lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || 1e-12) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
 function shiftYmd(ymd, dayDelta) {
   const [year, month, day] = String(ymd || '').slice(0, 10).split('-').map(Number);
   if (!year || !month || !day) return '';
@@ -66,18 +80,28 @@ function checkGeoLimit(promo, loc) {
 
   if (geoType === 'radius') {
     if (!promo.geo_center_lat || !promo.geo_center_lng || !promo.geo_radius_miles) {
-      return { valid: true, status: 'skipped', distance: null };
+      return { valid: false, status: 'failed', distance: null };
     }
-    const listingLat = loc.lat;
-    const listingLng = loc.lng;
-    if (!listingLat || !listingLng) {
-      return { valid: true, status: 'skipped', distance: null };
+    const listingLat = Number(loc.lat);
+    const listingLng = Number(loc.lng);
+    if (!Number.isFinite(listingLat) || !Number.isFinite(listingLng)) {
+      return { valid: false, status: 'failed', distance: null };
     }
     const dist = haversineDistance(promo.geo_center_lat, promo.geo_center_lng, listingLat, listingLng);
     if (dist > promo.geo_radius_miles) {
       return { valid: false, status: 'failed', distance: Math.round(dist * 10) / 10 };
     }
     return { valid: true, status: 'passed', distance: Math.round(dist * 10) / 10 };
+  }
+
+  if (geoType === 'polygon') {
+    const listingLat = Number(loc.lat);
+    const listingLng = Number(loc.lng);
+    const points = Array.isArray(promo.geo_polygon_coordinates) ? promo.geo_polygon_coordinates : [];
+    if (!pointInPolygon(listingLat, listingLng, points)) {
+      return { valid: false, status: 'failed', distance: null };
+    }
+    return { valid: true, status: 'passed', distance: null };
   }
 
   return { valid: true, status: 'skipped', distance: null };

@@ -3,8 +3,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Search, Loader2, X, Plus, Crosshair } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from "react-leaflet";
+import { MapPin, Search, Loader2, X, Plus, Crosshair, Undo2 } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Circle, Polygon, Polyline, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -77,6 +77,11 @@ export default function GeoPromoSection({ form, onChange }) {
   const geoType = form.geographic_limit_type || "none";
   const hasCenterPin = form.geo_center_lat && form.geo_center_lng;
   const radiusMiles = form.geo_radius_miles || 5;
+  const polygonPoints = Array.isArray(form.geo_polygon_coordinates) ? form.geo_polygon_coordinates : [];
+  const hasPolygonPoints = polygonPoints.length > 0;
+  const mapCenter = hasPolygonPoints
+    ? [polygonPoints[0].lat, polygonPoints[0].lng]
+    : [hasCenterPin ? form.geo_center_lat : 36.2, hasCenterPin ? form.geo_center_lng : -119.0];
 
   const handleAddCity = () => {
     const val = cityInput.trim();
@@ -130,6 +135,12 @@ export default function GeoPromoSection({ form, onChange }) {
   };
 
   const handleMapClick = (lat, lng) => {
+    if (geoType === "polygon") {
+      onChange("geo_polygon_coordinates", [...polygonPoints, { lat, lng }]);
+      if (!form.geo_display_label) onChange("geo_display_label", "Custom map area");
+      return;
+    }
+
     onChange("geo_center_lat", lat);
     onChange("geo_center_lng", lng);
     if (!form.geo_display_label) {
@@ -163,6 +174,14 @@ export default function GeoPromoSection({ form, onChange }) {
     setCustomRadius("");
   };
 
+  const undoPolygonPoint = () => {
+    onChange("geo_polygon_coordinates", polygonPoints.slice(0, -1));
+  };
+
+  const clearPolygon = () => {
+    onChange("geo_polygon_coordinates", []);
+  };
+
   return (
     <div className="space-y-3">
       {/* Master toggle */}
@@ -185,12 +204,13 @@ export default function GeoPromoSection({ form, onChange }) {
 
       {geoEnabled && (
         <div className="space-y-3 pl-1">
-          {/* Coverage type selector */}
+          {/* Area type selector */}
           <div className="flex flex-wrap gap-2">
             {[
-              { value: "none", label: "No limit" },
-              { value: "city_zip", label: "City / ZIP" },
-              { value: "radius", label: "Map Radius" },
+              { value: "none", label: "No restriction" },
+              { value: "radius", label: "Radius from point" },
+              { value: "polygon", label: "Custom drawn area" },
+              ...(geoType === "city_zip" ? [{ value: "city_zip", label: "City / ZIP (legacy)" }] : []),
             ].map((opt) => (
               <button
                 key={opt.value}
@@ -327,7 +347,7 @@ export default function GeoPromoSection({ form, onChange }) {
               {/* Map */}
               <div className="rounded-lg overflow-hidden border border-slate-200" style={{ height: 220 }}>
                 <MapContainer
-                  center={[hasCenterPin ? form.geo_center_lat : 36.2, hasCenterPin ? form.geo_center_lng : -119.0]}
+                  center={mapCenter}
                   zoom={hasCenterPin ? 10 : 6}
                   style={{ height: "100%", width: "100%" }}
                   scrollWheelZoom={false}
@@ -410,6 +430,75 @@ export default function GeoPromoSection({ form, onChange }) {
                   {form.geo_display_label ? ` from ${form.geo_display_label}` : ` from selected point`}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Custom drawn area */}
+          {geoType === "polygon" && (
+            <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-600 font-medium">Draw Area</Label>
+                <p className="text-[10px] text-slate-400">Click/tap the map to add outline points. At least 3 points are required.</p>
+              </div>
+
+              <div className="rounded-lg overflow-hidden border border-slate-200" style={{ height: 260 }}>
+                <MapContainer
+                  center={mapCenter}
+                  zoom={hasPolygonPoints ? 12 : 6}
+                  style={{ height: "100%", width: "100%" }}
+                  scrollWheelZoom={false}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  />
+                  <MapClickHandler onMapClick={handleMapClick} />
+                  {polygonPoints.length >= 3 ? (
+                    <Polygon
+                      positions={polygonPoints.map((point) => [point.lat, point.lng])}
+                      pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.15, weight: 2 }}
+                    />
+                  ) : polygonPoints.length > 0 ? (
+                    <Polyline
+                      positions={polygonPoints.map((point) => [point.lat, point.lng])}
+                      pathOptions={{ color: "#5DADA5", weight: 2 }}
+                    />
+                  ) : null}
+                  {polygonPoints.map((point, index) => (
+                    <Marker key={`${point.lat}-${point.lng}-${index}`} position={[point.lat, point.lng]} />
+                  ))}
+                </MapContainer>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={undoPolygonPoint}
+                  disabled={polygonPoints.length === 0}
+                  className="inline-flex items-center gap-1 rounded border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 disabled:opacity-50"
+                >
+                  <Undo2 className="h-3.5 w-3.5" /> Undo point
+                </button>
+                <button
+                  type="button"
+                  onClick={clearPolygon}
+                  disabled={polygonPoints.length === 0}
+                  className="rounded border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 disabled:opacity-50"
+                >
+                  Clear area
+                </button>
+                <span className="text-xs text-slate-500">{polygonPoints.length} point{polygonPoints.length === 1 ? "" : "s"} selected</span>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-600 font-medium">Display Label</Label>
+                <Input
+                  placeholder="e.g. Lindsay launch area"
+                  value={form.geo_display_label || ""}
+                  onChange={(e) => onChange("geo_display_label", e.target.value)}
+                  className="text-sm h-8"
+                />
+              </div>
             </div>
           )}
         </div>
