@@ -41,20 +41,20 @@ export default function TesterLoginModal({ open, onClose, onSuccess }) {
       onMouseDown={onBackdropMouseDown}
     >
       <div
-        className="bg-[#F3E6CF] border-2 border-[#2C4F4E] rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6"
+        className="w-full max-w-sm mx-4 rounded-3xl border border-white/80 bg-white shadow-2xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <Unlock className="w-5 h-5 text-[#5DADA5]" />
-            <h2 className="text-lg font-bold text-[#2C4F4E]">Early Access</h2>
+            <h2 className="text-lg font-black text-slate-950">Early Access</h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-sm text-[#2C4F4E]/70 mb-4">
+        <p className="text-sm text-slate-600 mb-4">
           Enter your early access code to preview Yardit before launch.
         </p>
 
@@ -64,19 +64,19 @@ export default function TesterLoginModal({ open, onClose, onSuccess }) {
             onChange={(e) => setCode(e.target.value)}
             placeholder="Enter access code"
             autoFocus
-            className="border-[#2C4F4E]/40"
+            className="rounded-2xl border-teal-100 bg-cyan-50/60 focus-visible:ring-[#5DADA5]"
           />
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white border-2 border-[#2C4F4E]"
+            className="w-full rounded-2xl bg-[#5DADA5] text-white shadow-md hover:bg-[#4A9B93]"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}
             Enter Yardit
           </Button>
         </form>
 
-        <p className="text-xs text-gray-400 mt-4 text-center">
+        <p className="text-xs text-slate-400 mt-4 text-center">
           Access is valid for 1 hour per session.
         </p>
       </div>

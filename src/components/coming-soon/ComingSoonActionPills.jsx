@@ -58,7 +58,7 @@ export default function ComingSoonActionPills() {
           <Button
             type="button"
             onClick={handleInstallClick}
-            className="h-11 rounded-full border-2 border-[#2C4F4E] bg-[#F4A849] px-5 font-black text-[#2C4F4E] shadow-md hover:bg-[#E39635]"
+            className="h-11 rounded-full bg-[#F4A849] px-5 font-black text-[#2C4F4E] shadow-lg shadow-amber-200/70 hover:bg-[#E39635]"
           >
             <Download className="mr-2 h-4 w-4" />
             Install Now

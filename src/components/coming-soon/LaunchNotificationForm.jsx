@@ -28,27 +28,25 @@ export default function LaunchNotificationForm() {
   };
 
   return (
-    <Card className="border-2 border-[#2C4F4E] bg-[#E7D7B8]/95 shadow-[0_18px_50px_rgba(44,79,78,0.16)]">
-      <CardHeader className="space-y-3">
-        <CardTitle className="text-2xl text-[#2C4F4E]">Get notified when Yardit launches</CardTitle>
-         <CardDescription className="text-base text-[#2C4F4E]/80">
-           Save your email to be first in line for launch updates.
-         </CardDescription>
+    <Card className="border-0 bg-transparent shadow-none">
+      <CardHeader className="sr-only">
+        <CardTitle>Get notified when Yardit launches</CardTitle>
+        <CardDescription>Save your email to be first in line for launch updates.</CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <CardContent className="p-0">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <Input
             type="email"
             required
             placeholder="Email address"
             value={form.email}
             onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-            className="h-12 border-2 border-[#2C4F4E]/20 bg-white text-[#2C4F4E] placeholder:text-[#2C4F4E]/45"
+            className="h-12 rounded-2xl border border-teal-100 bg-cyan-50/60 text-slate-900 placeholder:text-slate-400 focus-visible:ring-[#5DADA5]"
           />
           <Button
             type="submit"
             disabled={signupMutation.isPending}
-            className="h-12 w-full border-2 border-[#2C4F4E] bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"
+            className="h-12 w-full rounded-2xl bg-[#F4A849] font-black text-[#2C4F4E] shadow-md hover:bg-[#E39635]"
           >
             {signupMutation.isPending ? "Saving..." : "Notify Me"}
           </Button>
