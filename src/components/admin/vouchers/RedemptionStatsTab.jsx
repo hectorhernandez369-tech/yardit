@@ -40,7 +40,21 @@ export default function RedemptionStatsTab({ adminUser }) {
     initialData: [],
   });
 
+  const { data: users = [] } = useQuery({
+    queryKey: ["voucherRedemptionUsers"],
+    queryFn: async () => {
+      try { return await base44.entities.User.list(); } catch { return []; }
+    },
+    initialData: [],
+  });
+
   const campaignMap = Object.fromEntries(campaigns.map(c => [c.id, c]));
+  const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+  const getAccountLabel = (voucher) => {
+    const user = userMap[voucher.user_id];
+    return user?.full_name || user?.email || voucher.user_id || "Unknown account";
+  };
+  const getAccountDetail = (voucher) => userMap[voucher.user_id]?.email || voucher.user_id || "";
 
   const handleLookup = async () => {
     if (!lookupQuery.trim()) return;
@@ -84,7 +98,7 @@ export default function RedemptionStatsTab({ adminUser }) {
     .filter(v => {
       if (!search) return true;
       const q = search.toLowerCase();
-      return v.promo_code?.toLowerCase().includes(q) || v.user_id?.toLowerCase().includes(q) || v.reward_title?.toLowerCase().includes(q);
+      return v.promo_code?.toLowerCase().includes(q) || v.user_id?.toLowerCase().includes(q) || getAccountLabel(v).toLowerCase().includes(q) || getAccountDetail(v).toLowerCase().includes(q) || v.reward_title?.toLowerCase().includes(q);
     });
 
   const doAction = async (voucherId, action, reason = "") => {
@@ -148,8 +162,10 @@ export default function RedemptionStatsTab({ adminUser }) {
                       </div>
                       <p className="text-sm font-medium text-slate-700 truncate">{v.reward_title}</p>
                       <p className="text-xs text-slate-400 truncate">{campaignMap[v.campaign_id]?.campaign_name || ""}</p>
-                      <p className="text-xs text-slate-400 font-mono">User: {v.user_id}</p>
-                      {v.created_at && <p className="text-xs text-slate-400">Issued: {format(new Date(v.created_at), "MMM d, yyyy")}</p>}
+                      <p className="text-xs text-slate-500">Account: {getAccountLabel(v)}</p>
+                      {getAccountDetail(v) && <p className="text-xs text-slate-400 font-mono">{getAccountDetail(v)}</p>}
+                      {v.redeemed_at && <p className="text-xs text-slate-400">Used: {format(new Date(v.redeemed_at), "MMM d, yyyy h:mm a")}</p>}
+                      {!v.redeemed_at && v.created_at && <p className="text-xs text-slate-400">Issued: {format(new Date(v.created_at), "MMM d, yyyy")}</p>}
                     </div>
                     <a
                       href={`${APP_BASE_URL}/reward/redeem/${v.qr_token}`}
@@ -172,7 +188,7 @@ export default function RedemptionStatsTab({ adminUser }) {
       <div className="flex flex-col sm:flex-row gap-2">
         <input
           className="border rounded-lg px-3 py-2 text-sm flex-1"
-          placeholder="Filter table by promo code, user ID, or reward..."
+          placeholder="Filter table by promo code, account, email, or reward..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -194,7 +210,7 @@ export default function RedemptionStatsTab({ adminUser }) {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b">
               <tr>
-                {["Promo Code","Campaign","Reward","Status","User","Created","Expires","Actions"].map(h => (
+                {["Promo Code","Campaign","Reward","Status","Account","Used When","Expires","Actions"].map(h => (
                   <th key={h} className="px-3 py-2 text-left text-xs text-slate-600 font-semibold whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -206,8 +222,11 @@ export default function RedemptionStatsTab({ adminUser }) {
                   <td className="px-3 py-2 text-xs text-slate-600 max-w-[120px] truncate">{campaignMap[v.campaign_id]?.campaign_name || "—"}</td>
                   <td className="px-3 py-2 text-xs max-w-[120px] truncate">{v.reward_title}</td>
                   <td className="px-3 py-2"><Badge className={`text-xs ${STATUS_COLORS[v.status] || ""}`}>{v.status}</Badge></td>
-                  <td className="px-3 py-2 text-xs text-slate-400 max-w-[100px] truncate">{v.user_id}</td>
-                  <td className="px-3 py-2 text-xs text-slate-400 whitespace-nowrap">{v.created_at ? format(new Date(v.created_at), "MMM d") : "—"}</td>
+                  <td className="px-3 py-2 text-xs max-w-[140px]">
+                    <p className="font-medium text-slate-700 truncate">{getAccountLabel(v)}</p>
+                    {getAccountDetail(v) && <p className="text-slate-400 truncate">{getAccountDetail(v)}</p>}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-slate-400 whitespace-nowrap">{v.redeemed_at ? format(new Date(v.redeemed_at), "MMM d, h:mm a") : "Not used"}</td>
                   <td className="px-3 py-2 text-xs text-slate-400 whitespace-nowrap">{v.expiration_date ? format(new Date(v.expiration_date), "MMM d, yy") : "—"}</td>
                   <td className="px-3 py-2">
                     <div className="flex gap-1">
@@ -250,6 +269,9 @@ export default function RedemptionStatsTab({ adminUser }) {
                 </div>
                 <p className="text-sm font-medium">{v.reward_title}</p>
                 <p className="text-xs text-slate-400">{campaignMap[v.campaign_id]?.campaign_name}</p>
+                <p className="text-xs text-slate-500">Account: {getAccountLabel(v)}</p>
+                {getAccountDetail(v) && <p className="text-xs text-slate-400 font-mono truncate">{getAccountDetail(v)}</p>}
+                <p className="text-xs text-slate-400">Used: {v.redeemed_at ? format(new Date(v.redeemed_at), "MMM d, yyyy h:mm a") : "Not used yet"}</p>
                 {v.expiration_date && <p className="text-xs text-slate-400">Expires: {format(new Date(v.expiration_date), "MMM d, yyyy")}</p>}
                 <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-100">
                   {v.status === "pending" && <Button size="sm" variant="outline" onClick={() => doAction(v.id, "activate")} className="text-xs h-7 gap-1"><CheckCircle2 className="w-3 h-3" />Activate</Button>}

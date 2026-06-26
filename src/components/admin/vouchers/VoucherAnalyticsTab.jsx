@@ -1,17 +1,41 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { Gift, CheckCircle2, Clock, ShieldAlert, XCircle, TrendingUp, Tag, DollarSign, Percent } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { CheckCircle2, Clock, DollarSign, Gift, Search, Tag, TrendingUp, Users } from "lucide-react";
 
-const TEAL = "#5DADA5";
-const GOLD = "#F4A849";
-const RED = "#EF4444";
-const AMBER = "#F59E0B";
-const SLATE = "#94A3B8";
+const STATUS_COLORS = {
+  active: "bg-green-100 text-green-800 border-green-300",
+  completed: "bg-green-100 text-green-800 border-green-300",
+  redeemed: "bg-green-100 text-green-800 border-green-300",
+  pending: "bg-blue-100 text-blue-800 border-blue-300",
+  on_hold: "bg-amber-100 text-amber-800 border-amber-300",
+  expired: "bg-slate-100 text-slate-600 border-slate-300",
+  revoked: "bg-red-100 text-red-800 border-red-300",
+  voided: "bg-red-100 text-red-800 border-red-300",
+  removed: "bg-slate-100 text-slate-600 border-slate-300",
+  canceled: "bg-red-100 text-red-800 border-red-300",
+  forfeited: "bg-red-100 text-red-800 border-red-300",
+};
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return format(date, "MMM d, yyyy h:mm a");
+}
+
+function money(value) {
+  return `$${Math.round(value || 0).toLocaleString()}`;
+}
 
 export default function VoucherAnalyticsTab() {
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+
   const { data: vouchers = [] } = useQuery({
     queryKey: ["allUserVouchers"],
     queryFn: () => base44.entities.UserVoucher.list("-created_at", 500),
@@ -19,12 +43,14 @@ export default function VoucherAnalyticsTab() {
   });
   const { data: campaigns = [] } = useQuery({
     queryKey: ["voucherCampaigns"],
-    queryFn: () => base44.entities.VoucherCampaign.list("-created_at"),
+    queryFn: () => base44.entities.VoucherCampaign.list("-created_at", 500),
     initialData: [],
   });
-  const { data: redemptions = [] } = useQuery({
-    queryKey: ["voucherRedemptions"],
-    queryFn: () => base44.entities.VoucherRedemption.list("-redeemed_at", 500),
+  const { data: users = [] } = useQuery({
+    queryKey: ["rewardAnalyticsUsers"],
+    queryFn: async () => {
+      try { return await base44.entities.User.list(); } catch { return []; }
+    },
     initialData: [],
   });
   const { data: residentialPromoCodes = [] } = useQuery({
@@ -48,76 +74,129 @@ export default function VoucherAnalyticsTab() {
     initialData: [],
   });
 
-  const total = vouchers.length;
-  const byStatus = (s) => vouchers.filter(v => v.status === s).length;
-  const redeemed = byStatus("redeemed");
-  const active = byStatus("active");
-  const pending = byStatus("pending");
-  const onHold = byStatus("on_hold");
-  const revoked = byStatus("revoked");
-  const expired = byStatus("expired");
-  const pct = total > 0 ? Math.round((redeemed / total) * 100) : 0;
+  const rows = useMemo(() => {
+    const campaignMap = new Map(campaigns.map(c => [c.id, c]));
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const residentialCodeMap = new Map(residentialPromoCodes.map(p => [p.id, p]));
+    const vendorCodeMap = new Map(vendorPromoCodes.map(p => [p.id, p]));
 
-  const campaignStats = campaigns.map(c => ({
-    name: c.campaign_name.length > 18 ? c.campaign_name.substring(0, 18) + "…" : c.campaign_name,
-    issued: c.issued_count || 0,
-    redeemed: vouchers.filter(v => v.campaign_id === c.id && v.status === "redeemed").length,
-  })).filter(c => c.issued > 0).slice(0, 8);
+    const voucherRows = vouchers.map(v => {
+      const user = userMap.get(v.user_id);
+      const campaign = campaignMap.get(v.campaign_id);
+      return {
+        id: `voucher-${v.id}`,
+        type: "voucher",
+        typeLabel: "QR Voucher",
+        code: v.promo_code || v.qr_token || "—",
+        title: v.reward_title || campaign?.campaign_name || "Voucher reward",
+        account: user?.full_name || user?.email || v.user_id || "Unknown account",
+        accountDetail: user?.email || v.user_id || "",
+        status: v.status || "unknown",
+        usedAt: v.redeemed_at || "",
+        issuedAt: v.created_at || "",
+        amount: "—",
+        details: v.business_name || campaign?.campaign_name || "—",
+        used: v.status === "redeemed" || !!v.redeemed_at,
+        sortDate: v.redeemed_at || v.created_at || v.updated_date,
+      };
+    });
+
+    const residentialRows = residentialPromoRedemptions.map(r => {
+      const promo = residentialCodeMap.get(r.promo_code_id);
+      return {
+        id: `residential-${r.id}`,
+        type: "residential",
+        typeLabel: "Residential Promo",
+        code: r.code || promo?.code || "—",
+        title: promo?.title || "Residential promo code",
+        account: r.user_email || r.user_id || "Unknown account",
+        accountDetail: r.user_id || "",
+        status: r.status || "completed",
+        usedAt: r.redeemed_at || r.created_date || "",
+        issuedAt: promo?.created_at || promo?.created_date || "",
+        amount: money(r.discount_amount),
+        details: `${r.discount_percent_applied || 0}% off${r.listing_id ? ` · Listing ${r.listing_id}` : ""}`,
+        used: r.status !== "voided",
+        sortDate: r.redeemed_at || r.created_date,
+      };
+    });
+
+    const vendorRows = vendorPromoRedemptions.map(r => {
+      const promo = vendorCodeMap.get(r.promo_code_id);
+      return {
+        id: `vendor-${r.id}`,
+        type: "vendor",
+        typeLabel: "Vendor Promo",
+        code: r.promo_code || promo?.code || "—",
+        title: promo?.promo_name || "Vendor promo code",
+        account: r.vendor_business_name || r.user_email || r.user_id || "Unknown account",
+        accountDetail: r.user_email || r.vendor_account_id || "",
+        status: r.redemption_status || "active",
+        usedAt: r.redeemed_at || r.created_date || "",
+        issuedAt: promo?.created_at || promo?.created_date || "",
+        amount: money(r.discount_applied_dollars),
+        details: `${r.tier_selected || "Vendor tier"}${r.discount_value ? ` · ${r.discount_value}${r.discount_type === "percentage" ? "%" : ""}` : ""}`,
+        used: true,
+        sortDate: r.redeemed_at || r.created_date,
+      };
+    });
+
+    return [...voucherRows, ...residentialRows, ...vendorRows]
+      .sort((a, b) => new Date(b.sortDate || 0) - new Date(a.sortDate || 0));
+  }, [campaigns, users, residentialPromoCodes, vendorPromoCodes, vouchers, residentialPromoRedemptions, vendorPromoRedemptions]);
+
+  const filteredRows = rows.filter(row => {
+    if (typeFilter !== "all" && row.type !== typeFilter) return false;
+    if (statusFilter === "used" && !row.used) return false;
+    if (statusFilter === "not_used" && row.used) return false;
+    if (!["all", "used", "not_used"].includes(statusFilter) && row.status !== statusFilter) return false;
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return [row.code, row.title, row.account, row.accountDetail, row.status, row.typeLabel, row.details]
+      .filter(Boolean)
+      .some(value => String(value).toLowerCase().includes(q));
+  });
 
   const totalPromoCodes = residentialPromoCodes.length + vendorPromoCodes.length;
-  const activePromoCodes = residentialPromoCodes.filter(p => p.status === "active").length + vendorPromoCodes.filter(p => p.active).length;
-  const completedResidentialPromos = residentialPromoRedemptions.filter(r => r.status !== "voided");
-  const promoRedemptionTotal = completedResidentialPromos.length + vendorPromoRedemptions.length;
-  const promoDiscountTotal = Math.round([
-    ...completedResidentialPromos.map(r => r.discount_amount || 0),
-    ...vendorPromoRedemptions.map(r => r.discount_applied_dollars || 0),
-  ].reduce((sum, value) => sum + value, 0));
-  const promoUsesPerCode = totalPromoCodes > 0 ? (promoRedemptionTotal / totalPromoCodes).toFixed(1) : "0.0";
-  const promoUseProgress = Math.min(Number(promoUsesPerCode) * 20, 100);
+  const promoUses = residentialPromoRedemptions.filter(r => r.status !== "voided").length + vendorPromoRedemptions.length;
+  const voucherRedeemed = vouchers.filter(v => v.status === "redeemed" || v.redeemed_at).length;
+  const totalDiscount = residentialPromoRedemptions.reduce((sum, r) => sum + (r.status === "voided" ? 0 : r.discount_amount || 0), 0)
+    + vendorPromoRedemptions.reduce((sum, r) => sum + (r.discount_applied_dollars || 0), 0);
 
-  const actualPromoUses = new Map();
-  completedResidentialPromos.forEach(r => {
-    const key = r.code || "Unknown";
-    actualPromoUses.set(key, (actualPromoUses.get(key) || 0) + 1);
-  });
-  vendorPromoRedemptions.forEach(r => {
-    const key = r.promo_code || "Unknown";
-    actualPromoUses.set(key, (actualPromoUses.get(key) || 0) + 1);
-  });
+  const summaryCards = [
+    { label: "Voucher Redemptions", value: voucherRedeemed, IconComp: Gift, color: "#5DADA5" },
+    { label: "Promo Codes", value: totalPromoCodes, IconComp: Tag, color: "#F4A849" },
+    { label: "Promo Uses", value: promoUses, IconComp: CheckCircle2, color: "#16A34A" },
+    { label: "Discount Given", value: money(totalDiscount), IconComp: DollarSign, color: "#6366F1" },
+  ];
 
-  const promoUsageMap = new Map();
-  residentialPromoCodes.forEach(p => promoUsageMap.set(p.code, {
-    name: p.code,
-    uses: Math.max(p.total_used_count || 0, actualPromoUses.get(p.code) || 0),
-  }));
-  vendorPromoCodes.forEach(p => promoUsageMap.set(p.code, {
-    name: p.code,
-    uses: Math.max(p.redemptions_used || p.current_redemptions || 0, actualPromoUses.get(p.code) || 0),
-  }));
-  actualPromoUses.forEach((uses, code) => {
-    if (!promoUsageMap.has(code)) promoUsageMap.set(code, { name: code, uses });
-  });
-  const promoStats = Array.from(promoUsageMap.values()).filter(p => p.uses > 0).sort((a, b) => b.uses - a.uses).slice(0, 8);
-
-  const statCards = [
-    { label: "Total Issued", value: total, IconComp: Gift, color: TEAL },
-    { label: "Redeemed", value: redeemed, IconComp: CheckCircle2, color: "#16A34A" },
-    { label: "Active", value: active, IconComp: TrendingUp, color: GOLD },
-    { label: "Pending", value: pending, IconComp: Clock, color: "#6366F1" },
-    { label: "On Hold", value: onHold, IconComp: ShieldAlert, color: AMBER },
-    { label: "Revoked", value: revoked, IconComp: XCircle, color: RED },
+  const typeOptions = [
+    { label: "All", value: "all" },
+    { label: "QR Vouchers", value: "voucher" },
+    { label: "Residential Promos", value: "residential" },
+    { label: "Vendor Promos", value: "vendor" },
+  ];
+  const statusOptions = [
+    { label: "All", value: "all" },
+    { label: "Used", value: "used" },
+    { label: "Not Used", value: "not_used" },
+    { label: "Active", value: "active" },
+    { label: "Pending", value: "pending" },
+    { label: "Redeemed", value: "redeemed" },
+    { label: "Voided", value: "voided" },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-bold text-[#2C4F4E] flex items-center gap-2"><TrendingUp className="w-5 h-5 text-[#F4A849]" />Reward Analytics</h2>
-        <p className="text-sm text-slate-500">Overview of voucher and promo code performance.</p>
+        <h2 className="text-lg font-bold text-[#2C4F4E] flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-[#F4A849]" />Reward Analytics
+        </h2>
+        <p className="text-sm text-slate-500">Filtered voucher and promo code redemption activity with account and usage timing.</p>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {statCards.map(({ label, value, IconComp, color }) => (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {summaryCards.map(({ label, value, IconComp, color }) => (
           <Card key={label} className="border border-slate-200 shadow-sm">
             <CardContent className="p-3 text-center">
               <IconComp className="w-5 h-5 mx-auto mb-1" style={{ color }} />
@@ -128,110 +207,110 @@ export default function VoucherAnalyticsTab() {
         ))}
       </div>
 
-      {/* Redemption Rate */}
       <Card className="border border-slate-200">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="font-semibold text-[#2C4F4E]">Overall Redemption Rate</p>
-            <span className="text-2xl font-bold text-[#5DADA5]">{pct}%</span>
-          </div>
-          <div className="w-full bg-slate-100 rounded-full h-3">
-            <div className="h-3 rounded-full transition-all" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${TEAL}, ${GOLD})` }} />
-          </div>
-          <p className="text-xs text-slate-400 mt-2">{redeemed} of {total} issued vouchers redeemed</p>
-        </CardContent>
-      </Card>
-
-      {/* Promo Code Statistics */}
-      <div className="space-y-3">
-        <div>
-          <h3 className="font-semibold text-[#2C4F4E] flex items-center gap-2"><Tag className="w-4 h-4 text-[#F4A849]" />Promo Code Statistics</h3>
-          <p className="text-xs text-slate-500">Residential and vendor promo code usage.</p>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: "Promo Codes", value: totalPromoCodes, IconComp: Tag, color: TEAL },
-            { label: "Active Codes", value: activePromoCodes, IconComp: CheckCircle2, color: "#16A34A" },
-            { label: "Total Uses", value: promoRedemptionTotal, IconComp: Percent, color: GOLD },
-            { label: "Discount Given", value: `$${promoDiscountTotal}`, IconComp: DollarSign, color: "#6366F1" },
-          ].map(({ label, value, IconComp, color }) => (
-            <Card key={label} className="border border-slate-200 shadow-sm">
-              <CardContent className="p-3 text-center">
-                <IconComp className="w-5 h-5 mx-auto mb-1" style={{ color }} />
-                <p className="text-2xl font-bold text-[#2C4F4E]">{value}</p>
-                <p className="text-xs text-slate-500 leading-tight">{label}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <Card className="border border-slate-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-semibold text-[#2C4F4E]">Average Uses per Promo Code</p>
-              <span className="text-2xl font-bold text-[#5DADA5]">{promoUsesPerCode}</span>
+        <CardContent className="p-4 space-y-4">
+          <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+            <div>
+              <h3 className="font-semibold text-[#2C4F4E] flex items-center gap-2">
+                <Users className="w-4 h-4 text-[#5DADA5]" />Redemption Activity
+              </h3>
+              <p className="text-xs text-slate-500">Showing {filteredRows.length} of {rows.length} records.</p>
             </div>
-            <div className="w-full bg-slate-100 rounded-full h-3">
-              <div className="h-3 rounded-full transition-all" style={{ width: `${promoUseProgress}%`, background: `linear-gradient(90deg, ${TEAL}, ${GOLD})` }} />
+            <div className="relative w-full lg:w-80">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search code, account, status..."
+                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
+              />
             </div>
-            <p className="text-xs text-slate-400 mt-2">{promoRedemptionTotal} recorded uses across {totalPromoCodes} promo codes</p>
-          </CardContent>
-        </Card>
-        {promoStats.length > 0 && (
-          <Card className="border border-slate-200">
-            <CardContent className="p-4">
-              <p className="font-semibold text-[#2C4F4E] mb-4">Top Promo Codes by Uses</p>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={promoStats} margin={{ left: -10 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="uses" fill={TEAL} radius={[3,3,0,0]} name="Uses" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+          </div>
 
-      {/* Campaign Bar Chart */}
-      {campaignStats.length > 0 && (
-        <Card className="border border-slate-200">
-          <CardContent className="p-4">
-            <p className="font-semibold text-[#2C4F4E] mb-4">Issued vs Redeemed by Campaign</p>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={campaignStats} barGap={4} margin={{ left: -10 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip contentStyle={{ fontSize: 12 }} />
-                <Bar dataKey="issued" fill={TEAL} radius={[3,3,0,0]} name="Issued" />
-                <Bar dataKey="redeemed" fill={GOLD} radius={[3,3,0,0]} name="Redeemed" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {typeOptions.map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => setTypeFilter(option.value)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border ${typeFilter === option.value ? "bg-[#2C4F4E] text-white border-[#2C4F4E]" : "bg-white border-slate-300 text-slate-600"}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {statusOptions.map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => setStatusFilter(option.value)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border ${statusFilter === option.value ? "bg-[#5DADA5] text-white border-[#2C4F4E]" : "bg-white border-slate-300 text-slate-600"}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {/* Status breakdown pie-style */}
-      <Card className="border border-slate-200">
-        <CardContent className="p-4">
-          <p className="font-semibold text-[#2C4F4E] mb-4">Voucher Status Breakdown</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={[
-              { name: "Active", value: active, fill: GOLD },
-              { name: "Pending", value: pending, fill: "#6366F1" },
-              { name: "Redeemed", value: redeemed, fill: "#16A34A" },
-              { name: "On Hold", value: onHold, fill: AMBER },
-              { name: "Revoked", value: revoked, fill: RED },
-              { name: "Expired", value: expired, fill: SLATE },
-            ]} layout="vertical" margin={{ left: 10 }}>
-              <XAxis type="number" tick={{ fontSize: 10 }} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={65} />
-              <Tooltip contentStyle={{ fontSize: 12 }} />
-              <Bar dataKey="value" radius={[0,3,3,0]}>
-                {[GOLD,"#6366F1","#16A34A",AMBER,RED,SLATE].map((c, i) => <Cell key={i} fill={c} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="hidden md:block rounded-xl border border-slate-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  {["Type", "Code", "Reward / Promo", "Account Used", "Used When", "Status", "Value", "Details"].map(h => (
+                    <th key={h} className="px-3 py-2 text-left text-xs text-slate-600 font-semibold whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredRows.map(row => (
+                  <tr key={row.id} className="hover:bg-slate-50">
+                    <td className="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">{row.typeLabel}</td>
+                    <td className="px-3 py-2 font-mono font-bold text-[#2C4F4E] text-xs whitespace-nowrap">{row.code}</td>
+                    <td className="px-3 py-2 text-xs max-w-[160px] truncate">{row.title}</td>
+                    <td className="px-3 py-2 text-xs max-w-[180px]">
+                      <p className="font-medium text-slate-700 truncate">{row.account}</p>
+                      {row.accountDetail && <p className="text-slate-400 truncate">{row.accountDetail}</p>}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">{row.used ? formatDateTime(row.usedAt) : "Not used yet"}</td>
+                    <td className="px-3 py-2"><Badge className={`text-xs ${STATUS_COLORS[row.status] || "bg-slate-100 text-slate-600 border-slate-300"}`}>{row.status}</Badge></td>
+                    <td className="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">{row.amount}</td>
+                    <td className="px-3 py-2 text-xs text-slate-500 max-w-[180px] truncate">{row.details}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="md:hidden space-y-3">
+            {filteredRows.map(row => (
+              <Card key={row.id} className="border border-slate-200">
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs text-slate-500">{row.typeLabel}</p>
+                      <p className="font-mono font-bold text-[#2C4F4E] text-sm">{row.code}</p>
+                    </div>
+                    <Badge className={`text-xs ${STATUS_COLORS[row.status] || "bg-slate-100 text-slate-600 border-slate-300"}`}>{row.status}</Badge>
+                  </div>
+                  <p className="text-sm font-medium text-slate-800">{row.title}</p>
+                  <div className="text-xs text-slate-500 space-y-1">
+                    <p><span className="font-semibold text-slate-700">Account:</span> {row.account}</p>
+                    {row.accountDetail && <p className="truncate">{row.accountDetail}</p>}
+                    <p><span className="font-semibold text-slate-700">Used:</span> {row.used ? formatDateTime(row.usedAt) : "Not used yet"}</p>
+                    <p><span className="font-semibold text-slate-700">Value:</span> {row.amount}</p>
+                    <p>{row.details}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {filteredRows.length === 0 && (
+            <div className="text-center py-10 text-slate-400">
+              <Clock className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <p className="text-sm font-medium">No redemption records match these filters.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
