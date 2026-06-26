@@ -11,7 +11,7 @@ import { setTesterBypass } from "@/lib/comingSoonMode";
 
 const logoUrl = "https://media.base44.com/images/public/690f554506edf795e5d84121/418a5e7a0_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
 const shipWatermarkUrl = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0ba1ba06_file_00000000fce071fd9ff100a6a9cf19951.png";
-const mapScreenshotUrl = "https://media.base44.com/images/public/690f554506edf795e5d84121/8c64a8281_Screenshot_20260626_090142_Chrome.jpg";
+const mapScreenshotUrl = "https://media.base44.com/images/public/690f554506edf795e5d84121/424d23cce_Screenshot_20260626_095636_Chrome.jpg";
 
 export default function ComingSoon() {
   const [showTesterModal, setShowTesterModal] = useState(false);
