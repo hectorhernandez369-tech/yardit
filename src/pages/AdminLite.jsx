@@ -403,14 +403,22 @@ export default function AdminLitePage() {
             )}
 
             <div className="grid sm:grid-cols-2 gap-3 mb-4">
-              <div className="rounded-xl border-2 border-orange-300 bg-orange-50 p-3">
+              <button
+                type="button"
+                onClick={() => setCaseManagementTab("reports_queue")}
+                className={`text-left rounded-xl border-2 p-3 transition-all ${caseManagementTab === "reports_queue" ? "border-orange-500 bg-orange-100 shadow-sm" : "border-orange-300 bg-orange-50 hover:bg-orange-100"}`}
+              >
                 <p className="text-xs font-bold uppercase tracking-wide text-orange-700">General queues</p>
                 <p className="text-sm text-orange-900">Unassigned cases waiting for any admin to claim or assign.</p>
-              </div>
-              <div className="rounded-xl border-2 border-[#5DADA5] bg-teal-50 p-3">
+              </button>
+              <button
+                type="button"
+                onClick={() => setCaseManagementTab("pending_review")}
+                className={`text-left rounded-xl border-2 p-3 transition-all ${caseManagementTab === "pending_review" ? "border-[#2C4F4E] bg-teal-100 shadow-sm" : "border-[#5DADA5] bg-teal-50 hover:bg-teal-100"}`}
+              >
                 <p className="text-xs font-bold uppercase tracking-wide text-[#2C4F4E]">My assigned work</p>
                 <p className="text-sm text-[#2C4F4E]">Cases already assigned to you, including queued, open, submitted, and closed work.</p>
-              </div>
+              </button>
             </div>
 
             <Tabs value={caseManagementTab} onValueChange={setCaseManagementTab}>
