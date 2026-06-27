@@ -253,10 +253,10 @@ export default function AdminLitePage() {
           </span>
 
           {/* 3 primary section tabs — full width on mobile */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 flex-1 sm:flex-none">
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 w-full max-w-full overflow-x-auto sm:w-auto sm:overflow-visible">
             <button
               onClick={() => setPrimarySection("inbox")}
-              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 primarySection === "inbox"
                   ? "bg-slate-700 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
@@ -267,7 +267,7 @@ export default function AdminLitePage() {
             </button>
             <button
               onClick={() => setPrimarySection("residential")}
-              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 primarySection === "residential"
                   ? "bg-white text-[#2C4F4E] shadow-sm border border-slate-200"
                   : "text-slate-500 hover:text-slate-700"
@@ -278,7 +278,7 @@ export default function AdminLitePage() {
             </button>
             <button
               onClick={() => setPrimarySection("vendor")}
-              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 primarySection === "vendor"
                   ? "bg-[#2C4F4E] text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
@@ -289,7 +289,7 @@ export default function AdminLitePage() {
             </button>
             <button
               onClick={() => setPrimarySection("admin")}
-              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 primarySection === "admin"
                   ? "bg-slate-700 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
@@ -300,7 +300,7 @@ export default function AdminLitePage() {
             </button>
             <button
               onClick={() => setPrimarySection("payments")}
-              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 primarySection === "payments"
                   ? "bg-emerald-700 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
@@ -311,7 +311,7 @@ export default function AdminLitePage() {
             </button>
             <button
               onClick={() => setPrimarySection("case_management")}
-              className={`flex items-center justify-center gap-1.5 flex-1 sm:flex-none sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                 primarySection === "case_management"
                   ? "bg-orange-600 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
@@ -414,14 +414,14 @@ export default function AdminLitePage() {
             </div>
 
             <Tabs value={caseManagementTab} onValueChange={setCaseManagementTab}>
-              <TabsList className="flex flex-wrap gap-1 h-auto w-full p-1">
-                <TabsTrigger value="pending_review" className="whitespace-nowrap">
+              <TabsList className="flex gap-1 h-auto w-full max-w-full overflow-x-auto p-1 sm:flex-wrap sm:overflow-visible">
+                <TabsTrigger value="pending_review" className="shrink-0 whitespace-nowrap">
                   My Assigned Cases
                 </TabsTrigger>
-                <TabsTrigger value="reports_queue" className="whitespace-nowrap">
+                <TabsTrigger value="reports_queue" className="shrink-0 whitespace-nowrap">
                   General Unassigned Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
                 </TabsTrigger>
-                <TabsTrigger value="support_tickets" className="whitespace-nowrap">Support Tickets</TabsTrigger>
+                <TabsTrigger value="support_tickets" className="shrink-0 whitespace-nowrap">Support Tickets</TabsTrigger>
               </TabsList>
 
               <TabsContent value="pending_review">
