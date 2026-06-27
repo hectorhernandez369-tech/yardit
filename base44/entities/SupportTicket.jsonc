@@ -115,6 +115,7 @@
     "disposition": {
       "type": "string",
       "enum": [
+        "none",
         "no_action_needed",
         "user_education",
         "listing_adjustment",

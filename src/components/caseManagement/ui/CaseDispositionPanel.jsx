@@ -11,7 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export default function CaseDispositionPanel({ caseData, user, allAdminUsers, isAssigned, onRefresh }) {
   const queryClient = useQueryClient();
-  const [disposition, setDispositionVal] = useState(caseData.disposition || "");
+  const [disposition, setDispositionVal] = useState(caseData.disposition || "none");
   const [submitComment, setSubmitComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -68,13 +68,14 @@ export default function CaseDispositionPanel({ caseData, user, allAdminUsers, is
                 <SelectValue placeholder="Select disposition..." />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">None</SelectItem>
                 <SelectItem value="sustained">Sustained</SelectItem>
                 <SelectItem value="unconfirmed">Unconfirmed</SelectItem>
                 <SelectItem value="disproven">Disproven</SelectItem>
               </SelectContent>
             </Select>
           ) : (
-            <Badge className="bg-purple-100 text-purple-800">{caseData.disposition || "Not set"}</Badge>
+            <Badge className="bg-purple-100 text-purple-800">{caseData.disposition === "none" ? "None" : caseData.disposition || "Not set"}</Badge>
           )}
         </div>
 

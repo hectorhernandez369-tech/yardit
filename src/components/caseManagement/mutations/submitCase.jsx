@@ -5,7 +5,7 @@ import { logAdminAction, notifySupervisors } from "../lib/auditLogger";
 /**
  * submitCase(caseId, assignedAdminId, commentText, adminUser, allAdminUsers)
  * - ONLY assigned admin
- * - Requires status=='open', disposition present, commentText non-empty
+ * - Requires status=='open' and commentText non-empty
  * - Creates CaseComment (admin_note) with submission comment
  * - Sets status='submitted', disposition_locked=true
  * - AdminAction: 'submit_case'
@@ -26,9 +26,7 @@ export async function submitCase(caseId, assignedAdminId, commentText, adminUser
   if (c.status !== "open") {
     return { success: false, error: `Cannot submit: case status is '${c.status}', must be 'open'` };
   }
-  if (!c.disposition) {
-    return { success: false, error: "Cannot submit: disposition must be set before submission" };
-  }
+  const finalDisposition = c.disposition || "none";
 
   // Log FIRST
   await logAdminAction({
@@ -37,7 +35,7 @@ export async function submitCase(caseId, assignedAdminId, commentText, adminUser
     adminId: assignedAdminId,
     actionType: "submit_case",
     oldValue: { status: c.status, disposition_locked: c.disposition_locked },
-    newValue: { status: "submitted", disposition_locked: true },
+    newValue: { status: "submitted", disposition_locked: true, disposition: finalDisposition },
     comment: commentText,
   });
 
@@ -53,6 +51,7 @@ export async function submitCase(caseId, assignedAdminId, commentText, adminUser
   await base44.entities.Case.update(caseId, {
     status: "submitted",
     disposition_locked: true,
+    disposition: finalDisposition,
   });
 
   // Notify supervisors

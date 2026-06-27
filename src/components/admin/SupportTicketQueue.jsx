@@ -52,6 +52,9 @@ export default function SupportTicketQueue({ user, mode }) {
   const [promoData, setPromoData] = useState({ type: "", value: "", reason: "", internal_notes: "" });
   
   const [ticketActions, setTicketActions] = useState([]);
+  const [ticketComments, setTicketComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [savingComment, setSavingComment] = useState(false);
 
   const fetchTickets = async () => {
     try {
@@ -70,11 +73,19 @@ export default function SupportTicketQueue({ user, mode }) {
 
   useEffect(() => {
     if (selectedTicket) {
-      base44.entities.TicketAction.filter({ ticket_id: selectedTicket.id }, "created_date")
-        .then(setTicketActions)
+      Promise.all([
+        base44.entities.TicketAction.filter({ ticket_id: selectedTicket.id }, "created_date"),
+        base44.entities.SupportTicketComment.filter({ ticket_id: selectedTicket.id }, "created_date")
+      ])
+        .then(([actions, comments]) => {
+          setTicketActions(actions);
+          setTicketComments(comments);
+        })
         .catch(console.error);
     } else {
       setTicketActions([]);
+      setTicketComments([]);
+      setNewComment("");
     }
   }, [selectedTicket]);
 
@@ -114,6 +125,29 @@ export default function SupportTicketQueue({ user, mode }) {
     }
   };
 
+  const handleAddTicketComment = async () => {
+    if (!selectedTicket || !newComment.trim()) return;
+    setSavingComment(true);
+    try {
+      const comment = await base44.entities.SupportTicketComment.create({
+        ticket_id: selectedTicket.id,
+        admin_id: user?.id,
+        admin_name: user?.full_name,
+        admin_email: user?.email,
+        comment_text: newComment.trim(),
+        comment_type: user?.role === "supervisor" || user?.role === "master" ? "supervisor_note" : "admin_note"
+      });
+      setTicketComments(prev => [...prev, comment]);
+      setNewComment("");
+      await logAction(selectedTicket.id, "Comment added", newComment.trim());
+      toast.success("Comment added");
+    } catch (e) {
+      toast.error("Failed to add comment");
+    } finally {
+      setSavingComment(false);
+    }
+  };
+
   const handleUpdateField = async (field, value) => {
     if (!selectedTicket) return;
     try {
@@ -129,25 +163,21 @@ export default function SupportTicketQueue({ user, mode }) {
   };
 
   const handleStatusChange = async (ticketId, newStatus) => {
-    if (["resolved", "closed"].includes(newStatus)) {
-      if (!selectedTicket.disposition) {
-        toast.error("Disposition is required before resolving or closing a ticket.");
-        return;
-      }
-      if (selectedTicket.disposition === "other" && !selectedTicket.disposition_notes) {
-        toast.error("Disposition notes are required when disposition is Other.");
-        return;
-      }
+    if (["resolved", "closed"].includes(newStatus) && selectedTicket.disposition === "other" && !selectedTicket.disposition_notes) {
+      toast.error("Disposition notes are required when disposition is Other.");
+      return;
     }
 
     try {
-      await base44.entities.SupportTicket.update(ticketId, { 
+      const updates = { 
         status: newStatus, 
+        disposition: selectedTicket.disposition || "none",
         closed_at: newStatus === 'closed' ? new Date().toISOString() : selectedTicket.closed_at 
-      });
-      setTickets(tickets.map(t => t.id === ticketId ? { ...t, status: newStatus } : t));
+      };
+      await base44.entities.SupportTicket.update(ticketId, updates);
+      setTickets(tickets.map(t => t.id === ticketId ? { ...t, ...updates } : t));
       if (selectedTicket && selectedTicket.id === ticketId) {
-        setSelectedTicket({ ...selectedTicket, status: newStatus });
+        setSelectedTicket({ ...selectedTicket, ...updates });
       }
       toast.success("Status updated");
       logAction(ticketId, "Status changed", `Status changed to ${formatStatus(newStatus)}`);
@@ -479,6 +509,30 @@ export default function SupportTicketQueue({ user, mode }) {
                   </CardContent>
                 </Card>
 
+                {/* Comments */}
+                <Card>
+                  <CardHeader className="py-3 px-4 bg-slate-100 border-b"><CardTitle className="text-base">Comments ({ticketComments.length})</CardTitle></CardHeader>
+                  <CardContent className="p-4 space-y-3">
+                    {ticketComments.length === 0 && <p className="text-sm text-slate-500">No comments yet.</p>}
+                    {ticketComments.map((comment) => (
+                      <div key={comment.id} className="rounded-lg border border-slate-200 bg-white p-3 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium text-slate-800">{comment.admin_name || comment.admin_email || comment.admin_id}</span>
+                          <Badge className={comment.comment_type === "supervisor_note" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}>{formatStatus(comment.comment_type)}</Badge>
+                          <span className="text-xs text-slate-400 sm:ml-auto">{format(new Date(comment.created_date), "MMM d, h:mm a")}</span>
+                        </div>
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{comment.comment_text}</p>
+                      </div>
+                    ))}
+                    <div className="pt-3 border-t space-y-2">
+                      <Textarea placeholder="Add a comment..." value={newComment} onChange={e => setNewComment(e.target.value)} rows={3} />
+                      <Button size="sm" disabled={!newComment.trim() || savingComment} onClick={handleAddTicketComment}>
+                        {savingComment ? "Adding..." : "Add Comment"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Approvals Info */}
                 {(selectedTicket.refund_requested || selectedTicket.promo_requested) && (
                   <Card className="border-orange-200 bg-orange-50">
@@ -614,13 +668,14 @@ export default function SupportTicketQueue({ user, mode }) {
                     <div className="space-y-1.5">
                       <Label className="text-xs text-slate-500 font-semibold">Disposition (Required for Resolve/Close)</Label>
                       <Select 
-                        value={selectedTicket.disposition || ""} 
+                        value={selectedTicket.disposition || "none"} 
                         onValueChange={(val) => handleUpdateField('disposition', val)}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select disposition..." />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
                           <SelectItem value="no_action_needed">No Action Needed</SelectItem>
                           <SelectItem value="user_education">User Education</SelectItem>
                           <SelectItem value="listing_adjustment">Listing Adjustment</SelectItem>

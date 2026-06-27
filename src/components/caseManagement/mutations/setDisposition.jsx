@@ -9,7 +9,7 @@ import { logAdminAction } from "../lib/auditLogger";
  * - AdminAction: 'set_disposition'
  */
 export async function setDisposition(caseId, assignedAdminId, disposition, adminUser) {
-  if (!["sustained", "unconfirmed", "disproven"].includes(disposition)) {
+  if (!["none", "sustained", "unconfirmed", "disproven"].includes(disposition)) {
     return { success: false, error: `Invalid disposition: ${disposition}` };
   }
 

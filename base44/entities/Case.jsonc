@@ -51,6 +51,7 @@
     "disposition": {
       "type": "string",
       "enum": [
+        "none",
         "sustained",
         "unconfirmed",
         "disproven"

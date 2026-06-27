@@ -1,0 +1,41 @@
+{
+  "name": "SupportTicketComment",
+  "type": "object",
+  "properties": {
+    "ticket_id": {
+      "type": "string",
+      "description": "ID of the related SupportTicket"
+    },
+    "admin_id": {
+      "type": "string",
+      "description": "User ID of the admin who wrote the comment"
+    },
+    "admin_name": {
+      "type": "string",
+      "description": "Display name of the admin who wrote the comment"
+    },
+    "admin_email": {
+      "type": "string",
+      "description": "Email of the admin who wrote the comment"
+    },
+    "comment_text": {
+      "type": "string",
+      "description": "Full comment text"
+    },
+    "comment_type": {
+      "type": "string",
+      "enum": [
+        "admin_note",
+        "supervisor_note",
+        "system_note"
+      ],
+      "description": "Type of comment"
+    }
+  },
+  "required": [
+    "ticket_id",
+    "admin_id",
+    "comment_text",
+    "comment_type"
+  ]
+}
