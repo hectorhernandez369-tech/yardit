@@ -1024,6 +1024,7 @@ export default function HomePage() {
 
   const neighborhoodParticipantPins = useMemo(() => {
     if (currentZoom < 18 || !allJoinRequests?.length) return [];
+    if (!quickMapFilters.yardSales || !quickMapFilters.neighborhoodSales) return [];
 
     const visiblePinIds = new Set(visiblePins.map((pin) => pin.id));
     return allJoinRequests.
@@ -1055,7 +1056,7 @@ export default function HomePage() {
       };
     }).
     filter(Boolean);
-  }, [allJoinRequests, currentZoom, listings, visiblePins]);
+  }, [allJoinRequests, currentZoom, listings, visiblePins, quickMapFilters.yardSales, quickMapFilters.neighborhoodSales]);
 
   const currentVisibleCandidates = useMemo(() => {
     const fullParticipantListings = neighborhoodParticipantPins.map((pin) => listings.find((l) => l.id === pin.listingId)).filter(Boolean);
