@@ -4,7 +4,6 @@ import VendorAdminSummaryCards from "./VendorAdminSummaryCards";
 import VendorAccountsTable from "./VendorAccountsTable";
 import VendorPinsTable from "./VendorPinsTable";
 import VendorEventsTable from "./VendorEventsTable";
-import SupportTicketQueue from "../SupportTicketQueue";
 import VendorPromosAdminList from "./promos/VendorPromosAdminList";
 import VendorPromoCodesTab from "./promoCodes/VendorPromoCodesTab";
 
@@ -16,7 +15,7 @@ export default function VendorAdminDashboard({ user }) {
       <div className="rounded-xl bg-gradient-to-r from-[#2C4F4E] to-[#5DADA5] p-4 text-white">
         <h2 className="text-lg font-bold">Vendor &amp; Event Admin Dashboard</h2>
         <p className="text-sm text-white/75 mt-0.5">
-          Manage vendor accounts, pins, events, and vendor-related support.
+          Manage vendor accounts, pins, events, and promotions.
         </p>
       </div>
 
@@ -29,7 +28,6 @@ export default function VendorAdminDashboard({ user }) {
             <TabsTrigger value="events" className="whitespace-nowrap text-xs px-3 py-1.5">Events</TabsTrigger>
             <TabsTrigger value="promotions" className="whitespace-nowrap text-xs px-3 py-1.5">Promos</TabsTrigger>
             <TabsTrigger value="promo_codes" className="whitespace-nowrap text-xs px-3 py-1.5">Promo Codes</TabsTrigger>
-            <TabsTrigger value="tickets" className="whitespace-nowrap text-xs px-3 py-1.5">Support</TabsTrigger>
           </TabsList>
         </div>
 
@@ -57,9 +55,6 @@ export default function VendorAdminDashboard({ user }) {
           <VendorPromoCodesTab user={user} />
         </TabsContent>
 
-        <TabsContent value="tickets">
-          <SupportTicketQueue user={user} mode="vendor" />
-        </TabsContent>
       </Tabs>
     </div>
   );

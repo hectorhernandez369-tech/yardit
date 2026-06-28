@@ -96,7 +96,7 @@ export default function AdminInboxPanel({ user }) {
           </div>
           <div>
             <h2 className="text-lg font-bold text-[#2C4F4E]">Admin Inbox</h2>
-            <p className="text-sm text-slate-600">Routine admin work lives here instead of push notifications.</p>
+            <p className="text-sm text-slate-600">Alert center only — open an alert to jump to the right work area.</p>
           </div>
         </div>
       </div>

@@ -38,7 +38,7 @@ export default function SubmittedCasesTab({ user, searchResults, onOpenCase, ref
   return (
     <div className="mt-4">
       <div className="mb-3 rounded-xl border-2 border-[#5DADA5] bg-teal-50 p-3">
-        <p className="text-sm font-bold text-[#2C4F4E]">My Submitted Cases</p>
+        <p className="text-sm font-bold text-[#2C4F4E]">Resolved / Review</p>
         <p className="text-xs text-[#2C4F4E]">These are your assigned cases submitted for review or escalation.</p>
       </div>
       {displayed.length === 0 ? (

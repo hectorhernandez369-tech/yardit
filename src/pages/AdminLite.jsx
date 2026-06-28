@@ -4,12 +4,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, Shield, LogOut, Home, Building2, ShieldCheck, FolderOpen, CreditCard, Inbox } from "lucide-react";
+import { Search, Loader2, Shield, LogOut, LayoutDashboard, BriefcaseBusiness, Settings, FolderOpen, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logAdminEvent, searchCases } from "../components/caseManagement";
-import { hasCapability } from "../components/admin/adminCapabilities";
-
 import OpenCasesTab from "../components/caseManagement/ui/OpenCasesTab";
 import ActiveOpenCasesTab from "../components/caseManagement/ui/ActiveOpenCasesTab";
 import SubmittedCasesTab from "../components/caseManagement/ui/SubmittedCasesTab";
@@ -17,16 +15,30 @@ import ClosedCasesTab from "../components/caseManagement/ui/ClosedCasesTab";
 import CaseDetailView from "../components/caseManagement/ui/CaseDetailView";
 import AdminLiteDashboard from "../components/admin/AdminLiteDashboard";
 import AdminInternalTab from "../components/admin/AdminInternalTab";
-import VendorAdminDashboard from "../components/admin/vendor/VendorAdminDashboard";
 import { getAdminSession, clearAdminSession } from "../components/admin/AdminLoginModal";
 import AdminLoginModal from "../components/admin/AdminLoginModal";
 import { ensureAdminVendorAccount, isMasterAdminRole } from "../lib/ensureAdminVendorAccount";
 import SupportTicketQueue from "../components/admin/SupportTicketQueue";
 import InQueueTab from "../components/caseManagement/ui/InQueueTab";
-import PaymentAuditDashboard from "../components/admin/payments/PaymentAuditDashboard";
 import AdminInboxPanel from "../components/admin/AdminInboxPanel";
+import AdminOperationsCenterHome from "../components/admin/AdminOperationsCenterHome";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
+
+const caseQuickFilters = ["All", "Safety", "Reports", "Support", "Vendor", "Residential", "Events", "Billing", "Technical"];
+const supportQueueByFilter = {
+  vendor: "vendor_support",
+  residential: "residential_support",
+  events: "event_support",
+  billing: "billing_support",
+  technical: "technical_support",
+};
+
+const normalizeAdminSection = (section) => {
+  if (["residential", "vendor", "payments"].includes(section)) return "operations";
+  if (section === "admin") return "settings";
+  return section || "dashboard";
+};
 
 export default function AdminLitePage() {
   const navigate = useNavigate();
@@ -38,13 +50,14 @@ export default function AdminLitePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [noAdminAccess, setNoAdminAccess] = useState(false);
 
-  // Primary top-level section: residential | vendor | admin | case_management
+  // Primary top-level section: dashboard | inbox | case_management | operations | settings
   const urlParams = new URLSearchParams(location.search);
-  const initialSection = urlParams.get("section") || "residential";
+  const initialSection = urlParams.get("liteTab") ? "operations" : normalizeAdminSection(urlParams.get("section"));
   const [primarySection, setPrimarySection] = useState(initialSection);
-  const [caseManagementTab, setCaseManagementTab] = useState("pending_review");
+  const [caseManagementTab, setCaseManagementTab] = useState("queue");
+  const [caseWorkFilter, setCaseWorkFilter] = useState("all");
 
-  // Case management state (used in Residential > Case queue)
+  // Case management state
   const [caseTab, setCaseTab] = useState("queue");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState(null);
@@ -144,12 +157,13 @@ export default function AdminLitePage() {
     const params = new URLSearchParams(location.search);
     const openCaseId = params.get("openCaseId");
     if (openCaseId && user) {
-      setPrimarySection("residential");
+      setPrimarySection("case_management");
       setSelectedCaseId(openCaseId);
-      logAdminEvent({ adminId: user.id, caseId: openCaseId, eventType: "opened_case", page: "AdminHub" });
+      logAdminEvent({ adminId: user.id, caseId: openCaseId, eventType: "viewed_case", page: "AdminHub" });
     }
     const section = params.get("section");
-    if (section) setPrimarySection(section);
+    if (params.get("liteTab")) setPrimarySection("operations");
+    else if (section) setPrimarySection(normalizeAdminSection(section));
   }, [location.search, user]);
 
   const handleCaseTabChange = useCallback((tab) => {
@@ -170,7 +184,7 @@ export default function AdminLitePage() {
 
   const handleOpenCase = useCallback((caseId) => {
     setSelectedCaseId(caseId);
-    if (user) logAdminEvent({ adminId: user.id, caseId, eventType: "opened_case", page: "AdminHub" });
+    if (user) logAdminEvent({ adminId: user.id, caseId, eventType: "viewed_case", page: "AdminHub" });
   }, [user]);
 
   const handleCloseCase = useCallback(() => { setSelectedCaseId(null); setRefreshKey(k => k + 1); }, []);
@@ -240,6 +254,10 @@ export default function AdminLitePage() {
     return "Basic";
   })();
 
+  const activeSupportQueueFilter = supportQueueByFilter[caseWorkFilter] || "all";
+  const showReportQueue = ["all", "safety", "reports"].includes(caseWorkFilter);
+  const showSupportQueue = ["all", "support", "vendor", "residential", "events", "billing", "technical"].includes(caseWorkFilter);
+
   // ── Main 3-tab dashboard ─────────────────────────────────────────────────
   return (
     <div className="min-h-[calc(100vh-140px)] pt-0 px-3 sm:px-4 md:px-8 pb-8 overflow-x-hidden w-full max-w-full">
@@ -252,74 +270,31 @@ export default function AdminLitePage() {
             🛡️ Admin – {roleLabel}
           </span>
 
-          {/* 3 primary section tabs — full width on mobile */}
+          {/* Primary operations center tabs — full width on mobile */}
           <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 w-full max-w-full overflow-x-auto sm:w-auto sm:overflow-visible">
-            <button
-              onClick={() => setPrimarySection("inbox")}
-              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                primarySection === "inbox"
-                  ? "bg-slate-700 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <Inbox className="w-3.5 h-3.5 shrink-0" />
-              <span>Inbox</span>
-            </button>
-            <button
-              onClick={() => setPrimarySection("residential")}
-              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                primarySection === "residential"
-                  ? "bg-white text-[#2C4F4E] shadow-sm border border-slate-200"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <Home className="w-3.5 h-3.5 shrink-0" />
-              <span>Residential</span>
-            </button>
-            <button
-              onClick={() => setPrimarySection("vendor")}
-              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                primarySection === "vendor"
-                  ? "bg-[#2C4F4E] text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5 shrink-0" />
-              <span>Vendors</span>
-            </button>
-            <button
-              onClick={() => setPrimarySection("admin")}
-              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                primarySection === "admin"
-                  ? "bg-slate-700 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-              <span>Admin</span>
-            </button>
-            <button
-              onClick={() => setPrimarySection("payments")}
-              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                primarySection === "payments"
-                  ? "bg-emerald-700 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <CreditCard className="w-3.5 h-3.5 shrink-0" />
-              <span>Payments</span>
-            </button>
-            <button
-              onClick={() => setPrimarySection("case_management")}
-              className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                primarySection === "case_management"
-                  ? "bg-orange-600 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-              <span>Case Mgmt</span>
-            </button>
+            {[
+              { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, active: "bg-[#2C4F4E] text-white" },
+              { key: "inbox", label: "Admin Inbox", icon: Inbox, active: "bg-slate-700 text-white" },
+              { key: "case_management", label: "Case Management", icon: FolderOpen, active: "bg-orange-600 text-white" },
+              { key: "operations", label: "Operations", icon: BriefcaseBusiness, active: "bg-[#5DADA5] text-white" },
+              { key: "settings", label: "Settings", icon: Settings, active: "bg-slate-700 text-white" },
+            ].map((section) => {
+              const Icon = section.icon;
+              return (
+                <button
+                  key={section.key}
+                  onClick={() => setPrimarySection(section.key)}
+                  className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                    primarySection === section.key
+                      ? `${section.active} shadow-sm`
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{section.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Logout */}
@@ -338,40 +313,24 @@ export default function AdminLitePage() {
           </Button>
         </div>
 
+        {/* ── DASHBOARD SECTION ── */}
+        {primarySection === "dashboard" && (
+          <AdminOperationsCenterHome counts={counts} onNavigate={setPrimarySection} />
+        )}
+
         {/* ── ADMIN INBOX SECTION ── */}
         {primarySection === "inbox" && (
           <AdminInboxPanel user={user} />
         )}
 
-        {/* ── RESIDENTIAL SECTION ── */}
-        {primarySection === "residential" && (
-          <>
-            {/* Residential ops dashboard (listings, users, tickets, etc.) */}
-            <AdminLiteDashboard
-              user={user}
-              counts={counts}
-              allAdminUsers={allAdminUsers}
-              searchResults={searchResults}
-              onOpenCase={handleOpenCase}
-              refreshKey={refreshKey}
-              triggerRefresh={triggerRefresh}
-            />
-          </>
+        {/* ── OPERATIONS SECTION ── */}
+        {primarySection === "operations" && (
+          <AdminLiteDashboard user={user} />
         )}
 
-        {/* ── VENDOR / EVENTS SECTION ── */}
-        {primarySection === "vendor" && (
-          <VendorAdminDashboard user={user} />
-        )}
-
-        {/* ── ADMIN INTERNAL SECTION ── */}
-        {primarySection === "admin" && (
+        {/* ── SETTINGS SECTION ── */}
+        {primarySection === "settings" && (
           <AdminInternalTab user={user} adminSession={adminSession} />
-        )}
-
-        {/* ── PAYMENTS SECTION ── */}
-        {primarySection === "payments" && (
-          <PaymentAuditDashboard />
         )}
 
         {/* ── CASE MANAGEMENT SECTION ── */}
@@ -402,43 +361,57 @@ export default function AdminLitePage() {
               <p className="text-sm text-gray-600 mb-2">Showing {searchResults.length} search result(s).</p>
             )}
 
-            <div className="grid sm:grid-cols-2 gap-3 mb-4">
-              <button
-                type="button"
-                onClick={() => setCaseManagementTab("reports_queue")}
-                className={`text-left rounded-xl border-2 p-3 transition-all ${caseManagementTab === "reports_queue" ? "border-orange-500 bg-orange-100 shadow-sm" : "border-orange-300 bg-orange-50 hover:bg-orange-100"}`}
-              >
-                <p className="text-xs font-bold uppercase tracking-wide text-orange-700">General queues</p>
-                <p className="text-sm text-orange-900">Unassigned cases waiting for any admin to claim or assign.</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCaseManagementTab("pending_review")}
-                className={`text-left rounded-xl border-2 p-3 transition-all ${caseManagementTab === "pending_review" ? "border-[#2C4F4E] bg-teal-100 shadow-sm" : "border-[#5DADA5] bg-teal-50 hover:bg-teal-100"}`}
-              >
-                <p className="text-xs font-bold uppercase tracking-wide text-[#2C4F4E]">My assigned work</p>
-                <p className="text-sm text-[#2C4F4E]">Cases already assigned to you, including queued, open, submitted, and closed work.</p>
-              </button>
-            </div>
-
             <Tabs value={caseManagementTab} onValueChange={setCaseManagementTab}>
               <TabsList className="flex gap-1 h-auto w-full max-w-full overflow-x-auto p-1 sm:flex-wrap sm:overflow-visible">
-                <TabsTrigger value="pending_review" className="shrink-0 whitespace-nowrap">
-                  My Assigned Cases
+                <TabsTrigger value="queue" className="shrink-0 whitespace-nowrap">
+                  Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
                 </TabsTrigger>
-                <TabsTrigger value="reports_queue" className="shrink-0 whitespace-nowrap">
-                  General Unassigned Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
+                <TabsTrigger value="my_cases" className="shrink-0 whitespace-nowrap">
+                  My Cases
                 </TabsTrigger>
-                <TabsTrigger value="support_tickets" className="shrink-0 whitespace-nowrap">Support Tickets</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="pending_review">
+              <TabsContent value="queue">
+                <div className="my-4 flex flex-wrap gap-2">
+                  {caseQuickFilters.map((filter) => {
+                    const key = filter.toLowerCase();
+                    return (
+                      <button
+                        key={filter}
+                        type="button"
+                        onClick={() => setCaseWorkFilter(key)}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${caseWorkFilter === key ? "border-[#2C4F4E] bg-[#2C4F4E] text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
+                      >
+                        {filter}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="space-y-5">
+                  {showReportQueue && (
+                    <InQueueTab
+                      user={user}
+                      allAdminUsers={allAdminUsers || []}
+                      searchResults={searchResults}
+                      onOpenCase={handleOpenCase}
+                      onRefresh={triggerRefresh}
+                      refreshKey={refreshKey}
+                      workFilter={caseWorkFilter}
+                    />
+                  )}
+                  {showSupportQueue && (
+                    <SupportTicketQueue user={user} externalQueueFilter={activeSupportQueueFilter} />
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="my_cases">
                 <Tabs value={caseTab} onValueChange={handleCaseTabChange}>
                   <TabsList className="flex flex-wrap gap-1 h-auto w-full max-w-3xl p-1 mt-2">
-                    <TabsTrigger value="queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Assigned to Me ({counts.assigned})</TabsTrigger>
-                    <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">My Open Cases ({counts.open})</TabsTrigger>
-                    <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">My Submitted ({counts.submitted})</TabsTrigger>
-                    <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">My Closed ({counts.closed})</TabsTrigger>
+                    <TabsTrigger value="queue" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Waiting ({counts.assigned})</TabsTrigger>
+                    <TabsTrigger value="open" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Open ({counts.open})</TabsTrigger>
+                    <TabsTrigger value="submitted" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Resolved ({counts.submitted})</TabsTrigger>
+                    <TabsTrigger value="closed" className="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0">Closed ({counts.closed})</TabsTrigger>
                   </TabsList>
                   <TabsContent value="queue">
                     <OpenCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} triggerRefresh={triggerRefresh} />
@@ -453,20 +426,6 @@ export default function AdminLitePage() {
                     <ClosedCasesTab user={user} searchResults={searchResults} onOpenCase={handleOpenCase} refreshKey={refreshKey} />
                   </TabsContent>
                 </Tabs>
-              </TabsContent>
-
-              <TabsContent value="reports_queue">
-                <InQueueTab
-                  user={user}
-                  allAdminUsers={allAdminUsers || []}
-                  searchResults={searchResults}
-                  onOpenCase={handleOpenCase}
-                  onRefresh={triggerRefresh}
-                  refreshKey={refreshKey}
-                />
-              </TabsContent>
-              <TabsContent value="support_tickets">
-                <SupportTicketQueue user={user} mode="residential" />
               </TabsContent>
             </Tabs>
           </div>

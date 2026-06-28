@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import AssignDialog from "./AssignDialog";
 import { useQueryClient } from "@tanstack/react-query";
 
-export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenCase, onRefresh, refreshKey }) {
+export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenCase, onRefresh, refreshKey, workFilter = "all" }) {
   const queryClient = useQueryClient();
   const [cases, setCases] = useState([]);
   const [listings, setListings] = useState({});
@@ -79,9 +79,18 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
     setShowAssignDialog(null);
   };
 
-  const displayed = searchResults
+  const matchesWorkFilter = (caseItem) => {
+    if (workFilter === "safety") return caseItem.safety_flag === true;
+    if (workFilter === "reports") return true;
+    if (workFilter === "all") return true;
+    return false;
+  };
+
+  const displayed = (searchResults
     ? cases.filter(c => searchResults.some(sr => sr.id === c.id))
-    : cases;
+    : cases)
+    .filter(matchesWorkFilter)
+    .sort((a, b) => Number(b.safety_flag === true) - Number(a.safety_flag === true));
 
   if (loading) return <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>;
 
@@ -90,8 +99,8 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
   return (
     <div className="mt-4">
       <div className="mb-3 rounded-xl border-2 border-orange-300 bg-orange-50 p-3">
-        <p className="text-sm font-bold text-orange-900">General Unassigned Queue</p>
-        <p className="text-xs text-orange-700">These cases are not assigned to an admin yet. Claim one with “Assign Self” or assign it to another admin.</p>
+        <p className="text-sm font-bold text-orange-900">Report Queue</p>
+        <p className="text-xs text-orange-700">Unassigned report cases appear here. Safety reports are highlighted and shown first.</p>
       </div>
       {displayed.length === 0 ? (
         <p className="text-gray-500 text-center py-8">No unassigned cases are waiting in the general queue.</p>
@@ -102,7 +111,7 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
               <tr className="bg-[#E7D7B8] border-b-2 border-[#2C4F4E]">
                 <th className="text-left p-3">Acct #</th>
                 <th className="text-left p-3">Title</th>
-                <th className="text-left p-3">Report Type</th>
+                <th className="text-left p-3">Badges</th>
                 <th className="text-left p-3">Date</th>
                 <th className="text-left p-3">Priority</th>
                 <th className="text-left p-3">Safety</th>
@@ -115,10 +124,16 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
                 const caseReports = reports[c.listing_id] || [];
                 const latestReport = caseReports[0];
                 return (
-                  <tr key={c.id} className="border-b hover:bg-[#F3E6CF]/50">
+                  <tr key={c.id} className={`border-b hover:bg-[#F3E6CF]/50 ${c.safety_flag ? "bg-red-50" : ""}`}>
                     <td className="p-3 font-mono text-xs">{c.account_number}</td>
                     <td className="p-3 max-w-[200px] truncate">{listing?.title || "—"}</td>
-                    <td className="p-3 text-xs">{latestReport?.reason_code || "—"}</td>
+                    <td className="p-3">
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="outline" className="text-[10px]">Report</Badge>
+                        {c.safety_flag && <Badge className="bg-red-600 text-white text-[10px]"><AlertTriangle className="w-3 h-3 mr-1" />Safety</Badge>}
+                        {latestReport?.reason_code && <Badge variant="outline" className="text-[10px]">{latestReport.reason_code}</Badge>}
+                      </div>
+                    </td>
                     <td className="p-3 text-xs">{latestReport?.created_date ? new Date(latestReport.created_date).toLocaleDateString() : "—"}</td>
                     <td className="p-3"><Badge className={priorityColors[c.case_priority] || ""}>{c.case_priority}</Badge></td>
                     <td className="p-3">{c.safety_flag ? <Badge className="bg-red-600 text-white"><AlertTriangle className="w-3 h-3 mr-1" />Safety</Badge> : "—"}</td>
@@ -148,7 +163,7 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
             const caseReports = reports[c.listing_id] || [];
             const latestReport = caseReports[0];
             return (
-              <div key={c.id} className="bg-white rounded-lg border p-3 space-y-2">
+              <div key={c.id} className={`rounded-lg border p-3 space-y-2 ${c.safety_flag ? "border-red-200 bg-red-50" : "bg-white"}`}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-xs break-all">{c.account_number}</span>
                   <div className="flex gap-1 flex-shrink-0">

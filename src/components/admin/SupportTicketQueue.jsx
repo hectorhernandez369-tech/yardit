@@ -38,12 +38,13 @@ function isVendorTicket(ticket) {
   return VENDOR_TICKET_KEYWORDS.some(kw => fields.some(f => f.includes(kw)));
 }
 
-export default function SupportTicketQueue({ user, mode }) {
+export default function SupportTicketQueue({ user, mode, externalQueueFilter }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [filterTab, setFilterTab] = useState("open");
   const [queueFilter, setQueueFilter] = useState("all");
+  const effectiveQueueFilter = externalQueueFilter || queueFilter;
 
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [promoModalOpen, setPromoModalOpen] = useState(false);
@@ -96,9 +97,9 @@ export default function SupportTicketQueue({ user, mode }) {
       if (mode === "residential" && isVendorTicket(t)) return false;
 
       // Queue filter
-      if (queueFilter !== "all") {
+      if (effectiveQueueFilter !== "all") {
         const tQueue = t.assigned_queue || (isVendorTicket(t) ? "vendor_support" : "residential_support");
-        if (tQueue !== queueFilter) return false;
+        if (tQueue !== effectiveQueueFilter) return false;
       }
 
       if (filterTab === "open") return ["open", "in_review", "waiting_for_user"].includes(t.status);
@@ -107,7 +108,7 @@ export default function SupportTicketQueue({ user, mode }) {
       if (filterTab === "resolved_closed") return ["resolved", "closed"].includes(t.status);
       return true;
     });
-  }, [tickets, filterTab, queueFilter, mode]);
+  }, [tickets, filterTab, effectiveQueueFilter, mode]);
 
   const logAction = async (ticketId, actionStr, detailsStr = "") => {
     try {
@@ -338,7 +339,7 @@ export default function SupportTicketQueue({ user, mode }) {
         </h2>
         <div className="flex flex-wrap items-center gap-2">
           {/* Queue filter — only show when not in a specific mode */}
-          {!mode && (
+          {!mode && !externalQueueFilter && (
             <Select value={queueFilter} onValueChange={setQueueFilter}>
               <SelectTrigger className="h-8 text-xs w-44 bg-white">
                 <SelectValue placeholder="All Queues" />

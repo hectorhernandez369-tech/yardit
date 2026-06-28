@@ -53,8 +53,8 @@ export default function OpenCasesTab({ user, searchResults, onOpenCase, refreshK
   return (
     <div className="mt-4">
       <div className="mb-3 rounded-xl border-2 border-[#5DADA5] bg-teal-50 p-3">
-        <p className="text-sm font-bold text-[#2C4F4E]">Assigned to Me</p>
-        <p className="text-xs text-[#2C4F4E]">These cases have already been assigned to you and are waiting for you to open.</p>
+        <p className="text-sm font-bold text-[#2C4F4E]">Waiting</p>
+        <p className="text-xs text-[#2C4F4E]">These cases are assigned to you and waiting for you to explicitly open them.</p>
       </div>
       {displayed.length === 0 ? (
         <p className="text-gray-500 text-center py-8">No cases are assigned to you and waiting to be opened.</p>

@@ -3,11 +3,12 @@ import { useLocation } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ListingManagement from "./ListingManagement";
 import UserManagement from "./UserManagement";
-import SystemSettings from "./SystemSettings";
 import JTHTab from "./JTHTab";
 import RewardsAdminHub from "./vouchers/RewardsAdminHub";
+import VendorAdminDashboard from "./vendor/VendorAdminDashboard";
+import PaymentAuditDashboard from "./payments/PaymentAuditDashboard";
+import AdminAssistedListingsTab from "./assisted/AdminAssistedListingsTab";
 
-// Pure Residential Admin Dashboard — no vendor data mixed in
 export default function AdminLiteDashboard({ user }) {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("listings");
@@ -15,20 +16,27 @@ export default function AdminLiteDashboard({ user }) {
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const liteTab = urlParams.get("liteTab");
-    if (liteTab) setActiveTab(liteTab);
+    const validTabs = ["listings", "users", "vendors", "assisted", "promos", "payments", "jth"];
+    if (validTabs.includes(liteTab)) setActiveTab(liteTab);
   }, [location.search]);
 
   return (
     <div className="mt-4">
-      <div className="flex items-center justify-between mb-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-          <TabsList className="flex flex-wrap gap-1 h-auto w-full p-1">
-            <TabsTrigger value="listings" className="whitespace-nowrap">Listings</TabsTrigger>
-            <TabsTrigger value="users" className="whitespace-nowrap">Users</TabsTrigger>
-            <TabsTrigger value="promos" className="whitespace-nowrap">Promotions & Rewards</TabsTrigger>
-            <TabsTrigger value="jth" className="whitespace-nowrap">Join the Hunt</TabsTrigger>
-            <TabsTrigger value="settings" className="whitespace-nowrap">Settings</TabsTrigger>
-          </TabsList>
+      <div className="rounded-xl bg-gradient-to-r from-[#2C4F4E] to-[#5DADA5] p-4 text-white mb-4">
+        <h2 className="text-lg font-bold">Operations</h2>
+        <p className="text-sm text-white/75 mt-0.5">Listings, users, vendors, events, assisted listings, promotions, vouchers, payments, and feature operations.</p>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="flex gap-1 h-auto w-full max-w-full overflow-x-auto p-1 sm:flex-wrap sm:overflow-visible">
+          <TabsTrigger value="listings" className="shrink-0 whitespace-nowrap">Listings & Neighborhood Sales</TabsTrigger>
+          <TabsTrigger value="users" className="shrink-0 whitespace-nowrap">Users</TabsTrigger>
+          <TabsTrigger value="vendors" className="shrink-0 whitespace-nowrap">Vendors & Events</TabsTrigger>
+          <TabsTrigger value="assisted" className="shrink-0 whitespace-nowrap">Assisted Listings</TabsTrigger>
+          <TabsTrigger value="promos" className="shrink-0 whitespace-nowrap">Promotions & Vouchers</TabsTrigger>
+          <TabsTrigger value="payments" className="shrink-0 whitespace-nowrap">Payments</TabsTrigger>
+          <TabsTrigger value="jth" className="shrink-0 whitespace-nowrap">Join the Hunt</TabsTrigger>
+        </TabsList>
 
         <TabsContent value="listings">
           <ListingManagement mode="residential" adminUser={user} />
@@ -38,21 +46,28 @@ export default function AdminLiteDashboard({ user }) {
           <UserManagement />
         </TabsContent>
 
+        <TabsContent value="vendors">
+          <VendorAdminDashboard user={user} />
+        </TabsContent>
+
+        <TabsContent value="assisted">
+          <AdminAssistedListingsTab adminUser={user} />
+        </TabsContent>
+
         <TabsContent value="promos">
           <div className="mt-4">
             <RewardsAdminHub adminUser={user} />
           </div>
         </TabsContent>
 
+        <TabsContent value="payments">
+          <PaymentAuditDashboard />
+        </TabsContent>
+
         <TabsContent value="jth">
           <JTHTab user={user} />
         </TabsContent>
-
-        <TabsContent value="settings">
-          <SystemSettings />
-        </TabsContent>
-        </Tabs>
-      </div>
+      </Tabs>
     </div>
   );
 }
