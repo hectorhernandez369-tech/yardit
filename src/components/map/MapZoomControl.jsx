@@ -10,7 +10,7 @@ export default function MapZoomControl({ onMyLocation, isLocating, locationError
 
   return (
     <div
-      className="absolute top-3 left-3 z-[1000] flex flex-col shadow-md rounded-lg overflow-hidden border-2 border-[#2C4F4E]"
+      className="absolute top-3 left-3 z-[650] flex flex-col shadow-md rounded-lg overflow-hidden border-2 border-[#2C4F4E]"
       style={{ pointerEvents: "auto" }}
     >
       <button
