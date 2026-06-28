@@ -344,15 +344,22 @@ function LayoutContent({ children, user, setUser }) {
       )}
 
       <footer className="hidden sm:block bg-[#5DADA5] border-t-2 border-[#2C4F4E] py-3">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-2">
-          <img 
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0ba1ba06_file_00000000fce071fd9ff100a6a9cf19951.png" 
-            alt="Pirate Flag" 
-            className="h-[30px] w-auto object-contain"
-          />
-          <p className="text-center text-xs text-white font-medium">
-            Yardit - Seekers find the best residential yard sales
-          </p>
+        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-2">
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/b0ba1ba06_file_00000000fce071fd9ff100a6a9cf19951.png" 
+              alt="Pirate Flag" 
+              className="h-[30px] w-auto object-contain"
+            />
+            <p className="text-center text-xs text-white font-medium">
+              Yardit - Seekers find the best residential yard sales
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3 text-[11px] font-semibold text-white/90">
+            <Link to="/privacy" className="hover:text-white hover:underline">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-white hover:underline">Terms of Service</Link>
+            <Link to="/community-guidelines" className="hover:text-white hover:underline">Community Guidelines</Link>
+          </div>
         </div>
       </footer>
     </div>

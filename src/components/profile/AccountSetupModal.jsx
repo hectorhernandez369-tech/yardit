@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +15,6 @@ export default function AccountSetupModal({ user, setUser }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
-  const [showPrivacy, setShowPrivacy] = useState(false);
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -159,19 +157,10 @@ export default function AccountSetupModal({ user, setUser }) {
                 <span>I acknowledge the Privacy Policy</span>
               </label>
               <div className="flex flex-wrap gap-3 text-xs">
-                <button type="button" onClick={() => setShowTerms((prev) => !prev)} className="font-semibold text-slate-800 underline decoration-slate-300 underline-offset-4 hover:text-[#2C4F4E]">View Terms of Service</button>
-                <button type="button" onClick={() => setShowPrivacy((prev) => !prev)} className="font-semibold text-slate-800 underline decoration-slate-300 underline-offset-4 hover:text-[#2C4F4E]">View Privacy Policy</button>
+                <Link to="/terms" target="_blank" className="font-semibold text-slate-800 underline decoration-slate-300 underline-offset-4 hover:text-[#2C4F4E]">View Terms of Service</Link>
+                <Link to="/privacy" target="_blank" className="font-semibold text-slate-800 underline decoration-slate-300 underline-offset-4 hover:text-[#2C4F4E]">View Privacy Policy</Link>
+                <Link to="/community-guidelines" target="_blank" className="font-semibold text-slate-800 underline decoration-slate-300 underline-offset-4 hover:text-[#2C4F4E]">View Community Guidelines</Link>
               </div>
-              {showTerms && (
-                <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-600 shadow-sm">
-                  Terms of Service content will appear here when finalized.
-                </div>
-              )}
-              {showPrivacy && (
-                <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-600 shadow-sm">
-                  Privacy Policy content will appear here when finalized.
-                </div>
-              )}
             </div>
 
             <div className="flex flex-col gap-2 pt-1">

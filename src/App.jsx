@@ -28,6 +28,9 @@ import AccountOptions from './pages/AccountOptions';
 import Events from './pages/Events';
 import RewardRedeem from './pages/RewardRedeem';
 import PaymentAudit from './pages/PaymentAudit';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import CommunityGuidelines from './pages/CommunityGuidelines';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import YarditSplashScreen from '@/components/install/YarditSplashScreen';
@@ -90,6 +93,12 @@ const AuthenticatedApp = () => {
               }
             />
           )}
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/community-guidelines" element={<CommunityGuidelines />} />
+          <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
+          <Route path="/TermsOfService" element={<TermsOfService />} />
+          <Route path="/CommunityGuidelines" element={<CommunityGuidelines />} />
           <Route path="/ComingSoon" element={<ComingSoon />} />
           <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
         </Routes>
@@ -137,6 +146,12 @@ const AuthenticatedApp = () => {
         <Route path="/assisted-listing" element={<AssistedListingApproval />} />
         <Route path="/events" element={<Events />} />
         <Route path="/PaymentAudit" element={<LayoutWrapper currentPageName="PaymentAudit"><PaymentAudit /></LayoutWrapper>} />
+        <Route path="/privacy" element={<LayoutWrapper currentPageName="PrivacyPolicy"><PrivacyPolicy /></LayoutWrapper>} />
+        <Route path="/terms" element={<LayoutWrapper currentPageName="TermsOfService"><TermsOfService /></LayoutWrapper>} />
+        <Route path="/community-guidelines" element={<LayoutWrapper currentPageName="CommunityGuidelines"><CommunityGuidelines /></LayoutWrapper>} />
+        <Route path="/PrivacyPolicy" element={<LayoutWrapper currentPageName="PrivacyPolicy"><PrivacyPolicy /></LayoutWrapper>} />
+        <Route path="/TermsOfService" element={<LayoutWrapper currentPageName="TermsOfService"><TermsOfService /></LayoutWrapper>} />
+        <Route path="/CommunityGuidelines" element={<LayoutWrapper currentPageName="CommunityGuidelines"><CommunityGuidelines /></LayoutWrapper>} />
         <Route path="/reward/redeem/:token" element={<RewardRedeem />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
