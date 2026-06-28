@@ -1387,9 +1387,9 @@ export default function HomePage() {
 
                   }
                     {!isMarquee &&
-                  <Popup maxWidth={340} minWidth={260} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
-                         <div className="flex flex-col rounded-xl overflow-hidden backdrop-blur-md border border-white/40 shadow-lg opacity-100 bg-white" style={{ maxWidth: "min(90vw, 320px)", maxHeight: "70vh" }}>
-                          <div className="p-2 overflow-y-auto flex-1 min-h-0 space-y-2">
+                  <Popup maxWidth={340} minWidth={240} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
+                         <div className="flex w-[78vw] max-w-[280px] flex-col rounded-xl overflow-hidden backdrop-blur-md border border-white/40 shadow-lg opacity-100 bg-white sm:w-auto sm:max-w-[320px]" style={{ maxHeight: "70vh" }}>
+                          <div className="px-1.5 py-2 sm:p-2 overflow-y-auto flex-1 min-h-0 space-y-2">
                             <div className="flex items-center gap-1 flex-wrap">
                               <Badge className={`text-[9px] px-1.5 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
                                 {getListingTypeBadgeLabel(listing)}
@@ -1452,7 +1452,7 @@ export default function HomePage() {
                         }
                           </div>
 
-                          <div className="flex items-center gap-1 border-t border-gray-200 bg-white/40 p-1.5 flex-shrink-0 flex-wrap justify-center">
+                          <div className="flex items-center gap-1 border-t border-gray-200 bg-white/40 px-1.5 py-1.5 flex-shrink-0 flex-wrap justify-center">
                             <Button
                           size="sm"
                           onClick={(e) => {
