@@ -10,6 +10,7 @@ import { hasVerifiedPrimaryAddress } from "@/lib/trustActions";
 import PushCategoryRow from "./PushCategoryRow";
 import AlertsPushGroup from "./AlertsPushGroup";
 import VendorSubscriptionManager from "./VendorSubscriptionManager";
+import PushDebugPanel from "./PushDebugPanel";
 
 const defaults = {
   push_enabled: false,
@@ -79,14 +80,21 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     if (canStorePushStatus(result.status)) {
       await savePushSubscription(result.status, result.subscriptionId || await getOneSignalSubscriptionId());
     }
-    if (result.status === "enabled" && result.subscriptionId) { await saveMutation.mutateAsync({ push_enabled: true }); toast.success("Push notifications enabled and connected to this account"); }
-    else if (result.status === "needs_install") toast.error("Install Yardit to your Home Screen first, then open the installed app to enable push notifications.");
-    else if (result.status === "onesignal_not_ready") toast.error("The push service is still loading. Please wait a few seconds and try again.");
-    else if (result.status === "registration_timeout") toast.error("Notifications were allowed, but browser registration did not finish. Refresh Yardit and try again.");
-    else if (result.status === "service_worker_not_ready") toast.error("Preparing notifications, please try again in a moment.");
-    else if (result.status === "blocked") toast.error("Notifications are blocked in your browser or device settings.");
-    else if (result.status === "unsupported") toast.error("Push notifications are not supported by this browser or device.");
-    else toast.error("Push permission was not completed. Please try again.");
+    if (result.status === "enabled" && result.subscriptionId) {
+      localStorage.removeItem("yardit_last_push_error");
+      await saveMutation.mutateAsync({ push_enabled: true });
+      toast.success("Push notifications enabled and connected to this account");
+    } else {
+      const errorMessage = result.status === "needs_install" ? "Install Yardit to your Home Screen first, then open the installed app to enable push notifications." :
+        result.status === "onesignal_not_ready" ? "The push service is still loading. Please wait a few seconds and try again." :
+        result.status === "registration_timeout" ? "Notifications were allowed, but browser registration did not finish. Refresh Yardit and try again." :
+        result.status === "service_worker_not_ready" ? "Preparing notifications, please try again in a moment." :
+        result.status === "blocked" ? "Notifications are blocked in your browser or device settings." :
+        result.status === "unsupported" ? "Push notifications are not supported by this browser or device." :
+        "Push permission was not completed. Please try again.";
+      localStorage.setItem("yardit_last_push_error", errorMessage);
+      toast.error(errorMessage);
+    }
     setEnabling(false);
   };
 
@@ -110,9 +118,10 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     <CardContent className="space-y-4">
       <p className="text-sm text-slate-600">Choose which notifications you want sent as push alerts. These settings do not remove notifications from your Yardit notification history.</p>
       <div className="flex flex-col gap-3 rounded-2xl bg-[#F3E6CF] p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div><p className="font-bold text-[#2C4F4E]">Push permission: {pushStatusLabel(displayStatus)}</p><p className="text-xs text-slate-600">Bell/history notifications are always kept separately.</p>{displayStatus === "not_connected" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Your browser allowed notifications, but Yardit still needs to connect this device to your account.</p>}{browserStatus === "needs_install" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">On iPhone or iPad, install Yardit to your Home Screen first, then open the installed app to enable push.</p>}{browserStatus === "onesignal_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">The push service is still loading. Wait a few seconds, then try again.</p>}{browserStatus === "service_worker_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Preparing notifications, please try again in a moment.</p>}</div>
-        {showEnableButton && <Button onClick={handleEnablePush} disabled={disableEnableButton} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{enabling && <Loader2 className="h-4 w-4 animate-spin" />} {displayStatus === "not_connected" ? "Connect Push Notifications" : "Enable Push Notifications"}</Button>}
+       <div><p className="font-bold text-[#2C4F4E]">Push permission: {pushStatusLabel(displayStatus)}</p><p className="text-xs text-slate-600">Bell/history notifications are always kept separately.</p>{displayStatus === "not_connected" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Your browser allowed notifications, but Yardit still needs to connect this device to your account.</p>}{browserStatus === "needs_install" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">On iPhone or iPad, install Yardit to your Home Screen first, then open the installed app to enable push.</p>}{browserStatus === "onesignal_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">The push service is still loading. Wait a few seconds, then try again.</p>}{browserStatus === "service_worker_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Preparing notifications, please try again in a moment.</p>}</div>
+       {showEnableButton && <Button onClick={handleEnablePush} disabled={disableEnableButton} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{enabling && <Loader2 className="h-4 w-4 animate-spin" />} {displayStatus === "not_connected" ? "Connect Push Notifications" : "Enable Push Notifications"}</Button>}
       </div>
+      <PushDebugPanel user={user} storedSubscriptionId={pushSubscription?.onesignal_subscription_id} />
       <AlertsPushGroup
         pref={pref}
         onGroupChange={(v) => saveMutation.mutate({ alerts_push_enabled: v })}
