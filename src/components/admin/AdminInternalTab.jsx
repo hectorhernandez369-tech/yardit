@@ -22,7 +22,7 @@ export default function AdminInternalTab({ user, adminSession }) {
       </div>
 
       <Tabs defaultValue={canManageAdmins ? "admin-management" : canViewLogs ? "logs" : "settings"}>
-        <TabsList className="flex flex-wrap gap-1 h-auto w-full p-1">
+        <TabsList className="flex flex-nowrap gap-1 h-auto w-full overflow-x-auto touch-pan-x p-1 [scrollbar-width:thin]">
           {canManageAdmins && <TabsTrigger value="admin-management" className="whitespace-nowrap">Admin Management & Permissions</TabsTrigger>}
           {canViewLogs && <TabsTrigger value="logs" className="whitespace-nowrap">Audit Logs</TabsTrigger>}
           <TabsTrigger value="resources" className="whitespace-nowrap">Resources / Training</TabsTrigger>

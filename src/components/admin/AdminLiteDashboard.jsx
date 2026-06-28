@@ -28,15 +28,17 @@ export default function AdminLiteDashboard({ user }) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex gap-1 h-auto w-full max-w-full overflow-x-auto p-1 sm:flex-wrap sm:overflow-visible">
-          <TabsTrigger value="listings" className="shrink-0 whitespace-nowrap">Listings & Neighborhood Sales</TabsTrigger>
-          <TabsTrigger value="users" className="shrink-0 whitespace-nowrap">Users</TabsTrigger>
-          <TabsTrigger value="vendors" className="shrink-0 whitespace-nowrap">Vendors & Events</TabsTrigger>
-          <TabsTrigger value="assisted" className="shrink-0 whitespace-nowrap">Assisted Listings</TabsTrigger>
-          <TabsTrigger value="promos" className="shrink-0 whitespace-nowrap">Promotions & Vouchers</TabsTrigger>
-          <TabsTrigger value="payments" className="shrink-0 whitespace-nowrap">Payments</TabsTrigger>
-          <TabsTrigger value="jth" className="shrink-0 whitespace-nowrap">Join the Hunt</TabsTrigger>
-        </TabsList>
+        <div className="-mx-3 overflow-x-auto px-3 touch-pan-x [scrollbar-width:thin]">
+          <TabsList className="inline-flex h-auto w-max min-w-full flex-nowrap gap-1 p-1">
+            <TabsTrigger value="listings" className="shrink-0 whitespace-nowrap">Listings & Neighborhood Sales</TabsTrigger>
+            <TabsTrigger value="users" className="shrink-0 whitespace-nowrap">Users</TabsTrigger>
+            <TabsTrigger value="vendors" className="shrink-0 whitespace-nowrap">Vendors & Events</TabsTrigger>
+            <TabsTrigger value="assisted" className="shrink-0 whitespace-nowrap">Assisted Listings</TabsTrigger>
+            <TabsTrigger value="promos" className="shrink-0 whitespace-nowrap">Promotions & Vouchers</TabsTrigger>
+            <TabsTrigger value="payments" className="shrink-0 whitespace-nowrap">Payments</TabsTrigger>
+            <TabsTrigger value="jth" className="shrink-0 whitespace-nowrap">Join the Hunt</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="listings">
           <ListingManagement mode="residential" adminUser={user} />

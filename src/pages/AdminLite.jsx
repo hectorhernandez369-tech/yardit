@@ -271,7 +271,7 @@ export default function AdminLitePage() {
           </span>
 
           {/* Primary operations center tabs — full width on mobile */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 w-full max-w-full overflow-x-auto sm:w-auto sm:overflow-visible">
+          <div className="flex flex-nowrap items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 w-full max-w-full overflow-x-auto touch-pan-x [scrollbar-width:thin] sm:w-auto">
             {[
               { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, active: "bg-[#2C4F4E] text-white" },
               { key: "inbox", label: "Admin Inbox", icon: Inbox, active: "bg-slate-700 text-white" },
@@ -362,7 +362,7 @@ export default function AdminLitePage() {
             )}
 
             <Tabs value={caseManagementTab} onValueChange={setCaseManagementTab}>
-              <TabsList className="flex gap-1 h-auto w-full max-w-full overflow-x-auto p-1 sm:flex-wrap sm:overflow-visible">
+              <TabsList className="flex flex-nowrap gap-1 h-auto w-full max-w-full overflow-x-auto touch-pan-x p-1 [scrollbar-width:thin]">
                 <TabsTrigger value="queue" className="shrink-0 whitespace-nowrap">
                   Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
                 </TabsTrigger>
