@@ -99,15 +99,20 @@ export default function AccountSetupModal({ user, setUser }) {
       <Dialog open={open} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-hidden border border-slate-200/80 bg-white p-0 shadow-2xl shadow-slate-950/20 [&>button]:hidden flex flex-col">
           <div className="bg-gradient-to-br from-[#2C4F4E] via-[#36706C] to-[#5DADA5] px-6 py-5 text-white">
+            <div className="mb-4 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/90">
+              Step 1 complete: Sign-in verified
+            </div>
             <DialogHeader>
-              <img 
-                src="https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png" 
-                alt="Yardit Logo" 
-                className="mx-auto mb-3 h-14 w-14 object-contain"
-              />
-              <DialogTitle className="text-center text-2xl font-semibold tracking-tight text-white">Secure Account Setup</DialogTitle>
-              <DialogDescription className="text-center text-slate-300">
-                Confirm your identity details to protect the Yardit marketplace.
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+                <img 
+                  src="https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png" 
+                  alt="Yardit Logo" 
+                  className="h-10 w-10 object-contain"
+                />
+              </div>
+              <DialogTitle className="text-center text-2xl font-semibold tracking-tight text-white">Step 2: Finish Your Yardit Profile</DialogTitle>
+              <DialogDescription className="text-center text-slate-200">
+                You’re already signed in. This quick profile step helps keep Yardit trusted and safe.
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -137,7 +142,7 @@ export default function AccountSetupModal({ user, setUser }) {
             </div>
 
             <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
-              Your name helps build trust between buyers, sellers, vendors, and event organizers on Yardit.
+              Add the profile details Yardit needs after sign-in so buyers, sellers, vendors, and event organizers can trust each other.
             </p>
 
             <SetupAddressVerification
@@ -197,7 +202,7 @@ export default function AccountSetupModal({ user, setUser }) {
                 className="h-11 w-full rounded-xl bg-slate-950 font-semibold text-white shadow-lg shadow-slate-950/20 transition hover:bg-slate-800 disabled:opacity-50"
               >
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Complete Profile Now
+                Finish Step 2
               </Button>
               <Button
                 onClick={() => saveSetup(false)}
@@ -205,7 +210,7 @@ export default function AccountSetupModal({ user, setUser }) {
                 variant="outline"
                 className="h-11 w-full rounded-xl border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
-                Skip Phone and Finish
+                Skip Phone and Finish Step 2
               </Button>
             </div>
           </div>
