@@ -22,6 +22,7 @@ export const legalDocuments = {
       { title: "Public Information", body: [
         "When users publish listings, Residential Events, Neighborhood Sales, Vendor Events, vendor profiles, vendor check-ins, or related content, some information may become publicly visible in Yardit map, list, event, vendor, and detail views.",
         "Public information may include listing titles, descriptions, categories, photos, display locations, event details, schedules, vendor business details, vendor profile content, check-in information, Neighborhood Sale participation details, and other content submitted for public display.",
+        "Information intentionally published by users may remain publicly visible while the listing, event, Neighborhood Sale, vendor profile, or other content is active. Once content expires, is removed, or is unpublished, it will no longer appear publicly, although certain records may still be retained for operational, support, fraud prevention, legal, or audit purposes as described elsewhere in this Privacy Policy.",
         "Users should not include personal information, private details, sensitive photos, or other content they do not want made public."
       ]},
       { title: "Location Information", body: [
@@ -54,7 +55,7 @@ export const legalDocuments = {
         "Yardit retains information only as long as reasonably necessary to operate the platform, process payments, provide support, prevent fraud, resolve disputes, meet legal obligations, enforce the Terms of Service, maintain safety workflows, and support billing or audit needs."
       ]},
       { title: "Account Deletion", body: [
-        "Users may request account deletion through Yardit Support.",
+        "Users may request account deletion through Yardit Support. If Yardit later provides a self-service account deletion feature, users may also delete their account through their account settings.",
         "Certain information may be retained when necessary for legal compliance, fraud prevention, payment records, open disputes, safety investigations, support history, billing records, or enforcement of Yardit's Terms of Service."
       ]},
       { title: "User Privacy Rights", body: [
@@ -69,7 +70,7 @@ export const legalDocuments = {
         "No online service can guarantee absolute security, and users should also take care to protect their account access and device security."
       ]},
       { title: "Policy Changes", body: [
-        "Yardit may update this Privacy Policy from time to time. Continued use of Yardit after updates are posted means the user accepts the revised Privacy Policy."
+        "Yardit may update this Privacy Policy from time to time. When appropriate or required by law, Yardit may provide additional notice of significant changes. Continued use of Yardit after updated policies become effective constitutes acceptance of the revised Privacy Policy."
       ]},
       { title: "Contact Us", body: [
         "For privacy questions, privacy requests, account deletion requests, or help with personal information, users should contact Yardit Support through the support options available in the Yardit app."
