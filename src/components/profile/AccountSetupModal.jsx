@@ -8,8 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { COMMUNITY_GUIDELINES_VERSION, PRIVACY_VERSION, TERMS_VERSION, isAccountSetupComplete } from "@/lib/accountSetup";
+import { COMMUNITY_GUIDELINES_VERSION, PRIVACY_VERSION, TERMS_VERSION, hasConfirmedAddress, isAccountSetupComplete } from "@/lib/accountSetup";
 import { createPageUrl } from "@/utils";
+import SetupAddressVerification from "@/components/profile/SetupAddressVerification";
 
 export default function AccountSetupModal({ user, setUser }) {
   const navigate = useNavigate();
@@ -22,6 +23,8 @@ export default function AccountSetupModal({ user, setUser }) {
     terms_accepted: false,
     privacy_accepted: false,
     community_guidelines_accepted: false,
+    address_verified: false,
+    address_payload: {},
   });
 
   useEffect(() => {
@@ -38,6 +41,8 @@ export default function AccountSetupModal({ user, setUser }) {
         terms_accepted: user.terms_accepted === true && user.terms_version === TERMS_VERSION,
         privacy_accepted: user.privacy_accepted === true && user.privacy_version === PRIVACY_VERSION,
         community_guidelines_accepted: user.community_guidelines_accepted === true && user.community_guidelines_version === COMMUNITY_GUIDELINES_VERSION,
+        address_verified: hasConfirmedAddress(user),
+        address_payload: {},
       });
       setOpen(true);
     } else {
@@ -50,7 +55,8 @@ export default function AccountSetupModal({ user, setUser }) {
     formData.last_name.trim() &&
     formData.terms_accepted &&
     formData.privacy_accepted &&
-    formData.community_guidelines_accepted
+    formData.community_guidelines_accepted &&
+    formData.address_verified
   );
 
   const saveSetup = async (includePhone, redirectToProfile = false) => {
@@ -70,6 +76,7 @@ export default function AccountSetupModal({ user, setUser }) {
       community_guidelines_accepted: true,
       community_guidelines_accepted_at: now,
       community_guidelines_version: COMMUNITY_GUIDELINES_VERSION,
+      ...formData.address_payload,
     };
 
     if (includePhone && formData.phone.trim()) {
@@ -133,6 +140,12 @@ export default function AccountSetupModal({ user, setUser }) {
               Your name helps build trust between buyers, sellers, vendors, and event organizers on Yardit.
             </p>
 
+            <SetupAddressVerification
+              user={user}
+              isVerified={formData.address_verified}
+              onVerified={(addressPayload) => setFormData((prev) => ({ ...prev, address_verified: true, address_payload: addressPayload }))}
+            />
+
             <div className="space-y-1.5">
               <Label htmlFor="setup_phone">Phone Number <span className="font-normal text-slate-500">(optional)</span></Label>
               <Input
@@ -192,7 +205,7 @@ export default function AccountSetupModal({ user, setUser }) {
                 variant="outline"
                 className="h-11 w-full rounded-xl border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
-                Complete Profile Later
+                Skip Phone and Finish
               </Button>
             </div>
           </div>
