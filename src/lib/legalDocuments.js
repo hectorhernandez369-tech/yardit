@@ -162,10 +162,14 @@ export const legalDocuments = {
         "Do not place pins at fake, unrelated, or unauthorized locations."
       ]},
       { title: "Follow the law", body: [
-        "Do not use Yardit to promote or sell illegal items or illegal activity. Do not post or promote drugs, controlled substances, stolen goods, weapons, dangerous items, illegal services, or unsafe activity."
+        "Users are responsible for making sure their listings, events, vendor activity, communications, transactions, and conduct comply with all applicable federal, state, and local laws.",
+        "Yardit may remove, restrict, hide, review, or escalate content or activity that appears unlawful, fraudulent, unsafe, misleading, or otherwise harmful to users or the community."
       ]},
       { title: "No scams or fraud", body: [
         "Do not use Yardit for scams, bait-and-switch behavior, fake listings, misleading pricing, payment abuse, promo abuse, tier circumvention, or identity misrepresentation."
+      ]},
+      { title: "Impersonation and intellectual property", body: [
+        "Do not pretend to be another person or business, use another business's identity, branding, or logos without permission, or upload content you do not own or have permission to use."
       ]},
       { title: "Keep content appropriate", body: [
         "Do not upload or post explicit/adult content, offensive content, hate content, harassing content, threats, graphic or unsafe imagery, or content you do not have the right to use."
@@ -191,7 +195,11 @@ export const legalDocuments = {
         "Yardit may take actions such as no action, user education, listing adjustment, warning, listing removal, listing suspension, participant removal, account restriction, account suspension, support review, billing review, or case escalation."
       ]},
       { title: "Stay safe", body: [
-        "Yardit helps users discover local activity, but users are responsible for their own safety. Use caution when meeting others, attending events, handling transactions, or visiting unfamiliar locations."
+        "Yardit helps users discover local activity, but users are responsible for using good judgment and making their own safety decisions.",
+        "When practical, meet in safe public locations, be cautious when visiting unfamiliar locations, and report suspicious activity through Yardit."
+      ]},
+      { title: "Our Goal", body: [
+        "Yardit exists to help communities discover local yard sales, neighborhood sales, residential events, and local vendors in a safe, honest, respectful environment. These Guidelines help protect users and the communities they are part of."
       ]}
     ]
   }
