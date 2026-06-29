@@ -55,8 +55,9 @@ export const legalDocuments = {
         "Yardit retains information only as long as reasonably necessary to operate the platform, process payments, provide support, prevent fraud, resolve disputes, meet legal obligations, enforce the Terms of Service, maintain safety workflows, and support billing or audit needs."
       ]},
       { title: "Account Deletion", body: [
-        "Users may request account deletion through Yardit Support. If Yardit later provides a self-service account deletion feature, users may also delete their account through their account settings.",
-        "Certain information may be retained when necessary for legal compliance, fraud prevention, payment records, open disputes, safety investigations, support history, billing records, or enforcement of Yardit's Terms of Service."
+        "Users may start account deletion from Yardit Settings. Protected admin, owner, or developer accounts may require Yardit Support review before deletion to protect platform operations and audit integrity.",
+        "When deletion is completed, Yardit may deactivate or anonymize the account, disable push subscriptions, remove saved user preferences where appropriate, hide eligible user-owned public content, and sign the user out.",
+        "Certain information may be retained when necessary for legal compliance, fraud prevention, payment records, open disputes, safety investigations, support history, billing records, dispute resolution, or audit needs."
       ]},
       { title: "User Privacy Rights", body: [
         "Users may request access to their information, correction of inaccurate information, deletion where applicable, or privacy assistance through Yardit Support.",
