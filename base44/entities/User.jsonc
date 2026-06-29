@@ -204,7 +204,9 @@
         "active",
         "warned",
         "suspended",
-        "banned"
+        "banned",
+        "deletion_requested",
+        "deleted"
       ],
       "default": "active",
       "description": "Account status"
@@ -213,6 +215,34 @@
       "type": "string",
       "format": "date-time",
       "description": "Status expiration"
+    },
+    "account_deletion_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "requested",
+        "completed"
+      ],
+      "default": "none",
+      "description": "User-requested account deletion state"
+    },
+    "account_deletion_requested_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the user requested account deletion"
+    },
+    "account_deleted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the safe account deletion/deactivation was completed"
+    },
+    "account_deletion_method": {
+      "type": "string",
+      "description": "How deletion was completed, such as safe_deactivation"
+    },
+    "account_deletion_retention_notice": {
+      "type": "string",
+      "description": "Plain-English retention notice shown during deletion"
     }
   },
   "required": []

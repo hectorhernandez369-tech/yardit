@@ -7,6 +7,7 @@ import { createPageUrl } from "@/utils";
 import { clearAdminSession } from "../components/admin/AdminLoginModal";
 import { useAuth } from "@/lib/AuthContext";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
+import DeleteAccountDialog from "@/components/settings/DeleteAccountDialog";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
 import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 
@@ -22,6 +23,7 @@ export default function SettingsPage() {
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [canInstallApp, setCanInstallApp] = useState(false);
   const [startupPage, setStartupPage] = useState(() => localStorage.getItem(STARTUP_PAGE_KEY) || "map");
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -46,6 +48,11 @@ export default function SettingsPage() {
   const handleLogout = () => {
     clearAdminSession();
     logout(createPageUrl("Home"));
+  };
+
+  const handleAccountDeleted = () => {
+    clearAdminSession();
+    logout("/ComingSoon");
   };
 
   useEffect(() => {
@@ -229,9 +236,9 @@ export default function SettingsPage() {
 
         <Card className="rounded-lg border-0 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Account Actions</CardTitle>
+            <CardTitle className="text-base">Account</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <Button
               onClick={handleLogout}
               variant="outline"
@@ -239,11 +246,19 @@ export default function SettingsPage() {
             >
               Logout
             </Button>
+            <Button
+              onClick={() => setShowDeleteAccount(true)}
+              variant="outline"
+              className="w-full border-red-200 text-red-700 hover:bg-red-50"
+            >
+              Delete Account
+            </Button>
           </CardContent>
         </Card>
         </div>
 
         <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} mode={installDialogMode} />
+        <DeleteAccountDialog open={showDeleteAccount} onOpenChange={setShowDeleteAccount} onDeleted={handleAccountDeleted} />
       </div>
     </div>
   );

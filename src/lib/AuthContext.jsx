@@ -78,6 +78,15 @@ export const AuthProvider = ({ children }) => {
         userId: currentUser?.id,
         email: currentUser?.email,
       });
+      if (currentUser?.accountStatus === 'deleted' || currentUser?.account_deletion_status === 'completed') {
+        await base44.auth.logout('/ComingSoon');
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsGuest(false);
+        setIsLoadingAuth(false);
+        setAuthError({ type: 'auth_required', message: 'Account deleted' });
+        return;
+      }
       clearGuestMode();
       try {
         localStorage.setItem(RETURNING_USER_KEY, "true");
