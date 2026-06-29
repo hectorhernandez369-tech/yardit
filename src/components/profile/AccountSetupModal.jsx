@@ -197,7 +197,7 @@ export default function AccountSetupModal({ user, setUser }) {
 
             <div className="flex flex-col gap-2 pt-1">
               <Button
-                onClick={() => saveSetup(true, true)}
+                onClick={() => saveSetup(true)}
                 disabled={!requirementsMet || saving}
                 className="h-11 w-full rounded-xl bg-slate-950 font-semibold text-white shadow-lg shadow-slate-950/20 transition hover:bg-slate-800 disabled:opacity-50"
               >
@@ -205,12 +205,12 @@ export default function AccountSetupModal({ user, setUser }) {
                 Finish Step 2
               </Button>
               <Button
-                onClick={() => saveSetup(false)}
+                onClick={() => saveSetup(true, true)}
                 disabled={!requirementsMet || saving}
                 variant="outline"
                 className="h-11 w-full rounded-xl border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
-                Finish Step 2 — Add Phone Later
+                Finish Step 2 & View Profile
               </Button>
             </div>
           </div>
