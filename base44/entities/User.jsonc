@@ -50,6 +50,20 @@
       "type": "string",
       "description": "Privacy Policy version acknowledged by the user"
     },
+    "community_guidelines_accepted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user accepted the current Community Guidelines"
+    },
+    "community_guidelines_accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the user accepted the Community Guidelines"
+    },
+    "community_guidelines_version": {
+      "type": "string",
+      "description": "Community Guidelines version accepted by the user"
+    },
     "profile_photo_url": {
       "type": "string",
       "description": "Optional profile photo URL"

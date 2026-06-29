@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { PRIVACY_VERSION, TERMS_VERSION, isAccountSetupComplete } from "@/lib/accountSetup";
+import { COMMUNITY_GUIDELINES_VERSION, PRIVACY_VERSION, TERMS_VERSION, isAccountSetupComplete } from "@/lib/accountSetup";
 import { createPageUrl } from "@/utils";
 
 export default function AccountSetupModal({ user, setUser }) {
@@ -21,6 +21,7 @@ export default function AccountSetupModal({ user, setUser }) {
     phone: "",
     terms_accepted: false,
     privacy_accepted: false,
+    community_guidelines_accepted: false,
   });
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function AccountSetupModal({ user, setUser }) {
         phone: user.phone || "",
         terms_accepted: user.terms_accepted === true && user.terms_version === TERMS_VERSION,
         privacy_accepted: user.privacy_accepted === true && user.privacy_version === PRIVACY_VERSION,
+        community_guidelines_accepted: user.community_guidelines_accepted === true && user.community_guidelines_version === COMMUNITY_GUIDELINES_VERSION,
       });
       setOpen(true);
     } else {
@@ -47,7 +49,8 @@ export default function AccountSetupModal({ user, setUser }) {
     formData.first_name.trim() &&
     formData.last_name.trim() &&
     formData.terms_accepted &&
-    formData.privacy_accepted
+    formData.privacy_accepted &&
+    formData.community_guidelines_accepted
   );
 
   const saveSetup = async (includePhone, redirectToProfile = false) => {
@@ -64,6 +67,9 @@ export default function AccountSetupModal({ user, setUser }) {
       privacy_accepted: true,
       privacy_accepted_at: now,
       privacy_version: PRIVACY_VERSION,
+      community_guidelines_accepted: true,
+      community_guidelines_accepted_at: now,
+      community_guidelines_version: COMMUNITY_GUIDELINES_VERSION,
     };
 
     if (includePhone && formData.phone.trim()) {
@@ -155,6 +161,14 @@ export default function AccountSetupModal({ user, setUser }) {
                   className="mt-0.5"
                 />
                 <span>I acknowledge the Privacy Policy</span>
+              </label>
+              <label className="flex items-start gap-3 text-sm text-slate-700 cursor-pointer">
+                <Checkbox
+                  checked={formData.community_guidelines_accepted}
+                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, community_guidelines_accepted: checked === true }))}
+                  className="mt-0.5"
+                />
+                <span>I agree to the Community Guidelines</span>
               </label>
               <div className="flex flex-wrap gap-3 text-xs">
                 <Link to="/terms" target="_blank" className="font-semibold text-slate-800 underline decoration-slate-300 underline-offset-4 hover:text-[#2C4F4E]">View Terms of Service</Link>
