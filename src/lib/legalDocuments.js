@@ -3,60 +3,76 @@ export const legalDocuments = {
     title: "Privacy Policy",
     subtitle: "How Yardit collects, uses, and protects information across listings, maps, payments, notifications, support, and safety workflows.",
     effectiveDate: "June 28, 2026",
-    intro: "This Privacy Policy is based on Yardit’s current app behavior. Sections marked Recommended Addition cover legal or Google Play readiness topics that should be supported publicly even where Yardit does not yet have a dedicated in-app workflow.",
+    intro: "This Privacy Policy explains how Yardit collects, uses, shares, stores, and protects information when people use Yardit listings, maps, payments, notifications, support, and safety features.",
     sections: [
-      { title: "Information Yardit collects", body: [
-        "Yardit may collect account information such as first name, last name, email address, optional phone number, user ID, account role, account creation date, and Terms/Privacy acceptance records.",
-        "Yardit may collect address and location information such as street address, city, state, ZIP code, latitude, longitude, address confirmation status, listing location, event location, vendor check-in location, and time zone.",
-        "Yardit may collect user-submitted content including listing titles, descriptions, categories, photos, event flyers, vendor profile content, support tickets, reports, and uploaded evidence photos.",
-        "Yardit may collect payment-related records such as Stripe checkout session IDs, payment intent IDs, customer IDs, subscription IDs, transaction amount, payment status, refund status, promo code details, and non-refundable acknowledgement records.",
-        "Yardit may collect push notification information including OneSignal subscription ID, push permission status, user agent, push preferences, push delivery logs, and user ID linked to push subscriptions."
+      { title: "Information We Collect", body: [
+        "Yardit may collect name, email address, phone number, account information, user ID, account role, account creation date, and records showing acceptance of Yardit's Terms of Service, Privacy Policy, and Community Guidelines.",
+        "Yardit may collect verified addresses, listing and event locations, Neighborhood Sale locations, vendor check-in locations, city, state, ZIP code, latitude, longitude, time zone, address confirmation status, and related location details needed to operate the map and listing features.",
+        "Yardit may collect listing, event, Neighborhood Sale, and vendor information, including titles, descriptions, categories, schedules, business details, vendor profiles, event details, participant information, and related settings.",
+        "Yardit may collect photos and uploaded files, including listing photos, event flyers, vendor photos, support attachments, report photos, and other files users choose to upload.",
+        "Yardit may collect support tickets, reports, case details, admin comments, internal notes, audit history, and related safety or moderation records.",
+        "Yardit may collect payment-related records processed through Stripe, such as checkout session IDs, payment intent IDs, customer IDs, subscription IDs, transaction amounts, payment status, refund status, promo code details, failed payment records, and payment-related support records.",
+        "Yardit may collect OneSignal push subscription identifiers, push permission status, push preferences, delivery logs, and device or browser information necessary to send and manage notifications.",
+        "Yardit may collect device, browser, user agent, app preference, and usage information necessary to keep users signed in, operate Yardit, restore checkout, improve performance, and maintain app functionality."
       ]},
-      { title: "How Yardit uses information", body: [
-        "Yardit uses information to create accounts, verify addresses, publish listings, show map and list results, process payments, apply promo eligibility, send notifications, provide support, review reports, prevent fraud, and maintain safety and billing records.",
-        "Address and location information are used for residential listing verification, map display, Neighborhood Sale radius rules, vendor check-ins, nearby listing/vendor alerts, route/list sorting, and geographically limited promo codes."
+      { title: "How We Use Information", body: [
+        "Yardit uses information to create and manage accounts, verify addresses, publish listings, display maps, process payments, send notifications, prevent fraud, review reports, provide customer support, improve Yardit, comply with legal obligations, and enforce Yardit's Terms of Service.",
+        "Yardit uses listing, event, vendor, payment, notification, support, and report information to operate the platform, manage visibility, apply promo eligibility, review safety concerns, resolve disputes, and support users."
       ]},
-      { title: "Public information", body: [
-        "Published listings, events, vendor profiles, vendor check-ins, and Neighborhood Sales may show public content such as titles, descriptions, photos, display locations, event details, business details, and participation-related information.",
-        "Users should not post personal information they do not want visible to others."
+      { title: "Public Information", body: [
+        "When users publish listings, Residential Events, Neighborhood Sales, Vendor Events, vendor profiles, vendor check-ins, or related content, some information may become publicly visible in Yardit map, list, event, vendor, and detail views.",
+        "Public information may include listing titles, descriptions, categories, photos, display locations, event details, schedules, vendor business details, vendor profile content, check-in information, Neighborhood Sale participation details, and other content submitted for public display.",
+        "Users should not include personal information, private details, sensitive photos, or other content they do not want made public."
       ]},
-      { title: "Location and Mapbox", body: [
-        "Yardit uses Mapbox-supported location and geocoding features to search, confirm, display, and place addresses or coordinates on the map.",
-        "Residential listing features rely on verified address and coordinate data to reduce fake, duplicate, or misplaced listings."
+      { title: "Location Information", body: [
+        "Yardit requests location information to help users search nearby listings, show map results, verify residential addresses, display listing and event locations, support vendor check-ins, and operate Neighborhood Sale radius features.",
+        "Verified addresses help Yardit reduce fake, duplicate, unauthorized, or misplaced residential listings. Residential listing features may rely on a user's verified primary address and related coordinates.",
+        "Nearby searches, nearby listing alerts, vendor near-me alerts, map filters, and route or list sorting may use location information to show relevant Yardit activity near a user or selected area.",
+        "Vendor check-ins use location information to show where a vendor is currently or scheduled to appear, when that feature is used.",
+        "Neighborhood Sale features may use host addresses, participant locations, radius checks, map display, and home count information to manage shared neighborhood events."
       ]},
-      { title: "Payments and Stripe", body: [
-        "Yardit uses Stripe for checkout, payment confirmation, subscription payments, failed payment records, and payment-related support workflows.",
-        "Yardit does not directly store full payment card numbers in the Yardit app database."
+      { title: "Payments", body: [
+        "Yardit uses Stripe to process payments, checkout, subscriptions, payment confirmations, failed payment tracking, and payment-related support workflows.",
+        "Yardit does not store full payment card numbers in the Yardit app database.",
+        "Yardit retains payment-related records as reasonably necessary for billing, fraud prevention, customer support, dispute resolution, payment audits, and legal obligations."
       ]},
-      { title: "Push notifications and OneSignal", body: [
-        "Push notifications are optional and require browser or device permission. Yardit uses OneSignal to manage push subscriptions and delivery.",
-        "Users can manage push categories for account, billing, approval, safety, support, policy, nearby listings, vendor near-me alerts, followed vendors, and marketing where enabled.",
-        "Turning off push notifications does not remove in-app notification history or bell notifications."
+      { title: "Push Notifications", body: [
+        "Yardit uses OneSignal to manage optional push notifications and push subscription delivery.",
+        "Push notifications require browser or device permission. Users may change notification preferences or disable push notifications at any time through Yardit settings or their device/browser settings.",
+        "Disabling push notifications does not remove in-app notification history or notification bell records that Yardit maintains separately."
       ]},
-      { title: "Support, reports, and moderation", body: [
-        "Yardit stores support tickets, report details, uploaded report photos, case records, admin comments, internal notes, and audit history when needed for support, safety, fraud prevention, billing review, or moderation.",
-        "Safety-related reports may be prioritized in Yardit’s internal case workflow."
+      { title: "Cookies and Local Storage", body: [
+        "Yardit may use cookies, local storage, session storage, and similar browser storage to remember preferences, keep users signed in, restore checkout, improve performance, maintain app functionality, remember install or startup preferences, support push setup, and preserve temporary app state."
       ]},
-      { title: "Cookies and local storage", body: [
-        "Yardit may use browser storage to remember app install state, startup page preference, checkout return state, push setup state, temporary app messages, tester access, and similar app preferences."
+      { title: "Third-Party Services", body: [
+        "Yardit uses Base44 for hosting, authentication, database, file storage, backend functions, and app infrastructure.",
+        "Yardit uses Stripe for payment processing and payment-related records.",
+        "Yardit uses OneSignal for optional push notifications and subscription management.",
+        "Yardit uses Mapbox for mapping, geocoding, location search, and map display features."
       ]},
-      { title: "Third-party services", body: [
-        "Yardit uses Base44 platform services for hosting, authentication, database, files, backend functions, and app infrastructure.",
-        "Yardit uses Stripe for payment processing, OneSignal for push notifications, and Mapbox for mapping/geocoding features.",
-        "Recommended Addition: If Yardit later uses Google Analytics, Google APIs, Google sign-in, Google Maps, or other Google services, those services should be listed here before launch."
+      { title: "Data Retention", body: [
+        "Yardit retains information only as long as reasonably necessary to operate the platform, process payments, provide support, prevent fraud, resolve disputes, meet legal obligations, enforce the Terms of Service, maintain safety workflows, and support billing or audit needs."
       ]},
-      { title: "Data retention", body: [
-        "Recommended Addition: Yardit should retain account, listing, payment, notification, support, moderation, and audit records only as long as reasonably needed to operate the service, comply with legal obligations, prevent fraud, resolve disputes, process payments, provide support, and enforce platform rules."
+      { title: "Account Deletion", body: [
+        "Users may request account deletion through Yardit Support.",
+        "Certain information may be retained when necessary for legal compliance, fraud prevention, payment records, open disputes, safety investigations, support history, billing records, or enforcement of Yardit's Terms of Service."
       ]},
-      { title: "Account deletion and privacy requests", body: [
-        "Recommended Addition: Yardit should provide a clear account deletion process. Until a self-service deletion feature exists, users should be directed to request deletion through Yardit support.",
-        "Recommended Addition: Yardit should provide a clear process for users to request access, correction, deletion, or privacy assistance. Some records may need to be retained for payment, safety, fraud prevention, legal compliance, or dispute-resolution reasons."
+      { title: "User Privacy Rights", body: [
+        "Users may request access to their information, correction of inaccurate information, deletion where applicable, or privacy assistance through Yardit Support.",
+        "Yardit may need to verify the request before taking action, and some information may not be deleted immediately if it must be retained for legal, safety, fraud prevention, payment, support, or dispute-resolution reasons."
       ]},
-      { title: "Children’s privacy", body: [
-        "Recommended Addition: Yardit should state that the service is not intended for children under 13 and does not knowingly collect personal information from children under 13."
+      { title: "Children's Privacy", body: [
+        "Yardit is not intended for children under 13 and does not knowingly collect personal information from children under 13."
       ]},
       { title: "Security", body: [
-        "Recommended Addition: Yardit should state that it uses reasonable safeguards and trusted platform services, while also explaining that no online service can guarantee complete security."
+        "Yardit uses reasonable administrative, technical, and physical safeguards, including trusted third-party providers, to help protect user information.",
+        "No online service can guarantee absolute security, and users should also take care to protect their account access and device security."
+      ]},
+      { title: "Policy Changes", body: [
+        "Yardit may update this Privacy Policy from time to time. Continued use of Yardit after updates are posted means the user accepts the revised Privacy Policy."
+      ]},
+      { title: "Contact Us", body: [
+        "For privacy questions, privacy requests, account deletion requests, or help with personal information, users should contact Yardit Support through the support options available in the Yardit app."
       ]}
     ]
   },
