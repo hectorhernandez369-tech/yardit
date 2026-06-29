@@ -185,6 +185,35 @@ export default function SettingsPage() {
 
         <Card className="mb-4 rounded-lg border-0 shadow-sm">
           <CardHeader className="pb-2">
+            <CardTitle className="text-base">Terms & Policies</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button
+              onClick={() => navigate("/terms")}
+              variant="outline"
+              className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
+            >
+              Terms of Service
+            </Button>
+            <Button
+              onClick={() => navigate("/privacy")}
+              variant="outline"
+              className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
+            >
+              Privacy Policy
+            </Button>
+            <Button
+              onClick={() => navigate("/community-guidelines")}
+              variant="outline"
+              className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
+            >
+              Community Guidelines
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-4 rounded-lg border-0 shadow-sm">
+          <CardHeader className="pb-2">
             <CardTitle className="text-base">My Notifications</CardTitle>
           </CardHeader>
           <CardContent>
