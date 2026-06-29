@@ -12,6 +12,7 @@ import { respondToCoHostInvite } from "@/lib/coHostInviteActions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NotificationPushSettings from "@/components/notifications/NotificationPushSettings";
 import VerifiedAddressRequiredModal from "@/components/profile/VerifiedAddressRequiredModal";
+import PullToRefresh from "@/components/mobile/PullToRefresh";
 import { isBellNotification } from "@/lib/notificationRegistry";
 import { formatDeviceDateTime, parseUtcTimestamp } from "@/lib/dateTime";
 
@@ -160,6 +161,10 @@ export default function NotificationsPage() {
   const unreadNotifications = notifications.filter(n => !n.read && !n.is_read);
   const historyNotifications = notifications.filter(n => n.read || n.is_read);
   const unreadCount = unreadNotifications.length;
+
+  const handlePullRefresh = async () => {
+    await queryClient.refetchQueries({ queryKey: ["notifications", user?.id] });
+  };
 
   if (!user) {
     return (
@@ -335,24 +340,28 @@ export default function NotificationsPage() {
             </TabsList>
             
             <TabsContent value="recent" className="space-y-4">
-              {unreadNotifications.length === 0 ? (
-                <div className="text-center py-8 bg-white rounded-lg border border-dashed border-slate-300">
-                  <Check className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                  <p className="text-slate-600">No unread notifications</p>
-                </div>
-              ) : (
-                unreadNotifications.map(renderNotificationCard)
-              )}
+              <PullToRefresh onRefresh={handlePullRefresh} className="space-y-4">
+                {unreadNotifications.length === 0 ? (
+                  <div className="text-center py-8 bg-white rounded-lg border border-dashed border-slate-300">
+                    <Check className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                    <p className="text-slate-600">No unread notifications</p>
+                  </div>
+                ) : (
+                  unreadNotifications.map(renderNotificationCard)
+                )}
+              </PullToRefresh>
             </TabsContent>
             
             <TabsContent value="history" className="space-y-4">
-              {historyNotifications.length === 0 ? (
-                <div className="text-center py-8 bg-white rounded-lg border border-dashed border-slate-300">
-                  <p className="text-slate-600">Your notification history is empty.</p>
-                </div>
-              ) : (
-                historyNotifications.map(renderNotificationCard)
-              )}
+              <PullToRefresh onRefresh={handlePullRefresh} className="space-y-4">
+                {historyNotifications.length === 0 ? (
+                  <div className="text-center py-8 bg-white rounded-lg border border-dashed border-slate-300">
+                    <p className="text-slate-600">Your notification history is empty.</p>
+                  </div>
+                ) : (
+                  historyNotifications.map(renderNotificationCard)
+                )}
+              </PullToRefresh>
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-4">

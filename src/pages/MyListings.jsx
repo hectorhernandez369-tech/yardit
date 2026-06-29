@@ -24,6 +24,7 @@ import { getDefaultEventIconForCategory } from "@/lib/eventListingConfig";
 import { getUserDisplayName } from "@/lib/userIdentity";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import YardSaleGuideModal from "@/components/guide/YardSaleGuideModal";
+import PullToRefresh from "@/components/mobile/PullToRefresh";
 import { getPreviewListingsOnMapPreference, setPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 import { getResidentialDescriptionLimitError } from "@/lib/residentialDescriptionLimits";
 
@@ -367,6 +368,14 @@ export default function MyListingsPage() {
   }, [listings, user, queryClient]);
 
   const shownListings = tab === "past" ? pastListings : tab === "pending" ? pendingListings : activeListings;
+
+  const handlePullRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ["myListings", user?.id] }),
+      queryClient.refetchQueries({ queryKey: ["myListingDrafts", user?.id] }),
+      queryClient.refetchQueries({ queryKey: ["myListingsResidentialTransactions", user?.id] }),
+    ]);
+  }, [queryClient, user?.id]);
 
   const resumeDraft = (draft) => {
     localStorage.setItem(DRAFT_RESUME_STORAGE_KEY, JSON.stringify({
@@ -792,7 +801,8 @@ export default function MyListingsPage() {
           </div>
         </div>
 
-        {tab === "billing" ? (
+        <PullToRefresh onRefresh={handlePullRefresh} className="space-y-4">
+          {tab === "billing" ? (
           <ResidentialBillingList
             transactions={residentialTransactions}
             listings={listings}
@@ -844,6 +854,7 @@ export default function MyListingsPage() {
             ))}
           </div>
         )}
+        </PullToRefresh>
       </div>
 
       <YardSaleGuideModal open={showGuideModal} onOpenChange={setShowGuideModal} />

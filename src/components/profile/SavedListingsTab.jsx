@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useHunt } from "@/components/hunt/HuntContext";
 import { getListingAddressLine, formatListingDateRange, formatListingStatusLabel, getListingDisplayStatus, statusColors } from "@/components/listing/listingDisplay";
+import PullToRefresh from "@/components/mobile/PullToRefresh";
 
 export default function SavedListingsTab({ user }) {
   const navigate = useNavigate();
@@ -34,20 +35,29 @@ export default function SavedListingsTab({ user }) {
     },
   });
 
+  const handlePullRefresh = React.useCallback(async () => {
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ["savedListings", user?.id] }),
+      queryClient.refetchQueries({ queryKey: ["listingsForSaved"] }),
+    ]);
+  }, [queryClient, user?.id]);
+
   if (isLoadingSaved || (savedListingsData.length > 0 && isLoadingListings)) {
     return <div className="text-center py-8 text-slate-500">Loading saved listings...</div>;
   }
 
   if (savedListingsData.length === 0) {
     return (
-      <Card className="border-dashed bg-slate-50">
-        <CardContent className="p-8 text-center text-slate-500">
-          <p>You haven't saved any listings yet.</p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate(createPageUrl("Home"))}>
-            Explore Map
-          </Button>
-        </CardContent>
-      </Card>
+      <PullToRefresh onRefresh={handlePullRefresh}>
+        <Card className="border-dashed bg-slate-50">
+          <CardContent className="p-8 text-center text-slate-500">
+            <p>You haven't saved any listings yet.</p>
+            <Button variant="outline" className="mt-4" onClick={() => navigate(createPageUrl("Home"))}>
+              Explore Map
+            </Button>
+          </CardContent>
+        </Card>
+      </PullToRefresh>
     );
   }
 
@@ -139,7 +149,7 @@ export default function SavedListingsTab({ user }) {
   };
 
   return (
-    <div className="space-y-6">
+    <PullToRefresh onRefresh={handlePullRefresh} className="space-y-6">
       <div>
         <h2 className="text-lg font-bold text-slate-900 mb-4">Current Saved</h2>
         {currentListings.length === 0 ? (
@@ -159,6 +169,6 @@ export default function SavedListingsTab({ user }) {
           </div>
         </div>
       )}
-    </div>
+    </PullToRefresh>
   );
 }

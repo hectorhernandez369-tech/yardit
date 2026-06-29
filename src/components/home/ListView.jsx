@@ -17,9 +17,10 @@ import {
   getListingTypeBadgeLabel,
 } from "@/components/listing/listingDisplay";
 import ListFilterModal, { DEFAULT_LIST_FILTERS } from "@/components/home/ListFilterModal";
+import PullToRefresh from "@/components/mobile/PullToRefresh";
 import { buildListViewResults } from "@/lib/listViewPipeline";
 
-export default function ListView({ listings, vendorEvents, userLocation, mapCenter, currentUser = null, viewingOwnerPreviewMode = false }) {
+export default function ListView({ listings, vendorEvents, userLocation, mapCenter, currentUser = null, viewingOwnerPreviewMode = false, onRefresh = null }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState(DEFAULT_LIST_FILTERS);
@@ -87,6 +88,7 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
       )}
 
       {/* Results */}
+      <PullToRefresh onRefresh={onRefresh} disabled={!onRefresh}>
       {results.length === 0 ? (
         <div className="rounded-2xl bg-white/70 border border-slate-200/60 shadow-sm p-12 text-center">
           <p className="text-slate-500 text-sm font-medium mb-1">No listings found</p>
@@ -241,6 +243,7 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
           )}
         </div>
       )}
+      </PullToRefresh>
 
       <ListFilterModal
         open={showFilterModal}

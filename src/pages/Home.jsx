@@ -757,6 +757,13 @@ export default function HomePage() {
     initialData: []
   });
 
+  const handleListViewRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ["listings"] }),
+      queryClient.refetchQueries({ queryKey: ["publicVendorEvents"] }),
+    ]);
+  }, [queryClient]);
+
   // Live location tracking
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -1249,7 +1256,8 @@ export default function HomePage() {
           userLocation={userLocation}
           mapCenter={mapCenter}
           currentUser={user}
-          viewingOwnerPreviewMode={false} />
+          viewingOwnerPreviewMode={false}
+          onRefresh={handleListViewRefresh} />
         
         </div> :
 
