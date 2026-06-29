@@ -210,7 +210,7 @@ export default function AccountSetupModal({ user, setUser }) {
                 variant="outline"
                 className="h-11 w-full rounded-xl border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
-                Skip Phone and Finish Step 2
+                Finish Step 2 — Add Phone Later
               </Button>
             </div>
           </div>
