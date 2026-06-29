@@ -32,7 +32,7 @@ export default function LegalDocument({ document }) {
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/75">Yardit Legal</p>
           <h1 className="mt-3 text-3xl font-black sm:text-4xl">{document.title}</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/90">{document.subtitle}</p>
-          <p className="mt-5 text-xs font-semibold text-white/70">Effective draft date: {document.effectiveDate}</p>
+          <p className="mt-5 text-xs font-semibold text-white/70">Effective date: {document.effectiveDate}</p>
         </header>
         <div className="rounded-2xl border border-[#5DADA5]/25 bg-white p-5 text-sm leading-7 text-slate-700 shadow-sm">
           {document.intro}

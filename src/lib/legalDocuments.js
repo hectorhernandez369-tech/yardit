@@ -64,7 +64,7 @@ export const legalDocuments = {
     title: "Terms of Service",
     subtitle: "Rules for using Yardit listings, maps, payments, Neighborhood Sales, Residential Events, Vendor tools, notifications, support, and safety systems.",
     effectiveDate: "June 28, 2026",
-    intro: "These Terms are based on Yardit’s current app behavior. Sections marked Recommended Addition identify legal language that should be confirmed before public launch when the app does not yet contain a fully implemented public policy.",
+    intro: "These Terms explain the rules for using Yardit and the responsibilities that apply to accounts, listings, events, vendor tools, payments, notifications, support, and safety workflows.",
     sections: [
       { title: "Acceptance of Terms", body: [
         "By creating or using a Yardit account, users agree to these Terms and acknowledge the Privacy Policy. Yardit stores acceptance status, policy version, and acceptance timestamp during account setup."
@@ -107,8 +107,7 @@ export const legalDocuments = {
       ]},
       { title: "Vendor Events and participation", body: [
         "Vendor Events may include event types, collaborators, vendor invitations, spaces, custom space requests, deadlines, capacity limits, payment settings, flyers, locations, and schedules.",
-        "Only eligible Event Organizer accounts can create certain Vendor Events. Vendor Event dates may become locked when vendors are already approved.",
-        "Recommended Addition: Yardit should confirm public refund, payout, and cancellation rules for vendor reserve deposits before launch."
+        "Only eligible Event Organizer accounts can create certain Vendor Events. Vendor Event dates may become locked when vendors are already approved."
       ]},
       { title: "Payments", body: [
         "Yardit uses Stripe for payments, checkout, subscriptions, payment confirmation, failed payment tracking, and payment-related records.",
@@ -117,13 +116,13 @@ export const legalDocuments = {
       { title: "Refund Policy", body: [
         "Residential Listings: Paid residential listing purchases and paid residential listing upgrades require users to acknowledge that the purchase is non-refundable once payment is submitted. Refund requests can be reviewed through support but are not automatic.",
         "Featured and Premium upgrades: Upgrade amounts are calculated as the difference between the current tier and the target tier where applicable. Failed or unconfirmed upgrade payments do not activate the upgraded tier. Paid upgrades follow the same non-refundable acknowledgement behavior when required.",
-        "Residential Events: Event purchases and event upgrades are processed through Stripe and activate after confirmed payment. Recommended Addition: Yardit should confirm whether Residential Event purchases are non-refundable, support-reviewed, or subject to a separate event refund rule.",
-        "Neighborhood Sales: Organizer-paid Neighborhood Sales may close, detach or remove participants, trigger rescue flows, and update payment/cancellation state when canceled or failed. Existing backend behavior can charge a saved organizer payment method if the sale is committed, not already charged, and cancellation conditions apply. Recommended Addition: Yardit should publish the exact Neighborhood Sale cancellation charge and refund rule, including whether any public cap applies.",
-        "Vendor purchases and subscriptions: Vendor subscriptions are processed through Stripe. Failed invoices can place subscriptions into past-due, inactive, or canceled states. Recommended Addition: Yardit should confirm whether vendor subscription charges are refundable, prorated, cancel-at-period-end, or handled only by support review.",
-        "Vendor Event promotion upgrades: Promotion upgrades activate only after Stripe confirms payment. Recommended Addition: Yardit should confirm whether these promotion upgrades are non-refundable or support-reviewed.",
+        "Residential Events: Event purchases and event upgrades are processed through Stripe and activate after confirmed payment.",
+        "Neighborhood Sales: Organizer-paid Neighborhood Sales may close, detach or remove participants, trigger rescue flows, and update payment or cancellation status when canceled or failed. If a Neighborhood Sale has been committed and applicable cancellation conditions apply, Yardit may charge the organizer's saved payment method if the charge has not already been collected. Canceling or failing to complete a Neighborhood Sale does not automatically guarantee a refund.",
+        "Vendor purchases and subscriptions: Vendor subscriptions are processed through Stripe. Failed invoices can place subscriptions into past-due, inactive, or canceled states.",
+        "Vendor Event promotion upgrades: Promotion upgrades activate only after Stripe confirms payment.",
         "Promotional credits: Admins can request promotional compensation through support workflows. Promotional credits, promo codes, or upgrades are not guaranteed and may require review.",
         "Failed payments: Failed Stripe payments are recorded and do not activate paid access.",
-        "Cancellations: Canceling, closing, hiding, or removing a listing, event, subscription, or Neighborhood Sale does not automatically guarantee a refund under current Yardit behavior."
+        "Cancellations: Canceling, closing, hiding, or removing a listing, event, subscription, or Neighborhood Sale does not automatically guarantee a refund."
       ]},
       { title: "Promo codes and promotions", body: [
         "Promo codes may be limited by status, start date, expiration date, tier, usage count, per-user limit, geography, early-use bucket, early visibility rules, and payment completion requirements.",
@@ -143,8 +142,8 @@ export const legalDocuments = {
       { title: "Notifications", body: [
         "Yardit may send in-app notifications and optional push notifications for account, billing, approval, safety, support, policy, listing, vendor, event, and nearby activity. Users can manage push preferences, but in-app notification history may still be maintained separately."
       ]},
-      { title: "Governing law and disputes", body: [
-        "Recommended Addition: Yardit should choose governing law and define a dispute-resolution process before publication."
+      { title: "Disputes", body: [
+        "Users should contact Yardit support for account, listing, payment, event, vendor, safety, or policy disputes so Yardit can review the issue through its support and case workflows."
       ]}
     ]
   },
