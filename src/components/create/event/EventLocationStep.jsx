@@ -134,7 +134,7 @@ function EventMapModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) {
           Tap the map to place center
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex gap-3 w-[90%] max-w-sm">
+        <div className="absolute bottom-[calc(2rem_+_var(--yardit-safe-area-bottom))] left-1/2 -translate-x-1/2 z-[1000] flex gap-3 w-[90%] max-w-sm">
           <Button
             variant="outline"
             className="flex-1 bg-white text-[#2C4F4E] border-[#2C4F4E] shadow-lg hover:bg-gray-50"

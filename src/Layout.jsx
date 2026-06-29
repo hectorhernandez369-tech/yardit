@@ -140,9 +140,9 @@ function LayoutContent({ children, user, setUser }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
+    <div className="yardit-app-shell min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
       <Toaster richColors position="top-center" />
-      <header className="bg-[#5DADA5] border-t-2 border-[#2C4F4E] fixed bottom-0 left-0 right-0 z-[3000] shadow-[0_-4px_12px_rgba(0,0,0,0.18)] sm:sticky sm:top-0 sm:bottom-auto sm:border-t-0 sm:border-b-2 sm:shadow-md">
+      <header className="yardit-bottom-nav bg-[#5DADA5] border-t-2 border-[#2C4F4E] fixed bottom-0 left-0 right-0 z-[3000] shadow-[0_-4px_12px_rgba(0,0,0,0.18)] sm:sticky sm:top-0 sm:bottom-auto sm:border-t-0 sm:border-b-2 sm:shadow-md sm:pb-0">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -314,7 +314,7 @@ function LayoutContent({ children, user, setUser }) {
         </div>
       )}
 
-      <main className="flex-1 w-full min-w-0 flex flex-col pb-20 sm:pb-0">
+      <main className="yardit-main-with-bottom-nav flex-1 w-full min-w-0 flex flex-col pb-20 sm:pb-0">
         {children}
       </main>
       
