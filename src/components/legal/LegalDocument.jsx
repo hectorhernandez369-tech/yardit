@@ -25,8 +25,8 @@ export default function LegalDocument({ document }) {
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl space-y-6">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#2C4F4E] hover:underline">
-          <ArrowLeft className="h-4 w-4" /> Back to Yardit
+        <Link to="/Settings" className="inline-flex items-center gap-2 text-sm font-semibold text-[#2C4F4E] hover:underline">
+          <ArrowLeft className="h-4 w-4" /> Back to Settings
         </Link>
         <header className="rounded-3xl bg-gradient-to-br from-[#2C4F4E] to-[#5DADA5] p-6 text-white shadow-xl sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/75">Yardit Legal</p>
