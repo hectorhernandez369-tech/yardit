@@ -79,7 +79,7 @@ export default function TesterLoginModal({ open, onClose, onSuccess }) {
         </form>
 
         <p className="text-xs text-slate-400 mt-4 text-center">
-          Standard access lasts 1 hour. Full test access stays active on this device.
+          Early access stays active on this device.
         </p>
       </div>
     </div>,

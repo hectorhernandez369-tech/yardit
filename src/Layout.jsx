@@ -201,18 +201,6 @@ function LayoutContent({ children, user, setUser }) {
                 </Button>
               </Link>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate(createPageUrl("StartupGuide"))}
-                className="text-white hover:bg-white/10 h-8 w-8"
-                aria-label="Yardit Startup Guide"
-              >
-                <HelpCircle className="w-4 h-4" />
-              </Button>
-
-
-
               {!isAuthenticated && (
                 <Button
                   size="sm"
@@ -273,6 +261,9 @@ function LayoutContent({ children, user, setUser }) {
                           <div className="h-px bg-gray-100 my-0.5"></div>
 
                           <div className="px-2 py-0.5 text-[10px] text-gray-400 uppercase">Preferences</div>
+                          <DropdownMenuItem onClick={() => navigate(createPageUrl("StartupGuide"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+                            <HelpCircle className="w-3.5 h-3.5 text-[#5DADA5]" /> Help
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate(createPageUrl("Settings"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
                             <Settings className="w-3.5 h-3.5 text-gray-500" /> Settings
                           </DropdownMenuItem>

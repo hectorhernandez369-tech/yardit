@@ -5,12 +5,11 @@ export function isComingSoonModeEnabled(settings = []) {
   return record?.value === "true";
 }
 
-// ── Tester bypass (1-hour localStorage token) ──────────────────────────────
+// ── Tester bypass (persistent localStorage token) ──────────────────────────────
 const TESTER_BYPASS_KEY = "yardit_tester_bypass";
-const TESTER_BYPASS_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
 // Shared access codes testers use to bypass Coming Soon
-export const TESTER_ACCESS_CODE = "YarditEarlyAccess2026";
+export const TESTER_ACCESS_CODE = "Earlytestaccess";
 export const TESTER_FULL_ACCESS_CODE = "Yardittestaccess";
 
 export function getTesterBypass() {
@@ -32,7 +31,7 @@ export function getTesterBypass() {
 export function setTesterBypass({ noExpiration = false } = {}) {
   const data = {
     granted_at: new Date().toISOString(),
-    expires_at: noExpiration ? null : new Date(Date.now() + TESTER_BYPASS_DURATION_MS).toISOString(),
+    expires_at: null,
     access_type: noExpiration ? "full_test" : "early_access",
   };
   localStorage.setItem(TESTER_BYPASS_KEY, JSON.stringify(data));
