@@ -9,15 +9,16 @@ export function isComingSoonModeEnabled(settings = []) {
 const TESTER_BYPASS_KEY = "yardit_tester_bypass";
 const TESTER_BYPASS_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
-// The shared access code testers use to bypass Coming Soon
+// Shared access codes testers use to bypass Coming Soon
 export const TESTER_ACCESS_CODE = "YarditEarlyAccess2026";
+export const TESTER_FULL_ACCESS_CODE = "Yardittestaccess";
 
 export function getTesterBypass() {
   try {
     const raw = localStorage.getItem(TESTER_BYPASS_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    if (new Date(data.expires_at) < new Date()) {
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
       localStorage.removeItem(TESTER_BYPASS_KEY);
       return null;
     }
@@ -28,10 +29,11 @@ export function getTesterBypass() {
   }
 }
 
-export function setTesterBypass() {
+export function setTesterBypass({ noExpiration = false } = {}) {
   const data = {
     granted_at: new Date().toISOString(),
-    expires_at: new Date(Date.now() + TESTER_BYPASS_DURATION_MS).toISOString(),
+    expires_at: noExpiration ? null : new Date(Date.now() + TESTER_BYPASS_DURATION_MS).toISOString(),
+    access_type: noExpiration ? "full_test" : "early_access",
   };
   localStorage.setItem(TESTER_BYPASS_KEY, JSON.stringify(data));
   return data;

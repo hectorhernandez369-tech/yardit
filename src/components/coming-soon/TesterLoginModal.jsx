@@ -4,7 +4,7 @@ import { X, Unlock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { TESTER_ACCESS_CODE, setTesterBypass } from "@/lib/comingSoonMode";
+import { TESTER_ACCESS_CODE, TESTER_FULL_ACCESS_CODE, setTesterBypass } from "@/lib/comingSoonMode";
 
 export default function TesterLoginModal({ open, onClose, onSuccess }) {
   const [code, setCode] = useState("");
@@ -18,9 +18,11 @@ export default function TesterLoginModal({ open, onClose, onSuccess }) {
 
     setLoading(true);
     setTimeout(() => {
-      if (code.trim() === TESTER_ACCESS_CODE) {
-        setTesterBypass();
-        toast.success("Early access granted! Welcome to Yardit.");
+      const enteredCode = code.trim();
+      if (enteredCode === TESTER_ACCESS_CODE || enteredCode === TESTER_FULL_ACCESS_CODE) {
+        const isFullAccess = enteredCode === TESTER_FULL_ACCESS_CODE;
+        setTesterBypass({ noExpiration: isFullAccess });
+        toast.success(isFullAccess ? "Full test access granted! Welcome to Yardit." : "Early access granted! Welcome to Yardit.");
         setCode("");
         onSuccess();
         window.location.href = "/";
@@ -77,7 +79,7 @@ export default function TesterLoginModal({ open, onClose, onSuccess }) {
         </form>
 
         <p className="text-xs text-slate-400 mt-4 text-center">
-          Access is valid for 1 hour per session.
+          Standard access lasts 1 hour. Full test access stays active on this device.
         </p>
       </div>
     </div>,
