@@ -76,8 +76,8 @@ export default function NotificationBell() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/20 h-12 w-12 touch-manipulation transition-all duration-200">
-          <Bell className="w-6 h-6" />
+        <Button variant="ghost" size="icon" className="relative h-12 w-12 rounded-2xl text-[#2C4F4E] hover:bg-[#5DADA5]/10 touch-manipulation transition-all duration-200 sm:text-white sm:hover:bg-white/20">
+          <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
           {unreadCount > 0 && (
             <Badge className="absolute -top-1 -right-1 h-5 w-5 text-[10px] flex items-center justify-center p-0 bg-red-500 border-2 border-white animate-pulse">
               {unreadCount > 9 ? "9+" : unreadCount}
