@@ -251,12 +251,16 @@ function LayoutContent({ children, user, setUser }) {
                             </DropdownMenuItem>
                           )}
 
-                          <div className="h-px bg-gray-100 my-0.5"></div>
+                          {hasAdminProfile && (
+                            <>
+                              <div className="h-px bg-gray-100 my-0.5"></div>
 
-                          <div className="px-2 py-0.5 text-[10px] text-gray-400 uppercase">System</div>
-                          <DropdownMenuItem onClick={() => navigate(createPageUrl("AdminLite"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
-                            <Shield className="w-3.5 h-3.5 text-[#F4A849]" /> Admin Login
-                          </DropdownMenuItem>
+                              <div className="px-2 py-0.5 text-[10px] text-gray-400 uppercase">System</div>
+                              <DropdownMenuItem onClick={() => navigate(createPageUrl("AdminLite"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+                                <Shield className="w-3.5 h-3.5 text-[#F4A849]" /> Admin Login
+                              </DropdownMenuItem>
+                            </>
+                          )}
 
                           <div className="h-px bg-gray-100 my-0.5"></div>
 
