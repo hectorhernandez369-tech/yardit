@@ -105,7 +105,13 @@ export default function MyListingsPage() {
     queryFn: async () => {
       const owned = await base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date");
       const coHosted = await base44.entities.Listing.filter({ co_host_user_id: user.id }, "-created_date");
-      const merged = [...owned, ...coHosted.filter((listing) => listing.co_host_status === "accepted")];
+      const householdRequests = await base44.entities.ResidentialListingAccessRequest.filter({ requester_user_id: user.id, status: "approved" }, "-updated_date").catch(() => []);
+      const householdListings = (await Promise.all((householdRequests || []).map(async (request) => {
+        const matches = await base44.entities.Listing.filter({ id: request.existing_listing_id }).catch(() => []);
+        const listing = matches?.[0];
+        return listing ? { ...listing, _residential_access_role: "household_cohost", _residential_access_request_id: request.id } : null;
+      }))).filter(Boolean);
+      const merged = [...owned, ...coHosted.filter((listing) => listing.co_host_status === "accepted"), ...householdListings];
       const seen = new Set();
       return merged.filter((listing) => {
         if (seen.has(listing.id)) return false;

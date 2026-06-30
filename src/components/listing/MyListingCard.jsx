@@ -116,6 +116,9 @@ export default function MyListingCard({
                 {listing.co_host_user_id === user?.id && listing.co_host_status === "active" && (
                   <PillBadge className="bg-indigo-50 text-indigo-700 border-indigo-200">Co-Host</PillBadge>
                 )}
+                {listing._residential_access_role === "household_cohost" && (
+                  <PillBadge className="bg-cyan-50 text-cyan-700 border-cyan-200">Household Co-Host</PillBadge>
+                )}
                 {normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "pending" && (
                   <PillBadge className="bg-amber-50 text-amber-700 border-amber-200">Pending Approval</PillBadge>
                 )}

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { respondToCoHostInvite } from "@/lib/coHostInviteActions";
+import { respondToResidentialAccessRequest } from "@/lib/residentialAccessRequests";
 import { formatDeviceRelativeTime } from "@/lib/dateTime";
 
 export default function NotificationList({ notifications, onMarkAllRead, onClose }) {
@@ -126,6 +127,17 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
     }
   });
 
+  const residentialAccessMutation = useMutation({
+    mutationFn: ({ notification, action }) => respondToResidentialAccessRequest(notification, action),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["myListings"] });
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
+      toast.success(variables.action === "approve" ? "Household access approved" : "Household access denied");
+    },
+    onError: (error) => toast.error(error.message || "Could not respond to request."),
+  });
+
   const vendorAccessInviteMutation = useMutation({
     mutationFn: async ({ notification, action }) => {
       const authorizedUserId = notification.metadata?.authorized_user_id;
@@ -179,6 +191,7 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
 
   const getIcon = (type) => {
     if (type === "vendor_access_invite") return <Users className="w-4 h-4 text-teal-600" />;
+    if (type?.startsWith("residential_access")) return <Users className="w-4 h-4 text-cyan-600" />;
     if (type === "vendor_event_invite" || type === "event_collaboration_invite") return <Users className="w-4 h-4 text-emerald-600" />;
     if (type?.startsWith("join_")) return <Users className="w-4 h-4 text-purple-600" />;
     if (type?.startsWith("report_")) return <AlertTriangle className="w-4 h-4 text-red-600" />;
@@ -218,6 +231,8 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
         url = `/VendorEventDetail?id=${notification.metadata?.event_id || entityId}`;
       } else if (notification.type === "event_collaboration_invite") {
         url = `/VendorDashboard?tab=events&collabInvite=${notification.metadata?.collaborator_id || ""}&eventId=${notification.metadata?.event_id || entityId || ""}`;
+      } else if (notification.type?.startsWith("residential_access")) {
+        url = notification.type === "residential_access_approved" ? createPageUrl("MyListings") : createPageUrl("Notifications");
       } else if (notification.type?.startsWith("join_")) {
         if (entityId) {
           url = createPageUrl("ListingDetail") + "?id=" + entityId;
@@ -308,6 +323,33 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
                             onClick={(e) => {
                               e.stopPropagation();
                               coHostInviteMutation.mutate({ notification, action: "decline" });
+                            }}
+                          >
+                            <X className="w-3 h-3 mr-1" /> Deny
+                          </Button>
+                        </div>
+                      )}
+
+                      {notification.type === "residential_access_request" && !notification.read && !notification.is_read && (
+                        <div className="flex gap-2 mt-2 mb-3">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              residentialAccessMutation.mutate({ notification, action: "approve" });
+                            }}
+                          >
+                            <Check className="w-3 h-3 mr-1" /> Approve
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              residentialAccessMutation.mutate({ notification, action: "deny" });
                             }}
                           >
                             <X className="w-3 h-3 mr-1" /> Deny

@@ -1,0 +1,164 @@
+{
+  "name": "ResidentialListingAccessRequest",
+  "type": "object",
+  "properties": {
+    "existing_listing_id": {
+      "type": "string",
+      "description": "Residential yard sale listing the requester wants household access to"
+    },
+    "listing_owner_user_id": {
+      "type": "string",
+      "description": "Original listing owner user ID"
+    },
+    "listing_owner_name": {
+      "type": "string",
+      "description": "Original listing owner display name when safe/available"
+    },
+    "requester_user_id": {
+      "type": "string",
+      "description": "User requesting household co-host access"
+    },
+    "requester_email": {
+      "type": "string",
+      "description": "Requester email"
+    },
+    "requester_name": {
+      "type": "string",
+      "description": "Requester display name"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "denied",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "request_reason": {
+      "type": "string",
+      "description": "Requester-provided reason or default household sale reason"
+    },
+    "listing_title": {
+      "type": "string",
+      "description": "Snapshot of listing title at request time"
+    },
+    "listing_dates": {
+      "type": "string",
+      "description": "Snapshot of requested listing dates"
+    },
+    "listing_open_time": {
+      "type": "string",
+      "description": "Snapshot of listing open time"
+    },
+    "listing_close_time": {
+      "type": "string",
+      "description": "Snapshot of listing close time"
+    },
+    "listing_status": {
+      "type": "string",
+      "description": "Snapshot of listing status"
+    },
+    "responded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "responded_by_user_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "existing_listing_id",
+    "listing_owner_user_id",
+    "requester_user_id",
+    "status"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "data.requester_user_id": "{{user.id}}"
+        },
+        {
+          "data.listing_owner_user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "master"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "supervisor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_master"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.requester_user_id": "{{user.id}}"
+        },
+        {
+          "data.listing_owner_user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "master"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "supervisor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_master"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "master"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "supervisor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_master"
+          }
+        }
+      ]
+    }
+  }
+}

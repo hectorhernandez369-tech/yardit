@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { respondToCoHostInvite } from "@/lib/coHostInviteActions";
+import { respondToResidentialAccessRequest } from "@/lib/residentialAccessRequests";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NotificationPushSettings from "@/components/notifications/NotificationPushSettings";
 import VerifiedAddressRequiredModal from "@/components/profile/VerifiedAddressRequiredModal";
@@ -102,6 +103,16 @@ export default function NotificationsPage() {
     },
   });
 
+  const residentialAccessMutation = useMutation({
+    mutationFn: ({ notification, action }) => respondToResidentialAccessRequest(notification, action),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["myListings"] });
+      toast.success(variables.action === "approve" ? "Household access approved" : "Household access denied");
+    },
+    onError: (error) => toast.error(error.message || "Could not respond to request."),
+  });
+
   const getNotificationUrl = (notification) => {
     if (notification._isCaseNotif) {
       return createPageUrl("CaseManagement") + `?openCaseId=${notification.case_id}`;
@@ -116,6 +127,8 @@ export default function NotificationsPage() {
       url = createPageUrl("MySupportTickets");
     } else if (notification.metadata?.rescue_token) {
       url = createPageUrl("CreateListing") + "?rescueToken=" + notification.metadata.rescue_token;
+    } else if (notification.type?.startsWith("residential_access")) {
+      url = notification.type === "residential_access_approved" ? createPageUrl("MyListings") : createPageUrl("Notifications");
     } else if (notification.type?.startsWith("join_") || notification.type === "removed_from_neighborhood") {
       if (notification.metadata?.requester_listing_id) {
         url = createPageUrl("ListingDetail") + "?id=" + notification.metadata.requester_listing_id;
@@ -143,6 +156,7 @@ export default function NotificationsPage() {
 
   const getNotificationIcon = (type) => {
     if (type?.startsWith("join_")) return { icon: Users, color: "text-purple-600", bg: "bg-purple-100" };
+    if (type?.startsWith("residential_access")) return { icon: Users, color: "text-cyan-600", bg: "bg-cyan-100" };
     if (type?.startsWith("report_")) return { icon: AlertTriangle, color: "text-red-600", bg: "bg-red-100" };
     if (type?.startsWith("support_")) return { icon: LifeBuoy, color: "text-blue-600", bg: "bg-blue-100" };
     if (type?.startsWith("listing_")) return { icon: MapPin, color: "text-orange-600", bg: "bg-orange-100" };
@@ -237,7 +251,32 @@ export default function NotificationsPage() {
                   </Button>
                 </>
               )}
-              {isUnread && notification.type !== "co_host_invite" && (
+              {notification.type === "residential_access_request" && isUnread && (
+                <>
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs bg-green-600 hover:bg-green-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      residentialAccessMutation.mutate({ notification, action: "approve" });
+                    }}
+                  >
+                    <Check className="w-3 h-3 mr-1" /> Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      residentialAccessMutation.mutate({ notification, action: "deny" });
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Deny
+                  </Button>
+                </>
+              )}
+              {isUnread && notification.type !== "co_host_invite" && notification.type !== "residential_access_request" && (
                 <Button
                     variant="outline"
                     size="sm"

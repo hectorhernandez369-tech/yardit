@@ -5,7 +5,7 @@ const nowIso = () => new Date().toISOString();
 const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
 
 const RESIDENTIAL_BASE_PRICES = { featured: 499, premium: 799 };
-const DATE_UNAVAILABLE_MESSAGE = 'These dates are no longer available for this address. Please select different dates.';
+const DATE_UNAVAILABLE_MESSAGE = 'There’s already a yard sale planned at this address for those dates.';
 const RESERVED_STATUSES = new Set(['active', 'under_review', 'pending_payment', 'scheduled', 'activated_locked', 'coming_soon', 'payment_pending', 'payment_pending_adjustment']);
 const DESCRIPTION_LIMITS = { yard_sale: 500, neighborhood_sale: 1000, event: 1000 };
 

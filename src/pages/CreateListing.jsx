@@ -14,6 +14,7 @@ import CreateListingResidential from "../components/create/CreateListingResident
 import CreateListingNeighborhood from "../components/create/CreateListingNeighborhood";
 import CreateListingEvent from "../components/create/CreateListingEvent";
 import ConfirmHomeAddressModal from "../components/create/ConfirmHomeAddressModal";
+import ResidentialListingConflictDialog from "@/components/create/ResidentialListingConflictDialog";
 import { clearStaleTrustProgress, hasVerifiedPrimaryAddress } from "@/lib/trustActions";
 import { normalizeUser } from "@/lib/normalizeUser";
 import { useAppMode } from "../components/shared/DemoMode";
@@ -164,6 +165,7 @@ export default function CreateListingPage() {
   const recoveringPaidCheckoutRef = useRef(false);
   const [hasUserInteractedWithDates, setHasUserInteractedWithDates] = useState(false);
   const [hasAttemptedContinue, setHasAttemptedContinue] = useState(false);
+  const [residentialConflict, setResidentialConflict] = useState(null);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -558,18 +560,23 @@ export default function CreateListingPage() {
   };
 
   // Live-fetch version used in mutation and Stripe-return handler (avoids stale cache)
-  const checkDateConflictLive = async (startDate, endDate, listingType = formData.listingType) => {
+  const checkDateConflictLive = async (startDate, endDate, listingType = formData.listingType, sourceData = formData) => {
     if (listingType !== "yard_sale") {
       debugResidentialDateConflict("skipped_live_non_residential_listing_type", { startDate, endDate, listingType });
       return false;
     }
     if (!startDate || !endDate || isGlobalDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
-    const freshListings = await base44.entities.Listing.filter({ ownerUserId: user.id });
-    const freshReserved = getReservedDatesForAddress(freshListings, null, addressRef);
-    const conflict = findConflictingReservedListingForAddress(freshListings, startDate, endDate, null, addressRef);
-    const hasConflict = hasDateConflict(startDate, endDate, freshReserved);
-    if (hasConflict) debugResidentialDateConflict("live_toast_ready_after_user_action", { startDate, endDate, listingType, conflict });
-    return hasConflict;
+    const response = await base44.functions.invoke("manageResidentialAccessRequest", {
+      action: "check_conflict",
+      data: { ...sourceData, listingType, selectedRangeStartDate: startDate, selectedRangeEndDate: endDate },
+    });
+    if (response?.data?.has_conflict) {
+      setResidentialConflict(response.data);
+      debugResidentialDateConflict("global_conflict_found", { startDate, endDate, listingType, conflict: response.data });
+      return true;
+    }
+    setResidentialConflict(null);
+    return false;
   };
 
   const markResidentialConflictInteraction = () => {
@@ -695,6 +702,14 @@ export default function CreateListingPage() {
       setPaymentError("Stripe checkout must be tested from the published app, not the Base44 preview.");
       toast.error("Stripe checkout must be tested from the published app, not the Base44 preview.");
       return;
+    }
+
+    if (formData.listingType === "yard_sale" && formData.selectedRangeStartDate && formData.selectedRangeEndDate) {
+      const conflict = await checkDateConflictLive(formData.selectedRangeStartDate, formData.selectedRangeEndDate, formData.listingType, formData);
+      if (conflict) {
+        setPaymentError("There’s already a yard sale planned at this address for those dates.");
+        return;
+      }
     }
 
     const eventPriceBreakdown = formData.listingType === "event" ? getResidentialEventPriceBreakdown(formData) : null;
@@ -846,9 +861,9 @@ export default function CreateListingPage() {
   const createListingMutation = useMutation({
     mutationFn: async (data) => {
       if (!isAdminCreate && data.listingType === "yard_sale" && data.selectedRangeStartDate && data.selectedRangeEndDate) {
-        const conflict = await checkDateConflictLive(data.selectedRangeStartDate, data.selectedRangeEndDate, data.listingType);
+        const conflict = await checkDateConflictLive(data.selectedRangeStartDate, data.selectedRangeEndDate, data.listingType, data);
         if (conflict) {
-          throw new Error("These dates are already reserved for this address. Please choose different dates or edit your existing listing.");
+          throw new Error("There’s already a yard sale planned at this address for those dates.");
         }
       }
 
@@ -1043,7 +1058,10 @@ export default function CreateListingPage() {
     },
     onError: (error) => {
       setIsStartingPayment(false);
-      toast.error(error.message || "Failed to create listing");
+      if (error?.response?.data?.conflict) {
+        setResidentialConflict({ has_conflict: true, ...error.response.data.conflict, message: error.response.data.error });
+      }
+      toast.error(error?.response?.data?.error || error.message || "Failed to create listing");
     }
   });
 
@@ -1629,12 +1647,14 @@ export default function CreateListingPage() {
     }
 
     if (!isAdminCreate && formData.listingType === "yard_sale" &&
-        formData.selectedRangeStartDate && formData.selectedRangeEndDate &&
-        hasResidentialDateConflict(formData.selectedRangeStartDate, formData.selectedRangeEndDate, formData.listingType)) {
-      if (canShowResidentialConflictToast) {
-        toast.error("These dates are already reserved for this address. Please choose different dates or edit your existing listing.");
+        formData.selectedRangeStartDate && formData.selectedRangeEndDate) {
+      const conflict = await checkDateConflictLive(formData.selectedRangeStartDate, formData.selectedRangeEndDate, formData.listingType, formData);
+      if (conflict) {
+        if (canShowResidentialConflictToast) {
+          toast.error("There’s already a yard sale planned at this address for those dates.");
+        }
+        return;
       }
-      return;
     }
 
     if (formData.listingType === "event") {
@@ -2103,6 +2123,12 @@ export default function CreateListingPage() {
       />
 
       <YardSaleGuideModal open={showGuideModal} onOpenChange={setShowGuideModal} />
+      <ResidentialListingConflictDialog
+        open={!!residentialConflict}
+        conflict={residentialConflict}
+        onClose={() => setResidentialConflict(null)}
+        onRequested={() => queryClient.invalidateQueries({ queryKey: ["notifications"] })}
+      />
     </div>
   );
 }
