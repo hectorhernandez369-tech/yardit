@@ -63,16 +63,21 @@ function getCoveredPinCount(promo, position, coverCandidates, zoom) {
 function getPromoIcon(promo, coveredCount = 0) {
   const size = Math.max(32, Math.min(160, Number(promo.promo_icon_size_px || 72)));
   const dateLabel = escapeHtml(formatPromoDateRange(promo));
+  const hasCustomLogo = !!promo.promo_icon_logo_url;
   const logoUrl = promo.promo_icon_logo_url || "https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
   const animation = promo.promo_icon_animation || "none";
   const countLabel = Number(coveredCount || 0) > 0 ? String(coveredCount) : "";
-  const key = `${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}`;
+  const key = `${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
   if (!markerCache[key]) {
     const glow = promo.promo_icon_glow_enabled !== false ? "box-shadow:0 0 0 8px rgba(244,168,73,.20),0 0 24px rgba(244,168,73,.72),0 6px 18px rgba(44,79,78,.30);" : "box-shadow:0 6px 18px rgba(44,79,78,.24);";
+    const imageGlow = promo.promo_icon_glow_enabled !== false ? "filter:drop-shadow(0 0 12px rgba(244,168,73,.72)) drop-shadow(0 6px 8px rgba(44,79,78,.28));" : "filter:drop-shadow(0 5px 7px rgba(44,79,78,.24));";
     const badge = countLabel ? `<div style="position:absolute;top:-7px;right:-7px;min-width:23px;height:23px;padding:0 6px;border-radius:999px;background:#2C4F4E;border:2px solid #F4A849;color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 7px rgba(0,0,0,.28);">${countLabel}</div>` : "";
+    const iconBody = hasCustomLogo
+      ? `<img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${size}px;height:${size}px;object-fit:contain;display:block;${imageGlow}" />`
+      : `<div style="width:${size}px;height:${size}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border:2px solid #F4A849;${glow}"><img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${Math.round(size * .82)}px;height:${Math.round(size * .82)}px;object-fit:contain;display:block;" /></div>`;
     markerCache[key] = L.divIcon({
       className: "yardit-promo-discovery-marker",
-      html: `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;transform:translateY(-4px);"><div style="position:relative;width:${size}px;height:${size}px;${getAnimationStyle(animation)}"><div style="width:${size}px;height:${size}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border:2px solid #F4A849;${glow}"><img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${Math.round(size * .82)}px;height:${Math.round(size * .82)}px;object-fit:contain;display:block;" /></div>${badge}</div>${dateLabel ? `<div style="padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid rgba(44,79,78,.22);color:#2C4F4E;font-size:11px;font-weight:800;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.16);">${dateLabel}</div>` : ""}</div>`,
+      html: `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;transform:translateY(-4px);"><div style="position:relative;width:${size}px;height:${size}px;${getAnimationStyle(animation)}">${iconBody}${badge}</div>${dateLabel ? `<div style="padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid rgba(44,79,78,.22);color:#2C4F4E;font-size:11px;font-weight:800;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.16);">${dateLabel}</div>` : ""}</div>`,
       iconSize: [size + 80, size + 38],
       iconAnchor: [(size + 80) / 2, size + 22],
       popupAnchor: [0, -size - 18],

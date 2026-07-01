@@ -84,13 +84,18 @@ function getPromoAnimationStyle(animation) {
 
 function getPromoDoorIcon(url, size = 72, glow = true, animation = "none") {
   const safeSize = Math.max(32, Math.min(160, Number(size || 72)));
+  const hasCustomLogo = !!url;
   const logoUrl = url || "https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
-  const key = `${logoUrl}_${safeSize}_${glow}_${animation}`;
+  const key = `${logoUrl}_${safeSize}_${glow}_${animation}_${hasCustomLogo}`;
   if (!promoIconCache[key]) {
     const shadow = glow ? "box-shadow:0 0 0 8px rgba(244,168,73,.18),0 0 22px rgba(244,168,73,.65),0 5px 16px rgba(0,0,0,.25);" : "box-shadow:0 5px 16px rgba(0,0,0,.22);";
+    const imageShadow = glow ? "filter:drop-shadow(0 0 12px rgba(244,168,73,.7)) drop-shadow(0 5px 8px rgba(0,0,0,.25));" : "filter:drop-shadow(0 5px 7px rgba(0,0,0,.22));";
+    const iconBody = hasCustomLogo
+      ? `<img src="${logoUrl}" alt="Promo Door" style="width:${safeSize}px;height:${safeSize}px;object-fit:contain;display:block;${imageShadow}" />`
+      : `<div style="width:${safeSize}px;height:${safeSize}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:#fff;border:2px solid #F4A849;${shadow}"><img src="${logoUrl}" alt="Promo Door" style="width:${Math.round(safeSize * .82)}px;height:${Math.round(safeSize * .82)}px;object-fit:contain;" /></div>`;
     promoIconCache[key] = L.divIcon({
       className: "admin-promo-door-preview",
-      html: `<div style="width:${safeSize}px;height:${safeSize}px;${getPromoAnimationStyle(animation)}"><div style="width:${safeSize}px;height:${safeSize}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:#fff;border:2px solid #F4A849;${shadow}"><img src="${logoUrl}" alt="Promo Door" style="width:${Math.round(safeSize * .82)}px;height:${Math.round(safeSize * .82)}px;object-fit:contain;" /></div></div>`,
+      html: `<div style="width:${safeSize}px;height:${safeSize}px;${getPromoAnimationStyle(animation)}">${iconBody}</div>`,
       iconSize: [safeSize, safeSize],
       iconAnchor: [safeSize / 2, safeSize / 2]
     });
