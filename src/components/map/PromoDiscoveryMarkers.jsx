@@ -31,30 +31,64 @@ function getPromoPosition(promo) {
     : null;
 }
 
-function getPromoIcon(promo) {
+function getAnimationStyle(animation) {
+  if (animation === "pulse") return "animation:yardit-promo-pulse 1.8s ease-in-out infinite;";
+  if (animation === "bounce") return "animation:yardit-promo-bounce 1.6s ease-in-out infinite;";
+  if (animation === "float") return "animation:yardit-promo-float 2.4s ease-in-out infinite;";
+  return "";
+}
+
+function metersPerPixel(lat, zoom) {
+  return 40075016 * Math.cos((lat * Math.PI) / 180) / (256 * Math.pow(2, zoom));
+}
+
+function distanceMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function getCoveredPinCount(promo, position, coverCandidates, zoom) {
+  if (!position || !Array.isArray(coverCandidates)) return 0;
+  const size = Math.max(32, Math.min(160, Number(promo.promo_icon_size_px || 72)));
+  const coverRadiusMeters = (size * 0.72 + 18) * metersPerPixel(position[0], zoom || 13);
+  return coverCandidates.filter((pin) => {
+    if (typeof pin?.lat !== "number" || typeof pin?.lng !== "number") return false;
+    return distanceMeters(position[0], position[1], pin.lat, pin.lng) <= coverRadiusMeters;
+  }).length;
+}
+
+function getPromoIcon(promo, coveredCount = 0) {
   const size = Math.max(32, Math.min(160, Number(promo.promo_icon_size_px || 72)));
   const dateLabel = escapeHtml(formatPromoDateRange(promo));
   const logoUrl = promo.promo_icon_logo_url || "https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
-  const key = `${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}`;
+  const animation = promo.promo_icon_animation || "none";
+  const countLabel = Number(coveredCount || 0) > 0 ? String(coveredCount) : "";
+  const key = `${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}`;
   if (!markerCache[key]) {
     const glow = promo.promo_icon_glow_enabled !== false ? "box-shadow:0 0 0 8px rgba(244,168,73,.20),0 0 24px rgba(244,168,73,.72),0 6px 18px rgba(44,79,78,.30);" : "box-shadow:0 6px 18px rgba(44,79,78,.24);";
+    const badge = countLabel ? `<div style="position:absolute;top:-7px;right:-7px;min-width:23px;height:23px;padding:0 6px;border-radius:999px;background:#2C4F4E;border:2px solid #F4A849;color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 7px rgba(0,0,0,.28);">${countLabel}</div>` : "";
     markerCache[key] = L.divIcon({
       className: "yardit-promo-discovery-marker",
-      html: `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;transform:translateY(-4px);"><div style="width:${size}px;height:${size}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border:2px solid #F4A849;${glow}"><img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${Math.round(size * .82)}px;height:${Math.round(size * .82)}px;object-fit:contain;display:block;" /></div>${dateLabel ? `<div style="padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid rgba(44,79,78,.22);color:#2C4F4E;font-size:11px;font-weight:800;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.16);">${dateLabel}</div>` : ""}</div>`,
-      iconSize: [size + 80, size + 34],
-      iconAnchor: [(size + 80) / 2, size + 20],
+      html: `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;transform:translateY(-4px);"><div style="position:relative;width:${size}px;height:${size}px;${getAnimationStyle(animation)}"><div style="width:${size}px;height:${size}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border:2px solid #F4A849;${glow}"><img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${Math.round(size * .82)}px;height:${Math.round(size * .82)}px;object-fit:contain;display:block;" /></div>${badge}</div>${dateLabel ? `<div style="padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid rgba(44,79,78,.22);color:#2C4F4E;font-size:11px;font-weight:800;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.16);">${dateLabel}</div>` : ""}</div>`,
+      iconSize: [size + 80, size + 38],
+      iconAnchor: [(size + 80) / 2, size + 22],
       popupAnchor: [0, -size - 18],
     });
   }
   return markerCache[key];
 }
 
-function isActivePromo(promo, now = new Date()) {
+function isActivePromo(promo, now = new Date(), currentZoom = 13) {
   if (!promo?.promo_door_enabled || promo.status !== "active") return false;
   const start = promo.starts_at ? new Date(promo.starts_at) : null;
   const end = promo.expires_at ? new Date(promo.expires_at) : null;
   if (!start || Number.isNaN(start.getTime()) || !end || Number.isNaN(end.getTime())) return false;
   if (now < start || now > end) return false;
+  const minZoom = Number(promo.promo_min_zoom || 10);
+  if (Number(currentZoom || 13) < minZoom) return false;
   return !!getPromoPosition(promo);
 }
 
@@ -65,17 +99,18 @@ function preferredTier(promo) {
   return "featured";
 }
 
-export default function PromoDiscoveryMarkers({ promos = [] }) {
+export default function PromoDiscoveryMarkers({ promos = [], currentZoom = 13, coverCandidates = [] }) {
   const navigate = useNavigate();
-  const activePromos = promos.filter((promo) => isActivePromo(promo));
+  const activePromos = promos.filter((promo) => isActivePromo(promo, new Date(), currentZoom));
 
   return (
     <>
       {activePromos.map((promo) => {
         const position = getPromoPosition(promo);
         if (!position) return null;
+        const coveredCount = getCoveredPinCount(promo, position, coverCandidates, currentZoom);
         return (
-          <Marker key={`promo-door-${promo.id}`} position={position} icon={getPromoIcon(promo)}>
+          <Marker key={`promo-door-${promo.id}-${coveredCount}-z${currentZoom}`} position={position} icon={getPromoIcon(promo, coveredCount)}>
             <Popup minWidth={250} className="leaflet-popup-transparent">
               <div className="rounded-2xl border border-amber-200 bg-white/95 p-4 text-center shadow-xl backdrop-blur-md">
                 <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-2xl">🎉</div>

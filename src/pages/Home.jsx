@@ -1621,7 +1621,18 @@ export default function HomePage() {
 
             })}
 
-              <PromoDiscoveryMarkers promos={promoDiscoveryCodes} />
+              <PromoDiscoveryMarkers
+                promos={promoDiscoveryCodes}
+                currentZoom={currentZoom}
+                coverCandidates={[
+                  ...currentVisibleCandidates,
+                  ...liveVendorPins.map(({ checkIn }) => ({
+                    id: `vendor-${checkIn.id}`,
+                    lat: checkIn.checkin_latitude,
+                    lng: checkIn.checkin_longitude,
+                  })),
+                ]}
+              />
 
               {/* Vendor Event Stacked Markers (Coming Soon + Active, with stacking) */}
               <VendorEventMapMarkers

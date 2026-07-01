@@ -208,6 +208,22 @@
       "default": true,
       "description": "Whether the public promo icon uses a glow treatment"
     },
+    "promo_icon_animation": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pulse",
+        "bounce",
+        "float"
+      ],
+      "default": "none",
+      "description": "Optional animation style for the public promo discovery icon"
+    },
+    "promo_min_zoom": {
+      "type": "number",
+      "default": 10,
+      "description": "Minimum public map zoom level before this promo discovery icon appears"
+    },
     "promo_discovery_config": {
       "type": "object",
       "description": "Future-ready promo discovery presentation options such as animation, sponsor artwork, seasonal branding, or treasure hunt metadata"

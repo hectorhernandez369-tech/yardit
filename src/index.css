@@ -330,6 +330,21 @@ button:focus-visible {
   }
 }
 
+@keyframes yardit-promo-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes yardit-promo-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes yardit-promo-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-5px) rotate(1deg); }
+}
+
 /* Compact map popups */
 .leaflet-popup-pane {
   z-index: 1200 !important;
