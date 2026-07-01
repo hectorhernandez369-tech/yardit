@@ -421,20 +421,6 @@ export default function GeoPromoSection({ form, onChange }) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    {["Desktop Preview", "Mobile Preview", "Live Preview"].map((label, index) => (
-                      <div key={label} className={`rounded-xl border border-slate-200 bg-white p-3 text-center ${index === 1 ? "sm:max-w-[120px]" : ""}`}>
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
-                        <div className="relative mx-auto" style={{ width: Math.min(96, Number(form.promo_icon_size_px || 72)), height: Math.min(96, Number(form.promo_icon_size_px || 72)), opacity: index === 2 && !promoIsVisibleAtPreviewZoom ? 0.35 : 1 }}>
-                          <div className="flex h-full w-full items-center justify-center rounded-2xl border-2 border-amber-300 bg-white" style={{ boxShadow: form.promo_icon_glow_enabled !== false ? "0 0 18px rgba(244,168,73,.45)" : "none", animation: promoAnimation === "pulse" ? "yardit-promo-pulse 1.8s ease-in-out infinite" : promoAnimation === "bounce" ? "yardit-promo-bounce 1.6s ease-in-out infinite" : promoAnimation === "float" ? "yardit-promo-float 2.4s ease-in-out infinite" : "none" }}>
-                            <img src={form.promo_icon_logo_url || "https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png"} alt="Promo preview" className="h-4/5 w-4/5 object-contain" />
-                          </div>
-                          {index === 2 && promoIsVisibleAtPreviewZoom && <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-amber-300 bg-[#2C4F4E] px-1 text-xs font-black text-white">3</span>}
-                        </div>
-                        <p className="mt-2 text-[11px] font-bold text-[#2C4F4E]">{formatPreviewRange(form)}</p>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
             </div>
