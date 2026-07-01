@@ -86,12 +86,8 @@ function getPromoIcon(promo, coveredCount = 0) {
   return markerCache[key];
 }
 
-function isActivePromo(promo, now = new Date(), currentZoom = 13) {
+function isActivePromo(promo, currentZoom = 13) {
   if (!promo?.promo_door_enabled || promo.status !== "active") return false;
-  const start = promo.starts_at ? new Date(promo.starts_at) : null;
-  const end = promo.expires_at ? new Date(promo.expires_at) : null;
-  if (!start || Number.isNaN(start.getTime()) || !end || Number.isNaN(end.getTime())) return false;
-  if (now < start || now > end) return false;
   const minZoom = Number(promo.promo_min_zoom || 10);
   const maxZoom = Number(promo.promo_max_zoom || 18);
   const zoom = Number(currentZoom || 13);
@@ -108,7 +104,7 @@ function preferredTier(promo) {
 
 export default function PromoDiscoveryMarkers({ promos = [], currentZoom = 13, coverCandidates = [] }) {
   const navigate = useNavigate();
-  const activePromos = promos.filter((promo) => isActivePromo(promo, new Date(), currentZoom));
+  const activePromos = promos.filter((promo) => isActivePromo(promo, currentZoom));
 
   return (
     <>
