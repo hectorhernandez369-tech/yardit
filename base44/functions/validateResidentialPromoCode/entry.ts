@@ -47,21 +47,19 @@ function formatPromoWindow(startIso, endIso) {
   return `${start.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} to ${end.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
 }
 
-function buildLocalDateTime(dateStr, timeStr, fallbackTime) {
-  if (!dateStr) return null;
-  const date = new Date(`${dateStr}T${timeStr || fallbackTime}`);
-  return Number.isNaN(date.getTime()) ? null : date;
+function isoToUtcDate(isoValue) {
+  const date = new Date(isoValue);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
 function checkPromoScheduleWindow(promoCode, schedule) {
   if (!promoCode?.starts_at || !promoCode?.expires_at) return { valid: true };
   if (!schedule?.selectedRangeStartDate || !schedule?.selectedRangeEndDate) return { valid: true };
-  const promoStart = new Date(promoCode.starts_at);
-  const promoEnd = new Date(promoCode.expires_at);
-  const listingStart = buildLocalDateTime(schedule.selectedRangeStartDate, schedule.openTime, '05:00');
-  const listingEnd = buildLocalDateTime(schedule.selectedRangeEndDate, schedule.closeTime, '22:00');
-  if ([promoStart, promoEnd, listingStart, listingEnd].some((date) => !date || Number.isNaN(date.getTime()))) return { valid: true };
-  if (listingStart < promoStart || listingEnd > promoEnd) {
+  const promoStartDate = isoToUtcDate(promoCode.starts_at);
+  const promoEndDate = isoToUtcDate(promoCode.expires_at);
+  if (!promoStartDate || !promoEndDate) return { valid: true };
+  if (schedule.selectedRangeStartDate < promoStartDate || schedule.selectedRangeEndDate > promoEndDate) {
     return { valid: false, reason: `This promo only applies to listings scheduled within ${formatPromoWindow(promoCode.starts_at, promoCode.expires_at)}.` };
   }
   return { valid: true };

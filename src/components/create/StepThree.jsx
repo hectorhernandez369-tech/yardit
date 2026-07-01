@@ -51,21 +51,20 @@ function formatPromoWindow(startIso, endIso) {
   return `${start.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} to ${end.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
 }
 
-function buildLocalDateTime(dateStr, timeStr, fallbackTime) {
-  if (!dateStr) return null;
-  const date = new Date(`${dateStr}T${timeStr || fallbackTime}`);
-  return Number.isNaN(date.getTime()) ? null : date;
+function isoToLocalDate(isoValue) {
+  const date = new Date(isoValue);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 function isOutsidePromoWindow(data) {
   if (!data?.discovery_promo_code || !data?.discovery_promo_starts_at || !data?.discovery_promo_expires_at) return false;
   if (!data.selectedRangeStartDate || !data.selectedRangeEndDate) return false;
-  const promoStart = new Date(data.discovery_promo_starts_at);
-  const promoEnd = new Date(data.discovery_promo_expires_at);
-  const listingStart = buildLocalDateTime(data.selectedRangeStartDate, data.openTime, "05:00");
-  const listingEnd = buildLocalDateTime(data.selectedRangeEndDate, data.closeTime, "22:00");
-  if ([promoStart, promoEnd, listingStart, listingEnd].some((date) => !date || Number.isNaN(date.getTime()))) return false;
-  return listingStart < promoStart || listingEnd > promoEnd;
+  const promoStartDate = isoToLocalDate(data.discovery_promo_starts_at);
+  const promoEndDate = isoToLocalDate(data.discovery_promo_expires_at);
+  if (!promoStartDate || !promoEndDate) return false;
+  return data.selectedRangeStartDate < promoStartDate || data.selectedRangeEndDate > promoEndDate;
 }
 
 export default function StepThree({
