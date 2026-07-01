@@ -206,7 +206,7 @@ button:focus-visible {
   }
 }
 
-@media (max-width: 639px) and (orientation: portrait) {
+@media (max-width: 639px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
   .yardit-app-shell {
     padding-left: var(--yardit-safe-area-left);
     padding-right: var(--yardit-safe-area-right);
