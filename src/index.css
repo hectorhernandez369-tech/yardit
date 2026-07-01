@@ -268,24 +268,34 @@ button:focus-visible {
     box-shadow: 0 5px 14px rgba(244, 168, 73, 0.28);
   }
 
-  .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) > .yardit-mobile-nav-item:nth-child(1) {
-    grid-column: 4;
-    grid-row: 1;
+  .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) {
+    display: block;
+    height: calc(4.75rem + var(--yardit-safe-area-bottom));
+  }
+
+  .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) > .yardit-mobile-nav-item,
+  .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) .yardit-mobile-nav-bell {
+    position: absolute;
+    top: 0.5rem;
+    width: 4.1rem;
+    transform: translateX(-50%);
   }
 
   .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) .yardit-mobile-nav-bell {
-    grid-column: 2;
-    grid-row: 1;
+    left: 18%;
   }
 
   .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) .yardit-mobile-nav-primary {
-    grid-column: 3;
-    grid-row: 1;
+    left: 50%;
+    width: 5.25rem;
+  }
+
+  .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) > .yardit-mobile-nav-item:nth-child(1) {
+    left: 68%;
   }
 
   .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) > .yardit-mobile-nav-item:nth-child(4) {
-    grid-column: 5;
-    grid-row: 1;
+    left: 86%;
   }
 
   .yardit-mobile-nav-bell .yardit-nav-alert-button,
