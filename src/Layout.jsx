@@ -163,7 +163,7 @@ function LayoutContent({ children, user, setUser }) {
               )}
             </div>
 
-            <nav className="flex w-full items-center justify-around gap-1 sm:w-auto sm:justify-start sm:gap-2 sm:flex-wrap">
+            <nav className="grid w-full grid-cols-5 items-center gap-1 sm:flex sm:w-auto sm:grid-cols-none sm:justify-start sm:gap-2 sm:flex-wrap">
               {/* My Hunt link moved to My Listings */}
 
               {canViewLaunchChecklist && (
@@ -190,7 +190,7 @@ function LayoutContent({ children, user, setUser }) {
                 </Button>
               )}
 
-              <Link to={createPageUrl("Home")}>
+              <Link to={createPageUrl("Home")} className="col-start-1 justify-self-center sm:col-auto">
                 <Button
                   variant={location.pathname === createPageUrl("Home") || location.pathname === "/" ? "secondary" : "ghost"}
                   size="sm"
@@ -214,7 +214,7 @@ function LayoutContent({ children, user, setUser }) {
               
               <>
                 {user && (
-                  <div className="flex min-w-[3.75rem] flex-col items-center justify-center text-[10px] font-semibold text-[#2C4F4E] sm:block sm:min-w-0 sm:text-white">
+                  <div className="col-start-2 flex min-w-[3.75rem] flex-col items-center justify-center justify-self-center text-[10px] font-semibold text-[#2C4F4E] sm:col-auto sm:block sm:min-w-0 sm:text-white">
                     <NotificationBell />
                     <span className="-mt-1 block sm:hidden">Alerts</span>
                   </div>
@@ -226,14 +226,14 @@ function LayoutContent({ children, user, setUser }) {
                     <Button
                     size="sm"
                     onClick={handlePostSaleClick}
-                    className="h-14 min-w-[4rem] -translate-y-2 flex-col gap-0.5 rounded-2xl bg-[#F4A849] px-3 text-[10px] font-bold text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-[0_8px_20px_rgba(244,168,73,0.35)] sm:h-8 sm:min-w-0 sm:translate-y-0 sm:flex-row sm:gap-2 sm:rounded-md sm:px-3 sm:text-xs sm:shadow-md"
+                    className="col-start-3 h-14 min-w-[4rem] -translate-y-2 justify-self-center flex-col gap-0.5 rounded-2xl bg-[#F4A849] px-3 text-[10px] font-bold text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-[0_8px_20px_rgba(244,168,73,0.35)] sm:col-auto sm:h-8 sm:min-w-0 sm:translate-y-0 sm:flex-row sm:gap-2 sm:rounded-md sm:px-3 sm:text-xs sm:shadow-md"
                   >
                     <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
                     <span>Post</span>
                   </Button>
 
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                    <DropdownMenuTrigger asChild className="col-start-5 justify-self-center sm:col-auto">
                       <Button variant="ghost" size="sm" className="h-12 min-w-[3.75rem] flex-col gap-0.5 rounded-2xl px-2 text-[10px] font-semibold text-[#2C4F4E] hover:bg-[#5DADA5]/10 sm:h-8 sm:min-w-0 sm:flex-row sm:gap-2 sm:rounded-md sm:px-3 sm:text-xs sm:text-white sm:hover:bg-white/10">
                         <MoreVertical className="w-5 h-5 sm:w-4 sm:h-4" />
                         <span className="sm:hidden">Menu</span>
