@@ -27,6 +27,7 @@ import { hasVerifiedPrimaryAddress as hasVerifiedPrimaryAddressTrust } from "@/l
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "./components/guest/GuestAuthModal";
 import InstallPromptDialog from "@/components/install/InstallPromptDialog";
+import MobileBottomNav from "@/components/navigation/MobileBottomNav";
 import AccountSetupModal from "./components/profile/AccountSetupModal";
 import VerifiedAddressRequiredModal from "./components/profile/VerifiedAddressRequiredModal";
 import FloatingLaunchChecklist from "./components/checklist/FloatingLaunchChecklist";
@@ -142,7 +143,7 @@ function LayoutContent({ children, user, setUser }) {
   return (
     <div className="yardit-app-shell min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
       <Toaster richColors position="top-center" />
-      <header className="yardit-bottom-nav sticky top-0 z-[3000] border-b-2 border-[#2C4F4E] bg-[#5DADA5] shadow-md">
+      <header className="yardit-top-nav sticky top-0 z-[3000] border-b-2 border-[#2C4F4E] bg-[#5DADA5] shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-2">
           <div className="yardit-nav-row flex items-center justify-between">
             <div className="yardit-nav-logo flex items-center gap-3">
@@ -319,6 +320,16 @@ function LayoutContent({ children, user, setUser }) {
       <main className="yardit-main-with-bottom-nav flex-1 w-full min-w-0 flex flex-col">
         {children}
       </main>
+
+      <MobileBottomNav
+        user={user}
+        isAuthenticated={isAuthenticated}
+        hasVendorAccount={hasVendorAccount}
+        hasAdminProfile={hasAdminProfile}
+        navigateToLogin={navigateToLogin}
+        onPostSale={handlePostSaleClick}
+        onLogout={handleLogout}
+      />
       
       <GuestAuthModal open={showModal} onClose={() => setShowModal(false)} returnTo={`${window.location.origin}${createPageUrl("CreateListing")}`} />
       <AccountSetupModal user={user} setUser={setUser} />
