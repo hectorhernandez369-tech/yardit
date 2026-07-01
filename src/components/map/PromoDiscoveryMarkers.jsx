@@ -66,7 +66,7 @@ function getPromoIcon(promo, coveredCount = 0) {
   const logoUrl = promo.promo_icon_logo_url || "https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
   const animation = promo.promo_icon_animation || "none";
   const countLabel = Number(coveredCount || 0) > 0 ? String(coveredCount) : "";
-  const key = `${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
+  const key = `promo_tail_v3_${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
   if (!markerCache[key]) {
     const glow = promo.promo_icon_glow_enabled !== false ? "box-shadow:0 0 0 8px rgba(244,168,73,.20),0 0 24px rgba(244,168,73,.72),0 6px 18px rgba(44,79,78,.30);" : "box-shadow:0 6px 18px rgba(44,79,78,.24);";
     const imageGlow = promo.promo_icon_glow_enabled !== false ? "filter:drop-shadow(0 0 12px rgba(244,168,73,.72)) drop-shadow(0 6px 8px rgba(44,79,78,.28));" : "filter:drop-shadow(0 5px 7px rgba(44,79,78,.24));";
