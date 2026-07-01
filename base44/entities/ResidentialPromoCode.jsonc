@@ -222,7 +222,12 @@
     "promo_min_zoom": {
       "type": "number",
       "default": 10,
-      "description": "Minimum public map zoom level before this promo discovery icon appears"
+      "description": "Public map zoom level where this promo discovery icon starts appearing"
+    },
+    "promo_max_zoom": {
+      "type": "number",
+      "default": 18,
+      "description": "Public map zoom level where this promo discovery icon hides again at closer zoom levels"
     },
     "promo_discovery_config": {
       "type": "object",

@@ -153,6 +153,8 @@ export default function GeoPromoSection({ form, onChange }) {
   const promoDoorEnabled = !!form.promo_door_enabled;
   const promoAnimation = form.promo_icon_animation || "none";
   const promoMinZoom = Number(form.promo_min_zoom || 10);
+  const promoMaxZoom = Math.max(promoMinZoom + 1, Number(form.promo_max_zoom || 18));
+  const promoIsVisibleAtPreviewZoom = previewZoom >= promoMinZoom && previewZoom < promoMaxZoom;
   const promoDoorIcon = getPromoDoorIcon(form.promo_icon_logo_url, form.promo_icon_size_px, form.promo_icon_glow_enabled !== false, promoAnimation);
   const promoDoorPosition = promoDoorEnabled && geoType === "radius" && hasCenterPin
     ? { lat: form.geo_center_lat, lng: form.geo_center_lng }
@@ -396,15 +398,26 @@ export default function GeoPromoSection({ form, onChange }) {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 rounded-lg border border-amber-200 bg-white p-3">
+                  <div className="space-y-2 rounded-lg border border-amber-200 bg-white p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <Label className="text-xs text-slate-600 font-medium">Zoom Threshold: {promoMinZoom}+</Label>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${previewZoom >= promoMinZoom ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>{previewZoom >= promoMinZoom ? "Visible" : "Hidden"} at preview zoom {previewZoom}</span>
+                      <Label className="text-xs text-slate-600 font-medium">Zoom visibility</Label>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${promoIsVisibleAtPreviewZoom ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>{promoIsVisibleAtPreviewZoom ? "Visible" : "Hidden"} at preview zoom {previewZoom}</span>
                     </div>
-                    <input type="range" min="8" max="18" value={promoMinZoom} onChange={(e) => onChange("promo_min_zoom", Number(e.target.value))} className="w-full accent-[#2C4F4E]" />
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                        <span>Appear @ {promoMinZoom}</span>
+                        <span>Hide @ {promoMaxZoom}</span>
+                      </div>
+                      <input type="range" min="8" max="20" value={promoMinZoom} onChange={(e) => {
+                        const value = Number(e.target.value);
+                        onChange("promo_min_zoom", value);
+                        if (value >= promoMaxZoom) onChange("promo_max_zoom", value + 1);
+                      }} className="w-full accent-[#2C4F4E]" />
+                      <input type="range" min="8" max="20" value={promoMaxZoom} onChange={(e) => onChange("promo_max_zoom", Math.max(Number(e.target.value), promoMinZoom + 1))} className="w-full accent-red-400" />
+                    </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-slate-400">Live preview zoom</span>
-                      <input type="range" min="8" max="18" value={previewZoom} onChange={(e) => setPreviewZoom(Number(e.target.value))} className="flex-1 accent-[#F4A849]" />
+                      <input type="range" min="8" max="20" value={previewZoom} onChange={(e) => setPreviewZoom(Number(e.target.value))} className="flex-1 accent-[#F4A849]" />
                     </div>
                   </div>
 
@@ -412,11 +425,11 @@ export default function GeoPromoSection({ form, onChange }) {
                     {["Desktop Preview", "Mobile Preview", "Live Preview"].map((label, index) => (
                       <div key={label} className={`rounded-xl border border-slate-200 bg-white p-3 text-center ${index === 1 ? "sm:max-w-[120px]" : ""}`}>
                         <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
-                        <div className="relative mx-auto" style={{ width: Math.min(96, Number(form.promo_icon_size_px || 72)), height: Math.min(96, Number(form.promo_icon_size_px || 72)), opacity: index === 2 && previewZoom < promoMinZoom ? 0.35 : 1 }}>
+                        <div className="relative mx-auto" style={{ width: Math.min(96, Number(form.promo_icon_size_px || 72)), height: Math.min(96, Number(form.promo_icon_size_px || 72)), opacity: index === 2 && !promoIsVisibleAtPreviewZoom ? 0.35 : 1 }}>
                           <div className="flex h-full w-full items-center justify-center rounded-2xl border-2 border-amber-300 bg-white" style={{ boxShadow: form.promo_icon_glow_enabled !== false ? "0 0 18px rgba(244,168,73,.45)" : "none", animation: promoAnimation === "pulse" ? "yardit-promo-pulse 1.8s ease-in-out infinite" : promoAnimation === "bounce" ? "yardit-promo-bounce 1.6s ease-in-out infinite" : promoAnimation === "float" ? "yardit-promo-float 2.4s ease-in-out infinite" : "none" }}>
                             <img src={form.promo_icon_logo_url || "https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png"} alt="Promo preview" className="h-4/5 w-4/5 object-contain" />
                           </div>
-                          {index === 2 && previewZoom >= promoMinZoom && <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-amber-300 bg-[#2C4F4E] px-1 text-xs font-black text-white">3</span>}
+                          {index === 2 && promoIsVisibleAtPreviewZoom && <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-amber-300 bg-[#2C4F4E] px-1 text-xs font-black text-white">3</span>}
                         </div>
                         <p className="mt-2 text-[11px] font-bold text-[#2C4F4E]">{formatPreviewRange(form)}</p>
                       </div>
@@ -570,7 +583,7 @@ export default function GeoPromoSection({ form, onChange }) {
                         lng={form.geo_center_lng}
                         onDragEnd={handleDragEnd}
                       />
-                      {promoDoorEnabled && previewZoom >= promoMinZoom && (
+                      {promoDoorEnabled && promoIsVisibleAtPreviewZoom && (
                         <Marker position={[form.geo_center_lat, form.geo_center_lng]} icon={promoDoorIcon} />
                       )}
                       <Circle
@@ -687,7 +700,7 @@ export default function GeoPromoSection({ form, onChange }) {
                   {polygonPoints.map((point, index) => (
                     <Marker key={`${point.lat}-${point.lng}-${index}`} position={[point.lat, point.lng]} />
                   ))}
-                  {promoDoorPosition && previewZoom >= promoMinZoom && (
+                  {promoDoorPosition && promoIsVisibleAtPreviewZoom && (
                     <DraggableMarker
                       lat={promoDoorPosition.lat}
                       lng={promoDoorPosition.lng}

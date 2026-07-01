@@ -54,6 +54,7 @@ const DEFAULT_FORM = {
   promo_icon_glow_enabled: true,
   promo_icon_animation: "none",
   promo_min_zoom: 10,
+  promo_max_zoom: 18,
   promo_discovery_config: {},
 };
 
@@ -163,7 +164,8 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
         promo_icon_size_px: Math.max(32, Math.min(160, Number(form.promo_icon_size_px || 72))),
         promo_icon_glow_enabled: form.promo_icon_glow_enabled !== false,
         promo_icon_animation: ["none", "pulse", "bounce", "float"].includes(form.promo_icon_animation) ? form.promo_icon_animation : "none",
-        promo_min_zoom: Math.max(8, Math.min(18, Number(form.promo_min_zoom || 10))),
+        promo_min_zoom: Math.max(8, Math.min(20, Number(form.promo_min_zoom || 10))),
+        promo_max_zoom: Math.max(Math.max(8, Math.min(20, Number(form.promo_min_zoom || 10))) + 1, Math.min(21, Number(form.promo_max_zoom || 18))),
         promo_discovery_config: form.promo_discovery_config || {},
       };
 

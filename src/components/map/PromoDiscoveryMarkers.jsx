@@ -88,7 +88,9 @@ function isActivePromo(promo, now = new Date(), currentZoom = 13) {
   if (!start || Number.isNaN(start.getTime()) || !end || Number.isNaN(end.getTime())) return false;
   if (now < start || now > end) return false;
   const minZoom = Number(promo.promo_min_zoom || 10);
-  if (Number(currentZoom || 13) < minZoom) return false;
+  const maxZoom = Number(promo.promo_max_zoom || 18);
+  const zoom = Number(currentZoom || 13);
+  if (zoom < minZoom || zoom >= maxZoom) return false;
   return !!getPromoPosition(promo);
 }
 
