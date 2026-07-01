@@ -349,10 +349,13 @@ export default function GeoPromoSection({ form, onChange }) {
                   <Sparkles className="mt-0.5 h-4 w-4 text-amber-600" />
                   <div>
                     <p className="text-sm font-bold text-[#2C4F4E]">Promo Area Discovery</p>
-                    <p className="text-[11px] text-slate-600">Show a branded Promo Door on the public map for this area.</p>
+                    <p className="text-[11px] text-slate-600">Turn this on to show the promo icon on the public map. Turn it off to hide it.</p>
                   </div>
                 </div>
-                <Checkbox checked={promoDoorEnabled} onCheckedChange={(value) => onChange("promo_door_enabled", value === true)} />
+                <div className="flex items-center gap-2 rounded-full border border-amber-200 bg-white px-3 py-1.5">
+                  <span className="text-xs font-bold text-[#2C4F4E]">Show on map</span>
+                  <Switch checked={promoDoorEnabled} onCheckedChange={(value) => onChange("promo_door_enabled", value === true)} />
+                </div>
               </div>
 
               {promoDoorEnabled && (
