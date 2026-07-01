@@ -213,33 +213,33 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
     if (!notification.read && !notification.is_read) {
        markReadMutation.mutate(notification);
     }
-    let url = null;
+    let url = notification.deep_link || null;
     if (notification._isCaseNotif) {
       url = createPageUrl("CaseManagement") + `?openCaseId=${notification.case_id}`;
     } else {
       const entityId = notification.related_entity_id || notification.metadata?.listing_id || notification.metadata?.sale_listing_id || notification.location_id;
 
-      if (notification.type?.startsWith("report_") || notification.type?.startsWith("case_") || notification.type?.startsWith("assign_")) {
+      if (!url && (notification.type?.startsWith("report_") || notification.type?.startsWith("case_") || notification.type?.startsWith("assign_"))) {
         url = createPageUrl("AdminLite") + "?tab=cases" + (entityId ? `&openCaseId=${entityId}` : "");
-      } else if (notification.type?.startsWith("support_ticket_")) {
+      } else if (!url && notification.type?.startsWith("support_ticket_")) {
         url = createPageUrl("MySupportTickets");
-      } else if (notification.metadata?.rescue_token) {
+      } else if (!url && notification.metadata?.rescue_token) {
         url = createPageUrl("CreateListing") + "?rescueToken=" + notification.metadata.rescue_token;
-      } else if (notification.type === "join_invitation" && notification.metadata?.invite_code) {
+      } else if (!url && notification.type === "join_invitation" && notification.metadata?.invite_code) {
         url = createPageUrl("JoinNeighborhoodSale") + `?code=${encodeURIComponent(notification.metadata.invite_code)}`;
-      } else if (notification.type === "vendor_event_invite") {
+      } else if (!url && notification.type === "vendor_event_invite") {
         url = `/VendorEventDetail?id=${notification.metadata?.event_id || entityId}`;
-      } else if (notification.type === "event_collaboration_invite") {
+      } else if (!url && notification.type === "event_collaboration_invite") {
         url = `/VendorDashboard?tab=events&collabInvite=${notification.metadata?.collaborator_id || ""}&eventId=${notification.metadata?.event_id || entityId || ""}`;
-      } else if (notification.type?.startsWith("residential_access")) {
+      } else if (!url && notification.type?.startsWith("residential_access")) {
         url = notification.type === "residential_access_approved" ? createPageUrl("MyListings") : createPageUrl("Notifications");
-      } else if (notification.type?.startsWith("join_")) {
+      } else if (!url && notification.type?.startsWith("join_")) {
         if (entityId) {
           url = createPageUrl("ListingDetail") + "?id=" + entityId;
         } else {
           url = createPageUrl("MyListings");
         }
-      } else if (notification.type?.startsWith("listing_")) {
+      } else if (!url && notification.type?.startsWith("listing_")) {
         if (notification.type === "listing_removed") {
           url = createPageUrl("MyListings");
         } else if (entityId) {
@@ -256,7 +256,11 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
 
     if (url) {
       onClose?.();
-      navigate(url);
+      if (/^https?:\/\//i.test(url)) {
+        window.location.href = url;
+      } else {
+        navigate(url);
+      }
     }
   };
 
