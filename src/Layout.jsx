@@ -142,10 +142,10 @@ function LayoutContent({ children, user, setUser }) {
   return (
     <div className="yardit-app-shell min-h-screen flex flex-col bg-[#F3E6CF] overflow-x-hidden max-w-[100vw]">
       <Toaster richColors position="top-center" />
-      <header className="yardit-bottom-nav fixed bottom-0 left-0 right-0 z-[3000] border-t border-gray-200 bg-white/95 shadow-[0_-10px_28px_rgba(44,79,78,0.18)] backdrop-blur-xl sm:sticky sm:top-0 sm:bottom-auto sm:border-t-0 sm:border-b-2 sm:border-[#2C4F4E] sm:bg-[#5DADA5] sm:shadow-md sm:backdrop-blur-none sm:pb-0">
-        <div className="max-w-7xl mx-auto px-3 pb-2 pt-2 sm:px-4 sm:py-2">
-          <div className="yardit-nav-row flex items-center justify-center sm:justify-between">
-            <div className="yardit-nav-logo hidden sm:flex items-center gap-3">
+      <header className="yardit-bottom-nav sticky top-0 z-[3000] border-b-2 border-[#2C4F4E] bg-[#5DADA5] shadow-md">
+        <div className="max-w-7xl mx-auto px-4 py-2">
+          <div className="yardit-nav-row flex items-center justify-between">
+            <div className="yardit-nav-logo flex items-center gap-3">
               <Link
                 to={createPageUrl("Home")}
                 className="flex flex-col items-center justify-center group select-none touch-none"
@@ -163,7 +163,7 @@ function LayoutContent({ children, user, setUser }) {
               )}
             </div>
 
-            <nav className="yardit-nav-items grid w-full grid-cols-5 items-center gap-1 sm:flex sm:w-auto sm:grid-cols-none sm:justify-start sm:gap-2 sm:flex-wrap">
+            <nav className="yardit-nav-items flex items-center gap-2 flex-wrap">
               {/* My Hunt link moved to My Listings */}
 
               {canViewLaunchChecklist && (
@@ -171,7 +171,7 @@ function LayoutContent({ children, user, setUser }) {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowLaunchChecklist(true)}
-                  className="hidden sm:inline-flex gap-2 text-white hover:bg-white/10"
+                  className="yardit-nav-desktop-only gap-2 text-white hover:bg-white/10"
                 >
                   <ClipboardList className="w-4 h-4" />
                   <span className="hidden sm:inline">Checklist</span>
@@ -183,20 +183,20 @@ function LayoutContent({ children, user, setUser }) {
                   variant="ghost"
                   size="sm"
                   onClick={handleInstallClick}
-                  className="hidden sm:inline-flex gap-2 rounded-full border border-white/60 bg-white/15 px-3 text-white shadow-sm hover:bg-white/25"
+                  className="yardit-nav-desktop-only gap-2 rounded-full border border-white/60 bg-white/15 px-3 text-white shadow-sm hover:bg-white/25"
                 >
                   <Download className="w-4 h-4" />
                   <span className="hidden sm:inline">Install App</span>
                 </Button>
               )}
 
-              <Link to={createPageUrl("Home")} className="col-start-1 justify-self-center sm:col-auto">
+              <Link to={createPageUrl("Home")} className="yardit-nav-map-link">
                 <Button
                   variant={location.pathname === createPageUrl("Home") || location.pathname === "/" ? "secondary" : "ghost"}
                   size="sm"
-                  className={`h-12 min-w-[3.75rem] flex-col gap-0.5 rounded-2xl px-2 text-[10px] font-semibold sm:h-8 sm:min-w-0 sm:flex-row sm:gap-2 sm:rounded-md sm:px-3 sm:text-xs ${location.pathname === createPageUrl("Home") || location.pathname === "/" ? "bg-[#5DADA5]/15 text-[#2C4F4E] hover:bg-[#5DADA5]/20 sm:bg-white/20 sm:text-white sm:hover:bg-white/30" : "text-[#2C4F4E] hover:bg-[#5DADA5]/10 sm:text-white sm:hover:bg-white/10"}`}
+                  className={`gap-2 ${location.pathname === createPageUrl("Home") || location.pathname === "/" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
                 >
-                  <Home className="w-5 h-5 sm:w-4 sm:h-4" />
+                  <Home className="w-4 h-4" />
                   <span>Map</span>
                 </Button>
               </Link>
@@ -205,7 +205,7 @@ function LayoutContent({ children, user, setUser }) {
                 <Button
                   size="sm"
                   onClick={navigateToLogin}
-                  className="h-12 rounded-2xl bg-[#F4A849] px-4 text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold sm:h-8 sm:rounded-md"
+                  className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
                 >
                   <User className="w-4 h-4" />
                   <span>Log In / Sign Up</span>
@@ -214,9 +214,9 @@ function LayoutContent({ children, user, setUser }) {
               
               <>
                 {user && (
-                  <div className="yardit-nav-alerts col-start-2 flex min-w-[3.75rem] flex-col items-center justify-center justify-self-center text-[10px] font-semibold text-[#2C4F4E] sm:col-auto sm:block sm:min-w-0 sm:text-white">
+                  <div className="yardit-nav-alerts block min-w-0 text-white">
                     <NotificationBell />
-                    <span className="yardit-nav-alerts-label -mt-1 block sm:hidden">Alerts</span>
+                    <span className="yardit-nav-alerts-label hidden">Alerts</span>
                   </div>
                 )}
 
@@ -226,17 +226,18 @@ function LayoutContent({ children, user, setUser }) {
                     <Button
                     size="sm"
                     onClick={handlePostSaleClick}
-                    className="yardit-nav-post-button col-start-3 h-14 min-w-[4rem] -translate-y-2 justify-self-center flex-col gap-0.5 rounded-2xl bg-[#F4A849] px-3 text-[10px] font-bold text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-[0_8px_20px_rgba(244,168,73,0.35)] sm:col-auto sm:h-8 sm:min-w-0 sm:translate-y-0 sm:flex-row sm:gap-2 sm:rounded-md sm:px-3 sm:text-xs sm:shadow-md"
+                    className="yardit-nav-post-button gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
                   >
-                    <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
-                    <span>Post</span>
+                    <Plus className="w-4 h-4" />
+                    <span className="yardit-nav-post-desktop-label">Post Sale</span>
+                    <span className="yardit-nav-post-mobile-label hidden">Post</span>
                   </Button>
 
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild className="col-start-5 justify-self-center sm:col-auto">
-                      <Button variant="ghost" size="sm" className="h-12 min-w-[3.75rem] flex-col gap-0.5 rounded-2xl px-2 text-[10px] font-semibold text-[#2C4F4E] hover:bg-[#5DADA5]/10 sm:h-8 sm:min-w-0 sm:flex-row sm:gap-2 sm:rounded-md sm:px-3 sm:text-xs sm:text-white sm:hover:bg-white/10">
-                        <MoreVertical className="w-5 h-5 sm:w-4 sm:h-4" />
-                        <span className="yardit-nav-menu-label sm:hidden">Menu</span>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="yardit-nav-menu-button text-white hover:bg-white/10 h-8 w-8">
+                        <MoreVertical className="w-4 h-4" />
+                        <span className="yardit-nav-menu-label hidden">Menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1200] w-48 rounded-xl shadow-xl border border-gray-200 bg-white/95 backdrop-blur-md p-1.5">
@@ -315,7 +316,7 @@ function LayoutContent({ children, user, setUser }) {
         </div>
       )}
 
-      <main className="yardit-main-with-bottom-nav flex-1 w-full min-w-0 flex flex-col pb-20 sm:pb-0">
+      <main className="yardit-main-with-bottom-nav flex-1 w-full min-w-0 flex flex-col">
         {children}
       </main>
       
