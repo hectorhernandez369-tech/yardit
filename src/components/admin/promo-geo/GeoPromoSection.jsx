@@ -26,6 +26,7 @@ const PROMO_ANIMATION_OPTIONS = [
   { value: "bounce", label: "Bounce" },
   { value: "float", label: "Float" },
 ];
+const MAPBOX_TILE_URL = "https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 
 function haversineDistance(lat1, lng1, lat2, lng2) {
   const R = 3958.8;
@@ -49,6 +50,15 @@ function MapFlyTo({ lat, lng }) {
   useEffect(() => {
     if (lat && lng) map.flyTo([lat, lng], 11, { animate: true, duration: 1 });
   }, [lat, lng, map]);
+  return null;
+}
+
+function MapPreviewZoom({ zoom }) {
+  const map = useMap();
+  useEffect(() => {
+    const nextZoom = Number(zoom);
+    if (Number.isFinite(nextZoom)) map.setZoom(nextZoom);
+  }, [zoom, map]);
   return null;
 }
 
@@ -538,13 +548,18 @@ export default function GeoPromoSection({ form, onChange }) {
               <div className="rounded-lg overflow-hidden border border-slate-200" style={{ height: 220 }}>
                 <MapContainer
                   center={mapCenter}
-                  zoom={hasCenterPin ? 10 : 6}
+                  zoom={previewZoom}
                   style={{ height: "100%", width: "100%" }}
                   scrollWheelZoom={false}
                 >
+                  <MapPreviewZoom zoom={previewZoom} />
                   <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url={MAPBOX_TILE_URL}
+                    tileSize={512}
+                    zoomOffset={-1}
+                    maxZoom={22}
+                    maxNativeZoom={22}
                   />
                   <MapClickHandler onMapClick={handleMapClick} />
                   {flyTarget && <MapFlyTo lat={flyTarget.lat} lng={flyTarget.lng} />}
@@ -555,7 +570,7 @@ export default function GeoPromoSection({ form, onChange }) {
                         lng={form.geo_center_lng}
                         onDragEnd={handleDragEnd}
                       />
-                      {promoDoorEnabled && (
+                      {promoDoorEnabled && previewZoom >= promoMinZoom && (
                         <Marker position={[form.geo_center_lat, form.geo_center_lng]} icon={promoDoorIcon} />
                       )}
                       <Circle
@@ -644,13 +659,18 @@ export default function GeoPromoSection({ form, onChange }) {
               <div className="rounded-lg overflow-hidden border border-slate-200" style={{ height: 260 }}>
                 <MapContainer
                   center={mapCenter}
-                  zoom={hasPolygonPoints ? 12 : 6}
+                  zoom={previewZoom}
                   style={{ height: "100%", width: "100%" }}
                   scrollWheelZoom={false}
                 >
+                  <MapPreviewZoom zoom={previewZoom} />
                   <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url={MAPBOX_TILE_URL}
+                    tileSize={512}
+                    zoomOffset={-1}
+                    maxZoom={22}
+                    maxNativeZoom={22}
                   />
                   <MapClickHandler onMapClick={handleMapClick} />
                   {polygonPoints.length >= 3 ? (
@@ -667,7 +687,7 @@ export default function GeoPromoSection({ form, onChange }) {
                   {polygonPoints.map((point, index) => (
                     <Marker key={`${point.lat}-${point.lng}-${index}`} position={[point.lat, point.lng]} />
                   ))}
-                  {promoDoorPosition && (
+                  {promoDoorPosition && previewZoom >= promoMinZoom && (
                     <DraggableMarker
                       lat={promoDoorPosition.lat}
                       lng={promoDoorPosition.lng}
