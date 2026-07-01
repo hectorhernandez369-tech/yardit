@@ -76,15 +76,16 @@ function getPromoIcon(promo, coveredCount = 0) {
       : `<div style="width:${size}px;height:${size}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border:2px solid #F4A849;${glow}"><img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${Math.round(size * .82)}px;height:${Math.round(size * .82)}px;object-fit:contain;display:block;" /></div>`;
     const labelHeight = dateLabel ? 24 : 0;
     const labelGap = dateLabel ? 4 : 0;
-    const tailHeight = 10;
+    const tailHeight = 14;
     const iconWidth = size + 80;
-    const iconHeight = labelHeight + labelGap + size + tailHeight;
-    const tail = `<div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #F4A849;filter:drop-shadow(0 2px 3px rgba(44,79,78,.32));margin-top:0;"></div>`;
+    const iconHeight = labelHeight + labelGap + size;
+    const tailTop = labelHeight + labelGap + size - 2;
+    const tail = `<div style="position:absolute;left:50%;top:${tailTop}px;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:${tailHeight}px solid #F4A849;filter:drop-shadow(0 2px 3px rgba(44,79,78,.32));"></div>`;
     markerCache[key] = L.divIcon({
       className: "yardit-promo-discovery-marker",
-      html: `<div style="width:${iconWidth}px;height:${iconHeight}px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;pointer-events:auto;">${dateLabel ? `<div style="height:${labelHeight}px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid rgba(44,79,78,.22);color:#2C4F4E;font-size:11px;font-weight:800;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.16);display:flex;align-items:center;justify-content:center;margin-bottom:${labelGap}px;">${dateLabel}</div>` : ""}<div style="display:flex;flex-direction:column;align-items:center;transform-origin:center bottom;${getAnimationStyle(animation)}"><div style="position:relative;width:${size}px;height:${size}px;">${iconBody}${badge}</div>${tail}</div></div>`,
+      html: `<div style="position:relative;width:${iconWidth}px;height:${iconHeight}px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}">${dateLabel ? `<div style="height:${labelHeight}px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid rgba(44,79,78,.22);color:#2C4F4E;font-size:11px;font-weight:800;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.16);display:flex;align-items:center;justify-content:center;margin-bottom:${labelGap}px;">${dateLabel}</div>` : ""}<div style="position:relative;width:${size}px;height:${size}px;z-index:2;">${iconBody}${badge}</div>${tail}</div>`,
       iconSize: [iconWidth, iconHeight],
-      iconAnchor: [iconWidth / 2, iconHeight],
+      iconAnchor: [iconWidth / 2, iconHeight + tailHeight - 2],
       popupAnchor: [0, -iconHeight + 8],
     });
   }
