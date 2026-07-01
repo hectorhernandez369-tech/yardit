@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import GeoPromoSection from "@/components/admin/promo-geo/GeoPromoSection";
 
 const DEFAULT_FORM = {
@@ -72,10 +72,16 @@ const getCalendarDate = (value) => {
 };
 const mergeCalendarDate = (currentValue, selectedDate, fallbackTime) => `${formatCalendarDate(selectedDate)}T${getTimePart(currentValue, fallbackTime)}`;
 const mergeCalendarTime = (currentValue, selectedTime, fallbackTime) => `${getDatePart(currentValue) || formatCalendarDate(new Date())}T${selectedTime || fallbackTime}`;
+const formatDateLabel = (value, emptyLabel) => {
+  const date = getCalendarDate(value);
+  if (!date) return emptyLabel;
+  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+};
 
 export default function ResidentialPromoCodeModal({ open, onClose, existingPromo, adminUser, onSaved }) {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [saving, setSaving] = useState(false);
+  const [openCalendar, setOpenCalendar] = useState(null);
 
   useEffect(() => {
     if (existingPromo) {
@@ -304,12 +310,18 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
               </Field>
               <Field label="Start Date" className="sm:col-span-2">
                 <div className="rounded-xl border border-slate-200 bg-white p-2">
-                  <Calendar
-                    mode="single"
-                    selected={getCalendarDate(form.starts_at)}
-                    onSelect={(date) => date && set("starts_at", mergeCalendarDate(form.starts_at, date, "00:00"))}
-                    className="mx-auto"
-                  />
+                  <button type="button" onClick={() => setOpenCalendar(openCalendar === "start" ? null : "start")} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    <span>{formatDateLabel(form.starts_at, "Choose start date")}</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${openCalendar === "start" ? "rotate-180" : ""}`} />
+                  </button>
+                  {openCalendar === "start" && (
+                    <Calendar
+                      mode="single"
+                      selected={getCalendarDate(form.starts_at)}
+                      onSelect={(date) => date && set("starts_at", mergeCalendarDate(form.starts_at, date, "00:00"))}
+                      className="mx-auto"
+                    />
+                  )}
                   <div className="mt-2 flex items-center gap-2 border-t border-slate-100 pt-2">
                     <Label className="text-xs text-slate-500">Start time</Label>
                     <Input type="time" value={getTimePart(form.starts_at, "00:00")} onChange={e => set("starts_at", mergeCalendarTime(form.starts_at, e.target.value, "00:00"))} className="h-8 w-32" />
@@ -318,12 +330,18 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
               </Field>
               <Field label="Expiration Date" className="sm:col-span-2">
                 <div className="rounded-xl border border-slate-200 bg-white p-2">
-                  <Calendar
-                    mode="single"
-                    selected={getCalendarDate(form.expires_at)}
-                    onSelect={(date) => date && set("expires_at", mergeCalendarDate(form.expires_at, date, "23:59"))}
-                    className="mx-auto"
-                  />
+                  <button type="button" onClick={() => setOpenCalendar(openCalendar === "expiration" ? null : "expiration")} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    <span>{formatDateLabel(form.expires_at, "Choose expiration date")}</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${openCalendar === "expiration" ? "rotate-180" : ""}`} />
+                  </button>
+                  {openCalendar === "expiration" && (
+                    <Calendar
+                      mode="single"
+                      selected={getCalendarDate(form.expires_at)}
+                      onSelect={(date) => date && set("expires_at", mergeCalendarDate(form.expires_at, date, "23:59"))}
+                      className="mx-auto"
+                    />
+                  )}
                   <div className="mt-2 flex items-center gap-2 border-t border-slate-100 pt-2">
                     <Label className="text-xs text-slate-500">End time</Label>
                     <Input type="time" value={getTimePart(form.expires_at, "23:59")} onChange={e => set("expires_at", mergeCalendarTime(form.expires_at, e.target.value, "23:59"))} className="h-8 w-32" />
