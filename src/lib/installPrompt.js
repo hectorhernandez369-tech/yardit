@@ -7,8 +7,16 @@ export const isStandaloneInstalled = () => {
   return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
 };
 
+export const hasInstallRecord = () => {
+  return localStorage.getItem("yardit_app_installed") === "true";
+};
+
+export const markAppInstalled = () => {
+  localStorage.setItem("yardit_app_installed", "true");
+};
+
 export const canUseBrowserInstallPrompt = () => {
-  return !isStandaloneInstalled() && !isIosDevice();
+  return !isStandaloneInstalled() && !hasInstallRecord() && !isIosDevice();
 };
 
 export const shouldShowInstallButton = () => {
