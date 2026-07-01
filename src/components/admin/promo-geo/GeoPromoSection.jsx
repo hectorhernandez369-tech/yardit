@@ -95,13 +95,15 @@ function DraggableMarker({ lat, lng, onDragEnd, icon }) {
       }
     },
   };
+  const markerProps = icon ? { icon } : {};
+
   return (
     <Marker
       position={[lat, lng]}
       draggable
       ref={markerRef}
-      icon={icon}
       eventHandlers={eventHandlers}
+      {...markerProps}
     />
   );
 }
