@@ -273,6 +273,21 @@ button:focus-visible {
     align-items: center;
   }
 
+  .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) .yardit-mobile-nav-logo {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3.25rem;
+  }
+
+  .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) .yardit-mobile-nav-logo img {
+    width: 2.4rem;
+    height: 2.4rem;
+    object-fit: contain;
+  }
+
   .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) .yardit-mobile-nav-bell {
     grid-column: 2;
     grid-row: 1;
@@ -285,12 +300,12 @@ button:focus-visible {
     width: 5.25rem;
   }
 
-  .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) > .yardit-mobile-nav-item:nth-child(1) {
+  .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) .yardit-mobile-nav-map {
     grid-column: 5;
     grid-row: 1;
   }
 
-  .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) > .yardit-mobile-nav-item:nth-child(4) {
+  .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) .yardit-mobile-nav-menu {
     grid-column: 6;
     grid-row: 1;
   }

@@ -32,7 +32,14 @@ export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccoun
 
   return (
     <nav className="yardit-mobile-bottom-nav" aria-label="Mobile navigation">
-      <button onClick={() => navigate(createPageUrl("Home"))} className={`yardit-mobile-nav-item ${isMapActive ? "is-active" : ""}`}>
+      <div className="yardit-mobile-nav-logo" aria-hidden="true">
+        <img
+          src="https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png"
+          alt=""
+        />
+      </div>
+
+      <button onClick={() => navigate(createPageUrl("Home"))} className={`yardit-mobile-nav-item yardit-mobile-nav-map ${isMapActive ? "is-active" : ""}`}>
         <Home className="w-5 h-5" />
         <span>Map</span>
       </button>
@@ -49,7 +56,7 @@ export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccoun
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="yardit-mobile-nav-item">
+          <button className="yardit-mobile-nav-item yardit-mobile-nav-menu">
             <MoreVertical className="w-5 h-5" />
             <span>Menu</span>
           </button>
