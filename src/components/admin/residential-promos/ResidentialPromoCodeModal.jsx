@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -57,6 +58,20 @@ const DEFAULT_FORM = {
 };
 
 const TIER_OPTIONS = ["featured", "premium", "marquee"];
+
+const pad = (value) => String(value).padStart(2, "0");
+const formatCalendarDate = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+const getDatePart = (value) => value?.slice?.(0, 10) || "";
+const getTimePart = (value, fallback) => value?.includes?.("T") ? value.slice(11, 16) : fallback;
+const getCalendarDate = (value) => {
+  const datePart = getDatePart(value);
+  if (!datePart) return undefined;
+  const [year, month, day] = datePart.split("-").map(Number);
+  if (!year || !month || !day) return undefined;
+  return new Date(year, month - 1, day);
+};
+const mergeCalendarDate = (currentValue, selectedDate, fallbackTime) => `${formatCalendarDate(selectedDate)}T${getTimePart(currentValue, fallbackTime)}`;
+const mergeCalendarTime = (currentValue, selectedTime, fallbackTime) => `${getDatePart(currentValue) || formatCalendarDate(new Date())}T${selectedTime || fallbackTime}`;
 
 export default function ResidentialPromoCodeModal({ open, onClose, existingPromo, adminUser, onSaved }) {
   const [form, setForm] = useState(DEFAULT_FORM);
@@ -287,11 +302,33 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
               <Field label="Per-User Limit">
                 <Input type="number" min="1" value={form.per_user_limit} onChange={e => set("per_user_limit", e.target.value)} placeholder="1" />
               </Field>
-              <Field label="Start Date / Time">
-                <Input type="datetime-local" value={form.starts_at} onChange={e => set("starts_at", e.target.value)} />
+              <Field label="Start Date" className="sm:col-span-2">
+                <div className="rounded-xl border border-slate-200 bg-white p-2">
+                  <Calendar
+                    mode="single"
+                    selected={getCalendarDate(form.starts_at)}
+                    onSelect={(date) => date && set("starts_at", mergeCalendarDate(form.starts_at, date, "00:00"))}
+                    className="mx-auto"
+                  />
+                  <div className="mt-2 flex items-center gap-2 border-t border-slate-100 pt-2">
+                    <Label className="text-xs text-slate-500">Start time</Label>
+                    <Input type="time" value={getTimePart(form.starts_at, "00:00")} onChange={e => set("starts_at", mergeCalendarTime(form.starts_at, e.target.value, "00:00"))} className="h-8 w-32" />
+                  </div>
+                </div>
               </Field>
-              <Field label="Expiration Date / Time">
-                <Input type="datetime-local" value={form.expires_at} onChange={e => set("expires_at", e.target.value)} />
+              <Field label="Expiration Date" className="sm:col-span-2">
+                <div className="rounded-xl border border-slate-200 bg-white p-2">
+                  <Calendar
+                    mode="single"
+                    selected={getCalendarDate(form.expires_at)}
+                    onSelect={(date) => date && set("expires_at", mergeCalendarDate(form.expires_at, date, "23:59"))}
+                    className="mx-auto"
+                  />
+                  <div className="mt-2 flex items-center gap-2 border-t border-slate-100 pt-2">
+                    <Label className="text-xs text-slate-500">End time</Label>
+                    <Input type="time" value={getTimePart(form.expires_at, "23:59")} onChange={e => set("expires_at", mergeCalendarTime(form.expires_at, e.target.value, "23:59"))} className="h-8 w-32" />
+                  </div>
+                </div>
               </Field>
             </div>
           </Section>
