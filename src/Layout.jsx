@@ -31,6 +31,7 @@ import MobileBottomNav from "@/components/navigation/MobileBottomNav";
 import AccountSetupModal from "./components/profile/AccountSetupModal";
 import VerifiedAddressRequiredModal from "./components/profile/VerifiedAddressRequiredModal";
 import FloatingLaunchChecklist from "./components/checklist/FloatingLaunchChecklist";
+import PushSubscribePrompt from "./components/notifications/PushSubscribePrompt";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
@@ -352,6 +353,7 @@ function LayoutContent({ children, user, setUser }) {
       />
 
       <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} mode={installDialogMode} />
+      <PushSubscribePrompt user={user} />
       {canViewLaunchChecklist && (
         <FloatingLaunchChecklist open={showLaunchChecklist} onClose={() => setShowLaunchChecklist(false)} />
       )}
