@@ -144,8 +144,8 @@ function LayoutContent({ children, user, setUser }) {
       <Toaster richColors position="top-center" />
       <header className="yardit-bottom-nav fixed bottom-0 left-0 right-0 z-[3000] border-t border-gray-200 bg-white/95 shadow-[0_-10px_28px_rgba(44,79,78,0.18)] backdrop-blur-xl sm:sticky sm:top-0 sm:bottom-auto sm:border-t-0 sm:border-b-2 sm:border-[#2C4F4E] sm:bg-[#5DADA5] sm:shadow-md sm:backdrop-blur-none sm:pb-0">
         <div className="max-w-7xl mx-auto px-3 pb-2 pt-2 sm:px-4 sm:py-2">
-          <div className="flex items-center justify-center sm:justify-between">
-            <div className="hidden sm:flex items-center gap-3">
+          <div className="yardit-nav-row flex items-center justify-center sm:justify-between">
+            <div className="yardit-nav-logo hidden sm:flex items-center gap-3">
               <Link
                 to={createPageUrl("Home")}
                 className="flex flex-col items-center justify-center group select-none touch-none"
@@ -163,7 +163,7 @@ function LayoutContent({ children, user, setUser }) {
               )}
             </div>
 
-            <nav className="grid w-full grid-cols-5 items-center gap-1 sm:flex sm:w-auto sm:grid-cols-none sm:justify-start sm:gap-2 sm:flex-wrap">
+            <nav className="yardit-nav-items grid w-full grid-cols-5 items-center gap-1 sm:flex sm:w-auto sm:grid-cols-none sm:justify-start sm:gap-2 sm:flex-wrap">
               {/* My Hunt link moved to My Listings */}
 
               {canViewLaunchChecklist && (
@@ -214,9 +214,9 @@ function LayoutContent({ children, user, setUser }) {
               
               <>
                 {user && (
-                  <div className="col-start-2 flex min-w-[3.75rem] flex-col items-center justify-center justify-self-center text-[10px] font-semibold text-[#2C4F4E] sm:col-auto sm:block sm:min-w-0 sm:text-white">
+                  <div className="yardit-nav-alerts col-start-2 flex min-w-[3.75rem] flex-col items-center justify-center justify-self-center text-[10px] font-semibold text-[#2C4F4E] sm:col-auto sm:block sm:min-w-0 sm:text-white">
                     <NotificationBell />
-                    <span className="-mt-1 block sm:hidden">Alerts</span>
+                    <span className="yardit-nav-alerts-label -mt-1 block sm:hidden">Alerts</span>
                   </div>
                 )}
 
@@ -226,7 +226,7 @@ function LayoutContent({ children, user, setUser }) {
                     <Button
                     size="sm"
                     onClick={handlePostSaleClick}
-                    className="col-start-3 h-14 min-w-[4rem] -translate-y-2 justify-self-center flex-col gap-0.5 rounded-2xl bg-[#F4A849] px-3 text-[10px] font-bold text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-[0_8px_20px_rgba(244,168,73,0.35)] sm:col-auto sm:h-8 sm:min-w-0 sm:translate-y-0 sm:flex-row sm:gap-2 sm:rounded-md sm:px-3 sm:text-xs sm:shadow-md"
+                    className="yardit-nav-post-button col-start-3 h-14 min-w-[4rem] -translate-y-2 justify-self-center flex-col gap-0.5 rounded-2xl bg-[#F4A849] px-3 text-[10px] font-bold text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-[0_8px_20px_rgba(244,168,73,0.35)] sm:col-auto sm:h-8 sm:min-w-0 sm:translate-y-0 sm:flex-row sm:gap-2 sm:rounded-md sm:px-3 sm:text-xs sm:shadow-md"
                   >
                     <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
                     <span>Post</span>
@@ -236,7 +236,7 @@ function LayoutContent({ children, user, setUser }) {
                     <DropdownMenuTrigger asChild className="col-start-5 justify-self-center sm:col-auto">
                       <Button variant="ghost" size="sm" className="h-12 min-w-[3.75rem] flex-col gap-0.5 rounded-2xl px-2 text-[10px] font-semibold text-[#2C4F4E] hover:bg-[#5DADA5]/10 sm:h-8 sm:min-w-0 sm:flex-row sm:gap-2 sm:rounded-md sm:px-3 sm:text-xs sm:text-white sm:hover:bg-white/10">
                         <MoreVertical className="w-5 h-5 sm:w-4 sm:h-4" />
-                        <span className="sm:hidden">Menu</span>
+                        <span className="yardit-nav-menu-label sm:hidden">Menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="z-[1200] w-48 rounded-xl shadow-xl border border-gray-200 bg-white/95 backdrop-blur-md p-1.5">

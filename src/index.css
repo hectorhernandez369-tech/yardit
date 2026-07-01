@@ -226,6 +226,80 @@ button:focus-visible {
   }
 }
 
+@media (max-width: 639px) and (orientation: landscape) {
+  .yardit-bottom-nav {
+    position: sticky !important;
+    top: 0 !important;
+    bottom: auto !important;
+    border-top: 0 !important;
+    border-bottom: 2px solid #2C4F4E !important;
+    background: #5DADA5 !important;
+    box-shadow: 0 4px 10px rgba(44, 79, 78, 0.18) !important;
+    backdrop-filter: none !important;
+    padding-bottom: 0 !important;
+  }
+
+  .yardit-main-with-bottom-nav {
+    padding-bottom: 0 !important;
+  }
+
+  .yardit-nav-row {
+    justify-content: space-between !important;
+  }
+
+  .yardit-nav-logo {
+    display: flex !important;
+  }
+
+  .yardit-nav-items {
+    display: flex !important;
+    width: auto !important;
+    grid-template-columns: none !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+
+  .yardit-nav-items > *,
+  .yardit-nav-alerts,
+  .yardit-nav-post-button {
+    grid-column: auto !important;
+    justify-self: auto !important;
+  }
+
+  .yardit-nav-items button {
+    height: 2rem !important;
+    min-width: 0 !important;
+    transform: none !important;
+    flex-direction: row !important;
+    gap: 0.5rem !important;
+    border-radius: 0.375rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .yardit-nav-items button svg {
+    width: 1rem !important;
+    height: 1rem !important;
+  }
+
+  .yardit-nav-items button:not(.yardit-nav-post-button),
+  .yardit-nav-alerts {
+    color: #ffffff !important;
+  }
+
+  .yardit-nav-alerts {
+    display: block !important;
+    min-width: 0 !important;
+  }
+
+  .yardit-nav-alerts-label,
+  .yardit-nav-menu-label {
+    display: none !important;
+  }
+}
+
 /* Compact map popups */
 .leaflet-popup-pane {
   z-index: 1200 !important;
