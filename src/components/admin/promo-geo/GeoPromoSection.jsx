@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Search, Loader2, X, Plus, Crosshair, Undo2, Maximize2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { MapPin, Search, Loader2, X, Plus, Crosshair, Undo2, Maximize2, Upload, Sparkles } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Circle, Polygon, Polyline, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import PolygonAreaModal from "./PolygonAreaModal";
@@ -44,7 +46,45 @@ function MapFlyTo({ lat, lng }) {
   return null;
 }
 
-function DraggableMarker({ lat, lng, onDragEnd }) {
+function pointInPolygon(lat, lng, points = []) {
+  if (points.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const xi = points[i].lng, yi = points[i].lat;
+    const xj = points[j].lng, yj = points[j].lat;
+    const intersects = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / ((yj - yi) || 0.0000001) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+const promoIconCache = {};
+function getPromoDoorIcon(url, size = 72, glow = true) {
+  const safeSize = Math.max(32, Math.min(160, Number(size || 72)));
+  const logoUrl = url || "https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
+  const key = `${logoUrl}_${safeSize}_${glow}`;
+  if (!promoIconCache[key]) {
+    const shadow = glow ? "box-shadow:0 0 0 8px rgba(244,168,73,.18),0 0 22px rgba(244,168,73,.65),0 5px 16px rgba(0,0,0,.25);" : "box-shadow:0 5px 16px rgba(0,0,0,.22);";
+    promoIconCache[key] = L.divIcon({
+      className: "admin-promo-door-preview",
+      html: `<div style="width:${safeSize}px;height:${safeSize}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:#fff;border:2px solid #F4A849;${shadow}"><img src="${logoUrl}" alt="Promo Door" style="width:${Math.round(safeSize * .82)}px;height:${Math.round(safeSize * .82)}px;object-fit:contain;" /></div>`,
+      iconSize: [safeSize, safeSize],
+      iconAnchor: [safeSize / 2, safeSize / 2]
+    });
+  }
+  return promoIconCache[key];
+}
+
+function formatPreviewRange(form) {
+  if (!form.starts_at || !form.expires_at) return "From Date – To Date";
+  const start = new Date(form.starts_at);
+  const end = new Date(form.expires_at);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "From Date – To Date";
+  const startMonth = start.toLocaleString(undefined, { month: "long" });
+  return start.getMonth() === end.getMonth() ? `${startMonth} ${start.getDate()}–${end.getDate()}` : `${startMonth} ${start.getDate()}–${end.toLocaleString(undefined, { month: "short" })} ${end.getDate()}`;
+}
+
+function DraggableMarker({ lat, lng, onDragEnd, icon }) {
   const markerRef = useRef(null);
   const eventHandlers = {
     dragend() {
@@ -60,6 +100,7 @@ function DraggableMarker({ lat, lng, onDragEnd }) {
       position={[lat, lng]}
       draggable
       ref={markerRef}
+      icon={icon}
       eventHandlers={eventHandlers}
     />
   );
@@ -74,6 +115,8 @@ export default function GeoPromoSection({ form, onChange }) {
   const [customRadius, setCustomRadius] = useState("");
   const [flyTarget, setFlyTarget] = useState(null);
   const [showPolygonModal, setShowPolygonModal] = useState(false);
+  const [placingPromoDoor, setPlacingPromoDoor] = useState(false);
+  const [uploadingPromoLogo, setUploadingPromoLogo] = useState(false);
 
   const geoEnabled = !!form.geographic_limit_enabled;
   const geoType = form.geographic_limit_type || "none";
@@ -81,6 +124,13 @@ export default function GeoPromoSection({ form, onChange }) {
   const radiusMiles = form.geo_radius_miles || 5;
   const polygonPoints = Array.isArray(form.geo_polygon_coordinates) ? form.geo_polygon_coordinates : [];
   const hasPolygonPoints = polygonPoints.length > 0;
+  const promoDoorEnabled = !!form.promo_door_enabled;
+  const promoDoorIcon = getPromoDoorIcon(form.promo_icon_logo_url, form.promo_icon_size_px, form.promo_icon_glow_enabled !== false);
+  const promoDoorPosition = promoDoorEnabled && geoType === "radius" && hasCenterPin
+    ? { lat: form.geo_center_lat, lng: form.geo_center_lng }
+    : promoDoorEnabled && geoType === "polygon" && form.promo_door_lat && form.promo_door_lng
+      ? { lat: form.promo_door_lat, lng: form.promo_door_lng }
+      : null;
   const mapCenter = hasPolygonPoints
     ? [polygonPoints[0].lat, polygonPoints[0].lng]
     : [hasCenterPin ? form.geo_center_lat : 36.2, hasCenterPin ? form.geo_center_lng : -119.0];
@@ -137,6 +187,15 @@ export default function GeoPromoSection({ form, onChange }) {
   };
 
   const handleMapClick = (lat, lng) => {
+    if (geoType === "polygon" && promoDoorEnabled && placingPromoDoor) {
+      if (pointInPolygon(lat, lng, polygonPoints)) {
+        onChange("promo_door_lat", lat);
+        onChange("promo_door_lng", lng);
+        setPlacingPromoDoor(false);
+      }
+      return;
+    }
+
     if (geoType === "polygon") {
       onChange("geo_polygon_coordinates", [...polygonPoints, { lat, lng }]);
       if (!form.geo_display_label) onChange("geo_display_label", "Custom map area");
@@ -169,6 +228,22 @@ export default function GeoPromoSection({ form, onChange }) {
   const handleDragEnd = (lat, lng) => {
     onChange("geo_center_lat", lat);
     onChange("geo_center_lng", lng);
+  };
+
+  const handlePromoDoorDragEnd = (lat, lng) => {
+    if (geoType === "polygon" && pointInPolygon(lat, lng, polygonPoints)) {
+      onChange("promo_door_lat", lat);
+      onChange("promo_door_lng", lng);
+    }
+  };
+
+  const handlePromoLogoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingPromoLogo(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    onChange("promo_icon_logo_url", file_url);
+    setUploadingPromoLogo(false);
   };
 
   const setRadius = (miles) => {
@@ -231,6 +306,67 @@ export default function GeoPromoSection({ form, onChange }) {
               </button>
             ))}
           </div>
+
+          {["radius", "polygon"].includes(geoType) && (
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="mt-0.5 h-4 w-4 text-amber-600" />
+                  <div>
+                    <p className="text-sm font-bold text-[#2C4F4E]">Promo Area Discovery</p>
+                    <p className="text-[11px] text-slate-600">Show a branded Promo Door on the public map for this area.</p>
+                  </div>
+                </div>
+                <Checkbox checked={promoDoorEnabled} onCheckedChange={(value) => onChange("promo_door_enabled", value === true)} />
+              </div>
+
+              {promoDoorEnabled && (
+                <div className="space-y-3 border-t border-amber-200 pt-3">
+                  {geoType === "radius" && <p className="text-xs text-slate-600">Radius mode places the Promo Door automatically at the center of the selected radius.</p>}
+                  {geoType === "polygon" && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button type="button" onClick={() => setPlacingPromoDoor(true)} className="rounded-lg bg-[#2C4F4E] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#203c3b]">
+                        Place Promo Door
+                      </button>
+                      <span className="text-xs text-slate-500">{placingPromoDoor ? "Click inside the custom area." : promoDoorPosition ? "Door placed. Drag it to refine." : "Place the door inside the polygon."}</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-slate-600 font-medium">Upload Logo</Label>
+                      <label className="flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                        {uploadingPromoLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                        PNG, SVG, transparent PNG
+                        <input type="file" accept=".png,.svg,image/png,image/svg+xml" className="hidden" onChange={handlePromoLogoUpload} />
+                      </label>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-slate-600 font-medium">Icon Size: {form.promo_icon_size_px || 72}px</Label>
+                      <input type="range" min="32" max="160" value={form.promo_icon_size_px || 72} onChange={(e) => onChange("promo_icon_size_px", Number(e.target.value))} className="w-full accent-[#F4A849]" />
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                    <Checkbox checked={form.promo_icon_glow_enabled !== false} onCheckedChange={(value) => onChange("promo_icon_glow_enabled", value === true)} />
+                    Optional glow
+                  </label>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    {["Desktop Preview", "Mobile Preview", "Live Preview"].map((label, index) => (
+                      <div key={label} className={`rounded-xl border border-slate-200 bg-white p-3 text-center ${index === 1 ? "sm:max-w-[120px]" : ""}`}>
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
+                        <div className="mx-auto flex items-center justify-center rounded-2xl border-2 border-amber-300 bg-white" style={{ width: Math.min(96, Number(form.promo_icon_size_px || 72)), height: Math.min(96, Number(form.promo_icon_size_px || 72)), boxShadow: form.promo_icon_glow_enabled !== false ? "0 0 18px rgba(244,168,73,.45)" : "none" }}>
+                          <img src={form.promo_icon_logo_url || "https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png"} alt="Promo preview" className="h-4/5 w-4/5 object-contain" />
+                        </div>
+                        <p className="mt-2 text-[11px] font-bold text-[#2C4F4E]">{formatPreviewRange(form)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* City / ZIP targeting */}
           {geoType === "city_zip" && (
@@ -370,6 +506,9 @@ export default function GeoPromoSection({ form, onChange }) {
                         lng={form.geo_center_lng}
                         onDragEnd={handleDragEnd}
                       />
+                      {promoDoorEnabled && (
+                        <Marker position={[form.geo_center_lat, form.geo_center_lng]} icon={promoDoorIcon} />
+                      )}
                       <Circle
                         center={[form.geo_center_lat, form.geo_center_lng]}
                         radius={radiusMiles * 1609.34}
@@ -479,6 +618,14 @@ export default function GeoPromoSection({ form, onChange }) {
                   {polygonPoints.map((point, index) => (
                     <Marker key={`${point.lat}-${point.lng}-${index}`} position={[point.lat, point.lng]} />
                   ))}
+                  {promoDoorPosition && (
+                    <DraggableMarker
+                      lat={promoDoorPosition.lat}
+                      lng={promoDoorPosition.lng}
+                      onDragEnd={handlePromoDoorDragEnd}
+                      icon={promoDoorIcon}
+                    />
+                  )}
                 </MapContainer>
               </div>
 

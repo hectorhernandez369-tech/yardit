@@ -45,6 +45,13 @@ const DEFAULT_FORM = {
   geo_radius_miles: 5,
   geo_polygon_coordinates: [],
   geo_display_label: "",
+  promo_door_enabled: false,
+  promo_door_lat: null,
+  promo_door_lng: null,
+  promo_icon_logo_url: "",
+  promo_icon_size_px: 72,
+  promo_icon_glow_enabled: true,
+  promo_discovery_config: {},
 };
 
 const TIER_OPTIONS = ["featured", "premium", "marquee"];
@@ -101,6 +108,15 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
     if (form.geographic_limit_enabled && form.geographic_limit_type === "polygon" && (form.geo_polygon_coordinates || []).length < 3) {
       toast.error("Draw at least 3 map points for the promo area."); return;
     }
+    if (form.promo_door_enabled && (!form.starts_at || !form.expires_at)) {
+      toast.error("Start Date and End Date are required for Promo Area Discovery."); return;
+    }
+    if (form.promo_door_enabled && !["radius", "polygon"].includes(form.geographic_limit_type)) {
+      toast.error("Choose Radius or Custom drawn area before showing a Promo Door."); return;
+    }
+    if (form.promo_door_enabled && form.geographic_limit_type === "polygon" && (!form.promo_door_lat || !form.promo_door_lng)) {
+      toast.error("Place the Promo Door inside the custom map area."); return;
+    }
 
     setSaving(true);
     try {
@@ -116,9 +132,20 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
         geo_display_label: form.geo_display_label?.trim() || null,
       };
 
+      const discoveryPayload = {
+        promo_door_enabled: form.promo_door_enabled === true,
+        promo_door_lat: form.promo_door_enabled && form.geographic_limit_type === "polygon" ? (form.promo_door_lat || null) : null,
+        promo_door_lng: form.promo_door_enabled && form.geographic_limit_type === "polygon" ? (form.promo_door_lng || null) : null,
+        promo_icon_logo_url: form.promo_icon_logo_url || "",
+        promo_icon_size_px: Math.max(32, Math.min(160, Number(form.promo_icon_size_px || 72))),
+        promo_icon_glow_enabled: form.promo_icon_glow_enabled !== false,
+        promo_discovery_config: form.promo_discovery_config || {},
+      };
+
       const payload = {
         ...form,
         ...geoPayload,
+        ...discoveryPayload,
         code: form.code.trim().toUpperCase(),
         title: form.title.trim(),
         default_discount_percent: Number(form.default_discount_percent),

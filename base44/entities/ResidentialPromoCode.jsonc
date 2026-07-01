@@ -181,6 +181,37 @@
       "type": "string",
       "description": "Human-readable location label for the coverage area"
     },
+    "promo_door_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this promo appears as a branded discovery icon on the public map"
+    },
+    "promo_door_lat": {
+      "type": "number",
+      "description": "Custom promo door latitude for polygon promo discovery"
+    },
+    "promo_door_lng": {
+      "type": "number",
+      "description": "Custom promo door longitude for polygon promo discovery"
+    },
+    "promo_icon_logo_url": {
+      "type": "string",
+      "description": "Uploaded transparent PNG, PNG, or SVG promo discovery logo"
+    },
+    "promo_icon_size_px": {
+      "type": "number",
+      "default": 72,
+      "description": "Public map promo icon size in pixels"
+    },
+    "promo_icon_glow_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the public promo icon uses a glow treatment"
+    },
+    "promo_discovery_config": {
+      "type": "object",
+      "description": "Future-ready promo discovery presentation options such as animation, sponsor artwork, seasonal branding, or treasure hunt metadata"
+    },
     "notes": {
       "type": "string"
     },

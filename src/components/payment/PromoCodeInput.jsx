@@ -1,17 +1,19 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tag, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { validateResidentialPromoCode } from "@/lib/residentialPromoValidation";
 
-export default function PromoCodeInput({ user, listing, selectedTier, listingPrice, onPromoApplied }) {
-  const [code, setCode] = useState("");
+export default function PromoCodeInput({ user, listing, selectedTier, listingPrice, onPromoApplied, initialCode = "" }) {
+  const [code, setCode] = useState(initialCode || "");
   const [status, setStatus] = useState(null); // null | "loading" | "valid" | "invalid"
   const [message, setMessage] = useState("");
   const [result, setResult] = useState(null);
+  const autoAppliedRef = useRef(false);
 
-  const handleApply = async () => {
-    if (!code.trim()) return;
+  const handleApply = async (displayAppliedMessage = false, overrideCode = "") => {
+    const activeCode = overrideCode || code;
+    if (!activeCode.trim()) return;
     setStatus("loading");
     setResult(null);
 
@@ -24,7 +26,7 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
     };
 
     const res = await validateResidentialPromoCode({
-      code,
+      code: activeCode,
       user,
       listingLocation,
       selectedTier,
@@ -37,7 +39,7 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
 
     if (res.valid) {
       setStatus("valid");
-      setMessage(res.reason);
+      setMessage(displayAppliedMessage ? "Promo applied." : res.reason);
       setResult(res);
       onPromoApplied?.(res);
     } else {
@@ -47,6 +49,14 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
       onPromoApplied?.(null);
     }
   };
+
+  useEffect(() => {
+    if (!initialCode || autoAppliedRef.current || status === "valid") return;
+    const normalizedInitialCode = initialCode.toUpperCase();
+    setCode(normalizedInitialCode);
+    autoAppliedRef.current = true;
+    window.setTimeout(() => handleApply(true, normalizedInitialCode), 0);
+  }, [initialCode, selectedTier, listingPrice]);
 
   const handleClear = () => {
     setCode("");
@@ -78,7 +88,7 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
           </Button>
         ) : (
           <Button
-            onClick={handleApply}
+            onClick={() => handleApply()}
             disabled={!code.trim() || status === "loading"}
             className="shrink-0 bg-[#5DADA5] hover:bg-[#4A9B93] text-white border-2 border-[#2C4F4E]"
           >

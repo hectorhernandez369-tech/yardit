@@ -56,6 +56,7 @@ import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map
 import QuickMapFilters from "@/components/map/QuickMapFilters";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
+import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
@@ -754,6 +755,12 @@ export default function HomePage() {
   const { data: vendorEvents = [] } = useQuery({
     queryKey: ["publicVendorEvents"],
     queryFn: () => base44.entities.VendorEvent.list("startDateTime"),
+    initialData: []
+  });
+
+  const { data: promoDiscoveryCodes = [] } = useQuery({
+    queryKey: ["promoDiscoveryCodes"],
+    queryFn: () => base44.entities.ResidentialPromoCode.filter({ promo_door_enabled: true, status: "active" }),
     initialData: []
   });
 
@@ -1613,6 +1620,8 @@ export default function HomePage() {
                   </Marker>);
 
             })}
+
+              <PromoDiscoveryMarkers promos={promoDiscoveryCodes} />
 
               {/* Vendor Event Stacked Markers (Coming Soon + Active, with stacking) */}
               <VendorEventMapMarkers

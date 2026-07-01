@@ -65,6 +65,7 @@ export default function ResidentialPaymentStep({
               selectedTier={tier}
               listingPrice={amount}
               onPromoApplied={handlePromoApplied}
+              initialCode={listing?.discovery_promo_code || ""}
             />
           ) : null}
         />

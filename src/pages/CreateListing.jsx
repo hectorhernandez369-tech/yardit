@@ -268,13 +268,31 @@ export default function CreateListingPage() {
 
     // optional flags
     locationMethod: "address",
-    organizer_participation: "participating"
+    organizer_participation: "participating",
+    discovery_promo_code: ""
   });
 
   useEffect(() => {
     const requestedStep = getRequestedStep(location.search);
     if (requestedStep) {
       setStep(requestedStep);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const promoCode = params.get("promo");
+    if (!promoCode) return;
+    const requestedTier = params.get("tier");
+    const preferredTier = requestedTier === "premium" ? "premium" : "featured";
+    setFormData((prev) => ({
+      ...prev,
+      listingType: "yard_sale",
+      tier: preferredTier,
+      discovery_promo_code: promoCode.toUpperCase(),
+    }));
+    if (params.get("promoSource") === "map") {
+      toast.success("Promo applied.");
     }
   }, [location.search]);
 
