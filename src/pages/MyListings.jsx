@@ -16,6 +16,7 @@ import { getListingDisplayStatus } from "@/components/listing/listingDisplay";
 import { normalizeNeighborhoodJoinStatus, deriveNeighborhoodEventState, isWithinParticipationWindow } from "@/lib/neighborhoodSaleState";
 import { isPubliclyVisibleListing } from "@/lib/listingVisibility";
 import ListingUpgradeDialog from "@/components/listing/ListingUpgradeDialog";
+import EventAddOnDialog from "@/components/listing/EventAddOnDialog";
 import MyListingCard from "@/components/listing/MyListingCard";
 import ListingDraftCard from "@/components/listing/ListingDraftCard";
 import ResidentialBillingList from "@/components/billing/ResidentialBillingList";
@@ -69,6 +70,7 @@ export default function MyListingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [upgradeListing, setUpgradeListing] = useState(null);
+  const [eventAddOnListing, setEventAddOnListing] = useState(null);
   const [coHostSearchQuery, setCoHostSearchQuery] = useState("");
   const [selectedCoHostUserId, setSelectedCoHostUserId] = useState("");
   const [isSendingCoHostInvite, setIsSendingCoHostInvite] = useState(false);
@@ -853,6 +855,7 @@ export default function MyListingsPage() {
                 onEdit={openEditDescription}
                 onRelist={relist}
                 onUpgrade={setUpgradeListing}
+                onAddOns={setEventAddOnListing}
                 onCancel={cancelListing}
                 onDelete={deleteListing}
                 onShowGuide={() => setShowGuideModal(true)}
@@ -922,6 +925,13 @@ export default function MyListingsPage() {
             toast.error("Failed to save cropped image");
           }
         }}
+        user={user}
+      />
+
+      <EventAddOnDialog
+        open={!!eventAddOnListing}
+        onClose={() => setEventAddOnListing(null)}
+        listing={eventAddOnListing}
         user={user}
       />
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Map, Trash2, ExternalLink } from "lucide-react";
+import { Map, Trash2, ExternalLink, Sparkles } from "lucide-react";
 import { canSelfServeUpgrade } from "@/lib/listingUpgradeConfig";
 import { getListingOwnerId } from "@/lib/listingVisibility";
 
@@ -17,6 +17,7 @@ export default function MyListingActions({
   onEdit,
   onRelist,
   onUpgrade,
+  onAddOns,
   onCancel,
   onDelete,
   onNeedHelp,
@@ -24,6 +25,7 @@ export default function MyListingActions({
 }) {
   const isOwner = getListingOwnerId(listing) === user?.id;
   const canEditListing = isOwner || listing?._residential_access_role === "household_cohost";
+  const canBuyEventAddOns = isOwner && listing?.listingType === "event" && !isEffectivelyPastListing(listing);
 
   return (
     <div className={`flex flex-wrap gap-2 sm:flex-col sm:items-end ${className}`}>
@@ -52,6 +54,13 @@ export default function MyListingActions({
       {isOwner && canSelfServeUpgrade(listing) && listing.listingType !== "neighborhood_sale" && (
         <Button size="sm" onClick={() => onUpgrade(listing)} className="bg-amber-500 hover:bg-amber-600 text-white text-xs rounded-xl shadow-sm">
           Upgrade
+        </Button>
+      )}
+
+      {canBuyEventAddOns && (
+        <Button size="sm" onClick={() => onAddOns(listing)} className="gap-1.5 bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border border-[#2C4F4E] text-xs rounded-xl shadow-sm font-bold">
+          <Sparkles className="w-3 h-3" />
+          Add-ons
         </Button>
       )}
 

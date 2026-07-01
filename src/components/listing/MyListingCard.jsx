@@ -59,6 +59,7 @@ export default function MyListingCard({
   onEdit,
   onRelist,
   onUpgrade,
+  onAddOns,
   onCancel,
   onDelete,
   onShowGuide,
@@ -151,6 +152,7 @@ export default function MyListingCard({
             onEdit={onEdit}
             onRelist={onRelist}
             onUpgrade={onUpgrade}
+            onAddOns={onAddOns}
             onCancel={onCancel}
             onDelete={onDelete}
             onNeedHelp={() => navigate(createPageUrl("ContactSupport"))}
@@ -213,6 +215,7 @@ export default function MyListingCard({
           onEdit={onEdit}
           onRelist={onRelist}
           onUpgrade={onUpgrade}
+          onAddOns={onAddOns}
           onCancel={onCancel}
           onDelete={onDelete}
           onNeedHelp={() => navigate(createPageUrl("ContactSupport"))}

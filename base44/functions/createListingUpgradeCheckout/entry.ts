@@ -11,6 +11,16 @@ const RESERVED_STATUSES = new Set(['active', 'under_review', 'pending_payment', 
 const nowIso = () => new Date().toISOString();
 const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
 
+function parseObjectJson(value) {
+  if (!value || typeof value !== 'string') return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
 function residentialUpgradeAmount(currentTier, targetTier) {
   return Math.max(0, (RESIDENTIAL_PRICES[targetTier] || 0) - (RESIDENTIAL_PRICES[currentTier] || 0));
 }
@@ -121,7 +131,11 @@ Deno.serve(async (req) => {
           processed_at: nowIso(),
         })));
 
-        const updateData = listingKind === 'event'
+        const isEventAddOnPurchase = session.metadata?.event_add_on_purchase === 'true';
+        const pendingPatch = isEventAddOnPurchase ? parseObjectJson(listing.pending_event_add_on_patch) : null;
+        const updateData = isEventAddOnPurchase
+          ? { ...(pendingPatch || {}), status: session.metadata?.previous_status || listing.status || 'active', pending_event_add_on_patch: '', pending_event_add_on_keys: [] }
+          : listingKind === 'event'
           ? { tier: targetTier, event_tier: targetTier, status: session.metadata?.previous_status || 'active' }
           : { tier: targetTier, status: session.metadata?.previous_status || 'active' };
         await base44.asServiceRole.entities.Listing.update(listingId, {
@@ -131,7 +145,7 @@ Deno.serve(async (req) => {
           pending_upgrade_checkout_session_id: '',
           stripe_checkout_session_id: session.id,
           stripe_payment_intent_id: paymentIntentId,
-          pricePaid: Number(session.amount_total || 0) / 100,
+          pricePaid: isEventAddOnPurchase ? (pendingPatch ? Number(listing.pricePaid || 0) + (Number(session.amount_total || 0) / 100) : Number(listing.pricePaid || 0)) : Number(session.amount_total || 0) / 100,
         });
       }
 
@@ -153,6 +167,7 @@ Deno.serve(async (req) => {
     const customerEmail = body?.customer_email || user.email;
     const customerId = body?.customer_id || undefined;
     const listingKind = body?.listing_kind || 'residential';
+    const isEventAddOnPurchase = body?.event_add_on_purchase === true;
 
     if (!listingId || !targetTier || !returnUrl) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
@@ -164,9 +179,13 @@ Deno.serve(async (req) => {
     if (listing.ownerUserId !== user.id) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     if (listing.is_demo_listing === true) {
-      await base44.asServiceRole.entities.Listing.update(listingId, listing.listingType === 'event'
-        ? { tier: targetTier, event_tier: targetTier }
-        : { tier: targetTier });
+      if (isEventAddOnPurchase) {
+        await base44.asServiceRole.entities.Listing.update(listingId, body?.add_on_patch || {});
+      } else {
+        await base44.asServiceRole.entities.Listing.update(listingId, listing.listingType === 'event'
+          ? { tier: targetTier, event_tier: targetTier }
+          : { tier: targetTier });
+      }
       return Response.json({ ok: true, demo: true, checkoutUrl: null, sessionId: `demo_${Date.now()}` });
     }
 
@@ -193,6 +212,8 @@ Deno.serve(async (req) => {
       base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
       purpose: 'listing_upgrade',
       transaction_type: 'listing_upgrade',
+      event_add_on_purchase: isEventAddOnPurchase ? 'true' : 'false',
+      add_on_keys: Array.isArray(body?.add_on_keys) ? body.add_on_keys.join(',') : '',
       listing_id: listingId,
       current_tier: currentTier,
       target_tier: targetTier,
@@ -215,7 +236,7 @@ Deno.serve(async (req) => {
       line_items: [{
         price_data: {
           currency: 'usd',
-          product_data: { name: `${listingKind === 'event' ? 'Event' : 'Listing'} Upgrade to ${targetTier}` },
+          product_data: { name: isEventAddOnPurchase ? 'Event Add-ons' : `${listingKind === 'event' ? 'Event' : 'Listing'} Upgrade to ${targetTier}` },
           unit_amount: amountCents,
         },
         quantity: 1,
@@ -224,12 +245,20 @@ Deno.serve(async (req) => {
       payment_intent_data: { metadata },
     });
 
-    await base44.asServiceRole.entities.Listing.update(listingId, {
-      status: 'payment_pending_adjustment',
-      pending_upgrade_tier: targetTier,
-      pending_upgrade_checkout_session_id: session.id,
-      payment_intent_status: 'hold_requested',
-    });
+    const pendingUpdate = isEventAddOnPurchase
+      ? {
+        pending_event_add_on_patch: JSON.stringify(body?.add_on_patch || {}),
+        pending_event_add_on_keys: Array.isArray(body?.add_on_keys) ? body.add_on_keys : [],
+        pending_upgrade_checkout_session_id: session.id,
+        payment_intent_status: 'hold_requested',
+      }
+      : {
+        status: 'payment_pending_adjustment',
+        pending_upgrade_tier: targetTier,
+        pending_upgrade_checkout_session_id: session.id,
+        payment_intent_status: 'hold_requested',
+      };
+    await base44.asServiceRole.entities.Listing.update(listingId, pendingUpdate);
 
     await base44.asServiceRole.entities.PaymentTransaction.create({
       stripe_event_id: `checkout_created_${session.id}`,

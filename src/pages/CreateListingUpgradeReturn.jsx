@@ -34,7 +34,7 @@ export default function CreateListingUpgradeReturn() {
       const stored = JSON.parse(raw);
 
       if (paymentState === "cancel") {
-        setMessage("Payment was canceled. Your listing has not been upgraded or activated as a paid listing.");
+        setMessage(stored.purchaseType === "event_add_on" ? "Payment was canceled. Your event add-ons were not applied." : "Payment was canceled. Your listing has not been upgraded or activated as a paid listing.");
         setIsLoading(false);
         return;
       }
@@ -56,7 +56,7 @@ export default function CreateListingUpgradeReturn() {
         }
 
         localStorage.removeItem(UPGRADE_CHECKOUT_KEY);
-        toast.success("Upgrade confirmed.");
+        toast.success(stored.purchaseType === "event_add_on" ? "Event add-ons confirmed." : "Upgrade confirmed.");
         navigate(createPageUrl("MyListings"));
       } catch (error) {
         setMessage(error?.response?.data?.error || error?.message || "Upgrade failed.");

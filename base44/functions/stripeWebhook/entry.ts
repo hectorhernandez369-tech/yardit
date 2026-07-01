@@ -180,17 +180,37 @@ async function updateListing(base44, metadata, object, transactionType) {
 
   const tier = metadata.target_tier || metadata.tier;
   const listingKind = metadata.listing_kind || metadata.kind;
+  const isEventAddOnPurchase = metadata.event_add_on_purchase === 'true' || metadata.event_add_on_purchase === true;
+  const listings = isEventAddOnPurchase ? await base44.asServiceRole.entities.Listing.filter({ id: metadata.listing_id }) : [];
+  const listing = listings?.[0] || null;
+  const pendingPatch = (() => {
+    if (!isEventAddOnPurchase || !listing?.pending_event_add_on_patch) return null;
+    try {
+      const parsed = JSON.parse(listing.pending_event_add_on_patch);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+    } catch (_error) {
+      return null;
+    }
+  })();
   const patch = {
     payment_intent_status: 'captured',
-    pricePaid: centsToDollars(getAmountCents(object)),
+    pricePaid: isEventAddOnPurchase ? (pendingPatch ? Number(listing?.pricePaid || 0) + centsToDollars(getAmountCents(object)) : Number(listing?.pricePaid || 0)) : centsToDollars(getAmountCents(object)),
     stripe_checkout_session_id: object.object === 'checkout.session' ? object.id : '',
     stripe_payment_intent_id: getPaymentIntentId(object),
   };
 
-  if (tier) patch.tier = tier;
-  if (listingKind === 'event' && tier) patch.event_tier = tier;
-  if (transactionType === 'listing_payment') patch.status = metadata.final_status || (listingKind === 'residential' ? 'scheduled' : 'active');
-  if (transactionType === 'listing_upgrade') patch.status = metadata.previous_status || 'active';
+  if (isEventAddOnPurchase) {
+    if (pendingPatch) Object.assign(patch, pendingPatch);
+    patch.pending_event_add_on_patch = '';
+    patch.pending_event_add_on_keys = [];
+    patch.pending_upgrade_checkout_session_id = '';
+    patch.status = metadata.previous_status || listing?.status || 'active';
+  } else {
+    if (tier) patch.tier = tier;
+    if (listingKind === 'event' && tier) patch.event_tier = tier;
+    if (transactionType === 'listing_payment') patch.status = metadata.final_status || (listingKind === 'residential' ? 'scheduled' : 'active');
+    if (transactionType === 'listing_upgrade') patch.status = metadata.previous_status || 'active';
+  }
 
   await base44.asServiceRole.entities.Listing.update(metadata.listing_id, patch);
 }
