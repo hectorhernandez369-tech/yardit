@@ -34,6 +34,9 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
       listingLat: listing?.lat,
       listingLng: listing?.lng,
       selectedRangeStartDate: listing?.selectedRangeStartDate,
+      selectedRangeEndDate: listing?.selectedRangeEndDate,
+      openTime: listing?.openTime,
+      closeTime: listing?.closeTime,
       startDateTime: listing?.startDateTime,
     });
 

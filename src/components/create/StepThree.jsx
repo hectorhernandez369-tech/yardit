@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { hasDateConflict } from "@/lib/residentialDateConflict";
 import { computeFreeWindow, getPhotoLimitByTier } from "@/components/shared/listingTierEngine";
 import NeighborhoodSaleNoticeCard from "./NeighborhoodSaleNoticeCard";
@@ -42,6 +43,31 @@ function formatDisplayRange(startDate, endDate, suffix = "") {
   return `${formatDisplayDate(startDate)} to ${formatDisplayDate(endDate)}${suffix}`;
 }
 
+function formatPromoWindow(startIso, endIso) {
+  if (!startIso || !endIso) return "";
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "";
+  return `${start.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} to ${end.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
+}
+
+function buildLocalDateTime(dateStr, timeStr, fallbackTime) {
+  if (!dateStr) return null;
+  const date = new Date(`${dateStr}T${timeStr || fallbackTime}`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isOutsidePromoWindow(data) {
+  if (!data?.discovery_promo_code || !data?.discovery_promo_starts_at || !data?.discovery_promo_expires_at) return false;
+  if (!data.selectedRangeStartDate || !data.selectedRangeEndDate) return false;
+  const promoStart = new Date(data.discovery_promo_starts_at);
+  const promoEnd = new Date(data.discovery_promo_expires_at);
+  const listingStart = buildLocalDateTime(data.selectedRangeStartDate, data.openTime, "05:00");
+  const listingEnd = buildLocalDateTime(data.selectedRangeEndDate, data.closeTime, "22:00");
+  if ([promoStart, promoEnd, listingStart, listingEnd].some((date) => !date || Number.isNaN(date.getTime()))) return false;
+  return listingStart < promoStart || listingEnd > promoEnd;
+}
+
 export default function StepThree({
   formData,
   setFormData,
@@ -52,11 +78,38 @@ export default function StepThree({
   const tier = formData?.tier || "free";
   const [nearbyNeighborhoodSales, setNearbyNeighborhoodSales] = useState([]);
   const [areNeighborhoodSalesCollapsed, setAreNeighborhoodSalesCollapsed] = useState(false);
+  const [pendingPromoChange, setPendingPromoChange] = useState(null);
 
   const markResidentialConflictInteraction = () => {
     if (formData?.listingType === "yard_sale") {
       onResidentialConflictInteraction?.();
     }
+  };
+
+  const applyPromoAwareFormData = (nextData) => {
+    if (isOutsidePromoWindow(nextData)) {
+      setPendingPromoChange(nextData);
+      return;
+    }
+    setFormData(nextData);
+  };
+
+  const confirmPromoDateChange = () => {
+    if (!pendingPromoChange) return;
+    setFormData({
+      ...pendingPromoChange,
+      discovery_promo_code: "",
+      discovery_promo_title: "",
+      discovery_promo_starts_at: "",
+      discovery_promo_expires_at: "",
+    });
+    setPendingPromoChange(null);
+    toast.warning("Promo removed because the selected schedule is outside the promo window.");
+  };
+
+  const updatePromoAwareField = (field, value) => {
+    markResidentialConflictInteraction();
+    applyPromoAwareFormData({ ...formData, [field]: value });
   };
 
   const freeTierDateRange = useMemo(() => {
@@ -352,6 +405,11 @@ export default function StepThree({
                   These dates are already reserved for this address. Please choose different dates or edit your existing listing.
                 </div>
               )}
+              {formData.discovery_promo_code && formData.discovery_promo_starts_at && formData.discovery_promo_expires_at && (
+                <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 font-medium">
+                  Promo {formData.discovery_promo_code} is available only for {formatPromoWindow(formData.discovery_promo_starts_at, formData.discovery_promo_expires_at)}. Choosing dates or times outside this window removes the promo.
+                </div>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -391,7 +449,7 @@ export default function StepThree({
                            }
                         }
                       }
-                      setFormData(nextState);
+                      applyPromoAwareFormData(nextState);
                     }}
                     className={`bg-[#F3E6CF] border-[#2C4F4E]`}
                     required
@@ -417,7 +475,7 @@ export default function StepThree({
                           const dEnd = new Date(`${newEnd}T00:00:00`);
                           const diff = Math.round((dEnd - dStart) / (1000 * 60 * 60 * 24));
                           if (diff >= 0 && diff <= 2) {
-                             setFormData(prev => ({ ...prev, selectedRangeEndDate: newEnd }));
+                             applyPromoAwareFormData({ ...formData, selectedRangeEndDate: newEnd });
                           } else {
                              toast.error("Featured can run up to 3 consecutive days.");
                           }
@@ -427,7 +485,7 @@ export default function StepThree({
                           const dEnd = new Date(`${newEnd}T00:00:00`);
                           const diff = Math.round((dEnd - dStart) / (1000 * 60 * 60 * 24));
                           if (diff >= 0 && diff <= 4) {
-                             setFormData(prev => ({ ...prev, selectedRangeEndDate: newEnd }));
+                             applyPromoAwareFormData({ ...formData, selectedRangeEndDate: newEnd });
                           } else {
                              toast.error("Premium can run up to 5 consecutive days.");
                           }
@@ -455,7 +513,7 @@ export default function StepThree({
           )}
 
           {!isNeighborhoodSale && (
-            <OpenHoursFields formData={formData} setFormData={setFormData} />
+            <OpenHoursFields formData={formData} setFormData={setFormData} onFieldChange={updatePromoAwareField} />
           )}
 
           {tier === "premium" && (
@@ -574,6 +632,30 @@ export default function StepThree({
           </div>
         </Card>
       )}
+
+      <Dialog open={!!pendingPromoChange} onOpenChange={(open) => !open && setPendingPromoChange(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#2C4F4E]">Promo date warning</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700">
+              This schedule is outside the promo window. If you continue, the promo code will be removed from this listing.
+            </p>
+            <p className="rounded-lg bg-amber-50 p-3 text-xs font-medium text-amber-800">
+              Promo window: {formatPromoWindow(formData.discovery_promo_starts_at, formData.discovery_promo_expires_at)}
+            </p>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setPendingPromoChange(null)}>
+                Keep Promo Dates
+              </Button>
+              <Button type="button" className="flex-1 bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" onClick={confirmPromoDateChange}>
+                Continue Without Promo
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

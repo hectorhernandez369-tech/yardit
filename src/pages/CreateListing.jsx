@@ -119,6 +119,14 @@ function getTodayYmd() {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+function localYmdFromIso(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (part) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 function hasPastSelectedDates(data) {
   const today = getTodayYmd();
   return Boolean(
@@ -283,17 +291,33 @@ export default function CreateListingPage() {
     const params = new URLSearchParams(location.search);
     const promoCode = params.get("promo");
     if (!promoCode) return;
+    const normalizedPromoCode = promoCode.toUpperCase();
     const requestedTier = params.get("tier");
     const preferredTier = requestedTier === "premium" ? "premium" : "featured";
-    setFormData((prev) => ({
-      ...prev,
-      listingType: "yard_sale",
-      tier: preferredTier,
-      discovery_promo_code: promoCode.toUpperCase(),
-    }));
-    if (params.get("promoSource") === "map") {
-      toast.success("Promo applied.");
-    }
+    let cancelled = false;
+
+    const applyMapPromo = async () => {
+      const promos = await base44.entities.ResidentialPromoCode.filter({ code: normalizedPromoCode });
+      const promo = promos?.[0];
+      if (cancelled) return;
+      setFormData((prev) => ({
+        ...prev,
+        listingType: "yard_sale",
+        tier: preferredTier,
+        discovery_promo_code: normalizedPromoCode,
+        discovery_promo_title: promo?.title || "",
+        discovery_promo_starts_at: promo?.starts_at || "",
+        discovery_promo_expires_at: promo?.expires_at || "",
+        selectedRangeStartDate: promo?.starts_at ? localYmdFromIso(promo.starts_at) : prev.selectedRangeStartDate,
+        selectedRangeEndDate: promo?.expires_at ? localYmdFromIso(promo.expires_at) : prev.selectedRangeEndDate,
+      }));
+      if (params.get("promoSource") === "map") {
+        toast.success("Promo applied.");
+      }
+    };
+
+    applyMapPromo();
+    return () => { cancelled = true; };
   }, [location.search]);
 
   useEffect(() => {

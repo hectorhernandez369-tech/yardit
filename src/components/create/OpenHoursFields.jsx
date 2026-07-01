@@ -1,8 +1,15 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
-export default function OpenHoursFields({ formData, setFormData }) {
+export default function OpenHoursFields({ formData, setFormData, onFieldChange }) {
   const isFreeTier = formData?.tier === "free";
+  const updateField = (field, value) => {
+    if (onFieldChange) {
+      onFieldChange(field, value);
+      return;
+    }
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   return (
     <div className="rounded-xl border border-[#2C4F4E]/20 bg-white/70 p-4 space-y-3">
@@ -22,7 +29,7 @@ export default function OpenHoursFields({ formData, setFormData }) {
             min="05:00"
             max="22:00"
             value={formData.openTime || ""}
-            onChange={(e) => setFormData((prev) => ({ ...prev, openTime: e.target.value }))}
+            onChange={(e) => updateField("openTime", e.target.value)}
             className="bg-[#F3E6CF] border-[#2C4F4E]"
             required
           />
@@ -34,7 +41,7 @@ export default function OpenHoursFields({ formData, setFormData }) {
             min="05:00"
             max="22:00"
             value={formData.closeTime || ""}
-            onChange={(e) => setFormData((prev) => ({ ...prev, closeTime: e.target.value }))}
+            onChange={(e) => updateField("closeTime", e.target.value)}
             className="bg-[#F3E6CF] border-[#2C4F4E]"
             required
           />

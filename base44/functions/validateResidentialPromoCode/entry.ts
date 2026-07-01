@@ -40,6 +40,33 @@ function shiftYmd(ymd, dayDelta) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
+function formatPromoWindow(startIso, endIso) {
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 'the promo dates';
+  return `${start.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} to ${end.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
+}
+
+function buildLocalDateTime(dateStr, timeStr, fallbackTime) {
+  if (!dateStr) return null;
+  const date = new Date(`${dateStr}T${timeStr || fallbackTime}`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function checkPromoScheduleWindow(promoCode, schedule) {
+  if (!promoCode?.starts_at || !promoCode?.expires_at) return { valid: true };
+  if (!schedule?.selectedRangeStartDate || !schedule?.selectedRangeEndDate) return { valid: true };
+  const promoStart = new Date(promoCode.starts_at);
+  const promoEnd = new Date(promoCode.expires_at);
+  const listingStart = buildLocalDateTime(schedule.selectedRangeStartDate, schedule.openTime, '05:00');
+  const listingEnd = buildLocalDateTime(schedule.selectedRangeEndDate, schedule.closeTime, '22:00');
+  if ([promoStart, promoEnd, listingStart, listingEnd].some((date) => !date || Number.isNaN(date.getTime()))) return { valid: true };
+  if (listingStart < promoStart || listingEnd > promoEnd) {
+    return { valid: false, reason: `This promo only applies to listings scheduled within ${formatPromoWindow(promoCode.starts_at, promoCode.expires_at)}.` };
+  }
+  return { valid: true };
+}
+
 function buildEarlyVisibilityResult(promoCode, listingStartDate, normalizedCode) {
   const days = Math.max(0, Number(promoCode?.early_visibility_days || 0));
   if (promoCode?.early_visibility_enabled !== true || days <= 0 || !listingStartDate) {
@@ -178,6 +205,9 @@ Deno.serve(async (req) => {
     const listingPriceCents = Number(body?.listing_price_cents || 0);
     const listingPriceDollars = listingPriceCents / 100;
     const selectedRangeStartDate = body?.selected_range_start_date || body?.selectedRangeStartDate || body?.listing_start_date || '';
+    const selectedRangeEndDate = body?.selected_range_end_date || body?.selectedRangeEndDate || body?.listing_end_date || '';
+    const openTime = body?.open_time || body?.openTime || '';
+    const closeTime = body?.close_time || body?.closeTime || '';
 
     if (!rawCode) {
       return Response.json({ valid: false, reason: 'No promo code provided.' });
@@ -194,11 +224,16 @@ Deno.serve(async (req) => {
       return Response.json({ valid: false, reason: `Promo code is ${promoCode.status}.` });
     }
 
+    const scheduleCheck = checkPromoScheduleWindow(promoCode, { selectedRangeStartDate, selectedRangeEndDate, openTime, closeTime });
+    if (!scheduleCheck.valid) {
+      return Response.json({ valid: false, reason: scheduleCheck.reason });
+    }
+
     const now = new Date();
-    if (promoCode.starts_at && new Date(promoCode.starts_at) > now) {
+    if (!selectedRangeStartDate && promoCode.starts_at && new Date(promoCode.starts_at) > now) {
       return Response.json({ valid: false, reason: 'Promo code is not yet active.' });
     }
-    if (promoCode.expires_at && new Date(promoCode.expires_at) < now) {
+    if (!selectedRangeStartDate && promoCode.expires_at && new Date(promoCode.expires_at) < now) {
       return Response.json({ valid: false, reason: 'Promo code has expired.' });
     }
 
