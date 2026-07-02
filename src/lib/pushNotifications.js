@@ -215,16 +215,18 @@ export async function enableOneSignalPush({ userId } = {}) {
     window.OneSignalDeferred.push(async (OneSignal) => {
       clearTimeout(oneSignalReadyTimeout);
       try {
-        const serviceWorkerReady = await waitForServiceWorkerReady();
-        if (!serviceWorkerReady) {
-          finish({ status: "service_worker_not_ready", subscriptionId: "" });
-          return;
-        }
-
-        const permissionRequest = await withTimeout(OneSignal.Notifications.requestPermission(), 12000, "timeout");
+        const permissionRequest = window.Notification.permission === "granted"
+          ? "granted"
+          : await withTimeout(OneSignal.Notifications.requestPermission(), 12000, "timeout");
         logPushDebug("permission_result", { permissionResult: getPermissionResult(), permissionRequest });
         if (window.Notification.permission !== "granted") {
           finish({ status: window.Notification.permission === "denied" ? "blocked" : "not_enabled", subscriptionId: "" });
+          return;
+        }
+
+        const serviceWorkerReady = await waitForServiceWorkerReady();
+        if (!serviceWorkerReady) {
+          finish({ status: "service_worker_not_ready", subscriptionId: "" });
           return;
         }
 
