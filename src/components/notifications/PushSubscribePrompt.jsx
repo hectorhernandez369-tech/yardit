@@ -78,7 +78,7 @@ export default function PushSubscribePrompt({ user }) {
   if (!user?.id) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => nextOpen && setOpen(true)}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-sm rounded-3xl border-2 border-[#2C4F4E] bg-[#F3E6CF] p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-black text-[#2C4F4E]"><Bell className="h-5 w-5 text-[#F4A849]" /> Enable Yardit alerts?</DialogTitle>

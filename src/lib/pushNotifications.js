@@ -221,16 +221,16 @@ export async function enableOneSignalPush({ userId } = {}) {
           return;
         }
 
-        await OneSignal.Notifications.requestPermission();
-        logPushDebug("permission_result", { permissionResult: getPermissionResult() });
+        const permissionRequest = await withTimeout(OneSignal.Notifications.requestPermission(), 12000, "timeout");
+        logPushDebug("permission_result", { permissionResult: getPermissionResult(), permissionRequest });
         if (window.Notification.permission !== "granted") {
           finish({ status: window.Notification.permission === "denied" ? "blocked" : "not_enabled", subscriptionId: "" });
           return;
         }
 
-        await OneSignal.User.PushSubscription.optIn();
-        if (userId && OneSignal.login) await OneSignal.login(String(userId));
-        await OneSignal.User.PushSubscription.optIn();
+        await withTimeout(OneSignal.User.PushSubscription.optIn(), 12000, null);
+        if (userId && OneSignal.login) await withTimeout(OneSignal.login(String(userId)), 12000, null);
+        await withTimeout(OneSignal.User.PushSubscription.optIn(), 12000, null);
         const subscriptionId = await waitForOneSignalSubscriptionId(OneSignal);
         finish({ status: subscriptionId ? "enabled" : "registration_timeout", subscriptionId });
       } catch (error) {
