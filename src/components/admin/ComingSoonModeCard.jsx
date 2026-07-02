@@ -36,6 +36,7 @@ export default function ComingSoonModeCard() {
     },
     onSuccess: (_, nextValue) => {
       queryClient.invalidateQueries({ queryKey: ["appSettings"] });
+      queryClient.invalidateQueries({ queryKey: ["publicAppSettings"] });
       toast.success(`Coming Soon Mode ${nextValue ? "enabled" : "disabled"}`);
     },
   });

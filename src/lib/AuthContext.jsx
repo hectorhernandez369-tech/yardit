@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }) => {
         email: currentUser?.email,
       });
       if (currentUser?.accountStatus === 'deleted' || currentUser?.account_deletion_status === 'completed') {
-        await base44.auth.logout('/ComingSoon');
+        await base44.auth.logout('/');
         setUser(null);
         setIsAuthenticated(false);
         setIsGuest(false);

@@ -39,7 +39,7 @@ export default function SettingsPage() {
 
   const handleAccountDeleted = () => {
     clearAdminSession();
-    logout("/ComingSoon");
+    logout("/");
   };
 
   useEffect(() => {

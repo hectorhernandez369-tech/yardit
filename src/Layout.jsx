@@ -133,7 +133,7 @@ function LayoutContent({ children, user, setUser }) {
   };
 
   const handleLogout = async () => {
-    await logout?.("/ComingSoon");
+    await logout?.("/");
   };
 
   const hasVerifiedPrimaryAddress = hasVerifiedPrimaryAddressTrust(user);

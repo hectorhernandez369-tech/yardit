@@ -72,7 +72,11 @@ const AuthenticatedApp = () => {
     return <UserNotRegisteredError />;
   }
 
-  const isComingSoonMode = isComingSoonModeEnabled(publicAppSettings) && !isAuthenticated && !getTesterBypass() && !shouldBypassComingSoonForCurrentUrl();
+  const isComingSoonMode =
+    isComingSoonModeEnabled(publicAppSettings) &&
+    !isAuthenticated &&
+    !getTesterBypass() &&
+    !shouldBypassComingSoonForCurrentUrl();
   const AdminPage = Pages.AdminLite;
 
   if (isLoadingAppSettings) {
