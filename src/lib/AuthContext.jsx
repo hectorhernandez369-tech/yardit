@@ -5,6 +5,7 @@ import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { isGuestMode, setGuestMode, clearGuestMode } from './guestMode';
 import { logUserActivity, logUserActivityOncePerSession } from './logUserActivity';
 import { normalizeUser } from '@/lib/normalizeUser';
+import { recordAuthDebugEvent } from '@/lib/authDebug';
 
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
@@ -109,10 +110,15 @@ export const AuthProvider = ({ children }) => {
   const checkUserAuth = async () => {
     try {
       console.log('AUTH_DEBUG checkUserAuth:start', { hasToken: !!appParams.token });
+      recordAuthDebugEvent('base44_auth_me_start', { hasToken: !!appParams.token });
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = normalizeUser(await base44.auth.me());
       console.log('AUTH_DEBUG base44.auth.me:success', {
+        userId: currentUser?.id,
+        email: currentUser?.email,
+      });
+      recordAuthDebugEvent('base44_auth_me_success', {
         userId: currentUser?.id,
         email: currentUser?.email,
       });
@@ -140,6 +146,10 @@ export const AuthProvider = ({ children }) => {
       console.log('AUTH_DEBUG base44.auth.me:error', {
         status: error?.status,
         data: error?.data,
+        message: error?.message,
+      });
+      recordAuthDebugEvent('base44_auth_me_error', {
+        status: error?.status,
         message: error?.message,
       });
       setIsLoadingAuth(false);
@@ -385,6 +395,11 @@ export const AuthProvider = ({ children }) => {
 
     const playWrapper = isPlayAppWrapper();
     const loginReturnUrl = playWrapper ? `${window.location.origin}/auth-callback` : window.location.href;
+    recordAuthDebugEvent('redirect_to_login', {
+      playWrapper,
+      loginReturnUrl,
+      currentUrl: window.location.href,
+    });
 
     clearGuestMode();
     setIsGuest(false);

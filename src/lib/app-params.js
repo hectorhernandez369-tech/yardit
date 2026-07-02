@@ -1,3 +1,5 @@
+import { recordAuthDebugEvent } from '@/lib/authDebug';
+
 const isNode = typeof window === 'undefined';
 const windowObj = isNode ? { localStorage: new Map() } : window;
 const storage = windowObj.localStorage;
@@ -68,6 +70,11 @@ export const captureAuthTokenFromCurrentUrl = () => {
 		hasStoredToken: !!storedBeforeRead,
 		readsHashFragment: true,
 	});
+	recordAuthDebugEvent('oauth_token_check', {
+		hasAccessTokenInUrl: !!incomingToken,
+		hasStoredToken: !!storedBeforeRead,
+		readsHashFragment: true,
+	});
 
 	if (!incomingToken) return { token: storedBeforeRead, captured: false };
 
@@ -75,6 +82,9 @@ export const captureAuthTokenFromCurrentUrl = () => {
 	cleanOAuthParamsFromUrl();
 
 	console.log("AUTH_DEBUG appParams.token:captured", {
+		storedBase44AccessToken: !!storage.getItem(getStorageKey(OAUTH_TOKEN_PARAM)),
+	});
+	recordAuthDebugEvent('oauth_token_captured', {
 		storedBase44AccessToken: !!storage.getItem(getStorageKey(OAUTH_TOKEN_PARAM)),
 	});
 
@@ -109,12 +119,23 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 			removeFromUrl,
 			readsHashFragment: true,
 		});
+		recordAuthDebugEvent('app_params_token_source', {
+			hasAccessTokenInUrl: !!incomingParam,
+			hasStoredToken: !!storedBeforeRead,
+			removeFromUrl,
+			readsHashFragment: true,
+		});
 	}
 	if (removeFromUrl && incomingParam) {
 		cleanOAuthParamsFromUrl();
 	}
 	if (incomingParam) {
 		storage.setItem(storageKey, incomingParam);
+		if (paramName === OAUTH_TOKEN_PARAM) {
+			recordAuthDebugEvent('app_params_token_saved', {
+				storedBase44AccessToken: !!storage.getItem(storageKey),
+			});
+		}
 		return incomingParam;
 	}
 	if (defaultValue) {
