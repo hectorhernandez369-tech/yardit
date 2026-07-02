@@ -70,17 +70,19 @@ function getPromoIcon(promo, coveredCount = 0) {
   if (!markerCache[key]) {
     const glow = promo.promo_icon_glow_enabled !== false ? "box-shadow:0 0 0 8px rgba(244,168,73,.20),0 0 24px rgba(244,168,73,.72),0 6px 18px rgba(44,79,78,.30);" : "box-shadow:0 6px 18px rgba(44,79,78,.24);";
     const imageGlow = promo.promo_icon_glow_enabled !== false ? "filter:drop-shadow(0 0 12px rgba(244,168,73,.72)) drop-shadow(0 6px 8px rgba(44,79,78,.28));" : "filter:drop-shadow(0 5px 7px rgba(44,79,78,.24));";
-    const badge = countLabel ? `<div style="position:absolute;top:-7px;right:-7px;min-width:23px;height:23px;padding:0 6px;border-radius:999px;background:#2C4F4E;border:2px solid #F4A849;color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 7px rgba(0,0,0,.28);">${countLabel}</div>` : "";
-    const customLogoNudge = Math.round(size * 0.3);
+    const customLogoNudge = hasCustomLogo ? Math.round(size * 0.1) : 0;
+    const badgeTop = customLogoNudge - 7;
+    const badge = countLabel ? `<div style="position:absolute;top:${badgeTop}px;right:-7px;min-width:23px;height:23px;padding:0 6px;border-radius:999px;background:#2C4F4E;border:2px solid #F4A849;color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 7px rgba(0,0,0,.28);z-index:4;">${countLabel}</div>` : "";
     const iconBody = hasCustomLogo
       ? `<img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${size}px;height:${size}px;object-fit:contain;display:block;transform:translateY(${customLogoNudge}px);${imageGlow}" />`
       : `<div style="width:${size}px;height:${size}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border:2px solid #F4A849;${glow}"><img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${Math.round(size * .82)}px;height:${Math.round(size * .82)}px;object-fit:contain;display:block;" /></div>`;
     const labelHeight = dateLabel ? 24 : 0;
-    const labelGap = dateLabel ? 4 : 0;
+    const labelGap = dateLabel ? 2 : 0;
     const tailHeight = 14;
     const iconWidth = size + 80;
-    const iconHeight = labelHeight + labelGap + size;
-    const tailTop = labelHeight + labelGap + size - 2;
+    const visualIconHeight = size + customLogoNudge;
+    const iconHeight = labelHeight + labelGap + visualIconHeight;
+    const tailTop = labelHeight + labelGap + visualIconHeight - 2;
     const tail = `<div style="position:absolute;left:50%;top:${tailTop}px;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:${tailHeight}px solid #F4A849;filter:drop-shadow(0 2px 3px rgba(44,79,78,.32));"></div>`;
     markerCache[key] = L.divIcon({
       className: "yardit-promo-discovery-marker",
