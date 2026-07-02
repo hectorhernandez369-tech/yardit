@@ -78,7 +78,7 @@ function getPromoIcon(promo, coveredCount = 0) {
     const iconBody = hasCustomLogo
       ? `<img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${size}px;height:${size}px;object-fit:contain;display:block;transform:translateY(${customLogoNudge}px);${imageGlow}" />`
       : `<div style="width:${size}px;height:${size}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border:2px solid #F4A849;${glow}"><img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${Math.round(size * .82)}px;height:${Math.round(size * .82)}px;object-fit:contain;display:block;" /></div>`;
-    const tailHeighreact"10;
+    const tailHeight = 10;
     const iconWidth = size + 80;
     const visualIconHeight = size + customLogoNudge;
     const iconHeight = visualIconHeight;
