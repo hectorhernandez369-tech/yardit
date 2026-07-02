@@ -100,6 +100,7 @@ const AuthenticatedApp = () => {
           <Route path="/TermsOfService" element={<TermsOfService />} />
           <Route path="/CommunityGuidelines" element={<CommunityGuidelines />} />
           <Route path="/ComingSoon" element={<ComingSoon />} />
+          <Route path="/auth-callback" element={<YarditSplashScreen />} />
           <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
         </Routes>
       </>
@@ -143,6 +144,7 @@ const AuthenticatedApp = () => {
         <Route path="/PrintableChecklist" element={<PrintableChecklist />} />
         <Route path="/LaunchChecklist" element={<LayoutWrapper currentPageName="LaunchChecklist"><LaunchChecklist /></LayoutWrapper>} />
         <Route path="/ComingSoon" element={<ComingSoon />} />
+        <Route path="/auth-callback" element={<YarditSplashScreen />} />
         <Route path="/assisted-listing" element={<AssistedListingApproval />} />
         <Route path="/events" element={<Events />} />
         <Route path="/PaymentAudit" element={<LayoutWrapper currentPageName="PaymentAudit"><PaymentAudit /></LayoutWrapper>} />

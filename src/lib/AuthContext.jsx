@@ -10,7 +10,26 @@ const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
 const AUTH_RETURN_TO_MAX_AGE_MS = 30 * 60 * 1000;
 const RETURNING_USER_KEY = 'yardit_returning_user_v1';
+const PLAY_WRAPPER_KEY = 'yardit_play_wrapper_detected_v1';
 const AUTH_CLIENT_INITIAL_TOKEN = appParams.token;
+
+const isPlayAppWrapper = () => {
+  if (typeof window === 'undefined') return false;
+
+  const androidAppReferrer = document.referrer?.startsWith('android-app://');
+  if (androidAppReferrer) {
+    try {
+      sessionStorage.setItem(PLAY_WRAPPER_KEY, 'true');
+    } catch {}
+    return true;
+  }
+
+  try {
+    return sessionStorage.getItem(PLAY_WRAPPER_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
 
 const reloadForNewlyCapturedToken = (capture, source = 'unknown') => {
   if (!capture?.token || capture.token === AUTH_CLIENT_INITIAL_TOKEN) return false;
@@ -364,10 +383,13 @@ export const AuthProvider = ({ children }) => {
       isGuest
     });
 
+    const playWrapper = isPlayAppWrapper();
+    const loginReturnUrl = playWrapper ? `${window.location.origin}/auth-callback` : window.location.href;
+
     clearGuestMode();
     setIsGuest(false);
     saveAuthReturnTo(window.location.href);
-    base44.auth.redirectToLogin(window.location.href);
+    base44.auth.redirectToLogin(loginReturnUrl);
   };
 
   return (
