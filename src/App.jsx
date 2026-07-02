@@ -47,8 +47,6 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isGuest, isAuthenticated } = useAuth();
 
-  const isAuthRequired = authError?.type === 'auth_required';
-
   const { data: publicAppSettings = [], isLoading: isLoadingAppSettings } = useQuery({
     queryKey: ["publicAppSettings"],
     queryFn: async () => {
@@ -56,7 +54,10 @@ const AuthenticatedApp = () => {
       return response?.data?.settings || [];
     },
     initialData: [],
-    enabled: !isAuthenticated && !isAuthRequired,
+    enabled: !isAuthenticated,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   // Show loading spinner while checking app public settings or auth
