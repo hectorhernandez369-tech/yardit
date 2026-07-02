@@ -71,8 +71,8 @@ function getPromoIcon(promo, coveredCount = 0) {
     const glow = promo.promo_icon_glow_enabled !== false ? "box-shadow:0 0 0 8px rgba(244,168,73,.20),0 0 24px rgba(244,168,73,.72),0 6px 18px rgba(44,79,78,.30);" : "box-shadow:0 6px 18px rgba(44,79,78,.24);";
     const imageGlow = promo.promo_icon_glow_enabled !== false ? "filter:drop-shadow(0 0 12px rgba(244,168,73,.72)) drop-shadow(0 6px 8px rgba(44,79,78,.28));" : "filter:drop-shadow(0 5px 7px rgba(44,79,78,.24));";
     const customLogoNudge = hasCustomLogo ? Math.round(size * 0.1) : 0;
-    const badgeTop = customLogoNudge + Math.round(size * 0.12);
-    const badgeRight = Math.round(size * 0.08);
+    const badgeTop = customLogoNudge + Math.round(size * 0.24);
+    const badgeRight = Math.round(size * 0.18);
     const badge = countLabel ? `<div style="position:absolute;top:${badgeTop}px;right:${badgeRight}px;min-width:23px;height:23px;padding:0 6px;border-radius:999px;background:#2C4F4E;border:2px solid #F4A849;color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 7px rgba(0,0,0,.28);z-index:5;">${countLabel}</div>` : "";
     const dateBadge = dateLabel ? `<div style="position:absolute;top:${customLogoNudge + 2}px;left:50%;transform:translateX(-50%);height:22px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid rgba(44,79,78,.24);color:#2C4F4E;font-size:11px;font-weight:900;white-space:nowrap;box-shadow:0 2px 7px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;z-index:5;">${dateLabel}</div>` : "";
     const iconBody = hasCustomLogo
