@@ -60,6 +60,11 @@ import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
+const LINDSAY_PORTERVILLE_CENTER = [36.135, -119.055];
+
+function isLegacySanFranciscoCenter(value) {
+  return Array.isArray(value) && Math.abs(Number(value[0]) - 37.7749) < 0.25 && Math.abs(Number(value[1]) + 122.4194) < 0.25;
+}
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -425,18 +430,24 @@ export default function HomePage() {
   const getSavedLocation = () => {
     try {
       const savedSession = sessionStorage.getItem("yardit_last_map_center");
-      if (savedSession) return JSON.parse(savedSession);
+      if (savedSession) {
+        const parsed = JSON.parse(savedSession);
+        if (!isLegacySanFranciscoCenter(parsed)) return parsed;
+      }
       const saved = localStorage.getItem("yardit_last_map_center");
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!isLegacySanFranciscoCenter(parsed)) return parsed;
+      }
     } catch (e) {}
-    return [37.7749, -122.4194];
+    return LINDSAY_PORTERVILLE_CENTER;
   };
   const getSavedZoom = () => {
     try {
       const saved = sessionStorage.getItem("yardit_last_map_zoom");
       if (saved) return parseInt(saved, 10);
     } catch (e) {}
-    return 13;
+    return 12;
   };
   const [mapCenter, setMapCenter] = useState(getSavedLocation);
   const [mapZoom, setMapZoom] = useState(getSavedZoom);
