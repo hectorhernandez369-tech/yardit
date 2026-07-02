@@ -84,10 +84,11 @@ function getPromoIcon(promo, coveredCount = 0) {
     const iconHeight = visualIconHeight;
     const totalHeight = iconHeight + tailHeight;
     const tailTop = iconHeight - 2;
+    const cardDrop = tailHeight;
     const tail = `<div style="position:absolute;left:50%;top:${tailTop}px;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:${tailHeight}px solid #F4A849;filter:drop-shadow(0 2px 3px rgba(44,79,78,.32));"></div>`;
     markerCache[key] = L.divIcon({
       className: "yardit-promo-discovery-marker",
-      html: `<div style="position:relative;width:${iconWidth}px;height:${iconHeight}px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}"><div style="position:relative;width:${size}px;height:${visualIconHeight}px;z-index:2;">${iconBody}${dateBadge}${badge}</div>${tail}</div>`,
+      html: `<div style="position:relative;width:${iconWidth}px;height:${totalHeight}px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}"><div style="position:relative;width:${size}px;height:${visualIconHeight}px;z-index:2;transform:translateY(${cardDrop}px);">${iconBody}${dateBadge}${badge}</div>${tail}</div>`,
       iconSize: [iconWidth, totalHeight],
       iconAnchor: [iconWidth / 2, totalHeight - 2],
       popupAnchor: [0, -iconHeight + 8],
