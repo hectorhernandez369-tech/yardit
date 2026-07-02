@@ -16,9 +16,23 @@ export const markAppInstalled = () => {
 };
 
 export const canUseBrowserInstallPrompt = () => {
-  return !isStandaloneInstalled() && !hasInstallRecord() && !isIosDevice();
+  return !isStandaloneInstalled() && !isIosDevice();
+};
+
+export const syncInstallRecord = () => {
+  if (isStandaloneInstalled()) {
+    markAppInstalled();
+    return true;
+  }
+
+  if (hasInstallRecord()) {
+    localStorage.removeItem("yardit_app_installed");
+  }
+
+  return false;
 };
 
 export const shouldShowInstallButton = () => {
+  syncInstallRecord();
   return !isStandaloneInstalled();
 };

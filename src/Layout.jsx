@@ -32,7 +32,7 @@ import AccountSetupModal from "./components/profile/AccountSetupModal";
 import VerifiedAddressRequiredModal from "./components/profile/VerifiedAddressRequiredModal";
 import FloatingLaunchChecklist from "./components/checklist/FloatingLaunchChecklist";
 import PushSubscribePrompt from "./components/notifications/PushSubscribePrompt";
-import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
+import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton, syncInstallRecord } from "@/lib/installPrompt";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -80,7 +80,7 @@ function LayoutContent({ children, user, setUser }) {
 
   useEffect(() => {
     const updateInstallState = () => {
-      const appInstalled = localStorage.getItem("yardit_app_installed") === "true";
+      const appInstalled = syncInstallRecord();
       setCanInstallApp(!appInstalled && shouldShowInstallButton());
     };
 
@@ -99,11 +99,15 @@ function LayoutContent({ children, user, setUser }) {
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleInstalled);
+    window.addEventListener("focus", updateInstallState);
+    document.addEventListener("visibilitychange", updateInstallState);
     updateInstallState();
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleInstalled);
+      window.removeEventListener("focus", updateInstallState);
+      document.removeEventListener("visibilitychange", updateInstallState);
     };
   }, [deferredInstallPrompt]);
 
