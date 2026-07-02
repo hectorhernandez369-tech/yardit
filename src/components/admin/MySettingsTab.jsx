@@ -17,6 +17,7 @@ export default function MySettingsTab({ user, session }) {
   const [loading, setLoading] = useState(false);
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const canManageComingSoon = user?.email?.toLowerCase() === "hectorhernandez369@gmail.com";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -105,7 +106,7 @@ export default function MySettingsTab({ user, session }) {
         </CardContent>
       </Card>
 
-      {user?.role === "master" && <ComingSoonModeCard />}
+      {canManageComingSoon && <ComingSoonModeCard />}
     </div>
   );
 }
