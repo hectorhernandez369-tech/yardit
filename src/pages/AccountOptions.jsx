@@ -1,14 +1,16 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { UserPlus } from "lucide-react";
 
 export default function AccountOptions() {
   const navigate = useNavigate();
+  const { navigateToLogin } = useAuth();
 
   const handleSignup = () => {
-    window.location.href = `/login?redirect_url=${encodeURIComponent(window.location.origin)}`;
+    navigateToLogin();
   };
 
   return (

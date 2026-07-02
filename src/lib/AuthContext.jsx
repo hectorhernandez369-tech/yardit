@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { appParams, waitForOAuthAccessToken } from '@/lib/app-params';
+import { appParams, captureAuthTokenFromCurrentUrl, waitForOAuthAccessToken } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { isGuestMode, setGuestMode, clearGuestMode } from './guestMode';
 import { logUserActivity, logUserActivityOncePerSession } from './logUserActivity';
@@ -11,6 +11,18 @@ const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
 const AUTH_RETURN_TO_MAX_AGE_MS = 30 * 60 * 1000;
 const RETURNING_USER_KEY = 'yardit_returning_user_v1';
 const AUTH_CLIENT_INITIAL_TOKEN = appParams.token;
+
+const reloadForNewlyCapturedToken = (capture, source = 'unknown') => {
+  if (!capture?.token || capture.token === AUTH_CLIENT_INITIAL_TOKEN) return false;
+
+  console.log('AUTH_DEBUG tokenAvailableAfterClientInit -> reload', {
+    source,
+    storedBase44AccessToken: true,
+    capturedFromCallback: !!capture.captured,
+  });
+  window.location.replace(`${window.location.pathname}${window.location.search}${window.location.hash}`);
+  return true;
+};
 
 const saveAuthReturnTo = (url) => {
   try {
@@ -139,12 +151,7 @@ export const AuthProvider = ({ children }) => {
         intervalMs: 120,
       });
 
-      if (oauthTokenCapture?.token && oauthTokenCapture.token !== AUTH_CLIENT_INITIAL_TOKEN) {
-        console.log('AUTH_DEBUG checkAppState:tokenAvailableAfterClientInit -> reload', {
-          storedBase44AccessToken: true,
-          capturedFromCallback: !!oauthTokenCapture.captured,
-        });
-        window.location.replace(`${window.location.pathname}${window.location.search}${window.location.hash}`);
+      if (reloadForNewlyCapturedToken(oauthTokenCapture, 'checkAppState')) {
         return;
       }
 
@@ -231,6 +238,29 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAppState();
+  }, []);
+
+  useEffect(() => {
+    const checkForReturnedOAuthToken = () => {
+      const capture = captureAuthTokenFromCurrentUrl();
+      reloadForNewlyCapturedToken(capture, 'appResume');
+    };
+
+    const timers = [500, 1500, 3000, 5000].map((delay) => window.setTimeout(checkForReturnedOAuthToken, delay));
+    window.addEventListener('focus', checkForReturnedOAuthToken);
+    window.addEventListener('pageshow', checkForReturnedOAuthToken);
+    window.addEventListener('hashchange', checkForReturnedOAuthToken);
+    window.addEventListener('popstate', checkForReturnedOAuthToken);
+    document.addEventListener('visibilitychange', checkForReturnedOAuthToken);
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      window.removeEventListener('focus', checkForReturnedOAuthToken);
+      window.removeEventListener('pageshow', checkForReturnedOAuthToken);
+      window.removeEventListener('hashchange', checkForReturnedOAuthToken);
+      window.removeEventListener('popstate', checkForReturnedOAuthToken);
+      document.removeEventListener('visibilitychange', checkForReturnedOAuthToken);
+    };
   }, []);
 
   useEffect(() => {
