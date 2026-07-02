@@ -21,12 +21,13 @@ const isPlayAppWrapper = () => {
   if (androidAppReferrer) {
     try {
       sessionStorage.setItem(PLAY_WRAPPER_KEY, 'true');
+      localStorage.setItem(PLAY_WRAPPER_KEY, 'true');
     } catch {}
     return true;
   }
 
   try {
-    return sessionStorage.getItem(PLAY_WRAPPER_KEY) === 'true';
+    return sessionStorage.getItem(PLAY_WRAPPER_KEY) === 'true' || localStorage.getItem(PLAY_WRAPPER_KEY) === 'true';
   } catch {
     return false;
   }
@@ -394,10 +395,11 @@ export const AuthProvider = ({ children }) => {
     });
 
     const playWrapper = isPlayAppWrapper();
-    const loginReturnUrl = playWrapper ? `${window.location.origin}/auth-callback` : window.location.href;
+    const loginReturnUrl = playWrapper ? `${window.location.origin}/?auth_callback=play` : window.location.href;
     recordAuthDebugEvent('redirect_to_login', {
       playWrapper,
       loginReturnUrl,
+      returnStrategy: playWrapper ? 'play_start_url' : 'current_url',
       currentUrl: window.location.href,
     });
 
