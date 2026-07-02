@@ -1200,7 +1200,7 @@ export default function HomePage() {
   }, [marqueeOverlays]);
 
   return (
-    <div className="h-[100dvh] sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
+    <div className="yardit-home-shell h-[100dvh] sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
       {/* Sticky Top Bar */}
       <div className="relative bg-white border-b border-slate-200 z-[1200] flex-shrink-0 flex flex-col w-full">
         {view === "map" &&
