@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
+import { appParams, waitForOAuthAccessToken } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { isGuestMode, setGuestMode, clearGuestMode } from './guestMode';
 import { logUserActivity, logUserActivityOncePerSession } from './logUserActivity';
@@ -10,6 +10,7 @@ const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
 const AUTH_RETURN_TO_MAX_AGE_MS = 30 * 60 * 1000;
 const RETURNING_USER_KEY = 'yardit_returning_user_v1';
+const AUTH_CLIENT_INITIAL_TOKEN = appParams.token;
 
 const saveAuthReturnTo = (url) => {
   try {
@@ -41,6 +42,12 @@ const restoreAuthReturnTo = () => {
     const target = new URL(targetUrl, window.location.origin);
 
     if (target.origin !== window.location.origin) {
+      clearAuthReturnTo();
+      return false;
+    }
+
+    const targetPath = target.pathname.toLowerCase();
+    if (targetPath === "/login" || targetPath === "/accountoptions") {
       clearAuthReturnTo();
       return false;
     }
@@ -126,6 +133,20 @@ export const AuthProvider = ({ children }) => {
       });
       setIsLoadingPublicSettings(true);
       setAuthError(null);
+
+      const oauthTokenCapture = await waitForOAuthAccessToken({
+        timeoutMs: AUTH_CLIENT_INITIAL_TOKEN ? 0 : 1600,
+        intervalMs: 120,
+      });
+
+      if (oauthTokenCapture?.token && oauthTokenCapture.token !== AUTH_CLIENT_INITIAL_TOKEN) {
+        console.log('AUTH_DEBUG checkAppState:tokenAvailableAfterClientInit -> reload', {
+          storedBase44AccessToken: true,
+          capturedFromCallback: !!oauthTokenCapture.captured,
+        });
+        window.location.replace(`${window.location.pathname}${window.location.search}${window.location.hash}`);
+        return;
+      }
 
       // First, check app public settings (with token if available)
       // This will tell us if auth is required, user not registered, etc.
