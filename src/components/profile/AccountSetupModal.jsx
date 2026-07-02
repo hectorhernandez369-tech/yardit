@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export default function AccountSetupModal({ user, setUser }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const contentRef = useRef(null);
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -50,6 +51,34 @@ export default function AccountSetupModal({ user, setUser }) {
       setOpen(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!open || typeof window === "undefined" || !window.visualViewport) return undefined;
+
+    const syncViewport = () => {
+      document.documentElement.style.setProperty("--yardit-setup-modal-height", `${window.visualViewport.height}px`);
+      document.documentElement.style.setProperty("--yardit-setup-modal-top", `${window.visualViewport.offsetTop || 0}px`);
+    };
+
+    syncViewport();
+    window.visualViewport.addEventListener("resize", syncViewport);
+    window.visualViewport.addEventListener("scroll", syncViewport);
+
+    return () => {
+      window.visualViewport.removeEventListener("resize", syncViewport);
+      window.visualViewport.removeEventListener("scroll", syncViewport);
+      document.documentElement.style.removeProperty("--yardit-setup-modal-height");
+      document.documentElement.style.removeProperty("--yardit-setup-modal-top");
+    };
+  }, [open]);
+
+  const handleFieldFocus = (event) => {
+    const target = event.target;
+    if (!target?.matches?.("input, textarea, [role='combobox']")) return;
+    setTimeout(() => {
+      target.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 250);
+  };
 
   const requirementsMet = Boolean(
     formData.first_name.trim() &&
@@ -100,27 +129,27 @@ export default function AccountSetupModal({ user, setUser }) {
   return (
     <>
       <Dialog open={open} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-hidden border border-slate-200/80 bg-white p-0 shadow-2xl shadow-slate-950/20 [&>button]:hidden flex flex-col">
-          <div className="bg-gradient-to-br from-[#2C4F4E] via-[#36706C] to-[#5DADA5] px-6 py-5 text-white">
-            <div className="mb-4 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/90">
+        <DialogContent className="yardit-account-setup-dialog sm:max-w-lg max-h-[92vh] overflow-hidden border border-slate-200/80 bg-white p-0 shadow-2xl shadow-slate-950/20 [&>button]:hidden flex flex-col">
+          <div className="bg-gradient-to-br from-[#2C4F4E] via-[#36706C] to-[#5DADA5] px-5 py-3 text-white sm:px-6 sm:py-5">
+            <div className="mb-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90 sm:mb-4 sm:px-4 sm:py-2 sm:text-xs">
               Step 1 complete: Sign-in verified
             </div>
             <DialogHeader>
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+              <div className="mx-auto mb-3 hidden h-14 w-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 sm:flex">
                 <img 
                   src="https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png" 
                   alt="Yardit Logo" 
                   className="h-10 w-10 object-contain"
                 />
               </div>
-              <DialogTitle className="text-center text-2xl font-semibold tracking-tight text-white">Step 2: Finish Your Yardit Profile</DialogTitle>
-              <DialogDescription className="text-center text-slate-200">
+              <DialogTitle className="text-center text-lg font-semibold tracking-tight text-white sm:text-2xl">Step 2: Finish Your Yardit Profile</DialogTitle>
+              <DialogDescription className="hidden text-center text-slate-200 sm:block">
                 You’re already signed in. This quick profile step helps keep Yardit trusted and safe.
               </DialogDescription>
             </DialogHeader>
           </div>
 
-          <div className="space-y-5 px-6 py-6 flex-1 min-h-0 overflow-y-auto">
+          <div ref={contentRef} onFocusCapture={handleFieldFocus} className="yardit-account-setup-scroll space-y-4 px-5 py-4 flex-1 min-h-0 overflow-y-auto sm:space-y-5 sm:px-6 sm:py-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="setup_first_name">First Name *</Label>
