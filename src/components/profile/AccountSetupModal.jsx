@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { COMMUNITY_GUIDELINES_VERSION, PRIVACY_VERSION, TERMS_VERSION, hasConfirmedAddress, isAccountSetupComplete } from "@/lib/accountSetup";
 import { createPageUrl } from "@/utils";
 import SetupAddressVerification from "@/components/profile/SetupAddressVerification";
+import { afterSetupPromptKey } from "@/lib/pushPromptActions";
 
 export default function AccountSetupModal({ user, setUser }) {
   const navigate = useNavigate();
@@ -88,6 +89,8 @@ export default function AccountSetupModal({ user, setUser }) {
     setUser?.(updatedUser);
     setOpen(false);
     setSaving(false);
+    sessionStorage.setItem(afterSetupPromptKey(updatedUser.id), "true");
+    window.dispatchEvent(new CustomEvent("yardit:account-setup-complete", { detail: { user: updatedUser } }));
     toast.success("Profile completed successfully.");
     if (redirectToProfile) {
       navigate(createPageUrl("Profile"));

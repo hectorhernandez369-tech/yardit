@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Bell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { declinedPromptKey, enablePushPromptSubscription, shouldShowPushPrompt } from "@/lib/pushPromptActions";
+import { afterSetupPromptKey, declinedPromptKey, enablePushPromptSubscription, evaluatePushPromptEligibility, lastPushErrorKey, logPushPromptDecision } from "@/lib/pushPromptActions";
 
 const errorText = (status) => {
   if (status === "needs_install") return "Install Yardit to your Home Screen first, then open the installed app to enable push notifications.";
@@ -20,9 +20,40 @@ export default function PushSubscribePrompt({ user }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!user?.id) return undefined;
     let active = true;
-    shouldShowPushPrompt(user).then((show) => active && setOpen(show)).catch(() => {});
-    return () => { active = false; };
+    let timers = [];
+
+    const requestPrompt = async (source, attempt = 0) => {
+      const decision = await evaluatePushPromptEligibility(user);
+      logPushPromptDecision(user, source, { ...decision, attempt });
+      if (!active) return;
+      if (decision.show) {
+        sessionStorage.removeItem(afterSetupPromptKey(user.id));
+        setOpen(true);
+        return;
+      }
+      if (decision.retryable && attempt < 3) {
+        timers.push(setTimeout(() => requestPrompt(source, attempt + 1), 1500 * (attempt + 1)));
+      } else {
+        sessionStorage.removeItem(afterSetupPromptKey(user.id));
+      }
+    };
+
+    if (sessionStorage.getItem(afterSetupPromptKey(user.id)) === "true") {
+      requestPrompt("account_setup_complete");
+    }
+
+    const handleAccountSetupComplete = (event) => {
+      if ((event.detail?.user?.id || user.id) === user.id) requestPrompt("account_setup_complete");
+    };
+
+    window.addEventListener("yardit:account-setup-complete", handleAccountSetupComplete);
+    return () => {
+      active = false;
+      timers.forEach(clearTimeout);
+      window.removeEventListener("yardit:account-setup-complete", handleAccountSetupComplete);
+    };
   }, [user?.id]);
 
   const handleDecline = () => {
@@ -38,6 +69,7 @@ export default function PushSubscribePrompt({ user }) {
       if (result.status === "enabled" && result.subscriptionId) setOpen(false);
       else setError(errorText(result.status));
     } catch (err) {
+      localStorage.setItem(lastPushErrorKey(user.id), err?.message || "subscription_failed");
       setError("Push notifications could not be enabled right now. Please try again or decline for now.");
     }
     setBusy(false);
@@ -49,9 +81,9 @@ export default function PushSubscribePrompt({ user }) {
     <Dialog open={open} onOpenChange={(nextOpen) => nextOpen && setOpen(true)}>
       <DialogContent className="max-w-sm rounded-3xl border-2 border-[#2C4F4E] bg-[#F3E6CF] p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-black text-[#2C4F4E]"><Bell className="h-5 w-5 text-[#F4A849]" /> Stay in the loop</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-xl font-black text-[#2C4F4E]"><Bell className="h-5 w-5 text-[#F4A849]" /> Enable Yardit alerts?</DialogTitle>
         </DialogHeader>
-        <p className="text-sm leading-6 text-slate-700">Subscribe to Yardit push notifications for listing updates, account alerts, and important app notices.</p>
+        <p className="text-sm leading-6 text-slate-700">Get timely listing updates, account alerts, and important Yardit notices on this device.</p>
         {error && <p className="rounded-2xl bg-white/70 p-3 text-sm font-semibold text-[#2C4F4E]">{error}</p>}
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button variant="outline" onClick={handleDecline} disabled={busy} className="border-[#2C4F4E]/30">No thanks</Button>

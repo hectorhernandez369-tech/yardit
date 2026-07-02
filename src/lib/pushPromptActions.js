@@ -1,5 +1,5 @@
 import { base44 } from "@/api/base44Client";
-import { canStorePushStatus, enableOneSignalPush, getOneSignalSubscriptionId } from "@/lib/pushNotifications";
+import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId } from "@/lib/pushNotifications";
 
 const DEFAULT_PREFS = {
   push_enabled: true,
@@ -18,12 +18,46 @@ const DEFAULT_PREFS = {
 };
 
 export const declinedPromptKey = (userId) => `yardit_push_prompt_declined_${userId}`;
+export const afterSetupPromptKey = (userId) => `yardit_push_prompt_after_setup_${userId}`;
+export const lastPushErrorKey = (userId) => `yardit_push_last_error_${userId}`;
 
-export async function shouldShowPushPrompt(user) {
-  if (!user?.id || localStorage.getItem(declinedPromptKey(user.id)) === "true") return false;
+const canLogPushDecision = (user) => import.meta.env?.DEV || user?.isAdmin === true || ["admin", "master", "super_master", "supervisor"].includes(user?.role);
+
+export function logPushPromptDecision(user, source, decision) {
+  if (!canLogPushDecision(user)) return;
+  console.info("[Yardit Push Prompt]", source, {
+    userSetupComplete: source === "account_setup_complete" || sessionStorage.getItem(afterSetupPromptKey(user?.id)) === "true",
+    oneSignalReady: typeof window !== "undefined" && !!window.OneSignalDeferred,
+    notificationPermission: typeof window !== "undefined" && "Notification" in window ? window.Notification.permission : "unsupported",
+    standaloneMode: typeof window !== "undefined" ? window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator?.standalone === true : false,
+    declinedFlag: user?.id ? localStorage.getItem(declinedPromptKey(user.id)) === "true" : false,
+    lastPushError: user?.id ? localStorage.getItem(lastPushErrorKey(user.id)) || "" : "",
+    ...decision,
+  });
+}
+
+export async function evaluatePushPromptEligibility(user) {
+  if (!user?.id) return { show: false, reason: "missing_user" };
+  if (localStorage.getItem(declinedPromptKey(user.id)) === "true") return { show: false, reason: "declined_flag" };
+
+  const browserStatus = getBrowserPushStatus();
+  if (["blocked", "unsupported", "needs_install", "service_worker_not_ready"].includes(browserStatus)) return { show: false, reason: browserStatus, browserStatus };
+  if (browserStatus === "onesignal_not_ready") return { show: false, reason: "onesignal_not_ready", browserStatus, retryable: true };
+
+  const runtimeSubscriptionId = await getOneSignalSubscriptionId();
+  if (browserStatus === "enabled") return { show: false, reason: "permission_already_granted", browserStatus, subscriptionId: runtimeSubscriptionId };
+
   const [preference] = await base44.entities.NotificationPreference.filter({ user_id: user.id });
   const [subscription] = await base44.entities.PushSubscription.filter({ user_id: user.id });
-  return !(preference?.push_enabled === true && subscription?.permission_status === "enabled" && subscription?.is_active === true && subscription?.onesignal_subscription_id);
+  const alreadySubscribed = preference?.push_enabled === true && subscription?.permission_status === "enabled" && subscription?.is_active === true && subscription?.onesignal_subscription_id;
+  if (alreadySubscribed) return { show: false, reason: "already_subscribed", browserStatus, subscriptionId: subscription.onesignal_subscription_id || runtimeSubscriptionId };
+
+  return { show: true, reason: "eligible", browserStatus, subscriptionId: runtimeSubscriptionId };
+}
+
+export async function shouldShowPushPrompt(user) {
+  const decision = await evaluatePushPromptEligibility(user);
+  return decision.show;
 }
 
 export async function enablePushPromptSubscription(user) {
@@ -42,6 +76,9 @@ export async function enablePushPromptSubscription(user) {
     const prefData = { ...DEFAULT_PREFS, ...(preference || {}), push_enabled: true, user_id: user.id, last_updated_at: new Date().toISOString() };
     if (preference) await base44.entities.NotificationPreference.update(preference.id, prefData);
     else await base44.entities.NotificationPreference.create(prefData);
+    localStorage.removeItem(lastPushErrorKey(user.id));
+  } else if (result.status !== "enabled") {
+    localStorage.setItem(lastPushErrorKey(user.id), result.status || "not_enabled");
   }
 
   return { ...result, subscriptionId };
