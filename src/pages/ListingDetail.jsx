@@ -47,6 +47,7 @@ export default function ListingDetailPage() {
   const queryClient = useQueryClient();
   const [listingId, setListingId] = useState(null);
   const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [reportContext, setReportContext] = useState(null);
   const [showPromoModal, setShowPromoModal] = useState(false);
@@ -65,18 +66,25 @@ export default function ListingDetailPage() {
         setUser(currentUser);
       } catch (error) {
         console.log("Not logged in");
+        setUser(null);
+      } finally {
+        setAuthChecked(true);
       }
     };
     fetchUser();
   }, []);
 
   const { data: listing, isLoading } = useQuery({
-    queryKey: ["listing", listingId],
+    queryKey: ["listing", listingId, user?.id || "public"],
     queryFn: async () => {
+      if (!user) {
+        const response = await base44.functions.invoke("getPublicMapData", { listingId });
+        return response?.data?.listing || null;
+      }
       const listings = await base44.entities.Listing.filter({ id: listingId });
-      return listings[0];
+      return listings[0] || null;
     },
-    enabled: !!listingId,
+    enabled: !!listingId && authChecked,
   });
 
   const { data: ownerUser } = useQuery({
@@ -85,7 +93,7 @@ export default function ListingDetailPage() {
       const users = await base44.entities.User.filter({ id: listing.ownerUserId });
       return users[0] || null;
     },
-    enabled: !!listing?.ownerUserId,
+    enabled: !!listing?.ownerUserId && !!user,
   });
 
   // (plain english) query to get pending and approved join requests if the user is the owner of a neighborhood sale
@@ -104,7 +112,7 @@ export default function ListingDetailPage() {
       }));
       return enriched;
     },
-    enabled: !!listing && listing.listingType === "neighborhood_sale",
+    enabled: !!listing && !!user && listing.listingType === "neighborhood_sale",
   });
 
   const pendingRequests = joinRequests?.filter(r => r.status === "pending") || [];
@@ -128,7 +136,7 @@ export default function ListingDetailPage() {
       const results = await base44.entities.Listing.filter({ id: listing.organizer_participant_listing_id });
       return results[0] || null;
     },
-    enabled: !!listing?.organizer_participant_listing_id && listing?.listingType === "neighborhood_sale",
+    enabled: !!listing?.organizer_participant_listing_id && !!user && listing?.listingType === "neighborhood_sale",
   });
 
   // Canonical roster:
@@ -190,7 +198,7 @@ export default function ListingDetailPage() {
       const sales = await base44.entities.Listing.filter({ id: listing.neighborhood_sale_id });
       return sales[0];
     },
-    enabled: !!listing && normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && !!listing.neighborhood_sale_id,
+    enabled: !!listing && !!user && normalizeNeighborhoodJoinStatus(listing.neighborhood_join_status) === "approved" && !!listing.neighborhood_sale_id,
   });
 
   const isAdminViewer = !!user && (user.isAdmin || ["master", "super_master", "supervisor", "admin"].includes(user.role));
@@ -351,8 +359,12 @@ export default function ListingDetailPage() {
   });
 
 
-  if (isLoading || !listing) {
+  if (isLoading || !authChecked) {
     return <div className="p-8 text-center">Loading...</div>;
+  }
+
+  if (!listing) {
+    return <div className="p-8 text-center text-slate-600">This listing is not publicly available.</div>;
   }
 
   const canViewListingDetail = isPubliclyVisibleListing(listing, { currentUser: user }) || isOwnerPreviewVisibleListing(listing, user, { viewingOwnerPreviewMode: true }) || user?.isAdmin || ["master", "super_master", "supervisor"].includes(user?.role);

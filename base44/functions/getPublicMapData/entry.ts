@@ -42,17 +42,9 @@ function isPublicListing(listing, now) {
   return true;
 }
 
-function isActivePromo(promo, now) {
+function isActivePromo(promo) {
   if (!promo?.promo_door_enabled || promo?.status !== 'active') return false;
   if (!isValidCoordinate(promo.promo_door_lat) || !isValidCoordinate(promo.promo_door_lng)) return false;
-  if (promo.starts_at) {
-    const starts = new Date(promo.starts_at);
-    if (!Number.isNaN(starts.getTime()) && now < starts) return false;
-  }
-  if (promo.expires_at) {
-    const expires = new Date(promo.expires_at);
-    if (!Number.isNaN(expires.getTime()) && now > expires) return false;
-  }
   return true;
 }
 
@@ -81,7 +73,7 @@ const listingFields = [
   'id', 'listingNumber', 'listingType', 'title', 'description', 'event_name', 'event_description', 'event_category', 'event_icon', 'event_logo_url', 'event_tier', 'event_photos', 'marquee_flyer_url', 'marquee_background_url', 'marquee_schedule_slots', 'display_address', 'address_text', 'addressText', 'city', 'state', 'zip', 'lat', 'lng', 'timeZoneId', 'tier', 'status', 'event_state', 'photoUrls', 'category', 'categories', 'collectible_type', 'selectedRangeStartDate', 'selectedRangeEndDate', 'openTime', 'closeTime', 'early_visibility_enabled', 'early_visibility_days', 'visibility_start_date', 'earlyVisibilityDays', 'activeDates', 'earlyVisibilityDates', 'startDateTime', 'endDateTime', 'validatedDistance', 'spanFeet', 'homeCount', 'neighborhood_sale_id', 'activation_status', 'is_demo_listing', 'event_center_lat', 'event_center_lng', 'organizer_participation'
 ];
 
-const promoFields = ['id', 'code', 'title', 'promo_door_lat', 'promo_door_lng', 'promo_icon_logo_url', 'promo_icon_size_px', 'promo_icon_glow_enabled', 'promo_icon_animation', 'promo_min_zoom', 'promo_max_zoom', 'geo_display_label', 'default_discount_percent', 'starts_at', 'expires_at'];
+const promoFields = ['id', 'code', 'title', 'status', 'promo_door_lat', 'promo_door_lng', 'promo_icon_logo_url', 'promo_icon_size_px', 'promo_icon_glow_enabled', 'promo_icon_animation', 'promo_min_zoom', 'promo_max_zoom', 'geo_display_label', 'default_discount_percent', 'starts_at', 'expires_at'];
 const vendorEventFields = ['id', 'organizer_business_id', 'organizer_business_name', 'organizer_logo', 'title', 'description', 'category', 'event_type', 'status', 'visibility_status', 'startDateTime', 'endDateTime', 'earlyVisibilityStartDateTime', 'display_address', 'latitude', 'longitude', 'timeZoneId', 'radius_feet', 'photos', 'flyer_url', 'logo', 'icon', 'coming_soon_start_date'];
 const vendorAccountFields = ['id', 'business_name', 'vendor_display_name', 'business_logo', 'business_category', 'vendor_slug', 'description', 'location', 'website', 'facebook_url', 'instagram_url', 'tiktok_url', 'vendor_tier', 'is_active'];
 const vendorPinFields = ['id', 'vendor_account_id', 'pin_name', 'pin_logo_url', 'pin_icon_url', 'pin_icon_style', 'description', 'is_active', 'scheduled_date', 'scheduled_start_time', 'scheduled_end_time', 'recurring_schedule', 'scheduled_location_label', 'scheduled_lat', 'scheduled_lng', 'schedule_status'];
@@ -91,6 +83,20 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const now = new Date();
+    const body = await req.json().catch(() => ({}));
+    const listingId = typeof body?.listingId === 'string' ? body.listingId : '';
+
+    if (listingId) {
+      if (!/^[a-f0-9]{24}$/i.test(listingId)) {
+        return Response.json({ listing: null });
+      }
+      const matches = await base44.asServiceRole.entities.Listing.filter({ id: listingId }, '-created_date', 1);
+      const listing = matches[0] || null;
+      if (!isPublicListing(listing, now)) {
+        return Response.json({ listing: null });
+      }
+      return Response.json({ listing: pick(listing, listingFields) });
+    }
 
     const [listingRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows] = await Promise.all([
       base44.asServiceRole.entities.Listing.list('-created_date', 500),
@@ -102,7 +108,9 @@ Deno.serve(async (req) => {
     ]);
 
     const listings = listingRows.filter((listing) => isPublicListing(listing, now)).map((listing) => pick(listing, listingFields));
-    const promoDiscoveryCodes = promoRows.filter((promo) => isActivePromo(promo, now)).map((promo) => pick(promo, promoFields));
+    const promoDiscoveryCodes = promoRows
+      .filter((promo) => isActivePromo(promo))
+      .map((promo) => ({ ...pick(promo, promoFields), status: 'active' }));
     const vendorEvents = vendorEventRows.filter((event) => isPublicVendorEvent(event, now)).map((event) => pick(event, vendorEventFields));
     const liveCheckIns = vendorCheckInRows.filter((checkIn) => isLiveVendorCheckIn(checkIn, now));
     const liveVendorAccountIds = new Set(liveCheckIns.map((checkIn) => checkIn.vendor_account_id));
