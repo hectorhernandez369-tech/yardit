@@ -44,8 +44,9 @@ function isPublicListing(listing, now) {
 
 function isActivePromo(promo) {
   if (!promo?.promo_door_enabled || promo?.status !== 'active') return false;
-  if (!isValidCoordinate(promo.promo_door_lat) || !isValidCoordinate(promo.promo_door_lng)) return false;
-  return true;
+  const hasDoorPosition = isValidCoordinate(promo.promo_door_lat) && isValidCoordinate(promo.promo_door_lng);
+  const hasRadiusPosition = promo.geographic_limit_type === 'radius' && isValidCoordinate(promo.geo_center_lat) && isValidCoordinate(promo.geo_center_lng);
+  return hasDoorPosition || hasRadiusPosition;
 }
 
 function isPublicVendorEvent(event, now) {
@@ -73,7 +74,7 @@ const listingFields = [
   'id', 'listingNumber', 'listingType', 'title', 'description', 'event_name', 'event_description', 'event_category', 'event_icon', 'event_logo_url', 'event_tier', 'event_photos', 'marquee_flyer_url', 'marquee_background_url', 'marquee_schedule_slots', 'display_address', 'address_text', 'addressText', 'city', 'state', 'zip', 'lat', 'lng', 'timeZoneId', 'tier', 'status', 'event_state', 'photoUrls', 'category', 'categories', 'collectible_type', 'selectedRangeStartDate', 'selectedRangeEndDate', 'openTime', 'closeTime', 'early_visibility_enabled', 'early_visibility_days', 'visibility_start_date', 'earlyVisibilityDays', 'activeDates', 'earlyVisibilityDates', 'startDateTime', 'endDateTime', 'validatedDistance', 'spanFeet', 'homeCount', 'neighborhood_sale_id', 'activation_status', 'is_demo_listing', 'event_center_lat', 'event_center_lng', 'organizer_participation'
 ];
 
-const promoFields = ['id', 'code', 'title', 'status', 'promo_door_lat', 'promo_door_lng', 'promo_icon_logo_url', 'promo_icon_size_px', 'promo_icon_glow_enabled', 'promo_icon_animation', 'promo_min_zoom', 'promo_max_zoom', 'geo_display_label', 'default_discount_percent', 'starts_at', 'expires_at'];
+const promoFields = ['id', 'code', 'title', 'status', 'promo_door_enabled', 'promo_door_lat', 'promo_door_lng', 'geographic_limit_type', 'geo_center_lat', 'geo_center_lng', 'promo_icon_logo_url', 'promo_icon_size_px', 'promo_icon_glow_enabled', 'promo_icon_animation', 'promo_min_zoom', 'promo_max_zoom', 'geo_display_label', 'default_discount_percent', 'starts_at', 'expires_at', 'applies_to_tiers'];
 const vendorEventFields = ['id', 'organizer_business_id', 'organizer_business_name', 'organizer_logo', 'title', 'description', 'category', 'event_type', 'status', 'visibility_status', 'startDateTime', 'endDateTime', 'earlyVisibilityStartDateTime', 'display_address', 'latitude', 'longitude', 'timeZoneId', 'radius_feet', 'photos', 'flyer_url', 'logo', 'icon', 'coming_soon_start_date'];
 const vendorAccountFields = ['id', 'business_name', 'vendor_display_name', 'business_logo', 'business_category', 'vendor_slug', 'description', 'location', 'website', 'facebook_url', 'instagram_url', 'tiktok_url', 'vendor_tier', 'is_active'];
 const vendorPinFields = ['id', 'vendor_account_id', 'pin_name', 'pin_logo_url', 'pin_icon_url', 'pin_icon_style', 'description', 'is_active', 'scheduled_date', 'scheduled_start_time', 'scheduled_end_time', 'recurring_schedule', 'scheduled_location_label', 'scheduled_lat', 'scheduled_lng', 'schedule_status'];
