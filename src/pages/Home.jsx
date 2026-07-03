@@ -655,20 +655,36 @@ export default function HomePage() {
   }, []);
 
   const { isDemoMode: demoOn } = useAppMode();
+  const isPublicHomeMode = !user?.id;
 
-  const { data: listings, isLoading } = useQuery({
-    queryKey: ["listings"],
-    queryFn: () => base44.entities.Listing.list("-created_date"),
-    initialData: []
+  const { data: publicMapData = {}, isLoading: isLoadingPublicMapData } = useQuery({
+    queryKey: ["publicMapData"],
+    queryFn: async () => {
+      const response = await base44.functions.invoke("getPublicMapData", {});
+      return response?.data || {};
+    },
+    initialData: {},
+    enabled: isPublicHomeMode
   });
 
+  const { data: privateListings = [], isLoading: isLoadingPrivateListings } = useQuery({
+    queryKey: ["listings", "private"],
+    queryFn: () => base44.entities.Listing.list("-created_date"),
+    initialData: [],
+    enabled: !isPublicHomeMode
+  });
+
+  const listings = isPublicHomeMode ? publicMapData.listings || [] : privateListings;
+  const isLoading = isPublicHomeMode ? isLoadingPublicMapData : isLoadingPrivateListings;
+
   useEffect(() => {
+    if (isPublicHomeMode) return () => {};
     const unsubscribe = base44.entities.Listing.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: ["listings"] });
+      queryClient.invalidateQueries({ queryKey: ["listings", "private"] });
     });
 
     return unsubscribe;
-  }, [queryClient]);
+  }, [queryClient, isPublicHomeMode]);
 
   // Map movement on city search
   useEffect(() => {
@@ -730,57 +746,73 @@ export default function HomePage() {
   const { data: allCheckIns } = useQuery({
     queryKey: ["allCheckIns"],
     queryFn: () => base44.entities.CheckIn.list(),
-    initialData: []
+    initialData: [],
+    enabled: !isPublicHomeMode
   });
 
   const { data: allReviews } = useQuery({
     queryKey: ["allReviews"],
     queryFn: () => base44.entities.Review.list(),
-    initialData: []
+    initialData: [],
+    enabled: !isPublicHomeMode
   });
 
   const { data: allJoinRequests } = useQuery({
     queryKey: ["allJoinRequests"],
     queryFn: () => base44.entities.JoinRequest.list(),
-    initialData: []
+    initialData: [],
+    enabled: !isPublicHomeMode
   });
 
-  const { data: vendorAccounts = [] } = useQuery({
+  const { data: privateVendorAccounts = [] } = useQuery({
     queryKey: ["vendorAccounts"],
     queryFn: () => base44.entities.VendorAccount.list(),
-    initialData: []
+    initialData: [],
+    enabled: !isPublicHomeMode
   });
 
-  const { data: vendorPins = [] } = useQuery({
+  const { data: privateVendorPins = [] } = useQuery({
     queryKey: ["vendorPins"],
     queryFn: () => base44.entities.VendorPin.list(),
-    initialData: []
+    initialData: [],
+    enabled: !isPublicHomeMode
   });
 
-  const { data: vendorCheckIns = [] } = useQuery({
+  const { data: privateVendorCheckIns = [] } = useQuery({
     queryKey: ["vendorCheckIns"],
     queryFn: () => base44.entities.VendorPinCheckIn.list("-created_date"),
-    initialData: []
+    initialData: [],
+    enabled: !isPublicHomeMode
   });
 
-  const { data: vendorEvents = [] } = useQuery({
+  const { data: privateVendorEvents = [] } = useQuery({
     queryKey: ["publicVendorEvents"],
     queryFn: () => base44.entities.VendorEvent.list("startDateTime"),
-    initialData: []
+    initialData: [],
+    enabled: !isPublicHomeMode
   });
 
-  const { data: promoDiscoveryCodes = [] } = useQuery({
+  const { data: privatePromoDiscoveryCodes = [] } = useQuery({
     queryKey: ["promoDiscoveryCodes"],
     queryFn: () => base44.entities.ResidentialPromoCode.filter({ promo_door_enabled: true, status: "active" }),
-    initialData: []
+    initialData: [],
+    enabled: !isPublicHomeMode
   });
 
+  const vendorAccounts = isPublicHomeMode ? publicMapData.vendorAccounts || [] : privateVendorAccounts;
+  const vendorPins = isPublicHomeMode ? publicMapData.vendorPins || [] : privateVendorPins;
+  const vendorCheckIns = isPublicHomeMode ? publicMapData.vendorCheckIns || [] : privateVendorCheckIns;
+  const vendorEvents = isPublicHomeMode ? publicMapData.vendorEvents || [] : privateVendorEvents;
+  const promoDiscoveryCodes = isPublicHomeMode ? publicMapData.promoDiscoveryCodes || [] : privatePromoDiscoveryCodes;
+
   const handleListViewRefresh = useCallback(async () => {
-    await Promise.all([
-      queryClient.refetchQueries({ queryKey: ["listings"] }),
+    await Promise.all(isPublicHomeMode ? [
+      queryClient.refetchQueries({ queryKey: ["publicMapData"] }),
+    ] : [
+      queryClient.refetchQueries({ queryKey: ["listings", "private"] }),
       queryClient.refetchQueries({ queryKey: ["publicVendorEvents"] }),
     ]);
-  }, [queryClient]);
+  }, [queryClient, isPublicHomeMode]);
 
   // Live location tracking
   useEffect(() => {
