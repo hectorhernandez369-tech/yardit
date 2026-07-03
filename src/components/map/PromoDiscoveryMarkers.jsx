@@ -66,7 +66,7 @@ function getPromoIcon(promo, coveredCount = 0) {
   const logoUrl = promo.promo_icon_logo_url || "https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
   const animation = promo.promo_icon_animation || "none";
   const countLabel = Number(coveredCount || 0) > 0 ? String(coveredCount) : "";
-  const key = `promo_tail_v5_${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
+  const key = `promo_no_tail_v1_${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
   if (!markerCache[key]) {
     const glow = promo.promo_icon_glow_enabled !== false ? "box-shadow:0 0 0 8px rgba(244,168,73,.20),0 0 24px rgba(244,168,73,.72),0 6px 18px rgba(44,79,78,.30);" : "box-shadow:0 6px 18px rgba(44,79,78,.24);";
     const imageGlow = promo.promo_icon_glow_enabled !== false ? "filter:drop-shadow(0 0 12px rgba(244,168,73,.72)) drop-shadow(0 6px 8px rgba(44,79,78,.28));" : "filter:drop-shadow(0 5px 7px rgba(44,79,78,.24));";
@@ -78,16 +78,13 @@ function getPromoIcon(promo, coveredCount = 0) {
     const iconBody = hasCustomLogo
       ? `<img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${size}px;height:${size}px;object-fit:contain;display:block;transform:translateY(${customLogoNudge}px);${imageGlow}" />`
       : `<div style="width:${size}px;height:${size}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border:2px solid #F4A849;${glow}"><img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${Math.round(size * .82)}px;height:${Math.round(size * .82)}px;object-fit:contain;display:block;" /></div>`;
-    const tailHeight = 10;
     const iconWidth = size + 80;
     const visualIconHeight = size + customLogoNudge;
     const iconHeight = visualIconHeight;
-    const totalHeight = iconHeight + tailHeight;
-    const tailTop = iconHeight;
-    const tail = `<div style="position:absolute;left:50%;top:${tailTop}px;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:${tailHeight}px solid #F4A849;filter:drop-shadow(0 2px 3px rgba(44,79,78,.32));"></div>`;
+    const totalHeight = iconHeight;
     markerCache[key] = L.divIcon({
       className: "yardit-promo-discovery-marker",
-      html: `<div style="position:relative;width:${iconWidth}px;height:${totalHeight}px;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}"><div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:${size}px;height:${visualIconHeight}px;z-index:2;">${iconBody}${dateBadge}${badge}</div>${tail}</div>`,
+      html: `<div style="position:relative;width:${iconWidth}px;height:${totalHeight}px;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}"><div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:${size}px;height:${visualIconHeight}px;z-index:2;">${iconBody}${dateBadge}${badge}</div></div>`,
       iconSize: [iconWidth, totalHeight],
       iconAnchor: [iconWidth / 2, totalHeight - 2],
       popupAnchor: [0, -iconHeight + 8],
