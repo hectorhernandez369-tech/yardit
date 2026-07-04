@@ -177,7 +177,10 @@ function getCoveredPinCount(promo, position, coverCandidates, map, clusterCandid
 
 function getPromoIcon(promo, coveredCount = 0) {
   const size = Math.max(32, Math.min(160, Number(promo.promo_icon_size_px || 72)));
-  const dateLabel = escapeHtml(formatPromoDateRange(promo));
+  const rawDateLabel = formatPromoDateRange(promo);
+  const dateLabel = escapeHtml(rawDateLabel);
+  const dateWidth = rawDateLabel ? Math.max(64, rawDateLabel.length * 7 + 16) : 0;
+  const artworkWidth = Math.max(size, dateWidth);
   const hasCustomLogo = !!promo.promo_icon_logo_url;
 
   const logoUrl =
@@ -187,7 +190,7 @@ function getPromoIcon(promo, coveredCount = 0) {
   const animation = promo.promo_icon_animation || "none";
   const countLabel = Number(coveredCount || 0) > 0 ? String(coveredCount) : "";
 
-  const key = `promo_no_tail_v7_${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
+  const key = `promo_no_tail_v8_${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
 
   if (!markerCache[key]) {
     const glow =
@@ -213,6 +216,8 @@ function getPromoIcon(promo, coveredCount = 0) {
       ? `<div style="position:absolute;top:${customLogoNudge + 2}px;left:50%;transform:translateX(-50%);height:22px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid rgba(44,79,78,.24);color:#2C4F4E;font-size:11px;font-weight:900;white-space:nowrap;box-shadow:0 2px 7px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;z-index:10;">${dateLabel}</div>`
       : "";
 
+    const debugImageOutline = `<div style="position:absolute;left:50%;top:${customLogoNudge}px;transform:translateX(-50%);width:${artworkWidth}px;height:${size}px;border:2px dashed #2563eb;background:rgba(37,99,235,.08);box-shadow:0 0 0 1px rgba(255,255,255,.9),0 0 10px rgba(37,99,235,.55);border-radius:6px;pointer-events:none;z-index:20;"></div>`;
+
     const iconBody = hasCustomLogo
       ? `<img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${size}px;height:${size}px;object-fit:contain;display:block;transform:translateY(${customLogoNudge}px);${imageGlow};position:relative;z-index:1;" />`
       : `<div style="width:${size}px;height:${size}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border:2px solid #ef4444;${glow};position:relative;z-index:1;"><img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${Math.round(size * 0.82)}px;height:${Math.round(size * 0.82)}px;object-fit:contain;display:block;" /></div>`;
@@ -223,7 +228,7 @@ function getPromoIcon(promo, coveredCount = 0) {
 
     markerCache[key] = L.divIcon({
       className: "yardit-promo-discovery-marker",
-      html: `<div style="position:relative;width:${iconWidth}px;height:${iconHeight}px;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}"><div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:${size}px;height:${visualIconHeight}px;z-index:2;">${iconBody}${dateBadge}${badge}</div></div>`,
+      html: `<div style="position:relative;width:${iconWidth}px;height:${iconHeight}px;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}"><div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:${size}px;height:${visualIconHeight}px;z-index:2;">${iconBody}${debugImageOutline}${dateBadge}${badge}</div></div>`,
       iconSize: [iconWidth, iconHeight],
       iconAnchor: [iconWidth / 2, iconHeight / 2],
       popupAnchor: [0, -Math.round(iconHeight * 0.275) - 8],
