@@ -32,8 +32,13 @@ export default function MapFocusController({ focusData, markerRefsMap, onFocusCo
     
     if (isNaN(targetZoom)) targetZoom = 13;
 
-    // Center map on listing
-    map.flyTo([lat, lng], targetZoom, { 
+    // Center slightly above the listing so the popup has room above the pin
+    const mapHeight = map.getSize()?.y || 0;
+    const verticalOffset = Math.min(130, Math.max(70, mapHeight * 0.18));
+    const targetPoint = map.project([lat, lng], targetZoom).subtract([0, verticalOffset]);
+    const targetCenter = map.unproject(targetPoint, targetZoom);
+
+    map.flyTo(targetCenter, targetZoom, { 
       animate: true,
       duration: 0.65 
     });
