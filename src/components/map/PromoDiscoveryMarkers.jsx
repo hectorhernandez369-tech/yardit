@@ -124,7 +124,7 @@ function getPromoIcon(promo, coveredCount = 0) {
   const animation = promo.promo_icon_animation || "none";
   const countLabel = Number(coveredCount || 0) > 0 ? String(coveredCount) : "";
 
-  const key = `promo_no_tail_v6_${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
+  const key = `promo_no_tail_v7_${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
 
   if (!markerCache[key]) {
     const glow =
@@ -132,10 +132,11 @@ function getPromoIcon(promo, coveredCount = 0) {
         ? "box-shadow:0 0 0 8px rgba(244,168,73,.20),0 0 24px rgba(244,168,73,.72),0 6px 18px rgba(44,79,78,.30);"
         : "box-shadow:0 6px 18px rgba(44,79,78,.24);";
 
+    const artworkOutline = "drop-shadow(1px 0 0 rgba(239,68,68,.98)) drop-shadow(-1px 0 0 rgba(239,68,68,.98)) drop-shadow(0 1px 0 rgba(239,68,68,.98)) drop-shadow(0 -1px 0 rgba(239,68,68,.98)) drop-shadow(0 0 3px rgba(239,68,68,.9))";
     const imageGlow =
       promo.promo_icon_glow_enabled !== false
-        ? "filter:drop-shadow(0 0 1px rgba(239,68,68,.95)) drop-shadow(0 0 2.5px rgba(239,68,68,.85)) drop-shadow(0 0 12px rgba(244,168,73,.72)) drop-shadow(0 6px 8px rgba(44,79,78,.28));"
-        : "filter:drop-shadow(0 0 1px rgba(239,68,68,.95)) drop-shadow(0 0 2.5px rgba(239,68,68,.85)) drop-shadow(0 5px 7px rgba(44,79,78,.24));";
+        ? `filter:${artworkOutline} drop-shadow(0 0 12px rgba(244,168,73,.72)) drop-shadow(0 6px 8px rgba(44,79,78,.28));`
+        : `filter:${artworkOutline} drop-shadow(0 5px 7px rgba(44,79,78,.24));`;
 
     const customLogoNudge = hasCustomLogo ? Math.round(size * 0.25) : 0;
     const badgeTop = customLogoNudge + Math.round(size * 0.24);
@@ -151,7 +152,7 @@ function getPromoIcon(promo, coveredCount = 0) {
 
     const iconBody = hasCustomLogo
       ? `<img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${size}px;height:${size}px;object-fit:contain;display:block;transform:translateY(${customLogoNudge}px);${imageGlow};position:relative;z-index:1;" />`
-      : `<div style="width:${size}px;height:${size}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border:2px solid #F4A849;${glow};position:relative;z-index:1;"><img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${Math.round(size * 0.82)}px;height:${Math.round(size * 0.82)}px;object-fit:contain;display:block;" /></div>`;
+      : `<div style="width:${size}px;height:${size}px;border-radius:22%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border:2px solid #ef4444;${glow};position:relative;z-index:1;"><img src="${escapeHtml(logoUrl)}" alt="Promo" style="width:${Math.round(size * 0.82)}px;height:${Math.round(size * 0.82)}px;object-fit:contain;display:block;" /></div>`;
 
     const iconWidth = size + 80;
     const visualIconHeight = size + customLogoNudge;
