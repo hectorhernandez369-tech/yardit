@@ -1012,6 +1012,12 @@ export default function HomePage() {
       const isComingSoon = listing.mapState === "coming_soon";
       const isActive = listing.mapState === "active";
       const isMarquee = isMarqueeListing(listing);
+      const isFireworksEvent = listing.listingType === "event" && listing.event_icon === "fireworks";
+
+      if (isFireworksEvent) {
+        pins.push(listing);
+        return;
+      }
 
       if (isPreview || isDailyPreview) {
         pins.push(listing);
@@ -1424,6 +1430,7 @@ export default function HomePage() {
               const ownerPreviewPending = listing.listingType === "neighborhood_sale" && user?.id && getListingOwnerId(listing) === user.id && deriveNeighborhoodEventState(listing, new Date()) === "pending_activation";
               const isPreviewState = listing.mapState === "preview";
               const isDailyPreviewState = listing.mapState === "daily_preview";
+              const isFireworksEvent = listing.listingType === "event" && listing.event_icon === "fireworks";
               const goLiveLabel = formatListingGoLive(listing);
 
               return (
@@ -1431,6 +1438,7 @@ export default function HomePage() {
                   key={listing.id}
                   ref={(ref) => {if (ref) markerRefsMap.current[listing.id] = ref;}}
                   position={[listing.lat, listing.lng]}
+                  zIndexOffset={isFireworksEvent ? 10000 : 0}
                   icon={listing.listingType === "event" ? getEventMarkerIcon({ ...listing, ownerUpcomingPreview: isPreviewState }, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
                   eventHandlers={{
                     click: () => {handlePinClick(listing);},
