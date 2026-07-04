@@ -1,5 +1,5 @@
 import React from "react";
-import { Marker, Popup } from "react-leaflet";
+import { Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -37,25 +37,43 @@ function getAnimationStyle(animation) {
   return "";
 }
 
-function metersPerPixel(lat, zoom) {
-  return 40075016 * Math.cos((lat * Math.PI) / 180) / (256 * Math.pow(2, zoom));
-}
-
-function distanceMeters(lat1, lng1, lat2, lng2) {
-  const R = 6371000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function getCoveredPinCount(promo, position, coverCandidates, zoom) {
-  if (!position || !Array.isArray(coverCandidates)) return 0;
+function getPromoScreenBounds(promo, position, map) {
+  if (!position || !map) return null;
   const size = Math.max(32, Math.min(160, Number(promo.promo_icon_size_px || 72)));
-  const coverRadiusMeters = (size * 0.72 + 18) * metersPerPixel(position[0], zoom || 13);
+  const dateLabel = formatPromoDateRange(promo);
+  const hasCustomLogo = !!promo.promo_icon_logo_url;
+  const customLogoNudge = hasCustomLogo ? Math.round(size * 0.25) : 0;
+  const iconWidth = size + 80;
+  const iconHeight = size + customLogoNudge;
+  const point = map.latLngToContainerPoint(position);
+  const left = point.x - iconWidth / 2;
+  const top = point.y - iconHeight / 2;
+  const artworkWidth = size;
+  const dateWidth = dateLabel ? Math.max(size, dateLabel.length * 7 + 24) : size;
+  const visualWidth = Math.min(iconWidth, Math.max(artworkWidth, dateWidth));
+  const centerX = left + iconWidth / 2;
+  return {
+    left: centerX - visualWidth / 2,
+    right: centerX + visualWidth / 2,
+    top,
+    bottom: top + iconHeight,
+  };
+}
+
+function getCoveredPinCount(promo, position, coverCandidates, map) {
+  if (!position || !Array.isArray(coverCandidates) || !map) return 0;
+  const bounds = getPromoScreenBounds(promo, position, map);
+  if (!bounds) return 0;
+  const pinBlockPadding = 12;
   return coverCandidates.filter((pin) => {
     if (typeof pin?.lat !== "number" || typeof pin?.lng !== "number") return false;
-    return distanceMeters(position[0], position[1], pin.lat, pin.lng) <= coverRadiusMeters;
+    const point = map.latLngToContainerPoint([pin.lat, pin.lng]);
+    return (
+      point.x >= bounds.left - pinBlockPadding &&
+      point.x <= bounds.right + pinBlockPadding &&
+      point.y >= bounds.top - pinBlockPadding &&
+      point.y <= bounds.bottom + pinBlockPadding
+    );
   }).length;
 }
 
@@ -111,6 +129,7 @@ function preferredTier(promo) {
 
 export default function PromoDiscoveryMarkers({ promos = [], currentZoom = 13, coverCandidates = [] }) {
   const navigate = useNavigate();
+  const map = useMap();
   const activePromos = promos.filter((promo) => isActivePromo(promo, currentZoom));
 
   return (
@@ -118,7 +137,7 @@ export default function PromoDiscoveryMarkers({ promos = [], currentZoom = 13, c
       {activePromos.map((promo) => {
         const position = getPromoPosition(promo);
         if (!position) return null;
-        const coveredCount = getCoveredPinCount(promo, position, coverCandidates, currentZoom);
+        const coveredCount = getCoveredPinCount(promo, position, coverCandidates, map);
         return (
           <Marker key={`promo-door-${promo.id}-${coveredCount}-z${currentZoom}`} position={position} icon={getPromoIcon(promo, coveredCount)} zIndexOffset={1000}>
             <Popup minWidth={250} className="leaflet-popup-transparent">
