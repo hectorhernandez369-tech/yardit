@@ -130,7 +130,7 @@ function getPromoIcon(promo, coveredCount = 0) {
   const animation = promo.promo_icon_animation || "none";
   const countLabel = Number(coveredCount || 0) > 0 ? String(coveredCount) : "";
 
-  const key = `promo_no_tail_v4_${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
+  const key = `promo_no_tail_v5_${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
 
   if (!markerCache[key]) {
     const glow =
@@ -162,10 +162,14 @@ function getPromoIcon(promo, coveredCount = 0) {
     const iconWidth = size + 80;
     const visualIconHeight = size + customLogoNudge;
     const iconHeight = visualIconHeight;
+    const overlapPadding = 6;
+    const dateWidth = dateLabel ? Math.max(size, dateLabel.length * 7 + 24) : size;
+    const visualWidth = Math.min(iconWidth, Math.max(size, dateWidth));
+    const coverageOutline = `<div style="position:absolute;left:${(iconWidth - visualWidth) / 2 - overlapPadding}px;top:${customLogoNudge - overlapPadding}px;width:${visualWidth + overlapPadding * 2}px;height:${size + overlapPadding * 2}px;border:2px dashed rgba(239,68,68,.95);border-radius:10px;box-sizing:border-box;pointer-events:none;z-index:20;"></div>`;
 
     markerCache[key] = L.divIcon({
       className: "yardit-promo-discovery-marker",
-      html: `<div style="position:relative;width:${iconWidth}px;height:${iconHeight}px;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}"><div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:${size}px;height:${visualIconHeight}px;z-index:2;">${iconBody}${dateBadge}${badge}</div></div>`,
+      html: `<div style="position:relative;width:${iconWidth}px;height:${iconHeight}px;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}">${coverageOutline}<div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:${size}px;height:${visualIconHeight}px;z-index:2;">${iconBody}${dateBadge}${badge}</div></div>`,
       iconSize: [iconWidth, iconHeight],
       iconAnchor: [iconWidth / 2, iconHeight / 2],
       popupAnchor: [0, -Math.round(iconHeight * 0.275) - 8],
