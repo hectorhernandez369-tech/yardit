@@ -48,6 +48,7 @@ function getPromoScreenBounds(promo, position, map) {
   const point = map.latLngToContainerPoint(position);
   const left = point.x - iconWidth / 2;
   const top = point.y - iconHeight / 2;
+  const visualTop = top + customLogoNudge;
   const artworkWidth = size;
   const dateWidth = dateLabel ? Math.max(size, dateLabel.length * 7 + 24) : size;
   const visualWidth = Math.min(iconWidth, Math.max(artworkWidth, dateWidth));
@@ -55,7 +56,7 @@ function getPromoScreenBounds(promo, position, map) {
   return {
     left: centerX - visualWidth / 2,
     right: centerX + visualWidth / 2,
-    top,
+    top: visualTop,
     bottom: top + iconHeight,
   };
 }
