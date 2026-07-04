@@ -62,7 +62,6 @@ function getPromoScreenBounds(promo, position, map) {
   if (!position || !map) return null;
 
   const size = Math.max(32, Math.min(160, Number(promo.promo_icon_size_px || 72)));
-  const dateLabel = formatPromoDateRange(promo);
   const hasCustomLogo = !!promo.promo_icon_logo_url;
   const customLogoNudge = hasCustomLogo ? Math.round(size * 0.25) : 0;
 
@@ -72,18 +71,13 @@ function getPromoScreenBounds(promo, position, map) {
 
   const left = point.x - iconWidth / 2;
   const top = point.y - iconHeight / 2;
-
-  const visualTop = top + customLogoNudge;
-  const artworkWidth = size;
-  const dateWidth = dateLabel ? Math.max(size, dateLabel.length * 7 + 24) : size;
-  const visualWidth = Math.min(iconWidth, Math.max(artworkWidth, dateWidth));
   const centerX = left + iconWidth / 2;
 
   return {
-    left: centerX - visualWidth / 2,
-    right: centerX + visualWidth / 2,
-    top: visualTop,
-    bottom: top + iconHeight,
+    left: centerX - size / 2,
+    right: centerX + size / 2,
+    top: top + customLogoNudge,
+    bottom: top + customLogoNudge + size,
   };
 }
 
@@ -93,7 +87,7 @@ function getCoveredPinCount(promo, position, coverCandidates, map) {
   const promoBounds = getPromoScreenBounds(promo, position, map);
   if (!promoBounds) return 0;
 
-  const overlapPadding = 6;
+  const overlapPadding = 0;
 
   const paddedPromoBounds = {
     left: promoBounds.left - overlapPadding,
@@ -130,7 +124,7 @@ function getPromoIcon(promo, coveredCount = 0) {
   const animation = promo.promo_icon_animation || "none";
   const countLabel = Number(coveredCount || 0) > 0 ? String(coveredCount) : "";
 
-  const key = `promo_no_tail_v5_${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
+  const key = `promo_no_tail_v6_${logoUrl}_${size}_${dateLabel}_${promo.promo_icon_glow_enabled !== false}_${animation}_${countLabel}_${hasCustomLogo}`;
 
   if (!markerCache[key]) {
     const glow =
@@ -140,8 +134,8 @@ function getPromoIcon(promo, coveredCount = 0) {
 
     const imageGlow =
       promo.promo_icon_glow_enabled !== false
-        ? "filter:drop-shadow(0 0 12px rgba(244,168,73,.72)) drop-shadow(0 6px 8px rgba(44,79,78,.28));"
-        : "filter:drop-shadow(0 5px 7px rgba(44,79,78,.24));";
+        ? "filter:drop-shadow(0 0 1px rgba(239,68,68,.95)) drop-shadow(0 0 2.5px rgba(239,68,68,.85)) drop-shadow(0 0 12px rgba(244,168,73,.72)) drop-shadow(0 6px 8px rgba(44,79,78,.28));"
+        : "filter:drop-shadow(0 0 1px rgba(239,68,68,.95)) drop-shadow(0 0 2.5px rgba(239,68,68,.85)) drop-shadow(0 5px 7px rgba(44,79,78,.24));";
 
     const customLogoNudge = hasCustomLogo ? Math.round(size * 0.25) : 0;
     const badgeTop = customLogoNudge + Math.round(size * 0.24);
@@ -162,14 +156,10 @@ function getPromoIcon(promo, coveredCount = 0) {
     const iconWidth = size + 80;
     const visualIconHeight = size + customLogoNudge;
     const iconHeight = visualIconHeight;
-    const overlapPadding = 6;
-    const dateWidth = dateLabel ? Math.max(size, dateLabel.length * 7 + 24) : size;
-    const visualWidth = Math.min(iconWidth, Math.max(size, dateWidth));
-    const coverageOutline = `<div style="position:absolute;left:${(iconWidth - visualWidth) / 2 - overlapPadding}px;top:${customLogoNudge - overlapPadding}px;width:${visualWidth + overlapPadding * 2}px;height:${size + overlapPadding * 2}px;border:2px dashed rgba(239,68,68,.95);border-radius:10px;box-sizing:border-box;pointer-events:none;z-index:20;"></div>`;
 
     markerCache[key] = L.divIcon({
       className: "yardit-promo-discovery-marker",
-      html: `<div style="position:relative;width:${iconWidth}px;height:${iconHeight}px;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}">${coverageOutline}<div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:${size}px;height:${visualIconHeight}px;z-index:2;">${iconBody}${dateBadge}${badge}</div></div>`,
+      html: `<div style="position:relative;width:${iconWidth}px;height:${iconHeight}px;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}"><div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:${size}px;height:${visualIconHeight}px;z-index:2;">${iconBody}${dateBadge}${badge}</div></div>`,
       iconSize: [iconWidth, iconHeight],
       iconAnchor: [iconWidth / 2, iconHeight / 2],
       popupAnchor: [0, -Math.round(iconHeight * 0.275) - 8],
