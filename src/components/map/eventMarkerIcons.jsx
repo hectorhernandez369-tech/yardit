@@ -5,14 +5,14 @@ import { MARQUEE_BOARD_WIDTH, MARQUEE_BOARD_COLLAPSED_WIDTH } from "@/components
 const MARQUEE_ANCHOR_Y = 0;
 const cache = {};
 
-function makeDivIcon(key, html, width, height, anchorX = width / 2, anchorY = height) {
+function makeDivIcon(key, html, width, height, anchorX = width / 2, anchorY = height, popupAnchor = [0, -height + 4]) {
   if (!cache[key]) {
     cache[key] = L.divIcon({
       className: "event-marker",
       html,
       iconSize: [width, height],
       iconAnchor: [anchorX, anchorY],
-      popupAnchor: [0, -height + 4],
+      popupAnchor,
     });
   }
   return cache[key];
@@ -39,7 +39,7 @@ function getFireworksEventIcon(listing, isSelected = false, opacity = 1) {
     return `<span class="yardit-fw-dot" style="--a:${angle}deg;--d:${distance}px;--s:${size}px;--c:${rayColors[(index + 2) % rayColors.length]};--delay:${(index % 9) * .018}s;"></span>`;
   }).join("");
   const html = `<style>@keyframes yarditFwLaunch{0%{transform:translate(-50%,34px) scale(.55);opacity:0}12%{opacity:1}48%{transform:translate(-50%,4px) scale(.9);opacity:1}56%,100%{transform:translate(-50%,0) scale(.45);opacity:0}}@keyframes yarditFwTrail{0%{height:0;opacity:0}14%{height:22px;opacity:.8}48%{height:44px;opacity:.35}60%,100%{height:0;opacity:0}}@keyframes yarditFwRay{0%,54%{transform:rotate(var(--a)) scaleX(0);opacity:0}62%{opacity:1}100%{transform:rotate(var(--a)) scaleX(1);opacity:0}}@keyframes yarditFwDot{0%,55%{transform:rotate(var(--a)) translateX(0) scale(.3);opacity:0}68%{opacity:1}100%{transform:rotate(var(--a)) translateX(var(--d)) scale(1);opacity:0}}@keyframes yarditFwCore{0%,52%{transform:translate(-50%,-50%) scale(.25);opacity:0}62%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(.25);opacity:0}}</style><div style="position:relative;width:${width}px;height:${height}px;opacity:${opacity};filter:drop-shadow(0 4px 8px rgba(15,23,42,.35));"><div style="position:absolute;left:${centerX}px;top:${centerY + 10}px;width:2px;border-radius:999px;background:linear-gradient(to top,#7c2d12,#d946ef,#ffd400,#ffffff);transform-origin:bottom center;transform:rotate(10deg);box-shadow:0 0 6px #ffd400;animation:yarditFwTrail 1.65s ease-in-out infinite;"></div><div style="position:absolute;left:${centerX}px;top:${centerY + 10}px;width:7px;height:7px;border-radius:999px;background:#fff7ed;box-shadow:0 0 8px #fff,0 0 14px #ffd400;animation:yarditFwLaunch 1.65s ease-in-out infinite;"></div><div style="position:absolute;left:${centerX}px;top:${centerY}px;width:${burstSize}px;height:${burstSize}px;transform:translate(-50%,-50%);overflow:visible;"><div style="position:absolute;left:50%;top:50%;width:9px;height:9px;border-radius:999px;background:#fff;box-shadow:0 0 8px #fff,0 0 16px #ffd400,0 0 24px #ff5d73;animation:yarditFwCore 1.65s ease-out infinite;"></div><div style="position:absolute;left:50%;top:50%;width:0;height:0;overflow:visible;">${rays}${dots}</div></div><div style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);white-space:nowrap;border:1px solid rgba(17,24,39,.85);border-radius:999px;background:rgba(255,255,255,.96);padding:1px 6px;font-size:9px;font-weight:800;color:#111827;letter-spacing:.02em;">${label}</div></div>`.replace(/class="yardit-fw-ray" style="/g, 'style="position:absolute;left:0;top:0;width:var(--l);height:var(--t);border-radius:999px;background:linear-gradient(to right,#fff,var(--c),rgba(255,255,255,0));transform-origin:left center;box-shadow:0 0 5px var(--c);animation:yarditFwRay 1.65s ease-out infinite var(--delay);').replace(/class="yardit-fw-dot" style="/g, 'style="position:absolute;left:0;top:0;width:var(--s);height:var(--s);border-radius:999px;background:var(--c);box-shadow:0 0 5px var(--c);animation:yarditFwDot 1.65s ease-out infinite var(--delay);');
-  return makeDivIcon(`event_fireworks_launch_burst_${listing?.id || "event"}_${isSelected}_${opacity}`, html, width, height, width / 2, centerY);
+  return makeDivIcon(`event_fireworks_launch_burst_${listing?.id || "event"}_${isSelected}_${opacity}`, html, width, height, width / 2, centerY, [0, -14]);
 }
 
 export function getCollapsedMarqueeScale(zoom) {
