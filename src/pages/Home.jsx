@@ -1454,9 +1454,9 @@ export default function HomePage() {
 
                   }
                     {!isMarquee &&
-                  <Popup maxWidth={340} minWidth={216} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
-                         <div className="flex w-[70vw] max-w-[252px] flex-col rounded-xl overflow-hidden backdrop-blur-md border border-white/40 shadow-lg opacity-100 bg-white sm:w-auto sm:max-w-[320px]" style={{ maxHeight: "70vh" }}>
-                          <div className="px-1.5 py-2 sm:p-2 overflow-y-auto flex-1 min-h-0 space-y-2">
+                  <Popup maxWidth={289} minWidth={184} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
+                         <div className="flex w-[60vw] max-w-[214px] flex-col rounded-xl overflow-hidden backdrop-blur-md border border-white/40 shadow-lg opacity-100 bg-white sm:w-auto sm:max-w-[272px]" style={{ maxHeight: "60vh" }}>
+                          <div className="px-1 py-1.5 sm:p-1.5 overflow-y-auto flex-1 min-h-0 space-y-1.5">
                             <div className="flex items-center gap-1 flex-wrap">
                               <Badge className={`text-[9px] px-1.5 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
                                 {getListingTypeBadgeLabel(listing)}
@@ -1481,7 +1481,7 @@ export default function HomePage() {
                           }
                             </div>
 
-                            <h3 className="font-bold text-base leading-tight text-slate-950">{getListingPrimaryText(listing)}</h3>
+                            <h3 className="font-bold text-sm leading-tight text-slate-950">{getListingPrimaryText(listing)}</h3>
 
                             {isPreviewState ?
                         <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2">
@@ -1491,9 +1491,9 @@ export default function HomePage() {
 
                         <>
                                 {getListingDescriptionText(listing) &&
-                          <p className="text-xs text-slate-700 leading-relaxed line-clamp-2 overflow-hidden">{getListingDescriptionText(listing)}</p>
+                          <p className="text-[11px] text-slate-700 leading-relaxed line-clamp-2 overflow-hidden">{getListingDescriptionText(listing)}</p>
                           }
-                                <div className="space-y-1 rounded-lg bg-slate-50/80 p-2 text-[11px] text-slate-700">
+                                <div className="space-y-1 rounded-lg bg-slate-50/80 p-1.5 text-[10px] text-slate-700">
                                   <div className="flex gap-1.5">
                                     <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-slate-400" />
                                     <span className="break-words">{listing.display_address || listing.address_text || listing.addressText || [listing.city, listing.state, listing.zip].filter(Boolean).join(", ") || "Address unavailable"}</span>
@@ -1519,18 +1519,18 @@ export default function HomePage() {
                         }
                           </div>
 
-                          <div className="flex items-center gap-1 border-t border-gray-200 bg-white/40 px-1.5 py-1.5 flex-shrink-0 flex-wrap justify-center">
+                          <div className="flex items-center gap-1 border-t border-gray-200 bg-white/40 px-1 py-1 flex-shrink-0 flex-wrap justify-center">
                             <Button
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(listing.is_vendor_event ? `/VendorEventPublicPage?id=${listing.vendor_event_id}` : createPageUrl("ListingDetail") + `?id=${listing.id}`);
                           }}
-                          className="h-6 text-[11px] px-2 py-0 bg-amber-600 hover:bg-amber-700">
+                          className="h-5 text-[10px] px-1.5 py-0 bg-amber-600 hover:bg-amber-700">
                           
                               {listing.is_vendor_event ? "Public View" : "View Listing"}
                             </Button>
-                            <SaveListingButton listing={listing} iconOnly size="sm" className="h-6 w-6 p-0 border-slate-200" />
+                            <SaveListingButton listing={listing} iconOnly size="sm" className="h-5 w-5 p-0 border-slate-200" />
                             {!isPreviewState &&
                         <>
                                 <Button
@@ -1540,7 +1540,7 @@ export default function HomePage() {
                               e.stopPropagation();
                               guardAction(() => setReportListingId(listing.id));
                             }}
-                            className="h-6 text-[11px] px-2 py-0 text-red-600 border-red-300 hover:bg-red-50">
+                            className="h-5 text-[10px] px-1.5 py-0 text-red-600 border-red-300 hover:bg-red-50">
                             
                                   Report
                                 </Button>
@@ -1563,7 +1563,7 @@ export default function HomePage() {
                                       }
                                     });
                                   }}
-                                  className="gap-1 h-6 text-[11px] px-1.5 py-0">
+                                  className="gap-1 h-5 text-[10px] px-1 py-0">
                                   
                                           <Plus className="w-3 h-3" /> Add Stop
                                         </Button>);
