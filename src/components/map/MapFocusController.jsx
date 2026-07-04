@@ -35,7 +35,7 @@ export default function MapFocusController({ focusData, markerRefsMap, onFocusCo
     // Center map on listing
     map.flyTo([lat, lng], targetZoom, { 
       animate: true,
-      duration: 0.5 
+      duration: 0.65 
     });
 
     // Open popup after animation

@@ -1454,7 +1454,7 @@ export default function HomePage() {
 
                   }
                     {!isMarquee &&
-                  <Popup maxWidth={318} minWidth={202} autoPan={true} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
+                  <Popup maxWidth={318} minWidth={202} autoPan={false} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
                          <div className="flex w-[66vw] max-w-[235px] flex-col rounded-xl overflow-hidden backdrop-blur-md border border-white/40 shadow-lg opacity-100 bg-white sm:w-auto sm:max-w-[299px]" style={{ maxHeight: "60vh" }}>
                           <div className="px-1 py-1.5 sm:p-1.5 overflow-y-auto flex-1 min-h-0 space-y-1.5">
                             <div className="flex items-center gap-1 flex-wrap">
