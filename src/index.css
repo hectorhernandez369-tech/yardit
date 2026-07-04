@@ -226,12 +226,13 @@ button:focus-visible {
   }
 
   .yardit-app-shell {
+    padding-top: max(var(--yardit-safe-area-top), 1.6rem);
     padding-left: var(--yardit-safe-area-left);
     padding-right: var(--yardit-safe-area-right);
   }
 
   .yardit-home-shell {
-    padding-top: max(var(--yardit-safe-area-top), 1.6rem);
+    padding-top: 0;
   }
 
   .yardit-top-nav {
