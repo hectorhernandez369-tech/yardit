@@ -3,7 +3,7 @@ import { useMap } from "react-leaflet";
 import L from "leaflet";
 
 // Simple spatial clustering: groups points within a pixel radius at a given zoom
-function clusterPoints(points, map, radius) {
+export function clusterPoints(points, map, radius) {
   const clusters = [];
   const used = new Set();
 
@@ -33,7 +33,7 @@ function clusterPoints(points, map, radius) {
   return clusters;
 }
 
-function getClusterStyle(count) {
+export function getClusterStyle(count) {
   if (count >= 25) return { color: "#F4A849", radius: 20 };
   if (count >= 10) return { color: "#5DADA5", radius: 16 };
   return { color: "#5DADA5", radius: 14 };

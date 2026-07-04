@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { clusterPoints, getClusterStyle } from "@/components/map/ClusterGroup";
 
 const markerCache = {};
 
@@ -64,6 +65,9 @@ function getPromoScreenBounds(promo, position, map) {
   const size = Math.max(32, Math.min(160, Number(promo.promo_icon_size_px || 72)));
   const hasCustomLogo = !!promo.promo_icon_logo_url;
   const customLogoNudge = hasCustomLogo ? Math.round(size * 0.25) : 0;
+  const dateLabel = formatPromoDateRange(promo);
+  const dateWidth = dateLabel ? Math.max(64, dateLabel.length * 7 + 16) : 0;
+  const artworkWidth = Math.max(size, dateWidth);
 
   const iconWidth = size + 80;
   const iconHeight = size + customLogoNudge;
@@ -74,42 +78,101 @@ function getPromoScreenBounds(promo, position, map) {
   const centerX = left + iconWidth / 2;
 
   return {
-    left: centerX - size / 2,
-    right: centerX + size / 2,
+    left: centerX - artworkWidth / 2,
+    right: centerX + artworkWidth / 2,
     top: top + customLogoNudge,
     bottom: top + customLogoNudge + size,
   };
 }
 
-function getCoveredPinCount(promo, position, coverCandidates, map) {
+function getStandardListingMarkerBounds(pin, map) {
+  if (typeof pin?.lat !== "number" || typeof pin?.lng !== "number") return null;
+
+  const point = map.latLngToContainerPoint([pin.lat, pin.lng]);
+  const listingType = pin.listingType || pin.type;
+
+  if (listingType === "event") {
+    const residentialAddOns = pin.event_add_ons || {};
+    const tier = residentialAddOns.marquee
+      ? "marquee"
+      : residentialAddOns.premium_visibility
+        ? "premium"
+        : pin.event_tier || pin.tier || "featured";
+    const hasImage = !!pin.event_logo_url;
+    const isFireworks = pin.event_icon === "fireworks";
+    const size = isFireworks ? 46 : tier === "marquee" ? 46 : tier === "premium" ? (hasImage ? 26 : 24) : tier === "featured" ? (hasImage ? 30 : 28) : (hasImage ? 30 : 28);
+    const anchorY = tier === "marquee" || tier === "premium" || tier === "featured" || hasImage ? size / 2 : size;
+
+    return {
+      left: point.x - size / 2,
+      right: point.x + size / 2,
+      top: point.y - anchorY,
+      bottom: point.y - anchorY + size,
+    };
+  }
+
+  if (listingType === "neighborhood_sale") {
+    let scale = 1;
+    const count = pin.homeCount || pin.confirmed_count || 0;
+    if (count >= 20) scale = 1.35;
+    else if (count >= 12) scale = 1.2;
+    else if (count >= 5) scale = 1.05;
+    const size = 30 * scale;
+    return { left: point.x - size / 2, right: point.x + size / 2, top: point.y - size, bottom: point.y };
+  }
+
+  let size = 18;
+  if (listingType === "halloween_candy" || listingType === "holiday_lights") size = 25;
+  else if (pin.tier === "premium") size = 28;
+  else if (pin.tier === "featured" || pin.tier === "map_pin") size = 25;
+
+  const height = Math.round(size * 1.33);
+  return { left: point.x - size / 2, right: point.x + size / 2, top: point.y - height, bottom: point.y };
+}
+
+function getClusterMarkerBounds(cluster, map) {
+  const point = map.latLngToContainerPoint([cluster.lat, cluster.lng]);
+  const style = getClusterStyle(cluster.count);
+  const radius = style.radius;
+
+  return {
+    left: point.x - radius,
+    right: point.x + radius,
+    top: point.y - radius,
+    bottom: point.y + radius,
+  };
+}
+
+function getCoveredPinCount(promo, position, coverCandidates, map, clusterCandidates = [], clusterRadius = 50, clusterMinPoints = 2) {
   if (!position || !Array.isArray(coverCandidates) || !map) return 0;
 
   const promoBounds = getPromoScreenBounds(promo, position, map);
   if (!promoBounds) return 0;
 
-  const overlapPadding = 0;
+  const countedIds = new Set();
+  const clusteredIds = new Set();
+  const clusters = Array.isArray(clusterCandidates)
+    ? clusterPoints(clusterCandidates, map, clusterRadius).filter((cluster) => cluster.count >= clusterMinPoints)
+    : [];
 
-  const paddedPromoBounds = {
-    left: promoBounds.left - overlapPadding,
-    right: promoBounds.right + overlapPadding,
-    top: promoBounds.top - overlapPadding,
-    bottom: promoBounds.bottom + overlapPadding,
-  };
+  clusters.forEach((cluster) => {
+    cluster.ids.forEach((id) => clusteredIds.add(id));
+    const clusterBounds = getClusterMarkerBounds(cluster, map);
+    if (!rectanglesOverlap(promoBounds, clusterBounds)) return;
+    cluster.ids.forEach((id) => countedIds.add(id));
+  });
 
-  return coverCandidates.filter((pin) => {
-    if (typeof pin?.lat !== "number" || typeof pin?.lng !== "number") return false;
+  coverCandidates.forEach((pin) => {
+    const id = pin?.id || pin?.listingId;
+    if (!id || countedIds.has(id) || clusteredIds.has(id)) return;
 
-    const point = map.latLngToContainerPoint([pin.lat, pin.lng]);
+    const pinBounds = getStandardListingMarkerBounds(pin, map);
+    if (!pinBounds || !rectanglesOverlap(promoBounds, pinBounds)) return;
 
-    const pinBounds = {
-      left: point.x - 18,
-      right: point.x + 18,
-      top: point.y - 42,
-      bottom: point.y + 6,
-    };
+    countedIds.add(id);
+  });
 
-    return rectanglesOverlap(paddedPromoBounds, pinBounds);
-  }).length;
+  return countedIds.size;
 }
 
 function getPromoIcon(promo, coveredCount = 0) {
@@ -189,7 +252,7 @@ function preferredTier(promo) {
   return "featured";
 }
 
-export default function PromoDiscoveryMarkers({ promos = [], currentZoom = 13, coverCandidates = [] }) {
+export default function PromoDiscoveryMarkers({ promos = [], currentZoom = 13, coverCandidates = [], clusterCandidates = [], clusterRadius = 50, clusterMinPoints = 2 }) {
   const navigate = useNavigate();
   const map = useMap();
   const activePromos = promos.filter((promo) => isActivePromo(promo, currentZoom));
@@ -200,7 +263,7 @@ export default function PromoDiscoveryMarkers({ promos = [], currentZoom = 13, c
         const position = getPromoPosition(promo);
         if (!position) return null;
 
-        const coveredCount = getCoveredPinCount(promo, position, coverCandidates, map);
+        const coveredCount = getCoveredPinCount(promo, position, coverCandidates, map, clusterCandidates, clusterRadius, clusterMinPoints);
 
         return (
           <Marker

@@ -1126,6 +1126,16 @@ export default function HomePage() {
     return [...visiblePins, ...fullParticipantListings];
   }, [visiblePins, neighborhoodParticipantPins, listings]);
 
+  const promoCoverCandidates = useMemo(() => {
+    return eligibleListings.filter((listing) => {
+      if (filter !== "all" && listing.listingType !== filter) return false;
+      if (!quickMapFilters.events && listing.listingType === "event") return false;
+      if (!quickMapFilters.neighborhoodSales && listing.listingType === "neighborhood_sale") return false;
+      if (!quickMapFilters.yardSales && listing.listingType === "yard_sale") return false;
+      return typeof listing.lat === "number" && typeof listing.lng === "number";
+    });
+  }, [eligibleListings, filter, quickMapFilters]);
+
   const liveVendorPins = useMemo(() => {
     if (!quickMapFilters.vendors) return [];
 
@@ -1675,15 +1685,10 @@ export default function HomePage() {
               <PromoDiscoveryMarkers
                 promos={promoDiscoveryCodes}
                 currentZoom={currentZoom}
-                coverCandidates={[
-                  ...currentVisibleCandidates,
-                  ...clusterPts,
-                  ...liveVendorPins.map(({ checkIn }) => ({
-                    id: `vendor-${checkIn.id}`,
-                    lat: checkIn.checkin_latitude,
-                    lng: checkIn.checkin_longitude,
-                  })),
-                ]}
+                coverCandidates={promoCoverCandidates}
+                clusterCandidates={clusterPts}
+                clusterRadius={50}
+                clusterMinPoints={2}
               />
 
               {/* Vendor Event Stacked Markers (Coming Soon + Active, with stacking) */}
