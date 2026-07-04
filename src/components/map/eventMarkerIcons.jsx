@@ -19,18 +19,27 @@ function makeDivIcon(key, html, width, height, anchorX = width / 2, anchorY = he
 }
 
 function getFireworksEventIcon(listing, isSelected = false, opacity = 1) {
-  const size = isSelected ? 66 : 60;
+  const burstSize = isSelected ? 70 : 62;
+  const width = isSelected ? 84 : 76;
+  const height = isSelected ? 96 : 88;
   const label = listing?.openTime ? `${listing.openTime.replace(/^0/, "")} Fireworks` : "Fireworks";
-  const width = Math.max(size + 30, 94);
-  const height = size + 18;
-  const spark = (x, y, color, delay, distance = 18) => `<span style="--x:${x}px;--y:${y}px;--c:${color};--d:${delay}s;--r:${distance}px;"></span>`;
-  const sparks = [
-    spark(30, 11, "#fde047", 0, 20), spark(45, 16, "#fb7185", .08, 18), spark(18, 26, "#38bdf8", .16, 19),
-    spark(39, 35, "#a78bfa", .24, 20), spark(24, 43, "#f97316", .32, 17), spark(51, 30, "#22c55e", .40, 18),
-    spark(30, 26, "#ffffff", .05, 15), spark(15, 15, "#f472b6", .22, 16), spark(48, 47, "#60a5fa", .36, 19)
-  ].join("");
-  const html = `<style>@keyframes yarditFireworkRing{0%{transform:translate(-50%,-50%) scale(.15);opacity:0}18%{opacity:1}78%{opacity:.8}100%{transform:translate(-50%,-50%) scale(1.55);opacity:0}}@keyframes yarditFireworkSpark{0%{transform:translate(0,0) scale(.2);opacity:0}18%{opacity:1}100%{transform:translate(calc(var(--x) - 30px),calc(var(--y) - 30px)) scale(1);opacity:0}}@keyframes yarditFireworkCore{0%,100%{transform:translate(-50%,-50%) scale(.85);opacity:.86}50%{transform:translate(-50%,-50%) scale(1.18);opacity:1}}</style><div style="position:relative;width:${width}px;height:${height}px;opacity:${opacity};filter:drop-shadow(0 4px 10px rgba(15,23,42,.42));"><div style="position:absolute;left:50%;top:0;width:${size}px;height:${size}px;transform:translateX(-50%);"><div style="position:absolute;left:50%;top:50%;width:${Math.round(size * .7)}px;height:${Math.round(size * .7)}px;border-radius:999px;border:2px solid rgba(250,204,21,.88);box-shadow:0 0 14px rgba(250,204,21,.55);animation:yarditFireworkRing 1.25s ease-out infinite;"></div><div style="position:absolute;left:50%;top:50%;width:${Math.round(size * .58)}px;height:${Math.round(size * .58)}px;border-radius:999px;border:2px solid rgba(96,165,250,.78);box-shadow:0 0 13px rgba(96,165,250,.45);animation:yarditFireworkRing 1.45s ease-out infinite .34s;"></div><div style="position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:999px;background:#fff7ed;box-shadow:0 0 8px #ffffff,0 0 16px #f59e0b;animation:yarditFireworkCore 1s ease-in-out infinite;"></div><div style="position:absolute;left:50%;top:50%;width:2px;height:2px;overflow:visible;">${sparks}</div></div><div style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);white-space:nowrap;border:1px solid rgba(17,24,39,.85);border-radius:999px;background:rgba(255,255,255,.96);padding:1px 6px;font-size:9px;font-weight:800;color:#111827;letter-spacing:.02em;">${label}</div></div>`.replace(/<span style="/g, '<span style="position:absolute;left:0;top:0;width:5px;height:5px;border-radius:999px;background:var(--c);box-shadow:0 0 8px var(--c);animation:yarditFireworkSpark 1.05s ease-out infinite var(--d);');
-  return makeDivIcon(`event_fireworks_animated_${listing?.id || "event"}_${isSelected}_${opacity}_priority`, html, width, height, width / 2, size / 2);
+  const centerX = width / 2;
+  const centerY = 30;
+  const rayColors = ["#fff7ad", "#ffd400", "#ff8a00", "#ff5d73", "#d21bff", "#2247ff", "#23b7ff"];
+  const rayAngles = [-160, -138, -116, -94, -72, -50, -28, -8, 14, 36, 58, 80, 102, 124, 146, 168, -178, -126, -78, -32, 20, 66, 112, 154];
+  const rays = rayAngles.map((angle, index) => {
+    const length = Math.round(burstSize * (0.34 + (index % 4) * 0.06));
+    const thickness = index % 5 === 0 ? 3 : index % 3 === 0 ? 2 : 1;
+    return `<span class="yardit-fw-ray" style="--a:${angle}deg;--l:${length}px;--t:${thickness}px;--c:${rayColors[index % rayColors.length]};--delay:${(index % 6) * .025}s;"></span>`;
+  }).join("");
+  const dots = Array.from({ length: 26 }, (_, index) => {
+    const angle = (index * 137) % 360;
+    const distance = Math.round(burstSize * (0.30 + (index % 7) * 0.045));
+    const size = index % 4 === 0 ? 3 : 2;
+    return `<span class="yardit-fw-dot" style="--a:${angle}deg;--d:${distance}px;--s:${size}px;--c:${rayColors[(index + 2) % rayColors.length]};--delay:${(index % 9) * .018}s;"></span>`;
+  }).join("");
+  const html = `<style>@keyframes yarditFwLaunch{0%{transform:translate(-50%,34px) scale(.55);opacity:0}12%{opacity:1}48%{transform:translate(-50%,4px) scale(.9);opacity:1}56%,100%{transform:translate(-50%,0) scale(.45);opacity:0}}@keyframes yarditFwTrail{0%{height:0;opacity:0}14%{height:22px;opacity:.8}48%{height:44px;opacity:.35}60%,100%{height:0;opacity:0}}@keyframes yarditFwRay{0%,54%{transform:rotate(var(--a)) scaleX(0);opacity:0}62%{opacity:1}100%{transform:rotate(var(--a)) scaleX(1);opacity:0}}@keyframes yarditFwDot{0%,55%{transform:rotate(var(--a)) translateX(0) scale(.3);opacity:0}68%{opacity:1}100%{transform:rotate(var(--a)) translateX(var(--d)) scale(1);opacity:0}}@keyframes yarditFwCore{0%,52%{transform:translate(-50%,-50%) scale(.25);opacity:0}62%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(.25);opacity:0}}</style><div style="position:relative;width:${width}px;height:${height}px;opacity:${opacity};filter:drop-shadow(0 4px 8px rgba(15,23,42,.35));"><div style="position:absolute;left:${centerX}px;top:${centerY + 10}px;width:2px;border-radius:999px;background:linear-gradient(to top,#7c2d12,#d946ef,#ffd400,#ffffff);transform-origin:bottom center;transform:rotate(10deg);box-shadow:0 0 6px #ffd400;animation:yarditFwTrail 1.65s ease-in-out infinite;"></div><div style="position:absolute;left:${centerX}px;top:${centerY + 10}px;width:7px;height:7px;border-radius:999px;background:#fff7ed;box-shadow:0 0 8px #fff,0 0 14px #ffd400;animation:yarditFwLaunch 1.65s ease-in-out infinite;"></div><div style="position:absolute;left:${centerX}px;top:${centerY}px;width:${burstSize}px;height:${burstSize}px;transform:translate(-50%,-50%);overflow:visible;"><div style="position:absolute;left:50%;top:50%;width:9px;height:9px;border-radius:999px;background:#fff;box-shadow:0 0 8px #fff,0 0 16px #ffd400,0 0 24px #ff5d73;animation:yarditFwCore 1.65s ease-out infinite;"></div><div style="position:absolute;left:50%;top:50%;width:0;height:0;overflow:visible;">${rays}${dots}</div></div><div style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);white-space:nowrap;border:1px solid rgba(17,24,39,.85);border-radius:999px;background:rgba(255,255,255,.96);padding:1px 6px;font-size:9px;font-weight:800;color:#111827;letter-spacing:.02em;">${label}</div></div>`.replace(/class="yardit-fw-ray" style="/g, 'style="position:absolute;left:0;top:0;width:var(--l);height:var(--t);border-radius:999px;background:linear-gradient(to right,#fff,var(--c),rgba(255,255,255,0));transform-origin:left center;box-shadow:0 0 5px var(--c);animation:yarditFwRay 1.65s ease-out infinite var(--delay);').replace(/class="yardit-fw-dot" style="/g, 'style="position:absolute;left:0;top:0;width:var(--s);height:var(--s);border-radius:999px;background:var(--c);box-shadow:0 0 5px var(--c);animation:yarditFwDot 1.65s ease-out infinite var(--delay);');
+  return makeDivIcon(`event_fireworks_launch_burst_${listing?.id || "event"}_${isSelected}_${opacity}`, html, width, height, width / 2, centerY);
 }
 
 export function getCollapsedMarqueeScale(zoom) {
