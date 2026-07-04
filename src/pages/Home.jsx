@@ -1677,6 +1677,7 @@ export default function HomePage() {
                 currentZoom={currentZoom}
                 coverCandidates={[
                   ...currentVisibleCandidates,
+                  ...clusterPts,
                   ...liveVendorPins.map(({ checkIn }) => ({
                     id: `vendor-${checkIn.id}`,
                     lat: checkIn.checkin_latitude,
