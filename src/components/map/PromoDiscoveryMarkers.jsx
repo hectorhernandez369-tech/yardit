@@ -87,7 +87,7 @@ function getPromoIcon(promo, coveredCount = 0) {
       html: `<div style="position:relative;width:${iconWidth}px;height:${totalHeight}px;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}"><div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:${size}px;height:${visualIconHeight}px;z-index:2;">${iconBody}${dateBadge}${badge}</div></div>`,
       iconSize: [iconWidth, totalHeight],
       iconAnchor: [iconWidth / 2, totalHeight / 2],
-      popupAnchor: [0, -Math.round(iconHeight / 2) - 10],
+      popupAnchor: [0, -Math.round(iconHeight / 2) - 18],
     });
   }
   return markerCache[key];
