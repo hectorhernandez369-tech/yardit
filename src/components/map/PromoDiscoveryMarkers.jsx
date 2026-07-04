@@ -120,7 +120,7 @@ export default function PromoDiscoveryMarkers({ promos = [], currentZoom = 13, c
         if (!position) return null;
         const coveredCount = getCoveredPinCount(promo, position, coverCandidates, currentZoom);
         return (
-          <Marker key={`promo-door-${promo.id}-${coveredCount}-z${currentZoom}`} position={position} icon={getPromoIcon(promo, coveredCount)}>
+          <Marker key={`promo-door-${promo.id}-${coveredCount}-z${currentZoom}`} position={position} icon={getPromoIcon(promo, coveredCount)} zIndexOffset={1000}>
             <Popup minWidth={250} className="leaflet-popup-transparent">
               <div className="rounded-2xl border border-amber-200 bg-white/95 p-4 text-center shadow-xl backdrop-blur-md">
                 <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-2xl">🎉</div>
