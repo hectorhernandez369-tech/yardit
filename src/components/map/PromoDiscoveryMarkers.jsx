@@ -24,7 +24,7 @@ function getPromoPosition(promo) {
   if (typeof promo.promo_door_lat === "number" && typeof promo.promo_door_lng === "number") {
     return [promo.promo_door_lat, promo.promo_door_lng];
   }
-  if (promo.geographic_limit_type === "radius" && typeof promo.geo_center_lat=== "number" && typeof promo.geo_center_lng === "number") {
+  if (promo.geographic_limit_type === "radius" && typeof promo.geo_center_lat === "number" && typeof promo.geo_center_lng === "number") {
     return [promo.geo_center_lat, promo.geo_center_lng];
   }
   return null;
