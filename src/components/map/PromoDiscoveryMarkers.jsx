@@ -24,7 +24,7 @@ function getPromoPosition(promo) {
   if (typeof promo.promo_door_lat === "number" && typeof promo.promo_door_lng === "number") {
     return [promo.promo_door_lat, promo.promo_door_lng];
   }
-  if (promo.geographic_limit_type === "radius" && typeof promo.geo_center_lat === "number" && typeof promo.geo_center_lng === "number") {
+  if (promo.geographic_limit_type === "radius" && typeof promo.geo_center_lat=== "number" && typeof promo.geo_center_lng === "number") {
     return [promo.geo_center_lat, promo.geo_center_lng];
   }
   return null;
@@ -87,7 +87,7 @@ function getPromoIcon(promo, coveredCount = 0) {
       html: `<div style="position:relative;width:${iconWidth}px;height:${totalHeight}px;pointer-events:auto;overflow:visible;transform-origin:center bottom;${getAnimationStyle(animation)}"><div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:${size}px;height:${visualIconHeight}px;z-index:2;">${iconBody}${dateBadge}${badge}</div></div>`,
       iconSize: [iconWidth, totalHeight],
       iconAnchor: [iconWidth / 2, totalHeight / 2],
-      popupAnchor: [0, -iconHeight + 8],
+      popupAnchor: [0, -iconHeight + 2],
     });
   }
   return markerCache[key];
