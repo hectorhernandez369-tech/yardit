@@ -282,11 +282,11 @@ export default function PromoDiscoveryMarkers({ promos = [], currentZoom = 13, c
                 </h3>
 
                 <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                  Celebrate Yardit's launch in {promo.geo_display_label || "this area"}!
+                  Yardit is officially launching in Lindsay July 24th–26th.
                 </p>
 
                 <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                  The first eligible users can receive this special promotion.
+                  Sign up and create your listing to join the launch promo.
                 </p>
 
                 <div className="mt-4 flex gap-2">
