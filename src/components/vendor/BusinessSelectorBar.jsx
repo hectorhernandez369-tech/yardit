@@ -10,13 +10,13 @@ import { Button } from "@/components/ui/button";
 /**
  * Shows a business switcher when the user has multiple vendor accounts.
  */
-export default function BusinessSelectorBar({ accounts, activeAccount, onSelect }) {
+export default function BusinessSelectorBar({ accounts, activeAccount, onSelect, defaultAccountId }) {
   if (!accounts || accounts.length <= 1) return null;
 
   return (
     <div className="bg-[#2C4F4E] text-white px-4 py-2 flex items-center gap-2 text-sm">
       <Store className="w-4 h-4 shrink-0 opacity-70" />
-      <span className="opacity-70 text-xs mr-1">Viewing:</span>
+      <span className="opacity-70 text-xs mr-1">Default view:</span>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -41,7 +41,7 @@ export default function BusinessSelectorBar({ accounts, activeAccount, onSelect 
                 <Store className="w-4 h-4 text-[#5DADA5]" />
               )}
               <span className="truncate">{acc.business_name}</span>
-              {acc.id === activeAccount?.id && <span className="ml-auto text-[10px] text-[#5DADA5]">Active</span>}
+              {acc.id === defaultAccountId && <span className="ml-auto text-[10px] text-[#5DADA5]">Default</span>}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

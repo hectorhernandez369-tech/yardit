@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export default function MobileVendorHeader({ account, activeCheckIn, activePin, accounts = [], onSelectBusiness }) {
+export default function MobileVendorHeader({ account, activeCheckIn, activePin, accounts = [], onSelectBusiness, defaultAccountId }) {
   const tier = getVendorTierConfig(account?.vendor_tier);
   const hasMultiple = accounts.length > 1;
 
@@ -52,7 +52,7 @@ export default function MobileVendorHeader({ account, activeCheckIn, activePin, 
                       <Store className="w-4 h-4 text-[#5DADA5]" />
                     )}
                     <span className="truncate">{acc.business_name}</span>
-                    {acc.id === account?.id && <span className="ml-auto text-[10px] text-[#5DADA5]">Active</span>}
+                    {acc.id === defaultAccountId && <span className="ml-auto text-[10px] text-[#5DADA5]">Default</span>}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>

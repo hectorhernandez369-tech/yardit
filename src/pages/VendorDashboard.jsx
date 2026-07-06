@@ -47,7 +47,11 @@ export default function VendorDashboard() {
     enabled: !!user?.id || !!user?.email,
   });
 
-  // Set active account: prefer URL param, then previously selected, then first
+  const defaultAccountStorageKey = user?.id || user?.email
+    ? `yardit_default_vendor_account_id:${user.id || user.email}`
+    : "yardit_default_vendor_account_id";
+
+  // Set active account: prefer URL param, then saved default, then current selection, then first
   // Also clears stale selection if account is no longer accessible
   useEffect(() => {
     if (loadingAccounts) return;
@@ -56,15 +60,18 @@ export default function VendorDashboard() {
       return;
     }
     const paramId = new URLSearchParams(window.location.search).get("account");
+    const savedDefaultId = localStorage.getItem(defaultAccountStorageKey);
     if (paramId && accounts.find((a) => a.id === paramId)) {
       setActiveAccountId(paramId);
+    } else if (savedDefaultId && accounts.find((a) => a.id === savedDefaultId)) {
+      setActiveAccountId(savedDefaultId);
     } else if (activeAccountId && accounts.find((a) => a.id === activeAccountId)) {
       // keep current selection — still valid
     } else {
       // stale or unset — fall back to first accessible account
       setActiveAccountId(accounts[0].id);
     }
-  }, [accounts, loadingAccounts]);
+  }, [accounts, loadingAccounts, defaultAccountStorageKey]);
 
   const account = accounts.find((a) => a.id === activeAccountId) || accounts[0] || null;
 
@@ -121,6 +128,9 @@ export default function VendorDashboard() {
 
   const handleSelectBusiness = (acc) => {
     setActiveAccountId(acc.id);
+    if (!adminPreviewAccountId) {
+      localStorage.setItem(defaultAccountStorageKey, acc.id);
+    }
     navigate(`/VendorDashboard?tab=${activeTab}&account=${acc.id}${adminPreviewAccountId ? "&adminPreview=1" : ""}`, { replace: true });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardPins", acc.id] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardCheckIns", acc.id] });
@@ -182,9 +192,9 @@ export default function VendorDashboard() {
         {/* Dashboard header */}
         <div className="bg-gradient-to-br from-[#2C4F4E] to-[#3d6b6a] text-white shadow-lg">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
-            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={accounts} onSelectBusiness={handleSelectBusiness} />
+            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={accounts} onSelectBusiness={handleSelectBusiness} defaultAccountId={activeAccountId} />
             <div className="hidden sm:block">
-              <BusinessSelectorBar accounts={accounts} activeAccount={account} onSelect={handleSelectBusiness} />
+              <BusinessSelectorBar accounts={accounts} activeAccount={account} onSelect={handleSelectBusiness} defaultAccountId={activeAccountId} />
               <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
             </div>
 
