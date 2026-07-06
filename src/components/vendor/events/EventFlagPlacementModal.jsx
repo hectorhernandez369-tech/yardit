@@ -78,6 +78,12 @@ export default function EventFlagPlacementModal({ open, onOpenChange, eventLocat
     }
   }, [open, flags]);
 
+  const isSameFlag = (item, flag) => {
+    if (flag.temp_id) return item.temp_id === flag.temp_id;
+    if (flag.id) return item.id === flag.id;
+    return false;
+  };
+
   const updateFlagLocation = (flag, lat, lng) => {
     const miles = calculateMiles(eventLocation.latitude, eventLocation.longitude, lat, lng);
     const radiusMiles = Number(eventLocation.radius_feet || 0) / 5280;
@@ -88,13 +94,13 @@ export default function EventFlagPlacementModal({ open, onOpenChange, eventLocat
     }
 
     setDraftFlags((current) => current.map((item) => (
-      item.temp_id === flag.temp_id || item.id === flag.id ? { ...item, latitude: lat, longitude: lng } : item
+      isSameFlag(item, flag) ? { ...item, latitude: lat, longitude: lng } : item
     )));
     return true;
   };
 
   const removeFlag = (flag) => {
-    setDraftFlags((current) => renumberFlags(current.filter((item) => item.temp_id !== flag.temp_id && item.id !== flag.id)));
+    setDraftFlags((current) => renumberFlags(current.filter((item) => !isSameFlag(item, flag))));
     setDeleteFlag(null);
   };
 
