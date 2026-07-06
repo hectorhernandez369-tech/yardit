@@ -43,11 +43,13 @@ export default function LeagueTeamDashboard() {
 
   const { data: users = [] } = useQuery({ queryKey: ["leagueDashboardUsers", account?.id], queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: account.id }, "-created_date"), enabled: !!account?.id });
   const { data: updates = [] } = useQuery({ queryKey: ["leagueDashboardUpdates", account?.id], queryFn: () => base44.entities.VendorUpdate.filter({ vendor_account_id: account.id }, "-created_date"), enabled: !!account?.id });
+  const { data: games = [] } = useQuery({ queryKey: ["leagueDashboardGames", account?.id], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: account.id }, "sort_order"), enabled: !!account?.id });
 
   const refreshDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ["leagueDashboardAccounts"] });
     queryClient.invalidateQueries({ queryKey: ["leagueDashboardUsers"] });
     queryClient.invalidateQueries({ queryKey: ["leagueDashboardUpdates"] });
+    queryClient.invalidateQueries({ queryKey: ["leagueDashboardGames"] });
   };
 
   const handleTabChange = (nextTab) => {
@@ -78,7 +80,7 @@ export default function LeagueTeamDashboard() {
         <div className="mx-auto max-w-7xl space-y-4 p-3 pb-24 sm:p-6 sm:pb-24">
           <TabsContent value="profile"><VendorBusinessPage account={account} pins={[]} checkIns={[]} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="teams"><LeagueTeamsTab account={account} /></TabsContent>
-          <TabsContent value="games"><LeagueGamesTab account={account} /></TabsContent>
+          <TabsContent value="games"><LeagueGamesTab account={account} games={games} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="history"><VendorPinHistoryTab pins={[]} checkIns={[]} /></TabsContent>
           <TabsContent value="tier"><VendorBillingTab account={account} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} pins={[]} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
