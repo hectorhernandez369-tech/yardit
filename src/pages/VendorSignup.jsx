@@ -28,6 +28,9 @@ async function geocodeResidentialAddress(form) {
 
 export default function VendorSignup() {
   const navigate = useNavigate();
+  const urlParams = new URLSearchParams(window.location.search);
+  const organizerType = urlParams.get("organizer") || localStorage.getItem("yardit_organizer_account_type") || "vendor_event";
+  const dashboardPath = organizerType === "league_team" ? "/LeagueTeamDashboard" : "/VendorDashboard";
   const [user, setUser] = useState(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -59,8 +62,8 @@ export default function VendorSignup() {
       owner_email: user.email,
       owner_name: user.full_name || user.email,
     });
-    toast.success("Vendor account claimed! Redirecting to your dashboard...");
-    navigate("/VendorDashboard");
+    toast.success("Account claimed! Redirecting to your dashboard...");
+    navigate(dashboardPath);
   };
 
   useEffect(() => {
@@ -68,7 +71,7 @@ export default function VendorSignup() {
       setUser(currentUser);
       const existing = await getUserVendorAccounts(currentUser);
       if (existing.length > 0) {
-        navigate("/VendorDashboard");
+        navigate(dashboardPath);
         return;
       }
       // Check for admin-pre-created accounts matching this email
@@ -187,7 +190,7 @@ export default function VendorSignup() {
     setCreatedAccount(account);
     setSaving(false);
     setStep(4);
-    toast.success("Vendor account created on the Free tier.");
+    toast.success("Organizer account created on the Free tier.");
   };
 
   if (loading) {
@@ -305,13 +308,13 @@ export default function VendorSignup() {
                 <VendorSetupProgress
                   account={createdAccount}
                   pins={[]}
-                  onStepClick={(setupStep) => navigate(`/VendorDashboard?setupStep=${setupStep.key}&tab=${setupStep.tab}`)}
-                  onContinue={() => navigate("/VendorDashboard?setupStep=business&tab=profile")}
+                  onStepClick={(setupStep) => navigate(`${dashboardPath}?setupStep=${setupStep.key}&tab=${setupStep.tab}`)}
+                  onContinue={() => navigate(`${dashboardPath}?setupStep=business&tab=profile`)}
                 />
                 <div className="grid gap-2 sm:grid-cols-3">
                   <Button onClick={() => setStep(3)} variant="outline" className="w-full rounded-xl">Back</Button>
-                  <Button onClick={() => navigate("/VendorDashboard?setupStep=business&tab=profile")} className="w-full rounded-xl bg-[#5DADA5] hover:bg-[#4A9B93]">Next</Button>
-                  <Button onClick={() => navigate("/VendorDashboard")} variant="outline" className="w-full rounded-xl bg-white">Finish Later</Button>
+                  <Button onClick={() => navigate(`${dashboardPath}?setupStep=business&tab=profile`)} className="w-full rounded-xl bg-[#5DADA5] hover:bg-[#4A9B93]">Next</Button>
+                  <Button onClick={() => navigate(dashboardPath)} variant="outline" className="w-full rounded-xl bg-white">Finish Later</Button>
                 </div>
               </div>
             )}

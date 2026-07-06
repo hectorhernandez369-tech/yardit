@@ -8,6 +8,9 @@ import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 
 export default function VendorAccountIntro() {
   const navigate = useNavigate();
+  const urlParams = new URLSearchParams(window.location.search);
+  const organizerType = urlParams.get("organizer") || localStorage.getItem("yardit_organizer_account_type") || "vendor_event";
+  const dashboardPath = organizerType === "league_team" ? "/LeagueTeamDashboard" : "/VendorDashboard";
   const [checking, setChecking] = useState(true);
   const [alreadyHasAccount, setAlreadyHasAccount] = useState(false);
 
@@ -16,7 +19,7 @@ export default function VendorAccountIntro() {
       const accounts = await getUserVendorAccounts(user);
       if (accounts.length > 0) {
         setAlreadyHasAccount(true);
-        setTimeout(() => navigate("/VendorDashboard"), 2500);
+        setTimeout(() => navigate(dashboardPath), 2500);
       }
     }).catch(() => {}).finally(() => setChecking(false));
   }, []);
@@ -36,9 +39,9 @@ export default function VendorAccountIntro() {
           <CardContent className="p-8 text-center space-y-4">
             <Store className="w-12 h-12 text-[#5DADA5] mx-auto" />
             <h2 className="text-xl font-bold text-[#2C4F4E]">You already have a Vendor account.</h2>
-            <p className="text-slate-500 text-sm">Redirecting you to your Vendor Dashboard...</p>
-            <Button onClick={() => navigate("/VendorDashboard")} className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white">
-              Go to Vendor Dashboard
+            <p className="text-slate-500 text-sm">Redirecting you to your dashboard...</p>
+            <Button onClick={() => navigate(dashboardPath)} className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white">
+              Go to Dashboard
             </Button>
           </CardContent>
         </Card>
@@ -80,8 +83,8 @@ export default function VendorAccountIntro() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button onClick={() => navigate("/VendorSignup")} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
-                Continue to Vendor Setup
+              <Button onClick={() => navigate(`/VendorSignup?organizer=${organizerType}`)} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
+                Continue to Setup
               </Button>
               <Button variant="outline" onClick={() => navigate("/Profile")} className="border-[#2C4F4E] text-[#2C4F4E]">
                 Back to Profile

@@ -18,6 +18,7 @@ import { getTrustStatus } from "@/lib/trustActions";
 import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import { getProfileCompletionPercent, isAccountSetupComplete } from "@/lib/accountSetup";
 import { normalizeUser } from "@/lib/normalizeUser";
+import OrganizerAccountDialog from "@/components/profile/OrganizerAccountDialog";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export default function ProfilePage() {
   const [addressEditSignal, setAddressEditSignal] = useState(0);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [hasVendorAccount, setHasVendorAccount] = useState(false);
+  const [showOrganizerDialog, setShowOrganizerDialog] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -138,13 +140,22 @@ export default function ProfilePage() {
               <h1 className="text-3xl font-bold text-gray-900">{`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email || "User"}</h1>
               <p className="text-gray-600">{user.email}</p>
             </div>
-            <Button
-              onClick={() => navigate(hasVendorAccount ? "/VendorDashboard" : "/VendorAccountIntro")}
-              className="hidden sm:inline-flex bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold"
-            >
-              <Store className="w-4 h-4" />
-              {hasVendorAccount ? "Open Vendor Dashboard" : "Open Vendor Account"}
-            </Button>
+            <div className="hidden sm:flex flex-col gap-2">
+              <Button
+                onClick={() => navigate(hasVendorAccount ? "/VendorDashboard" : "/VendorAccountIntro")}
+                className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold"
+              >
+                <Store className="w-4 h-4" />
+                {hasVendorAccount ? "Open Vendor Dashboard" : "Open Vendor Account"}
+              </Button>
+              <Button
+                onClick={() => setShowOrganizerDialog(true)}
+                variant="outline"
+                className="border-2 border-[#2C4F4E] bg-white text-[#2C4F4E] font-semibold hover:bg-[#F3E6CF]"
+              >
+                Open Organizer Account
+              </Button>
+            </div>
 
             </div>
             </div>
@@ -185,13 +196,22 @@ export default function ProfilePage() {
           </Card>
         ) : null}
 
-        <Button
-          onClick={() => navigate(hasVendorAccount ? "/VendorDashboard" : "/VendorAccountIntro")}
-          className="sm:hidden mb-6 w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold"
-        >
-          <Store className="w-4 h-4" />
-          {hasVendorAccount ? "Open Vendor Dashboard" : "Open Vendor Account"}
-        </Button>
+        <div className="sm:hidden mb-6 space-y-2">
+          <Button
+            onClick={() => navigate(hasVendorAccount ? "/VendorDashboard" : "/VendorAccountIntro")}
+            className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold"
+          >
+            <Store className="w-4 h-4" />
+            {hasVendorAccount ? "Open Vendor Dashboard" : "Open Vendor Account"}
+          </Button>
+          <Button
+            onClick={() => setShowOrganizerDialog(true)}
+            variant="outline"
+            className="w-full border-2 border-[#2C4F4E] bg-white text-[#2C4F4E] font-semibold hover:bg-[#F3E6CF]"
+          >
+            Open Organizer Account
+          </Button>
+        </div>
 
         {/* Tabs */}
         <Tabs defaultValue="info" className="space-y-6">
@@ -240,6 +260,7 @@ export default function ProfilePage() {
             <MyCoinsPanel stats={myCoinStats} history={myCoinHistory} />
           </TabsContent>
         </Tabs>
+        <OrganizerAccountDialog open={showOrganizerDialog} onOpenChange={setShowOrganizerDialog} hasVendorAccount={hasVendorAccount} />
       </div>
     </div>
   );
