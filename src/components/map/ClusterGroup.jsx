@@ -118,6 +118,8 @@ export default function ClusterGroup({ points, clusterRadius = 50, minPoints = 2
 
 // Helper: given current zoom and a tier, should this location show as individual pin?
 export function shouldShowAsPin(zoom, listing) {
+  if (String(listing?.listingNumber || "").startsWith("YARD-SCREENSHOT-")) return true;
+
   if (listing?.listingType === "event") {
     const tier = listing?.event_tier || listing?.tier;
     if (tier === "marquee") return zoom >= 11;
