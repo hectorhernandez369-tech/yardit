@@ -1429,7 +1429,7 @@ export default function HomePage() {
               <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />
 
               {visiblePins.map((listing) => {
-              if (hiddenByMarqueeIds.has(listing.id)) return null;
+              if (!isShowingAllListings && hiddenByMarqueeIds.has(listing.id)) return null;
 
               const isMarquee = isMarqueeListing(listing);
               if (isMarquee && currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM && openMarqueeIds[listing.id] !== false) return null;
@@ -1768,7 +1768,7 @@ export default function HomePage() {
             })}
 
               {neighborhoodParticipantPins.map((pin) => {
-              if (hiddenByMarqueeIds.has(pin.listingId)) return null;
+              if (!isShowingAllListings && hiddenByMarqueeIds.has(pin.listingId)) return null;
               return (
                 <Marker
                   key={pin.id}
