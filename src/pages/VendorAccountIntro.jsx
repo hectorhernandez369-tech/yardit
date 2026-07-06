@@ -16,7 +16,7 @@ export default function VendorAccountIntro() {
 
   useEffect(() => {
     base44.auth.me().then(async (user) => {
-      const accounts = await getUserVendorAccounts(user);
+      const accounts = await getUserVendorAccounts(user, { organizerType });
       if (accounts.length > 0) {
         setAlreadyHasAccount(true);
         setTimeout(() => navigate(dashboardPath), 2500);

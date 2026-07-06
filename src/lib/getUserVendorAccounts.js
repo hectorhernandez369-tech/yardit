@@ -1,10 +1,19 @@
 import { base44 } from "@/api/base44Client";
 
+export const isLeagueTeamAccount = (account) => account?.organization_type === "league_team";
+export const isVendorDashboardAccount = (account) => !isLeagueTeamAccount(account);
+
+const filterByOrganizerType = (accounts, organizerType) => {
+  if (organizerType === "league_team") return accounts.filter(isLeagueTeamAccount);
+  if (organizerType === "vendor_event") return accounts.filter(isVendorDashboardAccount);
+  return accounts;
+};
+
 /**
  * Find all active vendor accounts for a user.
  * Checks owner_user_id, owner_email, and VendorAuthorizedUser records.
  */
-export async function getUserVendorAccounts(user) {
+export async function getUserVendorAccounts(user, options = {}) {
   if (!user?.id && !user?.email) return [];
 
   const [byUserId, byEmail, byLegacyEmail, authorizedLinks] = await Promise.all([
@@ -54,5 +63,5 @@ export async function getUserVendorAccounts(user) {
     }
   }
 
-  return all.filter((a) => a.is_active !== false);
+  return filterByOrganizerType(all.filter((a) => a.is_active !== false), options.organizerType);
 }

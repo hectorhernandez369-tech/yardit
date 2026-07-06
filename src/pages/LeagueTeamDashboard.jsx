@@ -22,7 +22,7 @@ export default function LeagueTeamDashboard() {
   const [activeAccountId, setActiveAccountId] = useState(null);
 
   const { data: user, isLoading: loadingUser } = useQuery({ queryKey: ["leagueDashboardUser"], queryFn: () => base44.auth.me() });
-  const { data: accounts = [], isLoading: loadingAccounts } = useQuery({ queryKey: ["leagueDashboardAccounts", user?.id, user?.email], queryFn: () => getUserVendorAccounts(user), enabled: !!user?.id || !!user?.email });
+  const { data: accounts = [], isLoading: loadingAccounts } = useQuery({ queryKey: ["leagueDashboardAccounts", user?.id, user?.email], queryFn: () => getUserVendorAccounts(user, { organizerType: "league_team" }), enabled: !!user?.id || !!user?.email });
 
   const storageKey = user?.id || user?.email ? `yardit_default_league_account_id:${user.id || user.email}` : "yardit_default_league_account_id";
 

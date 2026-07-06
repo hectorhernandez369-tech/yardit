@@ -42,7 +42,7 @@ export default function VendorDashboard() {
       const canAdminPreview = adminPreviewAccountId && ["master", "super_master"].includes(user?.role);
       return canAdminPreview
         ? base44.entities.VendorAccount.filter({ id: adminPreviewAccountId })
-        : getUserVendorAccounts(user);
+        : getUserVendorAccounts(user, { organizerType: "vendor_event" });
     },
     enabled: !!user?.id || !!user?.email,
   });

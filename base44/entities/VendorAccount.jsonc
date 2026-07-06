@@ -19,6 +19,7 @@
       "enum": [
         "vendor",
         "event_organizer",
+        "league_team",
         "nonprofit",
         "food_truck",
         "retail",
@@ -26,7 +27,7 @@
         "other"
       ],
       "default": "vendor",
-      "description": "Organization category for future permissions and workflows"
+      "description": "Organization category and dashboard type"
     },
     "business_logo": {
       "type": "string",

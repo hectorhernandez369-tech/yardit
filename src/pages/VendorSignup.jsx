@@ -69,7 +69,7 @@ export default function VendorSignup() {
   useEffect(() => {
     base44.auth.me().then(async (currentUser) => {
       setUser(currentUser);
-      const existing = await getUserVendorAccounts(currentUser);
+      const existing = await getUserVendorAccounts(currentUser, { organizerType });
       if (existing.length > 0) {
         navigate(dashboardPath);
         return;
@@ -175,6 +175,7 @@ export default function VendorSignup() {
       instagram_url: businessForm.instagram_url.trim(),
       tiktok_url: businessForm.tiktok_url.trim(),
       ...identityFields,
+      organization_type: organizerType === "league_team" ? "league_team" : "vendor",
       vendor_tier: "free",
       vendor_setup_status: "setup_required",
       extra_users_count: 0,
