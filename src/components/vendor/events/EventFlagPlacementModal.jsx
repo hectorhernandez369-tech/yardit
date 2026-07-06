@@ -10,9 +10,9 @@ import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
 
 const makeFlagIcon = (label) => L.divIcon({
   className: "vendor-event-flag-marker",
-  html: `<div style="display:flex;align-items:center;gap:4px;transform:translate(-2px,-28px);"><div style="width:24px;height:24px;border-radius:9999px;background:#F4A849;border:2px solid #2C4F4E;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.25);">⚑</div><span style="white-space:nowrap;background:white;border:1px solid #2C4F4E22;border-radius:9999px;padding:2px 8px;font-size:12px;font-weight:700;color:#2C4F4E;box-shadow:0 2px 6px rgba(0,0,0,.12);">${label}</span></div>`,
+  html: `<div style="display:flex;align-items:center;gap:4px;"><div style="width:24px;height:24px;border-radius:9999px;background:#F4A849;border:2px solid #2C4F4E;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.25);">⚑</div><span style="white-space:nowrap;background:white;border:1px solid #2C4F4E22;border-radius:9999px;padding:2px 8px;font-size:12px;font-weight:700;color:#2C4F4E;box-shadow:0 2px 6px rgba(0,0,0,.12);">${label}</span></div>`,
   iconSize: [24, 24],
-  iconAnchor: [12, 24],
+  iconAnchor: [12, 12],
 });
 
 function MapBounds({ center, radiusFeet }) {
