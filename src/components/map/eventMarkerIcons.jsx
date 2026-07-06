@@ -50,13 +50,16 @@ export function getCollapsedMarqueeScale(zoom) {
 
 export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = false, marqueeHtml = "", zoom = 13) {
   const residentialEventAddOns = listing?.listingType === "event" && !listing?.is_vendor_event ? (listing?.event_add_ons || {}) : {};
+  const storedTier = listing?.event_tier || listing?.tier || "basic";
   const tier = listing?.listingType === "event" && !listing?.is_vendor_event
-    ? residentialEventAddOns.marquee
+    ? residentialEventAddOns.marquee || storedTier === "marquee"
       ? "marquee"
-      : residentialEventAddOns.premium_visibility
+      : residentialEventAddOns.premium_visibility || storedTier === "premium"
       ? "premium"
-      : "featured"
-    : listing?.event_tier || listing?.tier || "basic";
+      : storedTier === "featured"
+      ? "featured"
+      : "basic"
+    : storedTier;
   const emoji = getEventIconEmoji(listing?.event_icon);
   const image = listing?.event_logo_url;
   const hasResidentialCustomIcon = !!residentialEventAddOns.custom_icon && !!image;
