@@ -153,7 +153,7 @@ export default function ProfilePage() {
                 variant="outline"
                 className="border-2 border-[#2C4F4E] bg-white text-[#2C4F4E] font-semibold hover:bg-[#F3E6CF]"
               >
-                Open Organizer Account
+                Open League/Team Account
               </Button>
             </div>
 
@@ -209,7 +209,7 @@ export default function ProfilePage() {
             variant="outline"
             className="w-full border-2 border-[#2C4F4E] bg-white text-[#2C4F4E] font-semibold hover:bg-[#F3E6CF]"
           >
-            Open Organizer Account
+            Open League/Team Account
           </Button>
         </div>
 
