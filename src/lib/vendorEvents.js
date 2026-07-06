@@ -4,7 +4,7 @@ import { getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
 
 export const VENDOR_EVENT_TYPES = [
   { value: "single", label: "Single Event" },
-  { value: "multi_spot", label: "Multi-Spot Event" },
+  { value: "multi_spot", label: "Multi-Field Event" },
   { value: "multi_location", label: "Multi-Location Event" },
 ];
 
