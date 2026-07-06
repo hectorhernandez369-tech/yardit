@@ -41,9 +41,9 @@ export const RESIDENTIAL_EVENT_BASE_PRICE = 999;
 
 export const RESIDENTIAL_EVENT_ADD_ONS = {
   premium_visibility: { key: "premium_visibility", label: "Be Seen By More People", price: 199 },
-  animation: { key: "animation", label: "Animation", price: 399 },
-  flyer_upload: { key: "flyer_upload", label: "Flyer Upload", price: 299 },
-  photo_gallery: { key: "photo_gallery", label: "Photo Gallery", price: 199 },
+  animation: { key: "animation", label: "Animation", price: 99 },
+  flyer_upload: { key: "flyer_upload", label: "Flyer Upload", price: 199 },
+  photo_gallery: { key: "photo_gallery", label: "Photo Gallery (up to 10 photos included)", price: 0 },
   custom_icon: { key: "custom_icon", label: "Custom Icon", price: 499 },
   marquee: { key: "marquee", label: "Marquee", price: 999 },
 };
