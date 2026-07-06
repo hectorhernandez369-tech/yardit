@@ -51,6 +51,7 @@ export function getCollapsedMarqueeScale(zoom) {
 export function getEventMarkerIcon(listing, isSelected = false, marqueeOpen = false, marqueeHtml = "", zoom = 13) {
   const residentialEventAddOns = listing?.listingType === "event" && !listing?.is_vendor_event ? (listing?.event_add_ons || {}) : {};
   const storedTier = listing?.event_tier || listing?.tier || "basic";
+  // Locked marquee logic: legacy marquee listings and new marquee add-ons both use the lighted board with marquee_background_url.
   const tier = listing?.listingType === "event" && !listing?.is_vendor_event
     ? residentialEventAddOns.marquee || storedTier === "marquee"
       ? "marquee"
