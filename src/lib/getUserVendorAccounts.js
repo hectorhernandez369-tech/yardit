@@ -1,6 +1,8 @@
 import { base44 } from "@/api/base44Client";
 
-export const isLeagueTeamAccount = (account) => account?.organization_type === "league_team";
+const LEAGUE_DASHBOARD_ORGANIZATION_TYPES = new Set(["league_team", "tournament_organizer"]);
+
+export const isLeagueTeamAccount = (account) => LEAGUE_DASHBOARD_ORGANIZATION_TYPES.has(account?.organization_type);
 export const isVendorDashboardAccount = (account) => !isLeagueTeamAccount(account);
 
 const filterByOrganizerType = (accounts, organizerType) => {

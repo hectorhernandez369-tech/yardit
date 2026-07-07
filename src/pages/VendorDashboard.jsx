@@ -70,9 +70,12 @@ export default function VendorDashboard() {
       setActiveAccountId(null);
       return;
     }
+    const savedLastOrganizerId = localStorage.getItem("yardit_last_organizer_account_id");
     const savedDefaultId = localStorage.getItem(defaultAccountStorageKey);
     if (paramId && accounts.find((a) => a.id === paramId)) {
       setActiveAccountId(paramId);
+    } else if (savedLastOrganizerId && accounts.find((a) => a.id === savedLastOrganizerId)) {
+      setActiveAccountId(savedLastOrganizerId);
     } else if (savedDefaultId && accounts.find((a) => a.id === savedDefaultId)) {
       setActiveAccountId(savedDefaultId);
     } else if (activeAccountId && accounts.find((a) => a.id === activeAccountId)) {
@@ -138,6 +141,7 @@ export default function VendorDashboard() {
 
   const handleSelectBusiness = (acc) => {
     setActiveAccountId(acc.id);
+    localStorage.setItem("yardit_last_organizer_account_id", acc.id);
     if (!adminPreviewAccountId) {
       localStorage.setItem(defaultAccountStorageKey, acc.id);
     }

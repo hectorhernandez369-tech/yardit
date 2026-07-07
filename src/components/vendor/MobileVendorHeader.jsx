@@ -8,10 +8,10 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { OrganizerAccountMenuItems, getOrganizerTypeLabel, useOrganizerAccountSelect } from "@/components/organizer/OrganizerAccountSwitcher";
+import { OrganizerAccountCreateMenu, OrganizerAccountMenuItems, getOrganizerAccountName, getOrganizerTypeLabel, useOrganizerAccountSelect } from "@/components/organizer/OrganizerAccountSwitcher";
 
 export default function MobileVendorHeader({ account, activeCheckIn, activePin, accounts = [], onSelectBusiness, defaultAccountId, dashboardType = "vendor_event", currentTab }) {
-  const hasMultiple = accounts.length > 1;
+  const hasMultiple = accounts.length > 0;
   const handleSelectAccount = useOrganizerAccountSelect({ dashboardType, currentTab, onSelectSameDashboard: onSelectBusiness });
 
   const handlePreview = () => {
@@ -33,18 +33,19 @@ export default function MobileVendorHeader({ account, activeCheckIn, activePin, 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1.5 min-w-0 max-w-full text-left">
-                  <span className="truncate text-base font-black leading-tight text-[#2C4F4E]">{account?.business_name || "Organizer Account"}</span>
+                  <span className="truncate text-base font-black leading-tight text-[#2C4F4E]">{getOrganizerAccountName(account)}</span>
                   <Badge className="shrink-0 rounded-full bg-[#F4A849] px-2 py-0 text-[10px] text-[#2C4F4E]">{getOrganizerTypeLabel(account)}</Badge>
                   <ChevronDown className="w-3 h-3 shrink-0 text-slate-400" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-60">
                 <OrganizerAccountMenuItems accounts={accounts} activeAccount={account} defaultAccountId={defaultAccountId} onSelect={handleSelectAccount} />
+                <OrganizerAccountCreateMenu />
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <div className="flex items-center gap-2 min-w-0">
-              <h1 className="truncate text-base font-black leading-tight">{account?.business_name || "Organizer Account"}</h1>
+              <h1 className="truncate text-base font-black leading-tight">{getOrganizerAccountName(account)}</h1>
               <Badge className="shrink-0 rounded-full bg-[#F4A849] px-2 py-0 text-[10px] text-[#2C4F4E]">{getOrganizerTypeLabel(account)}</Badge>
             </div>
           )}

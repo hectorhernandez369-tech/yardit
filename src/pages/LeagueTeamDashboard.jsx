@@ -37,8 +37,10 @@ export default function LeagueTeamDashboard() {
       return;
     }
     if (!accounts.length) return setActiveAccountId(null);
+    const savedLastOrganizerId = localStorage.getItem("yardit_last_organizer_account_id");
     const savedId = localStorage.getItem(storageKey);
     if (paramId && accounts.find((item) => item.id === paramId)) setActiveAccountId(paramId);
+    else if (savedLastOrganizerId && accounts.find((item) => item.id === savedLastOrganizerId)) setActiveAccountId(savedLastOrganizerId);
     else if (savedId && accounts.find((item) => item.id === savedId)) setActiveAccountId(savedId);
     else setActiveAccountId(accounts[0].id);
   }, [accounts, organizerAccounts, loadingAccounts, storageKey, navigate]);
@@ -68,6 +70,7 @@ export default function LeagueTeamDashboard() {
 
   const handleSelectAccount = (nextAccount) => {
     setActiveAccountId(nextAccount.id);
+    localStorage.setItem("yardit_last_organizer_account_id", nextAccount.id);
     localStorage.setItem(storageKey, nextAccount.id);
     navigate(`/LeagueTeamDashboard?tab=${activeTab}&account=${nextAccount.id}`, { replace: true });
   };
