@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -17,7 +17,7 @@ import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
 import VendorAccessDenied from "@/components/vendor/VendorAccessDenied";
 import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
-import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
+import { getUserVendorAccounts, isLeagueTeamAccount, isVendorDashboardAccount } from "@/lib/getUserVendorAccounts";
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
@@ -36,16 +36,21 @@ export default function VendorDashboard() {
   });
 
   // Use shared helper for consistent account detection
-  const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
+  const { data: organizerAccounts = [], isLoading: loadingAccounts } = useQuery({
     queryKey: ["vendorDashboardAccounts", user?.id, user?.email, adminPreviewAccountId],
     queryFn: () => {
       const canAdminPreview = adminPreviewAccountId && ["master", "super_master"].includes(user?.role);
       return canAdminPreview
         ? base44.entities.VendorAccount.filter({ id: adminPreviewAccountId })
-        : getUserVendorAccounts(user, { organizerType: "vendor_event" });
+        : getUserVendorAccounts(user);
     },
     enabled: !!user?.id || !!user?.email,
   });
+
+  const accounts = useMemo(
+    () => adminPreviewAccountId ? organizerAccounts : organizerAccounts.filter(isVendorDashboardAccount),
+    [adminPreviewAccountId, organizerAccounts]
+  );
 
   const defaultAccountStorageKey = user?.id || user?.email
     ? `yardit_default_vendor_account_id:${user.id || user.email}`
@@ -55,11 +60,16 @@ export default function VendorDashboard() {
   // Also clears stale selection if account is no longer accessible
   useEffect(() => {
     if (loadingAccounts) return;
+    const paramId = new URLSearchParams(window.location.search).get("account");
+    const requestedAccount = organizerAccounts.find((a) => a.id === paramId);
+    if (requestedAccount && isLeagueTeamAccount(requestedAccount) && !adminPreviewAccountId) {
+      navigate(`/LeagueTeamDashboard?tab=profile&account=${requestedAccount.id}`, { replace: true });
+      return;
+    }
     if (!accounts.length) {
       setActiveAccountId(null);
       return;
     }
-    const paramId = new URLSearchParams(window.location.search).get("account");
     const savedDefaultId = localStorage.getItem(defaultAccountStorageKey);
     if (paramId && accounts.find((a) => a.id === paramId)) {
       setActiveAccountId(paramId);
@@ -71,7 +81,7 @@ export default function VendorDashboard() {
       // stale or unset — fall back to first accessible account
       setActiveAccountId(accounts[0].id);
     }
-  }, [accounts, loadingAccounts, defaultAccountStorageKey]);
+  }, [accounts, organizerAccounts, loadingAccounts, defaultAccountStorageKey, adminPreviewAccountId, navigate]);
 
   const account = accounts.find((a) => a.id === activeAccountId) || accounts[0] || null;
 
@@ -192,9 +202,9 @@ export default function VendorDashboard() {
         {/* Dashboard header */}
         <div className="bg-gradient-to-br from-[#2C4F4E] to-[#3d6b6a] text-white shadow-lg">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
-            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={accounts} onSelectBusiness={handleSelectBusiness} defaultAccountId={activeAccountId} />
+            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={organizerAccounts} onSelectBusiness={handleSelectBusiness} defaultAccountId={activeAccountId} dashboardType="vendor_event" currentTab={activeTab} />
             <div className="hidden sm:block">
-              <BusinessSelectorBar accounts={accounts} activeAccount={account} onSelect={handleSelectBusiness} defaultAccountId={activeAccountId} />
+              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectBusiness} defaultAccountId={activeAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!adminPreviewAccountId} />
               <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
             </div>
 

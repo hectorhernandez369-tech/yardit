@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -8,7 +8,8 @@ import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorBillingTab from "@/components/vendor/VendorBillingTab";
 import VendorUsersTab from "@/components/vendor/VendorUsersTab";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
-import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
+import { getUserVendorAccounts, isLeagueTeamAccount, isVendorDashboardAccount } from "@/lib/getUserVendorAccounts";
+import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import LeagueAccessDenied from "@/components/league/LeagueAccessDenied";
 import LeagueDashboardHeader from "@/components/league/LeagueDashboardHeader";
 import LeagueTeamsTab from "@/components/league/LeagueTeamsTab";
@@ -22,19 +23,25 @@ export default function LeagueTeamDashboard() {
   const [activeAccountId, setActiveAccountId] = useState(null);
 
   const { data: user, isLoading: loadingUser } = useQuery({ queryKey: ["leagueDashboardUser"], queryFn: () => base44.auth.me() });
-  const { data: accounts = [], isLoading: loadingAccounts } = useQuery({ queryKey: ["leagueDashboardAccounts", user?.id, user?.email], queryFn: () => getUserVendorAccounts(user, { organizerType: "league_team" }), enabled: !!user?.id || !!user?.email });
+  const { data: organizerAccounts = [], isLoading: loadingAccounts } = useQuery({ queryKey: ["leagueDashboardAccounts", user?.id, user?.email], queryFn: () => getUserVendorAccounts(user), enabled: !!user?.id || !!user?.email });
+  const accounts = useMemo(() => organizerAccounts.filter(isLeagueTeamAccount), [organizerAccounts]);
 
   const storageKey = user?.id || user?.email ? `yardit_default_league_account_id:${user.id || user.email}` : "yardit_default_league_account_id";
 
   useEffect(() => {
     if (loadingAccounts) return;
-    if (!accounts.length) return setActiveAccountId(null);
     const paramId = new URLSearchParams(window.location.search).get("account");
+    const requestedAccount = organizerAccounts.find((item) => item.id === paramId);
+    if (requestedAccount && isVendorDashboardAccount(requestedAccount)) {
+      navigate(`/VendorDashboard?tab=profile&account=${requestedAccount.id}`, { replace: true });
+      return;
+    }
+    if (!accounts.length) return setActiveAccountId(null);
     const savedId = localStorage.getItem(storageKey);
     if (paramId && accounts.find((item) => item.id === paramId)) setActiveAccountId(paramId);
     else if (savedId && accounts.find((item) => item.id === savedId)) setActiveAccountId(savedId);
     else setActiveAccountId(accounts[0].id);
-  }, [accounts, loadingAccounts, storageKey]);
+  }, [accounts, organizerAccounts, loadingAccounts, storageKey, navigate]);
 
   useEffect(() => setActiveTab(requestedTab), [requestedTab]);
 
@@ -71,7 +78,12 @@ export default function LeagueTeamDashboard() {
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-slate-50">
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <LeagueDashboardHeader account={account} accounts={accounts} onSelect={handleSelectAccount} />
+        <div className="bg-gradient-to-br from-[#2C4F4E] to-[#3d6b6a] text-white shadow-lg">
+          <div className="mx-auto max-w-7xl px-0 sm:px-6 sm:pt-6">
+            <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectAccount} defaultAccountId={activeAccountId} dashboardType="league_team" currentTab={activeTab} />
+            <LeagueDashboardHeader account={account} />
+          </div>
+        </div>
         <div className="border-b bg-white">
           <TabsList className="mx-auto flex h-auto max-w-7xl justify-start overflow-x-auto rounded-none bg-transparent p-0">
             {[{ value: "profile", label: "My Page" }, { value: "teams", label: "Teams" }, { value: "games", label: "Games" }, { value: "history", label: "History" }, { value: "tier", label: "Plan & Billing" }, { value: "users", label: "Staff" }].map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="rounded-none px-4 py-3 text-sm font-semibold data-[state=active]:text-[#2C4F4E]">{tab.label}</TabsTrigger>)}
