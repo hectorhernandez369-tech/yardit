@@ -1,14 +1,7 @@
 import React from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, ShoppingBag, Users, Calendar } from "lucide-react";
-
-const CATEGORIES = [
-  "Household Items", "Furniture", "Clothing & Accessories",
-  "Electronics", "Tools & Hardware", "Toys & Games",
-  "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
-  "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
-  "Free Items", "Food / Baked Goods", "Books & Media", "Miscellaneous"
-];
+import ResidentialCategoryFilterPicker from "@/components/shared/ResidentialCategoryFilterPicker";
 
 const TYPE_OPTIONS = [
   { value: "all", label: "All Listings", icon: MapPin, color: "bg-slate-600" },
@@ -92,30 +85,7 @@ export default function MapFilterModal({ open, onOpenChange, filter, onFilterCha
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((cat) => {
-                const isSelected = selectedCategories.includes(cat);
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => {
-                      if (isSelected) {
-                        onCategoriesChange(selectedCategories.filter(c => c !== cat));
-                      } else {
-                        onCategoriesChange([...selectedCategories, cat]);
-                      }
-                    }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-150 ${
-                      isSelected
-                        ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                    }`}
-                  >
-                    {isSelected && "✓ "}{cat}
-                  </button>
-                );
-              })}
-            </div>
+            <ResidentialCategoryFilterPicker selectedCategories={selectedCategories} onChange={onCategoriesChange} />
           </div>
         </div>
 

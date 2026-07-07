@@ -46,6 +46,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import { getEventMarkerIcon } from "@/components/map/eventMarkerIcons";
 import { formatEventTierLabel } from "@/lib/eventListingConfig";
+import { residentialCategoriesMatch } from "@/lib/residentialCategories";
 import { getMarqueeBoardCollapsedHtml, getMarqueeBoardExpandedHtml } from "@/components/map/MarqueeBoard.jsx";
 import { formatListingScheduleText, getListingDescriptionText, getListingPrimaryText, getListingSecondaryBadgeLabel, getListingStatusUi, getListingTypeBadgeLabel } from "@/components/listing/listingDisplay.jsx";
 import SaveListingButton from "@/components/listing/SaveListingButton";
@@ -960,8 +961,11 @@ export default function HomePage() {
 
     const baseListings = listings.
     map((listing) => {
-      const matchesCategory = selectedCategories.length === 0 ||
-      selectedCategories.some((cat) => (listing.categories || []).includes(cat) || listing.category === cat);
+      const matchesCategory = residentialCategoriesMatch(selectedCategories, [
+        ...(listing.categories || []),
+        listing.category,
+        listing.collectible_type,
+      ]);
       if (!matchesCategory) return null;
 
       const mapState = getListingMapVisibilityState(listing, user, visibilityContext);

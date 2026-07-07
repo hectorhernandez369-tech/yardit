@@ -7,6 +7,7 @@
 import { deriveNeighborhoodEventState } from "@/lib/neighborhoodSaleState";
 import { isPublishedVendorEvent, toVendorEventListing } from "@/lib/vendorEvents";
 import { isListingVisible, getListingMapVisibilityState } from "@/lib/listingVisibility";
+import { residentialCategoriesMatch } from "@/lib/residentialCategories";
 
 // ---------------------------------------------------------------------------
 // Distance
@@ -258,7 +259,7 @@ export function buildListViewResults({
     // Category filter
     if (categories.length > 0) {
       const listingCats = [...(l.categories || []), l.category, l.event_category, l.collectible_type].filter(Boolean);
-      if (!categories.some(c => listingCats.includes(c))) return false;
+      if (!residentialCategoriesMatch(categories, listingCats)) return false;
     }
 
     // Date filter

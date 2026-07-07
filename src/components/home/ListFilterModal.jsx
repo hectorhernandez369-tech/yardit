@@ -1,19 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ShoppingBag, Users, Calendar, Check } from "lucide-react";
-
-const CATEGORIES = [
-  "Household Items", "Furniture", "Clothing & Accessories",
-  "Electronics", "Tools & Hardware", "Toys & Games",
-  "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
-  "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
-  "Free Items", "Food / Baked Goods", "Books & Media", "Miscellaneous"
-];
-
-const COLLECTIBLE_SUBTYPES = [
-  "Trading Cards", "Comics", "Coins", "Stamps", "Toys", "Vinyl Records",
-  "Sports Memorabilia", "Vintage Electronics", "Jewelry", "Art", "Figurines", "Other"
-];
+import ResidentialCategoryFilterPicker from "@/components/shared/ResidentialCategoryFilterPicker";
 
 const TYPE_OPTIONS = [
   { value: "yard_sale", label: "Yard Sales", icon: ShoppingBag, color: "bg-amber-500" },
@@ -91,13 +79,11 @@ export default function ListFilterModal({ open, onOpenChange, filters, onFilters
     onFiltersChange({ ...f, types: next });
   }
 
-  function toggleCategory(cat) {
-    const next = f.categories.includes(cat) ? f.categories.filter(c => c !== cat) : [...f.categories, cat];
-    onFiltersChange({ ...f, categories: next });
-  }
+  const handleCategoriesChange = (categories) => {
+    onFiltersChange({ ...f, categories });
+  };
 
   const isShowAll = f.tiers.includes("all") || f.tiers.length === 0;
-  const showCollectiblesSubtype = f.categories.includes("Collectibles");
 
   const hasActiveFilters =
     !isShowAll ||
@@ -259,35 +245,7 @@ export default function ListFilterModal({ open, onOpenChange, filters, onFilters
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map(cat => (
-                <ToggleChip
-                  key={cat}
-                  active={f.categories.includes(cat)}
-                  onClick={() => toggleCategory(cat)}
-                >
-                  {cat}
-                </ToggleChip>
-              ))}
-            </div>
-
-            {/* Collectibles subtype */}
-            {showCollectiblesSubtype && (
-              <div className="mt-3 ml-1">
-                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-2">Collectible Type</p>
-                <div className="flex flex-wrap gap-2">
-                  {COLLECTIBLE_SUBTYPES.map(sub => (
-                    <ToggleChip
-                      key={sub}
-                      active={f.categories.includes(sub)}
-                      onClick={() => toggleCategory(sub)}
-                    >
-                      {sub}
-                    </ToggleChip>
-                  ))}
-                </div>
-              </div>
-            )}
+            <ResidentialCategoryFilterPicker selectedCategories={f.categories} onChange={handleCategoriesChange} />
           </div>
         </div>
 

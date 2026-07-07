@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X, Home, Users, Calendar, Lock, ChevronDown, ChevronUp, Sparkles, MapPin, Star, Megaphone } from "lucide-react";
 import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
+import { RESIDENTIAL_CATEGORIES } from "@/lib/residentialCategories";
 
 // LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
 const LOCKED_LISTING_TYPES = [];
@@ -66,13 +67,7 @@ const LISTING_TYPES = [
   },
 ];
 
-const CATEGORIES = [
-  "Household Items", "Furniture", "Clothing & Accessories",
-  "Electronics", "Tools & Hardware", "Toys & Games",
-  "Baby & Kids", "Outdoor & Garden", "Sports Equipment",
-  "Collectibles", "Antiques & Vintage", "Vehicles & Auto Parts",
-  "Free Items", "Food / Baked Goods", "Miscellaneous"
-];
+const CATEGORIES = RESIDENTIAL_CATEGORIES;
 
 const COLLECTIBLE_TYPES = [
   "Funko Pops", "Sports Cards", "Pokémon Cards",
