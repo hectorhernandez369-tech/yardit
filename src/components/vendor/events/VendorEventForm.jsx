@@ -640,8 +640,14 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       )}
 
       <div className="border-t border-slate-100 pt-5 flex flex-wrap justify-between gap-3">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {!isEditing && <Button variant="outline" disabled={saving} onClick={() => saveEvent("draft")} className="text-slate-600">Save as Draft</Button>}
+          {isEditing && showPublicFields && (
+            <>
+              <Button variant="outline" disabled={saving || ["draft", "cancelled"].includes(form.status || event.status)} onClick={() => saveEvent("draft")} className="text-slate-600">Hide From Map</Button>
+              <Button variant="outline" disabled={saving || (form.status || event.status) === "cancelled"} onClick={() => window.confirm("Cancel this event? It will be removed from the public map.") && saveEvent("cancelled")} className="border-red-200 text-red-600 hover:bg-red-50">Cancel Event</Button>
+            </>
+          )}
           {mode === "full" && <Button variant="outline" disabled={!createdEvent && !isEditing} onClick={() => setShowInviteVendors(true)}>Invite Vendors</Button>}
         </div>
         <Button disabled={saving} onClick={() => saveEvent(isEditing ? form.status || event.status : "published")} className="bg-[#2C4F4E] text-white hover:bg-[#3d6b6a] font-semibold px-6 shadow-sm">

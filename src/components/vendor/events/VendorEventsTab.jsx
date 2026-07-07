@@ -188,7 +188,7 @@ export default function VendorEventsTab({ account, user }) {
 
       {/* Edit event dialog */}
       <Dialog open={!!editingEvent} onOpenChange={(open) => !open && setEditingEvent(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(event) => event.preventDefault()}>
           <DialogHeader><DialogTitle>Edit Event Details</DialogTitle></DialogHeader>
           {editingEvent && (
             <VendorEventForm
