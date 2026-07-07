@@ -40,6 +40,7 @@ const initialForm = {
   vendor_instructions: "",
   vendor_deadline: "",
   max_vendors: "",
+  logo: "",
   flyer_url: "",
   event_flags: [],
   status: "draft",
@@ -77,6 +78,7 @@ const buildInitialForm = (event) => event ? {
   vendor_instructions: event.vendor_instructions || "",
   vendor_deadline: event.vendor_deadline || "",
   max_vendors: event.max_vendors || "",
+  logo: event.logo || "",
   flyer_url: event.flyer_url || "",
   event_flags: [],
   status: event.status || "draft",
@@ -91,6 +93,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
   const [form, setForm] = useState(() => buildInitialForm(event));
   const [saving, setSaving] = useState(false);
   const [uploadingFlyer, setUploadingFlyer] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [createdEvent, setCreatedEvent] = useState(null);
   const [showInviteVendors, setShowInviteVendors] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
@@ -186,6 +189,16 @@ export default function VendorEventForm({ account, user, event = null, approvedV
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
     update("flyer_url", file_url);
     setUploadingFlyer(false);
+    event.target.value = "";
+  };
+
+  const uploadLogo = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    update("logo", file_url);
+    setUploadingLogo(false);
     event.target.value = "";
   };
   const addSpaceOption = () => update("vendor_space_options", [...form.vendor_space_options, { label: "", width: "", depth: "", price: "", quantity: "" }]);
@@ -331,6 +344,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       vendor_deadline: form.vendor_deadline,
       max_vendors: form.max_vendors ? Number(form.max_vendors) : null,
       flyer_url: form.flyer_url,
+      logo: form.logo,
       photos: event?.photos || [],
       updated_at: now,
     };
@@ -395,6 +409,25 @@ export default function VendorEventForm({ account, user, event = null, approvedV
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Description</Label>
                 <Textarea placeholder="Describe your event — what vendors and attendees can expect..." className="resize-none h-24 bg-white" value={form.description} onChange={(e) => update("description", e.target.value)} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Custom Event Logo</Label>
+                {form.logo ? (
+                  <div className="rounded-xl border border-slate-200 bg-white p-3 flex items-center gap-3">
+                    <img src={form.logo} alt="Event logo" className="h-16 w-16 rounded-lg border object-contain bg-slate-50" />
+                    <div className="min-w-0 flex-1">
+                      <a href={form.logo} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#5DADA5] underline">View uploaded logo ↗</a>
+                      <p className="text-xs text-slate-500 mt-1">Shown on the public event page where event branding appears.</p>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" className="text-red-500" onClick={() => update("logo", "")}>Remove</Button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-4 cursor-pointer hover:border-[#5DADA5] hover:bg-[#5DADA5]/5 transition-colors">
+                    <span className="text-sm font-semibold text-slate-700">Upload Custom Logo</span>
+                    <input type="file" accept="image/*" onChange={uploadLogo} disabled={uploadingLogo} className="hidden" />
+                  </label>
+                )}
+                {uploadingLogo && <p className="text-xs text-slate-500 flex items-center gap-1.5"><span className="animate-spin">⏳</span> Uploading logo...</p>}
               </div>
             </div>
           </div>
