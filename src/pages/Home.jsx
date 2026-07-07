@@ -61,6 +61,7 @@ import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreferenc
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 const LINDSAY_PORTERVILLE_CENTER = [36.135, -119.055];
+const FALLBACK_CITY_SUGGESTIONS = ["Lindsay, CA", "Porterville, CA", "Exeter, CA", "Tulare, CA", "Visalia, CA"];
 
 function isLegacySanFranciscoCenter(value) {
   return Array.isArray(value) && Math.abs(Number(value[0]) - 37.7749) < 0.25 && Math.abs(Number(value[1]) + 122.4194) < 0.25;
@@ -805,6 +806,43 @@ export default function HomePage() {
   const vendorEvents = isPublicHomeMode ? publicMapData.vendorEvents || [] : privateVendorEvents;
   const promoDiscoveryCodes = isPublicHomeMode ? publicMapData.promoDiscoveryCodes || [] : privatePromoDiscoveryCodes;
 
+  const searchSuggestions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (query.length < 2) return [];
+
+    const values = new Set(FALLBACK_CITY_SUGGESTIONS);
+    listings.forEach((listing) => {
+      [listing.title, listing.city, listing.category].forEach((value) => {
+        if (value && String(value).trim()) values.add(String(value).trim());
+      });
+      (listing.categories || []).forEach((category) => {
+        if (category && String(category).trim()) values.add(String(category).trim());
+      });
+    });
+
+    return Array.from(values)
+      .filter((value) => value.toLowerCase().includes(query))
+      .slice(0, 8);
+  }, [listings, searchQuery]);
+
+  const handleSearchSuggestionSelect = useCallback((suggestion) => {
+    setSearchQuery(suggestion);
+
+    const cityName = suggestion.split(",")[0].trim().toLowerCase();
+    const fallbackCityNames = FALLBACK_CITY_SUGGESTIONS.map((city) => city.split(",")[0].trim().toLowerCase());
+    const isKnownCity = fallbackCityNames.includes(cityName) || listings.some((listing) => listing.city?.toLowerCase().trim() === cityName);
+    if (!isKnownCity) return;
+
+    const cityListings = listings.filter((listing) => listing.city?.toLowerCase().trim() === cityName);
+    const validListings = cityListings.filter((listing) => typeof listing.lat === "number" && typeof listing.lng === "number" && isFinite(listing.lat) && isFinite(listing.lng));
+    if (validListings.length === 0) return;
+
+    const avgLat = validListings.reduce((sum, listing) => sum + listing.lat, 0) / validListings.length;
+    const avgLng = validListings.reduce((sum, listing) => sum + listing.lng, 0) / validListings.length;
+    setMapCenter([avgLat, avgLng]);
+    setMapZoom(12);
+  }, [listings]);
+
   const handleListViewRefresh = useCallback(async () => {
     await Promise.all(isPublicHomeMode ? [
       queryClient.refetchQueries({ queryKey: ["publicMapData"] }),
@@ -826,8 +864,9 @@ export default function HomePage() {
         };
         setUserLocation(newLoc);
         setLocationError(null);
-        if (!hasCenteredOnUser.current && !userHasMovedMap.current && !sessionStorage.getItem("yardit_last_map_center")) {
+        if (!hasCenteredOnUser.current && !userHasMovedMap.current) {
           setMapCenter([newLoc.lat, newLoc.lng]);
+          setMapZoom(14);
           hasCenteredOnUser.current = true;
         }
         try {localStorage.setItem("yardit_last_map_center", JSON.stringify([newLoc.lat, newLoc.lng]));} catch (e) {}
@@ -1251,27 +1290,37 @@ export default function HomePage() {
     <div className="yardit-home-shell h-[100dvh] sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
       {/* Sticky Top Bar */}
       <div className="relative bg-white border-b border-slate-200 z-[1200] flex-shrink-0 flex flex-col w-full">
-        {view === "map" &&
         <div className="px-3 pt-2 pb-1 sm:hidden">
-            <div className="relative w-full max-w-md mx-auto">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
+          <div className="relative w-full max-w-md mx-auto">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
               placeholder="Search by address or title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-9 text-sm" />
-            
-            </div>
+            {searchSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 z-[1400] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                {searchSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => handleSearchSuggestionSelect(suggestion)}
+                    className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        }
+        </div>
 
         <div className="px-3 py-1.5 flex items-center justify-between gap-3 overflow-visible">
-          <Tabs value={view} onValueChange={setView} className="w-auto flex shrink-0">
+          <Tabs value={view} onValueChange={(nextView) => setView(nextView === "list" ? "list" : "map")} className="w-auto flex shrink-0">
             <TabsList className="grid grid-cols-2 h-9 w-32 bg-slate-100 p-1 rounded-md">
-              <TabsTrigger value="map" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
+              <TabsTrigger value="map" onClick={() => setView("map")} className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
                 <MapIcon className="w-4 h-4" />
               </TabsTrigger>
-              <TabsTrigger value="list" className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
+              <TabsTrigger value="list" onClick={() => setView("list")} className="py-1 data-[state=active]:bg-white data-[state=active]:text-[#5DADA5] data-[state=active]:shadow-sm rounded-sm flex items-center justify-center">
                 <List className="w-4 h-4" />
               </TabsTrigger>
             </TabsList>
@@ -1284,7 +1333,19 @@ export default function HomePage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-9 text-sm" />
-            
+            {searchSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 z-[1400] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                {searchSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => handleSearchSuggestionSelect(suggestion)}
+                    className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
@@ -1323,6 +1384,8 @@ export default function HomePage() {
           mapCenter={mapCenter}
           currentUser={user}
           viewingOwnerPreviewMode={false}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
           onRefresh={handleListViewRefresh} />
         
         </div> :

@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, SlidersHorizontal, Navigation, Clock } from "lucide-react";
+import { MapPin, SlidersHorizontal, Navigation, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
@@ -20,9 +19,8 @@ import ListFilterModal, { DEFAULT_LIST_FILTERS } from "@/components/home/ListFil
 import PullToRefresh from "@/components/mobile/PullToRefresh";
 import { buildListViewResults } from "@/lib/listViewPipeline";
 
-export default function ListView({ listings, vendorEvents, userLocation, mapCenter, currentUser = null, viewingOwnerPreviewMode = false, onRefresh = null }) {
+export default function ListView({ listings, vendorEvents, userLocation, mapCenter, currentUser = null, viewingOwnerPreviewMode = false, searchQuery = "", onSearchQueryChange = null, onRefresh = null }) {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState(DEFAULT_LIST_FILTERS);
   const [showFilterModal, setShowFilterModal] = useState(false);
 
@@ -47,17 +45,8 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      {/* Search + Filter bar */}
-      <div className="mb-4 flex gap-2 items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <Input
-            placeholder="Search listings, city, ZIP, category..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="pl-9 pr-3 h-10 text-sm rounded-xl border-slate-200"
-          />
-        </div>
+      {/* Filter bar */}
+      <div className="mb-4 flex justify-end">
         <Button
           variant="outline"
           size="sm"
