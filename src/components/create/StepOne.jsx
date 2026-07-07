@@ -5,11 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Home, Users, Calendar, Lock, ChevronDown, ChevronUp, Sparkles, MapPin, Star, Megaphone } from "lucide-react";
 import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
-import { RESIDENTIAL_CATEGORIES } from "@/lib/residentialCategories";
+import { RESIDENTIAL_CATEGORY_GROUPS } from "@/lib/residentialCategories";
 
 // LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
 const LOCKED_LISTING_TYPES = [];
@@ -67,7 +67,6 @@ const LISTING_TYPES = [
   },
 ];
 
-const CATEGORIES = RESIDENTIAL_CATEGORIES;
 
 const COLLECTIBLE_TYPES = [
   "Funko Pops", "Sports Cards", "Pokémon Cards",
@@ -293,9 +292,20 @@ export default function StepOne({ formData, setFormData }) {
                   <SelectValue placeholder="+ Add a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.filter(cat => !(formData.categories || []).includes(cat)).map(cat => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
+                  {RESIDENTIAL_CATEGORY_GROUPS.map((group) => {
+                    const availableCategories = group.children.filter(cat => !(formData.categories || []).includes(cat));
+                    if (availableCategories.length === 0) return null;
+                    return (
+                      <SelectGroup key={group.label}>
+                        <SelectLabel className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          {group.label}
+                        </SelectLabel>
+                        {availableCategories.map(cat => (
+                          <SelectItem key={cat} value={cat} className="pl-4">{cat}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             )}
