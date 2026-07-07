@@ -11,6 +11,7 @@ import InviteVendorsModal from "./InviteVendorsModal";
 import CollapsiblePanel from "./CollapsiblePanel";
 import CreateEventCollaboratorsSection from "./CreateEventCollaboratorsSection";
 import EventPromotionSection from "./EventPromotionSection";
+import DefaultEventLogoPicker from "./DefaultEventLogoPicker";
 import { getRolePermissions } from "@/lib/eventCollaboration";
 import { isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
 import { getPromotionRule, calcPromotionUpgrade, getPromotionDates } from "@/lib/vendorEventPromotion";
@@ -416,7 +417,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
                   <div className="rounded-xl border border-slate-200 bg-white p-3 flex items-center gap-3">
                     <img src={form.logo} alt="Event logo" className="h-16 w-16 rounded-lg border object-contain bg-slate-50" />
                     <div className="min-w-0 flex-1">
-                      <a href={form.logo} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#5DADA5] underline">View uploaded logo ↗</a>
+                      <a href={form.logo} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#5DADA5] underline">View selected logo ↗</a>
                       <p className="text-xs text-slate-500 mt-1">Shown on the public event page where event branding appears.</p>
                     </div>
                     <Button type="button" variant="ghost" size="sm" className="text-red-500" onClick={() => update("logo", "")}>Remove</Button>
@@ -428,6 +429,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
                   </label>
                 )}
                 {uploadingLogo && <p className="text-xs text-slate-500 flex items-center gap-1.5"><span className="animate-spin">⏳</span> Uploading logo...</p>}
+                <DefaultEventLogoPicker value={form.logo} onChange={(logo) => update("logo", logo)} />
               </div>
             </div>
           </div>
