@@ -58,6 +58,14 @@ export async function shouldShowPushPrompt(user) {
   return decision.show;
 }
 
+export async function syncGrantedPushSubscription(user) {
+  if (!user?.id || typeof window === "undefined" || !("Notification" in window) || window.Notification.permission !== "granted") {
+    return { status: "not_enabled", subscriptionId: "", synced: false };
+  }
+  const result = await enablePushPromptSubscription(user);
+  return { ...result, synced: result.status === "enabled" && !!result.subscriptionId };
+}
+
 export async function enablePushPromptSubscription(user) {
   const result = await enableOneSignalPush({ userId: user.id });
   const subscriptionId = result.subscriptionId || await getOneSignalSubscriptionId();

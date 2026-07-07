@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Bell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { afterSetupPromptKey, declinedPromptKey, enablePushPromptSubscription, evaluatePushPromptEligibility, lastPushErrorKey, logPushPromptDecision } from "@/lib/pushPromptActions";
+import { afterSetupPromptKey, declinedPromptKey, enablePushPromptSubscription, evaluatePushPromptEligibility, lastPushErrorKey, logPushPromptDecision, syncGrantedPushSubscription } from "@/lib/pushPromptActions";
+
+const sessionPromptKey = (userId) => `yardit_push_prompt_session_${userId}`;
 
 const errorText = (status) => {
   if (status === "needs_install") return "Install Yardit to your Home Screen first, then open the installed app to enable push notifications.";
@@ -40,8 +42,15 @@ export default function PushSubscribePrompt({ user }) {
       }
     };
 
+    syncGrantedPushSubscription(user).then((result) => {
+      if (active) logPushPromptDecision(user, "subscription_sync", result);
+    }).catch(() => {});
+
     if (sessionStorage.getItem(afterSetupPromptKey(user.id)) === "true") {
       requestPrompt("account_setup_complete");
+    } else if (sessionStorage.getItem(sessionPromptKey(user.id)) !== "true") {
+      sessionStorage.setItem(sessionPromptKey(user.id), "true");
+      timers.push(setTimeout(() => requestPrompt("session_check"), 1200));
     }
 
     const handleAccountSetupComplete = (event) => {
