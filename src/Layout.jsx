@@ -196,7 +196,7 @@ function LayoutContent({ children, user, setUser }) {
                 </Button>
               )}
 
-              <Link to={createPageUrl("Home")} className="yardit-nav-map-link">
+              <Link to={createPageUrl("Home")} onClick={() => window.dispatchEvent(new CustomEvent("yardit:show-map-view"))} className="yardit-nav-map-link">
                 <Button
                   variant={location.pathname === createPageUrl("Home") || location.pathname === "/" ? "secondary" : "ghost"}
                   size="sm"

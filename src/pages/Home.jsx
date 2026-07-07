@@ -427,6 +427,7 @@ export default function HomePage() {
   // --- Full map state (merged from pages/Map) ---
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const getSavedLocation = () => {
     try {
@@ -608,6 +609,12 @@ export default function HomePage() {
       setIsShowingAllListings(false);
       showListingsTimerRef.current = null;
     }, 3000);
+  }, []);
+
+  useEffect(() => {
+    const handleShowMapView = () => setView("map");
+    window.addEventListener("yardit:show-map-view", handleShowMapView);
+    return () => window.removeEventListener("yardit:show-map-view", handleShowMapView);
   }, []);
 
   useEffect(() => {
@@ -827,6 +834,7 @@ export default function HomePage() {
 
   const handleSearchSuggestionSelect = useCallback((suggestion) => {
     setSearchQuery(suggestion);
+    setShowSearchSuggestions(false);
 
     const cityName = suggestion.split(",")[0].trim().toLowerCase();
     const fallbackCityNames = FALLBACK_CITY_SUGGESTIONS.map((city) => city.split(",")[0].trim().toLowerCase());
@@ -1296,15 +1304,17 @@ export default function HomePage() {
             <Input
               placeholder="Search by address or title..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {setSearchQuery(e.target.value);setShowSearchSuggestions(true);}}
+              onFocus={() => setShowSearchSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 120)}
               className="pl-9 h-9 text-sm" />
-            {searchSuggestions.length > 0 && (
+            {showSearchSuggestions && searchSuggestions.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 z-[1400] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
                 {searchSuggestions.map((suggestion) => (
                   <button
                     key={suggestion}
                     type="button"
-                    onClick={() => handleSearchSuggestionSelect(suggestion)}
+                    onMouseDown={(event) => {event.preventDefault();handleSearchSuggestionSelect(suggestion);}}
                     className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
                     {suggestion}
                   </button>
@@ -1331,15 +1341,17 @@ export default function HomePage() {
             <Input
               placeholder="Search by address or title..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {setSearchQuery(e.target.value);setShowSearchSuggestions(true);}}
+              onFocus={() => setShowSearchSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 120)}
               className="pl-9 h-9 text-sm" />
-            {searchSuggestions.length > 0 && (
+            {showSearchSuggestions && searchSuggestions.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 z-[1400] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
                 {searchSuggestions.map((suggestion) => (
                   <button
                     key={suggestion}
                     type="button"
-                    onClick={() => handleSearchSuggestionSelect(suggestion)}
+                    onMouseDown={(event) => {event.preventDefault();handleSearchSuggestionSelect(suggestion);}}
                     className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
                     {suggestion}
                   </button>

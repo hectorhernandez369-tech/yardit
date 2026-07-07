@@ -14,11 +14,15 @@ export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccoun
   const location = useLocation();
   const navigate = useNavigate();
   const isMapActive = location.pathname === createPageUrl("Home") || location.pathname === "/";
+  const handleMapClick = () => {
+    window.dispatchEvent(new CustomEvent("yardit:show-map-view"));
+    navigate(createPageUrl("Home"));
+  };
 
   if (!isAuthenticated) {
     return (
       <nav className="yardit-mobile-bottom-nav yardit-mobile-bottom-nav-guest" aria-label="Mobile navigation">
-        <button onClick={() => navigate(createPageUrl("Home"))} className={`yardit-mobile-nav-item ${isMapActive ? "is-active" : ""}`}>
+        <button onClick={handleMapClick} className={`yardit-mobile-nav-item ${isMapActive ? "is-active" : ""}`}>
           <Home className="w-5 h-5" />
           <span>Map</span>
         </button>
@@ -39,7 +43,7 @@ export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccoun
         />
       </div>
 
-      <button onClick={() => navigate(createPageUrl("Home"))} className={`yardit-mobile-nav-item yardit-mobile-nav-map ${isMapActive ? "is-active" : ""}`}>
+      <button onClick={handleMapClick} className={`yardit-mobile-nav-item yardit-mobile-nav-map ${isMapActive ? "is-active" : ""}`}>
         <Home className="w-5 h-5" />
         <span>Map</span>
       </button>
