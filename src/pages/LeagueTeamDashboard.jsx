@@ -8,6 +8,7 @@ import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorBillingTab from "@/components/vendor/VendorBillingTab";
 import VendorUsersTab from "@/components/vendor/VendorUsersTab";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
+import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
 import { getUserVendorAccounts, isLeagueTeamAccount, isVendorDashboardAccount } from "@/lib/getUserVendorAccounts";
 import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import LeagueAccessDenied from "@/components/league/LeagueAccessDenied";
@@ -89,11 +90,12 @@ export default function LeagueTeamDashboard() {
         </div>
         <div className="border-b bg-white">
           <TabsList className="mx-auto flex h-auto max-w-7xl justify-start overflow-x-auto rounded-none bg-transparent p-0">
-            {[{ value: "profile", label: "My Page" }, { value: "teams", label: "Teams" }, { value: "games", label: "Games" }, { value: "history", label: "History" }, { value: "tier", label: "Plan & Billing" }, { value: "users", label: "Staff" }].map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="rounded-none px-4 py-3 text-sm font-semibold data-[state=active]:text-[#2C4F4E]">{tab.label}</TabsTrigger>)}
+            {[{ value: "profile", label: "My Page" }, { value: "events", label: "Events" }, { value: "teams", label: "Teams" }, { value: "games", label: "Games" }, { value: "history", label: "History" }, { value: "tier", label: "Plan & Billing" }, { value: "users", label: "Staff" }].map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="rounded-none px-4 py-3 text-sm font-semibold data-[state=active]:text-[#2C4F4E]">{tab.label}</TabsTrigger>)}
           </TabsList>
         </div>
         <div className="mx-auto max-w-7xl space-y-4 p-3 pb-24 sm:p-6 sm:pb-24">
           <TabsContent value="profile"><VendorBusinessPage account={account} pins={[]} checkIns={[]} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="events"><VendorEventsTab account={account} user={user} /></TabsContent>
           <TabsContent value="teams"><LeagueTeamsTab account={account} /></TabsContent>
           <TabsContent value="games"><LeagueGamesTab account={account} games={games} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="history"><VendorPinHistoryTab pins={[]} checkIns={[]} /></TabsContent>
