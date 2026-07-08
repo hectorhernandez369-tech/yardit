@@ -13,6 +13,7 @@ import OpenHoursFields from "./OpenHoursFields";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
 
 const FREE_TIER_SCREENSHOT_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/9568bdd43_Screenshot_20260706_105625_Yardit.jpg";
+const FEATURED_TIER_SCREENSHOT_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/a448d42b2_Screenshot_20260706_105638_Yardit.jpg";
 
 function makeId() {
   try {
@@ -334,6 +335,13 @@ export default function StepThree({
                       Featured
                       <span className="text-[10px] bg-[#5DADA5] text-white px-2 py-0.5 rounded-full font-bold tracking-wide">RECOMMENDED</span>
                       {tier === "featured" && <span className="text-xs bg-[#2C4F4E] text-white px-2 py-0.5 rounded-full">Selected</span>}
+                    </div>
+                    <div className="mt-3 overflow-hidden rounded-xl border border-[#2C4F4E]/20 bg-white">
+                      <img
+                        src={FEATURED_TIER_SCREENSHOT_URL}
+                        alt="Featured tier map visibility preview"
+                        className="h-36 w-full object-cover"
+                      />
                     </div>
                     {tier === "featured" && (
                       <ul className="mt-3 space-y-1 text-sm text-[#1F2937] opacity-90 list-disc pl-5">
