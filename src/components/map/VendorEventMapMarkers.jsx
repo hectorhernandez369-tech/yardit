@@ -72,7 +72,7 @@ export default function VendorEventMapMarkers({ vendorEvents, showVendorEvents =
             icon={getVendorEventIcon(isComingSoon, stackCount)}
           >
             <Popup maxWidth={300} minWidth={220} autoPan>
-              <div className="space-y-2 p-0.5">
+              <div className="space-y-2 rounded-xl bg-white p-3 text-slate-900 shadow-sm">
                 <div className="flex items-center gap-1 flex-wrap">
                   <Badge className={isComingSoon ? "bg-amber-500 text-white text-[9px] px-1 py-0" : "bg-emerald-600 text-white text-[9px] px-1 py-0"}>
                     {isComingSoon ? "Coming Soon" : "Active Now"}
