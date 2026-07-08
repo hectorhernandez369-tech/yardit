@@ -5,6 +5,8 @@ import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
+import BusinessHero from "@/components/vendor/BusinessHero";
+import MobileVendorHeader from "@/components/vendor/MobileVendorHeader";
 import VendorBillingTab from "@/components/vendor/VendorBillingTab";
 import VendorUsersTab from "@/components/vendor/VendorUsersTab";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
@@ -12,7 +14,6 @@ import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
 import { getUserVendorAccounts, isLeagueTeamAccount, isVendorDashboardAccount } from "@/lib/getUserVendorAccounts";
 import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import LeagueAccessDenied from "@/components/league/LeagueAccessDenied";
-import LeagueDashboardHeader from "@/components/league/LeagueDashboardHeader";
 import LeagueTeamsTab from "@/components/league/LeagueTeamsTab";
 import LeagueGamesTab from "@/components/league/LeagueGamesTab";
 
@@ -79,28 +80,47 @@ export default function LeagueTeamDashboard() {
   if (loadingUser || loadingAccounts) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" /></div>;
   if (!account) return <LeagueAccessDenied />;
 
+  const heroProfile = {
+    id: account.id,
+    business_name: account.business_name,
+    logo_url: account.business_logo,
+    tier: account.vendor_tier,
+    category: account.business_category,
+    description: account.description,
+    phone: account.phone,
+    location: account.location || account.service_area || account.city || account.address,
+    hero_background_color: account.hero_background_color,
+    vendor_account_number: account.vendor_account_number || account.account_number,
+    owner_email: account.owner_email,
+  };
+
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-slate-50">
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
+    <div className="w-full min-h-screen overflow-x-hidden bg-slate-50">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0 min-w-0">
         <div className="bg-gradient-to-br from-[#2C4F4E] to-[#3d6b6a] text-white shadow-lg">
-          <div className="mx-auto max-w-7xl px-0 sm:px-6 sm:pt-6">
-            <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectAccount} defaultAccountId={activeAccountId} dashboardType="league_team" currentTab={activeTab} />
-            <LeagueDashboardHeader account={account} />
+          <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
+            <MobileVendorHeader account={account} accounts={organizerAccounts} onSelectBusiness={handleSelectAccount} defaultAccountId={activeAccountId} dashboardType="league_team" currentTab={activeTab} />
+            <div className="hidden sm:block">
+              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectAccount} defaultAccountId={activeAccountId} dashboardType="league_team" currentTab={activeTab} />
+              <BusinessHero profile={heroProfile} onRefresh={refreshDashboard} asHeader />
+            </div>
+
+            <div className="mt-0 sm:mt-5 overflow-x-auto">
+              <TabsList className="flex w-max min-w-full bg-transparent p-0 h-auto justify-start rounded-none gap-0.5 sm:gap-1">
+                {[{ value: "profile", label: "My Page" }, { value: "events", label: "Events" }, { value: "teams", label: "Teams" }, { value: "games", label: "Games" }, { value: "history", label: "History" }, { value: "tier", label: "Plan & Billing" }, { value: "users", label: "Staff" }].map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="min-w-fit px-3 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-sm font-semibold rounded-none sm:rounded-t-xl text-white/70 hover:text-white hover:bg-white/10 transition-all data-[state=active]:bg-slate-50 data-[state=active]:text-[#2C4F4E] data-[state=active]:shadow-none data-[state=active]:font-bold">{tab.label}</TabsTrigger>)}
+              </TabsList>
+            </div>
           </div>
         </div>
-        <div className="border-b bg-white">
-          <TabsList className="mx-auto flex h-auto max-w-7xl justify-start overflow-x-auto rounded-none bg-transparent p-0">
-            {[{ value: "profile", label: "My Page" }, { value: "events", label: "Events" }, { value: "teams", label: "Teams" }, { value: "games", label: "Games" }, { value: "history", label: "History" }, { value: "tier", label: "Plan & Billing" }, { value: "users", label: "Staff" }].map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="rounded-none px-4 py-3 text-sm font-semibold data-[state=active]:text-[#2C4F4E]">{tab.label}</TabsTrigger>)}
-          </TabsList>
-        </div>
-        <div className="mx-auto max-w-7xl space-y-4 p-3 pb-24 sm:p-6 sm:pb-24">
-          <TabsContent value="profile"><VendorBusinessPage account={account} pins={[]} checkIns={[]} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
-          <TabsContent value="events"><VendorEventsTab account={account} user={user} /></TabsContent>
-          <TabsContent value="teams"><LeagueTeamsTab account={account} /></TabsContent>
-          <TabsContent value="games"><LeagueGamesTab account={account} games={games} onRefresh={refreshDashboard} /></TabsContent>
-          <TabsContent value="history"><VendorPinHistoryTab pins={[]} checkIns={[]} /></TabsContent>
-          <TabsContent value="tier"><VendorBillingTab account={account} onRefresh={refreshDashboard} /></TabsContent>
-          <TabsContent value="users"><VendorUsersTab account={account} users={users} user={user} pins={[]} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
+
+        <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-3 sm:space-y-6">
+          <TabsContent value="profile" className="mt-0 min-w-0"><VendorBusinessPage account={account} pins={[]} checkIns={[]} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="events" className="mt-0 min-w-0"><VendorEventsTab account={account} user={user} /></TabsContent>
+          <TabsContent value="teams" className="mt-0 min-w-0"><LeagueTeamsTab account={account} /></TabsContent>
+          <TabsContent value="games" className="mt-0 min-w-0"><LeagueGamesTab account={account} games={games} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="history" className="mt-0 min-w-0"><VendorPinHistoryTab pins={[]} checkIns={[]} /></TabsContent>
+          <TabsContent value="tier" className="mt-0 min-w-0"><VendorBillingTab account={account} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="users" className="mt-0 min-w-0"><VendorUsersTab account={account} users={users} user={user} pins={[]} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
         </div>
       </Tabs>
     </div>
