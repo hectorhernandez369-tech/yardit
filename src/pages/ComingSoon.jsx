@@ -6,7 +6,7 @@ import LaunchNotificationForm from "@/components/coming-soon/LaunchNotificationF
 import ComingSoonPreviewCard from "@/components/coming-soon/ComingSoonPreviewCard";
 import ComingSoonActionPills from "@/components/coming-soon/ComingSoonActionPills";
 import TesterLoginModal from "@/components/coming-soon/TesterLoginModal";
-import AdminLoginModal, { getAdminSession } from "@/components/admin/AdminLoginModal";
+import AdminLoginModal from "@/components/admin/AdminLoginModal";
 import { setTesterBypass } from "@/lib/comingSoonMode";
 
 const logoUrl = "https://media.base44.com/images/public/690f554506edf795e5d84121/418a5e7a0_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
@@ -55,15 +55,7 @@ export default function ComingSoon() {
             Early Access
           </Button>
           <Button
-            onClick={() => {
-              const session = getAdminSession();
-              if (session) {
-                setTesterBypass();
-                window.location.href = "/";
-              } else {
-                setShowAdminModal(true);
-              }
-            }}
+            onClick={() => setShowAdminModal(true)}
             className="gap-2 rounded-full bg-[#2C4F4E] text-white shadow-sm hover:bg-[#203c3b]"
           >
             <Shield className="h-4 w-4" />
