@@ -52,6 +52,7 @@ function LayoutContent({ children, user, setUser }) {
   const [canInstallApp, setCanInstallApp] = useState(false);
   const [showLaunchChecklist, setShowLaunchChecklist] = useState(false);
   const [showAddressRequiredModal, setShowAddressRequiredModal] = useState(false);
+  const [startupPage, setStartupPage] = useState(() => localStorage.getItem("yardit_startup_page") === "vendor" ? "vendor" : "map");
   const { isGuest, isAuthenticated, logout, navigateToLogin } = useAuth() || {};
 
   const { guardAction, showModal, setShowModal, isGuest: guestHookIsGuest } = useGuestGuard();
@@ -77,6 +78,15 @@ function LayoutContent({ children, user, setUser }) {
       setHasVendorAccount(false);
       }
   }, [user]);
+
+  useEffect(() => {
+    const handleStartupPageChanged = (event) => {
+      setStartupPage(event.detail === "vendor" ? "vendor" : "map");
+    };
+
+    window.addEventListener("yardit:startup-page-changed", handleStartupPageChanged);
+    return () => window.removeEventListener("yardit:startup-page-changed", handleStartupPageChanged);
+  }, []);
 
   useEffect(() => {
     const updateInstallState = () => {
@@ -207,6 +217,18 @@ function LayoutContent({ children, user, setUser }) {
                 </Button>
               </Link>
 
+              {hasVendorAccount && startupPage === "vendor" && (
+                <Button
+                  variant={location.pathname === "/VendorDashboard" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => navigate("/VendorDashboard")}
+                  className={`gap-2 ${location.pathname === "/VendorDashboard" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                >
+                  <Store className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </Button>
+              )}
+
               {!isAuthenticated && (
                 <Button
                   size="sm"
@@ -331,6 +353,7 @@ function LayoutContent({ children, user, setUser }) {
         isAuthenticated={isAuthenticated}
         hasVendorAccount={hasVendorAccount}
         hasAdminProfile={hasAdminProfile}
+        showVendorHomeButton={hasVendorAccount && startupPage === "vendor"}
         navigateToLogin={navigateToLogin}
         onPostSale={handlePostSaleClick}
         onLogout={handleLogout}

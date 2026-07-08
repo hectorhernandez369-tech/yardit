@@ -10,10 +10,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NotificationBell from "@/components/notifications/NotificationBell";
 
-export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccount, hasAdminProfile, navigateToLogin, onPostSale, onLogout }) {
+export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccount, hasAdminProfile, showVendorHomeButton, navigateToLogin, onPostSale, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isMapActive = location.pathname === createPageUrl("Home") || location.pathname === "/";
+  const isVendorDashboardActive = location.pathname === "/VendorDashboard";
   const handleMapClick = () => {
     window.dispatchEvent(new CustomEvent("yardit:show-map-view"));
     navigate(createPageUrl("Home"));
@@ -35,7 +36,7 @@ export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccoun
   }
 
   return (
-    <nav className="yardit-mobile-bottom-nav" aria-label="Mobile navigation">
+    <nav className={`yardit-mobile-bottom-nav ${showVendorHomeButton ? "yardit-mobile-bottom-nav-vendor-home" : ""}`} aria-label="Mobile navigation">
       <div className="yardit-mobile-nav-logo" aria-hidden="true">
         <img
           src="https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png"
@@ -47,6 +48,13 @@ export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccoun
         <Home className="w-5 h-5" />
         <span>Map</span>
       </button>
+
+      {showVendorHomeButton && (
+        <button onClick={() => navigate("/VendorDashboard")} className={`yardit-mobile-nav-item yardit-mobile-nav-vendor-home ${isVendorDashboardActive ? "is-active" : ""}`}>
+          <Store className="w-5 h-5" />
+          <span>Vendor</span>
+        </button>
+      )}
 
       <div className="yardit-mobile-nav-item yardit-mobile-nav-bell">
         <NotificationBell />

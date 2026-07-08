@@ -50,6 +50,7 @@ export default function SettingsPage() {
   const handleStartupPageChange = (value) => {
     setStartupPage(value);
     localStorage.setItem("yardit_startup_page", value);
+    window.dispatchEvent(new CustomEvent("yardit:startup-page-changed", { detail: value }));
   };
 
   useEffect(() => {
