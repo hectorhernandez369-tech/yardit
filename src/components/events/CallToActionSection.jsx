@@ -6,10 +6,6 @@ import { ArrowRight } from "lucide-react";
 
 export default function CallToActionSection() {
   const handleSignUp = async () => {
-    // Store promo code for after authentication
-    localStorage.setItem("yardit_events_promo", "FIRST50");
-    
-    // Route to Base44 Auth
     await base44.auth.redirectToLogin("/VendorSignup");
   };
 
@@ -44,15 +40,6 @@ export default function CallToActionSection() {
             </Button>
           </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-8 text-sm text-gray-400"
-          >
-            The First 50 Approved Vendors Receive: 60 Days Free Pro Vendor Access
-          </motion.p>
         </motion.div>
       </div>
     </section>

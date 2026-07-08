@@ -19,7 +19,7 @@ export default function SignupSection() {
     phone: "",
     city: "",
     password: "",
-    promoCode: "FIRST50",
+    promoCode: "",
   });
   const [promoApplied, setPromoApplied] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
