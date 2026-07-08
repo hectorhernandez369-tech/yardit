@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { appParams, captureAuthTokenFromCurrentUrl, waitForOAuthAccessToken } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { isGuestMode, setGuestMode, clearGuestMode } from './guestMode';
+import { clearTesterBypass } from '@/lib/comingSoonMode';
 import { logUserActivity, logUserActivityOncePerSession } from './logUserActivity';
 import { normalizeUser } from '@/lib/normalizeUser';
 import { recordAuthDebugEvent } from '@/lib/authDebug';
@@ -346,6 +347,7 @@ export const AuthProvider = ({ children }) => {
 
     clearAuthReturnTo();
     clearGuestMode();
+    clearTesterBypass();
     try {
       localStorage.setItem(RETURNING_USER_KEY, "true");
     } catch {}
