@@ -12,6 +12,8 @@ import NeighborhoodSaleNoticeCard from "./NeighborhoodSaleNoticeCard";
 import OpenHoursFields from "./OpenHoursFields";
 import EditListingPhotos from "@/components/listing/EditListingPhotos";
 
+const FREE_TIER_SCREENSHOT_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/9568bdd43_Screenshot_20260706_105625_Yardit.jpg";
+
 function makeId() {
   try {
     if (crypto?.randomUUID) return crypto.randomUUID();
@@ -302,6 +304,13 @@ export default function StepThree({
                     <div className="font-semibold text-[#2C4F4E] flex items-center gap-2 text-base">
                       Free
                       {tier === "free" && <span className="text-xs bg-[#5DADA5] text-white px-2 py-0.5 rounded-full">Selected</span>}
+                    </div>
+                    <div className="mt-3 overflow-hidden rounded-xl border border-[#2C4F4E]/20 bg-white">
+                      <img
+                        src={FREE_TIER_SCREENSHOT_URL}
+                        alt="Free tier map visibility preview"
+                        className="h-36 w-full object-cover"
+                      />
                     </div>
                     {tier === "free" && (
                       <ul className="mt-3 space-y-1 text-sm text-[#1F2937] opacity-90 list-disc pl-5">
