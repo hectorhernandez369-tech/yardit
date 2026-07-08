@@ -7,7 +7,7 @@ import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import { base44 } from "@/api/base44Client";
-import { isComingSoonModeEnabled, getTesterBypass, shouldBypassComingSoonForCurrentUrl } from '@/lib/comingSoonMode';
+import { isComingSoonModeEnabled, shouldBypassComingSoonForCurrentUrl } from '@/lib/comingSoonMode';
 import PageNotFound from './lib/PageNotFound';
 import ComingSoon from './pages/ComingSoon';
 import VendorDashboard from './pages/VendorDashboard';
@@ -76,7 +76,6 @@ const AuthenticatedApp = () => {
   const isComingSoonMode =
     isComingSoonModeEnabled(publicAppSettings) &&
     !isAuthenticated &&
-    !getTesterBypass() &&
     !shouldBypassComingSoonForCurrentUrl();
   const AdminPage = Pages.AdminLite;
 
