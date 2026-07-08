@@ -216,6 +216,14 @@ button:focus-visible {
   scroll-padding: 1rem 1rem calc(8rem + var(--yardit-safe-area-bottom));
 }
 
+@media (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  .yardit-app-shell {
+    padding-top: max(var(--yardit-safe-area-top), 1rem);
+    padding-left: var(--yardit-safe-area-left);
+    padding-right: var(--yardit-safe-area-right);
+  }
+}
+
 @media (max-width: 639px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
   .yardit-account-setup-dialog {
     top: calc(var(--yardit-setup-modal-top, 0px) + var(--yardit-safe-area-top) + 0.5rem) !important;
