@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+
 
 export default function EventsHero({ onPrimaryCta, onSecondaryCta }) {
   return (
@@ -28,45 +28,6 @@ export default function EventsHero({ onPrimaryCta, onSecondaryCta }) {
             Yardit Events is building a local network of vendors, food trucks, pop-ups, collectibles, creators, community events, and event organizers.
           </p>
 
-          {/* Premium Promo Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="mb-12"
-          >
-            <div className="inline-block bg-gradient-to-br from-[#D4A849] to-[#C99635] rounded-2xl p-1 shadow-2xl shadow-[#D4A849]/25">
-              <div className="bg-[#0A1628] rounded-xl px-6 sm:px-10 py-6 sm:py-8 border border-[#1A2F4D]">
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <Sparkles className="w-5 h-5 text-[#D4A849]" />
-                  <span className="text-3xl sm:text-4xl font-black text-white tracking-wider">
-                    FIRST50
-                  </span>
-                  <Sparkles className="w-5 h-5 text-[#D4A849]" />
-                </div>
-                <h3 className="text-lg sm:text-xl font-bold text-white mb-4">
-                  The First 50 Approved Vendors Receive:
-                </h3>
-                <ul className="text-left space-y-2 text-gray-300 mb-4">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#D4A849] mt-1">•</span>
-                    <span>60 Days Free Pro Vendor Access</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#D4A849] mt-1">•</span>
-                    <span>Early Access To Local Events</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#D4A849] mt-1">•</span>
-                    <span>Founding Vendor Status</span>
-                  </li>
-                </ul>
-                <p className="text-sm text-[#D4A849] font-semibold uppercase tracking-wide">
-                  Limited Founding Vendor Access
-                </p>
-              </div>
-            </div>
-          </motion.div>
 
           {/* CTA Buttons */}
           <motion.div

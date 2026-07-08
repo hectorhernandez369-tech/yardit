@@ -2,7 +2,6 @@ import React from "react";
 import EventsHero from "@/components/events/EventsHero";
 import FomoSection from "@/components/events/FomoSection";
 import HowItWorksSection from "@/components/events/HowItWorksSection";
-import FoundingVendorSection from "@/components/events/FoundingVendorSection";
 import CallToActionSection from "@/components/events/CallToActionSection";
 import BottomCTA from "@/components/events/BottomCTA";
 import EventsFooter from "@/components/events/EventsFooter";
@@ -24,7 +23,6 @@ export default function Events() {
         <FomoSection />
       </div>
       <HowItWorksSection />
-      <FoundingVendorSection onCta={scrollToCTA} />
       <div id="cta">
         <CallToActionSection />
       </div>
