@@ -12,7 +12,7 @@ export default function LeagueGamesTab({ account, games = [], onRefresh }) {
           <CardTitle className="flex items-center gap-2 text-[#2C4F4E]"><Trophy className="h-5 w-5" /> Games</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-slate-600">Upload an Excel, Google Sheets export, or CSV file to build the game schedule for {account?.business_name || "this organization"}.</p>
+          <p className="text-sm text-slate-600">Upload an Excel, Google Sheets export, or CSV file, or manually add games to build the schedule for {account?.business_name || "this organization"}.</p>
           <GamesImportPanel account={account} onImported={onRefresh} />
         </CardContent>
       </Card>
