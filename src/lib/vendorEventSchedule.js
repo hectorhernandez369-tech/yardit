@@ -7,17 +7,64 @@ export const formatTimeInput = (value) => {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 };
 
+export const parseScheduleDate = (value) => {
+  if (!value) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+
+  const isoMatch = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  const usMatch = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2}|\d{4})/);
+  if (usMatch) {
+    const [, month, day, yearValue] = usMatch;
+    const year = yearValue.length === 2 ? `20${yearValue}` : yearValue;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  const date = new Date(raw);
+  if (!Number.isNaN(date.getTime())) return date.toISOString().slice(0, 10);
+  return raw.slice(0, 10);
+};
+
+export const formatScheduleDate = (value) => {
+  const parsed = parseScheduleDate(value);
+  const match = parsed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return value || "";
+  return `${Number(match[2])}/${Number(match[3])}/${match[1]}`;
+};
+
 export const parseScheduleTime = (eventDate, value, dateOverride) => {
   if (!value?.trim()) return "";
-  const raw = value.trim().toLowerCase().replace(/\s+/g, "");
-  const match = raw.match(/^(\d{1,2})(?::(\d{2}))?(am|pm)?$/);
-  if (!match) return value;
+  const raw = value.trim().toLowerCase().replace(/[.]/g, ":").replace(/[^0-9:apm]/g, "");
+  const meridiemMatch = raw.match(/([ap])m*$/);
+  const meridiem = meridiemMatch ? `${meridiemMatch[1]}m` : "";
+  const digits = raw.replace(/(am*|pm*)$/i, "").replace(/[^0-9]/g, "");
+  const colonMatch = raw.replace(/(am*|pm*)$/i, "").match(/^(\d{1,2}):(\d{1,2})$/);
 
-  let hours = Number(match[1]);
-  const minutes = Number(match[2] || 0);
-  const meridiem = match[3];
+  let hours = 0;
+  let minutes = 0;
+  if (colonMatch) {
+    hours = Number(colonMatch[1]);
+    minutes = Number(colonMatch[2].padStart(2, "0").slice(0, 2));
+  } else if (digits.length <= 2) {
+    hours = Number(digits);
+  } else if (digits.length === 3) {
+    hours = Number(digits.slice(0, 1));
+    minutes = Number(digits.slice(1));
+  } else if (digits.length === 4) {
+    hours = Number(digits.slice(0, 2));
+    minutes = Number(digits.slice(2));
+  } else {
+    return value;
+  }
+
   if (meridiem === "pm" && hours < 12) hours += 12;
   if (meridiem === "am" && hours === 12) hours = 0;
+  if (hours > 23 || minutes > 59) return value;
 
   const date = dateOverride ? new Date(`${dateOverride}T00:00:00`) : new Date(eventDate || new Date());
   date.setHours(hours, minutes, 0, 0);

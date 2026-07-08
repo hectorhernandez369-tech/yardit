@@ -5,19 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import GamesFormatGuide from "./GamesFormatGuide";
-import { parseScheduleTime } from "@/lib/vendorEventSchedule";
+import { formatScheduleDate, parseScheduleDate, parseScheduleTime } from "@/lib/vendorEventSchedule";
 
 const getValue = (row, keys) => {
   const found = Object.keys(row || {}).find((key) => keys.includes(key.trim().toLowerCase()));
   return found ? row[found] : "";
 };
 
-const toDateOnly = (value) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (!Number.isNaN(date.getTime())) return date.toISOString().slice(0, 10);
-  return String(value).slice(0, 10);
-};
+const toDateOnly = (value) => parseScheduleDate(value);
 
 export default function GamesImportPanel({ account, onImported }) {
   const [loading, setLoading] = useState(false);
@@ -69,7 +64,7 @@ export default function GamesImportPanel({ account, onImported }) {
           <div><h3 className="font-black text-[#2C4F4E]">Upload Games File</h3><p className="text-sm text-slate-600">Upload .xlsx, .xls, or .csv, preview it, then confirm import.</p></div>
           <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md bg-[#F4A849] px-4 py-2 text-sm font-bold text-[#2C4F4E] hover:bg-[#E39635]"><Upload className="h-4 w-4" /> {loading ? "Reading..." : "Choose File"}<Input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={loading} onChange={(e) => handleUpload(e.target.files?.[0])} /></label>
         </div>
-        {previewRows.length > 0 && <div className="space-y-3"><div className="max-h-80 overflow-auto rounded-xl border"><table className="w-full min-w-[820px] text-sm"><thead className="bg-[#E7D7B8]"><tr>{["Field", "Game", "Home", "Away", "Date", "Start", "Notes"].map((heading) => <th key={heading} className="p-2 text-left">{heading}</th>)}</tr></thead><tbody>{previewRows.map((row, index) => <tr key={`${row.game_title}-${index}`} className="border-t"><td className="p-2">{row.field_name}</td><td className="p-2 font-semibold">{row.game_title}</td><td className="p-2">{row.home_team}</td><td className="p-2">{row.away_team}</td><td className="p-2">{row.game_date}</td><td className="p-2">{row.start_time ? new Date(row.start_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}</td><td className="p-2">{row.notes}</td></tr>)}</tbody></table></div><div className="flex gap-2"><Button onClick={confirmImport}>Confirm Import</Button><Button variant="outline" onClick={() => setPreviewRows([])}><X className="h-4 w-4" /> Cancel</Button></div></div>}
+        {previewRows.length > 0 && <div className="space-y-3"><div className="max-h-80 overflow-auto rounded-xl border"><table className="w-full min-w-[820px] text-sm"><thead className="bg-[#E7D7B8]"><tr>{["Field", "Game", "Home", "Away", "Date", "Start", "Notes"].map((heading) => <th key={heading} className="p-2 text-left">{heading}</th>)}</tr></thead><tbody>{previewRows.map((row, index) => <tr key={`${row.game_title}-${index}`} className="border-t"><td className="p-2">{row.field_name}</td><td className="p-2 font-semibold">{row.game_title}</td><td className="p-2">{row.home_team}</td><td className="p-2">{row.away_team}</td><td className="p-2">{formatScheduleDate(row.game_date)}</td><td className="p-2">{row.start_time ? new Date(row.start_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}</td><td className="p-2">{row.notes}</td></tr>)}</tbody></table></div><div className="flex gap-2"><Button onClick={confirmImport}>Confirm Import</Button><Button variant="outline" onClick={() => setPreviewRows([])}><X className="h-4 w-4" /> Cancel</Button></div></div>}
       </div>
     </div>
   );
