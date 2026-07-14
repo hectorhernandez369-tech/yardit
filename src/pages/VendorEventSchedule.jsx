@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import ScheduleImportPanel from "@/components/vendor/events/schedule/ScheduleImportPanel";
 import ScheduleRowsEditor from "@/components/vendor/events/schedule/ScheduleRowsEditor";
-import { buildBlankScheduleRows, cleanRowsForSave, makeScheduleRowId, normalizeScheduleRows } from "@/lib/vendorEventSchedule";
+import { buildBlankScheduleRows, cleanRowsForSave, normalizeScheduleRows } from "@/lib/vendorEventSchedule";
 import { safeBack } from "@/utils";
 import { canManageSchedule as hasSchedulePermission } from "@/lib/eventCollaboration";
 
@@ -22,7 +22,6 @@ export default function VendorEventSchedule() {
   const [rows, setRows] = useState([]);
   const [timeBetweenMinutes, setTimeBetweenMinutes] = useState(90);
   const [bulkCount, setBulkCount] = useState(20);
-  const [divisionName, setDivisionName] = useState("");
   const [customDivisions, setCustomDivisions] = useState([]);
   const [groupByField, setGroupByField] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -83,30 +82,14 @@ export default function VendorEventSchedule() {
     setRows([...rows, ...buildBlankScheduleRows(bulkCount, fields, event.startDateTime, timeBetweenMinutes, rows.length, rows[rows.length - 1]?.start_time)]);
   };
 
-  const addDivision = () => {
-    const name = divisionName.trim();
-    if (!name) {
-      toast.error("Enter a division name first.");
-      return;
-    }
-    if (fields.some((field) => field.title.toLowerCase() === name.toLowerCase())) {
-      toast.error("That division already exists.");
-      return;
-    }
-    setCustomDivisions([...customDivisions, name]);
-    setRows(normalizeScheduleRows([...rows, {
-      id: makeScheduleRowId(),
-      spot_id: "",
-      field_name: name,
-      title: "",
-      start_time: "",
-      end_time: "",
-      notes: "",
-      date: "",
-      isBlank: true,
-    }]));
+  const addCustomField = (rawName) => {
+    const name = String(rawName || "").trim();
+    if (!name) return "";
+    const existing = fields.find((field) => field.title.toLowerCase() === name.toLowerCase());
+    if (existing) return existing.title;
+    setCustomDivisions((prev) => prev.some((item) => item.toLowerCase() === name.toLowerCase()) ? prev : [...prev, name]);
     setGroupByField(true);
-    setDivisionName("");
+    return name;
   };
 
   const importRows = (importedRows) => {
@@ -145,21 +128,11 @@ export default function VendorEventSchedule() {
               <div className="flex items-end"><Button type="button" variant="outline" onClick={addBulkSlots} className="w-full"><Plus className="h-4 w-4" /> Add Multiple Slots</Button></div>
             </div>
           </div>
-          <div className="rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-4 space-y-3">
-            <div>
-              <h3 className="font-black text-[#2C4F4E]">Youth Football Divisions</h3>
-              <p className="text-sm text-slate-600">Add divisions like 8u Division, 10u Division, or Varsity, then assign game times below.</p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-              <Input value={divisionName} onChange={(e) => setDivisionName(e.target.value)} placeholder="8u Division" className="bg-white" />
-              <Button type="button" variant="outline" onClick={addDivision}><Plus className="h-4 w-4" /> Add Division</Button>
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-sm font-bold text-[#2C4F4E]"><Switch checked={groupByField} onCheckedChange={setGroupByField} /> Group by Division / Field</label>
+          <label className="flex items-center gap-2 text-sm font-bold text-[#2C4F4E]"><Switch checked={groupByField} onCheckedChange={setGroupByField} /> Group by Event / Location</label>
         </CardContent>
       </Card>
 
-      <ScheduleRowsEditor rows={rows} setRows={setRows} fields={fields} eventDate={event.startDateTime} timeBetweenMinutes={timeBetweenMinutes} groupByField={groupByField} />
+      <ScheduleRowsEditor rows={rows} setRows={setRows} fields={fields} eventDate={event.startDateTime} timeBetweenMinutes={timeBetweenMinutes} groupByField={groupByField} onAddField={addCustomField} />
       <ScheduleImportPanel fields={fields} eventDate={event.startDateTime} onConfirm={importRows} />
     </div>
   );
