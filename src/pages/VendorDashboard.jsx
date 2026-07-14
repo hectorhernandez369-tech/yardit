@@ -29,6 +29,7 @@ export default function VendorDashboard() {
   const [showSetupReminder, setShowSetupReminder] = useState(true);
   // Multi-business: which account is currently active
   const [activeAccountId, setActiveAccountId] = useState(null);
+  const [defaultAccountId, setDefaultAccountId] = useState(null);
 
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ["vendorDashboardUser"],
@@ -56,6 +57,10 @@ export default function VendorDashboard() {
     ? `yardit_default_vendor_account_id:${user.id || user.email}`
     : "yardit_default_vendor_account_id";
 
+  useEffect(() => {
+    setDefaultAccountId(localStorage.getItem(defaultAccountStorageKey));
+  }, [defaultAccountStorageKey]);
+
   // Set active account: prefer URL param, then saved default, then current selection, then first
   // Also clears stale selection if account is no longer accessible
   useEffect(() => {
@@ -74,10 +79,10 @@ export default function VendorDashboard() {
     const savedDefaultId = localStorage.getItem(defaultAccountStorageKey);
     if (paramId && accounts.find((a) => a.id === paramId)) {
       setActiveAccountId(paramId);
-    } else if (savedLastOrganizerId && accounts.find((a) => a.id === savedLastOrganizerId)) {
-      setActiveAccountId(savedLastOrganizerId);
     } else if (savedDefaultId && accounts.find((a) => a.id === savedDefaultId)) {
       setActiveAccountId(savedDefaultId);
+    } else if (savedLastOrganizerId && accounts.find((a) => a.id === savedLastOrganizerId)) {
+      setActiveAccountId(savedLastOrganizerId);
     } else if (activeAccountId && accounts.find((a) => a.id === activeAccountId)) {
       // keep current selection — still valid
     } else {
@@ -142,14 +147,22 @@ export default function VendorDashboard() {
   const handleSelectBusiness = (acc) => {
     setActiveAccountId(acc.id);
     localStorage.setItem("yardit_last_organizer_account_id", acc.id);
-    if (!adminPreviewAccountId) {
-      localStorage.setItem(defaultAccountStorageKey, acc.id);
-    }
     navigate(`/VendorDashboard?tab=${activeTab}&account=${acc.id}${adminPreviewAccountId ? "&adminPreview=1" : ""}`, { replace: true });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardPins", acc.id] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardCheckIns", acc.id] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardUsers", acc.id] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardUpdates", acc.id] });
+  };
+
+  const handleSetDefaultAccount = (acc) => {
+    if (!acc?.id || adminPreviewAccountId) return;
+    if (isLeagueTeamAccount(acc)) {
+      const userKey = user?.id || user?.email;
+      localStorage.setItem(userKey ? `yardit_default_league_account_id:${userKey}` : "yardit_default_league_account_id", acc.id);
+      return;
+    }
+    localStorage.setItem(defaultAccountStorageKey, acc.id);
+    setDefaultAccountId(acc.id);
   };
 
   // Mark dashboard as entered for setup tracking
@@ -206,9 +219,9 @@ export default function VendorDashboard() {
         {/* Dashboard header */}
         <div className="bg-gradient-to-br from-[#2C4F4E] to-[#3d6b6a] text-white shadow-lg">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
-            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={organizerAccounts} onSelectBusiness={handleSelectBusiness} defaultAccountId={activeAccountId} dashboardType="vendor_event" currentTab={activeTab} />
+            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={organizerAccounts} onSelectBusiness={handleSelectBusiness} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} />
             <div className="hidden sm:block">
-              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectBusiness} defaultAccountId={activeAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!adminPreviewAccountId} />
+              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectBusiness} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!adminPreviewAccountId} />
               <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
             </div>
 

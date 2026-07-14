@@ -23,12 +23,17 @@ export default function LeagueTeamDashboard() {
   const requestedTab = new URLSearchParams(window.location.search).get("tab") || "profile";
   const [activeTab, setActiveTab] = useState(requestedTab);
   const [activeAccountId, setActiveAccountId] = useState(null);
+  const [defaultAccountId, setDefaultAccountId] = useState(null);
 
   const { data: user, isLoading: loadingUser } = useQuery({ queryKey: ["leagueDashboardUser"], queryFn: () => base44.auth.me() });
   const { data: organizerAccounts = [], isLoading: loadingAccounts } = useQuery({ queryKey: ["leagueDashboardAccounts", user?.id, user?.email], queryFn: () => getUserVendorAccounts(user), enabled: !!user?.id || !!user?.email });
   const accounts = useMemo(() => organizerAccounts.filter(isLeagueTeamAccount), [organizerAccounts]);
 
   const storageKey = user?.id || user?.email ? `yardit_default_league_account_id:${user.id || user.email}` : "yardit_default_league_account_id";
+
+  useEffect(() => {
+    setDefaultAccountId(localStorage.getItem(storageKey));
+  }, [storageKey]);
 
   useEffect(() => {
     if (loadingAccounts) return;
@@ -42,8 +47,8 @@ export default function LeagueTeamDashboard() {
     const savedLastOrganizerId = localStorage.getItem("yardit_last_organizer_account_id");
     const savedId = localStorage.getItem(storageKey);
     if (paramId && accounts.find((item) => item.id === paramId)) setActiveAccountId(paramId);
-    else if (savedLastOrganizerId && accounts.find((item) => item.id === savedLastOrganizerId)) setActiveAccountId(savedLastOrganizerId);
     else if (savedId && accounts.find((item) => item.id === savedId)) setActiveAccountId(savedId);
+    else if (savedLastOrganizerId && accounts.find((item) => item.id === savedLastOrganizerId)) setActiveAccountId(savedLastOrganizerId);
     else setActiveAccountId(accounts[0].id);
   }, [accounts, organizerAccounts, loadingAccounts, storageKey, navigate]);
 
@@ -73,8 +78,18 @@ export default function LeagueTeamDashboard() {
   const handleSelectAccount = (nextAccount) => {
     setActiveAccountId(nextAccount.id);
     localStorage.setItem("yardit_last_organizer_account_id", nextAccount.id);
-    localStorage.setItem(storageKey, nextAccount.id);
     navigate(`/LeagueTeamDashboard?tab=${activeTab}&account=${nextAccount.id}`, { replace: true });
+  };
+
+  const handleSetDefaultAccount = (nextAccount) => {
+    if (!nextAccount?.id) return;
+    if (isVendorDashboardAccount(nextAccount)) {
+      const userKey = user?.id || user?.email;
+      localStorage.setItem(userKey ? `yardit_default_vendor_account_id:${userKey}` : "yardit_default_vendor_account_id", nextAccount.id);
+      return;
+    }
+    localStorage.setItem(storageKey, nextAccount.id);
+    setDefaultAccountId(nextAccount.id);
   };
 
   if (loadingUser || loadingAccounts) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" /></div>;
@@ -99,9 +114,9 @@ export default function LeagueTeamDashboard() {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0 min-w-0">
         <div className="bg-gradient-to-br from-[#2C4F4E] to-[#3d6b6a] text-white shadow-lg">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
-            <MobileVendorHeader account={account} accounts={organizerAccounts} onSelectBusiness={handleSelectAccount} defaultAccountId={activeAccountId} dashboardType="league_team" currentTab={activeTab} />
+            <MobileVendorHeader account={account} accounts={organizerAccounts} onSelectBusiness={handleSelectAccount} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="league_team" currentTab={activeTab} />
             <div className="hidden sm:block">
-              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectAccount} defaultAccountId={activeAccountId} dashboardType="league_team" currentTab={activeTab} />
+              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectAccount} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="league_team" currentTab={activeTab} />
               <BusinessHero profile={heroProfile} onRefresh={refreshDashboard} asHeader />
             </div>
 
