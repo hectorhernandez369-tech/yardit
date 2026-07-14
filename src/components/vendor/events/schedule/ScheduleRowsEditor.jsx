@@ -9,12 +9,12 @@ function ScheduleRow({ row, index, fields, eventDate, timeBetweenMinutes, onUpda
     <div className="grid w-full min-w-0 gap-2 rounded-xl border bg-white p-3 lg:grid-cols-[170px_minmax(0,1fr)_120px_120px_minmax(0,1fr)_auto]">
       <Select value={row.spot_id || row.field_name || "main-event"} onValueChange={(value) => {
         const field = fields.find((item) => item.id === value || item.title === value);
-        onUpdate(row.id, { spot_id: field?.id || "", field_name: field?.title || value });
+        onUpdate(row.id, { spot_id: field?.isCustom ? "" : field?.id || "", field_name: field?.title || value });
       }}>
-        <SelectTrigger className="w-full min-w-0"><SelectValue placeholder="Field / Flag" /></SelectTrigger>
+        <SelectTrigger className="w-full min-w-0"><SelectValue placeholder="Division / Field" /></SelectTrigger>
         <SelectContent>{fields.map((field) => <SelectItem key={field.id || field.title} value={field.id || field.title}>{field.title}</SelectItem>)}</SelectContent>
       </Select>
-      <Input className="min-w-0" placeholder="Activity/Game Name" value={row.title || ""} onChange={(e) => onUpdate(row.id, { title: e.target.value })} />
+      <Input className="min-w-0" placeholder="Game / Matchup" value={row.title || ""} onChange={(e) => onUpdate(row.id, { title: e.target.value })} />
       <Input className="min-w-0" placeholder="12:00 PM" value={formatTimeInput(row.start_time)} onChange={(e) => onUpdate(row.id, { start_time: e.target.value })} onBlur={(e) => onUpdate(row.id, { start_time: parseScheduleTime(eventDate, e.target.value, row.date) })} />
       <Input className="min-w-0" placeholder="End Time" value={formatTimeInput(row.end_time)} onChange={(e) => onUpdate(row.id, { end_time: e.target.value })} onBlur={(e) => onUpdate(row.id, { end_time: parseScheduleTime(eventDate, e.target.value, row.date) })} />
       <Input className="min-w-0" placeholder="Notes" value={row.notes || ""} onChange={(e) => onUpdate(row.id, { notes: e.target.value })} />
@@ -37,8 +37,8 @@ export default function ScheduleRowsEditor({ rows, setRows, fields, eventDate, t
 
   if (groupByField) {
     const groups = groupScheduleRows(rows);
-    return <div className="space-y-4">{Object.entries(groups).map(([fieldName, groupRows]) => <div key={fieldName} className="space-y-2"><h3 className="rounded-xl bg-[#2C4F4E] px-4 py-2 font-black text-white">{fieldName}</h3>{groupRows.map((row) => <ScheduleRow key={row.id} row={row} index={rows.findIndex((item) => item.id === row.id)} fields={fields} eventDate={eventDate} timeBetweenMinutes={timeBetweenMinutes} onUpdate={updateRow} onDuplicate={duplicateRow} onDelete={deleteRow} />)}</div>)}<Button type="button" variant="outline" onClick={addOne}><Plus className="h-4 w-4" /> Add 1 Slot</Button></div>;
+    return <div className="space-y-4">{Object.entries(groups).map(([fieldName, groupRows]) => <div key={fieldName} className="space-y-2"><h3 className="rounded-xl bg-[#2C4F4E] px-4 py-2 font-black text-white">{fieldName}</h3>{groupRows.map((row) => <ScheduleRow key={row.id} row={row} index={rows.findIndex((item) => item.id === row.id)} fields={fields} eventDate={eventDate} timeBetweenMinutes={timeBetweenMinutes} onUpdate={updateRow} onDuplicate={duplicateRow} onDelete={deleteRow} />)}</div>)}<Button type="button" variant="outline" onClick={addOne}><Plus className="h-4 w-4" /> Add Game Slot</Button></div>;
   }
 
-  return <div className="space-y-2">{rows.map((row, index) => <ScheduleRow key={row.id} row={row} index={index} fields={fields} eventDate={eventDate} timeBetweenMinutes={timeBetweenMinutes} onUpdate={updateRow} onDuplicate={duplicateRow} onDelete={deleteRow} />)}<Button type="button" variant="outline" onClick={addOne}><Plus className="h-4 w-4" /> Add 1 Slot</Button></div>;
+  return <div className="space-y-2">{rows.map((row, index) => <ScheduleRow key={row.id} row={row} index={index} fields={fields} eventDate={eventDate} timeBetweenMinutes={timeBetweenMinutes} onUpdate={updateRow} onDuplicate={duplicateRow} onDelete={deleteRow} />)}<Button type="button" variant="outline" onClick={addOne}><Plus className="h-4 w-4" /> Add Game Slot</Button></div>;
 }

@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import ScheduleImportPanel from "@/components/vendor/events/schedule/ScheduleImportPanel";
 import ScheduleRowsEditor from "@/components/vendor/events/schedule/ScheduleRowsEditor";
-import { buildBlankScheduleRows, cleanRowsForSave, normalizeScheduleRows } from "@/lib/vendorEventSchedule";
+import { buildBlankScheduleRows, cleanRowsForSave, makeScheduleRowId, normalizeScheduleRows } from "@/lib/vendorEventSchedule";
 import { safeBack } from "@/utils";
 import { canManageSchedule as hasSchedulePermission } from "@/lib/eventCollaboration";
 
@@ -22,6 +22,8 @@ export default function VendorEventSchedule() {
   const [rows, setRows] = useState([]);
   const [timeBetweenMinutes, setTimeBetweenMinutes] = useState(90);
   const [bulkCount, setBulkCount] = useState(20);
+  const [divisionName, setDivisionName] = useState("");
+  const [customDivisions, setCustomDivisions] = useState([]);
   const [groupByField, setGroupByField] = useState(false);
   const [saving, setSaving] = useState(false);
   const [canManageSchedule, setCanManageSchedule] = useState(false);
@@ -33,12 +35,20 @@ export default function VendorEventSchedule() {
   const { data: savedEntries = [], isLoading: isLoadingEntries } = useQuery({ queryKey: ["eventScheduleEntries", eventId], queryFn: () => base44.entities.EventScheduleEntry.filter({ event_id: eventId }, "sort_order"), enabled: !!eventId, initialData: [] });
   const { data: collaborators = [], isLoading: loadingCollaborators } = useQuery({ queryKey: ["scheduleEventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
 
-  const fields = useMemo(() => {
+  const baseFields = useMemo(() => {
     if (["multi_spot", "multi_location"].includes(event?.event_type) && spots.length) {
       return spots.map((spot, index) => ({ id: spot.id, title: spot.title || spot.label || `Field ${index + 1}` }));
     }
     return [{ id: "", title: "Main Event" }];
   }, [event?.event_type, spots]);
+
+  const fields = useMemo(() => {
+    const baseTitles = new Set(baseFields.map((field) => field.title.toLowerCase()));
+    const divisions = customDivisions
+      .filter((name) => name && !baseTitles.has(name.toLowerCase()))
+      .map((name) => ({ id: name, title: name, isCustom: true }));
+    return [...baseFields, ...divisions];
+  }, [baseFields, customDivisions]);
 
   useEffect(() => {
     if (!event) return;
@@ -60,14 +70,43 @@ export default function VendorEventSchedule() {
   useEffect(() => {
     if (!event || isLoadingEntries || rows.length) return;
     if (savedEntries.length) {
+      const baseTitles = new Set(baseFields.map((field) => field.title.toLowerCase()));
+      const savedDivisions = [...new Set(savedEntries.map((entry) => entry.field_name).filter((name) => name && !baseTitles.has(name.toLowerCase())))];
+      if (savedDivisions.length) setCustomDivisions((prev) => [...new Set([...prev, ...savedDivisions])]);
       setRows(savedEntries.map((entry) => ({ ...entry, isBlank: false })));
     } else {
       setRows(buildBlankScheduleRows(1, fields, event.startDateTime, timeBetweenMinutes));
     }
-  }, [event, fields, isLoadingEntries, rows.length, savedEntries, timeBetweenMinutes]);
+  }, [event, baseFields, fields, isLoadingEntries, rows.length, savedEntries, timeBetweenMinutes]);
 
   const addBulkSlots = () => {
     setRows([...rows, ...buildBlankScheduleRows(bulkCount, fields, event.startDateTime, timeBetweenMinutes, rows.length, rows[rows.length - 1]?.start_time)]);
+  };
+
+  const addDivision = () => {
+    const name = divisionName.trim();
+    if (!name) {
+      toast.error("Enter a division name first.");
+      return;
+    }
+    if (fields.some((field) => field.title.toLowerCase() === name.toLowerCase())) {
+      toast.error("That division already exists.");
+      return;
+    }
+    setCustomDivisions([...customDivisions, name]);
+    setRows(normalizeScheduleRows([...rows, {
+      id: makeScheduleRowId(),
+      spot_id: "",
+      field_name: name,
+      title: "",
+      start_time: "",
+      end_time: "",
+      notes: "",
+      date: "",
+      isBlank: true,
+    }]));
+    setGroupByField(true);
+    setDivisionName("");
   };
 
   const importRows = (importedRows) => {
@@ -106,7 +145,17 @@ export default function VendorEventSchedule() {
               <div className="flex items-end"><Button type="button" variant="outline" onClick={addBulkSlots} className="w-full"><Plus className="h-4 w-4" /> Add Multiple Slots</Button></div>
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm font-bold text-[#2C4F4E]"><Switch checked={groupByField} onCheckedChange={setGroupByField} /> Group by Field</label>
+          <div className="rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-4 space-y-3">
+            <div>
+              <h3 className="font-black text-[#2C4F4E]">Youth Football Divisions</h3>
+              <p className="text-sm text-slate-600">Add divisions like 8u Division, 10u Division, or Varsity, then assign game times below.</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <Input value={divisionName} onChange={(e) => setDivisionName(e.target.value)} placeholder="8u Division" className="bg-white" />
+              <Button type="button" variant="outline" onClick={addDivision}><Plus className="h-4 w-4" /> Add Division</Button>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm font-bold text-[#2C4F4E]"><Switch checked={groupByField} onCheckedChange={setGroupByField} /> Group by Division / Field</label>
         </CardContent>
       </Card>
 
