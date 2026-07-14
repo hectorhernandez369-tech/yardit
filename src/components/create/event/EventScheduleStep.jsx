@@ -1,20 +1,34 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { getEventScheduleValidation, getNormalizedEventSchedule, shiftDate } from "@/lib/eventSchedule";
+import { normalizeResidentialEventSingleDay } from "@/lib/residentialEventSchedule";
 
 export default function EventScheduleStep({ formData, setFormData }) {
-  const schedule = getNormalizedEventSchedule(formData);
-  const validation = getEventScheduleValidation(formData);
+  const safeFormData = normalizeResidentialEventSingleDay(formData);
+  const schedule = getNormalizedEventSchedule(safeFormData);
+  const validation = getEventScheduleValidation(safeFormData);
+
+  useEffect(() => {
+    const normalized = normalizeResidentialEventSingleDay(formData);
+    if (
+      normalized.event_end_date !== formData.event_end_date ||
+      normalized.start_datetime !== formData.start_datetime ||
+      normalized.end_datetime !== formData.end_datetime ||
+      normalized.startDateTime !== formData.startDateTime ||
+      normalized.endDateTime !== formData.endDateTime
+    ) {
+      setFormData((prev) => normalizeResidentialEventSingleDay(prev));
+    }
+  }, [formData, setFormData]);
 
   const updateSchedule = (changes) => {
-    const startDate = changes.event_start_date || formData.event_start_date || schedule.eventStartDate;
-    const nextFormData = { ...formData, ...changes, event_end_date: startDate };
+    const nextFormData = normalizeResidentialEventSingleDay({ ...formData, ...changes });
     const nextSchedule = getNormalizedEventSchedule(nextFormData);
 
     setFormData((prev) => {
       const comingSoonDays = Number(prev.coming_soon_package || 0);
-      return {
+      return normalizeResidentialEventSingleDay({
         ...prev,
         ...changes,
         event_start_date: nextSchedule.eventStartDate,
@@ -26,7 +40,7 @@ export default function EventScheduleStep({ formData, setFormData }) {
         end_datetime: nextSchedule.endLocal,
         startDateTime: nextSchedule.startLocal,
         endDateTime: nextSchedule.endLocal,
-      };
+      });
     });
   };
 

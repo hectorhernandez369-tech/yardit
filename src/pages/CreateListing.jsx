@@ -40,6 +40,7 @@ import {
 } from "@/lib/residentialDateConflict";
 import { getResidentialEventPriceBreakdown } from "@/lib/eventListingConfig";
 import { getEventScheduleValidation } from "@/lib/eventSchedule";
+import { normalizeResidentialEventSingleDay } from "@/lib/residentialEventSchedule";
 import { getResidentialDescriptionLimitError } from "@/lib/residentialDescriptionLimits";
 import { buildResolvedListingLocation, isLocationReadyForSubmission, resolveTimeZoneFromCoordinates, getStateAbbreviation } from "@/lib/listingLocation";
 
@@ -330,8 +331,9 @@ export default function CreateListingPage() {
     try {
       const draft = JSON.parse(raw);
       if (!draft?.formData) return;
+      const restoredFormData = normalizeResidentialEventSingleDay({ ...draft.formData });
       setActiveDraftId(draft.draftId || null);
-      setFormData((prev) => ({ ...prev, ...draft.formData }));
+      setFormData((prev) => normalizeResidentialEventSingleDay({ ...prev, ...restoredFormData }));
       localStorage.removeItem(DRAFT_RESUME_STORAGE_KEY);
       if (hasPastSelectedDates(draft.formData)) {
         setStep(draft.formData.listingType === "event" ? 3 : 3);
@@ -634,13 +636,14 @@ export default function CreateListingPage() {
 
     const listingType = sourceFormData.listingType;
     const title = sourceFormData.event_name || sourceFormData.title || (listingType === "event" ? "Event draft" : listingType === "neighborhood_sale" ? "Neighborhood Sale draft" : "Yard Sale draft");
+    const safeSourceFormData = normalizeResidentialEventSingleDay(sourceFormData);
     const draftData = {
       owner_user_id: user.id,
       listing_type: listingType,
       title,
-      tier: sourceFormData.event_tier || sourceFormData.tier || "",
+      tier: safeSourceFormData.event_tier || safeSourceFormData.tier || "",
       last_step: draftStep,
-      data_json: JSON.stringify(sourceFormData),
+      data_json: JSON.stringify(safeSourceFormData),
       status: "active",
       saved_reason: "in_progress",
     };
@@ -768,7 +771,9 @@ export default function CreateListingPage() {
       setIsStartingPayment(true);
       const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
       const earlyVisibilityFields = buildPromoEarlyVisibilityFields(promoResult);
-      localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({ formData: { ...formData, ...nonRefundFields, ...earlyVisibilityFields } }));
+      const checkoutFormData = normalizeResidentialEventSingleDay({ ...formData, ...nonRefundFields, ...earlyVisibilityFields });
+      setFormData(checkoutFormData);
+      localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({ formData: checkoutFormData }));
 
       const returnUrl = `${window.location.origin}${createPageUrl("CreateListing")}`;
       const promoPayload = promoResult ? {
@@ -784,23 +789,31 @@ export default function CreateListingPage() {
         promo_visibility_start_date: promoResult.earlyVisibility?.visibility_start_date || "",
       } : {};
       const response = await base44.functions.invoke("residentialStripeCheckout", {
-        tier: formData.listingType === "event" ? "event" : formData.tier,
-        listing_kind: formData.listingType === "event" ? "event" : "residential",
+        tier: checkoutFormData.listingType === "event" ? "event" : checkoutFormData.tier,
+        listing_kind: checkoutFormData.listingType === "event" ? "event" : "residential",
         amount_cents: amountCents,
         event_price_breakdown: eventPriceBreakdown,
         customer_email: user?.email,
         return_url: returnUrl,
         listing_id: "",
         owner_user_id: user?.id,
-        listingType: formData.listingType,
-        description: formData.description || formData.event_description || "",
-        event_description: formData.event_description || "",
-        addressText: formData.addressText || user?.primary_address || user?.street_address || "",
-        zip: formData.zip || user?.zip_code || "",
-        lat: formData.lat ?? user?.primary_latitude ?? user?.address_lat,
-        lng: formData.lng ?? user?.primary_longitude ?? user?.address_lng,
-        selectedRangeStartDate: formData.selectedRangeStartDate,
-        selectedRangeEndDate: formData.selectedRangeEndDate,
+        listingType: checkoutFormData.listingType,
+        description: checkoutFormData.description || checkoutFormData.event_description || "",
+        event_description: checkoutFormData.event_description || "",
+        addressText: checkoutFormData.addressText || user?.primary_address || user?.street_address || "",
+        zip: checkoutFormData.zip || user?.zip_code || "",
+        lat: checkoutFormData.lat ?? user?.primary_latitude ?? user?.address_lat,
+        lng: checkoutFormData.lng ?? user?.primary_longitude ?? user?.address_lng,
+        selectedRangeStartDate: checkoutFormData.selectedRangeStartDate,
+        selectedRangeEndDate: checkoutFormData.selectedRangeEndDate,
+        event_start_date: checkoutFormData.event_start_date,
+        event_end_date: checkoutFormData.event_end_date,
+        event_start_time: checkoutFormData.event_start_time,
+        event_end_time: checkoutFormData.event_end_time,
+        start_datetime: checkoutFormData.start_datetime,
+        end_datetime: checkoutFormData.end_datetime,
+        startDateTime: checkoutFormData.startDateTime,
+        endDateTime: checkoutFormData.endDateTime,
         non_refund_acknowledged: nonRefundFields.non_refund_acknowledged,
         non_refund_acknowledged_at: nonRefundFields.non_refund_acknowledged_at,
         non_refund_acknowledged_by_user_id: nonRefundFields.non_refund_acknowledged_by_user_id,
@@ -1338,7 +1351,9 @@ export default function CreateListingPage() {
     }
 
     if (step === 3 && formData.listingType === "event") {
-      const scheduleValidation = getEventScheduleValidation(formData);
+      const safeEventData = normalizeResidentialEventSingleDay(formData);
+      setFormData(safeEventData);
+      const scheduleValidation = getEventScheduleValidation(safeEventData);
       if (!scheduleValidation.hasRequiredFields) {
         toast.error("Please complete the event start/end dates and times");
         return;
@@ -1361,7 +1376,7 @@ export default function CreateListingPage() {
       return;
     }
 
-    let payload = { ...sourceFormData, timeZoneId: sourceFormData.timeZoneId || "" };
+    let payload = normalizeResidentialEventSingleDay({ ...sourceFormData, timeZoneId: sourceFormData.timeZoneId || "" });
 
     if (isAdminCreate) {
       payload.location_source = "admin_selected";
@@ -1700,7 +1715,9 @@ export default function CreateListingPage() {
     }
 
     if (formData.listingType === "event") {
-      const scheduleValidation = getEventScheduleValidation(formData);
+      const safeEventData = normalizeResidentialEventSingleDay(formData);
+      setFormData(safeEventData);
+      const scheduleValidation = getEventScheduleValidation(safeEventData);
       if (!scheduleValidation.hasRequiredFields) {
         toast.error("Please complete the event start/end dates and times");
         return;
@@ -1813,11 +1830,11 @@ export default function CreateListingPage() {
             }
           }
           toast.success("Payment found — creating your listing now.");
-          executeSubmit("paid_success_pending_link", {
+          executeSubmit("paid_success_pending_link", normalizeResidentialEventSingleDay({
             ...stored.formData,
             pending_checkout_session_id: response.data.session_id,
             payment_intent_status: "hold_requested",
-          });
+          }));
         } else {
           recoveringPaidCheckoutRef.current = false;
         }
@@ -1909,8 +1926,9 @@ export default function CreateListingPage() {
     try {
       const stored = JSON.parse(raw);
       if (stored?.formData) {
-        setFormData(stored.formData);
-        setStep(stored.formData?.listingType === "event" ? 5 : 4);
+        const restoredFormData = normalizeResidentialEventSingleDay(stored.formData);
+        setFormData(restoredFormData);
+        setStep(restoredFormData?.listingType === "event" ? 5 : 4);
       }
 
       window.history.replaceState({}, "", createPageUrl("CreateListing"));
@@ -1950,11 +1968,11 @@ export default function CreateListingPage() {
             }
             setPaymentError("");
             toast.success(response?.data?.paid ? "Payment successful." : "Payment received — creating your listing now.");
-            executeSubmit("paid_success_pending_link", {
+            executeSubmit("paid_success_pending_link", normalizeResidentialEventSingleDay({
               ...stored.formData,
               pending_checkout_session_id: sessionId,
               payment_intent_status: "hold_requested",
-            });
+            }));
           } else {
             setIsStartingPayment(false);
             const pendingMessage = "Payment could not be confirmed. No listing was created.";
