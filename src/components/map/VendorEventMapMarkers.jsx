@@ -9,6 +9,13 @@ import { groupVendorEventsByLocation, getVendorEventVisibilityStatus } from "@/l
 
 const markerCache = {};
 
+const timeLabel = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+};
+
 function getVendorEventIcon(isComingSoon, stackCount, logoUrl) {
   const safeLogoUrl = logoUrl ? String(logoUrl).replace(/"/g, "&quot;") : "";
   const key = `ve_${isComingSoon ? "cs" : "active"}_${stackCount}_${safeLogoUrl || "default"}`;
@@ -67,6 +74,8 @@ export default function VendorEventMapMarkers({ vendorEvents, showVendorEvents =
         const isComingSoon = visStatus === "coming_soon";
         const stackCount = stacked.length;
 
+        const schedulePreview = (primary.schedule_preview || []).filter((item) => item?.title && item?.start_time).slice(0, 4);
+
         return (
           <Marker
             key={`ve-${primary.id}`}
@@ -86,6 +95,17 @@ export default function VendorEventMapMarkers({ vendorEvents, showVendorEvents =
 
                 <p className="font-bold text-sm leading-tight">{primary.title}</p>
                 <p className="text-[11px] text-slate-500">{primary.display_address}</p>
+
+                {schedulePreview.length > 0 && (
+                  <div className="rounded-lg bg-slate-50/90 p-1.5 space-y-1">
+                    {schedulePreview.map((item, index) => (
+                      <div key={`${item.title}-${index}`} className="flex items-center justify-between gap-2 text-[11px] leading-tight">
+                        <span className="min-w-0 truncate font-semibold text-slate-700">{item.title}</span>
+                        <span className="shrink-0 text-slate-500">{timeLabel(item.start_time)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {stacked.length > 0 && (
                   <div className="border-t border-slate-100 pt-1.5 space-y-1">

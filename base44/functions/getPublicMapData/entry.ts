@@ -99,20 +99,32 @@ Deno.serve(async (req) => {
       return Response.json({ listing: pick(listing, listingFields) });
     }
 
-    const [listingRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows] = await Promise.all([
+    const [listingRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows, scheduleRows] = await Promise.all([
       base44.asServiceRole.entities.Listing.list('-created_date', 500),
       base44.asServiceRole.entities.ResidentialPromoCode.list('-updated_date', 100),
       base44.asServiceRole.entities.VendorEvent.list('startDateTime', 200),
       base44.asServiceRole.entities.VendorAccount.list('-updated_date', 300),
       base44.asServiceRole.entities.VendorPin.list('-updated_date', 300),
       base44.asServiceRole.entities.VendorPinCheckIn.list('-created_date', 300),
+      base44.asServiceRole.entities.EventScheduleEntry.list('sort_order', 1000),
     ]);
 
     const listings = listingRows.filter((listing) => isPublicListing(listing, now)).map((listing) => pick(listing, listingFields));
     const promoDiscoveryCodes = promoRows
       .filter((promo) => isActivePromo(promo))
       .map((promo) => ({ ...pick(promo, promoFields), status: 'active' }));
-    const vendorEvents = vendorEventRows.filter((event) => isPublicVendorEvent(event, now)).map((event) => pick(event, vendorEventFields));
+    const schedulePreviewByEventId = new Map();
+    scheduleRows
+      .filter((entry) => entry?.event_id && entry?.title && entry?.start_time)
+      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+      .forEach((entry) => {
+        const current = schedulePreviewByEventId.get(entry.event_id) || [];
+        if (current.length < 4) {
+          current.push({ title: entry.title, start_time: entry.start_time });
+          schedulePreviewByEventId.set(entry.event_id, current);
+        }
+      });
+    const vendorEvents = vendorEventRows.filter((event) => isPublicVendorEvent(event, now)).map((event) => ({ ...pick(event, vendorEventFields), schedule_preview: schedulePreviewByEventId.get(event.id) || [] }));
     const liveCheckIns = vendorCheckInRows.filter((checkIn) => isLiveVendorCheckIn(checkIn, now));
     const liveVendorAccountIds = new Set(liveCheckIns.map((checkIn) => checkIn.vendor_account_id));
     const liveVendorPinIds = new Set(liveCheckIns.map((checkIn) => checkIn.vendor_pin_id));

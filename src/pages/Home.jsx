@@ -801,6 +801,13 @@ export default function HomePage() {
     enabled: !isPublicHomeMode
   });
 
+  const { data: privateEventScheduleEntries = [] } = useQuery({
+    queryKey: ["homeEventScheduleEntries"],
+    queryFn: () => base44.entities.EventScheduleEntry.list("sort_order"),
+    initialData: [],
+    enabled: !isPublicHomeMode
+  });
+
   const { data: privatePromoDiscoveryCodes = [] } = useQuery({
     queryKey: ["promoDiscoveryCodes"],
     queryFn: () => base44.entities.ResidentialPromoCode.filter({ promo_door_enabled: true, status: "active" }),
@@ -808,10 +815,25 @@ export default function HomePage() {
     enabled: !isPublicHomeMode
   });
 
+  const privateVendorEventsWithSchedule = useMemo(() => {
+    const scheduleByEventId = new Map();
+    privateEventScheduleEntries
+      .filter((entry) => entry?.event_id && entry?.title && entry?.start_time)
+      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+      .forEach((entry) => {
+        const current = scheduleByEventId.get(entry.event_id) || [];
+        if (current.length < 4) {
+          current.push({ title: entry.title, start_time: entry.start_time });
+          scheduleByEventId.set(entry.event_id, current);
+        }
+      });
+    return privateVendorEvents.map((event) => ({ ...event, schedule_preview: scheduleByEventId.get(event.id) || [] }));
+  }, [privateVendorEvents, privateEventScheduleEntries]);
+
   const vendorAccounts = isPublicHomeMode ? publicMapData.vendorAccounts || [] : privateVendorAccounts;
   const vendorPins = isPublicHomeMode ? publicMapData.vendorPins || [] : privateVendorPins;
   const vendorCheckIns = isPublicHomeMode ? publicMapData.vendorCheckIns || [] : privateVendorCheckIns;
-  const vendorEvents = isPublicHomeMode ? publicMapData.vendorEvents || [] : privateVendorEvents;
+  const vendorEvents = isPublicHomeMode ? publicMapData.vendorEvents || [] : privateVendorEventsWithSchedule;
   const promoDiscoveryCodes = isPublicHomeMode ? publicMapData.promoDiscoveryCodes || [] : privatePromoDiscoveryCodes;
 
   const searchSuggestions = useMemo(() => {
