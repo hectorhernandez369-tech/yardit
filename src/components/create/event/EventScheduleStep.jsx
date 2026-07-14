@@ -88,7 +88,7 @@ export default function EventScheduleStep({ formData, setFormData }) {
       </div>
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Multi-day events require Vendor Events or Event Organizer tools.
+        Residential Events are limited to one day. Need multiple days? Create a Vendor Event or use Event Organizer tools.
       </div>
 
       {validation.errors.length > 0 && (
