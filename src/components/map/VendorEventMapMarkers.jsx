@@ -9,11 +9,12 @@ import { groupVendorEventsByLocation, getVendorEventVisibilityStatus } from "@/l
 
 const markerCache = {};
 
-function getVendorEventIcon(isComingSoon, stackCount) {
-  const key = `ve_${isComingSoon ? "cs" : "active"}_${stackCount}`;
+function getVendorEventIcon(isComingSoon, stackCount, logoUrl) {
+  const safeLogoUrl = logoUrl ? String(logoUrl).replace(/"/g, "&quot;") : "";
+  const key = `ve_${isComingSoon ? "cs" : "active"}_${stackCount}_${safeLogoUrl || "default"}`;
   if (markerCache[key]) return markerCache[key];
 
-  const iconSize = 28;
+  const iconSize = safeLogoUrl ? 34 : 28;
   const fill = isComingSoon ? "#94a3b8" : "#5DADA5";
   const border = isComingSoon ? "#64748b" : "#2C4F4E";
   const opacity = isComingSoon ? 0.7 : 1;
@@ -23,13 +24,14 @@ function getVendorEventIcon(isComingSoon, stackCount) {
   const comingSoonLabel = isComingSoon
     ? `<div style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);background:rgba(245,158,11,0.9);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;pointer-events:none;">Soon</div>`
     : "";
+  const markerBody = safeLogoUrl
+    ? `<div style="width:${iconSize}px;height:${iconSize}px;border-radius:9999px;background:white;border:3px solid ${border};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.28);overflow:hidden;"><img src="${safeLogoUrl}" alt="Event logo" style="width:100%;height:100%;object-fit:cover;" /></div>`
+    : `<div style="width:${iconSize}px;height:${iconSize}px;border-radius:${iconSize / 2}px;background:${fill};border:3px solid ${border};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.25);"><span style="color:white;font-size:13px;">🎪</span></div>`;
 
   const icon = L.divIcon({
     className: "",
     html: `<div style="position:relative;width:${iconSize}px;height:${iconSize}px;opacity:${opacity};">
-      <div style="width:${iconSize}px;height:${iconSize}px;border-radius:${iconSize / 2}px;background:${fill};border:3px solid ${border};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.25);">
-        <span style="color:white;font-size:13px;">🎪</span>
-      </div>
+      ${markerBody}
       ${badgeHtml}
       ${comingSoonLabel}
     </div>`,
@@ -69,7 +71,7 @@ export default function VendorEventMapMarkers({ vendorEvents, showVendorEvents =
           <Marker
             key={`ve-${primary.id}`}
             position={[primary.latitude, primary.longitude]}
-            icon={getVendorEventIcon(isComingSoon, stackCount)}
+            icon={getVendorEventIcon(isComingSoon, stackCount, primary.logo || primary.organizer_logo)}
           >
             <Popup maxWidth={300} minWidth={220} autoPan>
               <div className="space-y-2 rounded-xl bg-white p-3 text-slate-900 shadow-sm">
