@@ -3,6 +3,26 @@ import * as XLSX from 'npm:xlsx@0.18.5';
 
 const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 
+const excelTimeToText = (value) => {
+  if (value === null || value === undefined || value === '') return '';
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const hours = value.getHours();
+    const minutes = value.getMinutes();
+    const suffix = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+  }
+  if (typeof value === 'number') {
+    const parsed = XLSX.SSF.parse_date_code(value);
+    if (parsed && Number.isFinite(parsed.H)) {
+      const suffix = parsed.H >= 12 ? 'PM' : 'AM';
+      const hour12 = parsed.H % 12 || 12;
+      return `${hour12}:${String(parsed.M || 0).padStart(2, '0')} ${suffix}`;
+    }
+  }
+  return clean(value);
+};
+
 const excelDateToIso = (value) => {
   if (value === null || value === undefined || value === '') return '';
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
@@ -51,7 +71,7 @@ const parseRows = (rows, sheetName) => {
     for (const block of blocks) {
       const away = clean(row[block.awayCol]);
       const home = clean(row[block.homeCol]);
-      const time = clean(row[block.timeCol]);
+      const time = excelTimeToText(row[block.timeCol]);
       if (!away || !home) continue;
       if (/^bye$/i.test(away) || /^bye$/i.test(home)) continue;
       games.push({

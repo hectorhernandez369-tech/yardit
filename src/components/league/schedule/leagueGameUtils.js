@@ -19,6 +19,12 @@ export const toDateOnly = (value) => {
 
 export const parseGameTime = (dateValue, timeValue) => {
   const date = toDateOnly(dateValue) || new Date().toISOString().slice(0, 10);
+  if (typeof timeValue === "number" && timeValue > 0 && timeValue < 1) {
+    const totalMinutes = Math.round(timeValue * 24 * 60);
+    const hour = Math.floor(totalMinutes / 60);
+    const minute = totalMinutes % 60;
+    return new Date(`${date}T${pad(hour)}:${pad(minute)}:00`).toISOString();
+  }
   const raw = String(timeValue || "").trim().toLowerCase();
   if (!raw) return "";
   if (raw.includes("t")) return new Date(raw).toISOString();
