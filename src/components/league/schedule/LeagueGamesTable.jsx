@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,13 +8,35 @@ import { Copy, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { LEAGUE_GAME_STATUSES, formatGameDate, formatGameTime, normalizeLeagueGame, sortLeagueGames } from "./leagueGameUtils";
 
+const ALL = "__all__";
+const BLANK = "__blank__";
 const blankGame = { division: "", home_team: "", away_team: "", home_town: "", away_town: "", game_date: "", start_time: "", end_time: "", field_name: "", location: "", status: "upcoming", notes: "" };
+
+const optionValue = (value) => value || BLANK;
+const optionLabel = (value, fallback) => value || fallback;
+const uniqueSorted = (items) => [...new Set(items.map((item) => item || ""))].sort((a, b) => a.localeCompare(b));
 
 export default function LeagueGamesTable({ account, games = [], onRefresh }) {
   const [manualGame, setManualGame] = useState(blankGame);
   const [editingId, setEditingId] = useState("");
   const [editGame, setEditGame] = useState(null);
-  const sortedGames = sortLeagueGames(games);
+  const [weekFilter, setWeekFilter] = useState(ALL);
+  const [teamFilter, setTeamFilter] = useState(ALL);
+  const [divisionFilter, setDivisionFilter] = useState(ALL);
+
+  const sortedGames = useMemo(() => sortLeagueGames(games), [games]);
+  const weekOptions = useMemo(() => uniqueSorted(sortedGames.map((game) => game.notes || game.week || "")), [sortedGames]);
+  const divisionOptions = useMemo(() => uniqueSorted(sortedGames.map((game) => game.division || game.age_group || "")), [sortedGames]);
+  const teamOptions = useMemo(() => uniqueSorted(sortedGames.flatMap((game) => [game.home_team || "", game.away_team || ""])), [sortedGames]);
+
+  const filteredGames = useMemo(() => sortedGames.filter((game) => {
+    const week = game.notes || game.week || "";
+    const division = game.division || game.age_group || "";
+    const teams = [game.home_team || "", game.away_team || ""];
+    return (weekFilter === ALL || optionValue(week) === weekFilter) &&
+      (divisionFilter === ALL || optionValue(division) === divisionFilter) &&
+      (teamFilter === ALL || teams.some((team) => optionValue(team) === teamFilter));
+  }), [sortedGames, weekFilter, teamFilter, divisionFilter]);
 
   const saveManualGame = async () => {
     const game = normalizeLeagueGame(manualGame, account, sortedGames.length, "manual");
@@ -58,8 +80,58 @@ export default function LeagueGamesTable({ account, games = [], onRefresh }) {
 
   return (
     <div className="space-y-4">
-      <Card className="rounded-2xl bg-white"><CardContent className="p-4 space-y-3"><h3 className="font-black text-[#2C4F4E]">{editingId ? "Edit Game" : "Manually Add Game"}</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Input placeholder="Division / Age Group" value={form?.division || ""} onChange={(e) => setForm("division", e.target.value)} /><Input placeholder="Home Team" value={form?.home_team || ""} onChange={(e) => setForm("home_team", e.target.value)} /><Input placeholder="Away Team" value={form?.away_team || ""} onChange={(e) => setForm("away_team", e.target.value)} /><Input placeholder="Home Town" value={form?.home_town || ""} onChange={(e) => setForm("home_town", e.target.value)} /><Input placeholder="Away Town" value={form?.away_town || ""} onChange={(e) => setForm("away_town", e.target.value)} /><Input type="date" value={form?.game_date || ""} onChange={(e) => setForm("game_date", e.target.value)} /><Input placeholder="Start Time" value={form?.start_time?.includes("T") ? formatGameTime(form.start_time) : form?.start_time || ""} onChange={(e) => setForm("start_time", e.target.value)} /><Input placeholder="End Time" value={form?.end_time?.includes("T") ? formatGameTime(form.end_time) : form?.end_time || ""} onChange={(e) => setForm("end_time", e.target.value)} /><Input placeholder="Field" value={form?.field_name || ""} onChange={(e) => setForm("field_name", e.target.value)} /><Input placeholder="Location" value={form?.location || ""} onChange={(e) => setForm("location", e.target.value)} /><Select value={form?.status || "upcoming"} onValueChange={(value) => setForm("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select><Input placeholder="Notes" value={form?.notes || ""} onChange={(e) => setForm("notes", e.target.value)} /></div><div className="flex gap-2"><Button onClick={editingId ? saveEdit : saveManualGame} className="gap-2 bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />} {editingId ? "Save Changes" : "Add Game"}</Button>{editingId && <Button variant="outline" onClick={() => { setEditingId(""); setEditGame(null); }}>Cancel</Button>}</div></CardContent></Card>
-      <Card className="rounded-2xl bg-white"><CardContent className="p-4"><h3 className="mb-3 font-black text-[#2C4F4E]">Imported & Manual Games</h3>{sortedGames.length === 0 ? <p className="text-sm text-slate-500">No games yet.</p> : <div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[980px] text-sm"><thead className="bg-[#E7D7B8]"><tr>{["Week", "Division", "Teams", "Date", "Start", "Field", "Status", "Score", "Actions"].map((heading) => <th key={heading} className="p-2 text-left">{heading}</th>)}</tr></thead><tbody>{sortedGames.map((game) => <tr key={game.id} className="border-t"><td className="p-2">{game.notes || ""}</td><td className="p-2">{game.division || game.age_group}</td><td className="p-2 font-semibold">{game.home_team} vs {game.away_team}</td><td className="p-2">{formatGameDate(game.game_date)}</td><td className="p-2">{formatGameTime(game.start_time)}</td><td className="p-2">{game.field_name || game.location}</td><td className="p-2"><Select value={game.status || "upcoming"} onValueChange={(value) => updateStatus(game, value)}><SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></td><td className="p-2 font-bold">{Number(game.home_score || 0)} - {Number(game.away_score || 0)}</td><td className="p-2"><div className="flex flex-wrap gap-1"><Button size="sm" variant="outline" onClick={() => { setEditingId(game.id); setEditGame(game); }}>Edit</Button><Button size="sm" variant="outline" onClick={() => duplicateGame(game)}><Copy className="h-3 w-3" /></Button><Button size="sm" variant="outline" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3 text-red-600" /></Button></div></td></tr>)}</tbody></table></div>}</CardContent></Card>
+      <Card className="rounded-2xl bg-white">
+        <CardContent className="p-4 space-y-3">
+          <h3 className="font-black text-[#2C4F4E]">{editingId ? "Edit Game" : "Manually Add Game"}</h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Input placeholder="Division / Age Group" value={form?.division || ""} onChange={(e) => setForm("division", e.target.value)} />
+            <Input placeholder="Home Team" value={form?.home_team || ""} onChange={(e) => setForm("home_team", e.target.value)} />
+            <Input placeholder="Away Team" value={form?.away_team || ""} onChange={(e) => setForm("away_team", e.target.value)} />
+            <Input placeholder="Home Town" value={form?.home_town || ""} onChange={(e) => setForm("home_town", e.target.value)} />
+            <Input placeholder="Away Town" value={form?.away_town || ""} onChange={(e) => setForm("away_town", e.target.value)} />
+            <Input type="date" value={form?.game_date || ""} onChange={(e) => setForm("game_date", e.target.value)} />
+            <Input placeholder="Start Time" value={form?.start_time?.includes("T") ? formatGameTime(form.start_time) : form?.start_time || ""} onChange={(e) => setForm("start_time", e.target.value)} />
+            <Input placeholder="End Time" value={form?.end_time?.includes("T") ? formatGameTime(form.end_time) : form?.end_time || ""} onChange={(e) => setForm("end_time", e.target.value)} />
+            <Input placeholder="Field" value={form?.field_name || ""} onChange={(e) => setForm("field_name", e.target.value)} />
+            <Input placeholder="Location" value={form?.location || ""} onChange={(e) => setForm("location", e.target.value)} />
+            <Select value={form?.status || "upcoming"} onValueChange={(value) => setForm("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
+            <Input placeholder="Week / Notes" value={form?.notes || ""} onChange={(e) => setForm("notes", e.target.value)} />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={editingId ? saveEdit : saveManualGame} className="gap-2 bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />} {editingId ? "Save Changes" : "Add Game"}</Button>
+            {editingId && <Button variant="outline" onClick={() => { setEditingId(""); setEditGame(null); }}>Cancel</Button>}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-2xl bg-white">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h3 className="font-black text-[#2C4F4E]">Imported & Manual Games</h3>
+              <p className="text-xs text-slate-500">Showing {filteredGames.length} of {sortedGames.length} games</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3 lg:w-[620px]">
+              <Select value={weekFilter} onValueChange={setWeekFilter}><SelectTrigger className="h-9"><SelectValue placeholder="Week" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All weeks</SelectItem>{weekOptions.map((week) => <SelectItem key={optionValue(week)} value={optionValue(week)}>{optionLabel(week, "Unassigned week")}</SelectItem>)}</SelectContent></Select>
+              <Select value={teamFilter} onValueChange={setTeamFilter}><SelectTrigger className="h-9"><SelectValue placeholder="Team" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All teams</SelectItem>{teamOptions.map((team) => <SelectItem key={optionValue(team)} value={optionValue(team)}>{optionLabel(team, "Unnamed team")}</SelectItem>)}</SelectContent></Select>
+              <Select value={divisionFilter} onValueChange={setDivisionFilter}><SelectTrigger className="h-9"><SelectValue placeholder="Division" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All divisions</SelectItem>{divisionOptions.map((division) => <SelectItem key={optionValue(division)} value={optionValue(division)}>{optionLabel(division, "No division")}</SelectItem>)}</SelectContent></Select>
+            </div>
+          </div>
+
+          {sortedGames.length === 0 ? (
+            <p className="text-sm text-slate-500">No games yet.</p>
+          ) : filteredGames.length === 0 ? (
+            <p className="rounded-xl border border-dashed p-4 text-sm text-slate-500">No games match those filters.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border">
+              <table className="w-full min-w-[860px] text-xs">
+                <thead className="bg-[#E7D7B8] text-[#2C4F4E]"><tr>{["Week", "Div", "Matchup", "Date", "Time", "Field", "Status", "Score", ""].map((heading) => <th key={heading} className="px-2 py-2 text-left font-black">{heading}</th>)}</tr></thead>
+                <tbody>{filteredGames.map((game) => <tr key={game.id} className="border-t align-top"><td className="px-2 py-2 whitespace-nowrap">{game.notes || ""}</td><td className="px-2 py-2 whitespace-nowrap font-semibold">{game.division || game.age_group}</td><td className="px-2 py-2"><div className="font-bold leading-tight">{game.home_team || "TBD"}</div><div className="text-slate-500 leading-tight">vs {game.away_team || "TBD"}</div></td><td className="px-2 py-2 whitespace-nowrap">{formatGameDate(game.game_date)}</td><td className="px-2 py-2 whitespace-nowrap">{formatGameTime(game.start_time)}</td><td className="px-2 py-2 max-w-[110px] truncate">{game.field_name || game.location}</td><td className="px-2 py-2"><Select value={game.status || "upcoming"} onValueChange={(value) => updateStatus(game, value)}><SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></td><td className="px-2 py-2 whitespace-nowrap font-bold">{Number(game.home_score || 0)} - {Number(game.away_score || 0)}</td><td className="px-2 py-2"><div className="flex flex-nowrap gap-1"><Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setEditingId(game.id); setEditGame(game); }}>Edit</Button><Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => duplicateGame(game)}><Copy className="h-3 w-3" /></Button><Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3 text-red-600" /></Button></div></td></tr>)}</tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
