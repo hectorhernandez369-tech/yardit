@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
 import LeagueScheduleImporter from "./LeagueScheduleImporter";
 import LeagueGamesTable from "./LeagueGamesTable";
+import LeagueScheduleFormatGuide from "./LeagueScheduleFormatGuide";
 
 export default function LeagueScheduleManager({ account, games = [], onRefresh }) {
   return (
@@ -12,6 +13,7 @@ export default function LeagueScheduleManager({ account, games = [], onRefresh }
           <p className="text-sm text-slate-600">Upload a full league schedule, search for a town or team like Lindsay, import only those games, then manage every game from this single schedule list.</p>
         </CardContent>
       </Card>
+      <LeagueScheduleFormatGuide />
       <LeagueScheduleImporter account={account} existingGames={games} onImported={onRefresh} />
       <LeagueGamesTable account={account} games={games} onRefresh={onRefresh} />
     </div>
