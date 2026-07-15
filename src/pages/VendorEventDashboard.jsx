@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, CalendarClock, Flag, Loader2, Mail, Users } from "lucide-react";
+import { ArrowLeft, CalendarClock, Flag, Loader2, Mail, Trophy, Users } from "lucide-react";
 import { format } from "date-fns";
 import EventSpotManager from "@/components/vendor/events/EventSpotManager";
 import InviteVendorsModal from "@/components/vendor/events/InviteVendorsModal";
@@ -18,6 +18,8 @@ import { canAccessEvent, canEditEvent, canManageCollaborators, canManageFlags, c
 import { toast } from "sonner";
 import { safeBack } from "@/utils";
 import { useNavigate } from "react-router-dom";
+import AttachGamesDialog from "@/components/league/events/AttachGamesDialog";
+import LeagueGameScheduleSection from "@/components/league/events/LeagueGameScheduleSection";
 
 export default function VendorEventDashboard() {
   const navigate = useNavigate();
@@ -26,6 +28,7 @@ export default function VendorEventDashboard() {
   const eventId = urlParams.get("id") || urlParams.get("event_id");
   const [showInviteVendors, setShowInviteVendors] = useState(false);
   const [showCollaborators, setShowCollaborators] = useState(false);
+  const [showAttachGames, setShowAttachGames] = useState(false);
 
   const { data: currentUser, isLoading: loadingUser } = useQuery({ queryKey: ["vendorEventDashboardUser"], queryFn: () => base44.auth.me() });
   const { data: events = [], isLoading } = useQuery({ queryKey: ["vendorEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
@@ -39,7 +42,10 @@ export default function VendorEventDashboard() {
   const { data: vendorAccounts = [], isLoading: loadingVendorAccounts } = useQuery({ queryKey: ["eventInviteVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
   const { data: collaborators = [], isLoading: loadingCollaborators } = useQuery({ queryKey: ["eventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: updates = [] } = useQuery({ queryKey: ["eventUpdates", eventId], queryFn: () => base44.entities.EventUpdate.filter({ event_id: eventId, is_deleted: false }, "-created_at"), enabled: !!eventId, initialData: [] });
+  const { data: leagueEventLinks = [] } = useQuery({ queryKey: ["leagueEventGames", eventId], queryFn: () => base44.entities.LeagueEventGame.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
+  const { data: leagueGames = [] } = useQuery({ queryKey: ["leagueGamesForEvent", event?.organizer_business_id], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: event.organizer_business_id }, "sort_order"), enabled: !!event?.organizer_business_id, initialData: [] });
   const organizerAccount = vendorAccounts.find((account) => account.id === event?.organizer_business_id);
+  const isLeagueEvent = organizerAccount?.organization_type === "league_team";
   const currentOrganizationIds = vendorAccounts.filter((account) => account.owner_user_id === currentUser?.id || account.owner_user_id === currentUser?.email || account.owner_email === currentUser?.email).map((account) => account.id);
   const hostedLabels = getHostedByLabels(event, collaborators, vendorAccounts);
   const canEdit = canEditEvent(event, collaborators, currentOrganizationIds);
@@ -82,6 +88,8 @@ export default function VendorEventDashboard() {
     queryClient.invalidateQueries({ queryKey: ["eventSpots", eventId] });
     queryClient.invalidateQueries({ queryKey: ["eventUpdates", eventId] });
     queryClient.invalidateQueries({ queryKey: ["eventCollaborators", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["leagueEventGames", eventId] });
+    queryClient.invalidateQueries({ queryKey: ["leagueGamesForEvent", event?.organizer_business_id] });
   };
 
   const approveRequest = async (request) => {
@@ -127,6 +135,7 @@ export default function VendorEventDashboard() {
             <div className="flex flex-wrap gap-2">
               {canCollaborators && <Button variant="outline" onClick={() => setShowCollaborators(true)}><Users className="h-4 w-4" /> Collaborators</Button>}
               {canFlags && ["multi_spot", "multi_location"].includes(event.event_type) && <Button variant="outline" onClick={() => navigate(`/VendorEventFlags?id=${event.id}`)}><Flag className="h-4 w-4" /> Edit Flags</Button>}
+              {isLeagueEvent && canEdit && <Button variant="outline" onClick={() => setShowAttachGames(true)}><Trophy className="h-4 w-4" /> Import Games from Schedule Manager</Button>}
               {canSchedule && <Button variant="outline" onClick={() => navigate(`/VendorEventSchedule?id=${event.id}`)}><CalendarClock className="h-4 w-4" /> Schedule</Button>}
               <Button variant="outline" onClick={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}>View Public Page</Button>
             </div>
@@ -179,6 +188,8 @@ export default function VendorEventDashboard() {
         </DialogContent>
       </Dialog>
 
+      <LeagueGameScheduleSection games={leagueEventLinks.map((link) => leagueGames.find((game) => game.id === link.league_game_id)).filter(Boolean)} title="Games" />
+
       <EventUpdatesManager event={event} updates={updates} onRefresh={refresh} canEdit={canUpdates} />
 
       {canFlags && event.event_type === "multi_spot" && <EventSpotManager event={event} spots={spots} onRefresh={refresh} />}
@@ -191,6 +202,7 @@ export default function VendorEventDashboard() {
 
       <CollapsiblePanel title="History / Activity"><p className="text-sm text-slate-500">Event activity will appear here as vendors join and updates are made.</p></CollapsiblePanel>
 
+      {isLeagueEvent && <AttachGamesDialog open={showAttachGames} onOpenChange={setShowAttachGames} event={event} account={organizerAccount} games={leagueGames} existingLinks={leagueEventLinks} onAttached={refresh} />}
       <InviteVendorsModal open={showInviteVendors} onOpenChange={setShowInviteVendors} event={event} organizerUserId={event.organizer_user_id} approvedCount={attendees.length} onInvited={refresh} />
     </div>
   );

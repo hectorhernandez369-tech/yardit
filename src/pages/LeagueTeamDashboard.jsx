@@ -9,18 +9,19 @@ import BusinessHero from "@/components/vendor/BusinessHero";
 import MobileVendorHeader from "@/components/vendor/MobileVendorHeader";
 import VendorBillingTab from "@/components/vendor/VendorBillingTab";
 import VendorUsersTab from "@/components/vendor/VendorUsersTab";
-import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
-import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
 import { getUserVendorAccounts, isLeagueTeamAccount, isVendorDashboardAccount } from "@/lib/getUserVendorAccounts";
 import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import LeagueAccessDenied from "@/components/league/LeagueAccessDenied";
 import LeagueTeamsTab from "@/components/league/LeagueTeamsTab";
-import LeagueGamesTab from "@/components/league/LeagueGamesTab";
+import LeagueEventsTab from "@/components/league/events/LeagueEventsTab";
+import LeagueScheduleManager from "@/components/league/schedule/LeagueScheduleManager";
+import LeagueScoreboard from "@/components/league/scoreboard/LeagueScoreboard";
 
 export default function LeagueTeamDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const requestedTab = new URLSearchParams(window.location.search).get("tab") || "profile";
+  const requestedRawTab = new URLSearchParams(window.location.search).get("tab") || "profile";
+  const requestedTab = requestedRawTab === "games" ? "schedule" : requestedRawTab === "history" ? "events" : requestedRawTab;
   const [activeTab, setActiveTab] = useState(requestedTab);
   const [activeAccountId, setActiveAccountId] = useState(null);
   const [defaultAccountId, setDefaultAccountId] = useState(null);
@@ -122,7 +123,7 @@ export default function LeagueTeamDashboard() {
 
             <div className="mt-0 sm:mt-5 overflow-x-auto">
               <TabsList className="flex w-max min-w-full bg-transparent p-0 h-auto justify-start rounded-none gap-0.5 sm:gap-1">
-                {[{ value: "profile", label: "My Page" }, { value: "events", label: "Events" }, { value: "teams", label: "Teams" }, { value: "games", label: "Games" }, { value: "history", label: "History" }, { value: "tier", label: "Plan & Billing" }, { value: "users", label: "Staff" }].map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="min-w-fit px-3 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-sm font-semibold rounded-none sm:rounded-t-xl text-white/70 hover:text-white hover:bg-white/10 transition-all data-[state=active]:bg-slate-50 data-[state=active]:text-[#2C4F4E] data-[state=active]:shadow-none data-[state=active]:font-bold">{tab.label}</TabsTrigger>)}
+                {[{ value: "profile", label: "My Page" }, { value: "events", label: "Events" }, { value: "teams", label: "Teams" }, { value: "schedule", label: "Schedule Manager" }, { value: "scoreboard", label: "Scoreboard" }, { value: "tier", label: "Plan & Billing" }, { value: "users", label: "Staff" }].map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="min-w-fit px-3 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-sm font-semibold rounded-none sm:rounded-t-xl text-white/70 hover:text-white hover:bg-white/10 transition-all data-[state=active]:bg-slate-50 data-[state=active]:text-[#2C4F4E] data-[state=active]:shadow-none data-[state=active]:font-bold">{tab.label}</TabsTrigger>)}
               </TabsList>
             </div>
           </div>
@@ -130,10 +131,10 @@ export default function LeagueTeamDashboard() {
 
         <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-3 sm:space-y-6">
           <TabsContent value="profile" className="mt-0 min-w-0"><VendorBusinessPage account={account} pins={[]} checkIns={[]} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
-          <TabsContent value="events" className="mt-0 min-w-0"><VendorEventsTab account={account} user={user} /></TabsContent>
+          <TabsContent value="events" className="mt-0 min-w-0"><LeagueEventsTab account={account} user={user} /></TabsContent>
           <TabsContent value="teams" className="mt-0 min-w-0"><LeagueTeamsTab account={account} /></TabsContent>
-          <TabsContent value="games" className="mt-0 min-w-0"><LeagueGamesTab account={account} games={games} onRefresh={refreshDashboard} /></TabsContent>
-          <TabsContent value="history" className="mt-0 min-w-0"><VendorPinHistoryTab pins={[]} checkIns={[]} /></TabsContent>
+          <TabsContent value="schedule" className="mt-0 min-w-0"><LeagueScheduleManager account={account} games={games} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="scoreboard" className="mt-0 min-w-0"><LeagueScoreboard games={games} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="tier" className="mt-0 min-w-0"><VendorBillingTab account={account} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="users" className="mt-0 min-w-0"><VendorUsersTab account={account} users={users} user={user} pins={[]} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
         </div>

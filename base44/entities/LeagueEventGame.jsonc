@@ -1,0 +1,31 @@
+{
+  "name": "LeagueEventGame",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Linked Yardit VendorEvent ID"
+    },
+    "league_game_id": {
+      "type": "string",
+      "description": "Existing LeagueGame ID"
+    },
+    "league_account_id": {
+      "type": "string",
+      "description": "League/Team VendorAccount ID"
+    },
+    "display_order": {
+      "type": "number",
+      "default": 0
+    },
+    "is_visible": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "event_id",
+    "league_game_id",
+    "league_account_id"
+  ]
+}
