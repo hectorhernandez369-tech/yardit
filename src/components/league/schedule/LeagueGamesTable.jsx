@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Copy, Plus, Save, Trash2 } from "lucide-react";
+import { Copy, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { LEAGUE_GAME_STATUSES, formatGameDate, formatGameTime, normalizeLeagueGame, sortLeagueGames } from "./leagueGameUtils";
+import LeagueGameEditModal from "./LeagueGameEditModal";
 
 const ALL = "__all__";
 const BLANK = "__blank__";
@@ -18,8 +19,7 @@ const uniqueSorted = (items) => [...new Set(items.map((item) => item || ""))].so
 
 export default function LeagueGamesTable({ account, games = [], onRefresh }) {
   const [manualGame, setManualGame] = useState(blankGame);
-  const [editingId, setEditingId] = useState("");
-  const [editGame, setEditGame] = useState(null);
+  const [editingGame, setEditingGame] = useState(null);
   const [weekFilter, setWeekFilter] = useState(ALL);
   const [teamFilter, setTeamFilter] = useState(ALL);
   const [divisionFilter, setDivisionFilter] = useState(ALL);
@@ -47,15 +47,6 @@ export default function LeagueGamesTable({ account, games = [], onRefresh }) {
     onRefresh?.();
   };
 
-  const saveEdit = async () => {
-    const game = normalizeLeagueGame(editGame, account, editGame.sort_order || 0, editGame.source_import_id || "manual");
-    await base44.entities.LeagueGame.update(editingId, game);
-    setEditingId("");
-    setEditGame(null);
-    toast.success("Game updated.");
-    onRefresh?.();
-  };
-
   const duplicateGame = async (game) => {
     const copy = { ...game, id: undefined, game_title: `${game.game_title || "Game"} (Copy)`, source_row_key: `${game.source_row_key || game.id}|copy|${Date.now()}`, sort_order: Date.now() };
     await base44.entities.LeagueGame.create(copy);
@@ -75,14 +66,14 @@ export default function LeagueGamesTable({ account, games = [], onRefresh }) {
     onRefresh?.();
   };
 
-  const form = editingId ? editGame : manualGame;
-  const setForm = (field, value) => editingId ? setEditGame((current) => ({ ...current, [field]: value })) : setManualGame((current) => ({ ...current, [field]: value }));
+  const form = manualGame;
+  const setForm = (field, value) => setManualGame((current) => ({ ...current, [field]: value }));
 
   return (
     <div className="space-y-4">
       <Card className="rounded-2xl bg-white">
         <CardContent className="p-4 space-y-3">
-          <h3 className="font-black text-[#2C4F4E]">{editingId ? "Edit Game" : "Manually Add Game"}</h3>
+          <h3 className="font-black text-[#2C4F4E]">Manually Add Game</h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Input placeholder="Division / Age Group" value={form?.division || ""} onChange={(e) => setForm("division", e.target.value)} />
             <Input placeholder="Home Team" value={form?.home_team || ""} onChange={(e) => setForm("home_team", e.target.value)} />
@@ -98,8 +89,7 @@ export default function LeagueGamesTable({ account, games = [], onRefresh }) {
             <Input placeholder="Week / Notes" value={form?.notes || ""} onChange={(e) => setForm("notes", e.target.value)} />
           </div>
           <div className="flex gap-2">
-            <Button onClick={editingId ? saveEdit : saveManualGame} className="gap-2 bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />} {editingId ? "Save Changes" : "Add Game"}</Button>
-            {editingId && <Button variant="outline" onClick={() => { setEditingId(""); setEditGame(null); }}>Cancel</Button>}
+            <Button onClick={saveManualGame} className="gap-2 bg-[#5DADA5] text-white hover:bg-[#4A9B93]"><Plus className="h-4 w-4" /> Add Game</Button>
           </div>
         </CardContent>
       </Card>
@@ -126,12 +116,20 @@ export default function LeagueGamesTable({ account, games = [], onRefresh }) {
             <div className="overflow-x-auto rounded-xl border">
               <table className="w-full min-w-[860px] text-xs">
                 <thead className="bg-[#E7D7B8] text-[#2C4F4E]"><tr>{["Week", "Div", "Matchup", "Date", "Time", "Field", "Status", "Score", ""].map((heading) => <th key={heading} className="px-2 py-2 text-left font-black">{heading}</th>)}</tr></thead>
-                <tbody>{filteredGames.map((game) => <tr key={game.id} className="border-t align-top"><td className="px-2 py-2 whitespace-nowrap">{game.notes || ""}</td><td className="px-2 py-2 whitespace-nowrap font-semibold">{game.division || game.age_group}</td><td className="px-2 py-2"><div className="font-bold leading-tight">{game.home_team || "TBD"}</div><div className="text-slate-500 leading-tight">vs {game.away_team || "TBD"}</div></td><td className="px-2 py-2 whitespace-nowrap">{formatGameDate(game.game_date)}</td><td className="px-2 py-2 whitespace-nowrap">{formatGameTime(game.start_time)}</td><td className="px-2 py-2 max-w-[110px] truncate">{game.field_name || game.location}</td><td className="px-2 py-2"><Select value={game.status || "upcoming"} onValueChange={(value) => updateStatus(game, value)}><SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></td><td className="px-2 py-2 whitespace-nowrap font-bold">{Number(game.home_score || 0)} - {Number(game.away_score || 0)}</td><td className="px-2 py-2"><div className="flex flex-nowrap gap-1"><Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setEditingId(game.id); setEditGame(game); }}>Edit</Button><Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => duplicateGame(game)}><Copy className="h-3 w-3" /></Button><Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3 text-red-600" /></Button></div></td></tr>)}</tbody>
+                <tbody>{filteredGames.map((game) => <tr key={game.id} className="border-t align-top"><td className="px-2 py-2 whitespace-nowrap">{game.notes || ""}</td><td className="px-2 py-2 whitespace-nowrap font-semibold">{game.division || game.age_group}</td><td className="px-2 py-2"><div className="font-bold leading-tight">{game.home_team || "TBD"}</div><div className="text-slate-500 leading-tight">vs {game.away_team || "TBD"}</div></td><td className="px-2 py-2 whitespace-nowrap">{formatGameDate(game.game_date)}</td><td className="px-2 py-2 whitespace-nowrap">{formatGameTime(game.start_time)}</td><td className="px-2 py-2 max-w-[110px] truncate">{game.field_name || game.location}</td><td className="px-2 py-2"><Select value={game.status || "upcoming"} onValueChange={(value) => updateStatus(game, value)}><SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></td><td className="px-2 py-2 whitespace-nowrap font-bold">{Number(game.home_score || 0)} - {Number(game.away_score || 0)}</td><td className="px-2 py-2"><div className="flex flex-nowrap gap-1"><Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setEditingGame(game)}>Edit</Button><Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => duplicateGame(game)}><Copy className="h-3 w-3" /></Button><Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3 text-red-600" /></Button></div></td></tr>)}</tbody>
               </table>
             </div>
           )}
         </CardContent>
       </Card>
+
+      <LeagueGameEditModal
+        account={account}
+        game={editingGame}
+        open={!!editingGame}
+        onOpenChange={(open) => !open && setEditingGame(null)}
+        onSaved={onRefresh}
+      />
     </div>
   );
 }

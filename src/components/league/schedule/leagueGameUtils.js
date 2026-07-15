@@ -27,7 +27,10 @@ export const parseGameTime = (dateValue, timeValue) => {
   }
   const raw = String(timeValue || "").trim().toLowerCase();
   if (!raw) return "";
-  if (raw.includes("t")) return new Date(raw).toISOString();
+  if (raw.includes("t")) {
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString();
+  }
   const compact = raw.replace(/\s+/g, "");
   const match = compact.match(/^(\d{1,2})(?::?(\d{2}))?(am|pm)?$/);
   if (!match) return "";
