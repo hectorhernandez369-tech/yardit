@@ -28,6 +28,12 @@
     "away_team": {
       "type": "string"
     },
+    "home_team_id": {
+      "type": "string"
+    },
+    "away_team_id": {
+      "type": "string"
+    },
     "home_town": {
       "type": "string"
     },
@@ -83,6 +89,42 @@
       "type": "string"
     },
     "notes": {
+      "type": "string"
+    },
+    "score_state": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "locked"
+      ],
+      "default": "draft"
+    },
+    "score_submitted_by_user_id": {
+      "type": "string"
+    },
+    "score_submitted_by_email": {
+      "type": "string"
+    },
+    "score_submitted_by_account_id": {
+      "type": "string"
+    },
+    "score_submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "score_locked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "score_unlocked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "score_unlocked_by_user_id": {
+      "type": "string"
+    },
+    "score_unlock_reason": {
       "type": "string"
     },
     "source_import_id": {

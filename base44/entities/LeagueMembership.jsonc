@@ -1,0 +1,70 @@
+{
+  "name": "LeagueMembership",
+  "type": "object",
+  "properties": {
+    "league_account_id": {
+      "type": "string"
+    },
+    "member_account_id": {
+      "type": "string"
+    },
+    "member_user_id": {
+      "type": "string"
+    },
+    "invited_email": {
+      "type": "string"
+    },
+    "membership_type": {
+      "type": "string",
+      "enum": [
+        "team_organization",
+        "league_staff",
+        "scorekeeper",
+        "scheduler",
+        "viewer"
+      ]
+    },
+    "role": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "invited",
+        "pending",
+        "active",
+        "denied",
+        "withdrawn",
+        "expired",
+        "removed"
+      ],
+      "default": "invited"
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "invited_by_user_id": {
+      "type": "string"
+    },
+    "invited_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "accepted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "removed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "league_account_id",
+    "membership_type",
+    "status"
+  ]
+}

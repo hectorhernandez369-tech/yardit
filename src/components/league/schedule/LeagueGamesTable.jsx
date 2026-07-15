@@ -8,6 +8,7 @@ import { Copy, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { LEAGUE_GAME_STATUSES, formatGameDate, formatGameTime, normalizeLeagueGame, sortLeagueGames } from "./leagueGameUtils";
 import LeagueGameEditModal from "./LeagueGameEditModal";
+import { canEditLeagueGameSchedule, canEditLeagueGameScore, membershipPermissions } from "@/lib/leaguePermissions";
 
 const ALL = "__all__";
 const BLANK = "__blank__";
@@ -17,13 +18,14 @@ const optionValue = (value) => value || BLANK;
 const optionLabel = (value, fallback) => value || fallback;
 const uniqueSorted = (items) => [...new Set(items.map((item) => item || ""))].sort((a, b) => a.localeCompare(b));
 
-export default function LeagueGamesTable({ account, games = [], onRefresh }) {
+export default function LeagueGamesTable({ account, user, games = [], assignments = [], memberships = [], onRefresh, readOnly = false, canManageSchedule = false }) {
   const [manualGame, setManualGame] = useState(blankGame);
   const [editingGame, setEditingGame] = useState(null);
   const [weekFilter, setWeekFilter] = useState(ALL);
   const [teamFilter, setTeamFilter] = useState(ALL);
   const [divisionFilter, setDivisionFilter] = useState(ALL);
 
+  const permissionList = useMemo(() => membershipPermissions(memberships), [memberships]);
   const sortedGames = useMemo(() => sortLeagueGames(games), [games]);
   const weekOptions = useMemo(() => uniqueSorted(sortedGames.map((game) => game.notes || game.week || "")), [sortedGames]);
   const divisionOptions = useMemo(() => uniqueSorted(sortedGames.map((game) => game.division || game.age_group || "")), [sortedGames]);
@@ -55,9 +57,11 @@ export default function LeagueGamesTable({ account, games = [], onRefresh }) {
   };
 
   const updateStatus = async (game, status) => {
-    await base44.entities.LeagueGame.update(game.id, { status });
+    await base44.functions.invoke("leagueGameAction", { action: "update_game", league_game_id: game.id, actor_account_id: account.id, actor_account_name: account.business_name, updates: { status } });
     onRefresh?.();
   };
+
+  const canEditGame = (game) => canManageSchedule || canEditLeagueGameSchedule({ isOwner: false, permissions: permissionList, gamePermissions: [] }) || canEditLeagueGameScore({ isOwner: false, permissions: permissionList, assignments, gamePermissions: [], game });
 
   const removeGame = async (game) => {
     if (!window.confirm("Delete this game? Attached events will lose this game link.")) return;
@@ -71,6 +75,7 @@ export default function LeagueGamesTable({ account, games = [], onRefresh }) {
 
   return (
     <div className="space-y-4">
+      {canManageSchedule && (
       <Card className="rounded-2xl bg-white">
         <CardContent className="p-4 space-y-3">
           <h3 className="font-black text-[#2C4F4E]">Manually Add Game</h3>
@@ -93,6 +98,7 @@ export default function LeagueGamesTable({ account, games = [], onRefresh }) {
           </div>
         </CardContent>
       </Card>
+      )}
 
       <Card className="rounded-2xl bg-white">
         <CardContent className="p-4 space-y-3">
@@ -116,7 +122,7 @@ export default function LeagueGamesTable({ account, games = [], onRefresh }) {
             <div className="overflow-x-auto rounded-xl border">
               <table className="w-full min-w-[860px] text-xs">
                 <thead className="bg-[#E7D7B8] text-[#2C4F4E]"><tr>{["Week", "Div", "Matchup", "Date", "Time", "Field", "Status", "Score", ""].map((heading) => <th key={heading} className="px-2 py-2 text-left font-black">{heading}</th>)}</tr></thead>
-                <tbody>{filteredGames.map((game) => <tr key={game.id} className="border-t align-top"><td className="px-2 py-2 whitespace-nowrap">{game.notes || ""}</td><td className="px-2 py-2 whitespace-nowrap font-semibold">{game.division || game.age_group}</td><td className="px-2 py-2"><div className="font-bold leading-tight">{game.home_team || "TBD"}</div><div className="text-slate-500 leading-tight">vs {game.away_team || "TBD"}</div></td><td className="px-2 py-2 whitespace-nowrap">{formatGameDate(game.game_date)}</td><td className="px-2 py-2 whitespace-nowrap">{formatGameTime(game.start_time)}</td><td className="px-2 py-2 max-w-[110px] truncate">{game.field_name || game.location}</td><td className="px-2 py-2"><Select value={game.status || "upcoming"} onValueChange={(value) => updateStatus(game, value)}><SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></td><td className="px-2 py-2 whitespace-nowrap font-bold">{Number(game.home_score || 0)} - {Number(game.away_score || 0)}</td><td className="px-2 py-2"><div className="flex flex-nowrap gap-1"><Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setEditingGame(game)}>Edit</Button><Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => duplicateGame(game)}><Copy className="h-3 w-3" /></Button><Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3 text-red-600" /></Button></div></td></tr>)}</tbody>
+                <tbody>{filteredGames.map((game) => <tr key={game.id} className="border-t align-top"><td className="px-2 py-2 whitespace-nowrap">{game.notes || ""}</td><td className="px-2 py-2 whitespace-nowrap font-semibold">{game.division || game.age_group}</td><td className="px-2 py-2"><div className="font-bold leading-tight">{game.home_team || "TBD"}</div><div className="text-slate-500 leading-tight">vs {game.away_team || "TBD"}</div></td><td className="px-2 py-2 whitespace-nowrap">{formatGameDate(game.game_date)}</td><td className="px-2 py-2 whitespace-nowrap">{formatGameTime(game.start_time)}</td><td className="px-2 py-2 max-w-[110px] truncate">{game.field_name || game.location}</td><td className="px-2 py-2">{canManageSchedule ? <Select value={game.status || "upcoming"} onValueChange={(value) => updateStatus(game, value)}><SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select> : <span className="capitalize">{game.status || "upcoming"}</span>}</td><td className="px-2 py-2 whitespace-nowrap font-bold">{Number(game.home_score || 0)} - {Number(game.away_score || 0)}</td><td className="px-2 py-2"><div className="flex flex-nowrap gap-1">{canEditGame(game) && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setEditingGame(game)}>Edit</Button>}{canManageSchedule && <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => duplicateGame(game)}><Copy className="h-3 w-3" /></Button>}{canManageSchedule && <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3 text-red-600" /></Button>}</div></td></tr>)}</tbody>
               </table>
             </div>
           )}
@@ -125,6 +131,7 @@ export default function LeagueGamesTable({ account, games = [], onRefresh }) {
 
       <LeagueGameEditModal
         account={account}
+        user={user}
         game={editingGame}
         open={!!editingGame}
         onOpenChange={(open) => !open && setEditingGame(null)}

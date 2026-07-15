@@ -24,7 +24,7 @@ const fieldGroups = [
   ["notes", "Week / Notes"],
 ];
 
-export default function LeagueGameEditModal({ account, game, open, onOpenChange, onSaved }) {
+export default function LeagueGameEditModal({ account, user, game, open, onOpenChange, onSaved }) {
   const [draft, setDraft] = useState(null);
 
   useEffect(() => {
@@ -34,14 +34,22 @@ export default function LeagueGameEditModal({ account, game, open, onOpenChange,
   const setField = (field, value) => setDraft((current) => ({ ...current, [field]: value }));
 
   const saveGame = async () => {
-    const normalized = normalizeLeagueGame(draft, account, draft.sort_order || 0, draft.source_import_id || "manual");
-    await base44.entities.LeagueGame.update(game.id, {
-      ...normalized,
-      source_row_key: draft.source_row_key || normalized.source_row_key,
-    });
-    toast.success("Game updated.");
-    onSaved?.();
-    onOpenChange(false);
+    try {
+      const normalized = normalizeLeagueGame(draft, account, draft.sort_order || 0, draft.source_import_id || "manual");
+      const response = await base44.functions.invoke("leagueGameAction", {
+        action: "update_game",
+        league_game_id: game.id,
+        actor_account_id: account.id,
+        actor_account_name: account.business_name,
+        updates: { ...normalized, source_row_key: draft.source_row_key || normalized.source_row_key },
+      });
+      if (response?.data?.error) return toast.error(response.data.error);
+      toast.success("Game updated.");
+      onSaved?.();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error.message || "Could not update game.");
+    }
   };
 
   if (!draft) return null;

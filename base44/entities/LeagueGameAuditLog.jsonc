@@ -1,0 +1,68 @@
+{
+  "name": "LeagueGameAuditLog",
+  "type": "object",
+  "properties": {
+    "league_game_id": {
+      "type": "string"
+    },
+    "action_type": {
+      "type": "string"
+    },
+    "previous_home_score": {
+      "type": "number"
+    },
+    "new_home_score": {
+      "type": "number"
+    },
+    "previous_away_score": {
+      "type": "number"
+    },
+    "new_away_score": {
+      "type": "number"
+    },
+    "previous_status": {
+      "type": "string"
+    },
+    "new_status": {
+      "type": "string"
+    },
+    "previous_date_time": {
+      "type": "object"
+    },
+    "new_date_time": {
+      "type": "object"
+    },
+    "edited_by_user_id": {
+      "type": "string"
+    },
+    "edited_by_email": {
+      "type": "string"
+    },
+    "edited_by_account_id": {
+      "type": "string"
+    },
+    "edited_by_account_name": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "was_locked": {
+      "type": "boolean",
+      "default": false
+    },
+    "was_unlocked": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "league_game_id",
+    "action_type",
+    "created_at"
+  ]
+}

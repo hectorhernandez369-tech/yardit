@@ -3,19 +3,21 @@ import { Trophy } from "lucide-react";
 import LeagueScheduleImporter from "./LeagueScheduleImporter";
 import LeagueGamesTable from "./LeagueGamesTable";
 import LeagueScheduleFormatGuide from "./LeagueScheduleFormatGuide";
+import LeagueAuditHistory from "../LeagueAuditHistory";
 
-export default function LeagueScheduleManager({ account, games = [], onRefresh }) {
+export default function LeagueScheduleManager({ account, user, games = [], assignments = [], memberships = [], onRefresh, canManageSchedule = false }) {
   return (
     <div className="space-y-4">
       <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
         <CardContent className="p-5 space-y-2">
-          <h2 className="flex items-center gap-2 text-2xl font-black text-[#2C4F4E]"><Trophy className="h-5 w-5" /> Schedule Manager</h2>
-          <p className="text-sm text-slate-600">Upload a full league schedule, search for a town or team like Lindsay, import only those games, then manage every game from this single schedule list.</p>
+          <h2 className="flex items-center gap-2 text-2xl font-black text-[#2C4F4E]"><Trophy className="h-5 w-5" /> Master Schedule</h2>
+          <p className="text-sm text-slate-600">One master LeagueGame schedule is the source of truth for league, team, scoreboard, and event views.</p>
         </CardContent>
       </Card>
-      <LeagueScheduleFormatGuide />
-      <LeagueScheduleImporter account={account} existingGames={games} onImported={onRefresh} />
-      <LeagueGamesTable account={account} games={games} onRefresh={onRefresh} />
+      {canManageSchedule && <LeagueScheduleFormatGuide />}
+      {canManageSchedule && <LeagueScheduleImporter account={account} existingGames={games} onImported={onRefresh} />}
+      <LeagueGamesTable account={account} user={user} games={games} assignments={assignments} memberships={memberships} onRefresh={onRefresh} readOnly={!canManageSchedule} canManageSchedule={canManageSchedule} />
+      <LeagueAuditHistory games={games} />
     </div>
   );
 }

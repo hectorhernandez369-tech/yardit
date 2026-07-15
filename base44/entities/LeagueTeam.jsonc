@@ -1,0 +1,32 @@
+{
+  "name": "LeagueTeam",
+  "type": "object",
+  "properties": {
+    "league_account_id": {
+      "type": "string"
+    },
+    "team_name": {
+      "type": "string"
+    },
+    "town_name": {
+      "type": "string"
+    },
+    "division": {
+      "type": "string"
+    },
+    "season": {
+      "type": "string"
+    },
+    "sport": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "league_account_id",
+    "team_name"
+  ]
+}

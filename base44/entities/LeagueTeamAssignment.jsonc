@@ -1,0 +1,44 @@
+{
+  "name": "LeagueTeamAssignment",
+  "type": "object",
+  "properties": {
+    "league_account_id": {
+      "type": "string"
+    },
+    "team_account_id": {
+      "type": "string"
+    },
+    "team_id": {
+      "type": "string"
+    },
+    "team_name": {
+      "type": "string"
+    },
+    "town_name": {
+      "type": "string"
+    },
+    "division": {
+      "type": "string"
+    },
+    "season": {
+      "type": "string"
+    },
+    "can_edit_assigned_games": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_submit_scores": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "league_account_id",
+    "team_account_id",
+    "team_name"
+  ]
+}

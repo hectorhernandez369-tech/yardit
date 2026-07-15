@@ -7,8 +7,6 @@ import { Loader2 } from "lucide-react";
 import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import MobileVendorHeader from "@/components/vendor/MobileVendorHeader";
-import VendorBillingTab from "@/components/vendor/VendorBillingTab";
-import VendorUsersTab from "@/components/vendor/VendorUsersTab";
 import { getUserVendorAccounts, isLeagueTeamAccount, isVendorDashboardAccount } from "@/lib/getUserVendorAccounts";
 import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import LeagueAccessDenied from "@/components/league/LeagueAccessDenied";
@@ -16,6 +14,10 @@ import LeagueTeamsTab from "@/components/league/LeagueTeamsTab";
 import LeagueEventsTab from "@/components/league/events/LeagueEventsTab";
 import LeagueScheduleManager from "@/components/league/schedule/LeagueScheduleManager";
 import LeagueScoreboard from "@/components/league/scoreboard/LeagueScoreboard";
+import LeagueConnectionsTab from "@/components/league/LeagueConnectionsTab";
+import MyLeagueSchedule from "@/components/league/MyLeagueSchedule";
+import LeagueAuditHistory from "@/components/league/LeagueAuditHistory";
+import { gameMatchesAssignment, membershipPermissions, userOwnsLeagueAccount } from "@/lib/leaguePermissions";
 
 export default function LeagueTeamDashboard() {
   const navigate = useNavigate();
@@ -56,17 +58,43 @@ export default function LeagueTeamDashboard() {
   useEffect(() => setActiveTab(requestedTab), [requestedTab]);
 
   const account = accounts.find((item) => item.id === activeAccountId) || accounts[0] || null;
-  const isOwner = !!account && (account.owner_user_id === user?.id || account.owner_user_id === user?.email || account.owner_email === user?.email);
+  const isOwner = userOwnsLeagueAccount(account, user);
 
-  const { data: users = [] } = useQuery({ queryKey: ["leagueDashboardUsers", account?.id], queryFn: () => base44.entities.VendorAuthorizedUser.filter({ vendor_account_id: account.id }, "-created_date"), enabled: !!account?.id });
   const { data: updates = [] } = useQuery({ queryKey: ["leagueDashboardUpdates", account?.id], queryFn: () => base44.entities.VendorUpdate.filter({ vendor_account_id: account.id }, "-created_date"), enabled: !!account?.id });
-  const { data: games = [] } = useQuery({ queryKey: ["leagueDashboardGames", account?.id], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: account.id }, "sort_order"), enabled: !!account?.id });
+  const { data: ownerGames = [] } = useQuery({ queryKey: ["leagueDashboardGames", account?.id, "owner"], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: account.id }, "sort_order"), enabled: !!account?.id && isOwner });
+  const { data: memberships = [] } = useQuery({ queryKey: ["leagueDashboardMemberships", account?.id, user?.id], queryFn: async () => {
+    const [byAccount, byUser, owned] = await Promise.all([
+      base44.entities.LeagueMembership.filter({ member_account_id: account.id, status: "active" }).catch(() => []),
+      user?.id ? base44.entities.LeagueMembership.filter({ member_user_id: user.id, status: "active" }).catch(() => []) : Promise.resolve([]),
+      base44.entities.LeagueMembership.filter({ league_account_id: account.id }).catch(() => []),
+    ]);
+    return [...byAccount, ...byUser, ...owned].filter((item, index, list) => list.findIndex((other) => other.id === item.id) === index);
+  }, enabled: !!account?.id });
+
+  const memberLeagueIds = useMemo(() => [...new Set(memberships.filter((item) => item.status === "active" && item.league_account_id !== account?.id && (item.member_account_id === account?.id || item.member_user_id === user?.id)).map((item) => item.league_account_id))], [memberships, account?.id, user?.id]);
+  const memberPermissions = useMemo(() => membershipPermissions(memberships.filter((item) => memberLeagueIds.includes(item.league_account_id))), [memberships, memberLeagueIds]);
+
+  const { data: memberGames = [] } = useQuery({ queryKey: ["leagueDashboardGames", account?.id, "member", memberLeagueIds.join("|")], queryFn: async () => {
+    const batches = await Promise.all(memberLeagueIds.map((leagueId) => base44.entities.LeagueGame.filter({ vendor_account_id: leagueId }, "sort_order").catch(() => [])));
+    return batches.flat();
+  }, enabled: !!account?.id && !isOwner && memberLeagueIds.length > 0 });
+
+  const { data: assignments = [] } = useQuery({ queryKey: ["leagueDashboardAssignments", account?.id, memberLeagueIds.join("|")], queryFn: async () => {
+    const leagueIds = isOwner ? [account.id] : memberLeagueIds;
+    const batches = await Promise.all(leagueIds.map((leagueId) => base44.entities.LeagueTeamAssignment.filter({ league_account_id: leagueId, team_account_id: account.id, is_active: true }).catch(() => [])));
+    return batches.flat();
+  }, enabled: !!account?.id && (isOwner || memberLeagueIds.length > 0) });
+
+  const games = isOwner ? ownerGames : memberGames;
+  const myGames = isOwner ? ownerGames : games.filter((game) => assignments.some((assignment) => gameMatchesAssignment(game, assignment)));
+  const canManageScores = isOwner || memberPermissions.includes("edit_all_game_scores") || memberPermissions.includes("edit_assigned_game_scores");
 
   const refreshDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ["leagueDashboardAccounts"] });
-    queryClient.invalidateQueries({ queryKey: ["leagueDashboardUsers"] });
     queryClient.invalidateQueries({ queryKey: ["leagueDashboardUpdates"] });
     queryClient.invalidateQueries({ queryKey: ["leagueDashboardGames"] });
+    queryClient.invalidateQueries({ queryKey: ["leagueDashboardMemberships"] });
+    queryClient.invalidateQueries({ queryKey: ["leagueDashboardAssignments"] });
   };
 
   const handleTabChange = (nextTab) => {
@@ -110,6 +138,10 @@ export default function LeagueTeamDashboard() {
     owner_email: account.owner_email,
   };
 
+  const tabList = isOwner
+    ? [{ value: "profile", label: "My Page" }, { value: "schedule", label: "Master Schedule" }, { value: "teams", label: "Teams" }, { value: "leagues", label: "Invitations" }, { value: "scoreboard", label: "Scoreboard" }, { value: "audit", label: "Score Review" }, { value: "events", label: "Events" }]
+    : [{ value: "profile", label: "My Page" }, { value: "my_schedule", label: "My Schedule" }, { value: "schedule", label: "Full League Schedule" }, { value: "scoreboard", label: "My Scoreboard" }, { value: "events", label: "My Events" }, { value: "leagues", label: "Find My League" }, { value: "staff", label: "Staff" }];
+
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-slate-50">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0 min-w-0">
@@ -123,7 +155,7 @@ export default function LeagueTeamDashboard() {
 
             <div className="mt-0 sm:mt-5 overflow-x-auto">
               <TabsList className="flex w-max min-w-full bg-transparent p-0 h-auto justify-start rounded-none gap-0.5 sm:gap-1">
-                {[{ value: "profile", label: "My Page" }, { value: "events", label: "Events" }, { value: "teams", label: "Teams" }, { value: "schedule", label: "Schedule Manager" }, { value: "scoreboard", label: "Scoreboard" }, { value: "tier", label: "Plan & Billing" }, { value: "users", label: "Staff" }].map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="min-w-fit px-3 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-sm font-semibold rounded-none sm:rounded-t-xl text-white/70 hover:text-white hover:bg-white/10 transition-all data-[state=active]:bg-slate-50 data-[state=active]:text-[#2C4F4E] data-[state=active]:shadow-none data-[state=active]:font-bold">{tab.label}</TabsTrigger>)}
+                {tabList.map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="min-w-fit px-3 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-sm font-semibold rounded-none sm:rounded-t-xl text-white/70 hover:text-white hover:bg-white/10 transition-all data-[state=active]:bg-slate-50 data-[state=active]:text-[#2C4F4E] data-[state=active]:shadow-none data-[state=active]:font-bold">{tab.label}</TabsTrigger>)}
               </TabsList>
             </div>
           </div>
@@ -132,11 +164,13 @@ export default function LeagueTeamDashboard() {
         <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-3 sm:space-y-6">
           <TabsContent value="profile" className="mt-0 min-w-0"><VendorBusinessPage account={account} pins={[]} checkIns={[]} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="events" className="mt-0 min-w-0"><LeagueEventsTab account={account} user={user} /></TabsContent>
-          <TabsContent value="teams" className="mt-0 min-w-0"><LeagueTeamsTab account={account} /></TabsContent>
-          <TabsContent value="schedule" className="mt-0 min-w-0"><LeagueScheduleManager account={account} games={games} onRefresh={refreshDashboard} /></TabsContent>
-          <TabsContent value="scoreboard" className="mt-0 min-w-0"><LeagueScoreboard games={games} onRefresh={refreshDashboard} /></TabsContent>
-          <TabsContent value="tier" className="mt-0 min-w-0"><VendorBillingTab account={account} onRefresh={refreshDashboard} /></TabsContent>
-          <TabsContent value="users" className="mt-0 min-w-0"><VendorUsersTab account={account} users={users} user={user} pins={[]} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="teams" className="mt-0 min-w-0"><LeagueTeamsTab account={account} user={user} /></TabsContent>
+          <TabsContent value="my_schedule" className="mt-0 min-w-0"><MyLeagueSchedule title="My Schedule" description="This is a filtered view of the league’s existing master LeagueGame records. No duplicate games are created." account={account} user={user} games={myGames} assignments={assignments} memberships={memberships} onRefresh={refreshDashboard} readOnly={!canManageScores} /></TabsContent>
+          <TabsContent value="schedule" className="mt-0 min-w-0"><LeagueScheduleManager account={account} user={user} games={games} assignments={assignments} memberships={memberships} canManageSchedule={isOwner} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="scoreboard" className="mt-0 min-w-0"><LeagueScoreboard account={account} user={user} games={isOwner ? games : myGames} assignments={assignments} memberships={memberships} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="leagues" className="mt-0 min-w-0"><LeagueConnectionsTab account={account} user={user} accounts={accounts} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="staff" className="mt-0 min-w-0"><LeagueConnectionsTab account={account} user={user} accounts={accounts} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="audit" className="mt-0 min-w-0"><LeagueAuditHistory games={games} /></TabsContent>
         </div>
       </Tabs>
     </div>

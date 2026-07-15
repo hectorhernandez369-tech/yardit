@@ -1,0 +1,42 @@
+{
+  "name": "LeagueGamePermission",
+  "type": "object",
+  "properties": {
+    "league_game_id": {
+      "type": "string"
+    },
+    "league_account_id": {
+      "type": "string"
+    },
+    "member_account_id": {
+      "type": "string"
+    },
+    "member_user_id": {
+      "type": "string"
+    },
+    "permission_type": {
+      "type": "string"
+    },
+    "can_edit_score": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_edit_schedule": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_submit_final": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_unlock_score": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "league_game_id",
+    "league_account_id",
+    "permission_type"
+  ]
+}

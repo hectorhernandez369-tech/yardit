@@ -1,0 +1,78 @@
+{
+  "name": "LeagueJoinRequest",
+  "type": "object",
+  "properties": {
+    "league_account_id": {
+      "type": "string"
+    },
+    "requesting_account_id": {
+      "type": "string"
+    },
+    "requesting_user_id": {
+      "type": "string"
+    },
+    "requesting_name": {
+      "type": "string"
+    },
+    "requesting_email": {
+      "type": "string"
+    },
+    "requesting_email_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "organization_name": {
+      "type": "string"
+    },
+    "organization_account_number": {
+      "type": "string"
+    },
+    "town_name": {
+      "type": "string"
+    },
+    "sport": {
+      "type": "string"
+    },
+    "requested_divisions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "request_message": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "denied",
+        "withdrawn",
+        "expired"
+      ],
+      "default": "pending"
+    },
+    "reviewed_by_user_id": {
+      "type": "string"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "denial_reason": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "league_account_id",
+    "requesting_account_id",
+    "requesting_user_id",
+    "requesting_email",
+    "status"
+  ]
+}
