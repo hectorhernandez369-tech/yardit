@@ -20,14 +20,23 @@ export default function LeagueScheduleImporter({ account, existingGames = [], on
     setLoading(true);
     const sourceImportId = `${account.id}-${Date.now()}`;
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url,
-      json_schema: { type: "object", properties: { rows: { type: "array", items: { type: "object", additionalProperties: true } } } },
-    });
-    const rows = Array.isArray(extracted.output) ? extracted.output : extracted.output?.rows || [];
-    const normalized = sortLeagueGames(rows.map((row, index) => normalizeLeagueGame(row, account, index, sourceImportId)).filter((row) => row.game_title));
+    let rows = [];
+
+    const parsed = await base44.functions.invoke("parseLeagueScheduleUpload", { file_url });
+    rows = parsed?.data?.games || [];
+
+    if (!rows.length) {
+      const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url,
+        json_schema: { type: "object", properties: { games: { type: "array", items: { type: "object", additionalProperties: true } }, rows: { type: "array", items: { type: "object", additionalProperties: true } } } },
+      });
+      rows = Array.isArray(extracted.output) ? extracted.output : extracted.output?.games || extracted.output?.rows || [];
+    }
+
+    const normalized = sortLeagueGames(rows.map((row, index) => normalizeLeagueGame(row, account, index, sourceImportId)).filter((row) => row.home_team || row.away_team || row.game_title));
     setPreviewRows(normalized);
     setSelectedKeys(normalized.filter((row) => !existingKeys.has(row.source_row_key)).map((row) => row.source_row_key));
+    toast.success(`${normalized.length} games found across the schedule.`);
     setLoading(false);
   };
 
@@ -59,7 +68,7 @@ export default function LeagueScheduleImporter({ account, existingGames = [], on
           <div><h3 className="font-black text-[#2C4F4E]">Upload League Schedule</h3><p className="text-sm text-slate-600">Upload Excel, XLS, or CSV, preview every game, then import all or only the filtered games.</p></div>
           <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md bg-[#F4A849] px-4 py-2 text-sm font-bold text-[#2C4F4E] hover:bg-[#E39635]"><Upload className="h-4 w-4" /> {loading ? "Reading..." : "Choose File"}<Input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={loading} onChange={(e) => uploadSchedule(e.target.files?.[0])} /></label>
         </div>
-        {previewRows.length > 0 && <div className="space-y-3"><Input placeholder="Search town, team, division, or organization — e.g. Lindsay" value={search} onChange={(e) => setSearch(e.target.value)} /><div className="max-h-96 overflow-auto rounded-xl border"><table className="w-full min-w-[980px] text-sm"><thead className="bg-[#E7D7B8]"><tr>{["", "Division", "Home", "Away", "Towns", "Date", "Start", "Field", "Status"].map((heading) => <th key={heading} className="p-2 text-left">{heading}</th>)}</tr></thead><tbody>{filteredRows.map((game) => { const duplicate = existingKeys.has(game.source_row_key); return <tr key={game.source_row_key} className={`border-t ${duplicate ? "bg-slate-50 text-slate-400" : "bg-white"}`}><td className="p-2"><Checkbox disabled={duplicate} checked={selectedKeys.includes(game.source_row_key)} onCheckedChange={(checked) => setSelectedKeys((current) => checked ? [...new Set([...current, game.source_row_key])] : current.filter((key) => key !== game.source_row_key))} /></td><td className="p-2">{game.division || game.age_group}</td><td className="p-2 font-semibold">{game.home_team}</td><td className="p-2 font-semibold">{game.away_team}</td><td className="p-2">{[game.home_town, game.away_town].filter(Boolean).join(" / ")}</td><td className="p-2">{formatGameDate(game.game_date)}</td><td className="p-2">{formatGameTime(game.start_time)}</td><td className="p-2">{game.field_name || game.location}</td><td className="p-2">{duplicate ? "Duplicate" : "Ready"}</td></tr>; })}</tbody></table></div><div className="flex flex-wrap gap-2"><Button onClick={() => importRows(selectedFilteredRows.length ? selectedFilteredRows : filteredRows)}>Import Only These Games</Button><Button variant="outline" onClick={() => importRows(previewRows)}>Import All Games</Button><Button variant="ghost" onClick={() => { setPreviewRows([]); setSelectedKeys([]); }}><X className="h-4 w-4" /> Clear Preview</Button></div></div>}
+        {previewRows.length > 0 && <div className="space-y-3"><Input placeholder="Search town, team, division, or organization — e.g. Lindsay" value={search} onChange={(e) => setSearch(e.target.value)} /><div className="max-h-96 overflow-auto rounded-xl border"><table className="w-full min-w-[980px] text-sm"><thead className="bg-[#E7D7B8]"><tr>{["", "Week", "Division", "Home", "Away", "Towns", "Date", "Start", "Field", "Status"].map((heading) => <th key={heading} className="p-2 text-left">{heading}</th>)}</tr></thead><tbody>{filteredRows.map((game) => { const duplicate = existingKeys.has(game.source_row_key); return <tr key={game.source_row_key} className={`border-t ${duplicate ? "bg-slate-50 text-slate-400" : "bg-white"}`}><td className="p-2"><Checkbox disabled={duplicate} checked={selectedKeys.includes(game.source_row_key)} onCheckedChange={(checked) => setSelectedKeys((current) => checked ? [...new Set([...current, game.source_row_key])] : current.filter((key) => key !== game.source_row_key))} /></td><td className="p-2">{game.notes || game.week || ""}</td><td className="p-2">{game.division || game.age_group}</td><td className="p-2 font-semibold">{game.home_team}</td><td className="p-2 font-semibold">{game.away_team}</td><td className="p-2">{[game.home_town, game.away_town].filter(Boolean).join(" / ")}</td><td className="p-2">{formatGameDate(game.game_date)}</td><td className="p-2">{formatGameTime(game.start_time)}</td><td className="p-2">{game.field_name || game.location}</td><td className="p-2">{duplicate ? "Duplicate" : "Ready"}</td></tr>; })}</tbody></table></div><div className="flex flex-wrap gap-2"><Button onClick={() => importRows(selectedFilteredRows.length ? selectedFilteredRows : filteredRows)}>Import Only These Games</Button><Button variant="outline" onClick={() => importRows(previewRows)}>Import All Games</Button><Button variant="ghost" onClick={() => { setPreviewRows([]); setSelectedKeys([]); }}><X className="h-4 w-4" /> Clear Preview</Button></div></div>}
       </CardContent>
     </Card>
   );
