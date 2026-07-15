@@ -31,10 +31,15 @@ const excelDateToIso = (value) => {
     if (parsed?.y && parsed?.m && parsed?.d) return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`;
   }
   const text = clean(value);
-  const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  const iso = text.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
   if (iso) return `${iso[1]}-${String(iso[2]).padStart(2, '0')}-${String(iso[3]).padStart(2, '0')}`;
-  const parsed = new Date(text);
-  return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10);
+  const us = text.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/);
+  if (us) {
+    const year = us[3] ? (String(us[3]).length === 2 ? `20${us[3]}` : us[3]) : new Date().getFullYear();
+    return `${year}-${String(us[1]).padStart(2, '0')}-${String(us[2]).padStart(2, '0')}`;
+  }
+  const namedDate = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(text) ? new Date(text) : null;
+  return namedDate && !Number.isNaN(namedDate.getTime()) ? namedDate.toISOString().slice(0, 10) : '';
 };
 
 const findDate = (rows, fallbackName) => {
@@ -49,29 +54,39 @@ const findDate = (rows, fallbackName) => {
 };
 
 const isDivision = (value) => /^[0-9]{1,2}U$/i.test(clean(value)) || /division|varsity|junior|peewee|flag/i.test(clean(value));
+const isTimeHeader = (value) => /^(time|start|start time|time slot|timeslot)$/i.test(clean(value));
+const isHomeHeader = (value) => /^home( team)?$/i.test(clean(value));
 
 const parseRows = (rows, sheetName) => {
   const games = [];
-  const headerIndex = rows.findIndex((row) => row.some((cell) => /^time$/i.test(clean(cell))) && row.some((cell) => isDivision(cell)));
+  const headerIndex = rows.findIndex((row) => row.some((cell) => isTimeHeader(cell)) && row.some((cell) => isDivision(cell)));
   if (headerIndex < 0) return games;
 
   const header = rows[headerIndex];
   const gameDate = findDate(rows, sheetName);
   const blocks = [];
 
-  for (let col = 0; col < header.length - 2; col += 1) {
-    if (/^time$/i.test(clean(header[col])) && isDivision(header[col + 1]) && /^home$/i.test(clean(header[col + 2]))) {
-      blocks.push({ timeCol: col, awayCol: col + 1, homeCol: col + 2, division: clean(header[col + 1]) });
-      col += 2;
+  for (let col = 0; col < header.length - 1; col += 1) {
+    if (!isDivision(header[col]) || !isHomeHeader(header[col + 1])) continue;
+    let timeCol = -1;
+    for (let left = col - 1; left >= 0; left -= 1) {
+      if (isTimeHeader(header[left])) {
+        timeCol = left;
+        break;
+      }
     }
+    if (timeCol >= 0) blocks.push({ timeCol, awayCol: col, homeCol: col + 1, division: clean(header[col]) });
   }
 
+  const lastTimeByColumn = {};
   for (let rowIndex = headerIndex + 1; rowIndex < rows.length; rowIndex += 1) {
     const row = rows[rowIndex];
     for (const block of blocks) {
       const away = clean(row[block.awayCol]);
       const home = clean(row[block.homeCol]);
-      const time = excelTimeToText(row[block.timeCol]);
+      const rowTime = excelTimeToText(row[block.timeCol]);
+      if (rowTime) lastTimeByColumn[block.timeCol] = rowTime;
+      const time = rowTime || lastTimeByColumn[block.timeCol] || '';
       if (!away || !home) continue;
       if (/^bye$/i.test(away) || /^bye$/i.test(home)) continue;
       games.push({
