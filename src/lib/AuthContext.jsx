@@ -7,6 +7,7 @@ import { clearTesterBypass } from '@/lib/comingSoonMode';
 import { logUserActivity, logUserActivityOncePerSession } from './logUserActivity';
 import { normalizeUser } from '@/lib/normalizeUser';
 import { recordAuthDebugEvent } from '@/lib/authDebug';
+import { EVENTS_EXPERIENCE, EXPERIENCE_STORAGE_KEY } from '@/lib/experience';
 
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
@@ -141,7 +142,11 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
-      restoreAuthReturnTo();
+      const restoredReturnTo = restoreAuthReturnTo();
+      if (!restoredReturnTo && localStorage.getItem(EXPERIENCE_STORAGE_KEY) === EVENTS_EXPERIENCE && window.location.pathname === "/") {
+        window.location.replace("/VendorAccountIntro?experience=events");
+        return;
+      }
       setAuthError(null);
     } catch (error) {
       console.error('User auth check failed:', error);
@@ -388,7 +393,8 @@ export const AuthProvider = ({ children }) => {
     setAuthError(null);
   };
 
-  const navigateToLogin = () => {
+  const navigateToLogin = (returnToUrl) => {
+    const requestedReturnUrl = returnToUrl || window.location.href;
     console.log('AUTH_DEBUG navigateToLogin', {
       hasToken: !!appParams.token,
       currentUrl: window.location.href,
@@ -397,17 +403,17 @@ export const AuthProvider = ({ children }) => {
     });
 
     const playWrapper = isPlayAppWrapper();
-    const loginReturnUrl = playWrapper ? `${window.location.origin}/?auth_callback=play` : window.location.href;
+    const loginReturnUrl = playWrapper ? `${window.location.origin}/?auth_callback=play` : requestedReturnUrl;
     recordAuthDebugEvent('redirect_to_login', {
       playWrapper,
       loginReturnUrl,
-      returnStrategy: playWrapper ? 'play_start_url' : 'current_url',
+      returnStrategy: playWrapper ? 'play_start_url' : 'requested_url',
       currentUrl: window.location.href,
     });
 
     clearGuestMode();
     setIsGuest(false);
-    saveAuthReturnTo(window.location.href);
+    saveAuthReturnTo(requestedReturnUrl);
     base44.auth.redirectToLogin(loginReturnUrl);
   };
 

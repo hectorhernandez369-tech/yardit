@@ -5,12 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Store, MapPin, Users, Megaphone, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
+import { EVENTS_EXPERIENCE, setPreferredExperience } from "@/lib/experience";
 
 export default function VendorAccountIntro() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const organizerType = urlParams.get("organizer") || localStorage.getItem("yardit_organizer_account_type") || "vendor_event";
   const dashboardPath = organizerType === "league_team" ? "/LeagueTeamDashboard" : "/VendorDashboard";
+  useEffect(() => {
+    if (urlParams.get("experience") === "events") setPreferredExperience(EVENTS_EXPERIENCE);
+  }, []);
   const [checking, setChecking] = useState(true);
   const [alreadyHasAccount, setAlreadyHasAccount] = useState(false);
 

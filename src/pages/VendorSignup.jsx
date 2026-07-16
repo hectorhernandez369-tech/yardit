@@ -11,6 +11,7 @@ import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
 import { buildVendorAccountIdentityFields } from "@/lib/vendorAccountIdentity";
 import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import { toast } from "sonner";
+import { EVENTS_EXPERIENCE, getPreferredExperience, setPreferredExperience } from "@/lib/experience";
 
 const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 const EIN_PATTERN = /^\d{2}-\d{7}$/;
@@ -62,7 +63,8 @@ export default function VendorSignup() {
       owner_email: user.email,
       owner_name: user.full_name || user.email,
     });
-    toast.success("Account claimed! Redirecting to your dashboard...");
+    setPreferredExperience(EVENTS_EXPERIENCE);
+    toast.success("Account claimed! Redirecting to Yardit Events...");
     navigate(dashboardPath);
   };
 
@@ -188,6 +190,11 @@ export default function VendorSignup() {
       base44.entities.VendorAccountIdentityReservation.update(reservationNum.id, { vendor_account_id: account.id, status: "assigned" }),
       base44.entities.VendorAccountIdentityReservation.update(reservationSlug.id, { vendor_account_id: account.id, status: "assigned" }),
     ]);
+    if (getPreferredExperience() !== EVENTS_EXPERIENCE && window.confirm("Make Yardit Events your default experience for organizer tools?")) {
+      setPreferredExperience(EVENTS_EXPERIENCE);
+    } else if (getPreferredExperience() === EVENTS_EXPERIENCE) {
+      setPreferredExperience(EVENTS_EXPERIENCE);
+    }
     setCreatedAccount(account);
     setSaving(false);
     setStep(4);

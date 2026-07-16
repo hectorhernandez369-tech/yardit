@@ -232,7 +232,7 @@ function LayoutContent({ children, user, setUser }) {
               {!isAuthenticated && (
                 <Button
                   size="sm"
-                  onClick={navigateToLogin}
+                  onClick={() => navigate("/AccountOptions")}
                   className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
                 >
                   <User className="w-4 h-4" />
@@ -354,7 +354,7 @@ function LayoutContent({ children, user, setUser }) {
         hasVendorAccount={hasVendorAccount}
         hasAdminProfile={hasAdminProfile}
         showVendorHomeButton={hasVendorAccount && startupPage === "vendor"}
-        navigateToLogin={navigateToLogin}
+        navigateToLogin={() => navigate("/AccountOptions")}
         onPostSale={handlePostSaleClick}
         onLogout={handleLogout}
       />

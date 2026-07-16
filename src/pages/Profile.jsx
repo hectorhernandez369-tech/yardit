@@ -19,6 +19,7 @@ import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import { getProfileCompletionPercent, isAccountSetupComplete } from "@/lib/accountSetup";
 import { normalizeUser } from "@/lib/normalizeUser";
 import OrganizerAccountDialog from "@/components/profile/OrganizerAccountDialog";
+import ExperienceSelectorCard from "@/components/experience/ExperienceSelectorCard";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -159,6 +160,8 @@ export default function ProfilePage() {
 
             </div>
             </div>
+
+        <ExperienceSelectorCard hasOrganizerAccount={hasVendorAccount} onOpenEvents={() => navigate(hasVendorAccount ? "/VendorDashboard" : "/VendorAccountIntro?experience=events")} />
 
         <Card className="mb-6 border-green-200 bg-white/90 shadow-sm">
           <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
