@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, Home, LogOut, Map, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import YarditEventsMobileBottomNav from "@/components/events/YarditEventsMobileBottomNav";
 import { useAuth } from "@/lib/AuthContext";
 import { RESIDENTIAL_EXPERIENCE, setPreferredExperience, YARDIT_EVENTS_LOGO_URL } from "@/lib/experience";
 
@@ -31,8 +32,8 @@ export default function YarditEventsShell({ children }) {
   ) : children;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-900">
-      <header className="sticky top-0 z-[3000] border-b border-[#F4A849]/40 bg-slate-950/95 text-white shadow-xl backdrop-blur">
+    <div className="yardit-events-shell min-h-screen bg-slate-950 text-slate-900">
+      <header className="yardit-events-top-nav sticky top-0 z-[3000] border-b border-[#F4A849]/40 bg-slate-950/95 text-white shadow-xl backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
           <Link to={dashboardPath} className="flex items-center gap-3">
             <img src={YARDIT_EVENTS_LOGO_URL} alt="Yardit Events" className="h-10 w-10 object-contain" />
@@ -51,7 +52,14 @@ export default function YarditEventsShell({ children }) {
           </nav>
         </div>
       </header>
-      <main className="min-h-[calc(100vh-66px)] bg-slate-50">{content}</main>
+      <main className="yardit-events-main-with-bottom-nav min-h-[calc(100vh-66px)] bg-slate-50">{content}</main>
+      <YarditEventsMobileBottomNav
+        isAuthenticated={isAuthenticated}
+        isLeague={isLeague}
+        navigateToLogin={() => navigateToLogin?.(window.location.href)}
+        onLogout={() => logout?.("/")}
+        onSwitchToYardit={switchToYardit}
+      />
     </div>
   );
 }

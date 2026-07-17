@@ -368,6 +368,52 @@ button:focus-visible {
     padding-bottom: calc(4.35rem + max(0.25rem, var(--yardit-safe-area-bottom))) !important;
   }
 
+  .yardit-events-top-nav {
+    display: none !important;
+  }
+
+  .yardit-events-shell {
+    padding-top: max(var(--yardit-safe-area-top), 1.6rem);
+    padding-left: var(--yardit-safe-area-left);
+    padding-right: var(--yardit-safe-area-right);
+  }
+
+  .yardit-events-main-with-bottom-nav {
+    padding-bottom: calc(4.35rem + max(0.25rem, var(--yardit-safe-area-bottom))) !important;
+  }
+
+  .yardit-events-mobile-bottom-nav {
+    border-top-color: rgba(244, 168, 73, 0.45);
+    background: rgba(2, 6, 23, 0.96);
+    box-shadow: 0 -10px 28px rgba(2, 6, 23, 0.35);
+  }
+
+  .yardit-events-mobile-bottom-nav .yardit-mobile-nav-item {
+    color: #F4A849;
+  }
+
+  .yardit-events-mobile-bottom-nav .yardit-mobile-nav-item.is-active,
+  .yardit-events-mobile-bottom-nav .yardit-mobile-nav-item:hover {
+    background: rgba(34, 211, 238, 0.14);
+  }
+
+  .yardit-events-mobile-bottom-nav .yardit-mobile-nav-primary {
+    background: #F4A849;
+    border-color: #22D3EE;
+    color: #102A43;
+    box-shadow: 0 5px 14px rgba(244, 168, 73, 0.32);
+  }
+
+  .yardit-events-mobile-bottom-nav .yardit-mobile-nav-logo img {
+    width: 2.35rem !important;
+    height: 2.35rem !important;
+  }
+
+  .yardit-events-mobile-bottom-nav .yardit-mobile-nav-bell .yardit-nav-alert-button,
+  .yardit-events-mobile-bottom-nav .yardit-mobile-nav-bell button {
+    color: #F4A849 !important;
+  }
+
   [role="dialog"] {
     max-height: calc(100dvh - var(--yardit-safe-area-top) - var(--yardit-safe-area-bottom) - 1rem);
     overscroll-behavior: contain;

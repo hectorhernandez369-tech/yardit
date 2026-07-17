@@ -5,7 +5,7 @@ export const EXPERIENCE_SELECTED_KEY = "yardit_has_selected_experience_v1";
 export const RESIDENTIAL_EXPERIENCE = "yardit";
 export const EVENTS_EXPERIENCE = "yardit_events";
 
-export const YARDIT_EVENTS_LOGO_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
+export const YARDIT_EVENTS_LOGO_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/5dcef72ff_file_00000000e57871fd89e0184da4a0973f.png";
 export const YARDIT_LOGO_URL = "https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png";
 
 export function getPreferredExperience() {
