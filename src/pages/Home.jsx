@@ -808,6 +808,20 @@ export default function HomePage() {
     enabled: !isPublicHomeMode
   });
 
+  const { data: privateLeagueEventLinks = [] } = useQuery({
+    queryKey: ["homeLeagueEventGames"],
+    queryFn: async () => (await base44.entities.LeagueEventGame.list()).filter((link) => link?.is_visible !== false),
+    initialData: [],
+    enabled: !isPublicHomeMode
+  });
+
+  const { data: privateLeagueGames = [] } = useQuery({
+    queryKey: ["homeLeagueGames"],
+    queryFn: () => base44.entities.LeagueGame.list(),
+    initialData: [],
+    enabled: !isPublicHomeMode
+  });
+
   const { data: privatePromoDiscoveryCodes = [] } = useQuery({
     queryKey: ["promoDiscoveryCodes"],
     queryFn: () => base44.entities.ResidentialPromoCode.filter({ promo_door_enabled: true, status: "active" }),
@@ -815,25 +829,14 @@ export default function HomePage() {
     enabled: !isPublicHomeMode
   });
 
-  const privateVendorEventsWithSchedule = useMemo(() => {
-    const scheduleByEventId = new Map();
-    privateEventScheduleEntries
-      .filter((entry) => entry?.event_id && entry?.title && entry?.start_time)
-      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
-      .forEach((entry) => {
-        const current = scheduleByEventId.get(entry.event_id) || [];
-        if (current.length < 4) {
-          current.push({ title: entry.title, start_time: entry.start_time });
-          scheduleByEventId.set(entry.event_id, current);
-        }
-      });
-    return privateVendorEvents.map((event) => ({ ...event, schedule_preview: scheduleByEventId.get(event.id) || [] }));
-  }, [privateVendorEvents, privateEventScheduleEntries]);
+  const eventScheduleEntries = isPublicHomeMode ? publicMapData.eventScheduleEntries || [] : privateEventScheduleEntries;
+  const leagueEventLinks = isPublicHomeMode ? publicMapData.leagueEventLinks || [] : privateLeagueEventLinks;
+  const leagueGames = isPublicHomeMode ? publicMapData.leagueGames || [] : privateLeagueGames;
 
   const vendorAccounts = isPublicHomeMode ? publicMapData.vendorAccounts || [] : privateVendorAccounts;
   const vendorPins = isPublicHomeMode ? publicMapData.vendorPins || [] : privateVendorPins;
   const vendorCheckIns = isPublicHomeMode ? publicMapData.vendorCheckIns || [] : privateVendorCheckIns;
-  const vendorEvents = isPublicHomeMode ? publicMapData.vendorEvents || [] : privateVendorEventsWithSchedule;
+  const vendorEvents = isPublicHomeMode ? publicMapData.vendorEvents || [] : privateVendorEvents;
   const promoDiscoveryCodes = isPublicHomeMode ? publicMapData.promoDiscoveryCodes || [] : privatePromoDiscoveryCodes;
 
   const searchSuggestions = useMemo(() => {
@@ -1795,7 +1798,10 @@ export default function HomePage() {
               {/* Vendor Event Stacked Markers (Coming Soon + Active, with stacking) */}
               <VendorEventMapMarkers
               vendorEvents={vendorEvents}
-              showVendorEvents={quickMapFilters.events} />
+              showVendorEvents={quickMapFilters.events}
+              eventScheduleEntries={eventScheduleEntries}
+              leagueEventLinks={leagueEventLinks}
+              leagueGames={leagueGames} />
             
 
               {liveVendorPins.map(({ checkIn, pin, account }) => {

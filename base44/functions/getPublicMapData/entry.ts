@@ -115,45 +115,16 @@ Deno.serve(async (req) => {
     const promoDiscoveryCodes = promoRows
       .filter((promo) => isActivePromo(promo))
       .map((promo) => ({ ...pick(promo, promoFields), status: 'active' }));
-    const schedulePreviewByEventId = new Map();
-    scheduleRows
-      .filter((entry) => entry?.event_id && entry?.title && entry?.start_time)
-      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
-      .forEach((entry) => {
-        const current = schedulePreviewByEventId.get(entry.event_id) || [];
-        if (current.length < 4) {
-          current.push({ title: entry.title, start_time: entry.start_time });
-          schedulePreviewByEventId.set(entry.event_id, current);
-        }
-      });
-    const leagueGamesById = new Map(leagueGameRows.map((game) => [game.id, game]));
-    const leagueGamePreviewByEventId = new Map();
-    leagueEventRows
-      .filter((link) => link?.event_id && link?.league_game_id && link?.is_visible !== false)
-      .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0))
-      .forEach((link) => {
-        const game = leagueGamesById.get(link.league_game_id);
-        if (!game) return;
-        const current = leagueGamePreviewByEventId.get(link.event_id) || [];
-        if (current.length < 4) {
-          current.push({
-            id: game.id,
-            division: game.division || game.age_group || '',
-            home_team: game.home_team || 'Home',
-            away_team: game.away_team || 'Away',
-            start_time: game.start_time,
-            game_date: game.game_date,
-            field_name: game.field_name || game.location || '',
-            status: game.status || 'upcoming',
-            home_score: Number(game.home_score || 0),
-            away_score: Number(game.away_score || 0),
-            period_label: game.period_label || '',
-            clock_display: game.clock_display || '',
-          });
-          leagueGamePreviewByEventId.set(link.event_id, current);
-        }
-      });
-    const vendorEvents = vendorEventRows.filter((event) => isPublicVendorEvent(event, now)).map((event) => ({ ...pick(event, vendorEventFields), schedule_preview: schedulePreviewByEventId.get(event.id) || [], league_game_preview: leagueGamePreviewByEventId.get(event.id) || [] }));
+    const publicVendorEventRows = vendorEventRows.filter((event) => isPublicVendorEvent(event, now));
+    const publicVendorEventIds = new Set(publicVendorEventRows.map((event) => event.id));
+    const eventScheduleFields = ['id', 'event_id', 'spot_id', 'field_name', 'title', 'start_time', 'end_time', 'notes', 'date', 'sort_order'];
+    const leagueEventFields = ['id', 'event_id', 'league_game_id', 'league_account_id', 'display_order', 'is_visible'];
+    const leagueGameFields = ['id', 'vendor_account_id', 'league_name', 'season', 'division', 'age_group', 'game_title', 'home_team', 'away_team', 'game_date', 'start_time', 'end_time', 'field_name', 'location', 'status', 'home_score', 'away_score', 'period_label', 'period_number', 'clock_display', 'sort_order'];
+    const eventScheduleEntries = scheduleRows.filter((entry) => publicVendorEventIds.has(entry?.event_id)).map((entry) => pick(entry, eventScheduleFields));
+    const leagueEventLinks = leagueEventRows.filter((link) => link?.is_visible !== false && publicVendorEventIds.has(link?.event_id)).map((link) => pick(link, leagueEventFields));
+    const linkedLeagueGameIds = new Set(leagueEventLinks.map((link) => link.league_game_id).filter(Boolean));
+    const leagueGames = leagueGameRows.filter((game) => linkedLeagueGameIds.has(game?.id)).map((game) => pick(game, leagueGameFields));
+    const vendorEvents = publicVendorEventRows.map((event) => pick(event, vendorEventFields));
     const liveCheckIns = vendorCheckInRows.filter((checkIn) => isLiveVendorCheckIn(checkIn, now));
     const liveVendorAccountIds = new Set(liveCheckIns.map((checkIn) => checkIn.vendor_account_id));
     const liveVendorPinIds = new Set(liveCheckIns.map((checkIn) => checkIn.vendor_pin_id));
@@ -161,7 +132,7 @@ Deno.serve(async (req) => {
     const vendorPins = vendorPinRows.filter((pin) => pin?.is_active !== false && liveVendorPinIds.has(pin.id)).map((pin) => pick(pin, vendorPinFields));
     const vendorCheckIns = liveCheckIns.map((checkIn) => pick(checkIn, vendorCheckInFields));
 
-    return Response.json({ listings, promoDiscoveryCodes, vendorEvents, vendorAccounts, vendorPins, vendorCheckIns });
+    return Response.json({ listings, promoDiscoveryCodes, vendorEvents, eventScheduleEntries, leagueEventLinks, leagueGames, vendorAccounts, vendorPins, vendorCheckIns });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

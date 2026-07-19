@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { isPublishedVendorEvent } from "@/lib/vendorEvents";
 import { groupVendorEventsByLocation, getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
+import { buildUnifiedSchedulePreview } from "@/lib/unifiedEventSchedule";
 
 const markerCache = {};
 
@@ -17,9 +18,25 @@ const timeLabel = (value) => {
 };
 
 const scoreLabel = (game) => {
-  const status = String(game?.status || "upcoming").toLowerCase();
-  if (!["live", "halftime", "final"].includes(status)) return status.replace("_", " ");
-  return `${Number(game.home_score || 0)}-${Number(game.away_score || 0)} ${status === "final" ? "Final" : "Live"}`;
+  const status = String(
+    game?.status || "upcoming"
+  ).toLowerCase();
+
+  if (status === "final") {
+    return `${Number(game.home_score || 0)}-${Number(
+      game.away_score || 0
+    )} Final`;
+  }
+
+  if (status === "live" || status === "halftime") {
+    return `${Number(game.home_score || 0)}-${Number(
+      game.away_score || 0
+    )} ${
+      status === "halftime" ? "Halftime" : "Live"
+    }`;
+  }
+
+  return timeLabel(game?.start_time);
 };
 
 function getVendorEventIcon(isComingSoon, stackCount, logoUrl) {
@@ -57,7 +74,13 @@ function getVendorEventIcon(isComingSoon, stackCount, logoUrl) {
   return icon;
 }
 
-export default function VendorEventMapMarkers({ vendorEvents, showVendorEvents = true }) {
+export default function VendorEventMapMarkers({
+  vendorEvents,
+  showVendorEvents = true,
+  eventScheduleEntries = [],
+  leagueEventLinks = [],
+  leagueGames = [],
+}) {
   const navigate = useNavigate();
   const now = new Date();
 
@@ -80,8 +103,20 @@ export default function VendorEventMapMarkers({ vendorEvents, showVendorEvents =
         const isComingSoon = visStatus === "coming_soon";
         const stackCount = stacked.length;
 
-        const leagueGamePreview = (primary.league_game_preview || []).filter((game) => game?.home_team || game?.away_team).slice(0, 4);
-        const schedulePreview = leagueGamePreview.length > 0 ? [] : (primary.schedule_preview || []).filter((item) => item?.title && item?.start_time).slice(0, 4);
+        const eventLinks = leagueEventLinks.filter(
+          (link) => link?.event_id === primary.id
+        );
+
+        const eventEntries = eventScheduleEntries.filter(
+          (entry) => entry?.event_id === primary.id
+        );
+
+        const unifiedPreview = buildUnifiedSchedulePreview({
+          leagueEventLinks: eventLinks,
+          leagueGames,
+          scheduleEntries: eventEntries,
+          limit: 4,
+        });
 
         return (
           <Marker
@@ -103,25 +138,53 @@ export default function VendorEventMapMarkers({ vendorEvents, showVendorEvents =
                 <p className="font-bold text-sm leading-tight">{primary.title}</p>
                 <p className="text-[11px] text-slate-500">{primary.display_address}</p>
 
-                {(leagueGamePreview.length > 0 || schedulePreview.length > 0) && (
+                {unifiedPreview.items.length > 0 && (
                   <div className="rounded-lg bg-slate-50/90 p-1.5 space-y-1">
-                    {leagueGamePreview.length > 0 ? leagueGamePreview.map((game) => (
-                      <div key={game.id} className="space-y-0.5 text-[11px] leading-tight">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="min-w-0 truncate font-semibold text-slate-700">{game.home_team} vs {game.away_team}</span>
-                          <span className="shrink-0 font-bold text-[#2C4F4E] capitalize">{scoreLabel(game)}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 text-[10px] text-slate-500">
-                          <span className="min-w-0 truncate">{game.division || game.field_name || "Game"}</span>
-                          <span className="shrink-0">{timeLabel(game.start_time)}</span>
-                        </div>
-                      </div>
-                    )) : schedulePreview.map((item, index) => (
-                      <div key={`${item.title}-${index}`} className="flex items-center justify-between gap-2 text-[11px] leading-tight">
-                        <span className="min-w-0 truncate font-semibold text-slate-700">{item.title}</span>
-                        <span className="shrink-0 text-slate-500">{timeLabel(item.start_time)}</span>
-                      </div>
-                    ))}
+                    {unifiedPreview.type === "league_games"
+                      ? unifiedPreview.items.map((game) => (
+                          <div
+                            key={game.id}
+                            className="space-y-0.5 text-[11px] leading-tight"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="min-w-0 truncate font-semibold text-slate-700">
+                                {game.home_team || "Home"} vs{" "}
+                                {game.away_team || "Away"}
+                              </span>
+
+                              <span className="shrink-0 font-bold text-[#2C4F4E] capitalize">
+                                {scoreLabel(game)}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2 text-[10px] text-slate-500">
+                              <span className="min-w-0 truncate">
+                                {game.division ||
+                                  game.age_group ||
+                                  game.field_name ||
+                                  "Game"}
+                              </span>
+
+                              <span className="shrink-0">
+                                {timeLabel(game.start_time)}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      : unifiedPreview.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between gap-2 text-[11px] leading-tight"
+                          >
+                            <span className="min-w-0 truncate font-semibold text-slate-700">
+                              {item.title}
+                            </span>
+
+                            <span className="shrink-0 text-slate-500">
+                              {timeLabel(item.start_time)}
+                            </span>
+                          </div>
+                        ))}
                   </div>
                 )}
 

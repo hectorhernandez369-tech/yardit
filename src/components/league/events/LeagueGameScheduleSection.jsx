@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatGameTime, sortLeagueGames } from "@/components/league/schedule/leagueGameUtils";
 
-export default function LeagueGameScheduleSection({ games = [], title = "Game Schedule" }) {
+export default function LeagueGameScheduleSection({ games = [], title = "Schedule" }) {
   const sortedGames = sortLeagueGames(games).filter(Boolean);
   if (!sortedGames.length) return null;
 
