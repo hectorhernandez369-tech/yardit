@@ -16,6 +16,7 @@ import PublicEventUpdates from "@/components/vendor/events/PublicEventUpdates";
 import PublicVendorCard from "@/components/vendor/events/PublicVendorCard";
 import PublicVendorEventMap from "@/components/vendor/events/PublicVendorEventMap";
 import UnifiedPublicEventSchedule from "@/components/vendor/events/schedule/UnifiedPublicEventSchedule";
+import { getPublicContactInfo } from "@/lib/publicContactPrivacy";
 
 export default function VendorEventDetail() {
   const navigate = useNavigate();
@@ -35,7 +36,13 @@ export default function VendorEventDetail() {
   const { data: spots = [] } = useQuery({ queryKey: ["publicEventSpots", eventId], queryFn: () => base44.entities.EventSpot.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
   const { data: vendorInvites = [] } = useQuery({ queryKey: ["publicEventVendorInvites", eventId], queryFn: () => base44.entities.EventVendorInvite.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: requests = [] } = useQuery({ queryKey: ["publicEventVendorRequests", eventId], queryFn: () => base44.entities.EventVendorRequest.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
-  const { data: vendorAccounts = [] } = useQuery({ queryKey: ["publicEventVendorAccounts"], queryFn: () => base44.entities.VendorAccount.list(), initialData: [] });
+  const { data: vendorAccounts = [] } = useQuery({ queryKey: ["publicEventVendorAccounts", eventId, attendees.map((attendee) => attendee.vendor_business_id).filter(Boolean).join(",")], queryFn: async () => {
+    const response = await base44.functions.invoke("getPublicVendorAccounts", {
+      eventId,
+      accountIds: attendees.map((attendee) => attendee.vendor_business_id).filter(Boolean),
+    });
+    return response?.data?.accounts || [];
+  }, enabled: !!eventId, initialData: [] });
   const { data: updates = [] } = useQuery({ queryKey: ["publicEventUpdates", eventId], queryFn: () => base44.entities.EventUpdate.filter({ event_id: eventId, is_deleted: false }, "-created_at"), enabled: !!eventId, initialData: [] });
   const { data: likes = [] } = useQuery({ queryKey: ["publicEventUpdateLikes", eventId], queryFn: () => base44.entities.EventUpdateLike.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: scheduleEntries = [] } = useQuery({ queryKey: ["publicEventScheduleEntries", eventId], queryFn: () => base44.entities.EventScheduleEntry.filter({ event_id: eventId }, "sort_order"), enabled: !!eventId, initialData: [] });
@@ -67,6 +74,7 @@ export default function VendorEventDetail() {
   const hasExistingVendorStatus = alreadyAttending || !!requestRecord || (inviteRecord && blockedStatuses.includes(inviteRecord.status));
   const canRequest = authChecked && !!vendorAccount && event?.open_to_vendors && !isFull && !hasExistingVendorStatus;
   const organizerAccount = vendorById[event?.organizer_business_id];
+  const publicContact = getPublicContactInfo({ account: organizerAccount, event });
   const isFlyerPdf = event?.flyer_url?.toLowerCase?.().includes(".pdf");
   const heroImage = !isFlyerPdf && event?.flyer_url ? event.flyer_url : event?.photos?.[0] || event?.logo || organizerAccount?.featured_photo_url || organizerAccount?.business_logo;
 
@@ -193,6 +201,14 @@ export default function VendorEventDetail() {
           <aside className="space-y-5">
             <Card className="rounded-3xl bg-white sticky top-24"><CardContent className="p-5 space-y-4">
               <div className="flex gap-3"><UserCircle className="h-10 w-10 text-[#5DADA5]" /><div><p className="text-sm text-slate-500">Hosted by</p><p className="font-black text-[#2C4F4E]">{event.organizer_business_name}</p></div></div>
+              {publicContact.visible && (publicContact.phone || publicContact.email || publicContact.website) && (
+                <section className="rounded-2xl bg-[#FBFAF7] p-3 space-y-2">
+                  <h2 className="font-black text-[#2C4F4E]">Contact Organizer</h2>
+                  {publicContact.phone && <a href={`tel:${publicContact.phone}`} className="block text-sm font-semibold text-[#2C4F4E]">{publicContact.phone}</a>}
+                  {publicContact.email && <a href={`mailto:${publicContact.email}`} className="block text-sm font-semibold text-[#2C4F4E]">{publicContact.email}</a>}
+                  {publicContact.website && <a href={publicContact.website} target="_blank" rel="noreferrer" className="block text-sm font-semibold text-[#2C4F4E] underline">Visit Website</a>}
+                </section>
+              )}
               {event.open_to_vendors ? <Badge className="bg-emerald-600 text-white">Open to Vendors</Badge> : <Badge variant="outline">Vendor signup closed</Badge>}
               {spotsLeft !== null && <p className="text-sm font-bold text-[#2C4F4E]">{isFull ? "This event is full" : `${spotsLeft} vendor spots left`}</p>}
               {!currentUser && <p className="rounded-xl bg-[#FBFAF7] p-3 text-sm text-slate-700">Log in as a vendor to request to join this event.</p>}

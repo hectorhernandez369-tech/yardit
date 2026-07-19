@@ -11,6 +11,7 @@ import BusinessHero from "@/components/vendor/BusinessHero";
 import VendorNotifyButton from "@/components/vendor/VendorNotifyButton";
 import { format } from "date-fns";
 import { getVendorTierConfig, isLiveVendorCheckIn } from "@/lib/vendorTiers";
+import { getPublicContactInfo } from "@/lib/publicContactPrivacy";
 
 const socialLinks = [
   ["website", Globe, "Website"],
@@ -49,6 +50,7 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
   const activeCheckIn = liveItems[0];
   const pinFor = (id) => pins.find((pin) => pin.id === id);
   const publicLikeId = getPublicLikeId();
+  const publicContact = getPublicContactInfo({ account });
 
   const handleLikeUpdate = async (update) => {
     const likedBy = update.liked_by || [];
@@ -98,7 +100,7 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
     tier: account.vendor_tier,
     category: account.business_category,
     description: account.description,
-    phone: account.phone,
+    phone: publicContact.visible ? publicContact.phone : "",
     location: account.location,
     hero_background_color: account.hero_background_color,
     featured_photo_url: account.featured_photo_url,
@@ -116,8 +118,8 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
               <BadgeCheck className="h-4 w-4 text-[#5DADA5]" /> Verified Vendor
             </span>
           )}
-          {socialLinks.filter(([key]) => account[key]).map(([key, Icon, label]) => (
-            <a key={key} href={account[key]} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm text-[#2C4F4E] hover:bg-[#F3E6CF]">
+          {socialLinks.filter(([key]) => key === "website" ? publicContact.website : account[key]).map(([key, Icon, label]) => (
+            <a key={key} href={key === "website" ? publicContact.website : account[key]} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm text-[#2C4F4E] hover:bg-[#F3E6CF]">
               <Icon className="h-4 w-4" /> {label} <ExternalLink className="h-3 w-3" />
             </a>
           ))}

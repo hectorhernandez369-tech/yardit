@@ -18,6 +18,7 @@ export default function VendorProfileTab({ account, onRefresh }) {
     phone: account?.phone || "",
     email: account?.email || "",
     website: account?.website || "",
+    public_contact_visibility: account?.public_contact_visibility === "show" ? "show" : "hide",
     business_logo: account?.business_logo || "",
   });
   const [saving, setSaving] = useState(false);
@@ -70,6 +71,23 @@ export default function VendorProfileTab({ account, onRefresh }) {
           <Input placeholder="Phone" value={form.phone} onChange={(e) => updateField("phone", e.target.value)} />
           <Input placeholder="Email" value={form.email} onChange={(e) => updateField("email", e.target.value)} />
           <Input placeholder="Website" value={form.website} onChange={(e) => updateField("website", e.target.value)} className="md:col-span-2" />
+        </div>
+        <div className="rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-4 space-y-2">
+          <h3 className="font-black text-[#2C4F4E]">Public Contact Information</h3>
+          <label className="flex items-start gap-3 text-sm font-semibold text-slate-800">
+            <input
+              type="checkbox"
+              checked={form.public_contact_visibility === "show"}
+              onChange={(e) => updateField("public_contact_visibility", e.target.checked ? "show" : "hide")}
+              className="mt-1 h-4 w-4"
+            />
+            <span>
+              Show my contact information publicly
+              <span className="block pt-1 text-xs font-normal text-slate-500">
+                When turned off, your phone number, email address and website will not appear on public business profiles, event pages or map cards.
+              </span>
+            </span>
+          </label>
         </div>
         <Textarea placeholder="Business description" value={form.description} onChange={(e) => updateField("description", e.target.value)} className="min-h-28" />
         <Button onClick={saveProfile} disabled={saving} className="bg-[#5DADA5] hover:bg-[#4A9B93] text-white">

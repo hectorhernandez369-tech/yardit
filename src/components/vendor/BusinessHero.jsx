@@ -198,9 +198,11 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
             <EditableButton field="business_category" className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 sm:gap-1.5 sm:py-1 sm:px-3 border border-white shadow-sm">
               <Tag className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.category || "Category"}
             </EditableButton>
-            <EditableButton field="phone" className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 sm:gap-1.5 sm:py-1 sm:px-3 border border-white shadow-sm">
-              <Phone className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.phone || "Phone"}
-            </EditableButton>
+            {(editable || profile?.phone) && (
+              <EditableButton field="phone" className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 sm:gap-1.5 sm:py-1 sm:px-3 border border-white shadow-sm">
+                <Phone className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.phone || "Phone"}
+              </EditableButton>
+            )}
             <EditableButton field="location" className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 sm:gap-1.5 sm:py-1 sm:px-3 border border-white shadow-sm">
               <MapPin className="h-3.5 w-3.5 text-[#5DADA5]" /> {profile?.location || "Location"}
             </EditableButton>

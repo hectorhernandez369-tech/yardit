@@ -65,6 +65,16 @@
       ],
       "description": "Computed visibility/lifecycle status for display and map logic"
     },
+    "public_contact_visibility": {
+      "type": "string",
+      "enum": [
+        "inherit",
+        "show",
+        "hide"
+      ],
+      "default": "inherit",
+      "description": "Event-level override for public organizer phone, email and website visibility"
+    },
     "open_to_vendors": {
       "type": "boolean",
       "default": false,

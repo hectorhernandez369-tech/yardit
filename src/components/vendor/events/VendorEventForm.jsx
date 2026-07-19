@@ -43,6 +43,7 @@ const initialForm = {
   max_vendors: "",
   logo: "",
   flyer_url: "",
+  public_contact_visibility: "inherit",
   event_flags: [],
   status: "draft",
   coming_soon_start_date: "",
@@ -81,6 +82,7 @@ const buildInitialForm = (event) => event ? {
   max_vendors: event.max_vendors || "",
   logo: event.logo || "",
   flyer_url: event.flyer_url || "",
+  public_contact_visibility: event.public_contact_visibility || "inherit",
   event_flags: [],
   status: event.status || "draft",
   coming_soon_start_date: event.coming_soon_start_date || "",
@@ -346,6 +348,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       max_vendors: form.max_vendors ? Number(form.max_vendors) : null,
       flyer_url: form.flyer_url,
       logo: form.logo,
+      public_contact_visibility: form.public_contact_visibility || "inherit",
       photos: event?.photos || [],
       updated_at: now,
     };
@@ -434,10 +437,28 @@ export default function VendorEventForm({ account, user, event = null, approvedV
             </div>
           </div>
 
-          {/* Section 2: Location & Schedule */}
           <div className="space-y-4 border-t border-slate-100 pt-6">
             <div className="flex items-center gap-3">
               <div className="h-7 w-7 rounded-full bg-[#2C4F4E] text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
+              <div><h3 className="text-base font-bold text-slate-900">Public Contact Information</h3><p className="text-xs text-slate-500">Choose whether public visitors can see the organizer’s phone number, email address or website for this event.</p></div>
+            </div>
+            <div className="sm:pl-10 space-y-2">
+              <Select value={form.public_contact_visibility || "inherit"} onValueChange={(value) => update("public_contact_visibility", value)}>
+                <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inherit">Use business setting</SelectItem>
+                  <SelectItem value="show">Show for this event</SelectItem>
+                  <SelectItem value="hide">Hide for this event</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">Choose whether public visitors can see the organizer’s phone number, email address or website for this event.</p>
+            </div>
+          </div>
+
+          {/* Section 3: Location & Schedule */}
+          <div className="space-y-4 border-t border-slate-100 pt-6">
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-full bg-[#2C4F4E] text-white flex items-center justify-center text-xs font-bold shrink-0">3</div>
               <div><h3 className="text-base font-bold text-slate-900">Location & Schedule</h3><p className="text-xs text-slate-500">When and where your event takes place.</p></div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 sm:pl-10">
@@ -464,10 +485,10 @@ export default function VendorEventForm({ account, user, event = null, approvedV
             </div>
           </div>
 
-          {/* Section 3: Flyer */}
+          {/* Section 4: Flyer */}
           <div className="space-y-4 border-t border-slate-100 pt-6">
             <div className="flex items-center gap-3">
-              <div className="h-7 w-7 rounded-full bg-[#2C4F4E] text-white flex items-center justify-center text-xs font-bold shrink-0">3</div>
+              <div className="h-7 w-7 rounded-full bg-[#2C4F4E] text-white flex items-center justify-center text-xs font-bold shrink-0">4</div>
               <div><h3 className="text-base font-bold text-slate-900">Event Flyer</h3><p className="text-xs text-slate-500">Optional — shown on the public event page.</p></div>
             </div>
             <div className="sm:pl-10 space-y-3">
@@ -495,7 +516,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
 
       {showVendorFields && <div className="border-t border-slate-100 pt-6 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="h-7 w-7 rounded-full bg-[#2C4F4E] text-white flex items-center justify-center text-xs font-bold shrink-0">{showPublicFields ? "4" : "1"}</div>
+          <div className="h-7 w-7 rounded-full bg-[#2C4F4E] text-white flex items-center justify-center text-xs font-bold shrink-0">{showPublicFields ? "5" : "1"}</div>
           <div><h3 className="text-base font-bold text-slate-900">Vendor Setup</h3><p className="text-xs text-slate-500">Control how vendors join, pay, and get approved.</p></div>
         </div>
         <div className="sm:pl-10">

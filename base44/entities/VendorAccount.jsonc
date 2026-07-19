@@ -198,6 +198,15 @@
       "type": "string",
       "description": "Public business website URL"
     },
+    "public_contact_visibility": {
+      "type": "string",
+      "enum": [
+        "show",
+        "hide"
+      ],
+      "default": "hide",
+      "description": "Whether phone, email and website are visible on public business profiles, event pages and map cards"
+    },
     "facebook_url": {
       "type": "string",
       "description": "Facebook profile or page URL"

@@ -62,6 +62,7 @@ export default function VendorDetailsForm({ account, onRefresh }) {
       business_phone: form.phone,
       email: form.email,
       website: form.website,
+      public_contact_visibility: form.public_contact_visibility === "show" ? "show" : "hide",
       facebook_url: form.facebook_url,
       instagram_url: form.instagram_url,
       tiktok_url: form.tiktok_url,
@@ -124,6 +125,23 @@ export default function VendorDetailsForm({ account, onRefresh }) {
                 <Input value={form[key] || ""} onChange={(e) => updateField(key, e.target.value)} className="min-w-0" />
               </div>
             ))}
+          </div>
+          <div className="rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-4 space-y-2">
+            <h3 className="font-black text-[#2C4F4E]">Public Contact Information</h3>
+            <label className="flex items-start gap-3 text-sm font-semibold text-slate-800">
+              <input
+                type="checkbox"
+                checked={form.public_contact_visibility === "show"}
+                onChange={(e) => updateField("public_contact_visibility", e.target.checked ? "show" : "hide")}
+                className="mt-1 h-4 w-4"
+              />
+              <span>
+                Show my contact information publicly
+                <span className="block pt-1 text-xs font-normal text-slate-500">
+                  When turned off, your phone number, email address and website will not appear on public business profiles, event pages or map cards.
+                </span>
+              </span>
+            </label>
           </div>
           <div className="space-y-1.5">
             <Label>Short Bio / Description</Label>

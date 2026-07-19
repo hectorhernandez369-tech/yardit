@@ -15,12 +15,11 @@ export default function VendorPublicPage() {
   const { data: account, isLoading: loadingAccount } = useQuery({
     queryKey: ["publicVendorAccount", accountId, vendorSlug],
     queryFn: async () => {
-      if (vendorSlug) {
-        const accounts = await base44.entities.VendorAccount.filter({ vendor_slug: vendorSlug });
-        return accounts[0] || null;
-      }
-      const accounts = await base44.entities.VendorAccount.filter({ id: accountId });
-      return accounts[0] || null;
+      const response = await base44.functions.invoke("getPublicVendorAccounts", {
+        vendorSlug,
+        accountId,
+      });
+      return response?.data?.account || null;
     },
     enabled: !!accountId || !!vendorSlug,
   });
