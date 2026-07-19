@@ -16,6 +16,12 @@ const timeLabel = (value) => {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 };
 
+const scoreLabel = (game) => {
+  const status = String(game?.status || "upcoming").toLowerCase();
+  if (!["live", "halftime", "final"].includes(status)) return status.replace("_", " ");
+  return `${Number(game.home_score || 0)}-${Number(game.away_score || 0)} ${status === "final" ? "Final" : "Live"}`;
+};
+
 function getVendorEventIcon(isComingSoon, stackCount, logoUrl) {
   const safeLogoUrl = logoUrl ? String(logoUrl).replace(/"/g, "&quot;") : "";
   const key = `ve_${isComingSoon ? "cs" : "active"}_${stackCount}_${safeLogoUrl || "default"}`;
@@ -74,7 +80,8 @@ export default function VendorEventMapMarkers({ vendorEvents, showVendorEvents =
         const isComingSoon = visStatus === "coming_soon";
         const stackCount = stacked.length;
 
-        const schedulePreview = (primary.schedule_preview || []).filter((item) => item?.title && item?.start_time).slice(0, 4);
+        const leagueGamePreview = (primary.league_game_preview || []).filter((game) => game?.home_team || game?.away_team).slice(0, 4);
+        const schedulePreview = leagueGamePreview.length > 0 ? [] : (primary.schedule_preview || []).filter((item) => item?.title && item?.start_time).slice(0, 4);
 
         return (
           <Marker
@@ -96,9 +103,20 @@ export default function VendorEventMapMarkers({ vendorEvents, showVendorEvents =
                 <p className="font-bold text-sm leading-tight">{primary.title}</p>
                 <p className="text-[11px] text-slate-500">{primary.display_address}</p>
 
-                {schedulePreview.length > 0 && (
+                {(leagueGamePreview.length > 0 || schedulePreview.length > 0) && (
                   <div className="rounded-lg bg-slate-50/90 p-1.5 space-y-1">
-                    {schedulePreview.map((item, index) => (
+                    {leagueGamePreview.length > 0 ? leagueGamePreview.map((game) => (
+                      <div key={game.id} className="space-y-0.5 text-[11px] leading-tight">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="min-w-0 truncate font-semibold text-slate-700">{game.home_team} vs {game.away_team}</span>
+                          <span className="shrink-0 font-bold text-[#2C4F4E] capitalize">{scoreLabel(game)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 text-[10px] text-slate-500">
+                          <span className="min-w-0 truncate">{game.division || game.field_name || "Game"}</span>
+                          <span className="shrink-0">{timeLabel(game.start_time)}</span>
+                        </div>
+                      </div>
+                    )) : schedulePreview.map((item, index) => (
                       <div key={`${item.title}-${index}`} className="flex items-center justify-between gap-2 text-[11px] leading-tight">
                         <span className="min-w-0 truncate font-semibold text-slate-700">{item.title}</span>
                         <span className="shrink-0 text-slate-500">{timeLabel(item.start_time)}</span>

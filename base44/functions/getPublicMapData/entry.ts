@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
       return Response.json({ listing: pick(listing, listingFields) });
     }
 
-    const [listingRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows, scheduleRows] = await Promise.all([
+    const [listingRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows, scheduleRows, leagueEventRows, leagueGameRows] = await Promise.all([
       base44.asServiceRole.entities.Listing.list('-created_date', 500),
       base44.asServiceRole.entities.ResidentialPromoCode.list('-updated_date', 100),
       base44.asServiceRole.entities.VendorEvent.list('startDateTime', 200),
@@ -107,6 +107,8 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.VendorPin.list('-updated_date', 300),
       base44.asServiceRole.entities.VendorPinCheckIn.list('-created_date', 300),
       base44.asServiceRole.entities.EventScheduleEntry.list('sort_order', 1000),
+      base44.asServiceRole.entities.LeagueEventGame.list('display_order', 1000),
+      base44.asServiceRole.entities.LeagueGame.list('sort_order', 1000),
     ]);
 
     const listings = listingRows.filter((listing) => isPublicListing(listing, now)).map((listing) => pick(listing, listingFields));
@@ -124,7 +126,34 @@ Deno.serve(async (req) => {
           schedulePreviewByEventId.set(entry.event_id, current);
         }
       });
-    const vendorEvents = vendorEventRows.filter((event) => isPublicVendorEvent(event, now)).map((event) => ({ ...pick(event, vendorEventFields), schedule_preview: schedulePreviewByEventId.get(event.id) || [] }));
+    const leagueGamesById = new Map(leagueGameRows.map((game) => [game.id, game]));
+    const leagueGamePreviewByEventId = new Map();
+    leagueEventRows
+      .filter((link) => link?.event_id && link?.league_game_id && link?.is_visible !== false)
+      .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0))
+      .forEach((link) => {
+        const game = leagueGamesById.get(link.league_game_id);
+        if (!game) return;
+        const current = leagueGamePreviewByEventId.get(link.event_id) || [];
+        if (current.length < 4) {
+          current.push({
+            id: game.id,
+            division: game.division || game.age_group || '',
+            home_team: game.home_team || 'Home',
+            away_team: game.away_team || 'Away',
+            start_time: game.start_time,
+            game_date: game.game_date,
+            field_name: game.field_name || game.location || '',
+            status: game.status || 'upcoming',
+            home_score: Number(game.home_score || 0),
+            away_score: Number(game.away_score || 0),
+            period_label: game.period_label || '',
+            clock_display: game.clock_display || '',
+          });
+          leagueGamePreviewByEventId.set(link.event_id, current);
+        }
+      });
+    const vendorEvents = vendorEventRows.filter((event) => isPublicVendorEvent(event, now)).map((event) => ({ ...pick(event, vendorEventFields), schedule_preview: schedulePreviewByEventId.get(event.id) || [], league_game_preview: leagueGamePreviewByEventId.get(event.id) || [] }));
     const liveCheckIns = vendorCheckInRows.filter((checkIn) => isLiveVendorCheckIn(checkIn, now));
     const liveVendorAccountIds = new Set(liveCheckIns.map((checkIn) => checkIn.vendor_account_id));
     const liveVendorPinIds = new Set(liveCheckIns.map((checkIn) => checkIn.vendor_pin_id));

@@ -14,7 +14,7 @@ export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague,
   const location = useLocation();
   const navigate = useNavigate();
   const dashboardPath = isLeague ? "/LeagueTeamDashboard" : "/VendorDashboard";
-  const isDashboardActive = location.pathname === dashboardPath;
+  const isMapActive = location.pathname === "/";
 
   if (!isAuthenticated) {
     return (
@@ -47,9 +47,9 @@ export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague,
         <span>Event</span>
       </button>
 
-      <button onClick={() => navigate(dashboardPath)} className={`yardit-mobile-nav-item yardit-mobile-nav-map ${isDashboardActive ? "is-active" : ""}`}>
-        <CalendarDays className="w-5 h-5" />
-        <span>Dashboard</span>
+      <button onClick={() => navigate("/")} className={`yardit-mobile-nav-item yardit-mobile-nav-map ${isMapActive ? "is-active" : ""}`}>
+        <Home className="w-5 h-5" />
+        <span>Map</span>
       </button>
 
       <DropdownMenu>
@@ -61,6 +61,9 @@ export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague,
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="top" sideOffset={12} className="z-[3001] w-52 rounded-xl border border-[#F4A849]/30 bg-slate-950/95 p-1.5 text-white shadow-xl backdrop-blur-md">
           <div className="px-2 py-0.5 text-[10px] uppercase text-[#F4A849]">Yardit Events</div>
+          <DropdownMenuItem onClick={() => navigate(dashboardPath)} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+            <CalendarDays className="w-3.5 h-3.5 text-[#F4A849]" /> Dashboard
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate("/")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
             <MapIcon className="w-3.5 h-3.5 text-cyan-300" /> Shared Map
           </DropdownMenuItem>
