@@ -32,6 +32,7 @@ import AccountSetupModal from "./components/profile/AccountSetupModal";
 import VerifiedAddressRequiredModal from "./components/profile/VerifiedAddressRequiredModal";
 import FloatingLaunchChecklist from "./components/checklist/FloatingLaunchChecklist";
 import PushSubscribePrompt from "./components/notifications/PushSubscribePrompt";
+import YarditSplashScreen from "@/components/install/YarditSplashScreen";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton, syncInstallRecord } from "@/lib/installPrompt";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
@@ -411,6 +412,7 @@ function LayoutContent({ children, user, setUser }) {
 
 export default function Layout({ children }) {
   const [user, setUser] = useState(null);
+  const [startupResolved, setStartupResolved] = useState(false);
 
   useEffect(() => {
     const handleUserUpdated = (event) => {
@@ -459,14 +461,20 @@ export default function Layout({ children }) {
           }
         }
 
+        setStartupResolved(true);
       } catch (error) {
         console.error("Error fetching user:", error);
+        setStartupResolved(true);
       }
     };
     fetchUser();
 
     return () => window.removeEventListener("yardit:user-updated", handleUserUpdated);
   }, []);
+
+  if (!startupResolved) {
+    return <YarditSplashScreen />;
+  }
 
   return (
     <HuntProvider>
