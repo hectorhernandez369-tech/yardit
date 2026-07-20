@@ -35,6 +35,7 @@ import PushSubscribePrompt from "./components/notifications/PushSubscribePrompt"
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton, syncInstallRecord } from "@/lib/installPrompt";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
+const STARTUP_CHECK_KEY = "yardit_startup_checked";
 
 function LayoutContent({ children, user, setUser }) {
   const location = useLocation();
@@ -438,15 +439,22 @@ export default function Layout({ children }) {
 
         base44.functions.invoke("syncNeighborhoodCoHostInvite", {}).catch(() => {});
 
-        // Startup page redirect — only if user still has vendor access
+        // Startup page redirect — only once per browser session
         const startupPage = localStorage.getItem("yardit_startup_page");
         const isRoot = window.location.pathname === "/" || window.location.pathname === createPageUrl("Home");
-        if (startupPage === "vendor" && isRoot) {
-          const vendorAccounts = await getUserVendorAccounts(currentUser).catch(() => []);
-          if (vendorAccounts.length > 0) {
-            window.location.replace("/VendorDashboard");
-          } else {
-            // User lost vendor access — clear the stale preference
+        const startupAlreadyChecked = sessionStorage.getItem(STARTUP_CHECK_KEY) === "true";
+
+        if (!startupAlreadyChecked) {
+          sessionStorage.setItem(STARTUP_CHECK_KEY, "true");
+
+          if (startupPage === "vendor" && isRoot) {
+            const vendorAccounts = await getUserVendorAccounts(currentUser).catch(() => []);
+
+            if (vendorAccounts.length > 0) {
+              window.location.replace("/VendorDashboard");
+              return;
+            }
+
             localStorage.removeItem("yardit_startup_page");
           }
         }
