@@ -70,7 +70,11 @@ export default function ComingSoon() {
             </div>
             <img src={logoUrl} alt="Yardit logo" className="h-24 w-24 object-contain drop-shadow-[0_10px_18px_rgba(44,79,78,0.18)] sm:h-28 sm:w-28" />
           </div>
-          <p className="text-sm font-black tracking-[0.42em] text-[#2C4F4E]">YARDIT</p>
+          <h1 className="text-3xl font-black tracking-tight text-[#2C4F4E] sm:text-4xl">Yardit</h1>
+          <p className="text-base font-bold text-slate-700 sm:text-lg">Find Yard Sales. Discover Local Events. Join the Hunt.</p>
+          <p className="max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
+            Yardit helps people discover and promote yard sales, neighborhood sales, vendor events, estate sales, and community events using an interactive map. Whether you're hunting for bargains or hosting an event, Yardit makes it easy to connect with your local community.
+          </p>
         </div>
 
         <div className="overflow-hidden rounded-[36px] border border-white/80 bg-white/90 shadow-[0_24px_80px_rgba(15,118,110,0.18)] backdrop-blur-xl">
@@ -82,9 +86,9 @@ export default function ComingSoon() {
               </div>
 
               <div className="space-y-4">
-                <h1 className="text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-6xl">
+                <h2 className="text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-6xl">
                   Your next local treasure hunt starts here.
-                </h1>
+                </h2>
                 <p className="text-xl font-semibold leading-8 text-slate-700 sm:text-2xl">
                   Yardit brings yard sales, neighborhood events, and local vendors together on one lively map.
                 </p>
@@ -161,6 +165,11 @@ export default function ComingSoon() {
                 </a>
               </div>
             </div>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-4 py-4 text-sm font-semibold text-[#2C4F4E]">
+            <a href="/privacy" className="hover:underline">Privacy Policy</a>
+            <a href="/terms" className="hover:underline">Terms of Service</a>
           </div>
         </div>
       </div>
