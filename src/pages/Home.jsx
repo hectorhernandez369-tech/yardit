@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ListView from "../components/home/ListView";
+import PublicHomeBrandingBanner from "../components/home/PublicHomeBrandingBanner";
 import { useAppMode } from "../components/shared/DemoMode";
 
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle, CircleMarker } from "react-leaflet";
@@ -1327,6 +1328,7 @@ export default function HomePage() {
     <div className="yardit-home-shell h-[100dvh] sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
       {/* Sticky Top Bar */}
       <div className="relative bg-white border-b border-slate-200 z-[1200] flex-shrink-0 flex flex-col w-full">
+        {isPublicHomeMode && <PublicHomeBrandingBanner />}
         <div className="px-3 pt-2 pb-1 sm:hidden">
           <div className="relative w-full max-w-md mx-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
