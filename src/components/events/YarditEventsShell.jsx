@@ -1,11 +1,11 @@
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { CalendarDays, Home, LogOut, Map, User } from "lucide-react";
+import { CalendarDays, LogOut, Map, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import YarditEventsMobileBottomNav from "@/components/events/YarditEventsMobileBottomNav";
 import { useAuth } from "@/lib/AuthContext";
-import { RESIDENTIAL_EXPERIENCE, setPreferredExperience, YARDIT_EVENTS_LOGO_URL } from "@/lib/experience";
+import { YARDIT_EVENTS_LOGO_URL } from "@/lib/experience";
 
 export default function YarditEventsShell({ children }) {
   const location = useLocation();
@@ -13,11 +13,6 @@ export default function YarditEventsShell({ children }) {
   const { user, isAuthenticated, logout, navigateToLogin } = useAuth();
   const isLeague = location.pathname === "/LeagueTeamDashboard";
   const dashboardPath = isLeague ? "/LeagueTeamDashboard" : "/VendorDashboard";
-
-  const switchToYardit = () => {
-    setPreferredExperience(RESIDENTIAL_EXPERIENCE);
-    navigate("/");
-  };
 
   const protectedDashboard = ["/VendorDashboard", "/LeagueTeamDashboard", "/VendorEventDashboard", "/VendorEventFlags", "/VendorEventSchedule"].includes(location.pathname);
   const content = !isAuthenticated && protectedDashboard ? (
@@ -43,7 +38,6 @@ export default function YarditEventsShell({ children }) {
             </div>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-2">
-            <Button variant="ghost" size="sm" onClick={switchToYardit} className="gap-2 text-white hover:bg-white/10"><Home className="h-4 w-4" /><span className="hidden sm:inline">Yardit</span></Button>
             <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-2 text-white hover:bg-white/10"><Map className="h-4 w-4" /><span className="hidden sm:inline">Map</span></Button>
             {isAuthenticated && <Button variant="ghost" size="sm" onClick={() => navigate(dashboardPath)} className="gap-2 text-white hover:bg-white/10"><CalendarDays className="h-4 w-4" /><span className="hidden sm:inline">Dashboard</span></Button>}
             {isAuthenticated ? <div className="text-white"><NotificationBell /></div> : <Button size="sm" onClick={() => navigateToLogin?.()} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Log In</Button>}
@@ -58,7 +52,6 @@ export default function YarditEventsShell({ children }) {
         isLeague={isLeague}
         navigateToLogin={() => navigateToLogin?.(window.location.href)}
         onLogout={() => logout?.("/")}
-        onSwitchToYardit={switchToYardit}
       />
     </div>
   );

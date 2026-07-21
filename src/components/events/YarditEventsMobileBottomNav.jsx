@@ -10,7 +10,7 @@ import {
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { YARDIT_EVENTS_LOGO_URL } from "@/lib/experience";
 
-export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague, navigateToLogin, onLogout, onSwitchToYardit }) {
+export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague, navigateToLogin, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
   const dashboardPath = isLeague ? "/LeagueTeamDashboard" : "/VendorDashboard";
@@ -72,9 +72,6 @@ export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague,
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate("/Settings")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
             <Settings className="w-3.5 h-3.5 text-cyan-300" /> Settings
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onSwitchToYardit} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
-            <Home className="w-3.5 h-3.5 text-[#F4A849]" /> Yardit
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate("/StartupGuide")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
             <HelpCircle className="w-3.5 h-3.5 text-cyan-300" /> Help
