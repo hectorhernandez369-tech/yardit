@@ -354,6 +354,9 @@ export const AuthProvider = ({ children }) => {
     clearGuestMode();
     clearTesterBypass();
     try {
+      sessionStorage.removeItem("yardit_welcome_overlay_dismissed_v1");
+    } catch {}
+    try {
       localStorage.setItem(RETURNING_USER_KEY, "true");
     } catch {}
     setUser(null);

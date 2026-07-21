@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ListView from "../components/home/ListView";
+import YarditWelcomeOverlay from "@/components/home/YarditWelcomeOverlay";
 import { useAppMode } from "../components/shared/DemoMode";
 
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle, CircleMarker } from "react-leaflet";
@@ -404,6 +405,10 @@ function listingMatchesQuery(listing, query, isFuzzy) {
 }
 
 export default function HomePage() {
+  useEffect(() => {
+    document.title = "Yardit | Find Yard Sales & Community Events";
+  }, []);
+
   const navigate = useNavigate();
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
@@ -2068,6 +2073,8 @@ export default function HomePage() {
         selectedCategories={selectedCategories}
         onCategoriesChange={setSelectedCategories}
         stats={stats} />
+
+      <YarditWelcomeOverlay />
       
     </div>);
 
