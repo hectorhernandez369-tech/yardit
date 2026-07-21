@@ -162,7 +162,6 @@ export default function ComingSoon() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
