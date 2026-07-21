@@ -1,7 +1,13 @@
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { CalendarDays, LogOut, Map, User } from "lucide-react";
+import { CalendarDays, HelpCircle, LogOut, Map, MoreVertical, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import YarditEventsMobileBottomNav from "@/components/events/YarditEventsMobileBottomNav";
 import { useAuth } from "@/lib/AuthContext";
@@ -41,8 +47,38 @@ export default function YarditEventsShell({ children }) {
             <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-2 text-white hover:bg-white/10"><Map className="h-4 w-4" /><span className="hidden sm:inline">Map</span></Button>
             {isAuthenticated && <Button variant="ghost" size="sm" onClick={() => navigate(dashboardPath)} className="gap-2 text-white hover:bg-white/10"><CalendarDays className="h-4 w-4" /><span className="hidden sm:inline">Dashboard</span></Button>}
             {isAuthenticated ? <div className="text-white"><NotificationBell /></div> : <Button size="sm" onClick={() => navigateToLogin?.()} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Log In</Button>}
-            {isAuthenticated && <Button variant="ghost" size="sm" onClick={() => navigate("/Profile")} className="text-white hover:bg-white/10"><User className="h-4 w-4" /></Button>}
-            {isAuthenticated && <Button variant="ghost" size="sm" onClick={() => logout?.("/")} className="text-white hover:bg-white/10"><LogOut className="h-4 w-4" /></Button>}
+            {isAuthenticated && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">Open vendor menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" sideOffset={8} className="z-[3001] w-52 rounded-xl border border-[#F4A849]/30 bg-slate-950/95 p-1.5 text-white shadow-xl backdrop-blur-md">
+                  <div className="px-2 py-0.5 text-[10px] uppercase text-[#F4A849]">Yardit Events</div>
+                  <DropdownMenuItem onClick={() => navigate(dashboardPath)} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+                    <CalendarDays className="w-3.5 h-3.5 text-[#F4A849]" /> Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+                    <Map className="w-3.5 h-3.5 text-cyan-300" /> Shared Map
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/Profile")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+                    <User className="w-3.5 h-3.5 text-cyan-300" /> My Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/Settings")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+                    <Settings className="w-3.5 h-3.5 text-cyan-300" /> Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/StartupGuide")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+                    <HelpCircle className="w-3.5 h-3.5 text-cyan-300" /> Help
+                  </DropdownMenuItem>
+                  <div className="h-px bg-white/10 my-0.5" />
+                  <DropdownMenuItem onClick={() => logout?.("/")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-red-300 hover:bg-red-500/10 transition mt-1">
+                    <LogOut className="w-3.5 h-3.5" /> Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </nav>
         </div>
       </header>
