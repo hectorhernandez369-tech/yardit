@@ -20,6 +20,7 @@ const uniqueSorted = (items) => [...new Set(items.map((item) => item || ""))].so
 
 export default function LeagueGamesTable({ account, user, games = [], assignments = [], memberships = [], onRefresh, readOnly = false, canManageSchedule = false }) {
   const [manualGame, setManualGame] = useState(blankGame);
+  const [manualFormOpen, setManualFormOpen] = useState(false);
   const [editingGame, setEditingGame] = useState(null);
   const [weekFilter, setWeekFilter] = useState(ALL);
   const [teamFilter, setTeamFilter] = useState(ALL);
@@ -77,24 +78,34 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
     <div className="space-y-4">
       {canManageSchedule && (
       <Card className="rounded-2xl bg-white">
-        <CardContent className="p-4 space-y-3">
-          <h3 className="font-black text-[#2C4F4E]">Manually Add Game</h3>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Input placeholder="Division / Age Group" value={form?.division || ""} onChange={(e) => setForm("division", e.target.value)} />
-            <Input placeholder="Home Team" value={form?.home_team || ""} onChange={(e) => setForm("home_team", e.target.value)} />
-            <Input placeholder="Away Team" value={form?.away_team || ""} onChange={(e) => setForm("away_team", e.target.value)} />
-            <Input placeholder="Home Town" value={form?.home_town || ""} onChange={(e) => setForm("home_town", e.target.value)} />
-            <Input placeholder="Away Town" value={form?.away_town || ""} onChange={(e) => setForm("away_town", e.target.value)} />
-            <Input type="date" value={form?.game_date || ""} onChange={(e) => setForm("game_date", e.target.value)} />
-            <Input placeholder="Start Time" value={form?.start_time?.includes("T") ? formatGameTime(form.start_time) : form?.start_time || ""} onChange={(e) => setForm("start_time", e.target.value)} />
-            <Input placeholder="End Time" value={form?.end_time?.includes("T") ? formatGameTime(form.end_time) : form?.end_time || ""} onChange={(e) => setForm("end_time", e.target.value)} />
-            <Input placeholder="Field" value={form?.field_name || ""} onChange={(e) => setForm("field_name", e.target.value)} />
-            <Input placeholder="Location" value={form?.location || ""} onChange={(e) => setForm("location", e.target.value)} />
-            <Select value={form?.status || "upcoming"} onValueChange={(value) => setForm("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
-            <Input placeholder="Week / Notes" value={form?.notes || ""} onChange={(e) => setForm("notes", e.target.value)} />
+        <CardContent className="p-3 sm:p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-black text-[#2C4F4E]">Manually Add Game</h3>
+              <p className="text-xs text-slate-500 sm:hidden">{manualFormOpen ? "Enter game details below." : "Collapsed to save space on mobile."}</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setManualFormOpen((open) => !open)} className="sm:hidden">
+              {manualFormOpen ? "Close" : "Open"}
+            </Button>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={saveManualGame} className="gap-2 bg-[#5DADA5] text-white hover:bg-[#4A9B93]"><Plus className="h-4 w-4" /> Add Game</Button>
+          <div className={`${manualFormOpen ? "block" : "hidden"} sm:block space-y-3`}>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Input placeholder="Division / Age Group" value={form?.division || ""} onChange={(e) => setForm("division", e.target.value)} />
+              <Input placeholder="Home Team" value={form?.home_team || ""} onChange={(e) => setForm("home_team", e.target.value)} />
+              <Input placeholder="Away Team" value={form?.away_team || ""} onChange={(e) => setForm("away_team", e.target.value)} />
+              <Input placeholder="Home Town" value={form?.home_town || ""} onChange={(e) => setForm("home_town", e.target.value)} />
+              <Input placeholder="Away Town" value={form?.away_town || ""} onChange={(e) => setForm("away_town", e.target.value)} />
+              <Input type="date" value={form?.game_date || ""} onChange={(e) => setForm("game_date", e.target.value)} />
+              <Input placeholder="Start Time" value={form?.start_time?.includes("T") ? formatGameTime(form.start_time) : form?.start_time || ""} onChange={(e) => setForm("start_time", e.target.value)} />
+              <Input placeholder="End Time" value={form?.end_time?.includes("T") ? formatGameTime(form.end_time) : form?.end_time || ""} onChange={(e) => setForm("end_time", e.target.value)} />
+              <Input placeholder="Field" value={form?.field_name || ""} onChange={(e) => setForm("field_name", e.target.value)} />
+              <Input placeholder="Location" value={form?.location || ""} onChange={(e) => setForm("location", e.target.value)} />
+              <Select value={form?.status || "upcoming"} onValueChange={(value) => setForm("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
+              <Input placeholder="Week / Notes" value={form?.notes || ""} onChange={(e) => setForm("notes", e.target.value)} />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={saveManualGame} className="gap-2 bg-[#5DADA5] text-white hover:bg-[#4A9B93]"><Plus className="h-4 w-4" /> Add Game</Button>
+            </div>
           </div>
         </CardContent>
       </Card>
