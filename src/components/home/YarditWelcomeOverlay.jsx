@@ -5,25 +5,16 @@ import { MapPin, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
 
-export const YARDIT_WELCOME_DISMISSED_KEY = "yardit_welcome_overlay_dismissed_v1";
-
 export default function YarditWelcomeOverlay() {
   const { isAuthenticated, isLoadingAuth, navigateToLogin } = useAuth();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (isLoadingAuth) return;
-
-    if (isAuthenticated) {
-      setOpen(false);
-      return;
-    }
-
-    setOpen(sessionStorage.getItem(YARDIT_WELCOME_DISMISSED_KEY) !== "true");
+    setOpen(!isAuthenticated);
   }, [isAuthenticated, isLoadingAuth]);
 
-  const dismissForSession = () => {
-    sessionStorage.setItem(YARDIT_WELCOME_DISMISSED_KEY, "true");
+  const dismissForPageView = () => {
     setOpen(false);
   };
 
@@ -35,7 +26,7 @@ export default function YarditWelcomeOverlay() {
     <DialogPrimitive.Root
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) dismissForSession();
+        if (!nextOpen) dismissForPageView();
         else setOpen(true);
       }}
       modal
@@ -98,7 +89,7 @@ export default function YarditWelcomeOverlay() {
             <Button
               type="button"
               variant="outline"
-              onClick={dismissForSession}
+              onClick={dismissForPageView}
               className="h-12 rounded-2xl border-[#5DADA5]/45 bg-white/70 text-base font-black text-[#2C4F4E] hover:bg-[#5DADA5]/10"
             >
               <MapPin className="h-4 w-4" />
@@ -109,7 +100,7 @@ export default function YarditWelcomeOverlay() {
           <div className="mt-5 flex flex-col items-center gap-3 text-center">
             <button
               type="button"
-              onClick={dismissForSession}
+              onClick={dismissForPageView}
               className="rounded-full px-3 py-1.5 text-sm font-semibold text-slate-500 underline-offset-4 hover:text-[#2C4F4E] hover:underline focus:outline-none focus:ring-2 focus:ring-[#5DADA5] focus:ring-offset-2"
             >
               Maybe Later
