@@ -82,13 +82,13 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="font-black text-[#2C4F4E]">Manually Add Game</h3>
-              <p className="text-xs text-slate-500 sm:hidden">{manualFormOpen ? "Enter game details below." : "Collapsed to save space on mobile."}</p>
+              <p className="text-xs text-slate-500">{manualFormOpen ? "Enter game details below." : "Collapsed to save space."}</p>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={() => setManualFormOpen((open) => !open)} className="sm:hidden">
+            <Button type="button" variant="outline" size="sm" onClick={() => setManualFormOpen((open) => !open)}>
               {manualFormOpen ? "Close" : "Open"}
             </Button>
           </div>
-          <div className={`${manualFormOpen ? "block" : "hidden"} sm:block space-y-3`}>
+          <div className={`${manualFormOpen ? "block" : "hidden"} space-y-3`}>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Input placeholder="Division / Age Group" value={form?.division || ""} onChange={(e) => setForm("division", e.target.value)} />
               <Input placeholder="Home Team" value={form?.home_team || ""} onChange={(e) => setForm("home_team", e.target.value)} />
