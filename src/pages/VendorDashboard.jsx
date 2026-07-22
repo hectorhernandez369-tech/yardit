@@ -57,11 +57,6 @@ export default function VendorDashboard() {
     ? `yardit_default_vendor_account_id:${user.id || user.email}`
     : "yardit_default_vendor_account_id";
 
-  const userAccountKey = user?.id || user?.email || "anonymous";
-
-  const vendorAccountSwitchIntentKey =
-    `yardit_vendor_account_switch_intent:${userAccountKey}`;
-
   useEffect(() => {
     setDefaultAccountId(localStorage.getItem(defaultAccountStorageKey));
   }, [defaultAccountStorageKey]);
@@ -76,7 +71,6 @@ export default function VendorDashboard() {
       (item) => item.id === paramId
     );
 
-    // Preserve the existing cross-dashboard redirect.
     if (
       requestedAccount &&
       isLeagueTeamAccount(requestedAccount) &&
@@ -94,7 +88,8 @@ export default function VendorDashboard() {
       return;
     }
 
-    // Admin preview must always load the requested account.
+    // Admin preview is the only situation where the URL account
+    // overrides the user's saved default.
     if (
       adminPreviewAccountId &&
       accounts.some((item) => item.id === adminPreviewAccountId)
@@ -107,37 +102,17 @@ export default function VendorDashboard() {
       defaultAccountStorageKey
     );
 
-    const switchIntentId = sessionStorage.getItem(
-      vendorAccountSwitchIntentKey
-    );
-
-    const validSwitchIntent =
-      switchIntentId &&
-      paramId === switchIntentId &&
-      accounts.some((item) => item.id === switchIntentId);
-
     let nextAccountId = null;
 
-    // A deliberate account switch applies for the current page view.
-    if (validSwitchIntent) {
-      nextAccountId = switchIntentId;
-
-      // Consume the one-time switch intent so a later refresh returns
-      // to the saved default account.
-      sessionStorage.removeItem(vendorAccountSwitchIntentKey);
-    }
-
-    // On normal dashboard entry or refresh, the saved default wins.
+    // The saved default must be the initial account.
     if (
-      !nextAccountId &&
       savedDefaultId &&
       accounts.some((item) => item.id === savedDefaultId)
     ) {
       nextAccountId = savedDefaultId;
     }
 
-    // Keep a currently selected account only while the component is
-    // already active and there is no saved default.
+    // If no valid default exists, use the current valid account.
     if (
       !nextAccountId &&
       activeAccountId &&
@@ -153,7 +128,7 @@ export default function VendorDashboard() {
 
     setActiveAccountId(nextAccountId);
 
-    // Keep the URL synchronized with the account that actually loaded.
+    // Replace stale URL account values with the account that actually loaded.
     if (paramId !== nextAccountId) {
       params.set("account", nextAccountId);
 
@@ -167,7 +142,6 @@ export default function VendorDashboard() {
     organizerAccounts,
     loadingAccounts,
     defaultAccountStorageKey,
-    vendorAccountSwitchIntentKey,
     adminPreviewAccountId,
     navigate,
     activeAccountId,
@@ -231,16 +205,13 @@ export default function VendorDashboard() {
 
     setActiveAccountId(acc.id);
 
-    // Mark this as an intentional temporary account switch.
-    sessionStorage.setItem(
-      vendorAccountSwitchIntentKey,
-      acc.id
-    );
+    const params = new URLSearchParams(window.location.search);
+
+    params.set("tab", activeTab);
+    params.set("account", acc.id);
 
     navigate(
-      `/VendorDashboard?tab=${activeTab}&account=${acc.id}${
-        adminPreviewAccountId ? "&adminPreview=1" : ""
-      }`,
+      `/VendorDashboard?${params.toString()}`,
       { replace: true }
     );
 
@@ -277,19 +248,15 @@ export default function VendorDashboard() {
       return;
     }
 
-    // Save the new Vendor Dashboard default.
     localStorage.setItem(defaultAccountStorageKey, acc.id);
 
     setDefaultAccountId(acc.id);
     setActiveAccountId(acc.id);
 
-    // Clear any temporary account-switch instruction.
-    sessionStorage.removeItem(vendorAccountSwitchIntentKey);
-
     const params = new URLSearchParams(window.location.search);
 
-    params.set("account", acc.id);
     params.set("tab", activeTab);
+    params.set("account", acc.id);
 
     navigate(
       `/VendorDashboard?${params.toString()}`,
