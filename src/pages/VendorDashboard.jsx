@@ -57,39 +57,121 @@ export default function VendorDashboard() {
     ? `yardit_default_vendor_account_id:${user.id || user.email}`
     : "yardit_default_vendor_account_id";
 
+  const userAccountKey = user?.id || user?.email || "anonymous";
+
+  const vendorAccountSwitchIntentKey =
+    `yardit_vendor_account_switch_intent:${userAccountKey}`;
+
   useEffect(() => {
     setDefaultAccountId(localStorage.getItem(defaultAccountStorageKey));
   }, [defaultAccountStorageKey]);
 
-  // Set active account: prefer URL param, then saved default, then current selection, then first
-  // Also clears stale selection if account is no longer accessible
   useEffect(() => {
     if (loadingAccounts) return;
-    const paramId = new URLSearchParams(window.location.search).get("account");
-    const requestedAccount = organizerAccounts.find((a) => a.id === paramId);
-    if (requestedAccount && isLeagueTeamAccount(requestedAccount) && !adminPreviewAccountId) {
-      navigate(`/LeagueTeamDashboard?tab=profile&account=${requestedAccount.id}`, { replace: true });
+
+    const params = new URLSearchParams(window.location.search);
+    const paramId = params.get("account");
+
+    const requestedAccount = organizerAccounts.find(
+      (item) => item.id === paramId
+    );
+
+    // Preserve the existing cross-dashboard redirect.
+    if (
+      requestedAccount &&
+      isLeagueTeamAccount(requestedAccount) &&
+      !adminPreviewAccountId
+    ) {
+      navigate(
+        `/LeagueTeamDashboard?tab=profile&account=${requestedAccount.id}`,
+        { replace: true }
+      );
       return;
     }
+
     if (!accounts.length) {
       setActiveAccountId(null);
       return;
     }
-    const savedLastOrganizerId = localStorage.getItem("yardit_last_organizer_account_id");
-    const savedDefaultId = localStorage.getItem(defaultAccountStorageKey);
-    if (paramId && accounts.find((a) => a.id === paramId)) {
-      setActiveAccountId(paramId);
-    } else if (savedDefaultId && accounts.find((a) => a.id === savedDefaultId)) {
-      setActiveAccountId(savedDefaultId);
-    } else if (savedLastOrganizerId && accounts.find((a) => a.id === savedLastOrganizerId)) {
-      setActiveAccountId(savedLastOrganizerId);
-    } else if (activeAccountId && accounts.find((a) => a.id === activeAccountId)) {
-      // keep current selection — still valid
-    } else {
-      // stale or unset — fall back to first accessible account
-      setActiveAccountId(accounts[0].id);
+
+    // Admin preview must always load the requested account.
+    if (
+      adminPreviewAccountId &&
+      accounts.some((item) => item.id === adminPreviewAccountId)
+    ) {
+      setActiveAccountId(adminPreviewAccountId);
+      return;
     }
-  }, [accounts, organizerAccounts, loadingAccounts, defaultAccountStorageKey, adminPreviewAccountId, navigate]);
+
+    const savedDefaultId = localStorage.getItem(
+      defaultAccountStorageKey
+    );
+
+    const switchIntentId = sessionStorage.getItem(
+      vendorAccountSwitchIntentKey
+    );
+
+    const validSwitchIntent =
+      switchIntentId &&
+      paramId === switchIntentId &&
+      accounts.some((item) => item.id === switchIntentId);
+
+    let nextAccountId = null;
+
+    // A deliberate account switch applies for the current page view.
+    if (validSwitchIntent) {
+      nextAccountId = switchIntentId;
+
+      // Consume the one-time switch intent so a later refresh returns
+      // to the saved default account.
+      sessionStorage.removeItem(vendorAccountSwitchIntentKey);
+    }
+
+    // On normal dashboard entry or refresh, the saved default wins.
+    if (
+      !nextAccountId &&
+      savedDefaultId &&
+      accounts.some((item) => item.id === savedDefaultId)
+    ) {
+      nextAccountId = savedDefaultId;
+    }
+
+    // Keep a currently selected account only while the component is
+    // already active and there is no saved default.
+    if (
+      !nextAccountId &&
+      activeAccountId &&
+      accounts.some((item) => item.id === activeAccountId)
+    ) {
+      nextAccountId = activeAccountId;
+    }
+
+    // Final fallback.
+    if (!nextAccountId) {
+      nextAccountId = accounts[0].id;
+    }
+
+    setActiveAccountId(nextAccountId);
+
+    // Keep the URL synchronized with the account that actually loaded.
+    if (paramId !== nextAccountId) {
+      params.set("account", nextAccountId);
+
+      navigate(
+        `/VendorDashboard?${params.toString()}`,
+        { replace: true }
+      );
+    }
+  }, [
+    accounts,
+    organizerAccounts,
+    loadingAccounts,
+    defaultAccountStorageKey,
+    vendorAccountSwitchIntentKey,
+    adminPreviewAccountId,
+    navigate,
+    activeAccountId,
+  ]);
 
   const account = accounts.find((a) => a.id === activeAccountId) || accounts[0] || null;
 
@@ -145,24 +227,74 @@ export default function VendorDashboard() {
   };
 
   const handleSelectBusiness = (acc) => {
+    if (!acc?.id) return;
+
     setActiveAccountId(acc.id);
-    localStorage.setItem("yardit_last_organizer_account_id", acc.id);
-    navigate(`/VendorDashboard?tab=${activeTab}&account=${acc.id}${adminPreviewAccountId ? "&adminPreview=1" : ""}`, { replace: true });
-    queryClient.invalidateQueries({ queryKey: ["vendorDashboardPins", acc.id] });
-    queryClient.invalidateQueries({ queryKey: ["vendorDashboardCheckIns", acc.id] });
-    queryClient.invalidateQueries({ queryKey: ["vendorDashboardUsers", acc.id] });
-    queryClient.invalidateQueries({ queryKey: ["vendorDashboardUpdates", acc.id] });
+
+    // Mark this as an intentional temporary account switch.
+    sessionStorage.setItem(
+      vendorAccountSwitchIntentKey,
+      acc.id
+    );
+
+    navigate(
+      `/VendorDashboard?tab=${activeTab}&account=${acc.id}${
+        adminPreviewAccountId ? "&adminPreview=1" : ""
+      }`,
+      { replace: true }
+    );
+
+    queryClient.invalidateQueries({
+      queryKey: ["vendorDashboardPins", acc.id],
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["vendorDashboardCheckIns", acc.id],
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["vendorDashboardUsers", acc.id],
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["vendorDashboardUpdates", acc.id],
+    });
   };
 
   const handleSetDefaultAccount = (acc) => {
     if (!acc?.id || adminPreviewAccountId) return;
+
     if (isLeagueTeamAccount(acc)) {
       const userKey = user?.id || user?.email;
-      localStorage.setItem(userKey ? `yardit_default_league_account_id:${userKey}` : "yardit_default_league_account_id", acc.id);
+
+      localStorage.setItem(
+        userKey
+          ? `yardit_default_league_account_id:${userKey}`
+          : "yardit_default_league_account_id",
+        acc.id
+      );
+
       return;
     }
+
+    // Save the new Vendor Dashboard default.
     localStorage.setItem(defaultAccountStorageKey, acc.id);
+
     setDefaultAccountId(acc.id);
+    setActiveAccountId(acc.id);
+
+    // Clear any temporary account-switch instruction.
+    sessionStorage.removeItem(vendorAccountSwitchIntentKey);
+
+    const params = new URLSearchParams(window.location.search);
+
+    params.set("account", acc.id);
+    params.set("tab", activeTab);
+
+    navigate(
+      `/VendorDashboard?${params.toString()}`,
+      { replace: true }
+    );
   };
 
   // Mark dashboard as entered for setup tracking
