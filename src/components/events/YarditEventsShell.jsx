@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, Map, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,15 +13,37 @@ import YarditEventsMobileBottomNav from "@/components/events/YarditEventsMobileB
 import UserAccountMenuContent from "@/components/navigation/UserAccountMenuContent";
 import { useAuth } from "@/lib/AuthContext";
 import { YARDIT_EVENTS_LOGO_URL } from "@/lib/experience";
+import { syncAdminInvite } from "@/components/admin/adminInviteSync";
+
+const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
 export default function YarditEventsShell({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, navigateToLogin } = useAuth();
+  const [hasAdminProfile, setHasAdminProfile] = useState(false);
   const isLeague = location.pathname === "/LeagueTeamDashboard";
   const dashboardPath = isLeague ? "/LeagueTeamDashboard" : "/VendorDashboard";
 
   const protectedDashboard = ["/VendorDashboard", "/LeagueTeamDashboard", "/VendorEventDashboard", "/VendorEventFlags", "/VendorEventSchedule"].includes(location.pathname);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setHasAdminProfile(false);
+      return;
+    }
+
+    if (user?.isAdmin) {
+      setHasAdminProfile(true);
+      return;
+    }
+
+    syncAdminInvite(user).then(({ adminProfile }) => {
+      const profileUserId = relId(adminProfile?.user_id);
+      setHasAdminProfile(!!adminProfile && adminProfile.is_active === true && profileUserId === user.id);
+    }).catch(() => setHasAdminProfile(false));
+  }, [user]);
+
   const content = !isAuthenticated && protectedDashboard ? (
     <div className="flex min-h-[70vh] items-center justify-center p-4">
       <div className="max-w-md rounded-3xl bg-white p-8 text-center shadow-xl">
@@ -60,7 +82,7 @@ export default function YarditEventsShell({ children }) {
                   navigate={navigate}
                   onLogout={() => logout?.("/")}
                   hasVendorAccount={isAuthenticated}
-                  hasAdminProfile={!!user?.isAdmin}
+                  hasAdminProfile={hasAdminProfile}
                   dashboardPath={dashboardPath}
                 />
               </DropdownMenu>
