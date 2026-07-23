@@ -36,9 +36,11 @@ export default function UnifiedPublicEventSchedule({ leagueEventLinks = [], leag
   const filteredItems = useMemo(() => {
     if (!selectedSpotId && !selectedFieldName) return schedule.items;
     return schedule.items.filter((item) => {
-      if (selectedSpotId && item?.spot_id === selectedSpotId) return true;
-      if (selectedFieldName) return String(item?.field_name || "").trim().toLowerCase() === String(selectedFieldName).trim().toLowerCase();
-      return false;
+      if (selectedSpotId) {
+        if (item?.spot_id === selectedSpotId) return true;
+        return !item?.spot_id && selectedFieldName && String(item?.field_name || "").trim().toLowerCase() === String(selectedFieldName).trim().toLowerCase();
+      }
+      return selectedFieldName && String(item?.field_name || "").trim().toLowerCase() === String(selectedFieldName).trim().toLowerCase();
     });
   }, [schedule.items, selectedSpotId, selectedFieldName]);
 
