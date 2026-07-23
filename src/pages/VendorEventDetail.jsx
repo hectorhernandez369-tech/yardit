@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, CalendarDays, Loader2, MapPin, Share2, Store, UserCircle } from "lucide-react";
 import { format } from "date-fns";
-import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
+import { formatVendorEventType, getVendorEventStatus, isPublishedVendorEvent } from "@/lib/vendorEvents";
 import { toast } from "sonner";
 import { safeBack } from "@/utils";
 import PublicEventUpdates from "@/components/vendor/events/PublicEventUpdates";
@@ -20,9 +20,12 @@ import { getPublicContactInfo } from "@/lib/publicContactPrivacy";
 
 export default function VendorEventDetail() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const params = new URLSearchParams(window.location.search);
   const eventId = params.get("id");
+  const organizerPreview = params.get("organizerPreview") === "1";
+  const leagueReturnState = location.state?.returnPage === "LeagueTeamDashboard" && location.state?.returnTab === "events";
   const [message, setMessage] = useState("");
   const [spaceOption, setSpaceOption] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
@@ -46,6 +49,18 @@ export default function VendorEventDetail() {
   const { data: scheduleEntries = [] } = useQuery({ queryKey: ["publicEventScheduleEntries", eventId], queryFn: () => base44.entities.EventScheduleEntry.filter({ event_id: eventId }, "sort_order"), enabled: !!eventId, initialData: [] });
   const { data: leagueEventLinks = [] } = useQuery({ queryKey: ["publicLeagueEventGames", eventId], queryFn: async () => (await base44.entities.LeagueEventGame.filter({ event_id: eventId }, "display_order")).filter((link) => link?.is_visible !== false), enabled: !!eventId, initialData: [] });
   const { data: leagueGames = [] } = useQuery({ queryKey: ["publicLeagueGamesForEvent", event?.organizer_business_id], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: event.organizer_business_id }, "sort_order"), enabled: !!event?.organizer_business_id && leagueEventLinks.length > 0, initialData: [] });
+  const { data: previewMemberships = [], isLoading: isLoadingPreviewMemberships } = useQuery({
+    queryKey: ["publicEventLeaguePreviewMemberships", event?.organizer_business_id, currentUser?.id, currentUser?.email],
+    queryFn: async () => {
+      const [byUser, byEmail] = await Promise.all([
+        currentUser?.id ? base44.entities.LeagueMembership.filter({ league_account_id: event.organizer_business_id, member_user_id: currentUser.id, status: "active" }).catch(() => []) : Promise.resolve([]),
+        currentUser?.email ? base44.entities.LeagueMembership.filter({ league_account_id: event.organizer_business_id, invited_email: currentUser.email, status: "active" }).catch(() => []) : Promise.resolve([]),
+      ]);
+      return [...byUser, ...byEmail].filter((item, index, list) => item?.id && list.findIndex((other) => other.id === item.id) === index);
+    },
+    enabled: organizerPreview && !!event?.organizer_business_id && (!!currentUser?.id || !!currentUser?.email),
+    initialData: [],
+  });
 
   const vendorAccount = eligibleVendorAccounts.find((account) => account.id === vendorAccountId) || null;
 
@@ -108,6 +123,30 @@ export default function VendorEventDetail() {
   const publicContact = getPublicContactInfo({ account: organizerAccount, event });
   const isFlyerPdf = event?.flyer_url?.toLowerCase?.().includes(".pdf");
   const heroImage = !isFlyerPdf && event?.flyer_url ? event.flyer_url : event?.photos?.[0] || event?.logo || organizerAccount?.featured_photo_url || organizerAccount?.business_logo;
+  const eventIsPublic = event ? isPublishedVendorEvent(event, new Date()) : false;
+  const ownsOrganizerAccount = !!event?.organizer_business_id && eligibleVendorAccounts.some((account) => account.id === event.organizer_business_id);
+  const managesOrganizerAccount = previewMemberships.some((membership) => (membership.permissions || []).includes("manage_events"));
+  const canPreviewOrganizerEvent = organizerPreview && !!currentUser && (ownsOrganizerAccount || managesOrganizerAccount);
+  const canViewEvent = !!event && (eventIsPublic || canPreviewOrganizerEvent);
+
+  const handleBack = () => {
+    if (leagueReturnState) {
+      navigate(
+        `/LeagueTeamDashboard?tab=events&eventId=${encodeURIComponent(location.state?.selectedEventId || "")}`, 
+        {
+          replace: true,
+          state: {
+            restoreEvent: true,
+            selectedEventId: location.state?.selectedEventId,
+            eventSubtab: location.state?.eventSubtab,
+          },
+        }
+      );
+      return;
+    }
+
+    safeBack(navigate, "/VendorDashboard?tab=events");
+  };
 
   const refreshPublicData = () => {
     queryClient.invalidateQueries({ queryKey: ["publicEventAttendees", eventId] });
@@ -193,13 +232,13 @@ export default function VendorEventDetail() {
     }
   };
 
-  if (isLoading) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  if (!event) return <div className="p-6 text-center">Event not found.</div>;
+  if (isLoading || (event && !eventIsPublic && organizerPreview && (!authChecked || isLoadingPreviewMemberships))) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (!event || !canViewEvent) return <div className="p-6 text-center">Event not found.</div>;
 
   return (
     <div className="bg-[#F3E6CF] min-h-screen">
       <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-5">
-        <Button variant="ghost" onClick={() => safeBack(navigate, "/VendorDashboard?tab=events")} className="gap-2 text-[#2C4F4E]"><ArrowLeft className="h-4 w-4" /> Back</Button>
+        <Button variant="ghost" onClick={handleBack} className="gap-2 text-[#2C4F4E]"><ArrowLeft className="h-4 w-4" /> Back</Button>
         <section className="rounded-3xl overflow-hidden bg-white border border-[#2C4F4E]/10 shadow-sm">
           <div className="relative h-64 sm:h-96 bg-[#E7D7B8]">
             {heroImage ? <img src={heroImage} alt={event.title} className="h-full w-full object-cover" /> : <div className="h-full w-full flex items-center justify-center text-[#2C4F4E] font-black text-2xl">Yardit Vendor Event</div>}

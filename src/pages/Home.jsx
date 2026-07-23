@@ -33,7 +33,7 @@ import CheckInButton from "../components/map/CheckInButton";
 import { toast } from "sonner";
 import ClusterGroup, { shouldShowAsPin } from "../components/map/ClusterGroup";
 import ReportModal from "../components/ReportModal";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import MapDebugOverlay from "../components/map/MapDebugOverlay";
 import MapZoomControl from "../components/map/MapZoomControl";
@@ -410,6 +410,7 @@ export default function HomePage() {
   }, []);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [view, setView] = useState("map");
   const [reportListingId, setReportListingId] = useState(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -507,6 +508,15 @@ export default function HomePage() {
     const p = new URLSearchParams(window.location.search);
     return p.get("ownerPreview") === "1" || p.get("previewMode") === "owner";
   }, []);
+  const requestedEventId = useMemo(() => {
+    const p = new URLSearchParams(location.search);
+    return p.get("eventId") || "";
+  }, [location.search]);
+  const organizerPreviewUrlFlag = useMemo(() => {
+    const p = new URLSearchParams(location.search);
+    return p.get("organizerPreview") === "1";
+  }, [location.search]);
+  const leagueReturnState = location.state?.returnPage === "LeagueTeamDashboard" && location.state?.returnTab === "events";
   const viewingOwnerPreviewMode = !!user?.id || ownerPreviewUrlFlag;
   const [debugVisible, setDebugVisible] = useState(false);
   const [debugPinned, setDebugPinned] = useState(debugForceOn);
@@ -843,6 +853,37 @@ export default function HomePage() {
   const vendorCheckIns = isPublicHomeMode ? publicMapData.vendorCheckIns || [] : privateVendorCheckIns;
   const vendorEvents = isPublicHomeMode ? publicMapData.vendorEvents || [] : privateVendorEvents;
   const promoDiscoveryCodes = isPublicHomeMode ? publicMapData.promoDiscoveryCodes || [] : privatePromoDiscoveryCodes;
+  const requestedVendorEvent = useMemo(() => vendorEvents.find((event) => String(event.id) === String(requestedEventId)) || null, [vendorEvents, requestedEventId]);
+  const { data: previewMemberships = [] } = useQuery({
+    queryKey: ["homeLeagueEventPreviewMemberships", requestedVendorEvent?.organizer_business_id, user?.id, user?.email],
+    queryFn: async () => {
+      const [byUser, byEmail] = await Promise.all([
+        user?.id ? base44.entities.LeagueMembership.filter({ league_account_id: requestedVendorEvent.organizer_business_id, member_user_id: user.id, status: "active" }).catch(() => []) : Promise.resolve([]),
+        user?.email ? base44.entities.LeagueMembership.filter({ league_account_id: requestedVendorEvent.organizer_business_id, invited_email: user.email, status: "active" }).catch(() => []) : Promise.resolve([]),
+      ]);
+      return [...byUser, ...byEmail].filter((item, index, list) => item?.id && list.findIndex((other) => other.id === item.id) === index);
+    },
+    enabled: organizerPreviewUrlFlag && !!requestedVendorEvent?.organizer_business_id && (!!user?.id || !!user?.email),
+    initialData: [],
+  });
+  const canPreviewRequestedVendorEvent = organizerPreviewUrlFlag && !!requestedVendorEvent && !!user && (
+    vendorAccounts.some((account) => account.id === requestedVendorEvent.organizer_business_id && (account.owner_user_id === user.id || account.owner_user_id === user.email || account.owner_email === user.email)) ||
+    previewMemberships.some((membership) => (membership.permissions || []).includes("manage_events"))
+  );
+  const vendorEventPreviewIds = useMemo(() => canPreviewRequestedVendorEvent && requestedEventId ? [requestedEventId] : [], [canPreviewRequestedVendorEvent, requestedEventId]);
+
+  useEffect(() => {
+    if (!requestedEventId || !requestedVendorEvent || !canPreviewRequestedVendorEvent && !isPublishedVendorEvent(requestedVendorEvent, new Date())) return;
+
+    const latitude = requestedVendorEvent.latitude ?? requestedVendorEvent.lat ?? requestedVendorEvent.location?.lat;
+    const longitude = requestedVendorEvent.longitude ?? requestedVendorEvent.lng ?? requestedVendorEvent.location?.lng;
+
+    if (Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))) {
+      setView("map");
+      setMapCenter([Number(latitude), Number(longitude)]);
+      setMapZoom(15);
+    }
+  }, [requestedEventId, requestedVendorEvent, canPreviewRequestedVendorEvent]);
 
   const searchSuggestions = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -1806,7 +1847,10 @@ export default function HomePage() {
               showVendorEvents={quickMapFilters.events}
               eventScheduleEntries={eventScheduleEntries}
               leagueEventLinks={leagueEventLinks}
-              leagueGames={leagueGames} />
+              leagueGames={leagueGames}
+              selectedEventId={requestedEventId}
+              previewEventIds={vendorEventPreviewIds}
+              leagueReturnState={leagueReturnState} />
             
 
               {liveVendorPins.map(({ checkIn, pin, account }) => {
