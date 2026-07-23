@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import ScheduleImportPanel from "@/components/vendor/events/schedule/ScheduleImportPanel";
 import ScheduleRowsEditor from "@/components/vendor/events/schedule/ScheduleRowsEditor";
-import { buildBlankScheduleRows, cleanRowsForSave, normalizeScheduleRows } from "@/lib/vendorEventSchedule";
+import { buildBlankScheduleRows, cleanRowsForSave, normalizeAndSortScheduleRows, normalizeScheduleRows, validateScheduleRows } from "@/lib/vendorEventSchedule";
 import { safeBack } from "@/utils";
 import { canManageSchedule as hasSchedulePermission } from "@/lib/eventCollaboration";
 
@@ -34,18 +34,16 @@ export default function VendorEventSchedule() {
   const { data: savedEntries = [], isLoading: isLoadingEntries } = useQuery({ queryKey: ["eventScheduleEntries", eventId], queryFn: () => base44.entities.EventScheduleEntry.filter({ event_id: eventId }, "sort_order"), enabled: !!eventId, initialData: [] });
   const { data: collaborators = [], isLoading: loadingCollaborators } = useQuery({ queryKey: ["scheduleEventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
 
+  const usesEventSpots = ["multi_spot", "multi_location"].includes(event?.event_type);
+
   const baseFields = useMemo(() => {
-    if (["multi_spot", "multi_location"].includes(event?.event_type) && spots.length) {
-      return spots.map((spot, index) => ({ id: spot.id, title: spot.title || spot.label || `Field ${index + 1}` }));
-    }
+    if (usesEventSpots && spots.length) return spots.map((spot, index) => ({ id: spot.id, title: spot.title || spot.label || `Field ${index + 1}` }));
     return [{ id: "", title: "Main Event" }];
-  }, [event?.event_type, spots]);
+  }, [usesEventSpots, spots]);
 
   const fields = useMemo(() => {
     const baseTitles = new Set(baseFields.map((field) => field.title.toLowerCase()));
-    const divisions = customDivisions
-      .filter((name) => name && !baseTitles.has(name.toLowerCase()))
-      .map((name) => ({ id: name, title: name, isCustom: true }));
+    const divisions = customDivisions.filter((name) => name && !baseTitles.has(name.toLowerCase())).map((name) => ({ id: name, title: name, isCustom: true }));
     return [...baseFields, ...divisions];
   }, [baseFields, customDivisions]);
 
@@ -70,41 +68,78 @@ export default function VendorEventSchedule() {
     if (!event || isLoadingEntries || rows.length) return;
     if (savedEntries.length) {
       const baseTitles = new Set(baseFields.map((field) => field.title.toLowerCase()));
-      const savedDivisions = [...new Set(savedEntries.map((entry) => entry.field_name).filter((name) => name && !baseTitles.has(name.toLowerCase())))];
+      const savedDivisions = usesEventSpots ? [] : [...new Set(savedEntries.map((entry) => entry.field_name).filter((name) => name && !baseTitles.has(name.toLowerCase())))];
       if (savedDivisions.length) setCustomDivisions((prev) => [...new Set([...prev, ...savedDivisions])]);
       setRows(savedEntries.map((entry) => ({ ...entry, isBlank: false })));
     } else {
       setRows(buildBlankScheduleRows(1, fields, event.startDateTime, timeBetweenMinutes));
     }
-  }, [event, baseFields, fields, isLoadingEntries, rows.length, savedEntries, timeBetweenMinutes]);
+  }, [event, baseFields, fields, isLoadingEntries, rows.length, savedEntries, timeBetweenMinutes, usesEventSpots]);
 
   const addBulkSlots = () => {
     setRows([...rows, ...buildBlankScheduleRows(bulkCount, fields, event.startDateTime, timeBetweenMinutes, rows.length, rows[rows.length - 1]?.start_time)]);
   };
 
-  const addCustomField = (rawName) => {
-    const name = String(rawName || "").trim();
-    if (!name) return "";
-    const existing = fields.find((field) => field.title.toLowerCase() === name.toLowerCase());
-    if (existing) return existing.title;
-    setCustomDivisions((prev) => prev.some((item) => item.toLowerCase() === name.toLowerCase()) ? prev : [...prev, name]);
+  const addCustomField = async (rawName) => {
+    const fieldName = String(rawName || "").trim();
+    if (!fieldName) return null;
+
+    const normalizedName = fieldName.trim().toLowerCase();
+    const duplicate = fields.some((field) => String(field.title || "").trim().toLowerCase() === normalizedName);
+
+    if (duplicate) {
+      toast.error("A field with this name already exists.");
+      return null;
+    }
+
+    if (usesEventSpots) {
+      const now = new Date().toISOString();
+      const spot = await base44.entities.EventSpot.create({
+        event_id: event.id,
+        title: fieldName,
+        icon_key: "flag",
+        latitude: event.latitude,
+        longitude: event.longitude,
+        display_order: spots.length,
+        created_at: now,
+        updated_at: now,
+      });
+      queryClient.invalidateQueries({ queryKey: ["scheduleEventSpots", eventId] });
+      setGroupByField(true);
+      return { id: spot.id, title: spot.title };
+    }
+
+    setCustomDivisions((prev) => prev.some((item) => item.toLowerCase() === normalizedName) ? prev : [...prev, fieldName]);
     setGroupByField(true);
-    return name;
+    return { id: fieldName, title: fieldName };
   };
 
   const importRows = (importedRows) => {
-    setRows(normalizeScheduleRows([...rows.filter((row) => row.title || row.start_time), ...importedRows]));
+    setRows(normalizeAndSortScheduleRows([...rows.filter((row) => row.title || row.start_time), ...importedRows]));
     toast.success("Imported schedule added to rows. Review and save when ready.");
   };
 
   const saveSchedule = async () => {
+    const validatedRows = validateScheduleRows(rows, fields);
+    const invalidRows = validatedRows.filter((row) => row.validation_errors.length > 0);
+
+    if (invalidRows.length > 0) {
+      toast.error(`${invalidRows.length} schedule row${invalidRows.length === 1 ? "" : "s"} must be corrected before saving.`);
+      return;
+    }
+
+    const sortedRows = normalizeAndSortScheduleRows(validatedRows);
+    const cleaned = cleanRowsForSave(sortedRows, event.id);
+
     setSaving(true);
-    const cleaned = cleanRowsForSave(rows, event.id);
-    await Promise.all(savedEntries.map((entry) => base44.entities.EventScheduleEntry.delete(entry.id)));
-    if (cleaned.length) await base44.entities.EventScheduleEntry.bulkCreate(cleaned);
-    queryClient.invalidateQueries({ queryKey: ["eventScheduleEntries", eventId] });
-    toast.success("Schedule saved");
-    setSaving(false);
+    try {
+      await Promise.all(savedEntries.map((entry) => base44.entities.EventScheduleEntry.delete(entry.id)));
+      if (cleaned.length) await base44.entities.EventScheduleEntry.bulkCreate(cleaned);
+      queryClient.invalidateQueries({ queryKey: ["eventScheduleEntries", eventId] });
+      toast.success("Schedule saved");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (isLoading || loadingCollaborators || !accessChecked) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -122,11 +157,7 @@ export default function VendorEventSchedule() {
         <CardContent className="p-5 sm:p-6 space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div><h1 className="text-3xl font-black text-[#2C4F4E]">Schedule Manager</h1><p className="text-xl font-bold text-slate-800">{event.title}</p><p className="flex items-center gap-2 text-sm text-slate-600"><CalendarDays className="h-4 w-4 text-[#F4A849]" /> {format(new Date(event.startDateTime), "PPp")} - {format(new Date(event.endDateTime), "PPp")}</p></div>
-            <div className="grid w-full min-w-0 gap-3 sm:grid-cols-3 lg:max-w-[520px]">
-              <label className="text-sm font-bold text-[#2C4F4E]">Time Between Events<Input className="mt-1" type="number" value={timeBetweenMinutes} onChange={(e) => setTimeBetweenMinutes(Number(e.target.value || 0))} /></label>
-              <label className="text-sm font-bold text-[#2C4F4E]">Add Multiple Slots<Input className="mt-1" type="number" value={bulkCount} onChange={(e) => setBulkCount(Number(e.target.value || 0))} /></label>
-              <div className="flex items-end"><Button type="button" variant="outline" onClick={addBulkSlots} className="w-full"><Plus className="h-4 w-4" /> Add Multiple Slots</Button></div>
-            </div>
+            <div className="grid w-full min-w-0 gap-3 sm:grid-cols-3 lg:max-w-[520px]"><label className="text-sm font-bold text-[#2C4F4E]">Time Between Events<Input className="mt-1" type="number" value={timeBetweenMinutes} onChange={(e) => setTimeBetweenMinutes(Number(e.target.value || 0))} /></label><label className="text-sm font-bold text-[#2C4F4E]">Add Multiple Slots<Input className="mt-1" type="number" value={bulkCount} onChange={(e) => setBulkCount(Number(e.target.value || 0))} /></label><div className="flex items-end"><Button type="button" variant="outline" onClick={addBulkSlots} className="w-full"><Plus className="h-4 w-4" /> Add Multiple Slots</Button></div></div>
           </div>
           <label className="flex items-center gap-2 text-sm font-bold text-[#2C4F4E]"><Switch checked={groupByField} onCheckedChange={setGroupByField} /> Group by Event / Location</label>
         </CardContent>

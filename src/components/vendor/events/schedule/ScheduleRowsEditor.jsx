@@ -7,14 +7,14 @@ import { buildBlankScheduleRows, formatTimeInput, groupScheduleRows, makeSchedul
 function ScheduleRow({ row, index, fields, eventDate, timeBetweenMinutes, onUpdate, onDuplicate, onDelete, onAddField }) {
   return (
     <div className="grid w-full min-w-0 gap-2 rounded-xl border bg-white p-3 lg:grid-cols-[170px_minmax(0,1fr)_120px_120px_minmax(0,1fr)_auto]">
-      <Select value={row.spot_id || row.field_name || "main-event"} onValueChange={(value) => {
+      <Select value={row.spot_id || row.field_name || "main-event"} onValueChange={async (value) => {
         if (value === "__add_custom__") {
-          const added = onAddField?.(window.prompt("Add"));
-          if (added) onUpdate(row.id, { spot_id: "", field_name: added });
+          const added = await onAddField?.(window.prompt("Add"));
+          if (added) onUpdate(row.id, { spot_id: added.id || "", field_name: added.title || added });
           return;
         }
         const field = fields.find((item) => item.id === value || item.title === value);
-        onUpdate(row.id, { spot_id: field?.isCustom ? "" : field?.id || "", field_name: field?.title || value });
+        onUpdate(row.id, { spot_id: field?.id || "", field_name: field?.title || value });
       }}>
         <SelectTrigger className="w-full min-w-0"><SelectValue placeholder="Event / Location" /></SelectTrigger>
         <SelectContent>
