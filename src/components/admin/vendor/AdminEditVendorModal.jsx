@@ -5,18 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Loader2, Upload } from "lucide-react";
 
-export default function AdminEditVendorModal({ open, onClose, account, onSaved }) {
+const normalizeAccountType = (value) => value || "vendor";
+
+export default function AdminEditVendorModal({ open, onClose, account, adminUser, onSaved }) {
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [confirmAccountTypeChangeOpen, setConfirmAccountTypeChangeOpen] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef(null);
 
   useEffect(() => {
-    if (account) setForm({ ...account });
+    if (account) setForm({ ...account, organization_type: normalizeAccountType(account.organization_type) });
   }, [account]);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -38,6 +42,18 @@ export default function AdminEditVendorModal({ open, onClose, account, onSaved }
       return;
     }
 
+    const oldOrganizationType = normalizeAccountType(account?.organization_type);
+    const newOrganizationType = normalizeAccountType(form.organization_type);
+
+    if (oldOrganizationType !== newOrganizationType) {
+      setConfirmAccountTypeChangeOpen(true);
+      return;
+    }
+
+    await saveChanges();
+  };
+
+  const saveChanges = async () => {
     setSaving(true);
     const businessAddress = [
       form.business_street_address,
@@ -51,6 +67,7 @@ export default function AdminEditVendorModal({ open, onClose, account, onSaved }
       vendor_display_name: form.vendor_display_name || form.business_name.trim(),
       legal_business_name: form.legal_business_name || form.business_name.trim(),
       business_category: form.business_category,
+      organization_type: normalizeAccountType(form.organization_type),
       business_logo: form.business_logo,
       owner_name: form.owner_name,
       owner_email: form.owner_email.trim(),
@@ -73,6 +90,28 @@ export default function AdminEditVendorModal({ open, onClose, account, onSaved }
     };
 
     await base44.entities.VendorAccount.update(account.id, payload);
+
+    const oldOrganizationType = normalizeAccountType(account?.organization_type);
+    const newOrganizationType = normalizeAccountType(payload.organization_type);
+
+    if (oldOrganizationType !== newOrganizationType) {
+      await base44.entities.AdminAuditLog.create({
+        user_id: adminUser?.id,
+        admin_employee_id: adminUser?.employee_id || adminUser?.email || adminUser?.id || "unknown",
+        action_type: "admin_updated_vendor_account_type",
+        target_type: "VendorAccount",
+        target_id: account.id,
+        success: true,
+        metadata: JSON.stringify({
+          vendor_account_id: account.id,
+          old_organization_type: oldOrganizationType,
+          new_organization_type: newOrganizationType,
+          updated_by_admin_email: adminUser?.email || null,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+    }
+
     toast.success("Vendor account updated");
     setSaving(false);
     await onSaved?.();
@@ -109,6 +148,16 @@ export default function AdminEditVendorModal({ open, onClose, account, onSaved }
           <div className="space-y-1.5">
             <Label>Business Name *</Label>
             <Input value={form.business_name || ""} onChange={(e) => update("business_name", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Account Type</Label>
+            <Select value={normalizeAccountType(form.organization_type)} onValueChange={(value) => update("organization_type", value)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vendor">Vendor</SelectItem>
+                <SelectItem value="league_team">League / Team</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label>Public Display Name</Label>
@@ -219,6 +268,29 @@ export default function AdminEditVendorModal({ open, onClose, account, onSaved }
             {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Changes"}
           </Button>
         </div>
+
+        <AlertDialog open={confirmAccountTypeChangeOpen} onOpenChange={setConfirmAccountTypeChangeOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Change Account Type?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Changing the account type will change which dashboard and features this account can access.
+                <br /><br />
+                No account data will be deleted.
+                <br /><br />
+                Vendor Events, League data, billing, ownership, and history remain stored.
+                <br /><br />
+                Continue?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={saveChanges} disabled={saving} className="bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]">
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

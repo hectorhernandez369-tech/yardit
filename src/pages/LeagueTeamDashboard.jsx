@@ -22,15 +22,24 @@ import { gameMatchesAssignment, membershipPermissions, userOwnsLeagueAccount } f
 export default function LeagueTeamDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const requestedRawTab = new URLSearchParams(window.location.search).get("tab") || "profile";
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestedRawTab = urlParams.get("tab") || "profile";
   const requestedTab = requestedRawTab === "games" ? "schedule" : requestedRawTab === "history" ? "events" : requestedRawTab;
+  const adminPreviewAccountId = urlParams.get("adminPreview") === "1" ? urlParams.get("account") : null;
   const [activeTab, setActiveTab] = useState(requestedTab);
   const [activeAccountId, setActiveAccountId] = useState(null);
   const [defaultAccountId, setDefaultAccountId] = useState(null);
 
   const { data: user, isLoading: loadingUser } = useQuery({ queryKey: ["leagueDashboardUser"], queryFn: () => base44.auth.me() });
-  const { data: organizerAccounts = [], isLoading: loadingAccounts } = useQuery({ queryKey: ["leagueDashboardAccounts", user?.id, user?.email], queryFn: () => getUserVendorAccounts(user), enabled: !!user?.id || !!user?.email });
-  const accounts = useMemo(() => organizerAccounts.filter(isLeagueTeamAccount), [organizerAccounts]);
+  const canAdminPreview = adminPreviewAccountId && ["master", "super_master"].includes(user?.role);
+  const { data: organizerAccounts = [], isLoading: loadingAccounts } = useQuery({
+    queryKey: ["leagueDashboardAccounts", user?.id, user?.email, adminPreviewAccountId, canAdminPreview],
+    queryFn: () => canAdminPreview
+      ? base44.entities.VendorAccount.filter({ id: adminPreviewAccountId })
+      : getUserVendorAccounts(user),
+    enabled: !!user?.id || !!user?.email,
+  });
+  const accounts = useMemo(() => canAdminPreview ? organizerAccounts : organizerAccounts.filter(isLeagueTeamAccount), [canAdminPreview, organizerAccounts]);
 
   const storageKey = user?.id || user?.email ? `yardit_default_league_account_id:${user.id || user.email}` : "yardit_default_league_account_id";
 
@@ -42,7 +51,7 @@ export default function LeagueTeamDashboard() {
     if (loadingAccounts) return;
     const paramId = new URLSearchParams(window.location.search).get("account");
     const requestedAccount = organizerAccounts.find((item) => item.id === paramId);
-    if (requestedAccount && isVendorDashboardAccount(requestedAccount)) {
+    if (requestedAccount && isVendorDashboardAccount(requestedAccount) && !adminPreviewAccountId) {
       navigate(`/VendorDashboard?tab=profile&account=${requestedAccount.id}`, { replace: true });
       return;
     }
@@ -53,7 +62,7 @@ export default function LeagueTeamDashboard() {
     else if (savedId && accounts.find((item) => item.id === savedId)) setActiveAccountId(savedId);
     else if (savedLastOrganizerId && accounts.find((item) => item.id === savedLastOrganizerId)) setActiveAccountId(savedLastOrganizerId);
     else setActiveAccountId(accounts[0].id);
-  }, [accounts, organizerAccounts, loadingAccounts, storageKey, navigate]);
+  }, [accounts, organizerAccounts, loadingAccounts, storageKey, navigate, adminPreviewAccountId]);
 
   useEffect(() => setActiveTab(requestedTab), [requestedTab]);
 
@@ -111,7 +120,7 @@ export default function LeagueTeamDashboard() {
   };
 
   const handleSetDefaultAccount = (nextAccount) => {
-    if (!nextAccount?.id) return;
+    if (!nextAccount?.id || canAdminPreview) return;
     if (isVendorDashboardAccount(nextAccount)) {
       const userKey = user?.id || user?.email;
       localStorage.setItem(userKey ? `yardit_default_vendor_account_id:${userKey}` : "yardit_default_vendor_account_id", nextAccount.id);
@@ -149,7 +158,7 @@ export default function LeagueTeamDashboard() {
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
             <MobileVendorHeader account={account} accounts={organizerAccounts} onSelectBusiness={handleSelectAccount} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="league_team" currentTab={activeTab} />
             <div className="hidden sm:block">
-              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectAccount} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="league_team" currentTab={activeTab} />
+              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectAccount} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="league_team" currentTab={activeTab} adminPreview={!!canAdminPreview} />
               <BusinessHero profile={heroProfile} onRefresh={refreshDashboard} asHeader />
             </div>
 

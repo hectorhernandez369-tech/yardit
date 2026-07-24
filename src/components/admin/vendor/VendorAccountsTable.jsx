@@ -5,12 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, ExternalLink, Zap, Plus, Pencil, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import VendorPromoModal from "./promos/VendorPromoModal";
 import VendorActivePromos from "./promos/VendorActivePromos";
 import AdminCreateVendorModal from "./AdminCreateVendorModal";
 import AdminEditVendorModal from "./AdminEditVendorModal";
+import { getOrganizerTypeConfig } from "@/components/organizer/OrganizerAccountSwitcher";
 
 const TIER_COLORS = {
   free: "bg-slate-100 text-slate-700",
@@ -33,10 +35,22 @@ function canApplyPromo(user) {
   return role === "master" || role === "supervisor";
 }
 
+const getAccountType = (account) => account?.organization_type === "league_team" ? "league_team" : "vendor";
+
+const getAdminDashboardPath = (account) => {
+  const config = getOrganizerTypeConfig(account);
+  const params = new URLSearchParams();
+  params.set("tab", "profile");
+  params.set("account", account.id);
+  params.set("adminPreview", "1");
+  return `${config.route}?${params.toString()}`;
+};
+
 export default function VendorAccountsTable({ user }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [accountTypeFilter, setAccountTypeFilter] = useState("all");
   const [promoAccount, setPromoAccount] = useState(null);
   const [editAccount, setEditAccount] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -64,6 +78,7 @@ export default function VendorAccountsTable({ user }) {
   events.forEach(e => { eventCountByAccount[e.organizer_business_id] = (eventCountByAccount[e.organizer_business_id] || 0) + 1; });
 
   const filtered = accounts.filter(a => {
+    if (accountTypeFilter !== "all" && getAccountType(a) !== accountTypeFilter) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
@@ -90,6 +105,16 @@ export default function VendorAccountsTable({ user }) {
             className="pl-10"
           />
         </div>
+        <Select value={accountTypeFilter} onValueChange={setAccountTypeFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder="Account Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="vendor">Vendor</SelectItem>
+            <SelectItem value="league_team">League / Team</SelectItem>
+          </SelectContent>
+        </Select>
         {isMasterAdmin && (
           <Button
             size="sm"
@@ -123,6 +148,9 @@ export default function VendorAccountsTable({ user }) {
                       <Badge className={STATUS_COLORS[account.subscription_status] || "bg-slate-100 text-slate-700"} variant="outline">
                         {account.subscription_status || "unknown"}
                       </Badge>
+                      <Badge className={getAccountType(account) === "league_team" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"}>
+                        {getAccountType(account) === "league_team" ? "League / Team" : "Vendor"}
+                      </Badge>
                       {account.is_active === false && (
                         <Badge className="bg-red-100 text-red-800">Inactive</Badge>
                       )}
@@ -147,7 +175,7 @@ export default function VendorAccountsTable({ user }) {
                     <Button
                       size="sm"
                       className="gap-1.5 text-xs bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]"
-                      onClick={() => navigate(`/VendorDashboard?tab=profile&account=${account.id}&adminPreview=1`)}
+                      onClick={() => navigate(getAdminDashboardPath(account))}
                     >
                       <LayoutDashboard className="w-3.5 h-3.5" /> Enter Dashboard
                     </Button>
@@ -159,14 +187,16 @@ export default function VendorAccountsTable({ user }) {
                     >
                       <Pencil className="w-3.5 h-3.5" /> Edit
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5 text-xs"
-                      onClick={() => navigate("/VendorPublicPage?vendorId=" + account.id)}
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" /> View Page
-                    </Button>
+                    {getAccountType(account) !== "league_team" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs"
+                        onClick={() => navigate("/VendorPublicPage?vendorId=" + account.id)}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> View Page
+                      </Button>
+                    )}
                     {promoAllowed && (
                       <Button
                         size="sm"
@@ -199,6 +229,7 @@ export default function VendorAccountsTable({ user }) {
         open={!!editAccount}
         onClose={() => setEditAccount(null)}
         account={editAccount}
+        adminUser={user}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["vendorAccountsAdmin"] })}
       />
 

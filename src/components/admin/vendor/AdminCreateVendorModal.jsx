@@ -13,6 +13,7 @@ export default function AdminCreateVendorModal({ open, onClose, adminUser, onCre
   const [form, setForm] = useState({
     owner_email: "",
     business_name: "",
+    organization_type: "vendor",
     business_category: "",
     vendor_tier: "free",
   });
@@ -63,6 +64,7 @@ export default function AdminCreateVendorModal({ open, onClose, adminUser, onCre
 
     const account = await base44.entities.VendorAccount.create({
       business_name: form.business_name.trim(),
+      organization_type: form.organization_type,
       business_category: form.business_category.trim(),
       owner_email: form.owner_email.trim(),
       owner_user_id: form.owner_email.trim(),
@@ -107,7 +109,7 @@ export default function AdminCreateVendorModal({ open, onClose, adminUser, onCre
 
     toast.success(`Vendor account created for ${form.owner_email.trim()}`);
     setSaving(false);
-    setForm({ owner_email: "", business_name: "", business_category: "", vendor_tier: "free" });
+    setForm({ owner_email: "", business_name: "", organization_type: "vendor", business_category: "", vendor_tier: "free" });
     onCreated?.(account);
     onClose();
   };
@@ -139,6 +141,17 @@ export default function AdminCreateVendorModal({ open, onClose, adminUser, onCre
               value={form.business_name}
               onChange={(e) => update("business_name", e.target.value)}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Account Type</Label>
+            <Select value={form.organization_type} onValueChange={(value) => update("organization_type", value)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vendor">Vendor</SelectItem>
+                <SelectItem value="league_team">League / Team</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
