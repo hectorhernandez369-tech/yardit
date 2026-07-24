@@ -13,6 +13,7 @@ import VendorActivePromos from "./promos/VendorActivePromos";
 import AdminCreateVendorModal from "./AdminCreateVendorModal";
 import AdminEditVendorModal from "./AdminEditVendorModal";
 import { getOrganizerTypeConfig } from "@/components/organizer/OrganizerAccountSwitcher";
+import { canAdminPreviewOrganization } from "@/lib/canAdminPreviewOrganization";
 
 const TIER_COLORS = {
   free: "bg-slate-100 text-slate-700",
@@ -32,7 +33,7 @@ const STATUS_COLORS = {
 
 function canApplyPromo(user) {
   const role = user?.role || user?.role_label;
-  return role === "master" || role === "supervisor";
+  return canAdminPreviewOrganization(user) || role === "supervisor";
 }
 
 const getAccountType = (account) => account?.organization_type === "league_team" ? "league_team" : "vendor";
@@ -54,8 +55,8 @@ export default function VendorAccountsTable({ user }) {
   const [promoAccount, setPromoAccount] = useState(null);
   const [editAccount, setEditAccount] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const isMasterAdmin = user?.role === "master" || user?.role === "super_master";
-  const canEnterOrganizationDashboard = user?.role === "master";
+  const isMasterAdmin = canAdminPreviewOrganization(user) || user?.role === "super_master";
+  const canEnterOrganizationDashboard = canAdminPreviewOrganization(user);
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ["vendorAccountsAdmin"],

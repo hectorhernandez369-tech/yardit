@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -18,6 +18,9 @@ import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
 import VendorAccessDenied from "@/components/vendor/VendorAccessDenied";
 import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
 import { getUserVendorAccounts, isLeagueTeamAccount, isVendorDashboardAccount } from "@/lib/getUserVendorAccounts";
+import { canAdminPreviewOrganization } from "@/lib/canAdminPreviewOrganization";
+import AdminPreviewBanner from "@/components/admin/AdminPreviewBanner";
+import { ADMIN_PREVIEW_ENTRY_ACTION, ADMIN_PREVIEW_EXIT_ACTION, createAdminPreviewAuditLog } from "@/lib/adminPreviewAudit";
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
@@ -30,12 +33,13 @@ export default function VendorDashboard() {
   // Multi-business: which account is currently active
   const [activeAccountId, setActiveAccountId] = useState(null);
   const [defaultAccountId, setDefaultAccountId] = useState(null);
+  const loggedAdminPreviewEntriesRef = useRef(new Set());
 
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ["vendorDashboardUser"],
     queryFn: () => base44.auth.me(),
   });
-  const canAdminPreview = adminPreviewAccountId && user?.role === "master";
+  const canAdminPreview = !!adminPreviewAccountId && canAdminPreviewOrganization(user);
 
   // Use shared helper for consistent account detection
   const { data: organizerAccounts = [], isLoading: loadingAccounts } = useQuery({
@@ -154,6 +158,9 @@ export default function VendorDashboard() {
   ]);
 
   const account = accounts.find((a) => a.id === activeAccountId) || accounts[0] || null;
+  const adminPreviewSessionKey = canAdminPreview && account?.id === adminPreviewAccountId
+    ? `${user?.id || user?.email}:${account.id}:${adminPreviewAccountId}:vendor`
+    : null;
 
   const isOwner = canAdminPreview || !!account && (
     account.owner_user_id === user?.id ||
@@ -192,6 +199,38 @@ export default function VendorDashboard() {
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardUsers"] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardUpdates"] });
   };
+
+  const handleExitAdminMode = async () => {
+    try {
+      await createAdminPreviewAuditLog({
+        actionType: ADMIN_PREVIEW_EXIT_ACTION,
+        user,
+        account,
+        dashboardType: "vendor",
+        occurredAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Admin preview exit audit failed:", error);
+    } finally {
+      navigate("/AdminLite?section=operations&liteTab=vendors", { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    if (!adminPreviewSessionKey || !canAdminPreview || account?.id !== adminPreviewAccountId) return;
+    if (loggedAdminPreviewEntriesRef.current.has(adminPreviewSessionKey)) return;
+
+    loggedAdminPreviewEntriesRef.current.add(adminPreviewSessionKey);
+    createAdminPreviewAuditLog({
+      actionType: ADMIN_PREVIEW_ENTRY_ACTION,
+      user,
+      account,
+      dashboardType: "vendor",
+      occurredAt: new Date().toISOString(),
+    }).catch((error) => {
+      console.error("Admin preview entry audit failed:", error);
+    });
+  }, [adminPreviewSessionKey, canAdminPreview, account?.id, adminPreviewAccountId, user?.id, user?.email]);
 
   const setupProgress = getVendorSetupProgress(account, pins);
 
@@ -355,6 +394,7 @@ export default function VendorDashboard() {
         </div>
 
         <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-3 sm:space-y-6">
+          {canAdminPreview && <AdminPreviewBanner account={account} onExit={handleExitAdminMode} />}
           {showSetupReminder && !setupProgress.isComplete && (
             <VendorSetupProgress
               account={account}

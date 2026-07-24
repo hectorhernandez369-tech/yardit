@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -18,6 +18,9 @@ import LeagueConnectionsTab from "@/components/league/LeagueConnectionsTab";
 import MyLeagueSchedule from "@/components/league/MyLeagueSchedule";
 import LeagueAuditHistory from "@/components/league/LeagueAuditHistory";
 import { gameMatchesAssignment, membershipPermissions, userOwnsLeagueAccount } from "@/lib/leaguePermissions";
+import { canAdminPreviewOrganization } from "@/lib/canAdminPreviewOrganization";
+import AdminPreviewBanner from "@/components/admin/AdminPreviewBanner";
+import { ADMIN_PREVIEW_ENTRY_ACTION, ADMIN_PREVIEW_EXIT_ACTION, createAdminPreviewAuditLog } from "@/lib/adminPreviewAudit";
 
 export default function LeagueTeamDashboard() {
   const navigate = useNavigate();
@@ -29,9 +32,10 @@ export default function LeagueTeamDashboard() {
   const [activeTab, setActiveTab] = useState(requestedTab);
   const [activeAccountId, setActiveAccountId] = useState(null);
   const [defaultAccountId, setDefaultAccountId] = useState(null);
+  const loggedAdminPreviewEntriesRef = useRef(new Set());
 
   const { data: user, isLoading: loadingUser } = useQuery({ queryKey: ["leagueDashboardUser"], queryFn: () => base44.auth.me() });
-  const canAdminPreview = adminPreviewAccountId && user?.role === "master";
+  const canAdminPreview = !!adminPreviewAccountId && canAdminPreviewOrganization(user);
   const { data: organizerAccounts = [], isLoading: loadingAccounts } = useQuery({
     queryKey: ["leagueDashboardAccounts", user?.id, user?.email, adminPreviewAccountId, canAdminPreview],
     queryFn: () => canAdminPreview
@@ -76,6 +80,9 @@ export default function LeagueTeamDashboard() {
   useEffect(() => setActiveTab(requestedTab), [requestedTab]);
 
   const account = accounts.find((item) => item.id === activeAccountId) || accounts[0] || null;
+  const adminPreviewSessionKey = canAdminPreview && account?.id === adminPreviewAccountId
+    ? `${user?.id || user?.email}:${account.id}:${adminPreviewAccountId}:league_team`
+    : null;
   const isOwner = canAdminPreview || userOwnsLeagueAccount(account, user);
 
   const { data: updates = [] } = useQuery({ queryKey: ["leagueDashboardUpdates", account?.id], queryFn: () => base44.entities.VendorUpdate.filter({ vendor_account_id: account.id }, "-created_date"), enabled: !!account?.id });
@@ -114,6 +121,38 @@ export default function LeagueTeamDashboard() {
     queryClient.invalidateQueries({ queryKey: ["leagueDashboardMemberships"] });
     queryClient.invalidateQueries({ queryKey: ["leagueDashboardAssignments"] });
   };
+
+  const handleExitAdminMode = async () => {
+    try {
+      await createAdminPreviewAuditLog({
+        actionType: ADMIN_PREVIEW_EXIT_ACTION,
+        user,
+        account,
+        dashboardType: "league_team",
+        occurredAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Admin preview exit audit failed:", error);
+    } finally {
+      navigate("/AdminLite?section=operations&liteTab=vendors", { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    if (!adminPreviewSessionKey || !canAdminPreview || account?.id !== adminPreviewAccountId) return;
+    if (loggedAdminPreviewEntriesRef.current.has(adminPreviewSessionKey)) return;
+
+    loggedAdminPreviewEntriesRef.current.add(adminPreviewSessionKey);
+    createAdminPreviewAuditLog({
+      actionType: ADMIN_PREVIEW_ENTRY_ACTION,
+      user,
+      account,
+      dashboardType: "league_team",
+      occurredAt: new Date().toISOString(),
+    }).catch((error) => {
+      console.error("Admin preview entry audit failed:", error);
+    });
+  }, [adminPreviewSessionKey, canAdminPreview, account?.id, adminPreviewAccountId, user?.id, user?.email]);
 
   const handleTabChange = (nextTab) => {
     setActiveTab(nextTab);
@@ -182,6 +221,7 @@ export default function LeagueTeamDashboard() {
         </div>
 
         <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 sm:pb-24 lg:p-6 lg:pb-24 space-y-3 sm:space-y-6">
+          {canAdminPreview && <AdminPreviewBanner account={account} onExit={handleExitAdminMode} />}
           <TabsContent value="profile" className="mt-0 min-w-0"><VendorBusinessPage account={account} pins={[]} checkIns={[]} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="events" className="mt-0 min-w-0"><LeagueEventsTab account={account} user={user} /></TabsContent>
           <TabsContent value="teams" className="mt-0 min-w-0"><LeagueTeamsTab account={account} user={user} /></TabsContent>

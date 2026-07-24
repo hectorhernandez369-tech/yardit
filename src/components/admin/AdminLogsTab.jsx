@@ -49,18 +49,19 @@ export default function AdminLogsTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["adminLogsAuditView"],
     queryFn: async () => {
-      const [events, actions, adminProfiles, cases, listings, users] = await Promise.all([
+      const [events, actions, auditLogs, adminProfiles, cases, listings, users] = await Promise.all([
         base44.entities.AdminEvent.list("-created_date", 150),
         base44.entities.AdminAction.list("-created_date", 150),
+        base44.entities.AdminAuditLog.list("-created_date", 150),
         base44.entities.AdminProfile.list("-created_date", 200),
         base44.entities.Case.list("-created_date", 200),
         base44.entities.Listing.list("-created_date", 200),
         base44.entities.User.list("-created_date", 200),
       ]);
 
-      return { events, actions, adminProfiles, cases, listings, users };
+      return { events, actions, auditLogs, adminProfiles, cases, listings, users };
     },
-    initialData: { events: [], actions: [], adminProfiles: [], cases: [], listings: [], users: [] },
+    initialData: { events: [], actions: [], auditLogs: [], adminProfiles: [], cases: [], listings: [], users: [] },
   });
 
   const references = useMemo(() => {
@@ -96,7 +97,8 @@ export default function AdminLogsTab() {
   const allLogs = useMemo(() => {
     const events = (data.events || []).map((item) => ({ ...item, _kind: "event" }));
     const actions = (data.actions || []).map((item) => ({ ...item, _kind: "action" }));
-    return [...events, ...actions].sort(
+    const auditLogs = (data.auditLogs || []).map((item) => ({ ...item, _kind: "audit" }));
+    return [...events, ...actions, ...auditLogs].sort(
       (a, b) => new Date(b.created_at || b.created_date) - new Date(a.created_at || a.created_date)
     );
   }, [data]);
@@ -104,8 +106,9 @@ export default function AdminLogsTab() {
   const filteredLogs = useMemo(() => {
     return allLogs.filter((log) => {
       const type = (log.event_type || log.action_type || "").toLowerCase();
+      const metadata = parseJsonSafe(log.metadata) || {};
       const actionLabel = getFriendlyActionLabel(log).toLowerCase();
-      const actor = (references.admins[log.admin_id] || log.admin_id || "").toLowerCase();
+      const actor = (references.admins[log.admin_id || log.user_id] || metadata.admin_email || log.admin_employee_id || log.admin_id || log.user_id || "").toLowerCase();
       const target = getTargetSummary(log, references).toLowerCase();
       const matchesSearch = !searchQuery.trim() || [type, actionLabel, actor, target, log.comment || ""].some((value) =>
         String(value).toLowerCase().includes(searchQuery.toLowerCase())
@@ -184,12 +187,13 @@ export default function AdminLogsTab() {
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
           {filteredLogs.slice(0, 200).map((log) => {
             const expanded = !!expandedIds[log.id];
+            const metadata = parseJsonSafe(log.metadata) || {};
             const changes = buildChangeSummary(log, references);
-            const technicalPayload = parseJsonSafe(log.event_payload);
+            const technicalPayload = parseJsonSafe(log.event_payload || log.metadata);
             const tone = getBadgeTone(log);
             const caseId = log.case_id;
             const listingId = log.listing_id;
-            const actorLabel = references.admins[log.admin_id] || log.admin_id || "Unknown Admin";
+            const actorLabel = references.admins[log.admin_id || log.user_id] || metadata.admin_email || log.admin_employee_id || log.admin_id || log.user_id || "Unknown Admin";
             const targetLabel = getTargetSummary(log, references);
 
             return (
@@ -207,6 +211,7 @@ export default function AdminLogsTab() {
                       <div className="grid gap-1 text-sm text-slate-700">
                         <p><span className="font-medium text-slate-900">Actor:</span> {actorLabel}</p>
                         <p><span className="font-medium text-slate-900">Target:</span> {targetLabel}</p>
+                        {metadata.dashboard_type && <p><span className="font-medium text-slate-900">Dashboard:</span> {formatPageArea(metadata.dashboard_type)}</p>}
                         <p><span className="font-medium text-slate-900">Page/Area:</span> {formatPageArea(log.page)}</p>
                       </div>
                     </div>
@@ -243,7 +248,7 @@ export default function AdminLogsTab() {
                   ) : null}
 
                   <div className="flex items-center justify-between gap-3 pt-1">
-                    <p className="text-xs text-slate-500">Type: {log._kind === "event" ? "UI Event" : "Admin Action"}</p>
+                    <p className="text-xs text-slate-500">Type: {log._kind === "event" ? "UI Event" : log._kind === "audit" ? "Admin Audit" : "Admin Action"}</p>
                     <Button size="sm" variant="ghost" onClick={() => toggleExpanded(log.id)}>
                       {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       {expanded ? "Hide Details" : "Show Details"}

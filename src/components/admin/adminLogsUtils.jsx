@@ -28,6 +28,8 @@ const ACTION_LABELS = {
   admin_voided_fee: "Voided Fee",
   admin_granted_credit: "Granted Credit",
   admin_used_override: "Used Admin Override",
+  admin_entered_organization_dashboard: "Entered Organization Dashboard",
+  admin_exited_organization_dashboard: "Exited Organization Dashboard",
 };
 
 const FIELD_LABELS = {
@@ -69,7 +71,7 @@ export function getFriendlyActionLabel(log) {
 
 export function getLogCategory(log) {
   const type = (log.event_type || log.action_type || "").toLowerCase();
-  if (type.includes("pin") || type.includes("access") || type.includes("login") || type.includes("lock")) return "security";
+  if (type.includes("pin") || type.includes("access") || type.includes("login") || type.includes("lock") || type.includes("organization_dashboard")) return "security";
   if (log.case_id || type.includes("case") || type.includes("disposition") || type.includes("assign")) return "case";
   if (log.listing_id || type.includes("listing")) return "listing";
   if (type.includes("user") || type.includes("accountstatus") || type.includes("account_status")) return "user";
@@ -133,6 +135,8 @@ export function buildChangeSummary(log, lookups = {}) {
 
 export function getTargetSummary(log, references = {}) {
   const category = getLogCategory(log);
+  const metadata = parseJsonSafe(log.metadata) || {};
+  if (log.target_type === "VendorAccount" || metadata.organization_name) return `Organization: ${metadata.organization_name || log.target_id || "Unknown Organization"}`;
   if (log.case_id && references.cases?.[log.case_id]) return `Case: ${references.cases[log.case_id]}`;
   if (log.listing_id && references.listings?.[log.listing_id]) return `Listing: ${references.listings[log.listing_id]}`;
   if (category === "user" && log.target_id && references.users?.[log.target_id]) return `User: ${references.users[log.target_id]}`;
