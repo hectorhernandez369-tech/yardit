@@ -31,7 +31,7 @@ export default function LeagueTeamDashboard() {
   const [defaultAccountId, setDefaultAccountId] = useState(null);
 
   const { data: user, isLoading: loadingUser } = useQuery({ queryKey: ["leagueDashboardUser"], queryFn: () => base44.auth.me() });
-  const canAdminPreview = adminPreviewAccountId && ["master", "super_master"].includes(user?.role);
+  const canAdminPreview = adminPreviewAccountId && user?.role === "master";
   const { data: organizerAccounts = [], isLoading: loadingAccounts } = useQuery({
     queryKey: ["leagueDashboardAccounts", user?.id, user?.email, adminPreviewAccountId, canAdminPreview],
     queryFn: () => canAdminPreview
@@ -49,7 +49,16 @@ export default function LeagueTeamDashboard() {
 
   useEffect(() => {
     if (loadingAccounts) return;
-    const paramId = new URLSearchParams(window.location.search).get("account");
+    const params = new URLSearchParams(window.location.search);
+    const paramId = params.get("account");
+
+    if (adminPreviewAccountId && !canAdminPreview) {
+      params.delete("adminPreview");
+      params.delete("account");
+      navigate(`/LeagueTeamDashboard?${params.toString()}`, { replace: true });
+      return;
+    }
+
     const requestedAccount = organizerAccounts.find((item) => item.id === paramId);
     if (requestedAccount && isVendorDashboardAccount(requestedAccount) && !adminPreviewAccountId) {
       navigate(`/VendorDashboard?tab=profile&account=${requestedAccount.id}`, { replace: true });
@@ -62,12 +71,12 @@ export default function LeagueTeamDashboard() {
     else if (savedId && accounts.find((item) => item.id === savedId)) setActiveAccountId(savedId);
     else if (savedLastOrganizerId && accounts.find((item) => item.id === savedLastOrganizerId)) setActiveAccountId(savedLastOrganizerId);
     else setActiveAccountId(accounts[0].id);
-  }, [accounts, organizerAccounts, loadingAccounts, storageKey, navigate, adminPreviewAccountId]);
+  }, [accounts, organizerAccounts, loadingAccounts, storageKey, navigate, adminPreviewAccountId, canAdminPreview]);
 
   useEffect(() => setActiveTab(requestedTab), [requestedTab]);
 
   const account = accounts.find((item) => item.id === activeAccountId) || accounts[0] || null;
-  const isOwner = userOwnsLeagueAccount(account, user);
+  const isOwner = canAdminPreview || userOwnsLeagueAccount(account, user);
 
   const { data: updates = [] } = useQuery({ queryKey: ["leagueDashboardUpdates", account?.id], queryFn: () => base44.entities.VendorUpdate.filter({ vendor_account_id: account.id }, "-created_date"), enabled: !!account?.id });
   const { data: ownerGames = [] } = useQuery({ queryKey: ["leagueDashboardGames", account?.id, "owner"], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: account.id }, "sort_order"), enabled: !!account?.id && isOwner });
@@ -115,7 +124,9 @@ export default function LeagueTeamDashboard() {
 
   const handleSelectAccount = (nextAccount) => {
     setActiveAccountId(nextAccount.id);
-    localStorage.setItem("yardit_last_organizer_account_id", nextAccount.id);
+    if (!canAdminPreview) {
+      localStorage.setItem("yardit_last_organizer_account_id", nextAccount.id);
+    }
     navigate(`/LeagueTeamDashboard?tab=${activeTab}&account=${nextAccount.id}`, { replace: true });
   };
 

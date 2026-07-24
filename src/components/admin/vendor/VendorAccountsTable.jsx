@@ -55,6 +55,7 @@ export default function VendorAccountsTable({ user }) {
   const [editAccount, setEditAccount] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const isMasterAdmin = user?.role === "master" || user?.role === "super_master";
+  const canEnterOrganizationDashboard = user?.role === "master";
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ["vendorAccountsAdmin"],
@@ -172,13 +173,15 @@ export default function VendorAccountsTable({ user }) {
                   </div>
 
                   <div className="shrink-0 flex flex-col gap-2">
-                    <Button
-                      size="sm"
-                      className="gap-1.5 text-xs bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]"
-                      onClick={() => navigate(getAdminDashboardPath(account))}
-                    >
-                      <LayoutDashboard className="w-3.5 h-3.5" /> Enter Dashboard
-                    </Button>
+                    {canEnterOrganizationDashboard && (
+                      <Button
+                        size="sm"
+                        className="gap-1.5 text-xs bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]"
+                        onClick={() => navigate(getAdminDashboardPath(account))}
+                      >
+                        <LayoutDashboard className="w-3.5 h-3.5" /> Enter Dashboard
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"

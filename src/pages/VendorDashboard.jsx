@@ -35,22 +35,20 @@ export default function VendorDashboard() {
     queryKey: ["vendorDashboardUser"],
     queryFn: () => base44.auth.me(),
   });
+  const canAdminPreview = adminPreviewAccountId && user?.role === "master";
 
   // Use shared helper for consistent account detection
   const { data: organizerAccounts = [], isLoading: loadingAccounts } = useQuery({
-    queryKey: ["vendorDashboardAccounts", user?.id, user?.email, adminPreviewAccountId],
-    queryFn: () => {
-      const canAdminPreview = adminPreviewAccountId && ["master", "super_master"].includes(user?.role);
-      return canAdminPreview
-        ? base44.entities.VendorAccount.filter({ id: adminPreviewAccountId })
-        : getUserVendorAccounts(user);
-    },
+    queryKey: ["vendorDashboardAccounts", user?.id, user?.email, adminPreviewAccountId, canAdminPreview],
+    queryFn: () => canAdminPreview
+      ? base44.entities.VendorAccount.filter({ id: adminPreviewAccountId })
+      : getUserVendorAccounts(user),
     enabled: !!user?.id || !!user?.email,
   });
 
   const accounts = useMemo(
-    () => adminPreviewAccountId ? organizerAccounts : organizerAccounts.filter(isVendorDashboardAccount),
-    [adminPreviewAccountId, organizerAccounts]
+    () => canAdminPreview ? organizerAccounts : organizerAccounts.filter(isVendorDashboardAccount),
+    [canAdminPreview, organizerAccounts]
   );
 
   const defaultAccountStorageKey = user?.id || user?.email
@@ -66,6 +64,13 @@ export default function VendorDashboard() {
 
     const params = new URLSearchParams(window.location.search);
     const paramId = params.get("account");
+
+    if (adminPreviewAccountId && !canAdminPreview) {
+      params.delete("adminPreview");
+      params.delete("account");
+      navigate(`/VendorDashboard?${params.toString()}`, { replace: true });
+      return;
+    }
 
     const requestedAccount = organizerAccounts.find(
       (item) => item.id === paramId
@@ -143,13 +148,14 @@ export default function VendorDashboard() {
     loadingAccounts,
     defaultAccountStorageKey,
     adminPreviewAccountId,
+    canAdminPreview,
     navigate,
     activeAccountId,
   ]);
 
   const account = accounts.find((a) => a.id === activeAccountId) || accounts[0] || null;
 
-  const isOwner = !!account && (
+  const isOwner = canAdminPreview || !!account && (
     account.owner_user_id === user?.id ||
     account.owner_user_id === user?.email ||
     account.owner_email === user?.email
@@ -233,7 +239,7 @@ export default function VendorDashboard() {
   };
 
   const handleSetDefaultAccount = (acc) => {
-    if (!acc?.id || adminPreviewAccountId) return;
+    if (!acc?.id || canAdminPreview) return;
 
     if (isLeagueTeamAccount(acc)) {
       const userKey = user?.id || user?.email;
@@ -320,7 +326,7 @@ export default function VendorDashboard() {
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
             <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={organizerAccounts} onSelectBusiness={handleSelectBusiness} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} />
             <div className="hidden sm:block">
-              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectBusiness} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!adminPreviewAccountId} />
+              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectBusiness} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!canAdminPreview} />
               <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
             </div>
 
