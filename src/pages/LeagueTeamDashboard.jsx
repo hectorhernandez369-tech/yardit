@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,14 +24,16 @@ import { ADMIN_PREVIEW_ENTRY_ACTION, ADMIN_PREVIEW_EXIT_ACTION, createAdminPrevi
 
 export default function LeagueTeamDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
-  const urlParams = new URLSearchParams(window.location.search);
+  const urlParams = new URLSearchParams(location.search);
   const requestedRawTab = urlParams.get("tab") || "profile";
   const requestedTab = requestedRawTab === "games" ? "schedule" : requestedRawTab === "history" ? "events" : requestedRawTab;
   const adminPreviewAccountId = urlParams.get("adminPreview") === "1" ? urlParams.get("account") : null;
   const [activeTab, setActiveTab] = useState(requestedTab);
   const [activeAccountId, setActiveAccountId] = useState(null);
   const [defaultAccountId, setDefaultAccountId] = useState(null);
+  const explicitSelectionAccountRef = useRef(null);
   const loggedAdminPreviewEntriesRef = useRef(new Set());
 
   const { data: user, isLoading: loadingUser } = useQuery({ queryKey: ["leagueDashboardUser"], queryFn: () => base44.auth.me() });
@@ -53,29 +55,60 @@ export default function LeagueTeamDashboard() {
 
   useEffect(() => {
     if (loadingAccounts) return;
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const paramId = params.get("account");
+    const isExplicitAccountSelection = params.get("accountSelection") === "1";
 
     if (adminPreviewAccountId && !canAdminPreview) {
       params.delete("adminPreview");
       params.delete("account");
+      params.delete("accountSelection");
       navigate(`/LeagueTeamDashboard?${params.toString()}`, { replace: true });
       return;
     }
 
     const requestedAccount = organizerAccounts.find((item) => item.id === paramId);
     if (requestedAccount && isVendorDashboardAccount(requestedAccount) && !adminPreviewAccountId) {
-      navigate(`/VendorDashboard?tab=profile&account=${requestedAccount.id}`, { replace: true });
+      navigate(`/VendorDashboard?tab=profile&account=${requestedAccount.id}&accountSelection=1`, { replace: true });
       return;
     }
     if (!accounts.length) return setActiveAccountId(null);
+
     const savedLastOrganizerId = localStorage.getItem("yardit_last_organizer_account_id");
     const savedId = localStorage.getItem(storageKey);
-    if (paramId && accounts.find((item) => item.id === paramId)) setActiveAccountId(paramId);
-    else if (savedId && accounts.find((item) => item.id === savedId)) setActiveAccountId(savedId);
-    else if (savedLastOrganizerId && accounts.find((item) => item.id === savedLastOrganizerId)) setActiveAccountId(savedLastOrganizerId);
-    else setActiveAccountId(accounts[0].id);
-  }, [accounts, organizerAccounts, loadingAccounts, storageKey, navigate, adminPreviewAccountId, canAdminPreview]);
+    const hasAccount = (id) => !!id && accounts.some((item) => item.id === id);
+
+    let nextAccountId = null;
+
+    if (hasAccount(adminPreviewAccountId)) {
+      nextAccountId = adminPreviewAccountId;
+      explicitSelectionAccountRef.current = null;
+    } else if (isExplicitAccountSelection && hasAccount(paramId)) {
+      nextAccountId = paramId;
+      explicitSelectionAccountRef.current = paramId;
+    } else if (hasAccount(paramId) && explicitSelectionAccountRef.current === paramId) {
+      nextAccountId = paramId;
+    } else if (hasAccount(savedId)) {
+      nextAccountId = savedId;
+      explicitSelectionAccountRef.current = null;
+    } else if (hasAccount(savedLastOrganizerId)) {
+      nextAccountId = savedLastOrganizerId;
+      explicitSelectionAccountRef.current = null;
+    } else {
+      nextAccountId = accounts[0].id;
+      explicitSelectionAccountRef.current = null;
+    }
+
+    if (activeAccountId !== nextAccountId) {
+      setActiveAccountId(nextAccountId);
+    }
+
+    if (!adminPreviewAccountId && (isExplicitAccountSelection || paramId !== nextAccountId)) {
+      params.delete("accountSelection");
+      params.set("account", nextAccountId);
+      navigate(`/LeagueTeamDashboard?${params.toString()}`, { replace: true });
+    }
+  }, [accounts, organizerAccounts, loadingAccounts, storageKey, navigate, adminPreviewAccountId, canAdminPreview, location.search]);
 
   useEffect(() => setActiveTab(requestedTab), [requestedTab]);
 
@@ -156,7 +189,7 @@ export default function LeagueTeamDashboard() {
 
   const handleTabChange = (nextTab) => {
     setActiveTab(nextTab);
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     params.set("tab", nextTab);
     navigate(`/LeagueTeamDashboard?${params.toString()}`, { replace: true });
   };
@@ -169,12 +202,12 @@ export default function LeagueTeamDashboard() {
     }
 
     if (!canAdminPreview && isVendorDashboardAccount(nextAccount)) {
-      navigate(`/VendorDashboard?tab=profile&account=${nextAccount.id}`, { replace: true });
+      navigate(`/VendorDashboard?tab=profile&account=${nextAccount.id}&accountSelection=1`, { replace: true });
       return;
     }
 
     setActiveAccountId(nextAccount.id);
-    navigate(`/LeagueTeamDashboard?tab=${activeTab}&account=${nextAccount.id}`, { replace: true });
+    navigate(`/LeagueTeamDashboard?tab=${activeTab}&account=${nextAccount.id}&accountSelection=1`, { replace: true });
   };
 
   const handleSetDefaultAccount = (nextAccount) => {

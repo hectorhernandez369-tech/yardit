@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,8 +24,9 @@ import { ADMIN_PREVIEW_ENTRY_ACTION, ADMIN_PREVIEW_EXIT_ACTION, createAdminPrevi
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
-  const urlParams = new URLSearchParams(window.location.search);
+  const urlParams = new URLSearchParams(location.search);
   const requestedTab = urlParams.get("tab") || "profile";
   const adminPreviewAccountId = urlParams.get("adminPreview") === "1" ? urlParams.get("account") : null;
   const [activeTab, setActiveTab] = useState(requestedTab);
@@ -33,6 +34,7 @@ export default function VendorDashboard() {
   // Multi-business: which account is currently active
   const [activeAccountId, setActiveAccountId] = useState(null);
   const [defaultAccountId, setDefaultAccountId] = useState(null);
+  const explicitSelectionAccountRef = useRef(null);
   const loggedAdminPreviewEntriesRef = useRef(new Set());
 
   const { data: user, isLoading: loadingUser } = useQuery({
@@ -66,12 +68,14 @@ export default function VendorDashboard() {
   useEffect(() => {
     if (loadingAccounts) return;
 
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const paramId = params.get("account");
+    const isExplicitAccountSelection = params.get("accountSelection") === "1";
 
     if (adminPreviewAccountId && !canAdminPreview) {
       params.delete("adminPreview");
       params.delete("account");
+      params.delete("accountSelection");
       navigate(`/VendorDashboard?${params.toString()}`, { replace: true });
       return;
     }
@@ -86,7 +90,7 @@ export default function VendorDashboard() {
       !adminPreviewAccountId
     ) {
       navigate(
-        `/LeagueTeamDashboard?tab=profile&account=${requestedAccount.id}`,
+        `/LeagueTeamDashboard?tab=profile&account=${requestedAccount.id}&accountSelection=1`,
         { replace: true }
       );
       return;
@@ -99,38 +103,35 @@ export default function VendorDashboard() {
 
     const savedDefaultId = localStorage.getItem(defaultAccountStorageKey);
     const savedLastOrganizerId = localStorage.getItem("yardit_last_organizer_account_id");
+    const hasAccount = (id) => !!id && accounts.some((item) => item.id === id);
 
     let nextAccountId = null;
 
-    if (
-      adminPreviewAccountId &&
-      accounts.some((item) => item.id === adminPreviewAccountId)
-    ) {
+    if (hasAccount(adminPreviewAccountId)) {
       nextAccountId = adminPreviewAccountId;
-    } else if (
-      paramId &&
-      accounts.some((item) => item.id === paramId)
-    ) {
+      explicitSelectionAccountRef.current = null;
+    } else if (isExplicitAccountSelection && hasAccount(paramId)) {
       nextAccountId = paramId;
-    } else if (
-      savedDefaultId &&
-      accounts.some((item) => item.id === savedDefaultId)
-    ) {
+      explicitSelectionAccountRef.current = paramId;
+    } else if (hasAccount(paramId) && explicitSelectionAccountRef.current === paramId) {
+      nextAccountId = paramId;
+    } else if (hasAccount(savedDefaultId)) {
       nextAccountId = savedDefaultId;
-    } else if (
-      savedLastOrganizerId &&
-      accounts.some((item) => item.id === savedLastOrganizerId)
-    ) {
+      explicitSelectionAccountRef.current = null;
+    } else if (hasAccount(savedLastOrganizerId)) {
       nextAccountId = savedLastOrganizerId;
+      explicitSelectionAccountRef.current = null;
     } else {
       nextAccountId = accounts[0].id;
+      explicitSelectionAccountRef.current = null;
     }
 
     if (activeAccountId !== nextAccountId) {
       setActiveAccountId(nextAccountId);
     }
 
-    if (!adminPreviewAccountId && paramId !== nextAccountId) {
+    if (!adminPreviewAccountId && (isExplicitAccountSelection || paramId !== nextAccountId)) {
+      params.delete("accountSelection");
       params.set("account", nextAccountId);
 
       navigate(
@@ -146,6 +147,7 @@ export default function VendorDashboard() {
     adminPreviewAccountId,
     canAdminPreview,
     navigate,
+    location.search,
   ]);
 
   const account = accounts.find((a) => a.id === activeAccountId) || accounts[0] || null;
@@ -231,7 +233,7 @@ export default function VendorDashboard() {
 
   const handleTabChange = (nextTab) => {
     setActiveTab(nextTab);
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     params.set("tab", nextTab);
     navigate(`/VendorDashboard?${params.toString()}`, { replace: true });
   };
@@ -244,16 +246,19 @@ export default function VendorDashboard() {
     }
 
     if (!canAdminPreview && isLeagueTeamAccount(acc)) {
-      navigate(`/LeagueTeamDashboard?tab=profile&account=${acc.id}`, { replace: true });
+      navigate(`/LeagueTeamDashboard?tab=profile&account=${acc.id}&accountSelection=1`, { replace: true });
       return;
     }
 
     setActiveAccountId(acc.id);
 
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
 
     params.set("tab", activeTab);
     params.set("account", acc.id);
+    if (!canAdminPreview) {
+      params.set("accountSelection", "1");
+    }
 
     navigate(
       `/VendorDashboard?${params.toString()}`,
@@ -301,10 +306,11 @@ export default function VendorDashboard() {
     setDefaultAccountId(acc.id);
     setActiveAccountId(acc.id);
 
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
 
     params.set("tab", activeTab);
     params.set("account", acc.id);
+    params.delete("accountSelection");
 
     navigate(
       `/VendorDashboard?${params.toString()}`,
