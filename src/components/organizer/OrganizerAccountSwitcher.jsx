@@ -17,8 +17,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export const LAST_ORGANIZER_ACCOUNT_KEY = "yardit_last_organizer_account_id";
-
 export const ORGANIZER_TYPE_CONFIG = {
   vendor_event: {
     label: "Vendor/Event Organizer",
@@ -108,7 +106,11 @@ const getOrganizerRoute = (account, dashboardType, currentTab, adminPreview) => 
   const targetType = getOrganizerDashboardType(account);
   const config = getOrganizerTypeConfig(targetType);
   const params = new URLSearchParams();
-  params.set("tab", targetType === dashboardType ? (currentTab || "profile") : "profile");
+
+  if (currentTab) {
+    params.set("tab", targetType === dashboardType ? currentTab : "profile");
+  }
+
   params.set("account", account.id);
   if (adminPreview && targetType === "vendor_event") params.set("adminPreview", "1");
   return `${config.route}?${params.toString()}`;
@@ -118,14 +120,7 @@ export function useOrganizerAccountSelect({ dashboardType, currentTab, onSelectS
   const navigate = useNavigate();
   return (account) => {
     if (!account?.id) return;
-    if (!adminPreview) {
-      localStorage.setItem(LAST_ORGANIZER_ACCOUNT_KEY, account.id);
-    }
-    if (getOrganizerDashboardType(account) === dashboardType && onSelectSameDashboard) {
-      onSelectSameDashboard(account);
-      return;
-    }
-    navigate(getOrganizerRoute(account, dashboardType, currentTab, adminPreview), { replace: true });
+    navigate(getOrganizerRoute(account, dashboardType, currentTab, adminPreview));
   };
 }
 

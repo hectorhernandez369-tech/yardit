@@ -73,9 +73,11 @@ export default function VendorDashboard() {
     const paramId = params.get("account");
 
     if (adminPreviewAccountId && !canAdminPreview) {
-      params.delete("adminPreview");
-      params.delete("account");
-      navigate(`/VendorDashboard?${params.toString()}`, { replace: true });
+      const nextParams = new URLSearchParams();
+      if (activeTab) {
+        nextParams.set("tab", activeTab);
+      }
+      navigate(`/VendorDashboard?${nextParams.toString()}`, { replace: true });
       return;
     }
 
@@ -115,10 +117,14 @@ export default function VendorDashboard() {
     }
 
     if (!adminPreviewAccountId && paramId !== nextAccountId) {
-      params.set("account", nextAccountId);
+      const nextParams = new URLSearchParams();
+      if (activeTab) {
+        nextParams.set("tab", activeTab);
+      }
+      nextParams.set("account", nextAccountId);
 
       navigate(
-        `/VendorDashboard?${params.toString()}`,
+        `/VendorDashboard?${nextParams.toString()}`,
         { replace: true }
       );
     }
@@ -129,6 +135,7 @@ export default function VendorDashboard() {
     defaultAccountStorageKey,
     adminPreviewAccountId,
     canAdminPreview,
+    activeTab,
     navigate,
     location.search,
   ]);
@@ -224,26 +231,26 @@ export default function VendorDashboard() {
   const handleSelectBusiness = (acc) => {
     if (!acc?.id) return;
 
-    if (!canAdminPreview) {
-      localStorage.setItem("yardit_last_organizer_account_id", acc.id);
-    }
-
     if (!canAdminPreview && isLeagueTeamAccount(acc)) {
-      navigate(`/LeagueTeamDashboard?tab=profile&account=${acc.id}`, { replace: true });
+      const params = new URLSearchParams();
+      if (activeTab) {
+        params.set("tab", "profile");
+      }
+      params.set("account", acc.id);
+      navigate(`/LeagueTeamDashboard?${params.toString()}`);
       return;
     }
 
     setActiveAccountId(acc.id);
 
-    const params = new URLSearchParams(location.search);
+    const params = new URLSearchParams();
 
-    params.set("tab", activeTab);
+    if (activeTab) {
+      params.set("tab", activeTab);
+    }
     params.set("account", acc.id);
 
-    navigate(
-      `/VendorDashboard?${params.toString()}`,
-      { replace: true }
-    );
+    navigate(`/VendorDashboard?${params.toString()}`);
 
     queryClient.invalidateQueries({
       queryKey: ["vendorDashboardPins", acc.id],
