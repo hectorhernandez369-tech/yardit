@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { OrganizerAccountCreateMenu, OrganizerAccountMenuItems, getOrganizerAccountName, getOrganizerTypeLabel, useOrganizerAccountSelect } from "@/components/organizer/OrganizerAccountSwitcher";
 
-export default function MobileVendorHeader({ account, activeCheckIn, activePin, accounts = [], onSelectBusiness, onSetDefaultAccount, defaultAccountId, dashboardType = "vendor_event", currentTab, adminPreview = false }) {
+export default function MobileVendorHeader({ account, activeCheckIn, activePin, accounts = [], onSelectBusiness, defaultAccountId, dashboardType = "vendor_event", currentTab, adminPreview = false }) {
   const hasMultiple = accounts.length > 0;
   const handleSelectAccount = useOrganizerAccountSelect({ dashboardType, currentTab, onSelectSameDashboard: onSelectBusiness, adminPreview });
 
@@ -39,7 +39,7 @@ export default function MobileVendorHeader({ account, activeCheckIn, activePin, 
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-60">
-                <OrganizerAccountMenuItems accounts={accounts} activeAccount={account} defaultAccountId={defaultAccountId} onSelect={handleSelectAccount} onSetDefault={onSetDefaultAccount} />
+                <OrganizerAccountMenuItems accounts={accounts} activeAccount={account} defaultAccountId={defaultAccountId} onSelect={handleSelectAccount} />
                 <OrganizerAccountCreateMenu />
               </DropdownMenuContent>
             </DropdownMenu>

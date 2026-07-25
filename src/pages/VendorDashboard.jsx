@@ -14,6 +14,7 @@ import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
 import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
+import DefaultVendorPageControl from "@/components/vendor/DefaultVendorPageControl";
 import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
 import VendorAccessDenied from "@/components/vendor/VendorAccessDenied";
 import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
@@ -21,6 +22,7 @@ import { getUserVendorAccounts, isLeagueTeamAccount, isVendorDashboardAccount } 
 import { canAdminPreviewOrganization } from "@/lib/canAdminPreviewOrganization";
 import AdminPreviewBanner from "@/components/admin/AdminPreviewBanner";
 import { ADMIN_PREVIEW_ENTRY_ACTION, ADMIN_PREVIEW_EXIT_ACTION, createAdminPreviewAuditLog } from "@/lib/adminPreviewAudit";
+import { toast } from "sonner";
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
@@ -34,7 +36,6 @@ export default function VendorDashboard() {
   // Multi-business: which account is currently active
   const [activeAccountId, setActiveAccountId] = useState(null);
   const [defaultAccountId, setDefaultAccountId] = useState(null);
-  const explicitSelectionAccountRef = useRef(null);
   const loggedAdminPreviewEntriesRef = useRef(new Set());
 
   const { data: user, isLoading: loadingUser } = useQuery({
@@ -70,12 +71,10 @@ export default function VendorDashboard() {
 
     const params = new URLSearchParams(location.search);
     const paramId = params.get("account");
-    const isExplicitAccountSelection = params.get("accountSelection") === "1";
 
     if (adminPreviewAccountId && !canAdminPreview) {
       params.delete("adminPreview");
       params.delete("account");
-      params.delete("accountSelection");
       navigate(`/VendorDashboard?${params.toString()}`, { replace: true });
       return;
     }
@@ -90,7 +89,7 @@ export default function VendorDashboard() {
       !adminPreviewAccountId
     ) {
       navigate(
-        `/LeagueTeamDashboard?tab=profile&account=${requestedAccount.id}&accountSelection=1`,
+        `/LeagueTeamDashboard?tab=profile&account=${requestedAccount.id}`,
         { replace: true }
       );
       return;
@@ -102,36 +101,20 @@ export default function VendorDashboard() {
     }
 
     const savedDefaultId = localStorage.getItem(defaultAccountStorageKey);
-    const savedLastOrganizerId = localStorage.getItem("yardit_last_organizer_account_id");
     const hasAccount = (id) => !!id && accounts.some((item) => item.id === id);
-
-    let nextAccountId = null;
-
-    if (hasAccount(adminPreviewAccountId)) {
-      nextAccountId = adminPreviewAccountId;
-      explicitSelectionAccountRef.current = null;
-    } else if (isExplicitAccountSelection && hasAccount(paramId)) {
-      nextAccountId = paramId;
-      explicitSelectionAccountRef.current = paramId;
-    } else if (hasAccount(paramId) && explicitSelectionAccountRef.current === paramId) {
-      nextAccountId = paramId;
-    } else if (hasAccount(savedDefaultId)) {
-      nextAccountId = savedDefaultId;
-      explicitSelectionAccountRef.current = null;
-    } else if (hasAccount(savedLastOrganizerId)) {
-      nextAccountId = savedLastOrganizerId;
-      explicitSelectionAccountRef.current = null;
-    } else {
-      nextAccountId = accounts[0].id;
-      explicitSelectionAccountRef.current = null;
-    }
+    const nextAccountId = hasAccount(adminPreviewAccountId)
+      ? adminPreviewAccountId
+      : hasAccount(paramId)
+        ? paramId
+        : hasAccount(savedDefaultId)
+          ? savedDefaultId
+          : accounts[0].id;
 
     if (activeAccountId !== nextAccountId) {
       setActiveAccountId(nextAccountId);
     }
 
-    if (!adminPreviewAccountId && (isExplicitAccountSelection || paramId !== nextAccountId)) {
-      params.delete("accountSelection");
+    if (!adminPreviewAccountId && paramId !== nextAccountId) {
       params.set("account", nextAccountId);
 
       navigate(
@@ -246,7 +229,7 @@ export default function VendorDashboard() {
     }
 
     if (!canAdminPreview && isLeagueTeamAccount(acc)) {
-      navigate(`/LeagueTeamDashboard?tab=profile&account=${acc.id}&accountSelection=1`, { replace: true });
+      navigate(`/LeagueTeamDashboard?tab=profile&account=${acc.id}`, { replace: true });
       return;
     }
 
@@ -256,9 +239,6 @@ export default function VendorDashboard() {
 
     params.set("tab", activeTab);
     params.set("account", acc.id);
-    if (!canAdminPreview) {
-      params.set("accountSelection", "1");
-    }
 
     navigate(
       `/VendorDashboard?${params.toString()}`,
@@ -282,40 +262,12 @@ export default function VendorDashboard() {
     });
   };
 
-  const handleSetDefaultAccount = (acc) => {
-    if (!acc?.id || canAdminPreview) return;
+  const handleMakeDefaultPage = () => {
+    if (!account?.id || canAdminPreview || !isOwner) return;
 
-    if (isLeagueTeamAccount(acc)) {
-      const userKey = user?.id || user?.email;
-
-      localStorage.setItem(
-        userKey
-          ? `yardit_default_league_account_id:${userKey}`
-          : "yardit_default_league_account_id",
-        acc.id
-      );
-      localStorage.setItem("yardit_last_organizer_account_id", acc.id);
-      navigate(`/LeagueTeamDashboard?tab=profile&account=${acc.id}`, { replace: true });
-
-      return;
-    }
-
-    localStorage.setItem(defaultAccountStorageKey, acc.id);
-    localStorage.setItem("yardit_last_organizer_account_id", acc.id);
-
-    setDefaultAccountId(acc.id);
-    setActiveAccountId(acc.id);
-
-    const params = new URLSearchParams(location.search);
-
-    params.set("tab", activeTab);
-    params.set("account", acc.id);
-    params.delete("accountSelection");
-
-    navigate(
-      `/VendorDashboard?${params.toString()}`,
-      { replace: true }
-    );
+    localStorage.setItem(defaultAccountStorageKey, account.id);
+    setDefaultAccountId(account.id);
+    toast.success("This account is now your Vendor Dashboard homepage.");
   };
 
   // Mark dashboard as entered for setup tracking
@@ -365,6 +317,8 @@ export default function VendorDashboard() {
 
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
   const activePin = activeCheckIn ? pins.find((pin) => pin.id === activeCheckIn.vendor_pin_id) : null;
+  const canManageDefaultPage = !canAdminPreview && isOwner;
+  const isDefaultPage = account?.id === defaultAccountId;
 
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-slate-50">
@@ -372,9 +326,15 @@ export default function VendorDashboard() {
         {/* Dashboard header */}
         <div className="bg-gradient-to-br from-[#2C4F4E] to-[#3d6b6a] text-white shadow-lg">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
-            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={organizerAccounts} onSelectBusiness={handleSelectBusiness} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!canAdminPreview} />
+            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={organizerAccounts} onSelectBusiness={handleSelectBusiness} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!canAdminPreview} />
+            <div className="px-3 pb-2 sm:hidden">
+              <DefaultVendorPageControl canManage={canManageDefaultPage} isDefault={isDefaultPage} onMakeDefault={handleMakeDefaultPage} className="w-full" />
+            </div>
             <div className="hidden sm:block">
-              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectBusiness} onSetDefaultAccount={handleSetDefaultAccount} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!canAdminPreview} />
+              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectBusiness} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!canAdminPreview} />
+              <div className="mt-3 flex justify-end">
+                <DefaultVendorPageControl canManage={canManageDefaultPage} isDefault={isDefaultPage} onMakeDefault={handleMakeDefaultPage} />
+              </div>
               <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
             </div>
 

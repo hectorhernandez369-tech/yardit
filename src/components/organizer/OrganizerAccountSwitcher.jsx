@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { ChevronDown, Plus, Store, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +110,6 @@ const getOrganizerRoute = (account, dashboardType, currentTab, adminPreview) => 
   const params = new URLSearchParams();
   params.set("tab", targetType === dashboardType ? (currentTab || "profile") : "profile");
   params.set("account", account.id);
-  if (!adminPreview) params.set("accountSelection", "1");
   if (adminPreview && targetType === "vendor_event") params.set("adminPreview", "1");
   return `${config.route}?${params.toString()}`;
 };
@@ -130,16 +129,7 @@ export function useOrganizerAccountSelect({ dashboardType, currentTab, onSelectS
   };
 }
 
-export function OrganizerAccountMenuItems({ accounts, activeAccount, defaultAccountId, onSelect, onSetDefault }) {
-  const holdTimerRef = useRef(null);
-
-  const clearHoldTimer = () => {
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
-    }
-  };
-
+export function OrganizerAccountMenuItems({ accounts, activeAccount, defaultAccountId, onSelect }) {
   return accounts.map((acc) => {
     const config = getOrganizerTypeConfig(acc);
     const Icon = config.icon;
@@ -147,16 +137,6 @@ export function OrganizerAccountMenuItems({ accounts, activeAccount, defaultAcco
     return (
       <DropdownMenuItem
         key={acc.id}
-        onPointerDown={() => {
-          clearHoldTimer();
-          holdTimerRef.current = setTimeout(() => onSetDefault?.(acc), 650);
-        }}
-        onPointerUp={clearHoldTimer}
-        onPointerLeave={clearHoldTimer}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          onSetDefault?.(acc);
-        }}
         onClick={() => onSelect(acc)}
         className={`gap-2 ${acc.id === activeAccount?.id ? "bg-[#5DADA5]/10 text-[#2C4F4E] font-semibold" : ""}`}
       >
@@ -230,7 +210,7 @@ export function OrganizerAccountCreateMenu() {
   );
 }
 
-export default function OrganizerAccountSwitcher({ accounts, activeAccount, defaultAccountId, dashboardType, currentTab, onSelectSameDashboard, onSetDefaultAccount, adminPreview = false }) {
+export default function OrganizerAccountSwitcher({ accounts, activeAccount, defaultAccountId, dashboardType, currentTab, onSelectSameDashboard, adminPreview = false }) {
   const handleSelect = useOrganizerAccountSelect({ dashboardType, currentTab, onSelectSameDashboard, adminPreview });
   if (!accounts || accounts.length === 0) return null;
   const activeConfig = getOrganizerTypeConfig(activeAccount);
@@ -250,7 +230,7 @@ export default function OrganizerAccountSwitcher({ accounts, activeAccount, defa
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-80">
-          <OrganizerAccountMenuItems accounts={accounts} activeAccount={activeAccount} defaultAccountId={defaultAccountId} onSelect={handleSelect} onSetDefault={onSetDefaultAccount} />
+          <OrganizerAccountMenuItems accounts={accounts} activeAccount={activeAccount} defaultAccountId={defaultAccountId} onSelect={handleSelect} />
           <OrganizerAccountCreateMenu />
         </DropdownMenuContent>
       </DropdownMenu>
