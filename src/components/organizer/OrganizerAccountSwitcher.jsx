@@ -118,7 +118,9 @@ export function useOrganizerAccountSelect({ dashboardType, currentTab, onSelectS
   const navigate = useNavigate();
   return (account) => {
     if (!account?.id) return;
-    localStorage.setItem(LAST_ORGANIZER_ACCOUNT_KEY, account.id);
+    if (!adminPreview) {
+      localStorage.setItem(LAST_ORGANIZER_ACCOUNT_KEY, account.id);
+    }
     if (getOrganizerDashboardType(account) === dashboardType && onSelectSameDashboard) {
       onSelectSameDashboard(account);
       return;

@@ -10,9 +10,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { OrganizerAccountCreateMenu, OrganizerAccountMenuItems, getOrganizerAccountName, getOrganizerTypeLabel, useOrganizerAccountSelect } from "@/components/organizer/OrganizerAccountSwitcher";
 
-export default function MobileVendorHeader({ account, activeCheckIn, activePin, accounts = [], onSelectBusiness, onSetDefaultAccount, defaultAccountId, dashboardType = "vendor_event", currentTab }) {
+export default function MobileVendorHeader({ account, activeCheckIn, activePin, accounts = [], onSelectBusiness, onSetDefaultAccount, defaultAccountId, dashboardType = "vendor_event", currentTab, adminPreview = false }) {
   const hasMultiple = accounts.length > 0;
-  const handleSelectAccount = useOrganizerAccountSelect({ dashboardType, currentTab, onSelectSameDashboard: onSelectBusiness });
+  const handleSelectAccount = useOrganizerAccountSelect({ dashboardType, currentTab, onSelectSameDashboard: onSelectBusiness, adminPreview });
 
   const handlePreview = () => {
     document.getElementById("vendor-public-preview-button")?.click();
