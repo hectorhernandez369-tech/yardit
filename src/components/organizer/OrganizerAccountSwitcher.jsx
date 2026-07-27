@@ -121,6 +121,9 @@ export function useOrganizerAccountSelect({ dashboardType, currentTab, onSelectS
   const navigate = useNavigate();
   return (account) => {
     if (!account?.id) return;
+    if (!adminPreview) {
+      sessionStorage.setItem("yardit_explicit_organizer_account_id", account.id);
+    }
     navigate(getOrganizerRoute(account, dashboardType, currentTab, adminPreview));
   };
 }

@@ -57,6 +57,8 @@ export default function LeagueTeamDashboard() {
     if (loadingAccounts) return;
     const params = new URLSearchParams(location.search);
     const paramId = params.get("account");
+    const pendingExplicitAccountId = sessionStorage.getItem("yardit_explicit_organizer_account_id");
+    const isExplicitAccountParam = !!paramId && (pendingExplicitAccountId === paramId || activeAccountId === paramId);
 
     if (adminPreviewAccountId && !canAdminPreview) {
       params.delete("adminPreview");
@@ -66,7 +68,7 @@ export default function LeagueTeamDashboard() {
     }
 
     const requestedAccount = organizerAccounts.find((item) => item.id === paramId);
-    if (requestedAccount && isVendorDashboardAccount(requestedAccount) && !adminPreviewAccountId) {
+    if (requestedAccount && isVendorDashboardAccount(requestedAccount) && !adminPreviewAccountId && isExplicitAccountParam) {
       const nextParams = new URLSearchParams();
       nextParams.set("tab", "profile");
       nextParams.set("account", requestedAccount.id);
@@ -79,7 +81,7 @@ export default function LeagueTeamDashboard() {
     const hasAccount = (id) => !!id && accounts.some((item) => item.id === id);
     const nextAccountId = hasAccount(adminPreviewAccountId)
       ? adminPreviewAccountId
-      : hasAccount(paramId)
+      : isExplicitAccountParam && hasAccount(paramId)
         ? paramId
         : hasAccount(savedId)
           ? savedId
@@ -89,11 +91,15 @@ export default function LeagueTeamDashboard() {
       setActiveAccountId(nextAccountId);
     }
 
+    if (pendingExplicitAccountId === paramId) {
+      sessionStorage.removeItem("yardit_explicit_organizer_account_id");
+    }
+
     if (!adminPreviewAccountId && paramId !== nextAccountId) {
       params.set("account", nextAccountId);
       navigate(`/LeagueTeamDashboard?${params.toString()}`, { replace: true });
     }
-  }, [accounts, organizerAccounts, loadingAccounts, storageKey, navigate, adminPreviewAccountId, canAdminPreview, location.search]);
+  }, [accounts, organizerAccounts, loadingAccounts, storageKey, navigate, adminPreviewAccountId, canAdminPreview, activeAccountId, location.search]);
 
   useEffect(() => setActiveTab(requestedTab), [requestedTab]);
 

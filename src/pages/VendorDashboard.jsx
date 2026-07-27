@@ -70,6 +70,8 @@ export default function VendorDashboard() {
 
     const params = new URLSearchParams(location.search);
     const paramId = params.get("account");
+    const pendingExplicitAccountId = sessionStorage.getItem("yardit_explicit_organizer_account_id");
+    const isExplicitAccountParam = !!paramId && (pendingExplicitAccountId === paramId || activeAccountId === paramId);
 
     if (adminPreviewAccountId && !canAdminPreview) {
       const nextParams = new URLSearchParams();
@@ -87,7 +89,8 @@ export default function VendorDashboard() {
     if (
       requestedAccount &&
       isLeagueTeamAccount(requestedAccount) &&
-      !adminPreviewAccountId
+      !adminPreviewAccountId &&
+      isExplicitAccountParam
     ) {
       navigate(
         `/LeagueTeamDashboard?tab=profile&account=${requestedAccount.id}`,
@@ -105,7 +108,7 @@ export default function VendorDashboard() {
     const hasAccount = (id) => !!id && accounts.some((item) => item.id === id);
     const nextAccountId = hasAccount(adminPreviewAccountId)
       ? adminPreviewAccountId
-      : hasAccount(paramId)
+      : isExplicitAccountParam && hasAccount(paramId)
         ? paramId
         : hasAccount(savedDefaultId)
           ? savedDefaultId
@@ -113,6 +116,10 @@ export default function VendorDashboard() {
 
     if (activeAccountId !== nextAccountId) {
       setActiveAccountId(nextAccountId);
+    }
+
+    if (pendingExplicitAccountId === paramId) {
+      sessionStorage.removeItem("yardit_explicit_organizer_account_id");
     }
 
     if (!adminPreviewAccountId && paramId !== nextAccountId) {
@@ -135,6 +142,7 @@ export default function VendorDashboard() {
     adminPreviewAccountId,
     canAdminPreview,
     activeTab,
+    activeAccountId,
     navigate,
     location.search,
   ]);
