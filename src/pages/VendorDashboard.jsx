@@ -86,14 +86,22 @@ export default function VendorDashboard() {
       (item) => item.id === paramId
     );
 
+    const shouldRouteToLeagueDashboard = adminPreviewAccountId ? canAdminPreview : isExplicitAccountParam;
+
     if (
       requestedAccount &&
       isLeagueTeamAccount(requestedAccount) &&
-      !adminPreviewAccountId &&
-      isExplicitAccountParam
+      shouldRouteToLeagueDashboard
     ) {
+      const nextParams = new URLSearchParams();
+      nextParams.set("tab", "profile");
+      nextParams.set("account", requestedAccount.id);
+      if (adminPreviewAccountId && canAdminPreview) {
+        nextParams.set("adminPreview", "1");
+      }
+
       navigate(
-        `/LeagueTeamDashboard?tab=profile&account=${requestedAccount.id}`,
+        `/LeagueTeamDashboard?${nextParams.toString()}`,
         { replace: true }
       );
       return;

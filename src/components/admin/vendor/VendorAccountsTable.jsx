@@ -12,7 +12,10 @@ import VendorPromoModal from "./promos/VendorPromoModal";
 import VendorActivePromos from "./promos/VendorActivePromos";
 import AdminCreateVendorModal from "./AdminCreateVendorModal";
 import AdminEditVendorModal from "./AdminEditVendorModal";
-import { getOrganizerTypeConfig } from "@/components/organizer/OrganizerAccountSwitcher";
+import {
+  getOrganizerDashboardType,
+  getOrganizerTypeConfig,
+} from "@/components/organizer/OrganizerAccountSwitcher";
 import { canAdminPreviewOrganization } from "@/lib/canAdminPreviewOrganization";
 
 const TIER_COLORS = {
@@ -36,14 +39,20 @@ function canApplyPromo(user) {
   return canAdminPreviewOrganization(user) || role === "supervisor";
 }
 
-const getAccountType = (account) => account?.organization_type === "league_team" ? "league_team" : "vendor";
+const getAccountType = (account) => getOrganizerDashboardType(account) === "league_team" ? "league_team" : "vendor";
 
 const getAdminDashboardPath = (account) => {
-  const config = getOrganizerTypeConfig(account);
+  if (!account?.id) return null;
+
+  const organizerType = getOrganizerDashboardType(account);
+  const config = getOrganizerTypeConfig(organizerType);
+
   const params = new URLSearchParams();
+
   params.set("tab", "profile");
   params.set("account", account.id);
   params.set("adminPreview", "1");
+
   return `${config.route}?${params.toString()}`;
 };
 
@@ -92,6 +101,21 @@ export default function VendorAccountsTable({ user }) {
   });
 
   const promoAllowed = canApplyPromo(user);
+
+  const handleEnterDashboard = (account) => {
+    const dashboardPath = getAdminDashboardPath(account);
+    console.log("Admin Enter Dashboard", {
+      accountId: account.id,
+      accountName: account.business_name || account.organization_name || account.name,
+      organizationType: account.organization_type,
+      resolvedDashboardType: getOrganizerDashboardType(account),
+      destination: dashboardPath,
+    });
+
+    if (!dashboardPath) return;
+
+    navigate(dashboardPath);
+  };
 
   if (isLoading) return <div className="p-8 text-center text-slate-500">Loading vendor accounts...</div>;
 
@@ -178,7 +202,7 @@ export default function VendorAccountsTable({ user }) {
                       <Button
                         size="sm"
                         className="gap-1.5 text-xs bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]"
-                        onClick={() => navigate(getAdminDashboardPath(account))}
+                        onClick={() => handleEnterDashboard(account)}
                       >
                         <LayoutDashboard className="w-3.5 h-3.5" /> Enter Dashboard
                       </Button>

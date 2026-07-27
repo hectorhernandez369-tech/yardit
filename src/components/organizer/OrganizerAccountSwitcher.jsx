@@ -113,7 +113,7 @@ const getOrganizerRoute = (account, dashboardType, currentTab, adminPreview) => 
   }
 
   params.set("account", account.id);
-  if (adminPreview && targetType === "vendor_event") params.set("adminPreview", "1");
+  if (adminPreview) params.set("adminPreview", "1");
   return `${config.route}?${params.toString()}`;
 };
 

@@ -68,11 +68,23 @@ export default function LeagueTeamDashboard() {
     }
 
     const requestedAccount = organizerAccounts.find((item) => item.id === paramId);
-    if (requestedAccount && isVendorDashboardAccount(requestedAccount) && !adminPreviewAccountId && isExplicitAccountParam) {
+    console.log("League Admin Access Initialization", {
+      paramAccountId: paramId,
+      adminPreviewAccountId,
+      canAdminPreview,
+      requestedOrganizationType: requestedAccount?.organization_type,
+    });
+
+    const shouldRouteToVendorDashboard = adminPreviewAccountId ? canAdminPreview : isExplicitAccountParam;
+
+    if (requestedAccount && isVendorDashboardAccount(requestedAccount) && shouldRouteToVendorDashboard) {
       const nextParams = new URLSearchParams();
       nextParams.set("tab", "profile");
       nextParams.set("account", requestedAccount.id);
-      navigate(`/VendorDashboard?${nextParams.toString()}`);
+      if (adminPreviewAccountId && canAdminPreview) {
+        nextParams.set("adminPreview", "1");
+      }
+      navigate(`/VendorDashboard?${nextParams.toString()}`, { replace: true });
       return;
     }
     if (!accounts.length) return setActiveAccountId(null);
