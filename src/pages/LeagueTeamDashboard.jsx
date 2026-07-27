@@ -21,6 +21,7 @@ import { gameMatchesAssignment, membershipPermissions, userOwnsLeagueAccount } f
 import { canAdminPreviewOrganization } from "@/lib/canAdminPreviewOrganization";
 import AdminPreviewBanner from "@/components/admin/AdminPreviewBanner";
 import { ADMIN_PREVIEW_ENTRY_ACTION, ADMIN_PREVIEW_EXIT_ACTION, createAdminPreviewAuditLog } from "@/lib/adminPreviewAudit";
+import { toast } from "sonner";
 
 export default function LeagueTeamDashboard() {
   const navigate = useNavigate();
@@ -198,6 +199,14 @@ export default function LeagueTeamDashboard() {
     navigate(`/LeagueTeamDashboard?${params.toString()}`);
   };
 
+  const handleMakeDefaultPage = () => {
+    if (!account?.id || canAdminPreview || !isOwner) return;
+
+    localStorage.setItem(storageKey, account.id);
+    setDefaultAccountId(account.id);
+    toast.success("This account is now your League/Team Dashboard homepage.");
+  };
+
   if (loadingUser || loadingAccounts) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#5DADA5]" /></div>;
   if (!account) return <LeagueAccessDenied />;
 
@@ -218,15 +227,17 @@ export default function LeagueTeamDashboard() {
   const tabList = isOwner
     ? [{ value: "profile", label: "My Page" }, { value: "schedule", label: "Master Schedule" }, { value: "teams", label: "Teams" }, { value: "leagues", label: "Invitations" }, { value: "scoreboard", label: "Scoreboard" }, { value: "audit", label: "Score Review" }, { value: "events", label: "Events" }]
     : [{ value: "profile", label: "My Page" }, { value: "my_schedule", label: "My Schedule" }, { value: "schedule", label: "Full League Schedule" }, { value: "scoreboard", label: "My Scoreboard" }, { value: "events", label: "My Events" }, { value: "leagues", label: "Find My League" }, { value: "staff", label: "Staff" }];
+  const canManageDefaultPage = !canAdminPreview && isOwner;
+  const isDefaultPage = account?.id === defaultAccountId;
 
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-slate-50">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0 min-w-0">
         <div className="bg-gradient-to-br from-[#2C4F4E] to-[#3d6b6a] text-white shadow-lg">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
-            <MobileVendorHeader account={account} accounts={organizerAccounts} onSelectBusiness={handleSelectAccount} defaultAccountId={defaultAccountId} dashboardType="league_team" currentTab={activeTab} adminPreview={!!canAdminPreview} />
+            <MobileVendorHeader account={account} accounts={organizerAccounts} onSelectBusiness={handleSelectAccount} defaultAccountId={defaultAccountId} dashboardType="league_team" currentTab={activeTab} adminPreview={!!canAdminPreview} canManageDefaultPage={canManageDefaultPage} isDefaultPage={isDefaultPage} onMakeDefaultPage={handleMakeDefaultPage} />
             <div className="hidden sm:block">
-              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectAccount} defaultAccountId={defaultAccountId} dashboardType="league_team" currentTab={activeTab} adminPreview={!!canAdminPreview} />
+              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectAccount} defaultAccountId={defaultAccountId} dashboardType="league_team" currentTab={activeTab} adminPreview={!!canAdminPreview} canManageDefaultPage={canManageDefaultPage} isDefaultPage={isDefaultPage} onMakeDefaultPage={handleMakeDefaultPage} />
               <BusinessHero profile={heroProfile} onRefresh={refreshDashboard} asHeader />
             </div>
 

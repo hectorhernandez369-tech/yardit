@@ -14,7 +14,6 @@ import VendorBusinessPage from "@/components/vendor/VendorBusinessPage";
 import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
 import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
-import DefaultVendorPageControl from "@/components/vendor/DefaultVendorPageControl";
 import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
 import VendorAccessDenied from "@/components/vendor/VendorAccessDenied";
 import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
@@ -333,15 +332,9 @@ export default function VendorDashboard() {
         {/* Dashboard header */}
         <div className="bg-gradient-to-br from-[#2C4F4E] to-[#3d6b6a] text-white shadow-lg">
           <div className="max-w-7xl mx-auto w-full px-0 sm:px-5 lg:px-6 pt-0 sm:pt-6">
-            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={organizerAccounts} onSelectBusiness={handleSelectBusiness} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!canAdminPreview} />
-            <div className="px-3 pb-2 sm:hidden">
-              <DefaultVendorPageControl canManage={canManageDefaultPage} isDefault={isDefaultPage} onMakeDefault={handleMakeDefaultPage} className="w-full" />
-            </div>
+            <MobileVendorHeader account={account} activeCheckIn={activeCheckIn} activePin={activePin} accounts={organizerAccounts} onSelectBusiness={handleSelectBusiness} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!canAdminPreview} canManageDefaultPage={canManageDefaultPage} isDefaultPage={isDefaultPage} onMakeDefaultPage={handleMakeDefaultPage} />
             <div className="hidden sm:block">
-              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectBusiness} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!canAdminPreview} />
-              <div className="mt-3 flex justify-end">
-                <DefaultVendorPageControl canManage={canManageDefaultPage} isDefault={isDefaultPage} onMakeDefault={handleMakeDefaultPage} />
-              </div>
+              <BusinessSelectorBar accounts={organizerAccounts} activeAccount={account} onSelectSameDashboard={handleSelectBusiness} defaultAccountId={defaultAccountId} dashboardType="vendor_event" currentTab={activeTab} adminPreview={!!canAdminPreview} canManageDefaultPage={canManageDefaultPage} isDefaultPage={isDefaultPage} onMakeDefaultPage={handleMakeDefaultPage} />
               <BusinessHero profile={heroProfile} activeCheckIn={activeCheckIn} onRefresh={refreshDashboard} asHeader />
             </div>
 

@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import DefaultVendorPageControl from "@/components/vendor/DefaultVendorPageControl";
 
 export const ORGANIZER_TYPE_CONFIG = {
   vendor_event: {
@@ -205,7 +206,7 @@ export function OrganizerAccountCreateMenu() {
   );
 }
 
-export default function OrganizerAccountSwitcher({ accounts, activeAccount, defaultAccountId, dashboardType, currentTab, onSelectSameDashboard, adminPreview = false }) {
+export default function OrganizerAccountSwitcher({ accounts, activeAccount, defaultAccountId, dashboardType, currentTab, onSelectSameDashboard, adminPreview = false, canManageDefaultPage = false, isDefaultPage = false, onMakeDefaultPage }) {
   const handleSelect = useOrganizerAccountSelect({ dashboardType, currentTab, onSelectSameDashboard, adminPreview });
   if (!accounts || accounts.length === 0) return null;
   const activeConfig = getOrganizerTypeConfig(activeAccount);
@@ -229,6 +230,12 @@ export default function OrganizerAccountSwitcher({ accounts, activeAccount, defa
           <OrganizerAccountCreateMenu />
         </DropdownMenuContent>
       </DropdownMenu>
+      <DefaultVendorPageControl
+        canManage={canManageDefaultPage}
+        isDefault={isDefaultPage}
+        onMakeDefault={onMakeDefaultPage}
+        className="ml-auto shrink-0"
+      />
     </div>
   );
 }

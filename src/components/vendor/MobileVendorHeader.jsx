@@ -9,8 +9,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { OrganizerAccountCreateMenu, OrganizerAccountMenuItems, getOrganizerAccountName, getOrganizerTypeLabel, useOrganizerAccountSelect } from "@/components/organizer/OrganizerAccountSwitcher";
+import DefaultVendorPageControl from "@/components/vendor/DefaultVendorPageControl";
 
-export default function MobileVendorHeader({ account, activeCheckIn, activePin, accounts = [], onSelectBusiness, defaultAccountId, dashboardType = "vendor_event", currentTab, adminPreview = false }) {
+export default function MobileVendorHeader({ account, activeCheckIn, activePin, accounts = [], onSelectBusiness, defaultAccountId, dashboardType = "vendor_event", currentTab, adminPreview = false, canManageDefaultPage = false, isDefaultPage = false, onMakeDefaultPage }) {
   const hasMultiple = accounts.length > 0;
   const handleSelectAccount = useOrganizerAccountSelect({ dashboardType, currentTab, onSelectSameDashboard: onSelectBusiness, adminPreview });
 
@@ -51,6 +52,12 @@ export default function MobileVendorHeader({ account, activeCheckIn, activePin, 
           )}
           <p className="truncate text-[11px] text-slate-600">{account?.business_category || getOrganizerTypeLabel(account)}</p>
         </div>
+        <DefaultVendorPageControl
+          canManage={canManageDefaultPage}
+          isDefault={isDefaultPage}
+          onMakeDefault={onMakeDefaultPage}
+          className="shrink-0 border-[#2C4F4E]/20 bg-[#F4A849] px-2 text-[10px] text-[#2C4F4E] hover:bg-[#E39635]"
+        />
         <Button onClick={handlePreview} size="sm" className="h-8 shrink-0 rounded-full bg-[#5DADA5] px-3 text-xs text-white hover:bg-[#4A9B93]">
           Preview
         </Button>
