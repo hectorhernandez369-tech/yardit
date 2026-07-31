@@ -2,13 +2,11 @@ import { getNeighborhoodApprovedHomesCount, normalizeNeighborhoodJoinStatus } fr
 
 export const NEIGHBORHOOD_MIN_HOMES = 5;
 export const NEIGHBORHOOD_MAX_HOMES = 25;
-export const NEIGHBORHOOD_BASE_PRICE = 19.99;
-export const NEIGHBORHOOD_PRICE_PER_HOME = 2;
+export const NEIGHBORHOOD_FLAT_PRICE = 49.99;
 
 export function calculateNeighborhoodSalePrice(approvedHomes) {
   const homes = Math.max(0, Math.min(NEIGHBORHOOD_MAX_HOMES, Number(approvedHomes) || 0));
-  if (homes < NEIGHBORHOOD_MIN_HOMES) return 0;
-  return NEIGHBORHOOD_BASE_PRICE + homes * NEIGHBORHOOD_PRICE_PER_HOME;
+  return homes >= NEIGHBORHOOD_MIN_HOMES ? NEIGHBORHOOD_FLAT_PRICE : 0;
 }
 
 export function getNeighborhoodTotalDue(totalHomes) {
@@ -23,7 +21,9 @@ export function getNeighborhoodPricingSummary(requests = [], amountAlreadyPaid =
   const totalApprovedHomes = visibleHomeCount;
   const amountPaid = Number(amountAlreadyPaid || 0);
   const totalDue = calculateNeighborhoodSalePrice(totalApprovedHomes);
-  const additionalDue = Math.max(0, Number((totalDue - amountPaid).toFixed(2)));
+  const additionalDue = totalApprovedHomes >= NEIGHBORHOOD_MIN_HOMES
+    ? Math.max(0, Number((totalDue - amountPaid).toFixed(2)))
+    : 0;
 
   return {
     approvedCount,

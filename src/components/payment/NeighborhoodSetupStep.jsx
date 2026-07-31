@@ -28,9 +28,9 @@ export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBa
         <ul className="list-disc pl-5 space-y-3 text-amber-900 text-[15px]">
           <li><strong>Payment method required:</strong> A card must be saved on file to create a Neighborhood Sale.</li>
           <li><strong>No charge at creation:</strong> You will not be charged immediately.</li>
-          <li>Your Neighborhood Sale becomes committed once 5 participants join. At that point, the organizer is financially obligated.</li>
-          <li>If you cancel after commitment, you will be charged at that time.</li>
-          <li>If you do not cancel, your card will be charged once at the 24-hour mark before the event based on the number of participants.</li>
+          <li>Your Neighborhood Sale becomes committed once 5 participating homes are approved. At that point, the organizer is financially obligated for the $49.99 flat price.</li>
+          <li>If you cancel after commitment, you will be charged $49.99 at that time.</li>
+          <li>If you do not cancel, your card will be charged $49.99 once at the 24-hour mark before the event.</li>
           <li>After the 24-hour charge, the event is locked and no additional homes can be added.</li>
         </ul>
       </div>

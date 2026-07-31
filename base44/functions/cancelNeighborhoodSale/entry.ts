@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Stripe from 'npm:stripe@18.5.0';
+import { NEIGHBORHOOD_FLAT_PRICE, NEIGHBORHOOD_FLAT_PRICE_CENTS } from '../../shared/neighborhoodPricing.ts';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2025-02-24.acacia',
@@ -7,9 +8,6 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 
 const NEIGHBORHOOD_MIN_HOMES = 5;
 const RESCUE_EXPIRATION_DAYS = 7;
-const NEIGHBORHOOD_BASE_PRICE = 19.99;
-const NEIGHBORHOOD_PRICE_PER_HOME = 2;
-const NEIGHBORHOOD_PRICE_CAP = 50;
 
 function normalizeNeighborhoodJoinStatus(status) {
   if (status === 'requested') return 'pending';
@@ -30,12 +28,14 @@ function roundAmount(amount) {
   return Math.round(Number(amount || 0) * 100) / 100;
 }
 
-function getNeighborhoodChargeAmount(approvedHomes) {
-  return roundAmount(Math.min(NEIGHBORHOOD_PRICE_CAP, NEIGHBORHOOD_BASE_PRICE + (approvedHomes * NEIGHBORHOOD_PRICE_PER_HOME)));
+function getNeighborhoodChargeAmount() {
+  return NEIGHBORHOOD_FLAT_PRICE;
 }
 
 function toCents(amount) {
-  return Math.round(roundAmount(amount) * 100);
+  const rounded = roundAmount(amount);
+  if (rounded === NEIGHBORHOOD_FLAT_PRICE) return NEIGHBORHOOD_FLAT_PRICE_CENTS;
+  return Math.round(rounded * 100);
 }
 
 function getDurationDays(sale) {

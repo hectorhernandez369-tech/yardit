@@ -554,8 +554,8 @@ The organizer is only organizing and not selling. Five neighbors must be approve
 
 Neighborhood Sale pricing:
 
-- $19.99 base price.
-- Plus $2 for each approved participating home.
+- $49.99 total flat price.
+- Covers 5 to 25 approved participating homes.
 - Participants do not pay.
 - Organizer pays.
 
@@ -565,9 +565,7 @@ A Neighborhood Sale has 6 approved homes.
 
 Price is:
 
-$19.99 base plus $12 for six homes.
-
-Total is $31.99.
+$49.99 total.
 
 Example:
 
@@ -1179,7 +1177,7 @@ Main rules:
 - Needs at least 5 homes.
 - Organizer pays.
 - Participants join free.
-- Price is $19.99 plus $2 per approved home.
+- Price is $49.99 total for 5 to 25 approved homes.
 - Public visibility requires the right state and at least 5 homes.
 
 ---

@@ -76,9 +76,9 @@ const cards = [
         <p>Participants always join free.</p>
         <p className="font-semibold text-[#2C4F4E]">Organizer pricing:</p>
         <ul className="space-y-1 pl-4 list-disc">
-          <li>$10 base event fee</li>
-          <li>$2 per approved participating home</li>
-          <li>Maximum charge: $50</li>
+          <li>$49.99 total flat price</li>
+          <li>Includes 5 to 25 approved participating homes</li>
+          <li>No variable home-count charges</li>
         </ul>
         <p>You are only charged if the event qualifies and moves forward as a Neighborhood Sale.</p>
       </div>

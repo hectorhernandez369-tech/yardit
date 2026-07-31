@@ -23,7 +23,7 @@ const introCards = [
     icon: DollarSign,
     emoji: "💲",
     title: "What Does It Cost?",
-    text: "$19.99 base price plus $2 per approved participating home. Participants join free.",
+    text: "$49.99 total flat price for 5 to 25 approved participating homes. Participants join free."
   },
   {
     icon: Megaphone,
@@ -52,7 +52,7 @@ const faqItems = [
   },
   {
     question: "What is the price?",
-    answer: "Neighborhood Sales start at $19.99 plus $2 per approved participating home.",
+    answer: "Neighborhood Sales cost $49.99 total once the event reaches the 5-home minimum. Participants join free."
   },
 ];
 

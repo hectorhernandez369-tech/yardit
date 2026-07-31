@@ -9,10 +9,9 @@ import { formatListingScheduleText } from "@/components/listing/listingDisplay.j
 import NeighborhoodSalePreviewMap from "@/components/neighborhood/NeighborhoodSalePreviewMap";
 import { getStateAbbreviation } from "@/lib/listingLocation";
 import {
-  calculateNeighborhoodSalePrice,
-  NEIGHBORHOOD_BASE_PRICE,
+  NEIGHBORHOOD_FLAT_PRICE,
+  NEIGHBORHOOD_MAX_HOMES,
   NEIGHBORHOOD_MIN_HOMES,
-  NEIGHBORHOOD_PRICE_PER_HOME,
 } from "@/lib/neighborhoodSalePricing";
 import { normalizeNeighborhoodJoinStatus } from "@/lib/neighborhoodSaleState";
 
@@ -95,7 +94,7 @@ export default function NeighborhoodSalePanel({
             <NeighborhoodSalePreviewMap lat={listing.event_center_lat} lng={listing.event_center_lng} />
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
-                Homes Joined: {rosterCount} / 25
+                Homes Joined: {rosterCount} / {NEIGHBORHOOD_MAX_HOMES}
               </div>
               <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
                 {availableSpots === 0 ? "Neighborhood Sale is full" : `Available Spots: ${availableSpots} left`}
@@ -121,22 +120,20 @@ export default function NeighborhoodSalePanel({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                 <div className="rounded-md border border-emerald-200 bg-white p-3">
-                  <p className="text-xs uppercase tracking-wide text-emerald-700">Paid</p>
+                  <p className="text-xs uppercase tracking-wide text-emerald-700">Charged</p>
                   <p className="font-semibold text-emerald-950">${Number(paidAmount || 0).toFixed(2)}</p>
                 </div>
                 <div className="rounded-md border border-emerald-200 bg-white p-3">
-                  <p className="text-xs uppercase tracking-wide text-emerald-700">Total Current Cost</p>
-                  <p className="font-semibold text-emerald-950">
-                    ${Number(NEIGHBORHOOD_BASE_PRICE + NEIGHBORHOOD_PRICE_PER_HOME * salePricing.totalApprovedHomes).toFixed(2)}
-                  </p>
+                  <p className="text-xs uppercase tracking-wide text-emerald-700">Neighborhood Sale Price</p>
+                  <p className="font-semibold text-emerald-950">${NEIGHBORHOOD_FLAT_PRICE.toFixed(2)}</p>
                   <p className="text-xs text-emerald-700 mt-1">
-                    ${NEIGHBORHOOD_BASE_PRICE.toFixed(2)} flat + ${NEIGHBORHOOD_PRICE_PER_HOME.toFixed(2)} × {salePricing.totalApprovedHomes} homes
+                    One flat price for {NEIGHBORHOOD_MIN_HOMES}–{NEIGHBORHOOD_MAX_HOMES} approved homes
                   </p>
                 </div>
                 <div className="rounded-md border border-emerald-200 bg-white p-3">
-                  <p className="text-xs uppercase tracking-wide text-emerald-700">Additional Due</p>
+                  <p className="text-xs uppercase tracking-wide text-emerald-700">Payment Status</p>
                   <p className="font-semibold text-emerald-950">
-                    ${Number(Math.max(0, (NEIGHBORHOOD_BASE_PRICE + NEIGHBORHOOD_PRICE_PER_HOME * salePricing.totalApprovedHomes) - (paidAmount || 0))).toFixed(2)}
+                    {Number(paidAmount || 0) > 0 ? "Charged" : "Pending charge"}
                   </p>
                 </div>
               </div>
@@ -152,7 +149,7 @@ export default function NeighborhoodSalePanel({
                 </p>
               ) : (
                 <p className="text-sm text-emerald-800">
-                  <strong>Committed:</strong> Your sale has reached {NEIGHBORHOOD_MIN_HOMES} homes. Cancelling now will trigger an immediate charge. Otherwise, your card on file will be charged exactly 24 hours before start time.
+                  <strong>Committed:</strong> Your sale has reached {NEIGHBORHOOD_MIN_HOMES} homes. Cancelling now will trigger the $49.99 flat charge. Otherwise, your card on file will be charged $49.99 exactly 24 hours before start time.
                 </p>
               )}
             </div>

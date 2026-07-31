@@ -18,7 +18,7 @@ const faqItems = [
   },
   {
     question: "What Does It Cost?",
-    answer: "Only the organizer pays. Participants join free. Organizer pricing: $19.99 base Neighborhood Sale fee plus $2 per approved participating home, with a maximum charge of $50. Examples: 5 homes = $29.99, 10 homes = $39.99, 20 homes = $59.99. Pricing is capped at $50, so the organizer will never pay more than the maximum event fee.",
+    answer: "Only the organizer pays. Participants join free. Organizer pricing is one flat $49.99 total for a qualifying Neighborhood Sale with 5 to 25 approved participating homes.",
   },
   {
     question: "When Am I Charged?",
