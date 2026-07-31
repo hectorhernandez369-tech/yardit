@@ -2,16 +2,23 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertCircle, CreditCard } from "lucide-react";
+import NeighborhoodFallbackChoice from "./NeighborhoodFallbackChoice";
+import { FALLBACK_ACTION_PREMIUM } from "@/lib/neighborhoodFallback";
 
-export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBack, onSetup }) {
+export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBack, onSetup, formData, setFormData, user }) {
   const [nonRefundAcknowledged, setNonRefundAcknowledged] = useState(false);
   const nonRefundDisclosure = "I understand Neighborhood Sale charges are non-refundable once Yardit charges my saved payment method after the event commitment/lock rules are met.";
+
+  const fallbackReady = formData?.fallback_action && (formData.fallback_action !== FALLBACK_ACTION_PREMIUM || formData.fallback_listing_id);
 
   const handleSetup = () => {
     onSetup?.({
       acknowledged: nonRefundAcknowledged,
       acknowledged_at: nonRefundAcknowledged ? new Date().toISOString() : "",
       disclosure_text: nonRefundDisclosure,
+      fallback_action: formData?.fallback_action || "",
+      fallback_listing_id: formData?.fallback_listing_id || "",
+      fallback_consent_at: new Date().toISOString(),
     });
   };
 
@@ -32,8 +39,11 @@ export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBa
           <li>If you cancel after commitment, you will be charged $49.99 at that time.</li>
           <li>If you do not cancel, your card will be charged $49.99 once at the 24-hour mark before the event.</li>
           <li>After the 24-hour charge, the event is locked and no additional homes can be added.</li>
+          <li>If fewer than 5 approved homes join, Yardit will follow the fallback choice you select below. No $7.99 Premium fallback charge happens unless you explicitly choose and connect a host Yard Sale.</li>
         </ul>
       </div>
+
+      <NeighborhoodFallbackChoice formData={formData} setFormData={setFormData} user={user} />
 
       <label className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900 cursor-pointer">
         <Checkbox checked={nonRefundAcknowledged} onCheckedChange={(checked) => setNonRefundAcknowledged(checked === true)} className="mt-0.5" />
@@ -58,7 +68,7 @@ export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBa
         </Button>
         <Button
           onClick={handleSetup}
-          disabled={isProcessing || !nonRefundAcknowledged}
+          disabled={isProcessing || !nonRefundAcknowledged || !fallbackReady}
           className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
         >
           {isProcessing ? "Starting Setup..." : "Add Payment Method"}

@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Stripe from 'npm:stripe@18.5.0';
 import { NEIGHBORHOOD_FLAT_PRICE, NEIGHBORHOOD_FLAT_PRICE_CENTS } from '../../shared/neighborhoodPricing.ts';
+import { FALLBACK_ACTION_CANCEL, FALLBACK_ACTION_PREMIUM, getFallbackListingEligibility } from '../../shared/neighborhoodFallback.ts';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2025-02-24.acacia',
@@ -162,8 +163,33 @@ async function scheduleRetryJob(base44, saleId, now) {
   });
 }
 
+async function cancelSaleWithoutFallbackCharge(base44, sale, approvedHomes, reason, triggerLabel, organizerMessage = '') {
+  await base44.asServiceRole.functions.invoke('cancelNeighborhoodSale', {
+    saleListingId: sale.id,
+    internal: true,
+    reason,
+    finalState: 'canceled',
+    deleteSale: false,
+    trigger: triggerLabel,
+    skipCancellationCharge: true,
+  });
+
+  if (organizerMessage) {
+    await notify(
+      base44,
+      sale.ownerUserId,
+      'Neighborhood Sale cancelled',
+      organizerMessage,
+      'neighborhood_sale_fallback_cancelled',
+      sale.id,
+      { sale_listing_id: sale.id, approved_homes: approvedHomes, reason }
+    );
+  }
+}
+
 async function applyFallbackFlow(base44, sale, approvedHomes, reason, triggerLabel) {
   const nowIso = new Date().toISOString();
+  const fallbackAction = sale.fallback_action === FALLBACK_ACTION_PREMIUM ? FALLBACK_ACTION_PREMIUM : FALLBACK_ACTION_CANCEL;
   const neighborhoodPayment = await getLatestPayment(base44, sale.id, 'neighborhood_event');
   const fallbackPayment = await getLatestPayment(base44, sale.id, 'fallback_listing');
   const durationDays = getDurationDays(sale);
@@ -175,8 +201,47 @@ async function applyFallbackFlow(base44, sale, approvedHomes, reason, triggerLab
     });
   }
 
+  if (fallbackAction === FALLBACK_ACTION_CANCEL) {
+    await cancelSaleWithoutFallbackCharge(
+      base44,
+      sale,
+      approvedHomes,
+      reason,
+      triggerLabel,
+      `${sale.title || 'Neighborhood Sale'} did not reach the 5-home minimum and was canceled with no fallback charge.`
+    );
+    return;
+  }
+
+  if (!sale.fallback_consent_at || !sale.fallback_listing_id) {
+    await cancelSaleWithoutFallbackCharge(
+      base44,
+      sale,
+      approvedHomes,
+      `${reason}: missing_premium_fallback_consent`,
+      'premium_fallback_unavailable',
+      'Your Neighborhood Sale was canceled with no fallback charge because Premium fallback consent or the connected Yard Sale was missing.'
+    );
+    return;
+  }
+
+  const fallbackListings = await base44.asServiceRole.entities.Listing.filter({ id: sale.fallback_listing_id });
+  const fallbackListing = fallbackListings[0] || null;
+  const eligibility = getFallbackListingEligibility(fallbackListing, sale);
+  if (!eligibility.ok) {
+    await cancelSaleWithoutFallbackCharge(
+      base44,
+      sale,
+      approvedHomes,
+      `${reason}: fallback_listing_unavailable`,
+      'premium_fallback_unavailable',
+      `Your Neighborhood Sale was canceled with no fallback charge because the connected Yard Sale was unavailable: ${eligibility.reason}`
+    );
+    return;
+  }
+
   const preparedFallback = await upsertPayment(base44, fallbackPayment, {
-    location_id: sale.id,
+    location_id: fallbackListing.id,
     amount: PREMIUM_FALLBACK_PRICE,
     plan: 'fallback_listing',
     duration_days: durationDays,
@@ -196,7 +261,7 @@ async function applyFallbackFlow(base44, sale, approvedHomes, reason, triggerLab
     sale,
     paymentRecord: preparedFallback,
     amount: PREMIUM_FALLBACK_PRICE,
-    purpose: 'neighborhood_sale_fallback_listing',
+    purpose: 'neighborhood_sale_premium_host_listing_fallback',
   });
 
   await base44.asServiceRole.entities.Payment.update(preparedFallback.id, {
@@ -207,65 +272,53 @@ async function applyFallbackFlow(base44, sale, approvedHomes, reason, triggerLab
     stripe_payment_intent_id: fallbackCharge.paymentIntentId || preparedFallback.stripe_payment_intent_id || '',
   });
 
-  await createNeighborhoodPaymentTransaction(base44, sale, PREMIUM_FALLBACK_PRICE, fallbackCharge, fallbackCharge.success ? 'succeeded' : 'failed', 'neighborhood_sale_fallback_listing');
+  await createNeighborhoodPaymentTransaction(base44, sale, PREMIUM_FALLBACK_PRICE, fallbackCharge, fallbackCharge.success ? 'succeeded' : 'failed', 'neighborhood_sale_premium_host_listing_fallback');
+
+  if (!fallbackCharge.success) {
+    await cancelSaleWithoutFallbackCharge(
+      base44,
+      sale,
+      approvedHomes,
+      `${reason}: ${fallbackCharge.error || 'premium fallback charge failed'}`,
+      'premium_fallback_charge_failed',
+      'Your Neighborhood Sale was canceled because the selected Premium fallback charge could not be completed. No Neighborhood Sale charge was made.'
+    );
+    return;
+  }
 
   await base44.asServiceRole.functions.invoke('cancelNeighborhoodSale', {
     saleListingId: sale.id,
     internal: true,
     reason,
-    finalState: fallbackCharge.success ? 'downgraded' : 'canceled',
+    finalState: 'downgraded',
     deleteSale: false,
-    trigger: triggerLabel,
+    trigger: 'premium_fallback_applied',
+    skipCancellationCharge: true,
+    preserveFallbackListingId: fallbackListing.id,
   });
 
-  if (fallbackCharge.success) {
-    await base44.asServiceRole.entities.Listing.update(sale.id, {
-      listingType: 'yard_sale',
-      tier: 'premium',
-      status: 'scheduled',
-      event_state: 'downgraded',
-      activation_status: 'pending',
-      statusReason: reason,
-      homeCount: 1,
-      spanFeet: 0,
-      pricePaid: PREMIUM_FALLBACK_PRICE,
-      payment_intent_status: 'captured',
-      invite_code: '',
-      neighborhood_join_status: 'none',
-      neighborhood_sale_id: null,
-      participant_origin: 'standalone',
-      origin_sale_listing_id: null,
-      category: sale.category && sale.category !== 'Neighborhood Sale' ? sale.category : 'Miscellaneous',
-    });
+  await base44.asServiceRole.entities.Listing.update(fallbackListing.id, {
+    tier: 'premium',
+    status: fallbackListing.status === 'active' ? 'active' : 'scheduled',
+    pricePaid: PREMIUM_FALLBACK_PRICE,
+    payment_intent_status: 'captured',
+    pending_payment_tier: '',
+    pending_checkout_session_id: '',
+    neighborhood_join_status: 'none',
+    neighborhood_sale_id: null,
+    participant_origin: 'standalone',
+    origin_sale_listing_id: null,
+  });
 
-    await notify(
-      base44,
-      sale.ownerUserId,
-      'Neighborhood Sale changed to Premium fallback',
-      `Your Neighborhood Sale did not lock successfully, so it was converted to a Premium listing and charged $${PREMIUM_FALLBACK_PRICE.toFixed(2)}.`,
-      'neighborhood_sale_fallback_applied',
-      sale.id,
-      { sale_listing_id: sale.id, approved_homes: approvedHomes, reason }
-    );
-  } else {
-    await base44.asServiceRole.entities.Listing.update(sale.id, {
-      status: 'cancelled',
-      event_state: 'canceled',
-      activation_status: 'pending',
-      statusReason: `${reason}: ${fallbackCharge.error || 'fallback charge failed'}`,
-      payment_intent_status: 'voided',
-    });
-
-    await notify(
-      base44,
-      sale.ownerUserId,
-      'Neighborhood Sale cancelled',
-      'Your Neighborhood Sale could not be charged at the 24-hour lock point or during the retry, and the fallback Premium charge also failed, so the event was cancelled.',
-      'neighborhood_sale_payment_failed_cancelled',
-      sale.id,
-      { sale_listing_id: sale.id, approved_homes: approvedHomes, reason, error: fallbackCharge.error || null }
-    );
-  }
+  await notify(
+    base44,
+    sale.ownerUserId,
+    'Premium Yard Sale fallback applied',
+    `Your Neighborhood Sale did not reach 5 homes. Your connected Yard Sale was upgraded to Premium and charged $${PREMIUM_FALLBACK_PRICE.toFixed(2)}.`,
+    'neighborhood_sale_fallback_applied',
+    fallbackListing.id,
+    { sale_listing_id: sale.id, fallback_listing_id: fallbackListing.id, approved_homes: approvedHomes, reason }
+  );
 }
 
 async function processNeighborhoodCharge(base44, sale, approvedHomes, now, isRetry = false) {

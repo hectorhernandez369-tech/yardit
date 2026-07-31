@@ -569,7 +569,7 @@ $49.99 total.
 
 Example:
 
-A Neighborhood Sale has only 4 homes. It has not reached the 5-home minimum, so it is not ready for paid activation yet.
+A Neighborhood Sale has only 4 homes. It has not reached the 5-home minimum, so it is not ready for paid activation yet. At the deadline, Yardit follows the organizer’s stored fallback choice: cancel with no fallback charge, or apply the $7.99 Premium fallback only if an eligible organizer-owned Yard Sale was connected and explicit consent was stored.
 
 ---
 
@@ -993,6 +993,8 @@ Neighborhood Sales:
 - Organizer handles the cost.
 - Participants join free.
 - A payment method may be collected for the organizer as part of setup.
+- Setup requires a fallback choice for missed minimum: cancel with no fallback charge, or continue with an explicitly connected organizer-owned Premium Yard Sale for $7.99.
+- The Premium fallback is never charged unless fallback consent and an eligible connected host listing are both present.
 
 Non-refundable acknowledgement:
 
@@ -1178,6 +1180,8 @@ Main rules:
 - Organizer pays.
 - Participants join free.
 - Price is $49.99 total for 5 to 25 approved homes.
+- Setup requires a fallback choice if the 5-home minimum is not reached.
+- Premium fallback requires explicit consent plus an eligible organizer-owned Yard Sale listing and costs $7.99 only if applied.
 - Public visibility requires the right state and at least 5 homes.
 
 ---

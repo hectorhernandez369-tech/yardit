@@ -40,7 +40,7 @@ const faqItems = [
   },
   {
     question: "When does the event activate?",
-    answer: "The event becomes ready once it reaches the required number of participating homes. Until then, you can keep inviting neighbors and managing requests.",
+    answer: "The event becomes ready once it reaches the required number of participating homes. Until then, you can keep inviting neighbors and managing requests. If it does not reach 5 homes, Yardit follows the fallback choice you selected during setup.",
   },
   {
     question: "What does the organizer do?",
@@ -52,7 +52,7 @@ const faqItems = [
   },
   {
     question: "What is the price?",
-    answer: "Neighborhood Sales cost $49.99 total once the event reaches the 5-home minimum. Participants join free."
+    answer: "Neighborhood Sales cost $49.99 total once the event reaches the 5-home minimum. If the minimum is not reached, your selected fallback controls whether the event cancels with no fallback charge or your connected Yard Sale continues as Premium for $7.99."
   },
 ];
 

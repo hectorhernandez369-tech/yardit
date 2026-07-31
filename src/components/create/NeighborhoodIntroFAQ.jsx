@@ -26,7 +26,7 @@ const faqItems = [
   },
   {
     question: "What Happens If I Don't Reach 5 Homes?",
-    answer: "Neighborhood Sales must have at least 5 approved participating homes before activation. 48 hours before the event, if fewer than 5 approved homes exist, Yardit sends a reminder notification. 24 hours before the event, if the event still has fewer than 5 approved homes, the Neighborhood Sale is automatically downgraded. Participants are notified and provided options to continue with their own listings.",
+    answer: "Neighborhood Sales must have at least 5 approved participating homes before activation. During setup, the organizer chooses whether a failed event should cancel with no fallback charge or continue by upgrading a connected organizer-owned Yard Sale to Premium for $7.99. Yardit follows that stored choice at the 24-hour deadline.",
   },
   {
     question: "What Happens If Someone Leaves?",

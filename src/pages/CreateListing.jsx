@@ -278,6 +278,9 @@ export default function CreateListingPage() {
     // optional flags
     locationMethod: "address",
     organizer_participation: "participating",
+    fallback_action: "",
+    fallback_listing_id: "",
+    fallback_consent_at: "",
     discovery_promo_code: ""
   });
 
@@ -849,7 +852,7 @@ export default function CreateListingPage() {
     }
   };
 
-  const startNeighborhoodSaleSetup = async (nonRefundAcknowledgement = {}) => {
+  const startNeighborhoodSaleSetup = async (nonRefundAcknowledgement = {}, sourceFormData = formData) => {
     const descriptionLimitError = getResidentialDescriptionLimitError(formData);
     if (descriptionLimitError) {
       setPaymentError(descriptionLimitError);
@@ -868,12 +871,12 @@ export default function CreateListingPage() {
       setPaymentError("");
       setIsStartingPayment(true);
       const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
-      localStorage.setItem(NEIGHBORHOOD_SETUP_KEY, JSON.stringify({ formData: { ...formData, ...nonRefundFields } }));
+      localStorage.setItem(NEIGHBORHOOD_SETUP_KEY, JSON.stringify({ formData: { ...sourceFormData, ...nonRefundFields } }));
 
       const returnUrl = `${window.location.origin}${createPageUrl("CreateListing")}`;
       const response = await base44.functions.invoke("neighborhoodSaleSetupCheckout", {
         return_url: returnUrl,
-        customer_id: formData.organizer_stripe_customer_id || undefined,
+        customer_id: sourceFormData.organizer_stripe_customer_id || undefined,
         non_refund_acknowledged: nonRefundFields.non_refund_acknowledged,
         non_refund_acknowledged_at: nonRefundFields.non_refund_acknowledged_at,
         non_refund_acknowledged_by_user_id: nonRefundFields.non_refund_acknowledged_by_user_id,
@@ -976,44 +979,57 @@ export default function CreateListingPage() {
       if (createdListing.listingType === "neighborhood_sale") {
         try {
           if (!isAdminCreate && createdListing.organizer_participation !== "organizing_only") {
-            const organizerState = getStateAbbreviation(user.state || user.primary_state || createdListing.state || "XX");
-            const organizerZip = user.zip_code || createdListing.zip || "0000";
-            const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-            let participantSuffix = "";
-            for (let i = 0; i < 5; i++) participantSuffix += chars[Math.floor(Math.random() * chars.length)];
-            const organizerParticipant = await base44.entities.Listing.create({
-              ownerUserId: createdListing.ownerUserId,
-              listingType: "yard_sale",
-              title: `${createdListing.title || "Neighborhood Sale"} - Organizer Sale`,
-              description: "",
-              addressText: user.primary_address || user.street_address || createdListing.addressText,
-              city: user.city || createdListing.city,
-              state: organizerState,
-              zip: organizerZip,
-              lat: user.primary_latitude ?? user.address_lat ?? createdListing.lat,
-              lng: user.primary_longitude ?? user.address_lng ?? createdListing.lng,
-              timeZoneId: user.timeZoneId || createdListing.timeZoneId || "",
-              tier: "free",
-              pricePaid: 0,
-              status: "active",
-              category: "Neighborhood Sale",
-              categories: [],
-              startDateTime: createdListing.startDateTime,
-              endDateTime: createdListing.endDateTime,
-              selectedRangeStartDate: createdListing.selectedRangeStartDate || createdListing.startDateTime?.slice(0, 10),
-              selectedRangeEndDate: createdListing.selectedRangeEndDate || createdListing.endDateTime?.slice(0, 10),
-              neighborhood_join_status: "approved",
-              payment_intent_status: "none",
-              neighborhood_sale_id: createdListing.id,
-              participant_origin: "neighborhood_invite",
-              origin_sale_listing_id: createdListing.id,
-              listingNumber: `${organizerState}${String(organizerZip).slice(-4).padStart(4, "0")}-${participantSuffix}`,
-            });
+            if (createdListing.fallback_action === "premium_host_listing" && createdListing.fallback_listing_id) {
+              await base44.entities.Listing.update(createdListing.fallback_listing_id, {
+                neighborhood_join_status: "approved",
+                payment_intent_status: "none",
+                neighborhood_sale_id: createdListing.id,
+                participant_origin: "standalone",
+              });
+              await base44.entities.Listing.update(createdListing.id, {
+                organizer_participant_listing_id: createdListing.fallback_listing_id,
+                homeCount: 1,
+              });
+            } else {
+              const organizerState = getStateAbbreviation(user.state || user.primary_state || createdListing.state || "XX");
+              const organizerZip = user.zip_code || createdListing.zip || "0000";
+              const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+              let participantSuffix = "";
+              for (let i = 0; i < 5; i++) participantSuffix += chars[Math.floor(Math.random() * chars.length)];
+              const organizerParticipant = await base44.entities.Listing.create({
+                ownerUserId: createdListing.ownerUserId,
+                listingType: "yard_sale",
+                title: `${createdListing.title || "Neighborhood Sale"} - Organizer Sale`,
+                description: "",
+                addressText: user.primary_address || user.street_address || createdListing.addressText,
+                city: user.city || createdListing.city,
+                state: organizerState,
+                zip: organizerZip,
+                lat: user.primary_latitude ?? user.address_lat ?? createdListing.lat,
+                lng: user.primary_longitude ?? user.address_lng ?? createdListing.lng,
+                timeZoneId: user.timeZoneId || createdListing.timeZoneId || "",
+                tier: "free",
+                pricePaid: 0,
+                status: "active",
+                category: "Neighborhood Sale",
+                categories: [],
+                startDateTime: createdListing.startDateTime,
+                endDateTime: createdListing.endDateTime,
+                selectedRangeStartDate: createdListing.selectedRangeStartDate || createdListing.startDateTime?.slice(0, 10),
+                selectedRangeEndDate: createdListing.selectedRangeEndDate || createdListing.endDateTime?.slice(0, 10),
+                neighborhood_join_status: "approved",
+                payment_intent_status: "none",
+                neighborhood_sale_id: createdListing.id,
+                participant_origin: "neighborhood_invite",
+                origin_sale_listing_id: createdListing.id,
+                listingNumber: `${organizerState}${String(organizerZip).slice(-4).padStart(4, "0")}-${participantSuffix}`,
+              });
 
-            await base44.entities.Listing.update(createdListing.id, {
-              organizer_participant_listing_id: organizerParticipant.id,
-              homeCount: 1,
-            });
+              await base44.entities.Listing.update(createdListing.id, {
+                organizer_participant_listing_id: organizerParticipant.id,
+                homeCount: 1,
+              });
+            }
           }
 
           if (createdListing.organizer_stripe_payment_method_id) {
@@ -1448,6 +1464,9 @@ export default function CreateListingPage() {
       payload.activation_status = "pending";
       payload.event_state = "pending_activation";
       payload.organizer_participation = sourceFormData.organizer_participation || "participating";
+      payload.fallback_action = sourceFormData.fallback_action || "cancel";
+      payload.fallback_listing_id = sourceFormData.fallback_listing_id || "";
+      payload.fallback_consent_at = sourceFormData.fallback_consent_at || "";
       payload.homeCount = payload.organizer_participation === "organizing_only" ? 0 : 1;
       payload.pricePaid = 0;
       payload.payment_intent_status = "none";
@@ -1671,13 +1690,33 @@ export default function CreateListingPage() {
   };
 
   const handleNeighborhoodSetupSubmit = async (nonRefundAcknowledgement = {}) => {
-    const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
+    const fallbackAction = nonRefundAcknowledgement.fallback_action || formData.fallback_action;
+    const fallbackListingId = nonRefundAcknowledgement.fallback_listing_id || formData.fallback_listing_id || "";
 
-    if (!formData.organizer_stripe_payment_method_id || !formData.organizer_stripe_customer_id) {
-      await startNeighborhoodSaleSetup(nonRefundAcknowledgement);
+    if (!fallbackAction) {
+      setPaymentError("Choose what should happen if the Neighborhood Sale does not reach 5 homes.");
       return;
     }
-    executeSubmit(undefined, { ...formData, ...nonRefundFields });
+
+    if (fallbackAction === "premium_host_listing" && !fallbackListingId) {
+      setPaymentError("The Premium fallback needs your own eligible Yard Sale listing. Select an existing listing or create one before continuing.");
+      return;
+    }
+
+    const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
+    const fallbackFields = {
+      fallback_action: fallbackAction,
+      fallback_listing_id: fallbackListingId,
+      fallback_consent_at: nonRefundAcknowledgement.fallback_consent_at || new Date().toISOString(),
+    };
+    const setupFormData = { ...formData, ...nonRefundFields, ...fallbackFields };
+    setFormData(setupFormData);
+
+    if (!setupFormData.organizer_stripe_payment_method_id || !setupFormData.organizer_stripe_customer_id) {
+      await startNeighborhoodSaleSetup(nonRefundAcknowledgement, setupFormData);
+      return;
+    }
+    executeSubmit(undefined, setupFormData);
   };
 
   const handleSubmit = async ({ userInitiated = false } = {}) => {

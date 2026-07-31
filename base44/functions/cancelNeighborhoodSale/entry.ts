@@ -116,6 +116,8 @@ Deno.serve(async (req) => {
     const reason = payload?.reason || 'neighborhood_sale_canceled';
     const deleteSale = payload?.deleteSale === true;
     const trigger = payload?.trigger || 'manual';
+    const skipCancellationCharge = payload?.skipCancellationCharge === true;
+    const preserveFallbackListingId = payload?.preserveFallbackListingId || '';
 
     if (!saleListingId) {
       return Response.json({ error: 'saleListingId is required' }, { status: 400 });
@@ -148,7 +150,7 @@ Deno.serve(async (req) => {
     const existingPayment = await getLatestPayment(base44, sale.id, 'neighborhood_event');
     const alreadyCharged = sale?.status === 'activated_locked' || sale?.payment_intent_status === 'captured' || existingPayment?.status === 'succeeded' || existingPayment?.status === 'completed';
 
-    if (isCommitted && !alreadyCharged) {
+    if (isCommitted && !alreadyCharged && !skipCancellationCharge) {
       chargeAmount = getNeighborhoodChargeAmount(approvedHomes);
       
       const paymentRecord = existingPayment?.id ? existingPayment : await base44.asServiceRole.entities.Payment.create({
@@ -213,7 +215,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (sale.organizer_participant_listing_id) {
+    if (sale.organizer_participant_listing_id && sale.organizer_participant_listing_id !== preserveFallbackListingId) {
       const organizerListings = await base44.asServiceRole.entities.Listing.filter({ id: sale.organizer_participant_listing_id });
       if (organizerListings[0]) {
         await base44.asServiceRole.entities.Listing.delete(organizerListings[0].id);
@@ -332,7 +334,9 @@ Deno.serve(async (req) => {
         userId: sale.ownerUserId,
         user_id: sale.ownerUserId,
         title: 'Neighborhood Sale canceled',
-        message: `${sale.title || 'Neighborhood Sale'} did not reach the ${NEIGHBORHOOD_MIN_HOMES}-home minimum and has been canceled.`,
+        message: trigger === 'premium_fallback_applied'
+          ? `${sale.title || 'Neighborhood Sale'} did not reach the ${NEIGHBORHOOD_MIN_HOMES}-home minimum. Your connected Yard Sale was moved forward as Premium.`
+          : `${sale.title || 'Neighborhood Sale'} did not reach the ${NEIGHBORHOOD_MIN_HOMES}-home minimum and has been canceled.`,
         type: 'neighborhood_sale_canceled_host',
         related_entity_type: 'listing',
         related_entity_id: saleListingId,

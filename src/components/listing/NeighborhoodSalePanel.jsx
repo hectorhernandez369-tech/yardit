@@ -138,9 +138,14 @@ export default function NeighborhoodSalePanel({
                 </div>
               </div>
               {salePricing.totalApprovedHomes < NEIGHBORHOOD_MIN_HOMES ? (
-                <p className="text-sm text-emerald-800">
-                  If the sale is still under {NEIGHBORHOOD_MIN_HOMES} approved homes at the 24-hour lock point, Yardit will switch the organizer to the $7.99 Premium fallback and remove the Neighborhood container.
-                </p>
+                <div className="space-y-1 text-sm text-emerald-800">
+                  <p>
+                    If the sale is still under {NEIGHBORHOOD_MIN_HOMES} approved homes at the 24-hour lock point, Yardit will follow your selected fallback choice.
+                  </p>
+                  <p className="font-medium">
+                    Fallback: {listing.fallback_action === "premium_host_listing" ? "Continue with connected Premium Yard Sale — $7.99" : "Cancel the Neighborhood Sale with no fallback charge"}
+                  </p>
+                </div>
               ) : neighborhoodEventState === "activated_locked" ||
                 neighborhoodEventState === "coming_soon" ||
                 neighborhoodEventState === "active" ? (

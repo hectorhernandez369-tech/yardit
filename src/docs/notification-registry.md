@@ -27,8 +27,9 @@ This registry is the authoritative reference for Yardit notification development
 | neighborhood_sale_warning_48h | Organizer and approved participants | 48-hour checkpoint below minimum home count | Push + Bell | Active |
 | neighborhood_sale_payment_succeeded | Organizer | Neighborhood Sale charge succeeds | Bell | Active |
 | neighborhood_sale_payment_retry_scheduled | Organizer | Neighborhood Sale charge fails and retry is scheduled | Push + Bell | Active |
-| neighborhood_sale_payment_failed_cancelled | Organizer | Primary and fallback charges fail | Push + Bell | Active |
-| neighborhood_sale_fallback_applied | Organizer | Neighborhood Sale converts to Premium fallback | Bell | Active |
+| neighborhood_sale_payment_failed_cancelled | Organizer | Neighborhood Sale payment fails and the event is cancelled | Push + Bell | Active |
+| neighborhood_sale_fallback_applied | Organizer | Consented Premium Yard Sale fallback is applied | Bell | Active |
+| neighborhood_sale_fallback_cancelled | Organizer | Neighborhood Sale cancels by fallback choice or unavailable host listing | Push + Bell | Active |
 | vendor_account | Vendor owner / authorized user | Vendor account lifecycle update | Bell | Active |
 | vendor_event | Vendor participant / organizer | Vendor event update | Push + Bell | Active |
 | vendor_event_invite | Invited vendor | Organizer invites vendor to event | Push + Bell | Active |
@@ -58,7 +59,7 @@ This registry is the authoritative reference for Yardit notification development
 
 | Legacy Type | Replacement | Reason |
 | --- | --- | --- |
-| fallback_listing | neighborhood_sale_fallback_applied | Legacy fallback payment/listing bucket; not a user notification type. |
+| fallback_listing | neighborhood_sale_fallback_applied | Consented Premium host listing fallback payment bucket; not a user notification type. |
 | vendor | vendor_account / vendor_event / vendor_checkin / vendor_subscription | Generic vendor bucket caused ambiguity. |
 | nearby_listing | nearby_listings_daily_digest | Per-listing nearby pushes caused notification fatigue. |
 | vendor_near_me | vendor_checkin | Legacy name for nearby vendor check-in pushes. |

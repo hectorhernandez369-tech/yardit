@@ -47,6 +47,9 @@ export default function CreateListingNeighborhood({
           setStep(3);
         }}
         onSetup={handleNeighborhoodSetupSubmit}
+        formData={formData}
+        setFormData={setFormData}
+        user={user}
       />
     );
   }

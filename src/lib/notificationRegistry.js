@@ -179,7 +179,7 @@ export const NOTIFICATION_REGISTRY = {
   },
   neighborhood_sale_payment_failed_cancelled: {
     recipient: "Neighborhood Sale organizer",
-    trigger: "Primary and fallback charges fail",
+    trigger: "Neighborhood Sale payment fails and the event is cancelled",
     delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
     status: "active",
     title: "Neighborhood Sale cancelled",
@@ -188,11 +188,20 @@ export const NOTIFICATION_REGISTRY = {
   },
   neighborhood_sale_fallback_applied: {
     recipient: "Neighborhood Sale organizer",
-    trigger: "Neighborhood Sale fails minimum/lock and converts to fallback Premium listing",
+    trigger: "Neighborhood Sale misses the 5-home minimum and the organizer consented to Premium Yard Sale fallback",
     delivery_methods: [DELIVERY.BELL],
     status: "active",
-    title: "Neighborhood Sale changed to Premium fallback",
-    message: "Neighborhood Sale converted to a Premium listing.",
+    title: "Premium Yard Sale fallback applied",
+    message: "Connected Yard Sale upgraded to Premium.",
+    deep_link: "/ListingDetail",
+  },
+  neighborhood_sale_fallback_cancelled: {
+    recipient: "Neighborhood Sale organizer",
+    trigger: "Neighborhood Sale misses the 5-home minimum and cancels by fallback choice or unavailable Premium host listing",
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
+    status: "active",
+    title: "Neighborhood Sale cancelled",
+    message: "Neighborhood Sale cancelled with no fallback charge.",
     deep_link: "/ListingDetail",
   },
   vendor_account: {
