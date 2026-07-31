@@ -350,6 +350,23 @@
       "type": "string",
       "description": "Organizer's linked personal yard sale listing ID, if participating"
     },
+    "fallback_action": {
+      "type": "string",
+      "enum": [
+        "cancel",
+        "premium_host_listing"
+      ],
+      "description": "Organizer-selected fallback if a Neighborhood Sale does not reach the 5-home minimum"
+    },
+    "fallback_listing_id": {
+      "type": "string",
+      "description": "Organizer-owned Yard Sale listing selected for Premium fallback"
+    },
+    "fallback_consent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the organizer explicitly consented to the selected fallback action"
+    },
     "neighborhood_join_status": {
       "type": "string",
       "enum": [
