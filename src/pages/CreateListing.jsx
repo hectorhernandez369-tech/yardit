@@ -18,6 +18,7 @@ import ResidentialListingConflictDialog from "@/components/create/ResidentialLis
 import { clearStaleTrustProgress, hasVerifiedPrimaryAddress } from "@/lib/trustActions";
 import { normalizeUser } from "@/lib/normalizeUser";
 import { useAppMode } from "../components/shared/DemoMode";
+import DemoPaymentSkipDialog from "@/components/shared/DemoPaymentSkipDialog";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import {
   getNeighborhoodCreationLeadTimeError,
@@ -169,6 +170,7 @@ export default function CreateListingPage() {
   const [geocodeRef, setGeocodeRef] = useState(null);
   const [isStartingPayment, setIsStartingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [demoPaymentRequest, setDemoPaymentRequest] = useState(null);
   const handledCheckoutSessionRef = useRef(null);
   const handledNeighborhoodSetupSessionRef = useRef(null);
   const recoveringPaidCheckoutRef = useRef(false);
@@ -737,11 +739,16 @@ export default function CreateListingPage() {
     };
   };
 
-  const startPaidListingCheckout = async (promoResult = null, nonRefundAcknowledgement = {}) => {
+  const startPaidListingCheckout = async (promoResult = null, nonRefundAcknowledgement = {}, skipDemoPrompt = false) => {
     const descriptionLimitError = getResidentialDescriptionLimitError(formData);
     if (descriptionLimitError) {
       setPaymentError(descriptionLimitError);
       toast.error(descriptionLimitError);
+      return;
+    }
+
+    if (isGlobalDemoMode && !skipDemoPrompt) {
+      setDemoPaymentRequest({ type: "paid_listing", promoResult, nonRefundAcknowledgement });
       return;
     }
 
@@ -852,11 +859,16 @@ export default function CreateListingPage() {
     }
   };
 
-  const startNeighborhoodSaleSetup = async (nonRefundAcknowledgement = {}, sourceFormData = formData) => {
+  const startNeighborhoodSaleSetup = async (nonRefundAcknowledgement = {}, sourceFormData = formData, skipDemoPrompt = false) => {
     const descriptionLimitError = getResidentialDescriptionLimitError(formData);
     if (descriptionLimitError) {
       setPaymentError(descriptionLimitError);
       toast.error(descriptionLimitError);
+      return;
+    }
+
+    if (isGlobalDemoMode && !skipDemoPrompt) {
+      setDemoPaymentRequest({ type: "neighborhood_setup", nonRefundAcknowledgement, sourceFormData });
       return;
     }
 
@@ -1593,7 +1605,75 @@ export default function CreateListingPage() {
       payload.payment_intent_status = sourceFormData.payment_intent_status || "hold_requested";
     }
 
+    if (actionStr === "demo_skip_payment") {
+      payload.is_demo_listing = true;
+      payload.payment_status = "skipped_admin_demo";
+      payload.payment_intent_status = "captured";
+      payload.pricePaid = Number(sourceFormData.demo_skip_amount_cents || 0) / 100;
+      payload.stripe_checkout_session_id = sourceFormData.demo_skip_session_id || `demo_skip_${Date.now()}`;
+      payload.status = payload.listingType === "event" ? "active" : "scheduled";
+    }
+
     createListingMutation.mutate(payload);
+  };
+
+  const handleDemoPaymentSkip = () => {
+    if (!demoPaymentRequest) return;
+
+    if (demoPaymentRequest.type === "paid_listing") {
+      const eventPriceBreakdown = formData.listingType === "event" ? getResidentialEventPriceBreakdown(formData) : null;
+      const amountCents = formData.listingType === "event"
+        ? eventPriceBreakdown.total
+        : RESIDENTIAL_TIER_PRICES[formData.tier];
+      const nonRefundFields = buildNonRefundFields(demoPaymentRequest.nonRefundAcknowledgement);
+      const earlyVisibilityFields = buildPromoEarlyVisibilityFields(demoPaymentRequest.promoResult);
+      const demoFormData = normalizeResidentialEventSingleDay({
+        ...formData,
+        ...nonRefundFields,
+        ...earlyVisibilityFields,
+        is_demo_listing: true,
+        demo_skip_amount_cents: amountCents || 0,
+        demo_skip_session_id: `demo_skip_${Date.now()}`,
+      });
+      setDemoPaymentRequest(null);
+      setFormData(demoFormData);
+      setPaymentError("");
+      setIsStartingPayment(true);
+      executeSubmit("demo_skip_payment", demoFormData);
+      return;
+    }
+
+    if (demoPaymentRequest.type === "neighborhood_setup") {
+      const nonRefundFields = buildNonRefundFields(demoPaymentRequest.nonRefundAcknowledgement);
+      const demoFormData = {
+        ...demoPaymentRequest.sourceFormData,
+        ...nonRefundFields,
+        is_demo_listing: true,
+        payment_setup_status: "demo_skipped",
+        organizer_stripe_customer_id: "demo_customer",
+        organizer_stripe_payment_method_id: "demo_card",
+        organizer_setup_session_id: `demo_setup_${Date.now()}`,
+        organizer_setup_intent_id: `demo_setup_intent_${Date.now()}`,
+        payment_method_collected_at: new Date().toISOString(),
+      };
+      setDemoPaymentRequest(null);
+      setFormData(demoFormData);
+      setPaymentError("");
+      setIsStartingPayment(true);
+      executeSubmit(undefined, demoFormData);
+    }
+  };
+
+  const handleDemoPaymentContinue = () => {
+    const request = demoPaymentRequest;
+    setDemoPaymentRequest(null);
+    if (!request) return;
+    if (request.type === "paid_listing") {
+      startPaidListingCheckout(request.promoResult, request.nonRefundAcknowledgement, true);
+    }
+    if (request.type === "neighborhood_setup") {
+      startNeighborhoodSaleSetup(request.nonRefundAcknowledgement, request.sourceFormData, true);
+    }
   };
 
   const handlePaymentStepSubmit = async ({ promoResult, finalAmount, nonRefundAcknowledgement } = {}) => {
@@ -2227,6 +2307,13 @@ export default function CreateListingPage() {
         conflict={residentialConflict}
         onClose={() => setResidentialConflict(null)}
         onRequested={() => queryClient.invalidateQueries({ queryKey: ["notifications"] })}
+      />
+      <DemoPaymentSkipDialog
+        open={!!demoPaymentRequest}
+        onOpenChange={(open) => !open && setDemoPaymentRequest(null)}
+        onSkip={handleDemoPaymentSkip}
+        onContinue={handleDemoPaymentContinue}
+        isProcessing={isStartingPayment || createListingMutation.isPending}
       />
     </div>
   );

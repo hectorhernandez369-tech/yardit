@@ -87,7 +87,7 @@ export default function SystemSettings() {
             <div>
               <p className="font-semibold">Global App Mode</p>
               <p className="text-sm text-slate-600">
-                When Demo is enabled, address selection and the one-listing testing limit are unlocked. Payments still use the live Stripe flow.
+                When Demo is enabled, testing behavior applies to admin accounts only. Admins can skip payment at checkout or continue to Stripe.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -147,8 +147,8 @@ export default function SystemSettings() {
               <p>You can create more test listings without the normal testing restriction.</p>
             </div>
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
-              <p className="font-semibold">Payments are still live</p>
-              <p>Demo Mode does not change Stripe payment processing, so payment actions still use the live flow.</p>
+              <p className="font-semibold">Admins choose payment behavior</p>
+              <p>Before Stripe checkout, admins can skip payment for testing or continue to Stripe to test the real payment flow.</p>
             </div>
           </div>
 

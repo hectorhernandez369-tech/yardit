@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import ReviewPayContent from "@/components/payment/ReviewPayContent";
+import DemoPaymentSkipDialog from "@/components/shared/DemoPaymentSkipDialog";
+import { useAppMode } from "@/components/shared/DemoMode";
 import { getListingCurrentTier, getUpgradeOptions, getUpgradePriceDifference } from "@/lib/listingUpgradeConfig";
 
 const UPGRADE_CHECKOUT_KEY = "yardit_listing_upgrade_checkout_v1";
@@ -19,6 +21,8 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
   const [isStartingPayment, setIsStartingPayment] = useState(false);
   const [isRefreshingPaymentMethod, setIsRefreshingPaymentMethod] = useState(false);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState(null);
+  const [demoUpgradeRequest, setDemoUpgradeRequest] = useState(null);
+  const { isDemoMode } = useAppMode();
 
   const upgradeOptions = useMemo(() => (listing ? getUpgradeOptions(listing) : []), [listing]);
   const currentTier = listing ? getListingCurrentTier(listing) : "";
@@ -64,8 +68,13 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
     loadSavedPaymentMethod();
   }, [open, listing]);
 
-  const handleConfirmUpgrade = async ({ nonRefundAcknowledgement } = {}) => {
+  const handleConfirmUpgrade = async ({ nonRefundAcknowledgement } = {}, skipDemoPrompt = false) => {
     if (!listing || !selectedTier || amountDue <= 0) return;
+
+    if (isDemoMode && !skipDemoPrompt) {
+      setDemoUpgradeRequest({ nonRefundAcknowledgement });
+      return;
+    }
 
     if (window.self !== window.top) {
       toast.error("Checkout works only from the published app.");
@@ -107,7 +116,33 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
     }
   };
 
+  const handleDemoUpgradeSkip = async () => {
+    if (!listing || !selectedTier || amountDue <= 0) return;
+    try {
+      setIsStartingPayment(true);
+      await base44.entities.Listing.update(listing.id, listing.listingType === "event"
+        ? { tier: selectedTier, event_tier: selectedTier, is_demo_listing: true, payment_intent_status: "captured", pending_upgrade_tier: "", pending_upgrade_checkout_session_id: "", pricePaid: amountDue / 100 }
+        : { tier: selectedTier, is_demo_listing: true, payment_intent_status: "captured", pending_upgrade_tier: "", pending_upgrade_checkout_session_id: "", pricePaid: amountDue / 100 }
+      );
+      toast.success("Demo payment skipped. Upgrade applied.");
+      setDemoUpgradeRequest(null);
+      onSuccess?.();
+      onClose?.();
+    } catch (error) {
+      toast.error(error?.message || "Demo upgrade could not be applied.");
+    } finally {
+      setIsStartingPayment(false);
+    }
+  };
+
+  const handleDemoUpgradeContinue = () => {
+    const request = demoUpgradeRequest;
+    setDemoUpgradeRequest(null);
+    handleConfirmUpgrade({ nonRefundAcknowledgement: request?.nonRefundAcknowledgement }, true);
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -160,5 +195,13 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
         </div>
       </DialogContent>
     </Dialog>
+    <DemoPaymentSkipDialog
+      open={!!demoUpgradeRequest}
+      onOpenChange={(nextOpen) => !nextOpen && setDemoUpgradeRequest(null)}
+      onSkip={handleDemoUpgradeSkip}
+      onContinue={handleDemoUpgradeContinue}
+      isProcessing={isStartingPayment}
+    />
+    </>
   );
 }

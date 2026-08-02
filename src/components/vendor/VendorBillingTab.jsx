@@ -12,6 +12,8 @@ import { getVendorUsageSnapshot } from "@/lib/vendorUsage";
 import TierFeatureSummary from "@/components/vendor/TierFeatureSummary";
 import VendorTierReviewPanel from "@/components/vendor/billing/VendorTierReviewPanel";
 import { toast } from "sonner";
+import DemoPaymentSkipDialog from "@/components/shared/DemoPaymentSkipDialog";
+import { useAppMode } from "@/components/shared/DemoMode";
 
 const TIER_TAGLINES = {
   free: "Trial/casual vendor usage",
@@ -30,7 +32,9 @@ export default function VendorBillingTab({ account, onRefresh }) {
   const [extraUsers, setExtraUsers] = useState(0);
   const [extraPins, setExtraPins] = useState(0);
   const [addOnsOpen, setAddOnsOpen] = useState(false);
+  const [demoCheckoutRequest, setDemoCheckoutRequest] = useState(null);
   const configRef = useRef(null);
+  const { isDemoMode } = useAppMode();
 
   const currentTierIndex = Math.max(0, VENDOR_TIER_ORDER.indexOf(account?.vendor_tier || "free"));
 
@@ -78,7 +82,12 @@ export default function VendorBillingTab({ account, onRefresh }) {
     return selectedBasePrice + extraUsers * 5 + extraPins * 10;
   }, [selectedBasePrice, extraUsers, extraPins, selectedTier]);
 
-  const startTierCheckout = async (tierKey, promoData = {}) => {
+  const startTierCheckout = async (tierKey, promoData = {}, skipDemoPrompt = false) => {
+    if (isDemoMode && !skipDemoPrompt) {
+      setDemoCheckoutRequest({ tierKey, promoData });
+      return;
+    }
+
     setReviewTier("");
     setChangingTier(tierKey);
     if (window.self !== window.top) {
@@ -110,6 +119,31 @@ export default function VendorBillingTab({ account, onRefresh }) {
     }
 
     window.location.assign(checkoutUrl);
+  };
+
+  const handleDemoCheckoutSkip = async () => {
+    const request = demoCheckoutRequest;
+    if (!request?.tierKey || !account?.id) return;
+    setDemoCheckoutRequest(null);
+    setReviewTier("");
+    setChangingTier(request.tierKey);
+    await base44.entities.VendorAccount.update(account.id, {
+      vendor_tier: request.tierKey,
+      subscription_status: "active",
+      extra_users_count: reviewAddOns.extraUsers || 0,
+      extra_pins_count: reviewAddOns.extraPins || 0,
+      setup_tier_confirmed: true,
+      vendor_setup_status: "in_progress",
+    });
+    toast.success("Demo payment skipped. Plan updated.");
+    await onRefresh?.();
+    setChangingTier("");
+  };
+
+  const handleDemoCheckoutContinue = () => {
+    const request = demoCheckoutRequest;
+    setDemoCheckoutRequest(null);
+    if (request?.tierKey) startTierCheckout(request.tierKey, request.promoData || {}, true);
   };
 
   const handleChangeTier = async (tierKey) => {
@@ -157,6 +191,13 @@ export default function VendorBillingTab({ account, onRefresh }) {
           isProcessing={changingTier === reviewTier}
           onBack={() => { setReviewTier(""); setSelectedTier(reviewTier); setExtraUsers(reviewAddOns.extraUsers); setExtraPins(reviewAddOns.extraPins); }}
           onPay={(promoData) => startTierCheckout(reviewTier, promoData)}
+        />
+        <DemoPaymentSkipDialog
+          open={!!demoCheckoutRequest}
+          onOpenChange={(nextOpen) => !nextOpen && setDemoCheckoutRequest(null)}
+          onSkip={handleDemoCheckoutSkip}
+          onContinue={handleDemoCheckoutContinue}
+          isProcessing={!!changingTier}
         />
       </div>
     );
@@ -368,6 +409,13 @@ export default function VendorBillingTab({ account, onRefresh }) {
           </div>
         </div>
       )}
+      <DemoPaymentSkipDialog
+        open={!!demoCheckoutRequest}
+        onOpenChange={(nextOpen) => !nextOpen && setDemoCheckoutRequest(null)}
+        onSkip={handleDemoCheckoutSkip}
+        onContinue={handleDemoCheckoutContinue}
+        isProcessing={!!changingTier}
+      />
     </div>
   );
 }
