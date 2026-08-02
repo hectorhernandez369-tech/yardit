@@ -131,8 +131,20 @@ async function getIndependentPaidAmount(base44, listing) {
   return 0;
 }
 
-async function buildStandaloneParticipantPatch(base44, listing, now) {
+async function buildStandaloneParticipantPatch(base44, listing, now, participantOrigin = '') {
   const status = getStandaloneStatusForWindow(listing, now);
+  if (participantOrigin === 'existing_listing' || listing?.participant_origin === 'existing_listing') {
+    return {
+      participant_origin: 'standalone',
+      status,
+      activation_status: status === 'active' ? 'active' : 'pending',
+      neighborhood_join_status: 'none',
+      neighborhood_sale_id: null,
+      origin_sale_listing_id: null,
+      hold_deadline_at: null,
+    };
+  }
+
   const paidAmount = await getIndependentPaidAmount(base44, listing);
   return {
     tier: 'free',
@@ -269,7 +281,7 @@ Deno.serve(async (req) => {
       const organizerListings = await base44.asServiceRole.entities.Listing.filter({ id: sale.organizer_participant_listing_id });
       if (organizerListings[0]) {
         if (preserveApprovedParticipants) {
-          await base44.asServiceRole.entities.Listing.update(organizerListings[0].id, await buildStandaloneParticipantPatch(base44, organizerListings[0], now));
+          await base44.asServiceRole.entities.Listing.update(organizerListings[0].id, await buildStandaloneParticipantPatch(base44, organizerListings[0], now, organizerListings[0].participant_origin));
           typeBDetached += 1;
         } else {
           await base44.asServiceRole.entities.Listing.delete(organizerListings[0].id);
@@ -293,7 +305,7 @@ Deno.serve(async (req) => {
 
       if (preserveApprovedParticipants) {
         if (participantListing) {
-          await base44.asServiceRole.entities.Listing.update(participantListing.id, await buildStandaloneParticipantPatch(base44, participantListing, now));
+          await base44.asServiceRole.entities.Listing.update(participantListing.id, await buildStandaloneParticipantPatch(base44, participantListing, now, participantOrigin));
           typeBDetached += 1;
         }
 
@@ -302,7 +314,7 @@ Deno.serve(async (req) => {
             userId: requesterUserId,
             user_id: requesterUserId,
             title: 'Neighborhood Sale canceled',
-            message: 'The sale did not reach the required number of homes. Your Yard Sale is still active as a free standalone listing.',
+            message: 'The sale did not reach the required number of homes. Your yard sale is no longer included with the Neighborhood Sale and will use its standalone visibility.',
             type: 'neighborhood_sale_participant_standalone',
             related_entity_type: 'listing',
             related_entity_id: participantListing?.id || request.listingId || saleListingId,
@@ -416,18 +428,13 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      if (participantOrigin === 'neighborhood_invite') {
+      if (participantOrigin === 'neighborhood_invite' || participantOrigin === 'neighborhood_join') {
         await base44.asServiceRole.entities.Listing.delete(participantListing.id);
         typeADeleted += 1;
         continue;
       }
 
-      await base44.asServiceRole.entities.Listing.update(participantListing.id, {
-        neighborhood_join_status: 'none',
-        neighborhood_sale_id: null,
-        payment_intent_status: 'none',
-        hold_deadline_at: null,
-      });
+      await base44.asServiceRole.entities.Listing.update(participantListing.id, await buildStandaloneParticipantPatch(base44, participantListing, now, participantOrigin));
       typeBDetached += 1;
     }
 

@@ -394,7 +394,7 @@ export default function NeighborhoodSalePanel({
               <p><strong>Event:</strong> {parentSale.title}</p>
               <p><strong>Dates:</strong> {formatListingScheduleText(parentSale)}</p>
               <p className="mt-2">
-                If this Neighborhood Sale is canceled or your participation is removed, you will need to create a normal listing to appear independently.
+                If this Neighborhood Sale is canceled or your participation is removed, an existing listing keeps its original tier and returns to standalone visibility.
               </p>
             </div>
           )}

@@ -58,7 +58,10 @@ export default function NeighborhoodSaleNoticeCard({ sales = [], onDismiss }) {
             There is an upcoming Neighborhood Sale near your address.
           </p>
           <p className="mt-2 text-sm leading-relaxed text-[#1F2937]">
-            Neighborhood Sale participants do not need to purchase a listing tier because visibility comes from the Neighborhood Sale event.
+            Your yard sale can be included as part of the Neighborhood Sale. You will not be charged a separate listing payment to participate.
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-[#1F2937]">
+            If you already purchased a listing or upgrade, Yardit will preserve it when your listing is added to the Neighborhood Sale.
           </p>
           <p className="mt-2 text-sm leading-relaxed text-[#1F2937]">
             You can request to join the Neighborhood Sale, or continue creating your own standalone listing.

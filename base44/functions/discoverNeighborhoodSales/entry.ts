@@ -1,16 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { isNeighborhoodOpenToParticipants, deriveNeighborhoodEventState } from '../../shared/neighborhoodParticipation.ts';
 
 const NEIGHBORHOOD_MAX_HOMES = 25;
-const ELIGIBLE_STATES = new Set([
-  'pending_activation',
-  'activated',
-  'activated_locked',
-  'coming_soon',
-  'active',
-  'scheduled',
-  'upcoming',
-  'collecting_participants'
-]);
 
 function getDistanceFeet(lat1, lon1, lat2, lon2) {
   if (typeof lat1 !== 'number' || typeof lon1 !== 'number' || typeof lat2 !== 'number' || typeof lon2 !== 'number') return Infinity;
@@ -34,7 +25,7 @@ function getStartDate(sale) {
 }
 
 function getDiscoveryState(sale) {
-  return sale?.event_state || sale?.status || 'upcoming';
+  return deriveNeighborhoodEventState(sale, new Date()) || sale?.event_state || sale?.status || 'upcoming';
 }
 
 Deno.serve(async (req) => {
@@ -64,6 +55,7 @@ Deno.serve(async (req) => {
 
         return {
           id: sale.id,
+          listingType: sale.listingType,
           title: sale.title,
           status: sale.status,
           event_state: sale.event_state,
@@ -77,7 +69,7 @@ Deno.serve(async (req) => {
           distanceFeet
         };
       })
-      .filter((sale) => ELIGIBLE_STATES.has(sale.discoveryState) || ELIGIBLE_STATES.has(sale.status))
+      .filter((sale) => isNeighborhoodOpenToParticipants(sale, new Date(), sale.homeCount))
       .filter((sale) => sale.homeCount < NEIGHBORHOOD_MAX_HOMES)
       .filter((sale) => sale.distanceFeet <= 500)
       .sort((a, b) => getStartDate(a).localeCompare(getStartDate(b)));

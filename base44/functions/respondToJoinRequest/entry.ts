@@ -13,7 +13,31 @@ function normalizeStatus(status) {
 function isLockedSale(sale) {
   const state = String(sale?.event_state || '').toLowerCase();
   const status = String(sale?.status || '').toLowerCase();
-  return ['activated_locked', 'coming_soon', 'active'].includes(state) || status === 'active';
+  const startsAt = sale?.startDateTime ? new Date(sale.startDateTime) : null;
+  const hasStarted = startsAt && !Number.isNaN(startsAt.getTime()) && new Date() >= startsAt;
+  return state === 'activated_locked' || state === 'active' || (status === 'active' && hasStarted);
+}
+
+function isExistingListingRequest(joinRequest) {
+  return joinRequest?.participant_origin_snapshot === 'existing_listing';
+}
+
+function buildDetachPatch(joinRequest) {
+  if (isExistingListingRequest(joinRequest)) {
+    return {
+      neighborhood_join_status: 'none',
+      neighborhood_sale_id: null,
+      participant_origin: 'standalone',
+      origin_sale_listing_id: null,
+      hold_deadline_at: null,
+    };
+  }
+  return {
+    neighborhood_join_status: 'denied',
+    neighborhood_sale_id: null,
+    payment_intent_status: 'none',
+    hold_deadline_at: null,
+  };
 }
 
 function canManageSale(user, sale) {
@@ -143,15 +167,25 @@ Deno.serve(async (req) => {
         removal_reason: null,
       });
 
-      await base44.asServiceRole.entities.Listing.update(requesterListingId, {
-        neighborhood_join_status: 'approved',
-        payment_intent_status: 'none',
-        hold_deadline_at: null,
-        neighborhood_sale_id: saleListingId,
-        tier: 'free',
-        pricePaid: 0,
-        participant_origin: 'neighborhood_invite',
-      });
+      const approvePatch = isExistingListingRequest(joinRequest)
+        ? {
+            neighborhood_join_status: 'approved',
+            hold_deadline_at: null,
+            neighborhood_sale_id: saleListingId,
+            participant_origin: 'existing_listing',
+            origin_sale_listing_id: saleListingId,
+          }
+        : {
+            neighborhood_join_status: 'approved',
+            payment_intent_status: 'none',
+            hold_deadline_at: null,
+            neighborhood_sale_id: saleListingId,
+            tier: 'free',
+            pricePaid: 0,
+            participant_origin: 'neighborhood_join',
+            origin_sale_listing_id: saleListingId,
+          };
+      await base44.asServiceRole.entities.Listing.update(requesterListingId, approvePatch);
 
       await notify(base44, {
         userId: requesterUserId,
@@ -177,14 +211,11 @@ Deno.serve(async (req) => {
 
     if (action === 'deny') {
       await base44.asServiceRole.entities.JoinRequest.update(requestId, { status: 'denied' });
-      await base44.asServiceRole.entities.Listing.update(requesterListingId, {
-        neighborhood_join_status: 'denied',
-        payment_intent_status: 'none',
-      });
+      await base44.asServiceRole.entities.Listing.update(requesterListingId, buildDetachPatch(joinRequest));
       await notify(base44, {
         userId: requesterUserId,
         title: 'Join Request Denied',
-        message: 'Denied — create a normal listing if you still want to appear independently.',
+        message: 'Denied — your yard sale was not included with this Neighborhood Sale. Any existing listing keeps its original tier and standalone visibility.',
         type: 'join_response_deny',
         relatedEntityId: requestId,
         metadata: { sale_listing_id: saleListingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle },
@@ -199,11 +230,7 @@ Deno.serve(async (req) => {
         removed_at: new Date().toISOString(),
         removal_reason: 'eo_removed',
       });
-      await base44.asServiceRole.entities.Listing.update(requesterListingId, {
-        neighborhood_join_status: 'denied',
-        neighborhood_sale_id: null,
-        payment_intent_status: 'none',
-      });
+      await base44.asServiceRole.entities.Listing.update(requesterListingId, buildDetachPatch(joinRequest));
       await notify(base44, {
         userId: requesterUserId,
         title: 'Removed from Neighborhood Sale',

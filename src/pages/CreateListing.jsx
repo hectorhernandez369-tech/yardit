@@ -1094,7 +1094,7 @@ export default function CreateListingPage() {
             userId,
             user_id: userId,
             title: "Neighborhood Sale Invitation",
-            message: "A Neighborhood Sale was created near your listing. Cancel your current listing first, then tap here to request to join as a Neighborhood participant.",
+            message: "A Neighborhood Sale was created near your listing. Tap here to request that your Yard Sale be included with the Neighborhood Sale. You will not be charged a separate listing payment to participate.",
             type: "join_invitation",
             related_entity_type: "listing",
             related_entity_id: createdListing.id,

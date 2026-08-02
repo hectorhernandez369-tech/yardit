@@ -170,11 +170,11 @@ export const NOTIFICATION_REGISTRY = {
   },
   neighborhood_sale_participant_standalone: {
     recipient: "approved Neighborhood Sale participant",
-    trigger: "Neighborhood Sale fails and approved participant listing is preserved as standalone free Yard Sale",
+    trigger: "Neighborhood Sale fails and approved participant listing returns to standalone visibility",
     delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
     status: "active",
     title: "Neighborhood Sale canceled",
-    message: "The sale did not reach the required number of homes. Your Yard Sale is still active as a free standalone listing.",
+    message: "The sale did not reach the required number of homes. Your yard sale is no longer included with the Neighborhood Sale and will use its standalone visibility.",
     deep_link: "/ListingDetail",
   },
   neighborhood_sale_payment_succeeded: {

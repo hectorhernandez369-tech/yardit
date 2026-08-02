@@ -88,7 +88,7 @@ function publicContact(account, event = null) {
 }
 
 const listingFields = [
-  'id', 'listingNumber', 'listingType', 'title', 'description', 'event_name', 'event_description', 'event_category', 'event_icon', 'event_logo_url', 'event_tier', 'event_photos', 'marquee_flyer_url', 'marquee_background_url', 'marquee_schedule_slots', 'display_address', 'address_text', 'addressText', 'city', 'state', 'zip', 'lat', 'lng', 'timeZoneId', 'tier', 'status', 'event_state', 'photoUrls', 'category', 'categories', 'collectible_type', 'selectedRangeStartDate', 'selectedRangeEndDate', 'openTime', 'closeTime', 'early_visibility_enabled', 'early_visibility_days', 'visibility_start_date', 'earlyVisibilityDays', 'activeDates', 'earlyVisibilityDates', 'startDateTime', 'endDateTime', 'validatedDistance', 'spanFeet', 'homeCount', 'neighborhood_sale_id', 'activation_status', 'is_demo_listing', 'event_center_lat', 'event_center_lng', 'organizer_participation'
+  'id', 'listingNumber', 'listingType', 'title', 'description', 'event_name', 'event_description', 'event_category', 'event_icon', 'event_logo_url', 'event_tier', 'event_photos', 'marquee_flyer_url', 'marquee_background_url', 'marquee_schedule_slots', 'display_address', 'address_text', 'addressText', 'city', 'state', 'zip', 'lat', 'lng', 'timeZoneId', 'tier', 'status', 'event_state', 'photoUrls', 'category', 'categories', 'collectible_type', 'selectedRangeStartDate', 'selectedRangeEndDate', 'openTime', 'closeTime', 'early_visibility_enabled', 'early_visibility_days', 'visibility_start_date', 'earlyVisibilityDays', 'activeDates', 'earlyVisibilityDates', 'startDateTime', 'endDateTime', 'validatedDistance', 'spanFeet', 'homeCount', 'neighborhood_sale_id', 'neighborhood_join_status', 'participant_origin', 'activation_status', 'is_demo_listing', 'event_center_lat', 'event_center_lng', 'organizer_participation'
 ];
 
 const promoFields = ['id', 'code', 'title', 'status', 'promo_door_enabled', 'promo_door_lat', 'promo_door_lng', 'geographic_limit_type', 'geo_center_lat', 'geo_center_lng', 'promo_icon_logo_url', 'promo_icon_size_px', 'promo_icon_glow_enabled', 'promo_icon_animation', 'promo_min_zoom', 'promo_max_zoom', 'geo_display_label', 'default_discount_percent', 'starts_at', 'expires_at', 'applies_to_tiers'];
@@ -96,6 +96,7 @@ const vendorEventFields = ['id', 'organizer_business_id', 'organizer_business_na
 const vendorAccountFields = ['id', 'business_name', 'vendor_display_name', 'business_logo', 'business_category', 'vendor_slug', 'description', 'location', 'facebook_url', 'instagram_url', 'tiktok_url', 'vendor_tier', 'is_active'];
 const vendorPinFields = ['id', 'vendor_account_id', 'pin_name', 'pin_logo_url', 'pin_icon_url', 'pin_icon_style', 'description', 'is_active', 'scheduled_date', 'scheduled_start_time', 'scheduled_end_time', 'recurring_schedule', 'scheduled_location_label', 'scheduled_lat', 'scheduled_lng', 'schedule_status'];
 const vendorCheckInFields = ['id', 'vendor_pin_id', 'vendor_account_id', 'checkin_latitude', 'checkin_longitude', 'checkin_display_address', 'checkin_start_time', 'checkin_end_time', 'pin_animation', 'status'];
+const joinRequestFields = ['id', 'listingId', 'saleListingId', 'requesterUserId', 'status', 'removed_by_eo', 'removed_by_listing_owner', 'participant_origin_snapshot'];
 
 Deno.serve(async (req) => {
   try {
@@ -116,7 +117,7 @@ Deno.serve(async (req) => {
       return Response.json({ listing: pick(listing, listingFields) });
     }
 
-    const [listingRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows, scheduleRows, leagueEventRows, leagueGameRows] = await Promise.all([
+    const [listingRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows, scheduleRows, leagueEventRows, leagueGameRows, joinRequestRows] = await Promise.all([
       base44.asServiceRole.entities.Listing.list('-created_date', 500),
       base44.asServiceRole.entities.ResidentialPromoCode.list('-updated_date', 100),
       base44.asServiceRole.entities.VendorEvent.list('startDateTime', 200),
@@ -126,6 +127,7 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.EventScheduleEntry.list('sort_order', 1000),
       base44.asServiceRole.entities.LeagueEventGame.list('display_order', 1000),
       base44.asServiceRole.entities.LeagueGame.list('sort_order', 1000),
+      base44.asServiceRole.entities.JoinRequest.list('-created_date', 500),
     ]);
 
     const listings = listingRows.filter((listing) => isPublicListing(listing, now)).map((listing) => pick(listing, listingFields));
@@ -148,8 +150,13 @@ Deno.serve(async (req) => {
     const vendorAccounts = vendorAccountRows.filter((account) => account?.is_active !== false && liveVendorAccountIds.has(account.id)).map((account) => ({ ...pick(account, vendorAccountFields), ...publicContact(account) }));
     const vendorPins = vendorPinRows.filter((pin) => pin?.is_active !== false && liveVendorPinIds.has(pin.id)).map((pin) => pick(pin, vendorPinFields));
     const vendorCheckIns = liveCheckIns.map((checkIn) => pick(checkIn, vendorCheckInFields));
+    const publicListingIds = new Set(listings.map((listing) => listing.id));
+    const joinRequests = joinRequestRows
+      .filter((request) => request?.status === 'approved' && request?.removed_by_eo !== true && request?.removed_by_listing_owner !== true)
+      .filter((request) => publicListingIds.has(request.listingId) && publicListingIds.has(request.saleListingId))
+      .map((request) => pick(request, joinRequestFields));
 
-    return Response.json({ listings, promoDiscoveryCodes, vendorEvents, eventScheduleEntries, leagueEventLinks, leagueGames, vendorAccounts, vendorPins, vendorCheckIns });
+    return Response.json({ listings, promoDiscoveryCodes, vendorEvents, eventScheduleEntries, leagueEventLinks, leagueGames, vendorAccounts, vendorPins, vendorCheckIns, joinRequests });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -17,8 +17,8 @@ const faqItems = [
     answer: "A Neighborhood Sale requires a minimum of 5 approved participating homes to activate. All participating homes must be within 500 feet of the selected map location or chosen event address. The organizer's participating home counts toward this total if the organizer chooses to participate. A Neighborhood Sale may have up to 25 participating homes.",
   },
   {
-    question: "What Does It Cost?",
-    answer: "Only the organizer pays. Participants join free. Organizer pricing is one flat $49.99 total for a qualifying Neighborhood Sale with 5 to 25 approved participating homes.",
+    question: "Do participants pay a separate listing fee?",
+    answer: "No separate listing payment is required for approved participants. The Neighborhood Sale organizer pays the event fee, while each participant manages their own yard sale within the event.",
   },
   {
     question: "When Am I Charged?",

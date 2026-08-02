@@ -1,14 +1,19 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { isNeighborhoodOpenToParticipants } from '../../shared/neighborhoodParticipation.ts';
 
-const SAFE_STATUSES = new Set([
-  'active',
-  'scheduled',
-  'activated',
-  'activated_locked',
-  'coming_soon',
-  'collecting_participants',
-  'ready_for_payment'
-]);
+const NEIGHBORHOOD_MAX_HOMES = 25;
+
+function normalizeNeighborhoodJoinStatus(status) {
+  if (status === 'requested') return 'pending';
+  if (status === 'approved_pending_payment') return 'approved';
+  return status;
+}
+
+function getApprovedHomesCount(requests = [], sale = null) {
+  const organizerCount = sale?.organizer_participation === 'organizing_only' ? 0 : 1;
+  const approved = (requests || []).filter((request) => request?.removed_by_eo !== true && request?.removed_by_listing_owner !== true && normalizeNeighborhoodJoinStatus(request.status) === 'approved').length + organizerCount;
+  return Math.min(NEIGHBORHOOD_MAX_HOMES, approved);
+}
 
 Deno.serve(async (req) => {
   try {
@@ -30,8 +35,9 @@ Deno.serve(async (req) => {
       return Response.json({ sale: null });
     }
 
-    const state = sale.event_state || sale.status;
-    if (!SAFE_STATUSES.has(state) && !SAFE_STATUSES.has(sale.status)) {
+    const requests = await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId: sale.id });
+    const approvedHomesCount = getApprovedHomesCount(requests, sale);
+    if (!isNeighborhoodOpenToParticipants(sale, new Date(), approvedHomesCount)) {
       return Response.json({ sale: null });
     }
 
@@ -51,7 +57,9 @@ Deno.serve(async (req) => {
         event_center_lat: sale.event_center_lat,
         event_center_lng: sale.event_center_lng,
         lat: sale.lat,
-        lng: sale.lng
+        lng: sale.lng,
+        approvedHomesCount,
+        isOpenToParticipants: true
       }
     });
   } catch (error) {

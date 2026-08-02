@@ -127,7 +127,7 @@ export function shouldShowAsPin(zoom, listing) {
   }
 
   const tier = listing?.tier;
-  if (tier === "neighborhood_tier" || tier === "neighborhood_event") return zoom >= 12;
+  if (tier === "neighborhood_tier" || tier === "neighborhood_event") return zoom >= 12 && zoom < 18;
   if (tier === "premium") return zoom >= 11;
   if (tier === "featured" || tier === "map_pin") return zoom >= 13;
   return zoom >= 15;

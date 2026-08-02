@@ -781,7 +781,7 @@ export default function HomePage() {
     enabled: !isPublicHomeMode
   });
 
-  const { data: allJoinRequests } = useQuery({
+  const { data: privateJoinRequests = [] } = useQuery({
     queryKey: ["allJoinRequests"],
     queryFn: () => base44.entities.JoinRequest.list(),
     initialData: [],
@@ -848,6 +848,7 @@ export default function HomePage() {
   const leagueEventLinks = isPublicHomeMode ? publicMapData.leagueEventLinks || [] : privateLeagueEventLinks;
   const leagueGames = isPublicHomeMode ? publicMapData.leagueGames || [] : privateLeagueGames;
 
+  const allJoinRequests = isPublicHomeMode ? publicMapData.joinRequests || [] : privateJoinRequests;
   const vendorAccounts = isPublicHomeMode ? publicMapData.vendorAccounts || [] : privateVendorAccounts;
   const vendorPins = isPublicHomeMode ? publicMapData.vendorPins || [] : privateVendorPins;
   const vendorCheckIns = isPublicHomeMode ? publicMapData.vendorCheckIns || [] : privateVendorCheckIns;
@@ -1147,6 +1148,16 @@ export default function HomePage() {
       }
 
       const isNeighborhoodEvent = listing.listingType === "neighborhood_sale";
+      const shouldShowNeighborhoodChest = isNeighborhoodEvent && currentZoom >= 12 && currentZoom < 18;
+
+      if (isNeighborhoodEvent) {
+        if (shouldShowNeighborhoodChest) {
+          pins.push(listing);
+        } else if (currentZoom < 12) {
+          cPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id });
+        }
+        return;
+      }
 
       if (isComingSoon) {
         if (isMarquee) {
@@ -1158,15 +1169,6 @@ export default function HomePage() {
           if (shouldRevealPin) {
             pins.push(listing);
           }
-        }
-        return;
-      }
-
-      if (isNeighborhoodEvent) {
-        if (currentZoom >= 12) {
-          pins.push(listing);
-        } else {
-          cPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id });
         }
         return;
       }
