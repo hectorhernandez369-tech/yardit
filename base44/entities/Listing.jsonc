@@ -507,6 +507,8 @@
       "type": "string",
       "enum": [
         "neighborhood_invite",
+        "neighborhood_join",
+        "existing_listing",
         "standalone"
       ],
       "description": "How this participant listing was originally created"

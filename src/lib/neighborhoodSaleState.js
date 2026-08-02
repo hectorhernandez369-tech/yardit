@@ -11,7 +11,16 @@ export const NEIGHBORHOOD_EVENT_STATES = [
 ];
 
 export const NEIGHBORHOOD_MIN_HOMES = 5;
+export const NEIGHBORHOOD_MAX_HOMES = 25;
 export const NEIGHBORHOOD_CREATION_MIN_LEAD_DAYS = 7;
+
+const JOINABLE_NEIGHBORHOOD_STATES = new Set([
+  "pending_activation",
+  "activated",
+  "coming_soon",
+  "scheduled",
+  "upcoming",
+]);
 
 export function normalizeNeighborhoodJoinStatus(status) {
   if (status === "requested") return "pending";
@@ -80,9 +89,30 @@ export function isNeighborhoodVisibleOnMap(listing, nowInput = new Date()) {
   return ["coming_soon", "active"].includes(deriveNeighborhoodEventState(listing, nowInput));
 }
 
-export function isNeighborhoodJoinAllowed(listing, nowInput = new Date()) {
-  const eventState = deriveNeighborhoodEventState(listing, nowInput);
-  return eventState === "pending_activation";
+export function getNeighborhoodParticipantLockDeadline(listing) {
+  if (!listing?.startDateTime) return null;
+  const startsAt = new Date(listing.startDateTime);
+  if (Number.isNaN(startsAt.getTime())) return null;
+  return new Date(startsAt.getTime() - 24 * 60 * 60 * 1000);
+}
+
+export function isNeighborhoodOpenToParticipants(listing, nowInput = new Date(), approvedHomeCount = 0) {
+  const now = nowInput instanceof Date ? nowInput : new Date(nowInput);
+  const eventState = deriveNeighborhoodEventState(listing, now);
+  if (!JOINABLE_NEIGHBORHOOD_STATES.has(eventState)) return false;
+  if (Number(approvedHomeCount || 0) >= NEIGHBORHOOD_MAX_HOMES) return false;
+
+  const lockAt = getNeighborhoodParticipantLockDeadline(listing);
+  if (lockAt && now >= lockAt) return false;
+
+  const startsAt = listing?.startDateTime ? new Date(listing.startDateTime) : null;
+  if (startsAt && !Number.isNaN(startsAt.getTime()) && now >= startsAt) return false;
+
+  return true;
+}
+
+export function isNeighborhoodJoinAllowed(listing, nowInput = new Date(), approvedHomeCount = 0) {
+  return isNeighborhoodOpenToParticipants(listing, nowInput, approvedHomeCount);
 }
 
 export function shouldShowListingOnMainMap(listing, nowInput = new Date()) {
