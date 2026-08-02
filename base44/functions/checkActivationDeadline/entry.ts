@@ -145,9 +145,54 @@ async function notify(base44, userId, title, message, type, relatedEntityId, met
     related_entity_type: 'listing',
     related_entity_id: relatedEntityId,
     metadata,
+    delivery_methods: metadata.delivery_methods,
+    deep_link: metadata.deep_link,
+    dedupe_key: metadata.dedupe_key,
     read: false,
     is_read: false,
   });
+}
+
+function getListingDeepLink(listingId) {
+  return `/ListingDetail?id=${listingId}`;
+}
+
+function getApprovedParticipantRequests(requests = []) {
+  return (requests || []).filter((request) => request?.removed_by_eo !== true && normalizeNeighborhoodJoinStatus(request.status) === 'approved' && request.requesterUserId);
+}
+
+async function notifySaleActiveAudience(base44, sale, requests, approvedHomes) {
+  const recipients = new Map();
+  if (sale.ownerUserId) recipients.set(sale.ownerUserId, { userId: sale.ownerUserId, role: 'organizer', listingId: sale.id });
+
+  for (const request of getApprovedParticipantRequests(requests)) {
+    recipients.set(request.requesterUserId, {
+      userId: request.requesterUserId,
+      role: 'approved_participant',
+      listingId: request.listingId || sale.id,
+    });
+  }
+
+  for (const recipient of recipients.values()) {
+    await notify(
+      base44,
+      recipient.userId,
+      'Your Neighborhood Sale is active!',
+      'The sale reached the required number of homes and is now live.',
+      'neighborhood_sale_active',
+      sale.id,
+      {
+        sale_listing_id: sale.id,
+        recipient_role: recipient.role,
+        requester_listing_id: recipient.listingId,
+        approved_homes: approvedHomes,
+        event_title: sale.title,
+        delivery_methods: ['push', 'bell'],
+        deep_link: getListingDeepLink(sale.id),
+        dedupe_key: `neighborhood_sale_active_${sale.id}_${recipient.userId}`,
+      }
+    );
+  }
 }
 
 async function scheduleRetryJob(base44, saleId, now) {
@@ -172,19 +217,9 @@ async function cancelSaleWithoutFallbackCharge(base44, sale, approvedHomes, reas
     deleteSale: false,
     trigger: triggerLabel,
     skipCancellationCharge: true,
+    preserveApprovedParticipants: true,
   });
 
-  if (organizerMessage) {
-    await notify(
-      base44,
-      sale.ownerUserId,
-      'Neighborhood Sale cancelled',
-      organizerMessage,
-      'neighborhood_sale_fallback_cancelled',
-      sale.id,
-      { sale_listing_id: sale.id, approved_homes: approvedHomes, reason }
-    );
-  }
 }
 
 async function applyFallbackFlow(base44, sale, approvedHomes, reason, triggerLabel) {
@@ -295,6 +330,7 @@ async function applyFallbackFlow(base44, sale, approvedHomes, reason, triggerLab
     trigger: 'premium_fallback_applied',
     skipCancellationCharge: true,
     preserveFallbackListingId: fallbackListing.id,
+    preserveApprovedParticipants: true,
   });
 
   await base44.asServiceRole.entities.Listing.update(fallbackListing.id, {
@@ -310,18 +346,9 @@ async function applyFallbackFlow(base44, sale, approvedHomes, reason, triggerLab
     origin_sale_listing_id: null,
   });
 
-  await notify(
-    base44,
-    sale.ownerUserId,
-    'Premium Yard Sale fallback applied',
-    `Your Neighborhood Sale did not reach 5 homes. Your connected Yard Sale was upgraded to Premium and charged $${PREMIUM_FALLBACK_PRICE.toFixed(2)}.`,
-    'neighborhood_sale_fallback_applied',
-    fallbackListing.id,
-    { sale_listing_id: sale.id, fallback_listing_id: fallbackListing.id, approved_homes: approvedHomes, reason }
-  );
 }
 
-async function processNeighborhoodCharge(base44, sale, approvedHomes, now, isRetry = false) {
+async function processNeighborhoodCharge(base44, sale, approvedHomes, now, isRetry = false, requests = null) {
   const durationDays = getDurationDays(sale);
   const existingPayment = await getLatestPayment(base44, sale.id, 'neighborhood_event');
   const lockedAmount = getNeighborhoodChargeAmount();
@@ -341,6 +368,8 @@ async function processNeighborhoodCharge(base44, sale, approvedHomes, now, isRet
       hold_deadline_at: null,
       statusReason: sale?.statusReason || 'Neighborhood Sale payment locked successfully',
     });
+    const audienceRequests = requests || await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId: sale.id });
+    await notifySaleActiveAudience(base44, sale, audienceRequests, approvedHomes);
     return;
   }
 
@@ -399,6 +428,8 @@ async function processNeighborhoodCharge(base44, sale, approvedHomes, now, isRet
       sale.id,
       { sale_listing_id: sale.id, approved_homes: approvedHomes, amount: lockedAmount }
     );
+    const audienceRequests = requests || await base44.asServiceRole.entities.JoinRequest.filter({ saleListingId: sale.id });
+    await notifySaleActiveAudience(base44, sale, audienceRequests, approvedHomes);
     return;
   }
 
@@ -506,12 +537,12 @@ Deno.serve(async (req) => {
         if (approvedHomes < NEIGHBORHOOD_MIN_HOMES) {
           await applyFallbackFlow(base44, sale, approvedHomes, 'minimum_not_met_24h', 'minimum_not_met_24h');
         } else {
-          await processNeighborhoodCharge(base44, sale, approvedHomes, now, false);
+          await processNeighborhoodCharge(base44, sale, approvedHomes, now, false, requests);
         }
       }
 
       if (job.checkpoint_type === 'payment_retry_6h') {
-        await processNeighborhoodCharge(base44, sale, approvedHomes, now, true);
+        await processNeighborhoodCharge(base44, sale, approvedHomes, now, true, requests);
       }
 
       await base44.asServiceRole.entities.NeighborhoodDeadlineJob.update(job.id, {

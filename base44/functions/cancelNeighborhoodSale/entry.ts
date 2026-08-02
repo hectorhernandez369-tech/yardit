@@ -108,6 +108,53 @@ function getFallbackRescuePayload(sale, participantListing) {
   };
 }
 
+function getStandaloneStatusForWindow(listing, now) {
+  const start = listing?.startDateTime ? new Date(listing.startDateTime) : null;
+  const end = listing?.endDateTime ? new Date(listing.endDateTime) : null;
+  if (!start || Number.isNaN(start.getTime())) return 'scheduled';
+  if (now < start) return 'scheduled';
+  if (end && !Number.isNaN(end.getTime()) && now > end) return 'expired';
+  return 'active';
+}
+
+async function getIndependentPaidAmount(base44, listing) {
+  const transactions = await base44.asServiceRole.entities.PaymentTransaction.filter({ yardit_record_id: listing.id });
+  const independentPaid = (transactions || []).find((transaction) =>
+    ['succeeded', 'subscription_active'].includes(transaction.status) &&
+    ['listing_payment', 'listing_upgrade'].includes(transaction.transaction_type) &&
+    !String(transaction.event_type || '').startsWith('neighborhood_sale_')
+  );
+
+  if (independentPaid?.amount_cents > 0) return Number(independentPaid.amount_cents) / 100;
+  if (listing.payment_status === 'paid' && Number(listing.pricePaid || 0) > 0) return Number(listing.pricePaid);
+  return 0;
+}
+
+async function buildStandaloneParticipantPatch(base44, listing, now) {
+  const status = getStandaloneStatusForWindow(listing, now);
+  const paidAmount = await getIndependentPaidAmount(base44, listing);
+  return {
+    tier: 'free',
+    pricePaid: paidAmount > 0 ? paidAmount : 0,
+    participant_origin: 'standalone',
+    status,
+    activation_status: status === 'active' ? 'active' : 'pending',
+    neighborhood_join_status: 'none',
+    neighborhood_sale_id: null,
+    origin_sale_listing_id: null,
+    payment_intent_status: 'none',
+    hold_deadline_at: null,
+    pending_checkout_session_id: '',
+    pending_payment_tier: '',
+    pending_upgrade_tier: '',
+    pending_upgrade_checkout_session_id: '',
+  };
+}
+
+function getListingDeepLink(listingId, upgrade = false) {
+  return `/ListingDetail?id=${listingId}${upgrade ? '&upgrade=1' : ''}`;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -118,6 +165,7 @@ Deno.serve(async (req) => {
     const trigger = payload?.trigger || 'manual';
     const skipCancellationCharge = payload?.skipCancellationCharge === true;
     const preserveFallbackListingId = payload?.preserveFallbackListingId || '';
+    const preserveApprovedParticipants = payload?.preserveApprovedParticipants === true;
 
     if (!saleListingId) {
       return Response.json({ error: 'saleListingId is required' }, { status: 400 });
@@ -218,12 +266,21 @@ Deno.serve(async (req) => {
     if (sale.organizer_participant_listing_id && sale.organizer_participant_listing_id !== preserveFallbackListingId) {
       const organizerListings = await base44.asServiceRole.entities.Listing.filter({ id: sale.organizer_participant_listing_id });
       if (organizerListings[0]) {
-        await base44.asServiceRole.entities.Listing.delete(organizerListings[0].id);
-        typeADeleted += 1;
+        if (preserveApprovedParticipants) {
+          await base44.asServiceRole.entities.Listing.update(organizerListings[0].id, await buildStandaloneParticipantPatch(base44, organizerListings[0], now));
+          typeBDetached += 1;
+        } else {
+          await base44.asServiceRole.entities.Listing.delete(organizerListings[0].id);
+          typeADeleted += 1;
+        }
       }
     }
 
     for (const request of requests) {
+      const normalizedStatus = normalizeNeighborhoodJoinStatus(request.status);
+      const isApprovedParticipant = request.removed_by_eo !== true && normalizedStatus === 'approved';
+      if (preserveApprovedParticipants && !isApprovedParticipant) continue;
+
       const participantListings = request.listingId
         ? await base44.asServiceRole.entities.Listing.filter({ id: request.listingId })
         : [];
@@ -231,6 +288,49 @@ Deno.serve(async (req) => {
       const participantOrigin = request.participant_origin_snapshot || participantListing?.participant_origin || 'standalone';
       const requesterUserId = request.requesterUserId || participantListing?.ownerUserId || null;
       let cancellationSentAt = request.cancellation_24h_sent_at || null;
+
+      if (preserveApprovedParticipants) {
+        if (participantListing) {
+          await base44.asServiceRole.entities.Listing.update(participantListing.id, await buildStandaloneParticipantPatch(base44, participantListing, now));
+          typeBDetached += 1;
+        }
+
+        if (!cancellationSentAt && requesterUserId) {
+          await base44.asServiceRole.entities.Notification.create({
+            userId: requesterUserId,
+            user_id: requesterUserId,
+            title: 'Neighborhood Sale canceled',
+            message: 'The sale did not reach the required number of homes. Your Yard Sale is still active as a free standalone listing.',
+            type: 'neighborhood_sale_participant_standalone',
+            related_entity_type: 'listing',
+            related_entity_id: participantListing?.id || request.listingId || saleListingId,
+            delivery_methods: ['push', 'bell'],
+            deep_link: getListingDeepLink(participantListing?.id || request.listingId || saleListingId, true),
+            dedupe_key: `neighborhood_sale_failed_participant_${saleListingId}_${requesterUserId}_${participantListing?.id || request.listingId || 'listing'}`,
+            metadata: {
+              sale_listing_id: saleListingId,
+              requester_listing_id: participantListing?.id || request.listingId,
+              requester_user_id: requesterUserId,
+              event_title: sale.title,
+              upgrade_url: getListingDeepLink(participantListing?.id || request.listingId || saleListingId, true),
+              offered_upgrades: ['featured', 'premium'],
+            },
+            read: false,
+            is_read: false,
+          });
+          cancellationSentAt = nowIso;
+        }
+
+        await base44.asServiceRole.entities.JoinRequest.update(request.id, {
+          status: 'denied',
+          removed_by_eo: true,
+          removed_at: nowIso,
+          removal_reason: reason,
+          participant_origin_snapshot: participantOrigin,
+          cancellation_24h_sent_at: cancellationSentAt,
+        });
+        continue;
+      }
 
       if (!cancellationSentAt && requesterUserId) {
         if (participantOrigin === 'neighborhood_invite' && participantListing?.addressText && participantListing?.city && participantListing?.state && participantListing?.zip && typeof participantListing?.lat === 'number' && typeof participantListing?.lng === 'number') {
@@ -333,15 +433,19 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Notification.create({
         userId: sale.ownerUserId,
         user_id: sale.ownerUserId,
-        title: 'Neighborhood Sale canceled',
+        title: trigger === 'premium_fallback_applied' ? 'Premium Yard Sale fallback applied' : 'Neighborhood Sale canceled',
         message: trigger === 'premium_fallback_applied'
-          ? `${sale.title || 'Neighborhood Sale'} did not reach the ${NEIGHBORHOOD_MIN_HOMES}-home minimum. Your connected Yard Sale was moved forward as Premium.`
-          : `${sale.title || 'Neighborhood Sale'} did not reach the ${NEIGHBORHOOD_MIN_HOMES}-home minimum and has been canceled.`,
-        type: 'neighborhood_sale_canceled_host',
+          ? `${sale.title || 'Neighborhood Sale'} did not reach the ${NEIGHBORHOOD_MIN_HOMES}-home minimum. Your connected host Yard Sale was upgraded to Premium for $7.99.`
+          : `${sale.title || 'Neighborhood Sale'} did not reach the ${NEIGHBORHOOD_MIN_HOMES}-home minimum and was canceled with no charge.`,
+        type: trigger === 'premium_fallback_applied' ? 'neighborhood_sale_fallback_applied' : 'neighborhood_sale_fallback_cancelled',
         related_entity_type: 'listing',
-        related_entity_id: saleListingId,
+        related_entity_id: trigger === 'premium_fallback_applied' && preserveFallbackListingId ? preserveFallbackListingId : saleListingId,
+        delivery_methods: ['push', 'bell'],
+        deep_link: getListingDeepLink(trigger === 'premium_fallback_applied' && preserveFallbackListingId ? preserveFallbackListingId : saleListingId),
+        dedupe_key: `neighborhood_sale_failed_organizer_${saleListingId}_${sale.ownerUserId}_${trigger}`,
         metadata: {
           sale_listing_id: saleListingId,
+          fallback_listing_id: preserveFallbackListingId || '',
           event_title: sale.title,
           trigger,
         },
@@ -394,6 +498,7 @@ Deno.serve(async (req) => {
       typeADeleted,
       typeBDetached,
       rescueCount,
+      preserveApprovedParticipants,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

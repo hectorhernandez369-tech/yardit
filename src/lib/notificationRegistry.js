@@ -159,6 +159,24 @@ export const NOTIFICATION_REGISTRY = {
     message: "The sale is below the required home minimum.",
     deep_link: "/ListingDetail",
   },
+  neighborhood_sale_active: {
+    recipient: "Neighborhood Sale organizer and approved participants",
+    trigger: "Neighborhood Sale reaches the required home count and activates",
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
+    status: "active",
+    title: "Your Neighborhood Sale is active!",
+    message: "The sale reached the required number of homes and is now live.",
+    deep_link: "/ListingDetail",
+  },
+  neighborhood_sale_participant_standalone: {
+    recipient: "approved Neighborhood Sale participant",
+    trigger: "Neighborhood Sale fails and approved participant listing is preserved as standalone free Yard Sale",
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
+    status: "active",
+    title: "Neighborhood Sale canceled",
+    message: "The sale did not reach the required number of homes. Your Yard Sale is still active as a free standalone listing.",
+    deep_link: "/ListingDetail",
+  },
   neighborhood_sale_payment_succeeded: {
     recipient: "Neighborhood Sale organizer",
     trigger: "24-hour lock charge succeeds",
@@ -189,7 +207,7 @@ export const NOTIFICATION_REGISTRY = {
   neighborhood_sale_fallback_applied: {
     recipient: "Neighborhood Sale organizer",
     trigger: "Neighborhood Sale misses the 5-home minimum and the organizer consented to Premium Yard Sale fallback",
-    delivery_methods: [DELIVERY.BELL],
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
     status: "active",
     title: "Premium Yard Sale fallback applied",
     message: "Connected Yard Sale upgraded to Premium.",
