@@ -217,6 +217,8 @@ export default function JoinNeighborhoodSale() {
   }).length;
   const availableSpots = Math.max(0, 25 - approvedHomesCount);
   const isFull = availableSpots === 0;
+  const isOrganizer = !!user && sale.ownerUserId === user.id;
+  const organizerAlreadyIncluded = isOrganizer && sale.organizer_participation !== "organizing_only";
 
   const handleSignIn = () => {
     const nextUrl = window.location.pathname + window.location.search;
@@ -228,8 +230,8 @@ export default function JoinNeighborhoodSale() {
       toast.error("Please verify your address before joining this Neighborhood Sale.");
       return;
     }
-    if (sale.ownerUserId === user.id) {
-      toast.error("You are the organizer of this event.");
+    if (isOrganizer) {
+      toast.error(organizerAlreadyIncluded ? "You're already included in this Neighborhood Sale." : "You are the organizer of this event.");
       return;
     }
     if (hasBlockingResidentialListing) {
@@ -281,7 +283,13 @@ export default function JoinNeighborhoodSale() {
             If this Neighborhood Sale is canceled or your participation is removed, you will need to create a normal listing to appear independently.
           </div>
 
-          {user && activeRequest && (
+          {user && isOrganizer && (
+            <div className="p-3 bg-white/50 border border-[#2C4F4E]/30 rounded-md text-[#2C4F4E] text-sm font-medium">
+              {organizerAlreadyIncluded ? "You're already included in this Neighborhood Sale as the organizer." : "You created this Neighborhood Sale, so invite links are for neighbors joining from their own accounts."}
+            </div>
+          )}
+
+          {user && !isOrganizer && activeRequest && (
             <div className="p-3 bg-white/50 border border-[#2C4F4E]/30 rounded-md text-[#2C4F4E] text-sm font-medium">
               {normalizeNeighborhoodJoinStatus(activeRequest.status) === "approved" ? "Your request has been approved." : "Request already sent. Pending approval."}
             </div>
@@ -307,10 +315,10 @@ export default function JoinNeighborhoodSale() {
           ) : (
             <Button
               onClick={handleRequest}
-              disabled={isFull || !!activeRequest || missingConfirmedAddress || hasBlockingResidentialListing || requestMutation.isPending || sale.ownerUserId === user.id}
+              disabled={isFull || !!activeRequest || missingConfirmedAddress || hasBlockingResidentialListing || requestMutation.isPending || isOrganizer}
               className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-bold disabled:opacity-50"
             >
-              {requestMutation.isPending ? "Sending..." : isFull ? "Neighborhood Sale is full" : activeRequest ? "Request sent" : "Join Neighborhood Sale"}
+              {requestMutation.isPending ? "Sending..." : isOrganizer ? (organizerAlreadyIncluded ? "You're already in this sale" : "Invite neighbors to join") : isFull ? "Neighborhood Sale is full" : activeRequest ? "Request sent" : "Join Neighborhood Sale"}
             </Button>
           )}
         </CardFooter>
