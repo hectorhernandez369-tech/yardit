@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@18.5.0';
+import { getDemoAuthorization, hasDemoBypassRequest } from '../../shared/demoMode.ts';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2025-02-24.acacia',
@@ -50,6 +51,7 @@ Deno.serve(async (req) => {
     const targetTier = String(body?.target_tier || '').toLowerCase();
     const returnUrl = body?.return_url;
     const tierConfig = VENDOR_TIERS[targetTier];
+    const demoAuthorization = await getDemoAuthorization(base44, user);
 
     if (!vendorAccountId || !tierConfig || !returnUrl) {
       return Response.json({ error: 'Missing vendor subscription checkout details' }, { status: 400 });
@@ -58,18 +60,29 @@ Deno.serve(async (req) => {
     const accounts = await base44.asServiceRole.entities.VendorAccount.filter({ id: vendorAccountId });
     const account = accounts?.[0];
     if (!account) return Response.json({ error: 'Vendor account not found' }, { status: 404 });
-    if (account.owner_user_id !== user.id && account.owner_email !== user.email) {
+    if (account.owner_user_id !== user.id && account.owner_email !== user.email && !demoAuthorization.isAuthorizedAdmin) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    if (account.is_demo_vendor === true) {
+    if (action === 'demo_skip_subscription') {
+      if (!demoAuthorization.canUseDemoMode) {
+        return Response.json({ error: 'Demo payment skipping is only available to authorized admins while Demo Mode is enabled.' }, { status: 403 });
+      }
+      const sessionId = `demo_subscription_${Date.now()}`;
       await base44.asServiceRole.entities.VendorAccount.update(vendorAccountId, {
         vendor_tier: targetTier,
         subscription_status: 'active',
+        extra_users_count: Number(body?.extra_users_count || 0),
+        extra_pins_count: Number(body?.extra_pins_count || 0),
         setup_tier_confirmed: true,
         vendor_setup_status: 'in_progress',
+        is_demo_vendor: true,
       });
-      return Response.json({ ok: true, demo: true, checkoutUrl: null, sessionId: `demo_${Date.now()}` });
+      return Response.json({ ok: true, demo: true, checkoutUrl: null, sessionId });
+    }
+
+    if (hasDemoBypassRequest(body) && !demoAuthorization.canUseDemoMode) {
+      return Response.json({ error: 'Demo payment skipping is only available to authorized admins while Demo Mode is enabled.' }, { status: 403 });
     }
 
     const customerId = body?.customer_id || account.stripe_customer_id || (await stripe.customers.create({

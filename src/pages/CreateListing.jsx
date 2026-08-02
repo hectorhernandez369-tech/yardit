@@ -547,7 +547,7 @@ export default function CreateListingPage() {
     fetchUser();
   }, [navigateToLogin]);
 
-  const { isDemoMode: isGlobalDemoMode } = useAppMode();
+  const { isDemoMode: isAdminDemoMode } = useAppMode();
   const userHasVerifiedPrimaryAddress = hasVerifiedPrimaryAddress(user) && typeof (user?.primary_latitude ?? user?.address_lat) === "number" && typeof (user?.primary_longitude ?? user?.address_lng) === "number";
   const profileAddressMissing = !userHasVerifiedPrimaryAddress;
   const profileAddressUnconfirmed = !userHasVerifiedPrimaryAddress;
@@ -571,11 +571,11 @@ export default function CreateListingPage() {
   // Compute reserved dates for residential listings only (drives calendar blocking)
   const addressRef = user ? { lat: user.primary_latitude, lng: user.primary_longitude } : null;
   const reservedDates = React.useMemo(
-    () => (formData.listingType === "yard_sale" && !isGlobalDemoMode && !isDevBypassUser(user) && addressRef
+    () => (formData.listingType === "yard_sale" && !isAdminDemoMode && !isDevBypassUser(user) && addressRef
       ? getReservedDatesForAddress(userListings, null, addressRef)
       : new Set()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [formData.listingType, userListings, user?.primary_latitude, user?.primary_longitude, isGlobalDemoMode]
+    [formData.listingType, userListings, user?.primary_latitude, user?.primary_longitude, isAdminDemoMode]
   );
 
   const debugResidentialDateConflict = (reason, details = {}) => {
@@ -600,7 +600,7 @@ export default function CreateListingPage() {
       debugResidentialDateConflict("skipped_non_residential_listing_type", { startDate, endDate, listingType });
       return false;
     }
-    if (!startDate || !endDate || isGlobalDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
+    if (!startDate || !endDate || isAdminDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
 
     const conflict = findConflictingReservedListingForAddress(userListings, startDate, endDate, null, addressRef);
     const hasConflict = hasDateConflict(startDate, endDate, reservedDates);
@@ -614,7 +614,7 @@ export default function CreateListingPage() {
       debugResidentialDateConflict("skipped_live_non_residential_listing_type", { startDate, endDate, listingType });
       return false;
     }
-    if (!startDate || !endDate || isGlobalDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
+    if (!startDate || !endDate || isAdminDemoMode || isDevBypassUser(user) || isAdminCreate) return false;
     const response = await base44.functions.invoke("manageResidentialAccessRequest", {
       action: "check_conflict",
       data: { ...sourceData, listingType, selectedRangeStartDate: startDate, selectedRangeEndDate: endDate },
@@ -747,7 +747,7 @@ export default function CreateListingPage() {
       return;
     }
 
-    if (isGlobalDemoMode && !skipDemoPrompt) {
+    if (isAdminDemoMode && !skipDemoPrompt) {
       setDemoPaymentRequest({ type: "paid_listing", promoResult, nonRefundAcknowledgement });
       return;
     }
@@ -867,7 +867,7 @@ export default function CreateListingPage() {
       return;
     }
 
-    if (isGlobalDemoMode && !skipDemoPrompt) {
+    if (isAdminDemoMode && !skipDemoPrompt) {
       setDemoPaymentRequest({ type: "neighborhood_setup", nonRefundAcknowledgement, sourceFormData });
       return;
     }
@@ -1286,7 +1286,7 @@ export default function CreateListingPage() {
         return;
       }
 
-      if (!isGlobalDemoMode && !isAdminCreate) {
+      if (!isAdminDemoMode && !isAdminCreate) {
         if (profileIncomplete) {
           toast.error("Complete your profile to start posting.");
           navigate(createPageUrl("Profile"));
@@ -1433,7 +1433,7 @@ export default function CreateListingPage() {
       };
     }
 
-    if (payload.listingType === "yard_sale" && !isGlobalDemoMode && !isAdminCreate) {
+    if (payload.listingType === "yard_sale" && !isAdminDemoMode && !isAdminCreate) {
       const profileLat = user.primary_latitude ?? user.address_lat;
       const profileLng = user.primary_longitude ?? user.address_lng;
       if (!userHasVerifiedPrimaryAddress || typeof profileLat !== "number" || typeof profileLng !== "number") {
@@ -1809,7 +1809,7 @@ export default function CreateListingPage() {
     const canShowResidentialConflictToast = userInitiated || hasUserInteractedWithDates || hasAttemptedContinue;
     if (userInitiated) setHasAttemptedContinue(true);
 
-    if (!isAdminCreate && !isGlobalDemoMode && formData.listingType === "yard_sale" &&
+    if (!isAdminCreate && !isAdminDemoMode && formData.listingType === "yard_sale" &&
         (!userHasVerifiedPrimaryAddress || typeof (user?.primary_latitude ?? user?.address_lat) !== "number" || typeof (user?.primary_longitude ?? user?.address_lng) !== "number")) {
       toast.error("Please confirm your home address before publishing.");
       setStep(2);
@@ -2182,7 +2182,7 @@ export default function CreateListingPage() {
                 isAdminCreate={isAdminCreate}
                 selectedUserForAdmin={selectedUserForAdmin}
                 setSelectedUserForAdmin={setSelectedUserForAdmin}
-                isGlobalDemoMode={isGlobalDemoMode}
+                isAdminDemoMode={isAdminDemoMode}
                 isStartingPayment={isStartingPayment}
                 paymentError={paymentError}
                 setPaymentError={setPaymentError}
@@ -2219,7 +2219,7 @@ export default function CreateListingPage() {
                 isAdminCreate={isAdminCreate}
                 selectedUserForAdmin={selectedUserForAdmin}
                 setSelectedUserForAdmin={setSelectedUserForAdmin}
-                isGlobalDemoMode={isGlobalDemoMode}
+                isAdminDemoMode={isAdminDemoMode}
                 isStartingPayment={isStartingPayment}
                 paymentError={paymentError}
                 setPaymentError={setPaymentError}
@@ -2227,7 +2227,7 @@ export default function CreateListingPage() {
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
                 residentialTierPrices={RESIDENTIAL_TIER_PRICES}
                 onAddressSelected={(selectedAddress) => {
-                  if (!isGlobalDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
+                  if (!isAdminDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
                     setPendingHomeAddress(buildResolvedListingLocation(selectedAddress));
                     setShowHomeAddressConfirm(true);
                   }

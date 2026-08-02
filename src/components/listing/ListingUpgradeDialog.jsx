@@ -120,10 +120,13 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
     if (!listing || !selectedTier || amountDue <= 0) return;
     try {
       setIsStartingPayment(true);
-      await base44.entities.Listing.update(listing.id, listing.listingType === "event"
-        ? { tier: selectedTier, event_tier: selectedTier, is_demo_listing: true, payment_intent_status: "captured", pending_upgrade_tier: "", pending_upgrade_checkout_session_id: "", pricePaid: amountDue / 100 }
-        : { tier: selectedTier, is_demo_listing: true, payment_intent_status: "captured", pending_upgrade_tier: "", pending_upgrade_checkout_session_id: "", pricePaid: amountDue / 100 }
-      );
+      await base44.functions.invoke("createListingUpgradeCheckout", {
+        action: "demo_skip_upgrade",
+        listing_id: listing.id,
+        target_tier: selectedTier,
+        listing_kind: listing.listingType === "event" ? "event" : "residential",
+        amount_cents: amountDue,
+      });
       toast.success("Demo payment skipped. Upgrade applied.");
       setDemoUpgradeRequest(null);
       onSuccess?.();

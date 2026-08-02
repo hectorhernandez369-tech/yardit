@@ -1,5 +1,6 @@
 import Stripe from 'npm:stripe@18.5.0';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { getDemoAuthorization, hasDemoBypassRequest } from '../../shared/demoMode.ts';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2025-02-24.acacia',
@@ -168,6 +169,29 @@ Deno.serve(async (req) => {
     const customerId = body?.customer_id || undefined;
     const listingKind = body?.listing_kind || 'residential';
     const isEventAddOnPurchase = body?.event_add_on_purchase === true;
+    const demoAuthorization = await getDemoAuthorization(base44, user);
+
+    if (action === 'demo_skip_upgrade') {
+      if (!demoAuthorization.canUseDemoMode) {
+        return Response.json({ error: 'Demo payment skipping is only available to authorized admins while Demo Mode is enabled.' }, { status: 403 });
+      }
+      if (!listingId || !targetTier) return Response.json({ error: 'Missing demo upgrade details' }, { status: 400 });
+      const demoListings = await base44.asServiceRole.entities.Listing.filter({ id: listingId });
+      const demoListing = demoListings?.[0];
+      if (!demoListing) return Response.json({ error: 'Listing not found' }, { status: 404 });
+      if (demoListing.ownerUserId !== user.id && !demoAuthorization.isAuthorizedAdmin) return Response.json({ error: 'Forbidden' }, { status: 403 });
+      const amountCents = Number(body?.amount_cents || 0);
+      const sessionId = `demo_skip_${Date.now()}`;
+      await base44.asServiceRole.entities.Listing.update(listingId, demoListing.listingType === 'event'
+        ? { tier: targetTier, event_tier: targetTier, is_demo_listing: true, payment_status: 'skipped_admin_demo', payment_intent_status: 'captured', pending_upgrade_tier: '', pending_upgrade_checkout_session_id: '', stripe_checkout_session_id: sessionId, pricePaid: amountCents / 100 }
+        : { tier: targetTier, is_demo_listing: true, payment_status: 'skipped_admin_demo', payment_intent_status: 'captured', pending_upgrade_tier: '', pending_upgrade_checkout_session_id: '', stripe_checkout_session_id: sessionId, pricePaid: amountCents / 100 }
+      );
+      return Response.json({ ok: true, demo: true, sessionId });
+    }
+
+    if (hasDemoBypassRequest(body) && !demoAuthorization.canUseDemoMode) {
+      return Response.json({ error: 'Demo payment skipping is only available to authorized admins while Demo Mode is enabled.' }, { status: 403 });
+    }
 
     if (!listingId || !targetTier || !returnUrl) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
@@ -177,17 +201,6 @@ Deno.serve(async (req) => {
     const listing = listings?.[0];
     if (!listing) return Response.json({ error: 'Listing not found' }, { status: 404 });
     if (listing.ownerUserId !== user.id) return Response.json({ error: 'Forbidden' }, { status: 403 });
-
-    if (listing.is_demo_listing === true) {
-      if (isEventAddOnPurchase) {
-        await base44.asServiceRole.entities.Listing.update(listingId, body?.add_on_patch || {});
-      } else {
-        await base44.asServiceRole.entities.Listing.update(listingId, listing.listingType === 'event'
-          ? { tier: targetTier, event_tier: targetTier }
-          : { tier: targetTier });
-      }
-      return Response.json({ ok: true, demo: true, checkoutUrl: null, sessionId: `demo_${Date.now()}` });
-    }
 
     const currentTier = listingKind === 'event' ? (listing.event_tier || listing.tier || 'basic') : (listing.tier || 'free');
     const expectedAmount = listingKind === 'residential'

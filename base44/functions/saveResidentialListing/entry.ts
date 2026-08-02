@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { getDemoAuthorization, hasDemoBypassRequest, sanitizeDemoFields } from '../../shared/demoMode.ts';
 
 const DESCRIPTION_LIMITS = {
   yard_sale: 500,
@@ -168,7 +169,14 @@ Deno.serve(async (req) => {
 
     const payload = await req.json().catch(() => ({}));
     const action = payload.action || 'create';
-    const data = normalizeResidentialEventSingleDay(payload.data || {});
+    let data = normalizeResidentialEventSingleDay(payload.data || {});
+    const demoAuthorization = await getDemoAuthorization(base44, user);
+    const demoBypassRequested = hasDemoBypassRequest(payload) || hasDemoBypassRequest(data);
+    if (demoBypassRequested && !demoAuthorization.canUseDemoMode) {
+      data = sanitizeDemoFields(data);
+      return Response.json({ error: 'Demo payment skipping is only available to authorized admins while Demo Mode is enabled.' }, { status: 403 });
+    }
+    if (!demoAuthorization.canUseDemoMode) data = sanitizeDemoFields(data);
 
     if (action === 'create') {
       const validation = validateDescription(data);

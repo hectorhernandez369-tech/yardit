@@ -127,13 +127,13 @@ export default function VendorBillingTab({ account, onRefresh }) {
     setDemoCheckoutRequest(null);
     setReviewTier("");
     setChangingTier(request.tierKey);
-    await base44.entities.VendorAccount.update(account.id, {
-      vendor_tier: request.tierKey,
-      subscription_status: "active",
+    await base44.functions.invoke("createVendorSubscriptionCheckout", {
+      action: "demo_skip_subscription",
+      vendor_account_id: account.id,
+      target_tier: request.tierKey,
+      return_url: `${window.location.origin}/VendorDashboard?tab=tier`,
       extra_users_count: reviewAddOns.extraUsers || 0,
       extra_pins_count: reviewAddOns.extraPins || 0,
-      setup_tier_confirmed: true,
-      vendor_setup_status: "in_progress",
     });
     toast.success("Demo payment skipped. Plan updated.");
     await onRefresh?.();

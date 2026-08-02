@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Stripe from 'npm:stripe@18.5.0';
 import { NEIGHBORHOOD_FLAT_PRICE, NEIGHBORHOOD_FLAT_PRICE_CENTS } from '../../shared/neighborhoodPricing.ts';
+import { isGlobalDemoModeEnabled } from '../../shared/demoMode.ts';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2025-02-24.acacia',
@@ -50,8 +51,8 @@ async function getLatestPayment(base44, relatedEntityId, type) {
   return [...payments].sort((a, b) => new Date(b.created_date || b.created_at || 0).getTime() - new Date(a.created_date || a.created_at || 0).getTime())[0] || null;
 }
 
-async function chargeSavedMethod({ sale, paymentRecord, amount, purpose }) {
-  if (sale?.is_demo_listing) {
+async function chargeSavedMethod({ base44, sale, paymentRecord, amount, purpose }) {
+  if (sale?.is_demo_listing && await isGlobalDemoModeEnabled(base44)) {
     return {
       success: true,
       paymentIntentId: `demo_${purpose}_${Date.now()}`,
@@ -217,6 +218,7 @@ Deno.serve(async (req) => {
       });
 
       const charge = await chargeSavedMethod({
+        base44,
         sale,
         paymentRecord,
         amount: chargeAmount,

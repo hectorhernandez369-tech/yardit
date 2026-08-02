@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Stripe from 'npm:stripe@18.5.0';
+import { getDemoAuthorization, hasDemoBypassRequest } from '../../shared/demoMode.ts';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2025-02-24.acacia',
@@ -176,6 +177,12 @@ Deno.serve(async (req) => {
       });
     }
 
+    const currentUser = await base44.auth.me().catch(() => null);
+    const demoAuthorization = await getDemoAuthorization(base44, currentUser);
+    if (hasDemoBypassRequest(payload) && !demoAuthorization.canUseDemoMode) {
+      return Response.json({ error: 'Demo payment skipping is only available to authorized admins while Demo Mode is enabled.' }, { status: 403 });
+    }
+
     const descriptionValidation = validateDescriptionLimit(payload);
     if (!descriptionValidation.ok) {
       return Response.json({ error: descriptionValidation.error }, { status: 400 });
@@ -195,7 +202,6 @@ Deno.serve(async (req) => {
     }
 
     if (listingKind === 'residential') {
-      const currentUser = await base44.auth.me().catch(() => null);
       const dateValidation = await validateResidentialCheckoutDates(base44, payload, currentUser, payload.listing_id || '');
       if (!dateValidation.ok) {
         return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
@@ -206,9 +212,6 @@ Deno.serve(async (req) => {
       const listings = await base44.asServiceRole.entities.Listing.filter({ id: payload.listing_id });
       const listing = listings?.[0];
       if (!listing) return Response.json({ error: 'Listing not found' }, { status: 404 });
-      if (listing.is_demo_listing === true) {
-        return Response.json({ ok: true, demo: true, checkoutUrl: null, sessionId: `demo_${Date.now()}` });
-      }
     }
 
     const separator = String(payload.return_url).includes('?') ? '&' : '?';

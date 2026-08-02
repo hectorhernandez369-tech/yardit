@@ -15,7 +15,7 @@ export default function CreateListingResidential({
   isAdminCreate,
   selectedUserForAdmin,
   setSelectedUserForAdmin,
-  isGlobalDemoMode,
+  isAdminDemoMode,
   isStartingPayment,
   paymentError,
   setPaymentError,
@@ -54,7 +54,7 @@ export default function CreateListingResidential({
         tier={formData.tier}
         amount={residentialTierPrices[formData.tier] || 0}
         listing={formData}
-        isDemoMode={isGlobalDemoMode}
+        isDemoMode={isAdminDemoMode}
         isProcessing={isStartingPayment}
         errorMessage={paymentError}
         user={user}

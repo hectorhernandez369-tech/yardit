@@ -14,7 +14,7 @@ export default function CreateListingEvent({
   isAdminCreate,
   selectedUserForAdmin,
   setSelectedUserForAdmin,
-  isGlobalDemoMode,
+  isAdminDemoMode,
   isStartingPayment,
   paymentError,
   setPaymentError,
@@ -56,7 +56,7 @@ export default function CreateListingEvent({
           { label: "Total", value: `$${(eventPriceBreakdown.total / 100).toFixed(2)}` },
         ]}
         benefits={["Event detail page", "Featured-level visibility", "Basic event card", "Standard category icon", "Event map pin", "One-day event listing"]}
-        isDemoMode={isGlobalDemoMode}
+        isDemoMode={isAdminDemoMode}
         isProcessing={isStartingPayment}
         errorMessage={paymentError}
         onBack={() => {

@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Stripe from 'npm:stripe@18.5.0';
+import { getDemoAuthorization, hasDemoBypassRequest } from '../../shared/demoMode.ts';
 
 const nowIso = () => new Date().toISOString();
 const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
@@ -205,6 +206,10 @@ Deno.serve(async (req) => {
     const body = normalizeResidentialEventSingleDay(await req.json().catch(() => ({})));
     const currentUser = await base44.auth.me();
     const action = body?.action || 'create';
+    const demoAuthorization = await getDemoAuthorization(base44, currentUser);
+    if (hasDemoBypassRequest(body) && !demoAuthorization.canUseDemoMode) {
+      return Response.json({ error: 'Demo payment skipping is only available to authorized admins while Demo Mode is enabled.' }, { status: 403 });
+    }
 
     // ── LINK PAID SESSION TO CREATED LISTING ───────────────────────
     if (action === 'link_paid_listing') {

@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Stripe from 'npm:stripe@18.5.0';
+import { getDemoAuthorization, hasDemoBypassRequest } from '../../shared/demoMode.ts';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2025-02-24.acacia',
@@ -29,6 +30,10 @@ Deno.serve(async (req) => {
     }
 
     const payload = await req.json().catch(() => ({}));
+    const demoAuthorization = await getDemoAuthorization(base44, user);
+    if (hasDemoBypassRequest(payload) && !demoAuthorization.canUseDemoMode) {
+      return Response.json({ error: 'Demo payment skipping is only available to authorized admins while Demo Mode is enabled.' }, { status: 403 });
+    }
 
     if (payload.action === 'verify') {
       if (!payload.session_id) {

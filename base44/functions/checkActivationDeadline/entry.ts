@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Stripe from 'npm:stripe@18.5.0';
 import { NEIGHBORHOOD_FLAT_PRICE, NEIGHBORHOOD_FLAT_PRICE_CENTS } from '../../shared/neighborhoodPricing.ts';
 import { FALLBACK_ACTION_CANCEL, FALLBACK_ACTION_PREMIUM, getFallbackListingEligibility } from '../../shared/neighborhoodFallback.ts';
+import { isGlobalDemoModeEnabled } from '../../shared/demoMode.ts';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2025-02-24.acacia',
@@ -93,8 +94,8 @@ async function upsertPayment(base44, currentPayment, payload) {
   return await base44.asServiceRole.entities.Payment.create(payload);
 }
 
-async function chargeSavedMethod({ sale, paymentRecord, amount, purpose }) {
-  if (sale?.is_demo_listing) {
+async function chargeSavedMethod({ base44, sale, paymentRecord, amount, purpose }) {
+  if (sale?.is_demo_listing && await isGlobalDemoModeEnabled(base44)) {
     return {
       success: true,
       paymentIntentId: `demo_${purpose}_${Date.now()}`,
@@ -293,6 +294,7 @@ async function applyFallbackFlow(base44, sale, approvedHomes, reason, triggerLab
   });
 
   const fallbackCharge = await chargeSavedMethod({
+    base44,
     sale,
     paymentRecord: preparedFallback,
     amount: PREMIUM_FALLBACK_PRICE,
@@ -391,6 +393,7 @@ async function processNeighborhoodCharge(base44, sale, approvedHomes, now, isRet
   });
 
   const charge = await chargeSavedMethod({
+    base44,
     sale,
     paymentRecord,
     amount: lockedAmount,
