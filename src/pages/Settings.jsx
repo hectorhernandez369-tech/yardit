@@ -10,6 +10,7 @@ import InstallPromptDialog from "@/components/install/InstallPromptDialog";
 import DeleteAccountDialog from "@/components/settings/DeleteAccountDialog";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
 import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
+import { Lightbulb } from "lucide-react";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -155,7 +156,7 @@ export default function SettingsPage() {
 
         <Card className="mb-4 rounded-lg border-0 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Help & Support</CardTitle>
+            <CardTitle className="text-base">Help & Feedback</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <Button
@@ -171,6 +172,14 @@ export default function SettingsPage() {
               className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
             >
               FAQ Section
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl("ContactSupport") + "?area=improvement&from=settings")}
+              variant="outline"
+              className="w-full justify-start text-left font-normal text-[#2C4F4E] border-[#5DADA5] bg-[#5DADA5]/10 hover:bg-[#5DADA5]/20"
+            >
+              <Lightbulb className="w-4 h-4 mr-2" />
+              Suggest an Improvement
             </Button>
             <Button
               onClick={() => navigate(createPageUrl("ContactSupport"))}
