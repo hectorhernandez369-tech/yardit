@@ -2250,7 +2250,7 @@ export default function CreateListingPage() {
                 {(isAdminCreate ? step < paymentStepNumber : step < entryStepNumber) ? (
                   <Button
                     onClick={isAdminCreate && step === entryStepNumber ? () => setStep(paymentStepNumber) : handleNext}
-                    disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && regularAddressIncomplete}
+                    disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && regularAddressIncomplete && !userHasVerifiedPrimaryAddress}
                     className="flex-1 bg-[#006168] hover:bg-[#004d52] text-white rounded-xl h-11 font-semibold shadow-sm"
                   >
                     Continue →
