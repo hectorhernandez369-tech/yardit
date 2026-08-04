@@ -1317,13 +1317,13 @@ export default function CreateListingPage() {
           if (resolvedProfileTimeZoneId) {
             await base44.auth.updateMe({ timeZoneId: resolvedProfileTimeZoneId });
             const refreshedUser = await base44.auth.me();
-            setUser(refreshedUser);
+            setUser(normalizeUser(refreshedUser));
           }
         }
 
         const nextData = buildResolvedListingLocation({
           ...formData,
-          addressText: user.primary_address,
+          addressText: user.primary_address || user.street_address,
           city: user.city,
           state: (user.state || "").toUpperCase().slice(0, 2),
           zip: user.zip_code,
@@ -1446,7 +1446,7 @@ export default function CreateListingPage() {
 
       payload = {
         ...payload,
-        addressText: user.primary_address,
+        addressText: user.primary_address || user.street_address,
         city: user.city,
         state: getStateAbbreviation(user.state || ""),
         zip: user.zip_code,

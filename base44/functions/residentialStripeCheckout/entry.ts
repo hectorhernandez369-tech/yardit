@@ -176,7 +176,12 @@ async function validateResidentialCheckoutDates(base44, payload, currentUser, ex
   if (!ref.addressText || !ref.zip || !Number.isFinite(Number(ref.lat)) || !Number.isFinite(Number(ref.lng))) {
     return { ok: false, error: 'Verified address, normalized address, coordinates, and selected date range are required before checkout.' };
   }
-  if (currentUser && currentUser.primary_address_verified !== true && currentUser.address_confirmation_status !== 'confirmed') {
+  if (
+    currentUser &&
+    currentUser.primary_address_verified !== true &&
+    currentUser.address_verified !== true &&
+    currentUser.address_confirmation_status !== 'confirmed'
+  ) {
     return { ok: false, error: 'Verified address is required before checkout.' };
   }
 
