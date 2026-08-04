@@ -119,18 +119,36 @@ function LocationClickHandler({ onSelect }) {
   return null;
 }
 
-function RecenterMap({ center }) {
+function RecenterMap({ center, recenterZoom, currentZoomRef }) {
   const map = useMap();
+  useMapEvents({
+    zoomend: () => {
+      if (currentZoomRef) currentZoomRef.current = map.getZoom();
+    },
+  });
   useEffect(() => {
-    map.setView(center, 14);
-    setTimeout(() => map.invalidateSize(), 100);
-  }, [center[0], center[1], map]);
+    if (recenterZoom != null) {
+      // A new location was chosen via search — fly to it with a sensible zoom.
+      map.setView(center, recenterZoom, { animate: true });
+    } else {
+      // Pin drop / external center change — never alter the user's zoom.
+      // Only pan if the new point is outside the current viewport.
+      const bounds = map.getBounds();
+      if (!bounds.contains({ lat: center[0], lng: center[1] })) {
+        map.panTo(center, { animate: true });
+      }
+    }
+    const t = setTimeout(() => map.invalidateSize(), 100);
+    return () => clearTimeout(t);
+  }, [center[0], center[1], recenterZoom, map]);
   return null;
 }
 
 export default function EventLocationPicker({ open, onOpenChange, eventType, value, onChange }) {
   const searchWrapRef = useRef(null);
   const searchInputRef = useRef(null);
+  const currentZoomRef = useRef(13);
+  const [recenterZoom, setRecenterZoom] = useState(null);
 
   const hasValidValue = value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
 
@@ -172,6 +190,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     setRadius(value?.radius_feet || 500);
     setFlags(value?.flags || []);
     setMapStyle("standard");
+    setRecenterZoom(null);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get user GPS for search bias
@@ -220,6 +239,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const selectMapLocation = async (lat, lng) => {
     // Do NOT touch the search bar at all
     setSelected({ latitude: lat, longitude: lng });
+    // Pin drops must never change the user's zoom level.
+    setRecenterZoom(null);
     setReverseGeocoding(true);
 
     const address = await reverseGeocode(lat, lng);
@@ -238,6 +259,9 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   // Search suggestion chosen
   const chooseSuggestion = (suggestion) => {
     setSelected({ latitude: suggestion.latitude, longitude: suggestion.longitude });
+    // Searching for a new location is allowed to zoom in; preserve the user's
+    // current zoom if they were already zoomed in closer than 15.
+    setRecenterZoom(Math.max(currentZoomRef.current || 15, 15));
     setGeocodedAddress(suggestion.address);
 
     // Auto-fill display address only if not manually edited
@@ -320,7 +344,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             <div className="h-[360px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
               <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom>
                 <VendorEventMapboxTileLayer mapStyle={mapStyle} />
-                <RecenterMap center={center} />
+                <RecenterMap center={center} recenterZoom={recenterZoom} currentZoomRef={currentZoomRef} />
                 <LocationClickHandler onSelect={selectMapLocation} />
                 {selected && showRadius && (
                   <Circle
