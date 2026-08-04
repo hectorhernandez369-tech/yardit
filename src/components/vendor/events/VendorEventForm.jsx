@@ -468,7 +468,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
                     <p className="text-sm font-semibold text-slate-700">{form.display_address ? "📍 " + form.display_address : "No location selected yet"}</p>
                     <p className="text-xs text-slate-500 mt-0.5">This address appears publicly on the event page and map.</p>
                   </div>
-                  <Button type="button" variant="outline" onClick={openLocationPicker} className="shrink-0 border-[#5DADA5] text-[#5DADA5] hover:bg-[#5DADA5]/5">
+                  <Button type="button" onClick={openLocationPicker} className="shrink-0 bg-[#006168] text-white hover:bg-[#004d52] border border-[#006168] font-semibold shadow-sm">
                     {form.display_address ? "Change Location" : "Set Event Location"}
                   </Button>
                 </div>

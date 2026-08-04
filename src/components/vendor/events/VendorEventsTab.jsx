@@ -21,11 +21,42 @@ export default function VendorEventsTab({ account, user }) {
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  const [tab, setTab] = useState("hub");
-  const [showCreate, setShowCreate] = useState(false);
+  const initialParams = new URLSearchParams(location.search);
+  const [tab, setTab] = useState(initialParams.get("subtab") || "hub");
+  const [showCreate, setShowCreate] = useState(initialParams.get("create") === "1");
   const [editingEvent, setEditingEvent] = useState(null);
   const [collaboratorEvent, setCollaboratorEvent] = useState(null);
   const [reviewInvite, setReviewInvite] = useState(null);
+
+  // Persist the Events sub-tab and the Create Event dialog in the URL so a
+  // browser refresh returns the user to the exact same view.
+  const updateEventsUrl = (changes) => {
+    const params = new URLSearchParams(location.search);
+    if (changes.subtab !== undefined) {
+      if (changes.subtab) params.set("subtab", changes.subtab);
+      else params.delete("subtab");
+    }
+    if (changes.create !== undefined) {
+      if (changes.create) params.set("create", "1");
+      else params.delete("create");
+    }
+    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+  };
+
+  const handleSubTabChange = (nextTab) => {
+    setTab(nextTab);
+    updateEventsUrl({ subtab: nextTab });
+  };
+
+  const openCreate = () => {
+    setShowCreate(true);
+    updateEventsUrl({ create: true });
+  };
+
+  const closeCreate = (open) => {
+    setShowCreate(open);
+    if (!open) updateEventsUrl({ create: false });
+  };
 
   const { data: events = [] } = useQuery({
     queryKey: ["vendorEvents"],
@@ -78,7 +109,7 @@ export default function VendorEventsTab({ account, user }) {
 
   const handleRepeatHost = (event) => {
     setEditingEvent({ ...event, id: undefined, status: "draft", title: `${event.title} (Copy)` });
-    setShowCreate(true);
+    openCreate();
   };
 
   const handleRequestJoin = (event) => {
@@ -99,7 +130,7 @@ export default function VendorEventsTab({ account, user }) {
           <p className="text-sm text-slate-500 mt-0.5">Discover events to join and manage the ones you host.</p>
         </div>
         <Button
-          onClick={() => canCreateAnyEvent ? setShowCreate(true) : alert(`${currentSinglePermission.reason}`)}
+          onClick={() => canCreateAnyEvent ? openCreate() : alert(`${currentSinglePermission.reason}`)}
           className="bg-[#2C4F4E] text-white hover:bg-[#3d6b6a] shadow-sm h-10 px-5 gap-2 font-semibold"
         >
           <CalendarPlus className="h-4 w-4" /> Create New Event
@@ -107,7 +138,7 @@ export default function VendorEventsTab({ account, user }) {
       </div>
 
       {/* Sub-tabs */}
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={handleSubTabChange}>
         <TabsList className="bg-white border border-slate-200 p-1 rounded-xl gap-1">
           <TabsTrigger value="hub" className="rounded-lg gap-1.5 data-[state=active]:bg-[#2C4F4E] data-[state=active]:text-white">
             <Store className="h-3.5 w-3.5" /> Events Hub
@@ -144,7 +175,7 @@ export default function VendorEventsTab({ account, user }) {
             vendorAccounts={vendorAccounts}
             account={account}
             canCreateAnyEvent={canCreateAnyEvent}
-            onCreateEvent={() => setShowCreate(true)}
+            onCreateEvent={openCreate}
             onEditEvent={setEditingEvent}
             onCollaborators={setCollaboratorEvent}
             navigate={navigate}
@@ -165,7 +196,7 @@ export default function VendorEventsTab({ account, user }) {
       </Tabs>
 
       {/* Create event dialog */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+      <Dialog open={showCreate} onOpenChange={closeCreate}>
         <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0">
           <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 rounded-t-lg flex items-start justify-between gap-3">
             <div>
@@ -181,7 +212,7 @@ export default function VendorEventsTab({ account, user }) {
             </button>
           </div>
           <div className="px-6 py-5">
-            <VendorEventForm account={account} user={user} existingEvents={events} onCreated={() => { invalidate(); setShowCreate(false); }} />
+            <VendorEventForm account={account} user={user} existingEvents={events} onCreated={() => { invalidate(); closeCreate(false); }} />
           </div>
         </DialogContent>
       </Dialog>

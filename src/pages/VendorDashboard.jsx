@@ -131,7 +131,7 @@ export default function VendorDashboard() {
     }
 
     if (!adminPreviewAccountId && paramId !== nextAccountId) {
-      const nextParams = new URLSearchParams();
+      const nextParams = new URLSearchParams(location.search);
       if (activeTab) {
         nextParams.set("tab", activeTab);
       }
