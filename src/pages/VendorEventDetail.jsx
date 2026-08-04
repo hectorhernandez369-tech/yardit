@@ -17,6 +17,7 @@ import PublicVendorCard from "@/components/vendor/events/PublicVendorCard";
 import PublicVendorEventMap from "@/components/vendor/events/PublicVendorEventMap";
 import UnifiedPublicEventSchedule from "@/components/vendor/events/schedule/UnifiedPublicEventSchedule";
 import { getPublicContactInfo } from "@/lib/publicContactPrivacy";
+import { canAccessVendorSignup } from "@/lib/vendorLaunchGate";
 
 export default function VendorEventDetail() {
   const navigate = useNavigate();
@@ -33,6 +34,16 @@ export default function VendorEventDetail() {
   const [vendorAccountId, setVendorAccountId] = useState("");
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+
+  const { data: vendorGateSettings = [] } = useQuery({
+    queryKey: ["vendorLaunchGateSettings"],
+    queryFn: async () => {
+      const response = await base44.functions.invoke("getPublicAppSettings", {});
+      return response?.data?.settings || [];
+    },
+    staleTime: 30000,
+  });
+  const canOpenVendorSignup = canAccessVendorSignup({ user: currentUser, settings: vendorGateSettings, vendorAccounts: eligibleVendorAccounts });
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["publicVendorEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
   const event = events[0];
@@ -272,7 +283,7 @@ export default function VendorEventDetail() {
               {event.open_to_vendors ? <Badge className="bg-emerald-600 text-white">Open to Vendors</Badge> : <Badge variant="outline">Vendor signup closed</Badge>}
               {spotsLeft !== null && <p className="text-sm font-bold text-[#2C4F4E]">{isFull ? "This event is full" : `${spotsLeft} vendor spots left`}</p>}
               {!currentUser && <p className="rounded-xl bg-[#FBFAF7] p-3 text-sm text-slate-700">Log in as a vendor to request to join this event.</p>}
-              {currentUser && eligibleVendorAccounts.length === 0 && <p className="rounded-xl bg-[#FBFAF7] p-3 text-sm text-slate-700">Vendor account required to request to join.</p>}
+              {currentUser && eligibleVendorAccounts.length === 0 && <p className="rounded-xl bg-[#FBFAF7] p-3 text-sm text-slate-700">{canOpenVendorSignup ? "Vendor account required to request to join." : "Vendor Accounts are not open for public signup yet."}</p>}
               {hasExistingVendorStatus && <p className="rounded-xl bg-[#FBFAF7] p-3 text-sm text-slate-700">Your vendor already has a status for this event.</p>}
               {eligibleVendorAccounts.length > 1 && <div className="space-y-2"><label className="text-sm font-bold text-[#2C4F4E]">Requesting as</label><Select value={vendorAccountId} onValueChange={setVendorAccountId}><SelectTrigger><SelectValue placeholder="Select vendor business" /></SelectTrigger><SelectContent>{eligibleVendorAccounts.map((account) => <SelectItem key={account.id} value={account.id}>{account.business_name}</SelectItem>)}</SelectContent></Select></div>}
               {event.open_to_vendors && canRequest && <div className="space-y-3">{event.vendor_space_options?.length > 0 && <Select value={spaceOption} onValueChange={setSpaceOption}><SelectTrigger><SelectValue placeholder="Select space" /></SelectTrigger><SelectContent>{event.vendor_space_options.map((option) => <SelectItem key={option.label} value={option.label}>{option.label}{option.width && option.depth ? ` — ${option.width} x ${option.depth}` : ""} — {option.price}</SelectItem>)}</SelectContent></Select>}<Textarea placeholder="Message to organizer" value={message} onChange={(e) => setMessage(e.target.value)} /></div>}

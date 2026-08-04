@@ -37,6 +37,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import YarditSplashScreen from '@/components/install/YarditSplashScreen';
 import YarditEventsShell from '@/components/events/YarditEventsShell';
+import VendorSignupGate from '@/components/vendor/VendorSignupGate';
 import { getPreferredExperience } from '@/lib/experience';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -138,9 +139,9 @@ const AuthenticatedApp = () => {
           />
         ))}
         <Route path="/VendorDashboard" element={<YarditEventsShell><VendorDashboard /></YarditEventsShell>} />
-        <Route path="/VendorSignup" element={<YarditEventsShell><VendorSignup /></YarditEventsShell>} />
-        <Route path="/VendorSetup" element={<YarditEventsShell><VendorSetup /></YarditEventsShell>} />
-        <Route path="/VendorAccountIntro" element={<YarditEventsShell><VendorAccountIntro /></YarditEventsShell>} />
+        <Route path="/VendorSignup" element={<YarditEventsShell><VendorSignupGate><VendorSignup /></VendorSignupGate></YarditEventsShell>} />
+        <Route path="/VendorSetup" element={<YarditEventsShell><VendorSignupGate><VendorSetup /></VendorSignupGate></YarditEventsShell>} />
+        <Route path="/VendorAccountIntro" element={<YarditEventsShell><VendorSignupGate><VendorAccountIntro /></VendorSignupGate></YarditEventsShell>} />
         <Route path="/VendorEventDashboard" element={<YarditEventsShell><VendorEventDashboard /></YarditEventsShell>} />
         <Route path="/LeagueTeamDashboard" element={<YarditEventsShell><LeagueTeamDashboard /></YarditEventsShell>} />
         <Route path="/VendorEventFlags" element={<YarditEventsShell><VendorEventFlags /></YarditEventsShell>} />

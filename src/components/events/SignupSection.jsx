@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { isVendorPublicSignupEnabled } from "@/lib/vendorLaunchGate";
 import { createPageUrl } from "@/utils";
 
 export default function SignupSection() {
@@ -23,6 +26,16 @@ export default function SignupSection() {
   });
   const [promoApplied, setPromoApplied] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+
+  const { data: gateSettings = [] } = useQuery({
+    queryKey: ["vendorLaunchGateSettings"],
+    queryFn: async () => {
+      const response = await base44.functions.invoke("getPublicAppSettings", {});
+      return response?.data?.settings || [];
+    },
+    staleTime: 60000,
+  });
+  const publicEnabled = isVendorPublicSignupEnabled(gateSettings);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,6 +65,18 @@ export default function SignupSection() {
       businessType: value,
     });
   };
+
+  if (!publicEnabled) {
+    return (
+      <section className="py-20 sm:py-28 bg-gray-950">
+        <div className="max-w-2xl mx-auto px-6 text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">Vendor Accounts Coming Soon</h2>
+          <p className="text-lg text-gray-400 mb-8">Yardit is launching Residential features first. Vendor Accounts will open in a future release.</p>
+          <Button onClick={() => navigate("/")} className="bg-[#F4A849] hover:bg-[#E39635] text-gray-950 font-bold text-lg px-8 py-6 h-auto rounded-xl">Back to Yardit</Button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-20 sm:py-28 bg-gray-950">

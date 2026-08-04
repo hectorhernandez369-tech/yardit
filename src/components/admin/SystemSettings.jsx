@@ -73,6 +73,46 @@ export default function SystemSettings() {
 
   const canManageDemoMode = adminProfiles[0]?.role_label === "master";
 
+  const vendorSignupSetting = settings?.find((s) => s.key === "vendor_public_signup_enabled");
+  const vendorAllowlistSetting = settings?.find((s) => s.key === "vendor_beta_allowlist");
+  const isPublicSignupEnabled = String(vendorSignupSetting?.value || "").toLowerCase() === "true";
+  const [allowlistDraft, setAllowlistDraft] = React.useState("");
+
+  React.useEffect(() => {
+    setAllowlistDraft(vendorAllowlistSetting?.value || "");
+  }, [vendorAllowlistSetting?.value]);
+
+  const toggleSignupMutation = useMutation({
+    mutationFn: async (newValue) => {
+      const val = newValue ? "true" : "false";
+      if (vendorSignupSetting) {
+        await base44.entities.AppSetting.update(vendorSignupSetting.id, { value: val });
+      } else {
+        await base44.entities.AppSetting.create({ key: "vendor_public_signup_enabled", value: val });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appSettings"] });
+      queryClient.invalidateQueries({ queryKey: ["vendorLaunchGateSettings"] });
+      toast.success("Vendor signup setting updated");
+    },
+  });
+
+  const saveAllowlistMutation = useMutation({
+    mutationFn: async (value) => {
+      if (vendorAllowlistSetting) {
+        await base44.entities.AppSetting.update(vendorAllowlistSetting.id, { value });
+      } else {
+        await base44.entities.AppSetting.create({ key: "vendor_beta_allowlist", value });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appSettings"] });
+      queryClient.invalidateQueries({ queryKey: ["vendorLaunchGateSettings"] });
+      toast.success("Vendor beta allowlist updated");
+    },
+  });
+
   if (isLoading || isLoadingUser || isLoadingAdminProfile) return <div className="p-4"><Loader2 className="w-6 h-6 animate-spin" /></div>;
   if (!canManageDemoMode) return null;
 
@@ -98,6 +138,35 @@ export default function SystemSettings() {
                 disabled={toggleMutation.isPending}
               />
               <span className={isDemo ? "font-bold text-blue-600" : "text-slate-500"}>Demo</span>
+            </div>
+          </div>
+
+          <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold">Public Vendor Signup</p>
+                <p className="text-sm text-slate-600">
+                  Temporarily gate public Vendor Account creation during the Residential launch. Existing vendors, allowlisted beta users, and admins still have access.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={!isPublicSignupEnabled ? "font-bold text-slate-800" : "text-slate-500"}>Off</span>
+                <Switch checked={isPublicSignupEnabled} onCheckedChange={(c) => toggleSignupMutation.mutate(c)} disabled={toggleSignupMutation.isPending} />
+                <span className={isPublicSignupEnabled ? "font-bold text-green-600" : "text-slate-500"}>On</span>
+              </div>
+            </div>
+            <div className="space-y-2 pt-2 border-t border-slate-200">
+              <p className="text-sm font-semibold text-slate-800">Beta Allowlist</p>
+              <p className="text-xs text-slate-500">One email or user ID per line, or a JSON array. Emails are matched case-insensitively.</p>
+              <textarea
+                className="w-full min-h-[120px] rounded-lg border border-slate-200 p-2 text-sm font-mono"
+                value={allowlistDraft}
+                onChange={(e) => setAllowlistDraft(e.target.value)}
+                placeholder={"alice@example.com\nbob@example.com"}
+              />
+              <Button size="sm" disabled={saveAllowlistMutation.isPending} onClick={() => saveAllowlistMutation.mutate(allowlistDraft)}>
+                {saveAllowlistMutation.isPending ? "Saving..." : "Save Allowlist"}
+              </Button>
             </div>
           </div>
 

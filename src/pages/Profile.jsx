@@ -20,6 +20,7 @@ import { getProfileCompletionPercent, isAccountSetupComplete } from "@/lib/accou
 import { normalizeUser } from "@/lib/normalizeUser";
 import OrganizerAccountDialog from "@/components/profile/OrganizerAccountDialog";
 import ExperienceSelectorCard from "@/components/experience/ExperienceSelectorCard";
+import { canAccessVendorSignup } from "@/lib/vendorLaunchGate";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -101,9 +102,27 @@ export default function ProfilePage() {
     initialData: [],
   });
 
+  const { data: vendorGateSettings = [] } = useQuery({
+    queryKey: ["vendorLaunchGateSettings"],
+    queryFn: async () => {
+      const response = await base44.functions.invoke("getPublicAppSettings", {});
+      return response?.data?.settings || [];
+    },
+    enabled: !!user,
+    staleTime: 30000,
+  });
+
   const trustStatus = getTrustStatus(user);
   const accountSetupComplete = isAccountSetupComplete(user);
   const profileCompletionPercent = getProfileCompletionPercent(user);
+
+  const canOpenVendorSignup = canAccessVendorSignup({ user, settings: vendorGateSettings, vendorAccounts: [] });
+  const vendorButtonLabel = hasVendorAccount ? "Open Vendor Dashboard" : canOpenVendorSignup ? "Open Vendor Account" : "Vendor Accounts — Coming Soon";
+  const vendorButtonDisabled = !hasVendorAccount && !canOpenVendorSignup;
+  const handleVendorButtonClick = () => {
+    if (hasVendorAccount) navigate("/VendorDashboard");
+    else if (canOpenVendorSignup) navigate("/VendorAccountIntro");
+  };
 
   if (isLoadingUser) {
     return (
@@ -143,11 +162,12 @@ export default function ProfilePage() {
             </div>
             <div className="hidden sm:flex flex-col gap-2">
               <Button
-                onClick={() => navigate(hasVendorAccount ? "/VendorDashboard" : "/VendorAccountIntro")}
-                className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold"
+                onClick={handleVendorButtonClick}
+                disabled={vendorButtonDisabled}
+                className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Store className="w-4 h-4" />
-                {hasVendorAccount ? "Open Vendor Dashboard" : "Open Vendor Account"}
+                {vendorButtonLabel}
               </Button>
               <Button
                 onClick={() => setShowOrganizerDialog(true)}
@@ -201,11 +221,12 @@ export default function ProfilePage() {
 
         <div className="sm:hidden mb-6 space-y-2">
           <Button
-            onClick={() => navigate(hasVendorAccount ? "/VendorDashboard" : "/VendorAccountIntro")}
-            className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold"
+            onClick={handleVendorButtonClick}
+            disabled={vendorButtonDisabled}
+            className="w-full bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Store className="w-4 h-4" />
-            {hasVendorAccount ? "Open Vendor Dashboard" : "Open Vendor Account"}
+            {vendorButtonLabel}
           </Button>
           <Button
             onClick={() => setShowOrganizerDialog(true)}

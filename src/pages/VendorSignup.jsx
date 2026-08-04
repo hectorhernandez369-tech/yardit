@@ -128,77 +128,32 @@ export default function VendorSignup() {
     }
 
     setSaving(true);
-    const businessAddress = [businessForm.business_street_address, businessForm.business_city, businessForm.business_state, businessForm.business_zip_code].filter(Boolean).join(", ");
-    const existingAccounts = await base44.entities.VendorAccount.list();
-    const existingReservations = await base44.entities.VendorAccountIdentityReservation.list();
-    const identityFields = buildVendorAccountIdentityFields(user, existingAccounts, existingReservations, businessForm.business_name.trim());
-    const now = new Date().toISOString();
-    const [reservationNum, reservationSlug] = await Promise.all([
-      base44.entities.VendorAccountIdentityReservation.create({
-        type: "vendor_account_number",
-        value: identityFields.vendor_account_number,
-        vendor_account_id: "pending",
-        vendor_account_number: identityFields.vendor_account_number,
-        vendor_slug: identityFields.vendor_slug,
-        business_name_at_assignment: businessForm.business_name.trim(),
-        owner_user_id: user?.id || "",
-        owner_email: user?.email || "",
-        status: "reserved",
-        reserved_at: now,
-      }),
-      base44.entities.VendorAccountIdentityReservation.create({
-        type: "vendor_slug",
-        value: identityFields.vendor_slug,
-        vendor_account_id: "pending",
-        vendor_account_number: identityFields.vendor_account_number,
-        vendor_slug: identityFields.vendor_slug,
-        business_name_at_assignment: businessForm.business_name.trim(),
-        owner_user_id: user?.id || "",
-        owner_email: user?.email || "",
-        status: "reserved",
-        reserved_at: now,
-      }),
-    ]);
-    const account = await base44.entities.VendorAccount.create({
-      business_name: businessForm.business_name.trim(),
-      business_category: businessForm.business_category.trim(),
-      business_tax_id: businessForm.business_tax_id.trim(),
-      description: businessForm.description?.trim() || "",
-      business_street_address: businessForm.business_street_address.trim(),
-      business_city: businessForm.business_city.trim(),
-      business_state: businessForm.business_state,
-      business_zip_code: businessForm.business_zip_code.trim(),
-      business_address: businessAddress,
-      location: businessAddress,
-      website: businessForm.website.trim(),
-      phone: businessForm.phone.trim(),
-      business_phone: businessForm.phone.trim(),
-      facebook_url: businessForm.facebook_url.trim(),
-      instagram_url: businessForm.instagram_url.trim(),
-      tiktok_url: businessForm.tiktok_url.trim(),
-      ...identityFields,
-      organization_type: organizerType === "league_team" ? "league_team" : "vendor",
-      vendor_tier: "free",
-      vendor_setup_status: "setup_required",
-      extra_users_count: 0,
-      extra_pins_count: 0,
-      current_authorized_users: 1,
-      current_vendor_pins: 0,
-      is_active: true,
-    });
-    await Promise.all([
-      base44.entities.VendorAccountIdentityReservation.update(reservationNum.id, { vendor_account_id: account.id, status: "assigned" }),
-      base44.entities.VendorAccountIdentityReservation.update(reservationSlug.id, { vendor_account_id: account.id, status: "assigned" }),
-    ]);
-    if (getPreferredExperience() !== EVENTS_EXPERIENCE && window.confirm("Make Yardit Events your default experience for organizer tools?")) {
-      setPreferredExperience(EVENTS_EXPERIENCE);
-    } else if (getPreferredExperience() === EVENTS_EXPERIENCE) {
-      setPreferredExperience(EVENTS_EXPERIENCE);
+    try {
+      const response = await base44.functions.invoke("createPublicVendorAccount", {
+        businessForm,
+        organizerType,
+      });
+      const account = response?.data?.account;
+      if (!account) {
+        const message = response?.data?.error || "Could not create your Vendor Account right now.";
+        toast.error(message);
+        setSaving(false);
+        return;
+      }
+      if (getPreferredExperience() !== EVENTS_EXPERIENCE && window.confirm("Make Yardit Events your default experience for organizer tools?")) {
+        setPreferredExperience(EVENTS_EXPERIENCE);
+      } else if (getPreferredExperience() === EVENTS_EXPERIENCE) {
+        setPreferredExperience(EVENTS_EXPERIENCE);
+      }
+      setCreatedAccount(account);
+      setSaving(false);
+      setStep(4);
+      toast.success("Organizer account created on the Free tier.");
+    } catch (error) {
+      setSaving(false);
+      const message = error?.response?.data?.error || error?.message || "Could not create your Vendor Account right now.";
+      toast.error(message);
     }
-    setCreatedAccount(account);
-    setSaving(false);
-    setStep(4);
-    toast.success("Organizer account created on the Free tier.");
   };
 
   if (loading) {
