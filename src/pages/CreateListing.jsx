@@ -1378,6 +1378,26 @@ export default function CreateListingPage() {
       return;
     }
 
+    if (step === 3 && formData.listingType === "yard_sale") {
+      if (formData.tier === "featured" || formData.tier === "premium") {
+        if (!formData.selectedRangeStartDate || !formData.selectedRangeEndDate) {
+          toast.error("Please select your event dates");
+          return;
+        }
+        if (hasResidentialDateConflict(formData.selectedRangeStartDate, formData.selectedRangeEndDate)) {
+          toast.error("These dates are already reserved for this address. Please choose different dates.");
+          return;
+        }
+      }
+      if (!formData.openTime || !formData.closeTime) {
+        toast.error("Please set your open and close hours");
+        return;
+      }
+      setStep(4);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     if (step === 3 && formData.listingType === "event") {
       const safeEventData = normalizeResidentialEventSingleDay(formData);
       setFormData(safeEventData);
