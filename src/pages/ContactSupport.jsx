@@ -9,14 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lightbulb } from "lucide-react";
 
 const SUPPORT_AREAS = [
   { value: "residential", label: "Residential / Yard Sale Issue", queue: "residential_support", source_type: "listing" },
   { value: "vendor", label: "Vendor Account or Truck Pin", queue: "vendor_support", source_type: "vendor_account" },
   { value: "event", label: "Vendor Event", queue: "event_support", source_type: "vendor_event" },
   { value: "billing", label: "Billing, Payment, or Subscription", queue: "billing_support", source_type: "general" },
-  { value: "technical", label: "Technical Issue / App Bug", queue: "technical_support", source_type: "general" },
+  { value: "technical", label: "Something Isn't Working", queue: "technical_support", source_type: "general" },
+  { value: "improvement", label: "Suggest an Improvement", queue: "improvement_support", source_type: "general" },
 ];
 
 export default function ContactSupportPage() {
@@ -47,8 +48,9 @@ export default function ContactSupportPage() {
         phone: user.phone || "",
         email: user.email || "",
         support_area: areaMatch ? areaParam : "residential",
-        source_id: params.get("source_id") || "",
+        source_id: params.get("from") ? `page:${params.get("from")}` : (params.get("source_id") || ""),
         source_type: areaMatch ? areaMatch.source_type : "general",
+        source_id: params.get("from") ? `page:${params.get("from")}` : (params.get("source_id") || ""),
       }));
     }).catch(() => {
       if (areaMatch) setFormData((prev) => ({ ...prev, support_area: areaParam }));
@@ -138,8 +140,15 @@ export default function ContactSupportPage() {
         </Button>
         <Card className="border-2 border-[#2C4F4E] shadow-sm bg-[#E7D7B8]">
           <CardHeader>
-            <CardTitle className="text-2xl text-[#2C4F4E]">Contact Support</CardTitle>
-            <CardDescription className="text-slate-600">Please fill out the form below to create a support ticket.</CardDescription>
+            <CardTitle className="text-2xl text-[#2C4F4E] flex items-center gap-2">
+              {formData.support_area === "improvement" ? <Lightbulb className="w-6 h-6" /> : null}
+              {formData.support_area === "improvement" ? "Suggest an Improvement" : "Contact Support"}
+            </CardTitle>
+            <CardDescription className="text-slate-600">
+              {formData.support_area === "improvement"
+                ? "You're helping shape Yardit. Tell us what could work better or what you would like to see added."
+                : "Please fill out the form below to create a support ticket."}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -157,7 +166,9 @@ export default function ContactSupportPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-slate-500 mt-1">
-                  Your ticket will be routed to the <strong>{SUPPORT_AREAS.find((a) => a.value === formData.support_area)?.label}</strong> team.
+                  {formData.support_area === "improvement"
+                    ? "Every suggestion is reviewed and helps improve Yardit for the community."
+                    : <>Your ticket will be routed to the <strong>{SUPPORT_AREAS.find((a) => a.value === formData.support_area)?.label}</strong> team.</>}
                 </p>
               </div>
 
@@ -178,8 +189,15 @@ export default function ContactSupportPage() {
                 <Input name="address" value={formData.address} onChange={handleChange} className="bg-white mt-1" />
               </div>
               <div>
-                <Label>Description (Required)</Label>
-                <Textarea name="description" required value={formData.description} onChange={handleChange} className="bg-white min-h-[120px] mt-1" placeholder="Please describe your issue in detail..." />
+                <Label>{formData.support_area === "improvement" ? "What would you improve? (Required)" : "Description (Required)"}</Label>
+                <Textarea
+                  name="description"
+                  required
+                  value={formData.description}
+                  onChange={handleChange}
+                  className="bg-white min-h-[120px] mt-1"
+                  placeholder={formData.support_area === "improvement" ? "Tell us what felt confusing, what did not work as expected, or what would make Yardit better..." : "Please describe your issue in detail..."}
+                />
               </div>
               <div>
                 <Label>Upload Photo Evidence (Optional, Max 3)</Label>
@@ -197,7 +215,7 @@ export default function ContactSupportPage() {
               </div>
               <Button type="submit" disabled={loading} className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Create Support Ticket
+                {formData.support_area === "improvement" ? "Send Suggestion" : "Create Support Ticket"}
               </Button>
             </form>
           </CardContent>
