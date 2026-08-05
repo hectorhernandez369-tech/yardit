@@ -94,6 +94,7 @@ export default function YarditEventsShell({ children }) {
       <YarditEventsMobileBottomNav
         isAuthenticated={isAuthenticated}
         isLeague={isLeague}
+        hasAdminProfile={hasAdminProfile}
         navigateToLogin={() => navigateToLogin?.(window.location.href)}
         onLogout={() => logout?.("/")}
       />

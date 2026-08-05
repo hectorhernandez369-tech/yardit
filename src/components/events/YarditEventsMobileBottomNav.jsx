@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CalendarDays, HelpCircle, Home, LogOut, Map as MapIcon, MoreVertical, Plus, Settings, User } from "lucide-react";
+import { CalendarDays, HelpCircle, Home, LogOut, Map as MapIcon, MoreVertical, Plus, Settings, Shield, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +10,7 @@ import {
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { YARDIT_EVENTS_LOGO_URL } from "@/lib/experience";
 
-export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague, navigateToLogin, onLogout }) {
+export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague, hasAdminProfile, navigateToLogin, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
   const dashboardPath = isLeague ? "/LeagueTeamDashboard" : "/VendorDashboard";
@@ -76,6 +76,11 @@ export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague,
           <DropdownMenuItem onClick={() => navigate("/StartupGuide")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
             <HelpCircle className="w-3.5 h-3.5 text-cyan-300" /> Help
           </DropdownMenuItem>
+          {hasAdminProfile && (
+            <DropdownMenuItem onClick={() => navigate("/AdminLite")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+              <Shield className="w-3.5 h-3.5 text-[#F4A849]" /> Admin Login
+            </DropdownMenuItem>
+          )}
           <div className="h-px bg-white/10 my-0.5" />
           <DropdownMenuItem onClick={onLogout} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-red-300 hover:bg-red-500/10 transition mt-1">
             <LogOut className="w-3.5 h-3.5" /> Logout
