@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
 import EventFlagPlacementModal from "./EventFlagPlacementModal";
+import AreaDrawingLayer from "./AreaDrawingLayer";
+import AreaHighlightPanel from "./AreaHighlightPanel";
 import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER = [34.0522, -118.2437];
@@ -114,8 +116,8 @@ async function geocodeAddress(address, biasCenter) {
     .slice(0, 6);
 }
 
-function LocationClickHandler({ onSelect }) {
-  useMapEvents({ click: (e) => onSelect(e.latlng.lat, e.latlng.lng) });
+function LocationClickHandler({ onSelect, disabled }) {
+  useMapEvents({ click: (e) => { if (!disabled) onSelect(e.latlng.lat, e.latlng.lng); } });
   return null;
 }
 
@@ -167,6 +169,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
 
   const [radius, setRadius] = useState(value?.radius_feet || 500);
   const [flags, setFlags] = useState(value?.flags || []);
+  const [highlights, setHighlights] = useState(value?.highlights || []);
+  const [drawingMode, setDrawingMode] = useState("none");
   const [showFlagPlacement, setShowFlagPlacement] = useState(false);
   const [mapStyle, setMapStyle] = useState("standard");
 
@@ -189,6 +193,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     setSearchFocused(false);
     setRadius(value?.radius_feet || 500);
     setFlags(value?.flags || []);
+    setHighlights(value?.highlights || []);
+    setDrawingMode("none");
     setMapStyle("standard");
     setRecenterZoom(null);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -279,6 +285,18 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     setDisplayAddressEdited(true);
   };
 
+  const addHighlight = (shape) => {
+    const id = `area_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const title = `AREA ${highlights.length + 1}`;
+    setHighlights((prev) => [...prev, { id, title, ...shape }]);
+  };
+
+  const updateHighlightTitle = (id, title) =>
+    setHighlights((prev) => prev.map((h) => (h.id === id ? { ...h, title } : h)));
+
+  const removeHighlight = (id) =>
+    setHighlights((prev) => prev.filter((h) => h.id !== id));
+
   const saveLocation = () => {
     if (!selected) return;
     onChange({
@@ -288,6 +306,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
       display_address: displayAddress.trim() || geocodedAddress,
       radius_feet: Number(radius || 500),
       flags,
+      highlights,
     });
     closeSuggestions();
     onOpenChange(false);
@@ -345,7 +364,13 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
               <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom>
                 <VendorEventMapboxTileLayer mapStyle={mapStyle} />
                 <RecenterMap center={center} recenterZoom={recenterZoom} currentZoomRef={currentZoomRef} />
-                <LocationClickHandler onSelect={selectMapLocation} />
+                <LocationClickHandler onSelect={selectMapLocation} disabled={drawingMode !== "none"} />
+                <AreaDrawingLayer
+                  drawingMode={drawingMode}
+                  shapes={highlights}
+                  onAddShape={addHighlight}
+                  onFinishDrawing={() => setDrawingMode("none")}
+                />
                 {selected && showRadius && (
                   <Circle
                     center={[selected.latitude, selected.longitude]}
@@ -358,6 +383,14 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             </div>
             <p className="text-xs text-slate-500 text-center">Tap the map or search above to set the pin location.</p>
           </div>
+
+          <AreaHighlightPanel
+            drawingMode={drawingMode}
+            setDrawingMode={setDrawingMode}
+            highlights={highlights}
+            onTitleChange={updateHighlightTitle}
+            onDelete={removeHighlight}
+          />
 
           {/* Location info — always shown when a pin exists */}
           {selected && (
