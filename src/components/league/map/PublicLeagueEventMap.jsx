@@ -30,6 +30,20 @@ function FitController({ fields, objects, defaultView }) {
   return null;
 }
 
+function FocusField({ fieldId, fields }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!fieldId) return;
+    const field = fields.find((f) => f.id === fieldId);
+    if (!field) return;
+    const lat = field.latitude || field.geometry?.center?.[0];
+    const lng = field.longitude || field.geometry?.center?.[1];
+    if (lat && lng) map.setView([lat, lng], Math.max(map.getZoom(), 18), { animate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldId]);
+  return null;
+}
+
 const STATUS_RING = {
   upcoming: { color: "#94a3b8" },
   in_progress: { color: "#10b981" },
@@ -49,6 +63,7 @@ export default function PublicLeagueEventMap({ event, fields = [], publishedObje
       <MapContainer center={center} zoom={16} className="h-full w-full" scrollWheelZoom={false}>
         <VendorEventMapboxTileLayer />
         <FitController fields={sortedFields} objects={visibleObjects} defaultView={event.default_view} />
+        <FocusField fieldId={highlightFieldId} fields={sortedFields} />
 
         {sortedFields.map((field) => {
           const geom = field.geometry;
