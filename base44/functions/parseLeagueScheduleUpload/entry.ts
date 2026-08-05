@@ -56,16 +56,77 @@ const findDate = (rows, fallbackName) => {
 const isDivision = (value) => /^[0-9]{1,2}U$/i.test(clean(value)) || /division|varsity|junior|peewee|flag/i.test(clean(value));
 const isTimeHeader = (value) => /^(time|start|start time|time slot|timeslot)$/i.test(clean(value));
 const isHomeHeader = (value) => /^home( team)?$/i.test(clean(value));
+const isFieldHeader = (value) => /^field\b/i.test(clean(value));
+
+const parseFieldCell = (cellValue, fieldName, sheetName, gameDate, time, rowIndex) => {
+  const raw = clean(cellValue);
+  if (!raw || /^bye$/i.test(raw)) return null;
+  const divMatch = raw.match(/\(\s*([0-9]{1,2}U)\s*\)/i);
+  const division = divMatch ? clean(divMatch[1]).toUpperCase() : '';
+  let teamsText = raw.replace(/\(\s*[0-9]{1,2}U\s*\)/i, '').trim();
+  const vsMatch = teamsText.match(/^(.+?)\s+vs\.?\s+(.+)$/i);
+  if (!vsMatch) return null;
+  const away = clean(vsMatch[1]);
+  const home = clean(vsMatch[2]);
+  if (!away || !home) return null;
+  if (/^bye$/i.test(away) || /^bye$/i.test(home)) return null;
+  return {
+    week: clean(sheetName),
+    game_date: gameDate,
+    start_time: time,
+    division,
+    age_group: division,
+    away_team: away,
+    home_team: home,
+    game_title: `${away} vs ${home}`,
+    field_name: fieldName,
+    location: fieldName,
+    notes: clean(sheetName),
+    source_row_key: `${sheetName}|${gameDate}|${division}|${rowIndex}|${fieldName}|${away}|${home}|${time}`.toLowerCase(),
+  };
+};
+
+const parseMultiFieldFormat = (rows, headerIndex, header, sheetName, gameDate) => {
+  const games = [];
+  let timeCol = header.findIndex((cell) => isTimeHeader(cell));
+  if (timeCol < 0) timeCol = 0;
+  const fieldCols = [];
+  for (let col = 0; col < header.length; col += 1) {
+    if (col === timeCol) continue;
+    if (isFieldHeader(header[col])) fieldCols.push({ col, fieldName: clean(header[col]) });
+  }
+  if (!fieldCols.length) return games;
+
+  let lastTime = '';
+  for (let rowIndex = headerIndex + 1; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex];
+    const rowTime = excelTimeToText(row[timeCol]);
+    if (rowTime) lastTime = rowTime;
+    const time = rowTime || lastTime || '';
+    for (const field of fieldCols) {
+      const game = parseFieldCell(row[field.col], field.fieldName, sheetName, gameDate, time, rowIndex);
+      if (game) games.push(game);
+    }
+  }
+  return games;
+};
 
 const parseRows = (rows, sheetName) => {
   const games = [];
-  const headerIndex = rows.findIndex((row) => row.some((cell) => isTimeHeader(cell)) && row.some((cell) => isDivision(cell)));
+  const headerIndex = rows.findIndex((row) => row.some((cell) => isTimeHeader(cell)));
   if (headerIndex < 0) return games;
 
   const header = rows[headerIndex];
   const gameDate = findDate(rows, sheetName);
-  const blocks = [];
 
+  const hasFieldHeaders = header.some((cell) => isFieldHeader(cell));
+  const hasDivisionPairs = header.some((cell, i) => isDivision(cell) && isHomeHeader(header[i + 1]));
+
+  if (hasFieldHeaders && !hasDivisionPairs) {
+    return parseMultiFieldFormat(rows, headerIndex, header, sheetName, gameDate);
+  }
+
+  const blocks = [];
   for (let col = 0; col < header.length - 1; col += 1) {
     if (!isDivision(header[col]) || !isHomeHeader(header[col + 1])) continue;
     let timeCol = -1;
