@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Circle, Polygon, Rectangle, Tooltip } from "react-leaflet";
+import { Circle, Polygon, Rectangle } from "react-leaflet";
 import { getShapeStyle } from "./AreaShapeViews";
 
 const MOVE_THRESHOLD_PX = 5;
@@ -74,12 +74,12 @@ function moveGeometry(origShape, dLat, dLng) {
   return {};
 }
 
-function DraggableShape({ shape, selected, interactive, onSelect, onDragStart, onDragMove, onDragEnd }) {
+function DraggableShape({ shape, selected, interactive, dragEnabled = true, onSelect, onDragStart, onDragMove, onDragEnd }) {
   const layerRef = useRef(null);
   const shapeRef = useRef(shape);
   shapeRef.current = shape;
-  const cbRef = useRef({ onSelect, onDragStart, onDragMove, onDragEnd });
-  cbRef.current = { onSelect, onDragStart, onDragMove, onDragEnd };
+  const cbRef = useRef({ onSelect, onDragStart, onDragMove, onDragEnd, dragEnabled });
+  cbRef.current = { onSelect, onDragStart, onDragMove, onDragEnd, dragEnabled };
   const dragRef = useRef(null);
 
   // Attach pointer handlers once when the path is ready.
@@ -94,6 +94,8 @@ function DraggableShape({ shape, selected, interactive, onSelect, onDragStart, o
       if (ev.pointerType === "mouse" && ev.button !== 0) return;
       ev.stopPropagation();
       ev.preventDefault();
+      cbRef.current.onSelect(shapeRef.current.id);
+      if (!cbRef.current.dragEnabled) return;
       const map = layer._map;
       if (!map) return;
       const startLatLng = containerLatLng(map, ev);
@@ -108,7 +110,6 @@ function DraggableShape({ shape, selected, interactive, onSelect, onDragStart, o
       };
       map.dragging.disable();
       try { path.style.touchAction = "none"; } catch { /* noop */ }
-      cbRef.current.onSelect(shapeRef.current.id);
       cbRef.current.onDragStart(shapeRef.current.id);
       window.addEventListener("pointermove", onPointerMove, { passive: false });
       window.addEventListener("pointerup", onPointerUp);
@@ -159,12 +160,11 @@ function DraggableShape({ shape, selected, interactive, onSelect, onDragStart, o
   useEffect(() => {
     const path = pathEl(layerRef.current);
     if (!path) return;
-    path.style.cursor = selected ? "move" : "pointer";
-    try { path.style.touchAction = selected ? "none" : ""; } catch { /* noop */ }
+    path.style.cursor = selected ? (cbRef.current.dragEnabled ? "move" : "pointer") : "pointer";
+    try { path.style.touchAction = selected && cbRef.current.dragEnabled ? "none" : ""; } catch { /* noop */ }
   }, [selected, interactive]);
 
   const style = getShapeStyle(shape, selected);
-  const label = shape.title && shape.title.trim() ? shape.title.trim() : "";
 
   const common = {
     ref: layerRef,
@@ -175,23 +175,17 @@ function DraggableShape({ shape, selected, interactive, onSelect, onDragStart, o
 
   if (shape.type === "circle") {
     return (
-      <Circle center={shape.center} radius={shape.radius} {...common}>
-        {label && <Tooltip permanent direction="center" className="yardit-area-label">{label}</Tooltip>}
-      </Circle>
+      <Circle center={shape.center} radius={shape.radius} {...common} />
     );
   }
   if (shape.type === "rectangle") {
     return (
-      <Rectangle bounds={shape.bounds} {...common}>
-        {label && <Tooltip permanent direction="center" className="yardit-area-label">{label}</Tooltip>}
-      </Rectangle>
+      <Rectangle bounds={shape.bounds} {...common} />
     );
   }
   if (shape.type === "triangle") {
     return (
-      <Polygon positions={shape.points} {...common}>
-        {label && <Tooltip permanent direction="center" className="yardit-area-label">{label}</Tooltip>}
-      </Polygon>
+      <Polygon positions={shape.points} {...common} />
     );
   }
   return null;
@@ -201,6 +195,7 @@ export default function DraggableAreaShapes({
   shapes = [],
   selectedId = null,
   interactive = true,
+  dragEnabled = true,
   onSelect,
   onDragStart,
   onDragMove,
@@ -214,6 +209,7 @@ export default function DraggableAreaShapes({
           shape={s}
           selected={selectedId === s.id}
           interactive={interactive}
+          dragEnabled={dragEnabled}
           onSelect={onSelect}
           onDragStart={onDragStart}
           onDragMove={onDragMove}

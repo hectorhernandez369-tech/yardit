@@ -13,7 +13,52 @@ import DraggableAreaShapes, { isShapeFullyVisible } from "./DraggableAreaShape";
 import MapSetupHighlightEditor from "./MapSetupHighlightEditor";
 import MapSetupFlagEditor from "./MapSetupFlagEditor";
 import PublicVendorEventMap from "./PublicVendorEventMap";
+import AreaLabelOverlay from "./AreaLabelOverlay";
+import AreaSelectionToolbar from "./AreaSelectionToolbar";
+import AreaResizeLayer from "./AreaResizeLayer";
 import "leaflet/dist/leaflet.css";
+
+const MAP_LOCK_HANDLERS = ["dragging", "touchZoom", "doubleClickZoom", "scrollWheelZoom", "boxZoom", "keyboard"];
+
+function MapInteractionLock({ active }) {
+  const map = useMap();
+  const prevRef = useRef({});
+  useEffect(() => {
+    const restore = () => {
+      MAP_LOCK_HANDLERS.forEach((h) => {
+        const hd = map[h];
+        if (hd && typeof hd.enable === "function" && prevRef.current[h] !== false) hd.enable();
+      });
+      try { map.getContainer().style.touchAction = ""; } catch { /* noop */ }
+    };
+    if (active) {
+      const prev = {};
+      MAP_LOCK_HANDLERS.forEach((h) => {
+        const hd = map[h];
+        if (hd && typeof hd.enabled === "function") {
+          prev[h] = hd.enabled();
+          hd.disable();
+        }
+      });
+      try { map.getContainer().style.touchAction = "none"; } catch { /* noop */ }
+      prevRef.current = prev;
+    } else {
+      restore();
+    }
+    return () => { if (active) restore(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, map]);
+  return null;
+}
+
+function MapClickHandler({ active, onDeselect }) {
+  useMapEvents({
+    click: () => {
+      if (active) onDeselect();
+    },
+  });
+  return null;
+}
 
 const DRAW_HINTS = {
   circle: "Press and drag from the center outward.",
@@ -91,6 +136,8 @@ function MapReady({ onReady }) {
   return null;
 }
 
+
+
 export default function EventMapSetup({ open, onOpenChange, eventType, value, onChange }) {
   const showFlags = ["multi_spot", "multi_location"].includes(eventType);
   const center = [Number(value.latitude), Number(value.longitude)];
@@ -106,7 +153,25 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
   const [showPreview, setShowPreview] = useState(false);
   const [flyTarget, setFlyTarget] = useState(null);
   const [draggingAreaId, setDraggingAreaId] = useState(null);
+  const [areaMode, setAreaMode] = useState("move"); // "move" | "resize"
+  const [callout, setCallout] = useState({ id: null, shown: false });
   const mapRef = useRef(null);
+  const calloutTimerRef = useRef(null);
+  const resizeSnapshotRef = useRef(null);
+
+  const clearCalloutTimer = () => {
+    if (calloutTimerRef.current) { clearTimeout(calloutTimerRef.current); calloutTimerRef.current = null; }
+  };
+  const showCallout = (id) => {
+    clearCalloutTimer();
+    setCallout({ id, shown: true });
+    calloutTimerRef.current = setTimeout(
+      () => setCallout((c) => (c.id === id ? { id, shown: false } : c)),
+      3000
+    );
+  };
+  const pinCallout = (id) => { clearCalloutTimer(); setCallout({ id, shown: true }); };
+  const hideCallout = () => { clearCalloutTimer(); setCallout({ id: null, shown: false }); };
 
   useEffect(() => {
     if (!open) return;
@@ -120,6 +185,10 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     setShowPreview(false);
     setFlyTarget(null);
     setDraggingAreaId(null);
+    setAreaMode("move");
+    resizeSnapshotRef.current = null;
+    clearCalloutTimer();
+    setCallout({ id: null, shown: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -157,7 +226,10 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     const item = { id, ...shape };
     setHighlights((prev) => [...prev, item]);
     setSelectedId(id);
-    setEditing({ type: "area", id });
+    setAreaMode("move");
+    setEditing(null);
+    resizeSnapshotRef.current = null;
+    showCallout(id);
     const c = areaCenter(item);
     if (c) setFlyTarget({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
   };
@@ -176,24 +248,72 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
   };
   const selectArea = (shape) => {
     setSelectedId(shape.id);
-    setEditing({ type: "area", id: shape.id });
+    setAreaMode("move");
+    setEditing(null);
+    resizeSnapshotRef.current = null;
+    showCallout(shape.id);
     const c = areaCenter(shape);
     if (c) setFlyTarget({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
   };
   const selectAreaFromMap = (shape) => {
     setSelectedId(shape.id);
-    setEditing({ type: "area", id: shape.id });
+    setAreaMode("move");
+    setEditing(null);
+    resizeSnapshotRef.current = null;
+    showCallout(shape.id);
     const map = mapRef.current;
     const c = areaCenter(shape);
     if (c && (!map || !isShapeFullyVisible(map, shape))) {
       setFlyTarget({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
     }
   };
+  const pickGeometry = (shape) => {
+    if (shape.type === "circle") return { center: [...shape.center], radius: shape.radius };
+    if (shape.type === "rectangle") return { bounds: shape.bounds.map((b) => [...b]) };
+    if (shape.type === "triangle") return { points: shape.points.map((p) => [...p]) };
+    return {};
+  };
+  const editArea = (id) => {
+    setSelectedId(id);
+    setAreaMode("move");
+    resizeSnapshotRef.current = null;
+    setEditing({ type: "area", id });
+    pinCallout(id);
+  };
+  const enterResize = (shape) => {
+    setSelectedId(shape.id);
+    setEditing(null);
+    resizeSnapshotRef.current = pickGeometry(shape);
+    setAreaMode("resize");
+    pinCallout(shape.id);
+  };
+  const doneResize = () => {
+    resizeSnapshotRef.current = null;
+    setAreaMode("move");
+    hideCallout();
+  };
+  const cancelResize = () => {
+    const snap = resizeSnapshotRef.current;
+    if (selectedId && snap) updateHighlight(selectedId, snap);
+    resizeSnapshotRef.current = null;
+    setAreaMode("move");
+    hideCallout();
+  };
+  const deselectAll = () => {
+    setSelectedId(null);
+    setEditing(null);
+    setAreaMode("move");
+    resizeSnapshotRef.current = null;
+    hideCallout();
+  };
   const onDragStart = (id) => setDraggingAreaId(id);
   const onDragMove = (id, patch) => updateHighlight(id, patch);
   const onDragEnd = (id, patch) => updateHighlight(id, patch);
 
   const drawingMode = mode === "flag" || mode === "none" ? "none" : mode;
+  const selectedShape = highlights.find((h) => h.id === selectedId) || null;
+  const calloutPinned = areaMode === "resize" || (editing?.type === "area" && editing.id === selectedId);
+  const calloutShown = (callout.shown || calloutPinned) && callout.id === selectedId && !!selectedShape;
 
   const save = () => {
     onChange({ flags, highlights });
@@ -231,6 +351,8 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   eventLocation={{ latitude: value.latitude, longitude: value.longitude, radius_feet: value.radius_feet }}
                   onAddFlag={addFlag}
                 />
+                <MapInteractionLock active={areaMode === "resize"} />
+                <MapClickHandler active={mode === "none" && areaMode !== "resize"} onDeselect={deselectAll} />
                 <AreaDrawingLayer
                   drawingMode={drawingMode}
                   shapes={[]}
@@ -247,6 +369,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                     shapes={highlights}
                     selectedId={selectedId}
                     interactive
+                    dragEnabled={areaMode !== "resize"}
                     onSelect={selectAreaFromMap}
                     onDragStart={onDragStart}
                     onDragMove={onDragMove}
@@ -254,6 +377,31 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   />
                 ) : (
                   <AreaShapeViews shapes={highlights} />
+                )}
+                {drawingMode === "none" && (
+                  <AreaLabelOverlay
+                    shapes={highlights}
+                    calloutShape={selectedShape}
+                    calloutShown={calloutShown}
+                  />
+                )}
+                {drawingMode === "none" && selectedShape && (
+                  <AreaSelectionToolbar
+                    shape={selectedShape}
+                    mode={areaMode}
+                    onEdit={() => editArea(selectedShape.id)}
+                    onMove={() => setAreaMode("move")}
+                    onResize={() => enterResize(selectedShape)}
+                    onDelete={() => removeHighlight(selectedShape.id)}
+                    onDone={doneResize}
+                    onCancel={cancelResize}
+                  />
+                )}
+                {drawingMode === "none" && areaMode === "resize" && selectedShape && (
+                  <AreaResizeLayer
+                    shape={selectedShape}
+                    onResize={(patch) => updateHighlight(selectedShape.id, patch)}
+                  />
                 )}
                 {flags.map((flag) => {
                   const id = flag.temp_id || flag.id;
@@ -263,7 +411,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                       key={id}
                       position={[Number(flag.latitude), Number(flag.longitude)]}
                       icon={makeFlagIcon(flag, selected)}
-                      draggable={mode === "none" && !draggingAreaId}
+                      draggable={mode === "none" && !draggingAreaId && areaMode !== "resize"}
                       bubblingMouseEvents={false}
                       eventHandlers={{
                         click: () => selectFlag(flag),
@@ -311,6 +459,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   variant={mode === "flag" ? "default" : "outline"}
                   onClick={() => setMode(mode === "flag" ? "none" : "flag")}
                   className="h-12 gap-2 text-base"
+                  disabled={areaMode === "resize"}
                 >
                   <FlagIcon className="w-5 h-5" /> {mode === "flag" ? "Placing Flag — Tap Map" : "Add Field Flag"}
                 </Button>
@@ -321,7 +470,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   variant="outline"
                   onClick={() => setHighlightOpen((v) => !v)}
                   className="h-12 w-full gap-2 text-base"
-                  disabled={["circle", "rectangle", "triangle"].includes(mode)}
+                  disabled={["circle", "rectangle", "triangle"].includes(mode) || areaMode === "resize"}
                 >
                   <Plus className="w-5 h-5" /> Highlight an Area
                 </Button>
@@ -395,10 +544,10 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                             {shape.title?.trim() || "Untitled Area"}
                           </button>
                           <span className="text-xs text-slate-500 capitalize">{shape.type}</span>
-                          <Button size="sm" variant="outline" onClick={() => setEditing({ type: "area", id: shape.id })} className="h-8 gap-1.5">Edit</Button>
+                          <Button size="sm" variant="outline" onClick={() => editArea(shape.id)} className="h-8 gap-1.5">Edit</Button>
                           <Button size="sm" variant="outline" onClick={() => removeHighlight(shape.id)} className="h-8 gap-1.5 border-red-300 text-red-600 hover:bg-red-50"><Trash2 className="w-3.5 h-3.5" /></Button>
                         </div>
-                        {isEditing && <MapSetupHighlightEditor shape={shape} onUpdate={(p) => updateHighlight(shape.id, p)} onDelete={() => removeHighlight(shape.id)} onClose={() => setEditing(null)} />}
+                        {isEditing && <MapSetupHighlightEditor shape={shape} onUpdate={(p) => updateHighlight(shape.id, p)} onDelete={() => removeHighlight(shape.id)} onClose={() => { setEditing(null); hideCallout(); }} />}
                       </div>
                     );
                   })
