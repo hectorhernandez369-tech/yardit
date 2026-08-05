@@ -23,6 +23,10 @@
       "type": "string",
       "description": "Spot description"
     },
+    "category": {
+      "type": "string",
+      "description": "Optional flag category for future grouping/filtering"
+    },
     "mini_schedule": {
       "type": "string",
       "description": "Optional spot-specific schedule"

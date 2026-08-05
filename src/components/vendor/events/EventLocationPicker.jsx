@@ -6,19 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
-import EventFlagPlacementModal from "./EventFlagPlacementModal";
-import AreaDrawingLayer from "./AreaDrawingLayer";
-import AreaDrawToolbar from "./AreaDrawToolbar";
-import AreaHighlightList from "./AreaHighlightList";
 import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER = [34.0522, -118.2437];
-
-const DRAW_HINTS = {
-  circle: "Press and drag from the center outward.",
-  rectangle: "Press and drag from one corner to the opposite corner.",
-  triangle: "Tap three points.",
-};
 
 function distanceFrom(lat1, lng1, lat2, lng2) {
   const toRad = (v) => (v * Math.PI) / 180;
@@ -30,17 +20,14 @@ function distanceFrom(lat1, lng1, lat2, lng2) {
 }
 
 function formatPhotonAddress(p) {
-  // Prefer named place first (venue, school, park, etc.)
   const name = p.name;
   const street = p.housenumber && p.street ? `${p.housenumber} ${p.street}` : p.street;
   const city = p.city || p.town || p.village || p.county;
   const state = p.state;
-
   if (name && city) return [name, city, state].filter(Boolean).join(", ");
   return [street, city, state].filter(Boolean).join(", ");
 }
 
-// Enhanced reverse geocode: tries Nominatim with named place priority
 async function reverseGeocode(lat, lng) {
   try {
     const res = await fetch(
@@ -48,27 +35,18 @@ async function reverseGeocode(lat, lng) {
     );
     const data = await res.json();
     if (!data || data.error) return null;
-
     const a = data.address || {};
     const placeName = data.name || data.namedetails?.name;
-
-    // 1. Named place/venue
     if (placeName) {
       const city = a.city || a.town || a.village || a.county;
       const state = a.state;
       return [placeName, city, state].filter(Boolean).join(", ");
     }
-
-    // 2. Street address
-    const street = a.house_number && a.road
-      ? `${a.house_number} ${a.road}`
-      : a.road;
+    const street = a.house_number && a.road ? `${a.house_number} ${a.road}` : a.road;
     const city = a.city || a.town || a.village || a.county;
     const state = a.state;
-
     if (street && city) return [street, city, state].filter(Boolean).join(", ");
     if (city && state) return [city, state].join(", ");
-
     return null;
   } catch {
     return null;
@@ -124,31 +102,26 @@ async function geocodeAddress(address, biasCenter) {
     .slice(0, 6);
 }
 
-function LocationClickHandler({ onSelect, disabled }) {
-  useMapEvents({ click: (e) => { if (!disabled) onSelect(e.latlng.lat, e.latlng.lng); } });
+function LocationClickHandler({ onSelect }) {
+  useMapEvents({ click: (e) => onSelect(e.latlng.lat, e.latlng.lng) });
   return null;
 }
 
 function RecenterMap({ center, recenterZoom, currentZoomRef }) {
   const map = useMap();
   useMapEvents({
-    zoomend: () => {
-      if (currentZoomRef) currentZoomRef.current = map.getZoom();
-    },
+    zoomend: () => { if (currentZoomRef) currentZoomRef.current = map.getZoom(); },
   });
   useEffect(() => {
     if (recenterZoom != null) {
-      // A new location was chosen via search — fly to it with a sensible zoom.
       map.setView(center, recenterZoom, { animate: true });
     } else {
-      // Pin drop / external center change — never alter the user's zoom.
-      // Only pan if the new point is outside the current viewport.
       const bounds = map.getBounds();
       if (!bounds.contains({ lat: center[0], lng: center[1] })) {
         map.panTo(center, { animate: true });
       }
     }
-    const t = setTimeout(() => map.invalidateSize(), 100);
+    const t = setTimeout(() => map.invalidateSize(), 120);
     return () => clearTimeout(t);
   }, [center[0], center[1], recenterZoom, map]);
   return null;
@@ -165,7 +138,6 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const [selected, setSelected] = useState(hasValidValue ? { latitude: value.latitude, longitude: value.longitude } : null);
   const [geocodedAddress, setGeocodedAddress] = useState(value?.geocoded_address || "");
   const [displayAddress, setDisplayAddress] = useState(value?.display_address || value?.geocoded_address || "");
-  // Track whether user has manually edited the display address field
   const [displayAddressEdited, setDisplayAddressEdited] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -176,42 +148,29 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const [reverseGeocoding, setReverseGeocoding] = useState(false);
 
   const [radius, setRadius] = useState(value?.radius_feet || 500);
-  const [flags, setFlags] = useState(value?.flags || []);
-  const [highlights, setHighlights] = useState(value?.highlights || []);
-  const [drawingMode, setDrawingMode] = useState("none");
-  const [toolbarOpen, setToolbarOpen] = useState(false);
-  const [editingHighlightId, setEditingHighlightId] = useState(null);
-  const [showFlagPlacement, setShowFlagPlacement] = useState(false);
   const [mapStyle, setMapStyle] = useState("standard");
 
   const showRadius = eventType === "multi_spot" || eventType === "multi_location";
   const showSuggestions = searchFocused && searchQuery.trim().length >= 3 && (addressSuggestions.length > 0 || searching);
 
-  // Reset state when dialog opens
   useEffect(() => {
     if (!open) return;
     const hasValid = value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
     const geo = value?.geocoded_address || "";
     const disp = value?.display_address || geo;
-
     setSelected(hasValid ? { latitude: value.latitude, longitude: value.longitude } : null);
     setGeocodedAddress(geo);
     setDisplayAddress(disp);
-    setDisplayAddressEdited(!!disp && disp !== geo); // already customized if different
+    setDisplayAddressEdited(!!disp && disp !== geo);
     setSearchQuery("");
     setAddressSuggestions([]);
     setSearchFocused(false);
     setRadius(value?.radius_feet || 500);
-    setFlags(value?.flags || []);
-    setHighlights(value?.highlights || []);
-    setDrawingMode("none");
-    setToolbarOpen(false);
-    setEditingHighlightId(null);
     setMapStyle("standard");
     setRecenterZoom(null);
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
-  // Get user GPS for search bias
   useEffect(() => {
     if (!open || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition((pos) => {
@@ -219,7 +178,6 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     });
   }, [open]);
 
-  // Close suggestions on outside click
   useEffect(() => {
     const handler = (e) => {
       if (searchWrapRef.current && !searchWrapRef.current.contains(e.target)) {
@@ -231,7 +189,6 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     return () => document.removeEventListener("pointerdown", handler);
   }, []);
 
-  // Search autocomplete
   useEffect(() => {
     if (!open || !searchFocused || searchQuery.trim().length < 3) {
       setAddressSuggestions([]);
@@ -253,41 +210,22 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     searchInputRef.current?.blur();
   };
 
-  // Pin dropped on map
   const selectMapLocation = async (lat, lng) => {
-    // Do NOT touch the search bar at all
     setSelected({ latitude: lat, longitude: lng });
-    // Pin drops must never change the user's zoom level.
     setRecenterZoom(null);
     setReverseGeocoding(true);
-
     const address = await reverseGeocode(lat, lng);
     const suggested = address || "Location selected";
-
     setGeocodedAddress(suggested);
-
-    // Only auto-fill display address if user hasn't manually typed something
-    if (!displayAddressEdited) {
-      setDisplayAddress(suggested);
-    }
-
+    if (!displayAddressEdited) setDisplayAddress(suggested);
     setReverseGeocoding(false);
   };
 
-  // Search suggestion chosen
   const chooseSuggestion = (suggestion) => {
     setSelected({ latitude: suggestion.latitude, longitude: suggestion.longitude });
-    // Searching for a new location is allowed to zoom in; preserve the user's
-    // current zoom if they were already zoomed in closer than 15.
     setRecenterZoom(Math.max(currentZoomRef.current || 15, 15));
     setGeocodedAddress(suggestion.address);
-
-    // Auto-fill display address only if not manually edited
-    if (!displayAddressEdited) {
-      setDisplayAddress(suggestion.address);
-    }
-
-    // Update search bar with chosen address
+    if (!displayAddressEdited) setDisplayAddress(suggestion.address);
     setSearchQuery(suggestion.address);
     closeSuggestions();
   };
@@ -297,33 +235,6 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     setDisplayAddressEdited(true);
   };
 
-  // Highlights — each shape carries its own style fields (fillColor, fillOpacity, lineColor, lineOpacity)
-  const addHighlight = (shape) => {
-    const id = `area_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    setHighlights((prev) => [...prev, { id, ...shape }]);
-    setEditingHighlightId(id); // open the editor immediately for the new shape
-  };
-
-  const updateHighlight = (id, patch) => {
-    setHighlights((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)));
-  };
-
-  const removeHighlight = (id) => {
-    setHighlights((prev) => prev.filter((h) => h.id !== id));
-    setEditingHighlightId((cur) => (cur === id ? null : cur));
-  };
-
-  const handleRejectShape = (msg) => {
-    toast.error(msg || "Area too small — try drawing a larger shape.");
-  };
-
-  const startDrawing = (mode) => setDrawingMode(mode);
-  const cancelDrawing = () => { setDrawingMode("none"); setToolbarOpen(false); };
-  const finishDrawing = () => { setDrawingMode("none"); setToolbarOpen(false); };
-
-  const startEdit = (id) => setEditingHighlightId(id);
-  const closeEdit = () => setEditingHighlightId(null);
-
   const saveLocation = () => {
     if (!selected) return;
     onChange({
@@ -332,8 +243,6 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
       geocoded_address: geocodedAddress,
       display_address: displayAddress.trim() || geocodedAddress,
       radius_feet: Number(radius || 500),
-      flags,
-      highlights,
     });
     closeSuggestions();
     onOpenChange(false);
@@ -346,10 +255,11 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Choose Event Location</DialogTitle>
+          <p className="text-sm text-slate-500">Where is your event located? Add flags and highlighted areas later in Event Map Setup.</p>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* 1. Search bar — search only, never updated by map taps */}
+          {/* Address search */}
           <div ref={searchWrapRef} className="space-y-2">
             <Input
               ref={searchInputRef}
@@ -381,7 +291,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             )}
           </div>
 
-          {/* 2. Map + drawing-mode overlay */}
+          {/* Interactive map + main pin */}
           <div className="space-y-2">
             <div className="flex justify-end gap-2">
               <Button type="button" size="sm" variant={mapStyle === "standard" ? "default" : "outline"} onClick={() => setMapStyle("standard")}>Standard</Button>
@@ -391,14 +301,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
               <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom>
                 <VendorEventMapboxTileLayer mapStyle={mapStyle} />
                 <RecenterMap center={center} recenterZoom={recenterZoom} currentZoomRef={currentZoomRef} />
-                <LocationClickHandler onSelect={selectMapLocation} disabled={drawingMode !== "none"} />
-                <AreaDrawingLayer
-                  drawingMode={drawingMode}
-                  shapes={highlights}
-                  onAddShape={addHighlight}
-                  onFinishDrawing={finishDrawing}
-                  onRejectShape={handleRejectShape}
-                />
+                <LocationClickHandler onSelect={selectMapLocation} />
                 {selected && showRadius && (
                   <Circle
                     center={[selected.latitude, selected.longitude]}
@@ -408,28 +311,11 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
                 )}
                 {selected && <Marker position={[selected.latitude, selected.longitude]} />}
               </MapContainer>
-              {drawingMode !== "none" && (
-                <div className="pointer-events-none absolute left-1/2 top-2 z-[1000] flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#2C4F4E]/90 px-3 py-1.5 text-white shadow-lg">
-                  <span className="text-xs font-semibold uppercase tracking-wide">Drawing mode active</span>
-                  <span className="hidden text-xs text-white/80 sm:inline">— {DRAW_HINTS[drawingMode]}</span>
-                  <button
-                    type="button"
-                    onClick={cancelDrawing}
-                    className="pointer-events-auto ml-1 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold hover:bg-white/25"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
             </div>
-            <p className="text-center text-xs text-slate-500">
-              {drawingMode === "none"
-                ? "Tap the map or search above to set the pin location."
-                : DRAW_HINTS[drawingMode]}
-            </p>
+            <p className="text-center text-xs text-slate-500">Tap the map or search above to set the pin location.</p>
           </div>
 
-          {/* 3. Event radius slider (multi-spot / multi-location only) */}
+          {/* Radius slider */}
           {showRadius && (
             <div className="space-y-2 rounded-xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3">
               <div className="flex items-center justify-between gap-3">
@@ -446,33 +332,16 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             </div>
           )}
 
-          {/* 4. Highlight an Area / drawing toolbar */}
-          <AreaDrawToolbar
-            toolbarOpen={toolbarOpen}
-            drawingMode={drawingMode}
-            onOpenToolbar={() => setToolbarOpen(true)}
-            onSelectTool={startDrawing}
-            onCancel={cancelDrawing}
-          />
-
-          {/* 5-6. Suggested Address + Public Display Location (when a pin exists) */}
+          {/* Suggested address + Public display location */}
           {selected && (
             <div className="space-y-3 rounded-xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-4">
-              {/* Suggested Address (read-only, system generated) */}
               <div className="space-y-0.5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Suggested Address</p>
                 <p className="text-sm text-slate-700">
-                  {reverseGeocoding ? (
-                    <span className="italic text-slate-400">Finding address...</span>
-                  ) : (
-                    geocodedAddress || "Location selected"
-                  )}
+                  {reverseGeocoding ? <span className="italic text-slate-400">Finding address...</span> : (geocodedAddress || "Location selected")}
                 </p>
               </div>
-
               <div className="h-px bg-[#2C4F4E]/10" />
-
-              {/* Public Display Location — always editable */}
               <div className="space-y-1.5">
                 <Label className="text-sm font-semibold text-[#2C4F4E]">Public Display Location</Label>
                 <Input
@@ -480,32 +349,11 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
                   onChange={handleDisplayAddressChange}
                   placeholder="e.g. Porterville Courthouse, Main Parking Lot, Field 2 Entrance"
                 />
-                <p className="text-xs text-slate-500">
-                  This is what customers will see. Directions still use the map pin.
-                </p>
+                <p className="text-xs text-slate-500">This is what customers will see. Directions still use the map pin.</p>
               </div>
             </div>
           )}
 
-          {/* Add Flags — compact section, kept separate from the radius slider */}
-          {showRadius && (
-            <div className="flex flex-wrap items-center gap-3">
-              <Button type="button" variant="outline" disabled={!selected} onClick={() => setShowFlagPlacement(true)}>Add Flags</Button>
-              {flags.length > 0 && <span className="text-sm font-semibold text-[#2C4F4E]">{flags.length} flags selected</span>}
-            </div>
-          )}
-
-          {/* 7. Saved Highlighted Areas */}
-          <AreaHighlightList
-            highlights={highlights}
-            editingId={editingHighlightId}
-            onStartEdit={startEdit}
-            onCloseEdit={closeEdit}
-            onUpdate={updateHighlight}
-            onDelete={removeHighlight}
-          />
-
-          {/* 8. Cancel / Save Location */}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="button" disabled={!selected} onClick={saveLocation} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">
@@ -513,16 +361,6 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             </Button>
           </div>
         </div>
-
-        {selected && showRadius && (
-          <EventFlagPlacementModal
-            open={showFlagPlacement}
-            onOpenChange={setShowFlagPlacement}
-            eventLocation={{ latitude: selected.latitude, longitude: selected.longitude, radius_feet: Number(radius || 500), highlights }}
-            flags={flags}
-            onSave={setFlags}
-          />
-        )}
       </DialogContent>
     </Dialog>
   );

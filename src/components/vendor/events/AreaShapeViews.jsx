@@ -1,17 +1,18 @@
 import { Circle, Polygon, Rectangle, Tooltip } from "react-leaflet";
 
-export function getShapeStyle(shape) {
+export function getShapeStyle(shape, selected = false) {
   return {
     color: shape.lineColor || shape.fillColor || "#F4A849",
     opacity: Number(shape.lineOpacity ?? 0.9),
     fillColor: shape.fillColor || "#F4A849",
     fillOpacity: Number(shape.fillOpacity ?? 0.2),
-    weight: 2,
+    weight: selected ? 4 : 2,
   };
 }
 
-export function AreaShapeView({ shape }) {
-  const style = getShapeStyle(shape);
+export function AreaShapeView({ shape, selectedId }) {
+  const selected = selectedId === shape.id;
+  const style = getShapeStyle(shape, selected);
   const label = shape.title && shape.title.trim() ? shape.title.trim() : "";
   if (shape.type === "circle") {
     return (
@@ -37,10 +38,10 @@ export function AreaShapeView({ shape }) {
   return null;
 }
 
-export default function AreaShapeViews({ shapes = [] }) {
+export default function AreaShapeViews({ shapes = [], selectedId = null }) {
   return (
     <>
-      {shapes.map((s) => <AreaShapeView key={s.id} shape={s} />)}
+      {shapes.map((s) => <AreaShapeView key={s.id} shape={s} selectedId={selectedId} />)}
     </>
   );
 }

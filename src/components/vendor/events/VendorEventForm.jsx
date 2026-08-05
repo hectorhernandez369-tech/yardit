@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { VENDOR_EVENT_TYPES, getVendorEventPermission } from "@/lib/vendorEvents";
 import EventLocationPicker from "./EventLocationPicker";
+import EventMapSetup from "./EventMapSetup";
 import InviteVendorsModal from "./InviteVendorsModal";
 import CollapsiblePanel from "./CollapsiblePanel";
 import CreateEventCollaboratorsSection from "./CreateEventCollaboratorsSection";
@@ -104,6 +105,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
   const [createdEvent, setCreatedEvent] = useState(null);
   const [showInviteVendors, setShowInviteVendors] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showMapSetup, setShowMapSetup] = useState(false);
   const [collaboratorInvitations, setCollaboratorInvitations] = useState([]);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -204,6 +206,8 @@ export default function VendorEventForm({ account, user, event = null, approvedV
         title: flag.title || flag.label || `Field ${index + 1}`,
         label: flag.label || flag.title || `Field ${index + 1}`,
         icon_key: flag.icon_key || "flag",
+        description: flag.description || "",
+        category: flag.category || "",
         schedule_entries: flag.schedule_entries || [],
         latitude: Number(flag.latitude),
         longitude: Number(flag.longitude),
@@ -217,7 +221,11 @@ export default function VendorEventForm({ account, user, event = null, approvedV
     }));
   };
 
-  const openLocationPicker = async () => {
+  const openLocationPicker = () => {
+    setShowLocationPicker(true);
+  };
+
+  const openMapSetup = async () => {
     if (isEditing) {
       const spots = await base44.entities.EventSpot.filter({ event_id: event.id }, "display_order");
       setForm((prev) => ({
@@ -229,6 +237,8 @@ export default function VendorEventForm({ account, user, event = null, approvedV
           label: spot.label || spot.title || `Field ${index + 1}`,
           title: spot.title || spot.label || `Field ${index + 1}`,
           icon_key: spot.icon_key || "flag",
+          description: spot.description || "",
+          category: spot.category || "",
           schedule_entries: spot.schedule_entries || [],
           latitude: spot.latitude,
           longitude: spot.longitude,
@@ -236,7 +246,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
         })),
       }));
     }
-    setShowLocationPicker(true);
+    setShowMapSetup(true);
   };
 
   const uploadFlyer = async (event) => {
@@ -524,7 +534,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
               <div><h3 className="text-base font-bold text-slate-900">Location & Schedule</h3><p className="text-xs text-slate-500">When and where your event takes place.</p></div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 sm:pl-10">
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 space-y-3">
                 <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-[#5DADA5] transition-colors">
                   <div>
                     <p className="text-sm font-semibold text-slate-700">{form.display_address ? "📍 " + form.display_address : "No location selected yet"}</p>
@@ -532,6 +542,23 @@ export default function VendorEventForm({ account, user, event = null, approvedV
                   </div>
                   <Button type="button" onClick={openLocationPicker} className="shrink-0 bg-[#006168] text-white hover:bg-[#004d52] border border-[#006168] font-semibold shadow-sm">
                     {form.display_address ? "Change Location" : "Set Event Location"}
+                  </Button>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[#2C4F4E]">Event Map Setup</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {form.highlights?.length || 0} highlighted areas · {form.event_flags?.length || 0} flags
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={openMapSetup}
+                    disabled={!form.latitude || !form.longitude}
+                    className="shrink-0 gap-2 border-[#2C4F4E] text-[#2C4F4E] hover:bg-[#2C4F4E] hover:text-white font-semibold"
+                  >
+                    {!form.latitude || !form.longitude ? "Set location first" : "Open Map Setup"}
                   </Button>
                 </div>
               </div>
@@ -742,11 +769,28 @@ export default function VendorEventForm({ account, user, event = null, approvedV
         open={showLocationPicker}
         onOpenChange={setShowLocationPicker}
         eventType={form.event_type}
-        value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, geocoded_address: form.geocoded_address, radius_feet: Number(form.radius_feet || 500), flags: form.event_flags, highlights: form.highlights } : null}
+        value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, geocoded_address: form.geocoded_address, radius_feet: Number(form.radius_feet || 500) } : null}
         onChange={(location) => {
-          setForm((prev) => ({ ...prev, display_address: location.display_address, geocoded_address: location.geocoded_address, latitude: location.latitude, longitude: location.longitude, radius_feet: String(location.radius_feet || 500), event_flags: location.flags || [], highlights: location.highlights || [] }));
+          setForm((prev) => ({ ...prev, display_address: location.display_address, geocoded_address: location.geocoded_address, latitude: location.latitude, longitude: location.longitude, radius_feet: String(location.radius_feet || 500) }));
+        }}
+      />
+
+      <EventMapSetup
+        open={showMapSetup}
+        onOpenChange={setShowMapSetup}
+        eventType={form.event_type}
+        value={{
+          latitude: Number(form.latitude),
+          longitude: Number(form.longitude),
+          radius_feet: Number(form.radius_feet || 500),
+          display_address: form.display_address,
+          flags: form.event_flags || [],
+          highlights: form.highlights || [],
+        }}
+        onChange={(data) => {
+          setForm((prev) => ({ ...prev, event_flags: data.flags || [], highlights: data.highlights || [] }));
           if (isEditing && ["multi_spot", "multi_location"].includes(form.event_type)) {
-            syncFlagsToEvent(event.id, location.flags || []);
+            syncFlagsToEvent(event.id, data.flags || []);
           }
         }}
       />

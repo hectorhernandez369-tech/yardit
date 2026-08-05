@@ -1,0 +1,401 @@
+import { useEffect, useState } from "react";
+import { Circle, MapContainer, Marker, useMap, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { Plus, X, MapPin, Flag as FlagIcon, Trash2, Eye, Circle as CircleIcon, Square, Triangle as TriangleIcon } from "lucide-react";
+import { calculateMiles } from "@/lib/vendorEvents";
+import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
+import AreaDrawingLayer from "./AreaDrawingLayer";
+import AreaShapeViews from "./AreaShapeViews";
+import MapSetupHighlightEditor from "./MapSetupHighlightEditor";
+import MapSetupFlagEditor from "./MapSetupFlagEditor";
+import PublicVendorEventMap from "./PublicVendorEventMap";
+import "leaflet/dist/leaflet.css";
+
+const DRAW_HINTS = {
+  circle: "Press and drag from the center outward.",
+  rectangle: "Press and drag from one corner to the opposite corner.",
+  triangle: "Tap three points.",
+};
+
+const makeFlagIcon = (flag, selected) => L.divIcon({
+  className: "vendor-event-flag-marker",
+  html: `<div style="display:flex;align-items:center;gap:4px;transform:translate(-2px,-28px);"><div style="width:${selected ? 32 : 24}px;height:${selected ? 32 : 24}px;border-radius:9999px;background:#F4A849;border:${selected ? 3 : 2}px solid #2C4F4E;display:flex;align-items:center;justify-content:center;font-size:${selected ? 17 : 13}px;box-shadow:0 3px 8px rgba(0,0,0,.28);">⚑</div><span style="white-space:nowrap;background:${selected ? "#FFF6E8" : "white"};border:1px solid #2C4F4E22;border-radius:9999px;padding:2px 8px;font-size:12px;font-weight:700;color:#2C4F4E;box-shadow:0 2px 6px rgba(0,0,0,.12);">${flag.title || flag.label || "Flag"}</span></div>`,
+  iconSize: [selected ? 32 : 24, selected ? 32 : 24],
+  iconAnchor: [selected ? 16 : 12, selected ? 32 : 24],
+});
+
+function areaCenter(shape) {
+  if (shape.type === "circle") return shape.center;
+  if (shape.type === "rectangle") {
+    return [(shape.bounds[0][0] + shape.bounds[1][0]) / 2, (shape.bounds[0][1] + shape.bounds[1][1]) / 2];
+  }
+  if (shape.type === "triangle") {
+    const pts = shape.points;
+    return [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length];
+  }
+  return null;
+}
+
+function FitEventArea({ center, radiusMeters, showRadius }) {
+  const map = useMap();
+  useEffect(() => {
+    if (showRadius && radiusMeters > 0) {
+      const latOff = radiusMeters / 111320;
+      const lngOff = radiusMeters / (111320 * Math.cos((center[0] * Math.PI) / 180));
+      map.fitBounds([[center[0] - latOff, center[1] - lngOff], [center[0] + latOff, center[1] + lngOff]], { padding: [28, 28], maxZoom: 17 });
+    } else {
+      map.setView(center, 15);
+    }
+    const t = setTimeout(() => map.invalidateSize(), 140);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
+
+function FlyTo({ target }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!target) return;
+    map.setView([target.lat, target.lng], target.zoom || 16, { animate: true });
+  }, [target]);
+  return null;
+}
+
+function MapTapHandler({ active, eventLocation, onAddFlag }) {
+  useMapEvents({
+    click(e) {
+      if (!active) return;
+      const { lat, lng } = e.latlng;
+      if (eventLocation) {
+        const miles = calculateMiles(eventLocation.latitude, eventLocation.longitude, lat, lng);
+        const radiusMiles = Number(eventLocation.radius_feet || 0) / 5280;
+        if (miles !== null && radiusMiles > 0 && miles > radiusMiles) {
+          toast.error("Flags must be inside the event area.");
+          return;
+        }
+      }
+      onAddFlag(lat, lng);
+    },
+  });
+  return null;
+}
+
+export default function EventMapSetup({ open, onOpenChange, eventType, value, onChange }) {
+  const showFlags = ["multi_spot", "multi_location"].includes(eventType);
+  const center = [Number(value.latitude), Number(value.longitude)];
+  const radiusMeters = Number(value.radius_feet || 500) * 0.3048;
+
+  const [flags, setFlags] = useState(value.flags || []);
+  const [highlights, setHighlights] = useState(value.highlights || []);
+  const [mode, setMode] = useState("none"); // none | flag | circle | rectangle | triangle
+  const [highlightOpen, setHighlightOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+  const [editing, setEditing] = useState(null); // { type:"flag"|"area", id }
+  const [mapStyle, setMapStyle] = useState("standard");
+  const [showPreview, setShowPreview] = useState(false);
+  const [flyTarget, setFlyTarget] = useState(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setFlags(value.flags || []);
+    setHighlights(value.highlights || []);
+    setMode("none");
+    setHighlightOpen(false);
+    setSelectedId(null);
+    setEditing(null);
+    setMapStyle("standard");
+    setShowPreview(false);
+    setFlyTarget(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const renumberFlags = (items) => items.map((f, i) => ({ ...f, label: `Field ${i + 1}`, display_order: i }));
+
+  const addFlag = (lat, lng) => {
+    const flag = {
+      temp_id: `flag-${Date.now()}-${flags.length + 1}`,
+      label: `Field ${flags.length + 1}`,
+      title: `Field ${flags.length + 1}`,
+      description: "",
+      category: "",
+      icon_key: "flag",
+      schedule_entries: [],
+      latitude: lat,
+      longitude: lng,
+      display_order: flags.length,
+    };
+    setFlags((prev) => renumberFlags([...prev, flag]));
+    setSelectedId(flag.temp_id);
+    setEditing({ type: "flag", id: flag.temp_id });
+    setMode("none");
+    setFlyTarget({ lat, lng, zoom: 17, ts: Date.now() });
+  };
+
+  const updateFlag = (id, patch) => setFlags((prev) => prev.map((f) => (f.temp_id === id || f.id === id ? { ...f, ...patch } : f)));
+  const removeFlag = (id) => {
+    setFlags((prev) => renumberFlags(prev.filter((f) => f.temp_id !== id && f.id !== id)));
+    setEditing((cur) => (cur?.id === id ? null : cur));
+    setSelectedId((cur) => (cur === id ? null : cur));
+  };
+
+  const addHighlight = (shape) => {
+    const id = `area_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const item = { id, ...shape };
+    setHighlights((prev) => [...prev, item]);
+    setSelectedId(id);
+    setEditing({ type: "area", id });
+    const c = areaCenter(item);
+    if (c) setFlyTarget({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
+  };
+  const updateHighlight = (id, patch) => setHighlights((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)));
+  const removeHighlight = (id) => {
+    setHighlights((prev) => prev.filter((h) => h.id !== id));
+    setEditing((cur) => (cur?.id === id ? null : cur));
+    setSelectedId((cur) => (cur === id ? null : cur));
+  };
+
+  const selectFlag = (flag) => {
+    const id = flag.temp_id || flag.id;
+    setSelectedId(id);
+    setEditing({ type: "flag", id });
+    setFlyTarget({ lat: Number(flag.latitude), lng: Number(flag.longitude), zoom: 17, ts: Date.now() });
+  };
+  const selectArea = (shape) => {
+    setSelectedId(shape.id);
+    setEditing({ type: "area", id: shape.id });
+    const c = areaCenter(shape);
+    if (c) setFlyTarget({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
+  };
+
+  const drawingMode = mode === "flag" || mode === "none" ? "none" : mode;
+
+  const save = () => {
+    onChange({ flags, highlights });
+    onOpenChange(false);
+  };
+
+  const previewSpots = flags.map((f, i) => ({ ...f, id: f.id || f.temp_id || `flag-${i}` }));
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-[#2C4F4E]" /> Event Map Setup
+            </DialogTitle>
+            <p className="text-sm text-slate-500">Organize how attendees navigate your event. Add field flags and highlight key areas on the map.</p>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant={mapStyle === "standard" ? "default" : "outline"} onClick={() => setMapStyle("standard")}>Standard</Button>
+              <Button size="sm" variant={mapStyle === "satellite" ? "default" : "outline"} onClick={() => setMapStyle("satellite")}>Satellite</Button>
+            </div>
+
+            {/* Large interactive map */}
+            <div className="relative h-[440px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
+              <MapContainer center={center} zoom={15} className="h-full w-full" scrollWheelZoom>
+                <VendorEventMapboxTileLayer mapStyle={mapStyle} />
+                <FitEventArea center={center} radiusMeters={radiusMeters} showRadius={showFlags} />
+                <FlyTo target={flyTarget} />
+                <MapTapHandler
+                  active={mode === "flag"}
+                  eventLocation={{ latitude: value.latitude, longitude: value.longitude, radius_feet: value.radius_feet }}
+                  onAddFlag={addFlag}
+                />
+                <AreaDrawingLayer
+                  drawingMode={drawingMode}
+                  shapes={highlights}
+                  onAddShape={addHighlight}
+                  onFinishDrawing={() => setMode("none")}
+                  onRejectShape={(m) => toast.error(m)}
+                />
+                {showFlags && (
+                  <Circle center={center} radius={radiusMeters} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.1, weight: 2 }} />
+                )}
+                <Marker position={center} />
+                <AreaShapeViews shapes={highlights} selectedId={selectedId} />
+                {flags.map((flag) => {
+                  const id = flag.temp_id || flag.id;
+                  const selected = selectedId === id;
+                  return (
+                    <Marker
+                      key={id}
+                      position={[Number(flag.latitude), Number(flag.longitude)]}
+                      icon={makeFlagIcon(flag, selected)}
+                      draggable={mode === "none"}
+                      bubblingMouseEvents={false}
+                      eventHandlers={{
+                        click: () => selectFlag(flag),
+                        dragend: (ev) => {
+                          const p = ev.target.getLatLng();
+                          const miles = calculateMiles(value.latitude, value.longitude, p.lat, p.lng);
+                          const radiusMiles = Number(value.radius_feet || 0) / 5280;
+                          if (miles !== null && radiusMiles > 0 && miles > radiusMiles) {
+                            toast.error("Flags must be inside the event area.");
+                            ev.target.setLatLng([Number(flag.latitude), Number(flag.longitude)]);
+                            return;
+                          }
+                          updateFlag(id, { latitude: p.lat, longitude: p.lng });
+                        },
+                      }}
+                    />
+                  );
+                })}
+              </MapContainer>
+
+              {mode !== "none" && (
+                <div className="pointer-events-none absolute left-1/2 top-2 z-[1000] flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#2C4F4E]/90 px-3 py-1.5 text-white shadow-lg">
+                  <span className="text-xs font-semibold uppercase tracking-wide">
+                    {mode === "flag" ? "Tap the map to place a flag" : "Drawing mode active"}
+                  </span>
+                  <span className="hidden text-xs text-white/80 sm:inline">
+                    — {mode === "flag" ? "Click to add, then edit details" : DRAW_HINTS[mode]}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setMode("none"); setHighlightOpen(false); }}
+                    className="pointer-events-auto ml-1 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold hover:bg-white/25"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid gap-2 sm:grid-cols-2">
+              {showFlags && (
+                <Button
+                  type="button"
+                  variant={mode === "flag" ? "default" : "outline"}
+                  onClick={() => setMode(mode === "flag" ? "none" : "flag")}
+                  className="h-12 gap-2 text-base"
+                >
+                  <FlagIcon className="w-5 h-5" /> {mode === "flag" ? "Placing Flag — Tap Map" : "Add Field Flag"}
+                </Button>
+              )}
+              <div className={showFlags ? "" : "sm:col-span-2"}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setHighlightOpen((v) => !v)}
+                  className="h-12 w-full gap-2 text-base"
+                  disabled={["circle", "rectangle", "triangle"].includes(mode)}
+                >
+                  <Plus className="w-5 h-5" /> Highlight an Area
+                </Button>
+              </div>
+            </div>
+
+            {highlightOpen && !["circle", "rectangle", "triangle"].includes(mode) && (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-2">
+                {[
+                  { id: "circle", label: "Circle", icon: CircleIcon },
+                  { id: "rectangle", label: "Rectangle", icon: Square },
+                  { id: "triangle", label: "Triangle", icon: TriangleIcon },
+                ].map((t) => (
+                  <Button key={t.id} type="button" variant="outline" onClick={() => { setMode(t.id); setHighlightOpen(false); }} className="h-11 min-w-[110px] flex-1 gap-2">
+                    <t.icon className="w-5 h-5" /> {t.label}
+                  </Button>
+                ))}
+                <Button type="button" variant="outline" onClick={() => setHighlightOpen(false)} className="h-11 min-w-[110px] flex-1 gap-2 border-red-300 text-red-600 hover:bg-red-50">
+                  <X className="w-5 h-5" /> Cancel
+                </Button>
+              </div>
+            )}
+
+            {/* Items on Map */}
+            <div className="space-y-4 rounded-xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3">
+              {showFlags && (
+                <div className="space-y-2">
+                  <p className="text-sm font-bold text-[#2C4F4E] flex items-center gap-1.5">
+                    <FlagIcon className="w-4 h-4" /> Flags
+                    {flags.length > 0 && <span className="text-xs font-normal text-slate-500">({flags.length})</span>}
+                  </p>
+                  {flags.length === 0 ? (
+                    <p className="text-xs text-slate-500 pl-6">No flags yet. Tap “Add Field Flag” then click the map.</p>
+                  ) : (
+                    flags.map((flag) => {
+                      const id = flag.temp_id || flag.id;
+                      const isEditing = editing?.type === "flag" && editing.id === id;
+                      return (
+                        <div key={id} className={`rounded-lg border bg-white p-2.5 ${selectedId === id ? "border-[#5DADA5] ring-1 ring-[#5DADA5]/40" : "border-[#2C4F4E]/10"}`}>
+                          <div className="flex items-center gap-2">
+                            <span className="h-5 w-5 shrink-0 rounded-full bg-[#F4A849] border border-[#2C4F4E]/30 flex items-center justify-center text-[10px]">⚑</span>
+                            <button type="button" onClick={() => selectFlag(flag)} className="flex-1 text-left text-sm font-semibold text-[#2C4F4E] truncate hover:underline">
+                              {flag.title || flag.label || "Flag"}
+                            </button>
+                            <Button size="sm" variant="outline" onClick={() => setEditing({ type: "flag", id })} className="h-8 gap-1.5">Edit</Button>
+                            <Button size="sm" variant="outline" onClick={() => removeFlag(id)} className="h-8 gap-1.5 border-red-300 text-red-600 hover:bg-red-50"><Trash2 className="w-3.5 h-3.5" /></Button>
+                          </div>
+                          {isEditing && <MapSetupFlagEditor flag={flag} onUpdate={(p) => updateFlag(id, p)} onDelete={() => removeFlag(id)} onClose={() => setEditing(null)} />}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              <div className={showFlags ? "space-y-2 border-t border-[#2C4F4E]/10 pt-3" : "space-y-2"}>
+                <p className="text-sm font-bold text-[#2C4F4E] flex items-center gap-1.5">
+                  <CircleIcon className="w-4 h-4" /> Highlighted Areas
+                  {highlights.length > 0 && <span className="text-xs font-normal text-slate-500">({highlights.length})</span>}
+                </p>
+                {highlights.length === 0 ? (
+                  <p className="text-xs text-slate-500 pl-6">No areas yet. Tap “Highlight an Area” and draw on the map.</p>
+                ) : (
+                  highlights.map((shape) => {
+                    const isEditing = editing?.type === "area" && editing.id === shape.id;
+                    return (
+                      <div key={shape.id} className={`rounded-lg border bg-white p-2.5 ${selectedId === shape.id ? "border-[#5DADA5] ring-1 ring-[#5DADA5]/40" : "border-[#2C4F4E]/10"}`}>
+                        <div className="flex items-center gap-2">
+                          <span className="h-5 w-5 shrink-0 rounded-full border border-[#2C4F4E]/20" style={{ backgroundColor: shape.fillColor || "#F4A849" }} />
+                          <button type="button" onClick={() => selectArea(shape)} className="flex-1 text-left text-sm font-semibold text-[#2C4F4E] truncate hover:underline">
+                            {shape.title?.trim() || "Untitled Area"}
+                          </button>
+                          <span className="text-xs text-slate-500 capitalize">{shape.type}</span>
+                          <Button size="sm" variant="outline" onClick={() => setEditing({ type: "area", id: shape.id })} className="h-8 gap-1.5">Edit</Button>
+                          <Button size="sm" variant="outline" onClick={() => removeHighlight(shape.id)} className="h-8 gap-1.5 border-red-300 text-red-600 hover:bg-red-50"><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                        {isEditing && <MapSetupHighlightEditor shape={shape} onUpdate={(p) => updateHighlight(shape.id, p)} onDelete={() => removeHighlight(shape.id)} onClose={() => setEditing(null)} />}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-between gap-2 border-t border-slate-100 pt-4">
+              <Button type="button" variant="outline" onClick={() => setShowPreview(true)} className="gap-2"><Eye className="w-4 h-4" /> Preview Public Map</Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button type="button" onClick={save} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Save Map Setup</Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Public Map Preview</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-500">This is exactly what attendees will see on the public event page.</p>
+          <PublicVendorEventMap
+            event={{ latitude: value.latitude, longitude: value.longitude, event_type: eventType, radius_feet: value.radius_feet, display_address: value.display_address }}
+            spots={previewSpots}
+            scheduleEntries={[]}
+            selectedSpotId=""
+          />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
