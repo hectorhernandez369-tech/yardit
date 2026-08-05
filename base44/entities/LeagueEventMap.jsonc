@@ -1,0 +1,142 @@
+{
+  "name": "LeagueEventMap",
+  "type": "object",
+  "properties": {
+    "league_event_id": {
+      "type": "string",
+      "description": "VendorEvent ID this venue map belongs to"
+    },
+    "league_account_id": {
+      "type": "string",
+      "description": "VendorAccount (league/team) ID that owns the event"
+    },
+    "draft_objects": {
+      "type": "array",
+      "description": "Venue map objects (areas, entrances, routes, labels, icons) in draft state. Fields are stored separately as LeagueEventField records.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "area",
+              "entrance",
+              "route",
+              "label",
+              "icon"
+            ]
+          },
+          "subtype": {
+            "type": "string",
+            "description": "e.g. vendor_area, parking, spectator_entrance, restroom"
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon_key": {
+            "type": "string"
+          },
+          "geometry": {
+            "type": "object"
+          },
+          "style": {
+            "type": "object"
+          },
+          "locked": {
+            "type": "boolean",
+            "default": false
+          },
+          "hidden": {
+            "type": "boolean",
+            "default": false
+          },
+          "display_order": {
+            "type": "number",
+            "default": 0
+          }
+        }
+      }
+    },
+    "published_objects": {
+      "type": "array",
+      "description": "Published venue objects shown to attendees until newer changes are published",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "subtype": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon_key": {
+            "type": "string"
+          },
+          "geometry": {
+            "type": "object"
+          },
+          "style": {
+            "type": "object"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "display_order": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "draft_updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "has_unpublished_changes": {
+      "type": "boolean",
+      "default": false
+    },
+    "default_view": {
+      "type": "object",
+      "description": "Saved default map view {center:[lat,lng],zoom}",
+      "properties": {
+        "center": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "zoom": {
+          "type": "number"
+        }
+      }
+    },
+    "tile_mode": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "satellite"
+      ],
+      "default": "standard"
+    }
+  },
+  "required": [
+    "league_event_id",
+    "league_account_id"
+  ]
+}

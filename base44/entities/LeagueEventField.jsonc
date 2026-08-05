@@ -1,0 +1,141 @@
+{
+  "name": "LeagueEventField",
+  "type": "object",
+  "properties": {
+    "league_event_id": {
+      "type": "string",
+      "description": "VendorEvent ID this playable field belongs to"
+    },
+    "league_account_id": {
+      "type": "string",
+      "description": "VendorAccount (league/team) ID that owns the event"
+    },
+    "name": {
+      "type": "string",
+      "description": "Playable field name e.g. Field 1, Main Stadium"
+    },
+    "field_number": {
+      "type": "string",
+      "description": "Optional field number"
+    },
+    "field_type": {
+      "type": "string",
+      "enum": [
+        "football",
+        "soccer",
+        "baseball",
+        "softball",
+        "basketball",
+        "volleyball",
+        "multipurpose",
+        "other"
+      ],
+      "default": "multipurpose",
+      "description": "Sport played on this field"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "closed"
+      ],
+      "default": "active",
+      "description": "Whether this field can host scheduled games"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Anchor latitude for the field label/marker"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Anchor longitude for the field label/marker"
+    },
+    "geometry": {
+      "type": "object",
+      "description": "Map shape. Rectangle: {type:'rectangle',center:[lat,lng],widthM,heightM,rotationDeg}. Circle: {type:'circle',center:[lat,lng],radiusM}.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "rectangle",
+            "circle"
+          ]
+        },
+        "center": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "widthM": {
+          "type": "number"
+        },
+        "heightM": {
+          "type": "number"
+        },
+        "rotationDeg": {
+          "type": "number"
+        },
+        "radiusM": {
+          "type": "number"
+        }
+      }
+    },
+    "rotation": {
+      "type": "number",
+      "default": 0,
+      "description": "Rotation degrees (legacy convenience; geometry.rotationDeg is authoritative)"
+    },
+    "label_position": {
+      "type": "string",
+      "enum": [
+        "top",
+        "center",
+        "bottom"
+      ],
+      "default": "center"
+    },
+    "fill_opacity": {
+      "type": "number",
+      "default": 0.25
+    },
+    "fill_color": {
+      "type": "string",
+      "default": "#5DADA5"
+    },
+    "border_color": {
+      "type": "string",
+      "default": "#2C4F4E"
+    },
+    "border_width": {
+      "type": "number",
+      "default": 2
+    },
+    "text_size": {
+      "type": "string",
+      "enum": [
+        "sm",
+        "md",
+        "lg"
+      ],
+      "default": "md"
+    },
+    "display_order": {
+      "type": "number",
+      "default": 0
+    },
+    "notes": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "league_event_id",
+    "league_account_id",
+    "name"
+  ]
+}

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, CalendarClock, Flag, Loader2, Mail, Trophy, Users } from "lucide-react";
+import { ArrowLeft, CalendarClock, Flag, Loader2, Mail, Map, Trophy, Users } from "lucide-react";
 import { format } from "date-fns";
 import EventSpotManager from "@/components/vendor/events/EventSpotManager";
 import InviteVendorsModal from "@/components/vendor/events/InviteVendorsModal";
@@ -136,6 +136,7 @@ export default function VendorEventDashboard() {
               {canCollaborators && <Button variant="outline" onClick={() => setShowCollaborators(true)}><Users className="h-4 w-4" /> Collaborators</Button>}
               {canFlags && ["multi_spot", "multi_location"].includes(event.event_type) && <Button variant="outline" onClick={() => navigate(`/VendorEventFlags?id=${event.id}`)}><Flag className="h-4 w-4" /> Edit Flags</Button>}
               {isLeagueEvent && canEdit && <Button variant="outline" onClick={() => setShowAttachGames(true)}><Trophy className="h-4 w-4" /> Import Games from Schedule Manager</Button>}
+              {isLeagueEvent && canEdit && <Button variant="outline" onClick={() => navigate(`/LeagueEventMap?id=${event.id}`)}><Map className="h-4 w-4" /> Event Map</Button>}
               {canSchedule && <Button variant="outline" onClick={() => navigate(`/VendorEventSchedule?id=${event.id}`)}><CalendarClock className="h-4 w-4" /> Schedule</Button>}
               <Button variant="outline" onClick={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}>View Public Page</Button>
             </div>

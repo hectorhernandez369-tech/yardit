@@ -6,6 +6,18 @@
       "type": "string",
       "description": "League/Team organizer account ID that owns this game"
     },
+    "league_event_id": {
+      "type": "string",
+      "description": "Linked League VendorEvent ID this game is scheduled under"
+    },
+    "league_event_field_id": {
+      "type": "string",
+      "description": "Primary LeagueEventField assignment for this game"
+    },
+    "field_name_snapshot": {
+      "type": "string",
+      "description": "Field name captured when the game was assigned, for display history. Does not replace the league_event_field_id relationship."
+    },
     "league_name": {
       "type": "string"
     },
@@ -46,14 +58,17 @@
     },
     "start_time": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "Scheduled start (ISO). Aliases scheduled_start."
     },
     "end_time": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "Scheduled end (ISO). Aliases scheduled_end."
     },
     "field_name": {
-      "type": "string"
+      "type": "string",
+      "description": "Legacy free-text field label; league_event_field_id is the authoritative assignment."
     },
     "location": {
       "type": "string"
@@ -69,7 +84,8 @@
         "cancelled",
         "final"
       ],
-      "default": "upcoming"
+      "default": "upcoming",
+      "description": "Game status (aliases game_status)"
     },
     "home_score": {
       "type": "number",

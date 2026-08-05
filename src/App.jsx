@@ -25,6 +25,7 @@ import LeagueTeamDashboard from './pages/LeagueTeamDashboard';
 import VendorEventFlags from './pages/VendorEventFlags';
 import VendorEventSchedule from './pages/VendorEventSchedule';
 import VendorEventDetail from './pages/VendorEventDetail';
+import LeagueEventMap from './pages/LeagueEventMap';
 import AccountOptions from './pages/AccountOptions';
 import Events from './pages/Events';
 import RewardRedeem from './pages/RewardRedeem';
@@ -159,6 +160,7 @@ const AuthenticatedApp = () => {
         <Route path="/auth-callback" element={<YarditSplashScreen />} />
         <Route path="/auth-debug" element={<AuthDebug />} />
         <Route path="/assisted-listing" element={<AssistedListingApproval />} />
+        <Route path="/LeagueEventMap" element={<LeagueEventMap />} />
         <Route path="/events" element={<Events />} />
         <Route path="/PaymentAudit" element={<LayoutWrapper currentPageName="PaymentAudit"><PaymentAudit /></LayoutWrapper>} />
         <Route path="/privacy" element={<LayoutWrapper currentPageName="PrivacyPolicy"><PrivacyPolicy /></LayoutWrapper>} />
