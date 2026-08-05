@@ -194,6 +194,60 @@
       "type": "number",
       "description": "Event area radius in feet"
     },
+    "highlights": {
+      "type": "array",
+      "description": "Labeled map area overlays (staging, entrance, vendor area, etc.) drawn by the organizer and shown to partners/vendors",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "circle",
+              "rectangle",
+              "triangle"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "center": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "[lat,lng] for circle"
+          },
+          "radius": {
+            "type": "number",
+            "description": "Circle radius in meters"
+          },
+          "bounds": {
+            "type": "array",
+            "description": "[[lat,lng],[lat,lng]] SW/NE for rectangle",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          "points": {
+            "type": "array",
+            "description": "[[lat,lng],...] vertices for triangle",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
     "photos": {
       "type": "array",
       "items": {

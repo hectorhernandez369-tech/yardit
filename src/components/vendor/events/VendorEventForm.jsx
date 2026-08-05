@@ -28,6 +28,7 @@ const initialForm = {
   latitude: "",
   longitude: "",
   radius_feet: "500",
+  highlights: [],
   startDateTime: "",
   endDateTime: "",
   open_to_vendors: false,
@@ -67,6 +68,7 @@ const buildInitialForm = (event) => event ? {
   latitude: event.latitude || "",
   longitude: event.longitude || "",
   radius_feet: String(event.radius_feet || 500),
+  highlights: event.highlights || [],
   startDateTime: toLocalDateTimeValue(event.startDateTime),
   endDateTime: toLocalDateTimeValue(event.endDateTime),
   open_to_vendors: !!event.open_to_vendors,
@@ -332,6 +334,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       longitude: Number(form.longitude),
       timeZoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
       radius_feet: Number(form.radius_feet || 0),
+      highlights: form.highlights || [],
       startDateTime: resolvedStart,
       endDateTime: datesLocked ? event.endDateTime : new Date(form.endDateTime).toISOString(),
       ...promotionFields,
@@ -680,9 +683,9 @@ export default function VendorEventForm({ account, user, event = null, approvedV
         open={showLocationPicker}
         onOpenChange={setShowLocationPicker}
         eventType={form.event_type}
-        value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, geocoded_address: form.geocoded_address, radius_feet: Number(form.radius_feet || 500), flags: form.event_flags } : null}
+        value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude), display_address: form.display_address, geocoded_address: form.geocoded_address, radius_feet: Number(form.radius_feet || 500), flags: form.event_flags, highlights: form.highlights } : null}
         onChange={(location) => {
-          setForm((prev) => ({ ...prev, display_address: location.display_address, geocoded_address: location.geocoded_address, latitude: location.latitude, longitude: location.longitude, radius_feet: String(location.radius_feet || 500), event_flags: location.flags || [] }));
+          setForm((prev) => ({ ...prev, display_address: location.display_address, geocoded_address: location.geocoded_address, latitude: location.latitude, longitude: location.longitude, radius_feet: String(location.radius_feet || 500), event_flags: location.flags || [], highlights: location.highlights || [] }));
           if (isEditing && ["multi_spot", "multi_location"].includes(form.event_type)) {
             syncFlagsToEvent(event.id, location.flags || []);
           }

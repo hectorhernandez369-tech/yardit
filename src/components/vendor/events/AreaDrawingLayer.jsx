@@ -1,33 +1,8 @@
 import { useEffect, useState } from "react";
-import { Circle, Polygon, Rectangle, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { Circle, Polygon, Rectangle, useMap, useMapEvents } from "react-leaflet";
+import AreaShapeViews from "./AreaShapeViews";
 
-const SHAPE_STYLE = { color: "#F4A849", fillColor: "#F4A849", fillOpacity: 0.18, weight: 2 };
-const DRAFT_STYLE = { ...SHAPE_STYLE, dashArray: "6 5", fillOpacity: 0.12 };
-
-function ShapeView({ shape }) {
-  if (shape.type === "circle") {
-    return (
-      <Circle center={shape.center} radius={shape.radius} pathOptions={SHAPE_STYLE}>
-        <Tooltip permanent direction="center" className="yardit-area-label">{shape.title}</Tooltip>
-      </Circle>
-    );
-  }
-  if (shape.type === "rectangle") {
-    return (
-      <Rectangle bounds={shape.bounds} pathOptions={SHAPE_STYLE}>
-        <Tooltip permanent direction="center" className="yardit-area-label">{shape.title}</Tooltip>
-      </Rectangle>
-    );
-  }
-  if (shape.type === "triangle") {
-    return (
-      <Polygon positions={shape.points} pathOptions={SHAPE_STYLE}>
-        <Tooltip permanent direction="center" className="yardit-area-label">{shape.title}</Tooltip>
-      </Polygon>
-    );
-  }
-  return null;
-}
+const DRAFT_STYLE = { color: "#F4A849", fillColor: "#F4A849", fillOpacity: 0.12, weight: 2, dashArray: "6 5" };
 
 export default function AreaDrawingLayer({ drawingMode, shapes, onAddShape, onFinishDrawing }) {
   const map = useMap();
@@ -73,7 +48,7 @@ export default function AreaDrawingLayer({ drawingMode, shapes, onAddShape, onFi
       {draft?.type === "circle" && <Circle center={draft.center} radius={draft.radius} pathOptions={DRAFT_STYLE} />}
       {draft?.type === "rectangle" && <Rectangle bounds={[draft.corner1, draft.corner2]} pathOptions={DRAFT_STYLE} />}
       {vertices.length > 0 && drawingMode === "triangle" && <Polygon positions={vertices} pathOptions={DRAFT_STYLE} />}
-      {shapes.map((s) => <ShapeView key={s.id} shape={s} />)}
+      <AreaShapeViews shapes={shapes} />
     </>
   );
 }

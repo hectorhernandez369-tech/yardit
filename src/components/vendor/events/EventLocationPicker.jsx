@@ -457,7 +457,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
           <EventFlagPlacementModal
             open={showFlagPlacement}
             onOpenChange={setShowFlagPlacement}
-            eventLocation={{ latitude: selected.latitude, longitude: selected.longitude, radius_feet: Number(radius || 500) }}
+            eventLocation={{ latitude: selected.latitude, longitude: selected.longitude, radius_feet: Number(radius || 500), highlights }}
             flags={flags}
             onSave={setFlags}
           />

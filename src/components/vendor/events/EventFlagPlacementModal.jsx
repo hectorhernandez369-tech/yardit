@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { calculateMiles } from "@/lib/vendorEvents";
 import { toast } from "sonner";
 import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
+import AreaShapeViews from "./AreaShapeViews";
 
 const makeFlagIcon = (label) => L.divIcon({
   className: "vendor-event-flag-marker",
@@ -137,6 +138,7 @@ export default function EventFlagPlacementModal({ open, onOpenChange, eventLocat
               <VendorEventMapboxTileLayer mapStyle={mapStyle} />
               <MapBounds center={center} radiusFeet={eventLocation.radius_feet} />
               <Circle center={center} radius={radiusMeters} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12, weight: 2 }} />
+              <AreaShapeViews shapes={eventLocation.highlights || []} />
               <Marker position={center} />
               {draftFlags.map((flag) => (
                 <Marker

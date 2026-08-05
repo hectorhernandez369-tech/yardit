@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { calculateMiles } from "@/lib/vendorEvents";
 import { toast } from "sonner";
 import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
+import AreaShapeViews from "./AreaShapeViews";
 
 function RecenterMap({ center }) {
   const map = useMap();
@@ -47,6 +48,7 @@ export default function EventSpotMapPicker({ event, value, onChange }) {
         <RecenterMap center={center} />
         <Circle center={center} radius={radiusMeters} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.12, weight: 2 }} />
         <Marker position={center} />
+        <AreaShapeViews shapes={event?.highlights || []} />
         {value?.latitude && value?.longitude && <Marker position={[Number(value.latitude), Number(value.longitude)]} />}
         <SpotClickHandler event={event} onSelect={onChange} />
       </MapContainer>
