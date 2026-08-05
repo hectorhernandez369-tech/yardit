@@ -56,6 +56,39 @@ Deno.serve(async (req) => {
       if (changedSchedule && !canSchedule) return Response.json({ error: 'You do not have schedule edit permission for this game.' }, { status: 403 });
       if (changedScore && !canScore) return Response.json({ error: 'You do not have score edit permission for this game.' }, { status: 403 });
       if (changedScore && game.score_state === 'locked' && !canUnlock) return Response.json({ error: 'This score is locked. Ask league leadership to unlock it.' }, { status: 403 });
+
+      // Server-side playable-field conflict validation (single source of truth).
+      const newFieldId = Object.prototype.hasOwnProperty.call(updates, 'league_event_field_id') ? String(updates.league_event_field_id || '') : String(game.league_event_field_id || '');
+      if (newFieldId) {
+        const field = await base44.asServiceRole.entities.LeagueEventField.get(newFieldId).catch(() => null);
+        if (!field) return Response.json({ error: 'The selected field no longer exists.' }, { status: 400 });
+        if (field.is_active === false || field.status === 'closed') return Response.json({ error: 'This field is not active and cannot host games.' }, { status: 400 });
+        const targetEventId = String(updates.league_event_id || game.league_event_id || '');
+        if (targetEventId && String(field.league_event_id || '') && String(field.league_event_id) !== targetEventId) {
+          return Response.json({ error: 'This field belongs to a different League Event.' }, { status: 400 });
+        }
+        const newStart = updates.start_time || game.start_time;
+        const newEnd = updates.end_time || game.end_time || newStart;
+        const startMs = newStart ? Date.parse(newStart) : 0;
+        const endMs = newEnd ? Date.parse(newEnd) : startMs;
+        if (startMs) {
+          const fieldGames = await base44.asServiceRole.entities.LeagueGame.filter({ vendor_account_id: game.vendor_account_id, league_event_field_id: newFieldId }).catch(() => []);
+          const conflicting = fieldGames.find((other) => {
+            if (!other || other.id === game.id) return false;
+            if (String(other.status || '').toLowerCase() === 'cancelled') return false;
+            const oStart = other.start_time ? Date.parse(other.start_time) : 0;
+            const oEnd = (other.end_time ? Date.parse(other.end_time) : 0) || oStart;
+            if (!oStart) return false;
+            return startMs < oEnd && oStart < endMs;
+          });
+          if (conflicting) {
+            const fmt = (v: string) => v ? new Date(v).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+            const matchup = conflicting.game_title || `${conflicting.home_team || ''} vs ${conflicting.away_team || ''}`.trim() || 'a game';
+            return Response.json({ error: `Field already has a game scheduled from ${fmt(conflicting.start_time)}${conflicting.end_time ? ` to ${fmt(conflicting.end_time)}` : ''} (${matchup}).` }, { status: 409 });
+          }
+        }
+      }
+
       patch = { ...updates };
       actionType = changedSchedule && changedScore ? 'schedule_and_score_edit' : changedSchedule ? 'schedule_edit' : changedScore ? 'score_edit' : 'game_edit';
     } else if (action === 'submit_final_score') {

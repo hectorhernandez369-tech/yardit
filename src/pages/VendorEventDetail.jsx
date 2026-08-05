@@ -16,8 +16,11 @@ import PublicEventUpdates from "@/components/vendor/events/PublicEventUpdates";
 import PublicVendorCard from "@/components/vendor/events/PublicVendorCard";
 import PublicVendorEventMap from "@/components/vendor/events/PublicVendorEventMap";
 import UnifiedPublicEventSchedule from "@/components/vendor/events/schedule/UnifiedPublicEventSchedule";
+import PublicLeagueEventMap from "@/components/league/map/PublicLeagueEventMap";
 import { getPublicContactInfo } from "@/lib/publicContactPrivacy";
 import { canAccessVendorSignup } from "@/lib/vendorLaunchGate";
+import { sortLeagueGames, formatGameTime } from "@/components/league/schedule/leagueGameUtils";
+import { gamesOnField } from "@/lib/leagueFieldConflict";
 
 export default function VendorEventDetail() {
   const navigate = useNavigate();
@@ -60,6 +63,15 @@ export default function VendorEventDetail() {
   const { data: scheduleEntries = [] } = useQuery({ queryKey: ["publicEventScheduleEntries", eventId], queryFn: () => base44.entities.EventScheduleEntry.filter({ event_id: eventId }, "sort_order"), enabled: !!eventId, initialData: [] });
   const { data: leagueEventLinks = [] } = useQuery({ queryKey: ["publicLeagueEventGames", eventId], queryFn: async () => (await base44.entities.LeagueEventGame.filter({ event_id: eventId }, "display_order")).filter((link) => link?.is_visible !== false), enabled: !!eventId, initialData: [] });
   const { data: leagueGames = [] } = useQuery({ queryKey: ["publicLeagueGamesForEvent", event?.organizer_business_id], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: event.organizer_business_id }, "sort_order"), enabled: !!event?.organizer_business_id && leagueEventLinks.length > 0, initialData: [] });
+  const { data: leagueFields = [] } = useQuery({ queryKey: ["publicLeagueEventFields", eventId], queryFn: () => base44.entities.LeagueEventField.filter({ league_event_id: eventId, is_active: true }, "display_order"), enabled: !!eventId, initialData: [] });
+  const { data: leagueMapRecords = [] } = useQuery({ queryKey: ["publicLeagueEventMap", eventId], queryFn: () => base44.entities.LeagueEventMap.filter({ league_event_id: eventId }), enabled: !!eventId, initialData: [] });
+  const leagueMapRecord = leagueMapRecords[0];
+  const { data: organizerAccounts = [] } = useQuery({ queryKey: ["publicLeagueOrganizer", event?.organizer_business_id], queryFn: () => base44.entities.VendorAccount.filter({ id: event?.organizer_business_id }), enabled: !!event?.organizer_business_id, initialData: [] });
+  const organizerAccountPublic = organizerAccounts[0];
+  const isLeagueEvent = organizerAccountPublic?.organization_type === "league_team";
+  const [venueFieldId, setVenueFieldId] = useState("");
+  const [highlightFieldId, setHighlightFieldId] = useState("");
+
   const { data: previewMemberships = [], isLoading: isLoadingPreviewMemberships } = useQuery({
     queryKey: ["publicEventLeaguePreviewMemberships", event?.organizer_business_id, currentUser?.id, currentUser?.email],
     queryFn: async () => {
@@ -174,6 +186,21 @@ export default function VendorEventDetail() {
     });
   };
 
+  const viewFieldOnMap = (game) => {
+    if (!game?.league_event_field_id) return;
+    setHighlightFieldId(game.league_event_field_id);
+    setVenueFieldId(game.league_event_field_id);
+    window.requestAnimationFrame(() => {
+      document.getElementById("league-venue-map")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const selectVenueField = (field) => {
+    if (!field) return;
+    setVenueFieldId(field.id);
+    setHighlightFieldId(field.id);
+  };
+
   const requestToJoin = async () => {
     if (!currentUser) {
       toast.error("Log in as a vendor to request to join this event.");
@@ -267,7 +294,34 @@ export default function VendorEventDetail() {
 
             {event.latitude && event.longitude && <Card className="rounded-3xl bg-white"><CardContent className="p-5 sm:p-6 space-y-3"><h2 className="text-2xl font-black text-[#2C4F4E]">Map / Location</h2><PublicVendorEventMap event={event} spots={spots} scheduleEntries={scheduleEntries} selectedSpotId={selectedSpot?.id || ""} onSelectSpot={selectPublicField} /></CardContent></Card>}
 
-            <UnifiedPublicEventSchedule scheduleEntries={scheduleEntries} leagueEventLinks={leagueEventLinks} leagueGames={leagueGames} selectedSpotId={selectedSpot?.id || ""} selectedFieldName={selectedSpot?.title || ""} onClearField={() => setSelectedSpot(null)} />
+            {isLeagueEvent && (
+              <Card id="league-venue-map" className="rounded-3xl bg-white scroll-mt-20"><CardContent className="p-5 sm:p-6 space-y-3">
+                <h2 className="text-2xl font-black text-[#2C4F4E]">Venue Map</h2>
+                <p className="text-sm text-slate-600">Tap a field to see the games scheduled there. Service icons show entrances, restrooms, parking and more.</p>
+                <PublicLeagueEventMap event={event} fields={leagueFields} publishedObjects={leagueMapRecord?.published_objects || []} games={leagueGames} selectedFieldId={venueFieldId} highlightFieldId={highlightFieldId} onSelectField={selectVenueField} />
+                {venueFieldId && (() => {
+                  const field = leagueFields.find((f) => f.id === venueFieldId);
+                  if (!field) return null;
+                  const fieldGames = sortLeagueGames(gamesOnField(field.id, leagueGames));
+                  return (
+                    <div className="rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="font-black text-[#2C4F4E]">{field.name}{field.field_number ? ` #${field.field_number}` : ""}</p>
+                        <button type="button" onClick={() => { setVenueFieldId(""); setHighlightFieldId(""); }} className="text-xs font-bold text-[#2C4F4E] underline">Clear</button>
+                      </div>
+                      {fieldGames.length ? fieldGames.map((g) => (
+                        <div key={g.id} className="flex items-center justify-between text-sm">
+                          <span className="font-semibold text-slate-700">{formatGameTime(g.start_time)} · {g.home_team || "Home"} vs {g.away_team || "Away"}</span>
+                          <span className="text-xs text-slate-500">{g.division || g.age_group || ""}</span>
+                        </div>
+                      )) : <p className="text-sm text-slate-500">No games scheduled on this field yet.</p>}
+                    </div>
+                  );
+                })()}
+              </CardContent></Card>
+            )}
+
+            <UnifiedPublicEventSchedule scheduleEntries={scheduleEntries} leagueEventLinks={leagueEventLinks} leagueGames={leagueGames} selectedSpotId={selectedSpot?.id || ""} selectedFieldName={selectedSpot?.title || ""} onClearField={() => setSelectedSpot(null)} onViewFieldOnMap={isLeagueEvent ? viewFieldOnMap : undefined} />
 
             <PublicEventUpdates updates={updates} likes={likes} currentUser={currentUser} organizerName={event.organizer_business_name} onToggleLike={toggleLike} onLoginPrompt={() => { toast.error("Please log in to like updates."); base44.auth.redirectToLogin(window.location.href); }} />
 

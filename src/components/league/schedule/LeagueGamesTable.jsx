@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +9,13 @@ import { Copy, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { LEAGUE_GAME_STATUSES, formatGameDate, formatGameTime, normalizeLeagueGame, sortLeagueGames } from "./leagueGameUtils";
 import LeagueGameEditModal from "./LeagueGameEditModal";
+import LeagueFieldSelect from "./LeagueFieldSelect";
+import { conflictsForAssignment, formatConflictMessage } from "@/lib/leagueFieldConflict";
 import { canEditLeagueGameSchedule, canEditLeagueGameScore, membershipPermissions } from "@/lib/leaguePermissions";
 
 const ALL = "__all__";
 const BLANK = "__blank__";
-const blankGame = { division: "", home_team: "", away_team: "", home_town: "", away_town: "", game_date: "", start_time: "", end_time: "", field_name: "", location: "", status: "upcoming", notes: "" };
+const blankGame = { division: "", home_team: "", away_team: "", home_town: "", away_town: "", game_date: "", start_time: "", end_time: "", field_name: "", location: "", status: "upcoming", notes: "", league_event_id: "", league_event_field_id: "", field_name_snapshot: "", conflict: null };
 
 const optionValue = (value) => value || BLANK;
 const optionLabel = (value, fallback) => value || fallback;
@@ -28,6 +31,8 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
 
   const permissionList = useMemo(() => membershipPermissions(memberships), [memberships]);
   const sortedGames = useMemo(() => sortLeagueGames(games), [games]);
+
+  const { data: events = [] } = useQuery({ queryKey: ["leagueEventsForTable", account?.id], queryFn: () => base44.entities.VendorEvent.filter({ organizer_business_id: account.id, status: "published" }, "startDateTime"), enabled: !!account?.id, initialData: [] });
   const weekOptions = useMemo(() => uniqueSorted(sortedGames.map((game) => game.notes || game.week || "")), [sortedGames]);
   const divisionOptions = useMemo(() => uniqueSorted(sortedGames.map((game) => game.division || game.age_group || "")), [sortedGames]);
   const teamOptions = useMemo(() => uniqueSorted(sortedGames.flatMap((game) => [game.home_team || "", game.away_team || ""])), [sortedGames]);
@@ -44,7 +49,13 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
   const saveManualGame = async () => {
     const game = normalizeLeagueGame(manualGame, account, sortedGames.length, "manual");
     if (!game.game_title) return toast.error("Add teams or a game title first.");
-    await base44.entities.LeagueGame.create(game);
+    if (manualGame.conflict) return toast.error("Resolve the field conflict before adding this game.");
+    if (manualGame.league_event_field_id) {
+      const conflicts = conflictsForAssignment({ ...game, league_event_field_id: manualGame.league_event_field_id, start_time: game.start_time, end_time: game.end_time, status: game.status }, manualGame.league_event_field_id, games);
+      if (conflicts.length) return toast.error(formatConflictMessage(conflicts[0]));
+    }
+    const payload = { ...game, league_event_id: manualGame.league_event_id || "", league_event_field_id: manualGame.league_event_field_id || "", field_name_snapshot: manualGame.field_name_snapshot || "" };
+    await base44.entities.LeagueGame.create(payload);
     setManualGame(blankGame);
     toast.success("Game added.");
     onRefresh?.();
@@ -98,8 +109,26 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
               <Input type="date" value={form?.game_date || ""} onChange={(e) => setForm("game_date", e.target.value)} />
               <Input placeholder="Start Time" value={form?.start_time?.includes("T") ? formatGameTime(form.start_time) : form?.start_time || ""} onChange={(e) => setForm("start_time", e.target.value)} />
               <Input placeholder="End Time" value={form?.end_time?.includes("T") ? formatGameTime(form.end_time) : form?.end_time || ""} onChange={(e) => setForm("end_time", e.target.value)} />
-              <Input placeholder="Field" value={form?.field_name || ""} onChange={(e) => setForm("field_name", e.target.value)} />
+              <Input placeholder="Field (free text)" value={form?.field_name || ""} onChange={(e) => setForm("field_name", e.target.value)} />
               <Input placeholder="Location" value={form?.location || ""} onChange={(e) => setForm("location", e.target.value)} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="space-y-1 text-xs font-bold text-slate-600">
+                <span>League Event</span>
+                <Select value={form?.league_event_id || "__none__"} onValueChange={(v) => setManualGame((c) => ({ ...c, league_event_id: v === "__none__" ? "" : v, league_event_field_id: "", field_name_snapshot: "", conflict: null }))}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Link to a League Event" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No event</SelectItem>
+                    {events.map((ev) => <SelectItem key={ev.id} value={ev.id}>{ev.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </label>
+              <label className="space-y-1 text-xs font-bold text-slate-600">
+                <span>Assigned Field</span>
+                <LeagueFieldSelect accountId={account?.id} eventId={form?.league_event_id} value={form?.league_event_field_id} onChange={(patch) => setManualGame((c) => ({ ...c, ...patch }))} game={{ ...form, start_time: normalizeLeagueGame(form, account, 0, "manual").start_time, end_time: normalizeLeagueGame(form, account, 0, "manual").end_time, status: form?.status || "upcoming" }} allGames={games} />
+              </label>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Select value={form?.status || "upcoming"} onValueChange={(value) => setForm("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
               <Input placeholder="Week / Notes" value={form?.notes || ""} onChange={(e) => setForm("notes", e.target.value)} />
             </div>
@@ -133,7 +162,7 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
             <div className="overflow-x-auto rounded-xl border">
               <table className="w-full min-w-[860px] text-xs">
                 <thead className="bg-[#E7D7B8] text-[#2C4F4E]"><tr>{["Week", "Div", "Matchup", "Date", "Time", "Field", "Status", "Score", ""].map((heading) => <th key={heading} className="px-2 py-2 text-left font-black">{heading}</th>)}</tr></thead>
-                <tbody>{filteredGames.map((game) => <tr key={game.id} className="border-t align-top"><td className="px-2 py-2 whitespace-nowrap">{game.notes || ""}</td><td className="px-2 py-2 whitespace-nowrap font-semibold">{game.division || game.age_group}</td><td className="px-2 py-2"><div className="font-bold leading-tight">{game.home_team || "TBD"}</div><div className="text-slate-500 leading-tight">vs {game.away_team || "TBD"}</div></td><td className="px-2 py-2 whitespace-nowrap">{formatGameDate(game.game_date)}</td><td className="px-2 py-2 whitespace-nowrap">{formatGameTime(game.start_time)}</td><td className="px-2 py-2 max-w-[110px] truncate">{game.field_name || game.location}</td><td className="px-2 py-2">{canManageSchedule ? <Select value={game.status || "upcoming"} onValueChange={(value) => updateStatus(game, value)}><SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select> : <span className="capitalize">{game.status || "upcoming"}</span>}</td><td className="px-2 py-2 whitespace-nowrap font-bold">{Number(game.home_score || 0)} - {Number(game.away_score || 0)}</td><td className="px-2 py-2"><div className="flex flex-nowrap gap-1">{canEditGame(game) && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setEditingGame(game)}>Edit</Button>}{canManageSchedule && <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => duplicateGame(game)}><Copy className="h-3 w-3" /></Button>}{canManageSchedule && <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3 text-red-600" /></Button>}</div></td></tr>)}</tbody>
+                <tbody>{filteredGames.map((game) => <tr key={game.id} className="border-t align-top"><td className="px-2 py-2 whitespace-nowrap">{game.notes || ""}</td><td className="px-2 py-2 whitespace-nowrap font-semibold">{game.division || game.age_group}</td><td className="px-2 py-2"><div className="font-bold leading-tight">{game.home_team || "TBD"}</div><div className="text-slate-500 leading-tight">vs {game.away_team || "TBD"}</div></td><td className="px-2 py-2 whitespace-nowrap">{formatGameDate(game.game_date)}</td><td className="px-2 py-2 whitespace-nowrap">{formatGameTime(game.start_time)}</td><td className="px-2 py-2 max-w-[110px] truncate">{game.field_name_snapshot || game.field_name || (game.league_event_field_id ? "Field" : "Field not assigned")}</td><td className="px-2 py-2">{canManageSchedule ? <Select value={game.status || "upcoming"} onValueChange={(value) => updateStatus(game, value)}><SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select> : <span className="capitalize">{game.status || "upcoming"}</span>}</td><td className="px-2 py-2 whitespace-nowrap font-bold">{Number(game.home_score || 0)} - {Number(game.away_score || 0)}</td><td className="px-2 py-2"><div className="flex flex-nowrap gap-1">{canEditGame(game) && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setEditingGame(game)}>Edit</Button>}{canManageSchedule && <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => duplicateGame(game)}><Copy className="h-3 w-3" /></Button>}{canManageSchedule && <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3 text-red-600" /></Button>}</div></td></tr>)}</tbody>
               </table>
             </div>
           )}
@@ -147,6 +176,7 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
         open={!!editingGame}
         onOpenChange={(open) => !open && setEditingGame(null)}
         onSaved={onRefresh}
+        allGames={games}
       />
     </div>
   );

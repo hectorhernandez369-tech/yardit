@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { MapPin } from "lucide-react";
 import { getUnifiedEventSchedule } from "@/lib/unifiedEventSchedule";
 
 const timeLabel = (value) => {
@@ -30,7 +31,7 @@ const showGameScore = (game) => {
   return ["live", "halftime", "final"].includes(status);
 };
 
-export default function UnifiedPublicEventSchedule({ leagueEventLinks = [], leagueGames = [], scheduleEntries = [], selectedSpotId = "", selectedFieldName = "", onClearField }) {
+export default function UnifiedPublicEventSchedule({ leagueEventLinks = [], leagueGames = [], scheduleEntries = [], selectedSpotId = "", selectedFieldName = "", onClearField, onViewFieldOnMap }) {
   const schedule = getUnifiedEventSchedule({ leagueEventLinks, leagueGames, scheduleEntries });
 
   const filteredItems = useMemo(() => {
@@ -86,6 +87,11 @@ export default function UnifiedPublicEventSchedule({ leagueEventLinks = [], leag
                         )}
                         <p className="mt-1 text-sm text-slate-600">{dateLabel(item.start_time)}{" · "}{timeLabel(item.start_time)}{item.end_time ? ` - ${timeLabel(item.end_time)}` : ""}</p>
                         {item.notes && <p className="mt-1 text-xs text-slate-500">{item.notes}</p>}
+                        {isLeagueGame && item.league_event_field_id && onViewFieldOnMap && (
+                          <button type="button" onClick={() => onViewFieldOnMap(item)} className="mt-2 inline-flex items-center gap-1 rounded-full border border-[#2C4F4E]/20 bg-white px-3 py-1 text-xs font-bold text-[#2C4F4E] hover:bg-[#5DADA5]/10">
+                            <MapPin className="h-3 w-3" /> View Field on Map
+                          </button>
+                        )}
                       </div>
                       {isLeagueGame && (
                         <div className="shrink-0 text-right">

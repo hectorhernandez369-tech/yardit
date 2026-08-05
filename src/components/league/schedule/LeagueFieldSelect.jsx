@@ -8,12 +8,14 @@ const BLANK = "__none__";
 // Field selector for Schedule Manager / game editor. Shows only active fields
 // belonging to the selected League Event and blocks conflicting assignments.
 export default function LeagueFieldSelect({ accountId, eventId, value, onChange, game, allGames = [], disabled }) {
-  const { data: fields = [] } = useQuery({
+  const { data: rawFields = [] } = useQuery({
     queryKey: ["leagueEventFields", accountId, eventId],
     queryFn: () => base44.entities.LeagueEventField.filter({ league_event_id: eventId, is_active: true }, "display_order"),
     enabled: !!eventId,
     initialData: [],
   });
+  // Only active-status fields can host games; decorative map objects are never listed here.
+  const fields = (rawFields || []).filter((f) => f.is_active !== false && (f.status || "active") === "active");
 
   const setField = (fieldId) => {
     if (fieldId === BLANK) {
