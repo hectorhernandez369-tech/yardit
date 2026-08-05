@@ -4,13 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
 import EventFlagPlacementModal from "./EventFlagPlacementModal";
 import AreaDrawingLayer from "./AreaDrawingLayer";
-import AreaHighlightPanel from "./AreaHighlightPanel";
+import AreaDrawToolbar from "./AreaDrawToolbar";
+import AreaHighlightList from "./AreaHighlightList";
 import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER = [34.0522, -118.2437];
+
+const DRAW_HINTS = {
+  circle: "Press and drag from the center outward.",
+  rectangle: "Press and drag from one corner to the opposite corner.",
+  triangle: "Tap three points.",
+};
 
 function distanceFrom(lat1, lng1, lat2, lng2) {
   const toRad = (v) => (v * Math.PI) / 180;
@@ -171,6 +179,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
   const [flags, setFlags] = useState(value?.flags || []);
   const [highlights, setHighlights] = useState(value?.highlights || []);
   const [drawingMode, setDrawingMode] = useState("none");
+  const [toolbarOpen, setToolbarOpen] = useState(false);
+  const [editingHighlightId, setEditingHighlightId] = useState(null);
   const [showFlagPlacement, setShowFlagPlacement] = useState(false);
   const [mapStyle, setMapStyle] = useState("standard");
 
@@ -195,6 +205,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     setFlags(value?.flags || []);
     setHighlights(value?.highlights || []);
     setDrawingMode("none");
+    setToolbarOpen(false);
+    setEditingHighlightId(null);
     setMapStyle("standard");
     setRecenterZoom(null);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -285,17 +297,32 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
     setDisplayAddressEdited(true);
   };
 
+  // Highlights — each shape carries its own style fields (fillColor, fillOpacity, lineColor, lineOpacity)
   const addHighlight = (shape) => {
     const id = `area_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const title = `AREA ${highlights.length + 1}`;
-    setHighlights((prev) => [...prev, { id, title, ...shape }]);
+    setHighlights((prev) => [...prev, { id, ...shape }]);
+    setEditingHighlightId(id); // open the editor immediately for the new shape
   };
 
-  const updateHighlightTitle = (id, title) =>
-    setHighlights((prev) => prev.map((h) => (h.id === id ? { ...h, title } : h)));
+  const updateHighlight = (id, patch) => {
+    setHighlights((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)));
+  };
 
-  const removeHighlight = (id) =>
+  const removeHighlight = (id) => {
     setHighlights((prev) => prev.filter((h) => h.id !== id));
+    setEditingHighlightId((cur) => (cur === id ? null : cur));
+  };
+
+  const handleRejectShape = (msg) => {
+    toast.error(msg || "Area too small — try drawing a larger shape.");
+  };
+
+  const startDrawing = (mode) => setDrawingMode(mode);
+  const cancelDrawing = () => { setDrawingMode("none"); setToolbarOpen(false); };
+  const finishDrawing = () => { setDrawingMode("none"); setToolbarOpen(false); };
+
+  const startEdit = (id) => setEditingHighlightId(id);
+  const closeEdit = () => setEditingHighlightId(null);
 
   const saveLocation = () => {
     if (!selected) return;
@@ -322,7 +349,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Search bar — search only, never updated by map taps */}
+          {/* 1. Search bar — search only, never updated by map taps */}
           <div ref={searchWrapRef} className="space-y-2">
             <Input
               ref={searchInputRef}
@@ -354,13 +381,13 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             )}
           </div>
 
-          {/* Map */}
+          {/* 2. Map + drawing-mode overlay */}
           <div className="space-y-2">
             <div className="flex justify-end gap-2">
               <Button type="button" size="sm" variant={mapStyle === "standard" ? "default" : "outline"} onClick={() => setMapStyle("standard")}>Standard</Button>
               <Button type="button" size="sm" variant={mapStyle === "satellite" ? "default" : "outline"} onClick={() => setMapStyle("satellite")}>Satellite</Button>
             </div>
-            <div className="h-[360px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
+            <div className="relative h-[360px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
               <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom>
                 <VendorEventMapboxTileLayer mapStyle={mapStyle} />
                 <RecenterMap center={center} recenterZoom={recenterZoom} currentZoomRef={currentZoomRef} />
@@ -369,7 +396,8 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
                   drawingMode={drawingMode}
                   shapes={highlights}
                   onAddShape={addHighlight}
-                  onFinishDrawing={() => setDrawingMode("none")}
+                  onFinishDrawing={finishDrawing}
+                  onRejectShape={handleRejectShape}
                 />
                 {selected && showRadius && (
                   <Circle
@@ -380,19 +408,54 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
                 )}
                 {selected && <Marker position={[selected.latitude, selected.longitude]} />}
               </MapContainer>
+              {drawingMode !== "none" && (
+                <div className="pointer-events-none absolute left-1/2 top-2 z-[1000] flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#2C4F4E]/90 px-3 py-1.5 text-white shadow-lg">
+                  <span className="text-xs font-semibold uppercase tracking-wide">Drawing mode active</span>
+                  <span className="hidden text-xs text-white/80 sm:inline">— {DRAW_HINTS[drawingMode]}</span>
+                  <button
+                    type="button"
+                    onClick={cancelDrawing}
+                    className="pointer-events-auto ml-1 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold hover:bg-white/25"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
-            <p className="text-xs text-slate-500 text-center">Tap the map or search above to set the pin location.</p>
+            <p className="text-center text-xs text-slate-500">
+              {drawingMode === "none"
+                ? "Tap the map or search above to set the pin location."
+                : DRAW_HINTS[drawingMode]}
+            </p>
           </div>
 
-          <AreaHighlightPanel
+          {/* 3. Event radius slider (multi-spot / multi-location only) */}
+          {showRadius && (
+            <div className="space-y-2 rounded-xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <Label>Event Area Radius</Label>
+                <span className="text-sm font-bold text-[#2C4F4E]">{radius} ft</span>
+              </div>
+              <input
+                className="w-full accent-[#5DADA5]"
+                type="range" min="100" max="5000" step="100"
+                value={radius}
+                onChange={(e) => setRadius(e.target.value)}
+              />
+              <p className="text-xs text-slate-600">Spots/fields must be placed inside this circle.</p>
+            </div>
+          )}
+
+          {/* 4. Highlight an Area / drawing toolbar */}
+          <AreaDrawToolbar
+            toolbarOpen={toolbarOpen}
             drawingMode={drawingMode}
-            setDrawingMode={setDrawingMode}
-            highlights={highlights}
-            onTitleChange={updateHighlightTitle}
-            onDelete={removeHighlight}
+            onOpenToolbar={() => setToolbarOpen(true)}
+            onSelectTool={startDrawing}
+            onCancel={cancelDrawing}
           />
 
-          {/* Location info — always shown when a pin exists */}
+          {/* 5-6. Suggested Address + Public Display Location (when a pin exists) */}
           {selected && (
             <div className="space-y-3 rounded-xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-4">
               {/* Suggested Address (read-only, system generated) */}
@@ -400,7 +463,7 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Suggested Address</p>
                 <p className="text-sm text-slate-700">
                   {reverseGeocoding ? (
-                    <span className="text-slate-400 italic">Finding address...</span>
+                    <span className="italic text-slate-400">Finding address...</span>
                   ) : (
                     geocodedAddress || "Location selected"
                   )}
@@ -424,27 +487,25 @@ export default function EventLocationPicker({ open, onOpenChange, eventType, val
             </div>
           )}
 
-          {/* Radius & Flags (multi-spot/multi-location only) */}
+          {/* Add Flags — compact section, kept separate from the radius slider */}
           {showRadius && (
-            <div className="space-y-2 rounded-xl bg-[#FBFAF7] p-3">
-              <div className="flex items-center justify-between gap-3">
-                <Label>Event Area Radius</Label>
-                <span className="text-sm font-bold text-[#2C4F4E]">{radius} ft</span>
-              </div>
-              <input
-                className="w-full accent-[#5DADA5]"
-                type="range" min="100" max="5000" step="100"
-                value={radius}
-                onChange={(e) => setRadius(e.target.value)}
-              />
-              <p className="text-xs text-slate-600">Spots/fields must be placed inside this circle.</p>
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <Button type="button" variant="outline" disabled={!selected} onClick={() => setShowFlagPlacement(true)}>Add Flags</Button>
-                {flags.length > 0 && <span className="text-sm font-semibold text-[#2C4F4E]">{flags.length} flags selected</span>}
-              </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="button" variant="outline" disabled={!selected} onClick={() => setShowFlagPlacement(true)}>Add Flags</Button>
+              {flags.length > 0 && <span className="text-sm font-semibold text-[#2C4F4E]">{flags.length} flags selected</span>}
             </div>
           )}
 
+          {/* 7. Saved Highlighted Areas */}
+          <AreaHighlightList
+            highlights={highlights}
+            editingId={editingHighlightId}
+            onStartEdit={startEdit}
+            onCloseEdit={closeEdit}
+            onUpdate={updateHighlight}
+            onDelete={removeHighlight}
+          />
+
+          {/* 8. Cancel / Save Location */}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="button" disabled={!selected} onClick={saveLocation} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">

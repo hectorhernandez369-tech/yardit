@@ -1,26 +1,36 @@
 import { Circle, Polygon, Rectangle, Tooltip } from "react-leaflet";
 
-const SHAPE_STYLE = { color: "#F4A849", fillColor: "#F4A849", fillOpacity: 0.18, weight: 2 };
+export function getShapeStyle(shape) {
+  return {
+    color: shape.lineColor || shape.fillColor || "#F4A849",
+    opacity: Number(shape.lineOpacity ?? 0.9),
+    fillColor: shape.fillColor || "#F4A849",
+    fillOpacity: Number(shape.fillOpacity ?? 0.2),
+    weight: 2,
+  };
+}
 
 export function AreaShapeView({ shape }) {
+  const style = getShapeStyle(shape);
+  const label = shape.title && shape.title.trim() ? shape.title.trim() : "";
   if (shape.type === "circle") {
     return (
-      <Circle center={shape.center} radius={shape.radius} pathOptions={SHAPE_STYLE}>
-        <Tooltip permanent direction="center" className="yardit-area-label">{shape.title}</Tooltip>
+      <Circle center={shape.center} radius={shape.radius} pathOptions={style}>
+        {label && <Tooltip permanent direction="center" className="yardit-area-label">{label}</Tooltip>}
       </Circle>
     );
   }
   if (shape.type === "rectangle") {
     return (
-      <Rectangle bounds={shape.bounds} pathOptions={SHAPE_STYLE}>
-        <Tooltip permanent direction="center" className="yardit-area-label">{shape.title}</Tooltip>
+      <Rectangle bounds={shape.bounds} pathOptions={style}>
+        {label && <Tooltip permanent direction="center" className="yardit-area-label">{label}</Tooltip>}
       </Rectangle>
     );
   }
   if (shape.type === "triangle") {
     return (
-      <Polygon positions={shape.points} pathOptions={SHAPE_STYLE}>
-        <Tooltip permanent direction="center" className="yardit-area-label">{shape.title}</Tooltip>
+      <Polygon positions={shape.points} pathOptions={style}>
+        {label && <Tooltip permanent direction="center" className="yardit-area-label">{label}</Tooltip>}
       </Polygon>
     );
   }
