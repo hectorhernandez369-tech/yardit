@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { VENDOR_EVENT_TYPES, getVendorEventPermission } from "@/lib/vendorEvents";
 import EventLocationPicker from "./EventLocationPicker";
 import EventMapSetup from "./EventMapSetup";
+import LeagueEventMapWorkstation from "@/components/league/map/LeagueEventMapWorkstation";
 import InviteVendorsModal from "./InviteVendorsModal";
 import CollapsiblePanel from "./CollapsiblePanel";
 import CreateEventCollaboratorsSection from "./CreateEventCollaboratorsSection";
@@ -48,6 +49,8 @@ const initialForm = {
   flyer_url: "",
   public_contact_visibility: "inherit",
   event_flags: [],
+  draftVenueFields: [],
+  draftVenueObjects: [],
   status: "draft",
   coming_soon_start_date: "",
 };
@@ -88,6 +91,8 @@ const buildInitialForm = (event) => event ? {
   flyer_url: event.flyer_url || "",
   public_contact_visibility: event.public_contact_visibility || "inherit",
   event_flags: [],
+  draftVenueFields: [],
+  draftVenueObjects: [],
   status: event.status || "draft",
   coming_soon_start_date: event.coming_soon_start_date || "",
 } : initialForm;
@@ -106,7 +111,11 @@ export default function VendorEventForm({ account, user, event = null, approvedV
   const [showInviteVendors, setShowInviteVendors] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showMapSetup, setShowMapSetup] = useState(false);
+  const [showLeagueMapSetup, setShowLeagueMapSetup] = useState(false);
   const [collaboratorInvitations, setCollaboratorInvitations] = useState([]);
+
+  const isLeagueAccount = account?.organization_type === "league_team";
+  const isLeagueCreate = isLeagueAccount && !isEditing;
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 

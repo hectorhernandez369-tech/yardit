@@ -159,7 +159,7 @@ export default function ObjectSettingsPanel({ object, type, onChange, onDelete, 
         </Select>
       </Row>
 
-      {isField && (
+      {isField && onManageGames && (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-slate-600">Scheduled games</p>

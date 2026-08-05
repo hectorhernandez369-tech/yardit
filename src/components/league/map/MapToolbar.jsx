@@ -11,7 +11,7 @@ const TOOLS = [
 ];
 
 // Left tool panel (desktop) or bottom tray (mobile). Stateless presentation only.
-export default function MapToolbar({ activeTool, setTool, layout = "panel", view, setView, layersOpen, setLayersOpen, canUndo, canRedo, onUndo, onRedo, onSaveDraft, onPublish, saving, onFitVenue, onSetDefault, onResetView, hasUnpublished }) {
+export default function MapToolbar({ activeTool, setTool, layout = "panel", view, setView, layersOpen, setLayersOpen, canUndo, canRedo, onUndo, onRedo, onSaveDraft, onPublish, saving, onFitVenue, onSetDefault, onResetView, hasUnpublished, draftMode = false }) {
   const ToolBtn = ({ tool }) => {
     const Icon = tool.icon;
     const active = activeTool === tool.id;
@@ -42,8 +42,8 @@ export default function MapToolbar({ activeTool, setTool, layout = "panel", view
         <IconBtn onClick={() => setLayersOpen(!layersOpen)} title="Layers" active={layersOpen}><Layers className="h-4 w-4" /></IconBtn>
         <IconBtn onClick={onUndo} disabled={!canUndo} title="Undo"><Undo2 className="h-4 w-4" /></IconBtn>
         <IconBtn onClick={onRedo} disabled={!canRedo} title="Redo"><Redo2 className="h-4 w-4" /></IconBtn>
-        <IconBtn onClick={onSaveDraft} disabled={saving} title="Save draft"><Save className="h-4 w-4" /></IconBtn>
-        <IconBtn onClick={onPublish} disabled={saving} title="Publish"><Upload className="h-4 w-4" /></IconBtn>
+        <IconBtn onClick={onSaveDraft} disabled={saving} title={draftMode ? "Save changes" : "Save draft"}><Save className="h-4 w-4" /></IconBtn>
+        {!draftMode && <IconBtn onClick={onPublish} disabled={saving} title="Publish"><Upload className="h-4 w-4" /></IconBtn>}
         <IconBtn onClick={onFitVenue} title="Fit venue"><Maximize className="h-4 w-4" /></IconBtn>
       </div>
     );
@@ -51,6 +51,7 @@ export default function MapToolbar({ activeTool, setTool, layout = "panel", view
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto border-r border-slate-200 bg-white p-2.5">
+      {!draftMode && (
       <div>
         <p className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-slate-400">View</p>
         <div className="flex rounded-lg border border-slate-200 p-0.5">
@@ -58,6 +59,7 @@ export default function MapToolbar({ activeTool, setTool, layout = "panel", view
           <button type="button" onClick={() => setView("schedule")} className={`flex-1 rounded-md px-2 py-1.5 text-xs font-bold ${view === "schedule" ? "bg-[#2C4F4E] text-white" : "text-slate-600"}`}>Schedule</button>
         </div>
       </div>
+      )}
 
       <div>
         <p className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-slate-400">Tools</p>
@@ -71,7 +73,7 @@ export default function MapToolbar({ activeTool, setTool, layout = "panel", view
         <div className="flex flex-wrap gap-1">
           <IconBtn onClick={() => setLayersOpen(!layersOpen)} title="Layers" active={layersOpen}><Layers className="h-4 w-4" /></IconBtn>
           <IconBtn onClick={onFitVenue} title="Fit venue to screen"><Maximize className="h-4 w-4" /></IconBtn>
-          <IconBtn onClick={onSetDefault} title="Set as default view"><Crosshair className="h-4 w-4" /></IconBtn>
+          {!draftMode && <IconBtn onClick={onSetDefault} title="Set as default view"><Crosshair className="h-4 w-4" /></IconBtn>}
           <IconBtn onClick={onResetView} title="Reset view"><Eye className="h-4 w-4" /></IconBtn>
         </div>
       </div>
@@ -85,12 +87,14 @@ export default function MapToolbar({ activeTool, setTool, layout = "panel", view
       </div>
 
       <div className="mt-auto space-y-2">
-        <button type="button" onClick={onSaveDraft} disabled={saving} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-          {saving ? "Saving…" : "Save Draft"}
+        <button type="button" onClick={onSaveDraft} disabled={saving} className={`w-full rounded-lg px-3 py-2 text-xs font-bold text-white shadow disabled:opacity-50 ${draftMode ? "bg-[#2C4F4E] hover:bg-[#244f4c]" : "border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+          {saving ? "Saving…" : draftMode ? "Save Changes" : "Save Draft"}
         </button>
+        {!draftMode && (
         <button type="button" onClick={onPublish} disabled={saving} className={`w-full rounded-lg px-3 py-2 text-xs font-bold text-white shadow ${hasUnpublished ? "bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]" : "bg-[#2C4F4E] hover:bg-[#244f4c]"} disabled:opacity-50`}>
           {saving ? "Publishing…" : hasUnpublished ? "Publish Map" : "Published"}
         </button>
+        )}
       </div>
     </div>
   );

@@ -15,21 +15,23 @@ import { canAssignGameToField, gamesOnField } from "@/lib/leagueFieldConflict";
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const nowIso = () => new Date().toISOString();
 
-export default function LeagueEventMapWorkstation({ eventId }) {
+export default function LeagueEventMapWorkstation({ eventId, draftMode = false, initialFields = [], initialObjects = [], draftCenter = null, account: draftAccount = null, onChange = null, onClose = null }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const mapRef = useRef(null);
 
-  const { data: events = [] } = useQuery({ queryKey: ["leagueEventMapEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
-  const event = events[0];
-  const { data: accounts = [] } = useQuery({ queryKey: ["leagueEventMapAccount", event?.organizer_business_id], queryFn: () => base44.entities.VendorAccount.filter({ id: event?.organizer_business_id }), enabled: !!event?.organizer_business_id, initialData: [] });
-  const account = accounts[0];
+  const { data: events = [] } = useQuery({ queryKey: ["leagueEventMapEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId && !draftMode, initialData: [] });
+  const event = draftMode
+    ? (draftCenter ? { latitude: draftCenter[0], longitude: draftCenter[1], default_view: null } : null)
+    : events[0];
+  const { data: accounts = [] } = useQuery({ queryKey: ["leagueEventMapAccount", event?.organizer_business_id], queryFn: () => base44.entities.VendorAccount.filter({ id: event?.organizer_business_id }), enabled: !!event?.organizer_business_id && !draftMode, initialData: [] });
+  const account = draftMode ? draftAccount : accounts[0];
 
-  const { data: serverFields = [] } = useQuery({ queryKey: ["leagueEventFields", eventId], queryFn: () => base44.entities.LeagueEventField.filter({ league_event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
-  const { data: mapRecords = [] } = useQuery({ queryKey: ["leagueEventMapRecord", eventId], queryFn: () => base44.entities.LeagueEventMap.filter({ league_event_id: eventId }), enabled: !!eventId, initialData: [] });
+  const { data: serverFields = [] } = useQuery({ queryKey: ["leagueEventFields", eventId], queryFn: () => base44.entities.LeagueEventField.filter({ league_event_id: eventId }, "display_order"), enabled: !!eventId && !draftMode, initialData: [] });
+  const { data: mapRecords = [] } = useQuery({ queryKey: ["leagueEventMapRecord", eventId], queryFn: () => base44.entities.LeagueEventMap.filter({ league_event_id: eventId }), enabled: !!eventId && !draftMode, initialData: [] });
   const mapRecord = mapRecords[0];
-  const { data: allGames = [] } = useQuery({ queryKey: ["leagueEventMapGames", event?.organizer_business_id], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: event?.organizer_business_id }, "sort_order"), enabled: !!event?.organizer_business_id, initialData: [] });
-  const { data: links = [] } = useQuery({ queryKey: ["leagueEventMapLinks", eventId], queryFn: () => base44.entities.LeagueEventGame.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
+  const { data: allGames = [] } = useQuery({ queryKey: ["leagueEventMapGames", event?.organizer_business_id], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: event?.organizer_business_id }, "sort_order"), enabled: !!event?.organizer_business_id && !draftMode, initialData: [] });
+  const { data: links = [] } = useQuery({ queryKey: ["leagueEventMapLinks", eventId], queryFn: () => base44.entities.LeagueEventGame.filter({ event_id: eventId }), enabled: !!eventId && !draftMode, initialData: [] });
 
   const eventGames = useMemo(() => {
     const linkedIds = new Set(links.map((l) => l.league_game_id));
@@ -59,9 +61,18 @@ export default function LeagueEventMapWorkstation({ eventId }) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Hydrate local draft from server once data is available.
+  // Hydrate local state — from props in draft mode, from server otherwise.
   useEffect(() => {
     if (loaded || !event) return;
+    if (draftMode) {
+      setFields(initialFields.map((f) => clone(f)));
+      setObjects(initialObjects.map((o) => clone(o)));
+      setServerFieldIds(new Set());
+      setPublishedObjects([]);
+      setHasUnpublished(false);
+      setLoaded(true);
+      return;
+    }
     setFields(serverFields.map((f) => clone(f)));
     setServerFieldIds(new Set(serverFields.map((f) => f.id)));
     setObjects(clone(mapRecord?.draft_objects || []));
@@ -69,7 +80,7 @@ export default function LeagueEventMapWorkstation({ eventId }) {
     setHasUnpublished(!!mapRecord?.has_unpublished_changes || (!mapRecord && serverFields.length > 0));
     setLoaded(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverFields, mapRecord, event, loaded]);
+  }, [serverFields, mapRecord, event, loaded, draftMode, initialFields, initialObjects]);
 
   const snapshot = useCallback(() => ({ fields: clone(fields), objects: clone(objects) }), [fields, objects]);
 
@@ -107,7 +118,7 @@ export default function LeagueEventMapWorkstation({ eventId }) {
   const addField = (center) => {
     const id = uid();
     const order = fields.length;
-    const field = { id, league_event_id: eventId, league_account_id: account?.id, name: `Field ${fields.length + 1}`, field_number: "", field_type: "multipurpose", status: "active", latitude: center[0], longitude: center[1], geometry: defaultFieldGeometry(center), fill_opacity: 0.25, fill_color: "#5DADA5", border_color: "#2C4F4E", border_width: 2, label_position: "center", text_size: "md", display_order: order, is_active: true };
+    const field = { id, league_event_id: eventId || null, league_account_id: account?.id, name: `Field ${fields.length + 1}`, field_number: "", field_type: "multipurpose", status: "active", latitude: center[0], longitude: center[1], geometry: defaultFieldGeometry(center), fill_opacity: 0.25, fill_color: "#5DADA5", border_color: "#2C4F4E", border_width: 2, label_position: "center", text_size: "md", display_order: order, is_active: true };
     mutate(() => setFields((f) => [...f, field]));
     setSelected({ id, type: "field" });
     markDirty();
@@ -257,18 +268,25 @@ export default function LeagueEventMapWorkstation({ eventId }) {
     }
   };
 
-  const saveDraft = async () => {
-    setSaving(true);
-    try {
-      await persistFields();
-      await persistMapRecord(false);
-      toast.success("Draft saved.");
-    } catch (e) {
-      toast.error(e.message || "Could not save draft.");
-    } finally {
-      setSaving(false);
-    }
+  const commitDraft = () => {
+    onChange?.({ fields: clone(fields), objects: clone(objects) });
+    onClose?.();
   };
+
+  const saveDraft = draftMode
+    ? commitDraft
+    : async () => {
+        setSaving(true);
+        try {
+          await persistFields();
+          await persistMapRecord(false);
+          toast.success("Draft saved.");
+        } catch (e) {
+          toast.error(e.message || "Could not save draft.");
+        } finally {
+          setSaving(false);
+        }
+      };
 
   const publish = async () => {
     setSaving(true);
@@ -294,6 +312,7 @@ export default function LeagueEventMapWorkstation({ eventId }) {
   };
 
   const setDefaultView = () => {
+    if (draftMode) return;
     const map = mapRef.current;
     if (!map) return;
     const c = map.getCenter();
@@ -338,19 +357,19 @@ export default function LeagueEventMapWorkstation({ eventId }) {
         </div>
       );
     }
-    if (view === "schedule" && selected.type === "field") {
+    if (!draftMode && view === "schedule" && selected.type === "field") {
       const field = fields.find((f) => f.id === selected.id);
       return <FieldPanel field={field} games={allGames} eventGames={eventGames} onAssignGame={assignGame} onAddGame={() => navigate(`/LeagueTeamDashboard?tab=schedule&account=${account?.id}`)} onOpenSchedule={() => navigate(`/LeagueTeamDashboard?tab=schedule&account=${account?.id}`)} onClose={() => setSelected({ id: null, type: null })} />;
     }
     if (selected.id) {
-      return <ObjectSettingsPanel object={selectedObject} type={selected.type} onChange={(patch) => selected.type === "field" ? updateField(selected.id, patch) : updateObject(selected.id, patch)} onDelete={() => selected.type === "field" ? deleteField(selected.id) : deleteObject(selected.id)} onDuplicate={() => duplicateObject(selected.id, selected.type)} onManageGames={() => setView("schedule")} gameCount={gameCounts[selected.id]} />;
+      return <ObjectSettingsPanel object={selectedObject} type={selected.type} onChange={(patch) => selected.type === "field" ? updateField(selected.id, patch) : updateObject(selected.id, patch)} onDelete={() => selected.type === "field" ? deleteField(selected.id) : deleteObject(selected.id)} onDuplicate={() => duplicateObject(selected.id, selected.type)} onManageGames={draftMode ? undefined : () => setView("schedule")} gameCount={gameCounts[selected.id]} />;
     }
     return <div className="p-4 text-xs text-slate-400">Add a field, area, entrance, route, label or icon using the tools. Select an object to edit it.</div>;
   };
 
   const TopBar = () => (
     <div className="yardit-ui-control flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
-      <button type="button" onClick={() => navigate(`/VendorEventDashboard?id=${eventId}`)} className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-bold text-[#2C4F4E] hover:bg-slate-100"><ArrowLeft className="h-4 w-4" /> Back</button>
+      <button type="button" onClick={draftMode ? onClose : () => navigate(`/VendorEventDashboard?id=${eventId}`)} className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-bold text-[#2C4F4E] hover:bg-slate-100"><ArrowLeft className="h-4 w-4" /> {draftMode ? "Cancel" : "Back"}</button>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-black text-[#2C4F4E]">Event Map · {event.title}</p>
         <p className="truncate text-[11px] text-slate-500">{hasUnpublished ? "Unpublished changes" : "All changes published"}</p>
@@ -368,7 +387,7 @@ export default function LeagueEventMapWorkstation({ eventId }) {
         </div>
         {layersOpen && <div className="absolute inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl"><RightContent /></div>}
         {!layersOpen && selected.id && <div className="absolute inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl"><RightContent /></div>}
-        <MapToolbar activeTool={activeTool} setTool={setActiveTool} layout="tray" view={view} setView={setView} layersOpen={layersOpen} setLayersOpen={setLayersOpen} canUndo={!!history.length} canRedo={!!future.length} onUndo={undo} onRedo={redo} onSaveDraft={saveDraft} onPublish={publish} saving={saving} onFitVenue={fitVenue} onSetDefault={setDefaultView} onResetView={resetView} hasUnpublished={hasUnpublished} />
+        <MapToolbar activeTool={activeTool} setTool={setActiveTool} layout="tray" view={view} setView={setView} layersOpen={layersOpen} setLayersOpen={setLayersOpen} canUndo={!!history.length} canRedo={!!future.length} onUndo={undo} onRedo={redo} onSaveDraft={saveDraft} onPublish={draftMode ? saveDraft : publish} saving={saving} onFitVenue={fitVenue} onSetDefault={setDefaultView} onResetView={resetView} hasUnpublished={hasUnpublished} draftMode={draftMode} />
       </div>
     );
   }
@@ -377,7 +396,7 @@ export default function LeagueEventMapWorkstation({ eventId }) {
     <div className="fixed inset-0 z-[4000] flex flex-col bg-slate-50">
       <TopBar />
       <div className="flex min-h-0 flex-1">
-        <div className="w-56 shrink-0"><MapToolbar activeTool={activeTool} setTool={setActiveTool} layout="panel" view={view} setView={setView} layersOpen={layersOpen} setLayersOpen={setLayersOpen} canUndo={!!history.length} canRedo={!!future.length} onUndo={undo} onRedo={redo} onSaveDraft={saveDraft} onPublish={publish} saving={saving} onFitVenue={fitVenue} onSetDefault={setDefaultView} onResetView={resetView} hasUnpublished={hasUnpublished} /></div>
+        <div className="w-56 shrink-0"><MapToolbar activeTool={activeTool} setTool={setActiveTool} layout="panel" view={view} setView={setView} layersOpen={layersOpen} setLayersOpen={setLayersOpen} canUndo={!!history.length} canRedo={!!future.length} onUndo={undo} onRedo={redo} onSaveDraft={saveDraft} onPublish={draftMode ? saveDraft : publish} saving={saving} onFitVenue={fitVenue} onSetDefault={setDefaultView} onResetView={resetView} hasUnpublished={hasUnpublished} draftMode={draftMode} /></div>
         <div className="relative min-w-0 flex-1">
           <VenueMapCanvas event={event} fields={fields} objects={objects} activeTool={activeTool} setActiveTool={setActiveTool} selectedId={selected.id} selectedType={selected.type} onSelect={(id, type) => setSelected({ id, type })} onAddField={addField} onAddObject={addObject} onUpdateField={updateField} onUpdateObject={updateObject} view={view} games={allGames} onSelectField={(f) => setSelected({ id: f.id, type: "field" })} mapRef={mapRef} />
         </div>
