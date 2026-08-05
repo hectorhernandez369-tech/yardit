@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { CalendarPlus, Store, CalendarDays, Clock } from "lucide-react";
+import { CalendarPlus, Store, CalendarDays, Clock, FileText } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import VendorEventForm from "./VendorEventForm";
 import EventCollaboratorsPanel from "./EventCollaboratorsPanel";
@@ -13,8 +13,11 @@ import CollaborationInviteReview from "./CollaborationInviteReview";
 import EventsHubTab from "./EventsHubTab";
 import MyActiveEventsTab from "./MyActiveEventsTab";
 import EventHistoryTab from "./EventHistoryTab";
+import CreateEventDraftGate from "./CreateEventDraftGate";
+import DraftEventCard from "./DraftEventCard";
 import { getVendorEventPermission } from "@/lib/vendorEvents";
 import { isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
+import { pickOrganizerDrafts } from "@/lib/vendorEventDraft";
 
 export default function VendorEventsTab({ account, user }) {
   const navigate = useNavigate();
@@ -27,9 +30,10 @@ export default function VendorEventsTab({ account, user }) {
   const [editingEvent, setEditingEvent] = useState(null);
   const [collaboratorEvent, setCollaboratorEvent] = useState(null);
   const [reviewInvite, setReviewInvite] = useState(null);
+  // Draft resume state: when set, the Create dialog loads this draft into the form.
+  const [resumeDraft, setResumeDraft] = useState(null);
+  const [showDraftGate, setShowDraftGate] = useState(false);
 
-  // Persist the Events sub-tab and the Create Event dialog in the URL so a
-  // browser refresh returns the user to the exact same view.
   const updateEventsUrl = (changes) => {
     const params = new URLSearchParams(location.search);
     if (changes.subtab !== undefined) {
@@ -48,21 +52,13 @@ export default function VendorEventsTab({ account, user }) {
     updateEventsUrl({ subtab: nextTab });
   };
 
-  const openCreate = () => {
-    setShowCreate(true);
-    updateEventsUrl({ create: true });
-  };
-
-  const closeCreate = (open) => {
-    setShowCreate(open);
-    if (!open) updateEventsUrl({ create: false });
-  };
-
   const { data: events = [] } = useQuery({
     queryKey: ["vendorEvents"],
     queryFn: () => base44.entities.VendorEvent.list("startDateTime"),
     initialData: [],
   });
+
+  const drafts = pickOrganizerDrafts(events, account?.id);
 
   const { data: attendees = [] } = useQuery({
     queryKey: ["eventVendorAttendeesAll"],
@@ -95,7 +91,6 @@ export default function VendorEventsTab({ account, user }) {
   const currentMultiLocationPermission = getVendorEventPermission({ account, events, eventType: "multi_location" });
   const canCreateAnyEvent = currentSinglePermission.allowed || currentMultifieldPermission.allowed || currentMultiLocationPermission.allowed;
 
-  // Handle deep-link collaboration invite
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const inviteId = params.get("collabInvite");
@@ -109,7 +104,9 @@ export default function VendorEventsTab({ account, user }) {
 
   const handleRepeatHost = (event) => {
     setEditingEvent({ ...event, id: undefined, status: "draft", title: `${event.title} (Copy)` });
-    openCreate();
+    setResumeDraft(null);
+    setShowCreate(true);
+    updateEventsUrl({ create: true });
   };
 
   const handleRequestJoin = (event) => {
@@ -121,9 +118,58 @@ export default function VendorEventsTab({ account, user }) {
     queryClient.invalidateQueries({ queryKey: ["allEventCollaborators"] });
   };
 
+  // --- Create Event entry with draft resume gate ---
+  const openCreate = () => {
+    if (drafts.length > 0) {
+      setShowDraftGate(true);
+      return;
+    }
+    setResumeDraft(null);
+    setShowCreate(true);
+    updateEventsUrl({ create: true });
+  };
+
+  const closeCreate = (open) => {
+    setShowCreate(open);
+    if (!open) {
+      updateEventsUrl({ create: false });
+      setResumeDraft(null);
+    }
+  };
+
+  const continueDraft = () => {
+    setShowDraftGate(false);
+    setResumeDraft(drafts[0]);
+    setShowCreate(true);
+    updateEventsUrl({ create: true });
+  };
+
+  const startNewEvent = async () => {
+    setShowDraftGate(false);
+    await deleteAllDrafts();
+    setResumeDraft(null);
+    setShowCreate(true);
+    updateEventsUrl({ create: true });
+  };
+
+  const deleteAllDrafts = async () => {
+    await Promise.all(drafts.map((d) => base44.entities.VendorEvent.delete(d.id).catch(() => {})));
+    invalidate();
+  };
+
+  const deleteDraft = async (draft) => {
+    await base44.entities.VendorEvent.delete(draft.id).catch(() => {});
+    invalidate();
+  };
+
+  const editDraft = (draft) => {
+    setResumeDraft(draft);
+    setShowCreate(true);
+    updateEventsUrl({ create: true });
+  };
+
   return (
     <div className="space-y-5">
-      {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Events</h2>
@@ -137,7 +183,6 @@ export default function VendorEventsTab({ account, user }) {
         </Button>
       </div>
 
-      {/* Sub-tabs */}
       <Tabs value={tab} onValueChange={handleSubTabChange}>
         <TabsList className="bg-white border border-slate-200 p-1 rounded-xl gap-1">
           <TabsTrigger value="hub" className="rounded-lg gap-1.5 data-[state=active]:bg-[#2C4F4E] data-[state=active]:text-white">
@@ -148,6 +193,14 @@ export default function VendorEventsTab({ account, user }) {
             {pendingCollaborationInvites.length > 0 && (
               <Badge className="bg-[#F4A849] text-[#2C4F4E] text-[10px] font-bold ml-1 px-1.5 py-0 min-w-0">
                 {pendingCollaborationInvites.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="drafts" className="rounded-lg gap-1.5 data-[state=active]:bg-[#2C4F4E] data-[state=active]:text-white">
+            <FileText className="h-3.5 w-3.5" /> Drafts
+            {drafts.length > 0 && (
+              <Badge className="bg-amber-400 text-amber-900 text-[10px] font-bold ml-1 px-1.5 py-0 min-w-0">
+                {drafts.length}
               </Badge>
             )}
           </TabsTrigger>
@@ -184,6 +237,37 @@ export default function VendorEventsTab({ account, user }) {
           />
         </TabsContent>
 
+        <TabsContent value="drafts" className="mt-5">
+          <div className="space-y-3">
+            <div>
+              <h4 className="font-bold text-slate-800">Event Drafts</h4>
+              <p className="text-xs text-slate-500">Unfinished events in progress. Drafts are private — they never appear publicly or accept vendors.</p>
+            </div>
+            {drafts.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 flex flex-col items-center text-center gap-3">
+                <FileText className="h-8 w-8 text-slate-300" />
+                <p className="text-sm text-slate-500">No drafts. Start creating an event to see it here.</p>
+                {canCreateAnyEvent && (
+                  <Button size="sm" onClick={openCreate} className="bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]"><CalendarPlus className="h-4 w-4 mr-1" /> Create Event</Button>
+                )}
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {drafts.map((draft) => (
+                  <DraftEventCard
+                    key={draft.id}
+                    draft={draft}
+                    onEdit={() => editDraft(draft)}
+                    onDelete={() => {
+                      if (window.confirm("Delete this draft permanently?")) deleteDraft(draft);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
         <TabsContent value="history" className="mt-5">
           <EventHistoryTab
             events={events}
@@ -195,13 +279,26 @@ export default function VendorEventsTab({ account, user }) {
         </TabsContent>
       </Tabs>
 
-      {/* Create event dialog */}
+      {/* Resume-draft gate — shown when opening Create with an existing draft */}
+      <CreateEventDraftGate
+        open={showDraftGate}
+        onOpenChange={setShowDraftGate}
+        drafts={drafts}
+        onContinue={continueDraft}
+        onStartNew={startNewEvent}
+        onDeleteAll={async () => {
+          await deleteAllDrafts();
+          setShowDraftGate(false);
+        }}
+      />
+
+      {/* Create event dialog — loads the resumeDraft (if any) into the form */}
       <Dialog open={showCreate} onOpenChange={closeCreate}>
         <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0">
           <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 rounded-t-lg flex items-start justify-between gap-3">
             <div>
-              <DialogTitle className="text-xl font-bold text-slate-900">Create New Event</DialogTitle>
-              <p className="text-sm text-slate-500 mt-0.5">Fill in the details below to publish your vendor event.</p>
+              <DialogTitle className="text-xl font-bold text-slate-900">{resumeDraft ? "Continue Event Draft" : "Create New Event"}</DialogTitle>
+              <p className="text-sm text-slate-500 mt-0.5">Your progress is saved automatically as you edit.</p>
             </div>
             <button
               onClick={() => setShowCreate(false)}
@@ -212,7 +309,14 @@ export default function VendorEventsTab({ account, user }) {
             </button>
           </div>
           <div className="px-6 py-5">
-            <VendorEventForm account={account} user={user} existingEvents={events} onCreated={() => { invalidate(); closeCreate(false); }} />
+            <VendorEventForm
+              account={account}
+              user={user}
+              existingEvents={events}
+              draftEvent={resumeDraft}
+              onDraftChanged={invalidate}
+              onCreated={() => { invalidate(); closeCreate(false); }}
+            />
           </div>
         </DialogContent>
       </Dialog>

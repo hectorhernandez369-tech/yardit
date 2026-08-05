@@ -22,6 +22,7 @@ export default function MyActiveEventsTab({
       approvedVendorCount: attendees.filter((a) => a.event_id === e.id).length,
     }))
     .filter((e) => !["completed", "cancelled"].includes(e.computedStatus))
+    .filter((e) => e.status !== "draft") // drafts live in the Drafts tab
     .filter((e) => {
       const isOwner = e.organizer_business_id === account?.id;
       const isCollab = collaborators.some((c) => c.event_id === e.id && c.organization_id === account?.id && c.status === "accepted");

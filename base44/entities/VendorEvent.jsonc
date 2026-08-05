@@ -305,6 +305,15 @@
       "default": "none",
       "description": "Current state of the promotion/Coming Soon setup"
     },
+    "draft_form_data": {
+      "type": "object",
+      "description": "Full in-progress form snapshot for draft events (status=draft). Cleared when the draft is published. Future-proof: stores every Create Event field without schema changes."
+    },
+    "draft_current_step": {
+      "type": "number",
+      "default": 1,
+      "description": "Last active Create Event section (1-5) for draft resume/display."
+    },
     "created_at": {
       "type": "string",
       "format": "date-time"
@@ -317,12 +326,7 @@
   "required": [
     "organizer_user_id",
     "organizer_business_id",
-    "title",
     "event_type",
-    "status",
-    "startDateTime",
-    "endDateTime",
-    "latitude",
-    "longitude"
+    "status"
   ]
 }

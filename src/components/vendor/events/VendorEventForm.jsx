@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { isEligibleEventOrganizer } from "@/lib/vendorAccountIdentity";
 import { getPromotionRule, calcPromotionUpgrade, getPromotionDates } from "@/lib/vendorEventPromotion";
 import { differenceInDays } from "date-fns";
 import { toast } from "sonner";
+import { hasDraftContent, computeDraftStep, buildFormFromDraft } from "@/lib/vendorEventDraft";
 
 const initialForm = {
   title: "",
@@ -90,12 +91,13 @@ const buildInitialForm = (event) => event ? {
   coming_soon_start_date: event.coming_soon_start_date || "",
 } : initialForm;
 
-export default function VendorEventForm({ account, user, event = null, approvedVendorCount = 0, mode = "full", existingEvents = [], onCreated, preserveOwner = false }) {
+export default function VendorEventForm({ account, user, event = null, approvedVendorCount = 0, mode = "full", existingEvents = [], onCreated, preserveOwner = false, draftEvent = null, onDraftChanged = null }) {
   const isEditing = !!event?.id;
   const showPublicFields = mode !== "vendor";
   const showVendorFields = mode !== "public";
   const datesLocked = isEditing && approvedVendorCount > 0;
-  const [form, setForm] = useState(() => buildInitialForm(event));
+  const [form, setForm] = useState(() => (draftEvent && !isEditing) ? buildFormFromDraft(draftEvent, initialForm) : buildInitialForm(event));
+  const [draftEventId, setDraftEventId] = useState(draftEvent?.id || null);
   const [saving, setSaving] = useState(false);
   const [uploadingFlyer, setUploadingFlyer] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -105,6 +107,56 @@ export default function VendorEventForm({ account, user, event = null, approvedV
   const [collaboratorInvitations, setCollaboratorInvitations] = useState([]);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  // --- Create Event draft auto-save (create mode only) ---
+  // Persists the full in-progress form to a draft VendorEvent (status="draft") so a
+  // page refresh or location-modal save never loses work. On publish the same record
+  // is converted into the live event (see saveEvent) — no duplicate is created.
+  const draftSaveRef = useRef(null);
+  useEffect(() => {
+    if (isEditing || !account?.id || !user?.id) return;
+    if (!draftEventId && !hasDraftContent(form)) return; // don't create an empty draft
+
+    if (draftSaveRef.current) clearTimeout(draftSaveRef.current);
+    draftSaveRef.current = setTimeout(async () => {
+      try {
+        const step = computeDraftStep(form);
+        const nowIso = new Date().toISOString();
+        const payload = {
+          organizer_user_id: user.id,
+          organizer_business_id: account.id,
+          organizer_business_name: account.business_name || "",
+          organizer_logo: account.business_logo || "",
+          title: form.title || "Untitled Event",
+          description: form.description || "",
+          category: form.category || "",
+          event_type: form.event_type,
+          status: "draft",
+          display_address: form.display_address || "",
+          radius_feet: Number(form.radius_feet || 0),
+          highlights: form.highlights || [],
+          draft_form_data: form,
+          draft_current_step: step,
+          updated_at: nowIso,
+          ...(form.latitude ? { latitude: Number(form.latitude) } : {}),
+          ...(form.longitude ? { longitude: Number(form.longitude) } : {}),
+          ...(form.startDateTime ? { startDateTime: new Date(form.startDateTime).toISOString() } : {}),
+          ...(form.endDateTime ? { endDateTime: new Date(form.endDateTime).toISOString() } : {}),
+        };
+        if (draftEventId) {
+          await base44.entities.VendorEvent.update(draftEventId, payload);
+        } else {
+          const created = await base44.entities.VendorEvent.create({ ...payload, created_at: nowIso });
+          setDraftEventId(created.id);
+          onDraftChanged?.();
+        }
+      } catch (err) {
+        // Best-effort autosave — ignore transient errors.
+      }
+    }, 900);
+    return () => { if (draftSaveRef.current) clearTimeout(draftSaveRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, isEditing, account?.id, user?.id, draftEventId]);
 
   const createCollaboratorInvitations = async (savedEvent, now) => {
     if (isEditing || collaboratorInvitations.length === 0) return;
@@ -255,7 +307,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       events: existingEvents,
       eventType: form.event_type,
       startDateTime: form.startDateTime,
-      excludeEventId: event?.id || null,
+      excludeEventId: event?.id || draftEventId || null,
     });
 
     if (!eventPermission.allowed && (!isEditing || form.event_type !== event.event_type || form.startDateTime !== toLocalDateTimeValue(event.startDateTime))) {
@@ -356,9 +408,15 @@ export default function VendorEventForm({ account, user, event = null, approvedV
       updated_at: now,
     };
 
+    const draftSnapshot = status === "draft"
+      ? { draft_form_data: form, draft_current_step: computeDraftStep(form) }
+      : { draft_form_data: null, draft_current_step: null };
+
     const savedEvent = isEditing
       ? await base44.entities.VendorEvent.update(event.id, eventData)
-      : await base44.entities.VendorEvent.create({ ...eventData, created_at: now });
+      : draftEventId
+        ? await base44.entities.VendorEvent.update(draftEventId, { ...eventData, ...draftSnapshot })
+        : await base44.entities.VendorEvent.create({ ...eventData, created_at: now, ...draftSnapshot });
 
     if (["multi_spot", "multi_location"].includes(form.event_type) && form.event_flags.length > 0) {
       await syncFlagsToEvent(savedEvent.id, form.event_flags);
@@ -378,9 +436,10 @@ export default function VendorEventForm({ account, user, event = null, approvedV
     }
 
     setCreatedEvent(savedEvent);
-    if (!isEditing) {
+    if (!isEditing && status !== "draft") {
       setForm({ ...initialForm });
       setCollaboratorInvitations([]);
+      setDraftEventId(null);
     }
     setSaving(false);
     toast.success(isEditing ? "Event details updated" : status === "published" ? "Event published" : "Event saved as draft");
