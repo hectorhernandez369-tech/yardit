@@ -1,9 +1,10 @@
 import { Circle, Polygon, Rectangle, Tooltip } from "react-leaflet";
 
 export function getShapeStyle(shape, selected = false) {
+  const baseOpacity = Number(shape.lineOpacity ?? 0.9);
   return {
     color: shape.lineColor || shape.fillColor || "#F4A849",
-    opacity: Number(shape.lineOpacity ?? 0.9),
+    opacity: Math.min(1, baseOpacity + (selected ? 0.1 : 0)),
     fillColor: shape.fillColor || "#F4A849",
     fillOpacity: Number(shape.fillOpacity ?? 0.2),
     weight: selected ? 4 : 2,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Circle, MapContainer, Marker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { calculateMiles } from "@/lib/vendorEvents";
 import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
 import AreaDrawingLayer from "./AreaDrawingLayer";
 import AreaShapeViews from "./AreaShapeViews";
+import DraggableAreaShapes, { isShapeFullyVisible } from "./DraggableAreaShape";
 import MapSetupHighlightEditor from "./MapSetupHighlightEditor";
 import MapSetupFlagEditor from "./MapSetupFlagEditor";
 import PublicVendorEventMap from "./PublicVendorEventMap";
@@ -84,6 +85,12 @@ function MapTapHandler({ active, eventLocation, onAddFlag }) {
   return null;
 }
 
+function MapReady({ onReady }) {
+  const map = useMap();
+  useEffect(() => { onReady(map); }, [map, onReady]);
+  return null;
+}
+
 export default function EventMapSetup({ open, onOpenChange, eventType, value, onChange }) {
   const showFlags = ["multi_spot", "multi_location"].includes(eventType);
   const center = [Number(value.latitude), Number(value.longitude)];
@@ -98,6 +105,8 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
   const [mapStyle, setMapStyle] = useState("standard");
   const [showPreview, setShowPreview] = useState(false);
   const [flyTarget, setFlyTarget] = useState(null);
+  const [draggingAreaId, setDraggingAreaId] = useState(null);
+  const mapRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -110,6 +119,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     setMapStyle("standard");
     setShowPreview(false);
     setFlyTarget(null);
+    setDraggingAreaId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -170,6 +180,18 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     const c = areaCenter(shape);
     if (c) setFlyTarget({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
   };
+  const selectAreaFromMap = (shape) => {
+    setSelectedId(shape.id);
+    setEditing({ type: "area", id: shape.id });
+    const map = mapRef.current;
+    const c = areaCenter(shape);
+    if (c && (!map || !isShapeFullyVisible(map, shape))) {
+      setFlyTarget({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
+    }
+  };
+  const onDragStart = (id) => setDraggingAreaId(id);
+  const onDragMove = (id, patch) => updateHighlight(id, patch);
+  const onDragEnd = (id, patch) => updateHighlight(id, patch);
 
   const drawingMode = mode === "flag" || mode === "none" ? "none" : mode;
 
@@ -201,6 +223,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
             <div className="relative h-[440px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
               <MapContainer center={center} zoom={15} className="h-full w-full" scrollWheelZoom>
                 <VendorEventMapboxTileLayer mapStyle={mapStyle} />
+                <MapReady onReady={(m) => { mapRef.current = m; }} />
                 <FitEventArea center={center} radiusMeters={radiusMeters} showRadius={showFlags} />
                 <FlyTo target={flyTarget} />
                 <MapTapHandler
@@ -210,7 +233,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                 />
                 <AreaDrawingLayer
                   drawingMode={drawingMode}
-                  shapes={highlights}
+                  shapes={[]}
                   onAddShape={addHighlight}
                   onFinishDrawing={() => setMode("none")}
                   onRejectShape={(m) => toast.error(m)}
@@ -219,7 +242,19 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   <Circle center={center} radius={radiusMeters} pathOptions={{ color: "#5DADA5", fillColor: "#5DADA5", fillOpacity: 0.1, weight: 2 }} />
                 )}
                 <Marker position={center} />
-                <AreaShapeViews shapes={highlights} selectedId={selectedId} />
+                {drawingMode === "none" ? (
+                  <DraggableAreaShapes
+                    shapes={highlights}
+                    selectedId={selectedId}
+                    interactive
+                    onSelect={selectAreaFromMap}
+                    onDragStart={onDragStart}
+                    onDragMove={onDragMove}
+                    onDragEnd={onDragEnd}
+                  />
+                ) : (
+                  <AreaShapeViews shapes={highlights} />
+                )}
                 {flags.map((flag) => {
                   const id = flag.temp_id || flag.id;
                   const selected = selectedId === id;
@@ -228,7 +263,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                       key={id}
                       position={[Number(flag.latitude), Number(flag.longitude)]}
                       icon={makeFlagIcon(flag, selected)}
-                      draggable={mode === "none"}
+                      draggable={mode === "none" && !draggingAreaId}
                       bubblingMouseEvents={false}
                       eventHandlers={{
                         click: () => selectFlag(flag),
