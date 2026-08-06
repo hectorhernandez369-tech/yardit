@@ -4,7 +4,7 @@ import L from "leaflet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Plus, X, MapPin, Flag as FlagIcon, Trash2, Eye, Circle as CircleIcon, Square, Triangle as TriangleIcon } from "lucide-react";
+import { X, MapPin, Flag as FlagIcon, Trash2, Eye, Circle as CircleIcon, Square, Triangle as TriangleIcon } from "lucide-react";
 import { calculateMiles } from "@/lib/vendorEvents";
 import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
 import AreaDrawingLayer from "./AreaDrawingLayer";
@@ -451,48 +451,57 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
               )}
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid gap-2 sm:grid-cols-2">
+            {/* Toolbar — all tools visible, no hidden layers */}
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-2">
               {showFlags && (
                 <Button
                   type="button"
                   variant={mode === "flag" ? "default" : "outline"}
                   onClick={() => setMode(mode === "flag" ? "none" : "flag")}
-                  className="h-12 gap-2 text-base"
+                  className="h-11 gap-2 font-semibold"
                   disabled={areaMode === "resize"}
                 >
-                  <FlagIcon className="w-5 h-5" /> {mode === "flag" ? "Placing Flag — Tap Map" : "Add Field Flag"}
+                  <FlagIcon className="w-5 h-5" /> {mode === "flag" ? "Placing Flag" : "Add Flag"}
                 </Button>
               )}
-              <div className={showFlags ? "" : "sm:col-span-2"}>
+              <Button
+                type="button"
+                variant={mode === "circle" ? "default" : "outline"}
+                onClick={() => setMode(mode === "circle" ? "none" : "circle")}
+                className="h-11 gap-2 font-semibold"
+                disabled={areaMode === "resize"}
+              >
+                <CircleIcon className="w-5 h-5" /> Circle
+              </Button>
+              <Button
+                type="button"
+                variant={mode === "rectangle" ? "default" : "outline"}
+                onClick={() => setMode(mode === "rectangle" ? "none" : "rectangle")}
+                className="h-11 gap-2 font-semibold"
+                disabled={areaMode === "resize"}
+              >
+                <Square className="w-5 h-5" /> Rectangle
+              </Button>
+              <Button
+                type="button"
+                variant={mode === "triangle" ? "default" : "outline"}
+                onClick={() => setMode(mode === "triangle" ? "none" : "triangle")}
+                className="h-11 gap-2 font-semibold"
+                disabled={areaMode === "resize"}
+              >
+                <TriangleIcon className="w-5 h-5" /> Triangle
+              </Button>
+              {mode !== "none" && (
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setHighlightOpen((v) => !v)}
-                  className="h-12 w-full gap-2 text-base"
-                  disabled={["circle", "rectangle", "triangle"].includes(mode) || areaMode === "resize"}
+                  onClick={() => { setMode("none"); setHighlightOpen(false); }}
+                  className="h-11 gap-2 ml-auto border-red-300 text-red-600 hover:bg-red-50"
                 >
-                  <Plus className="w-5 h-5" /> Highlight an Area
+                  <X className="w-5 h-5" /> Cancel Draw
                 </Button>
-              </div>
+              )}
             </div>
-
-            {highlightOpen && !["circle", "rectangle", "triangle"].includes(mode) && (
-              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-2">
-                {[
-                  { id: "circle", label: "Circle", icon: CircleIcon },
-                  { id: "rectangle", label: "Rectangle", icon: Square },
-                  { id: "triangle", label: "Triangle", icon: TriangleIcon },
-                ].map((t) => (
-                  <Button key={t.id} type="button" variant="outline" onClick={() => { setMode(t.id); setHighlightOpen(false); }} className="h-11 min-w-[110px] flex-1 gap-2">
-                    <t.icon className="w-5 h-5" /> {t.label}
-                  </Button>
-                ))}
-                <Button type="button" variant="outline" onClick={() => setHighlightOpen(false)} className="h-11 min-w-[110px] flex-1 gap-2 border-red-300 text-red-600 hover:bg-red-50">
-                  <X className="w-5 h-5" /> Cancel
-                </Button>
-              </div>
-            )}
 
             {/* Items on Map */}
             <div className="space-y-4 rounded-xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-3">
