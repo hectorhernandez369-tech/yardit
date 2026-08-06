@@ -357,7 +357,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   onAddFlag={addFlag}
                 />
                 <MapClickHandler
-                  active={mode === "none"}
+                  active={mode === "none" && !selectedShape}
                   onDeselect={deselectAll}
                 />
                 <AreaDrawingLayer
