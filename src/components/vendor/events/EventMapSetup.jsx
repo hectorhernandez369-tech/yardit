@@ -512,7 +512,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                     {flags.length > 0 && <span className="text-xs font-normal text-slate-500">({flags.length})</span>}
                   </p>
                   {flags.length === 0 ? (
-                    <p className="text-xs text-slate-500 pl-6">No flags yet. Tap “Add Field Flag” then click the map.</p>
+                    <p className="text-xs text-slate-500 pl-6">No flags yet. Tap “Add Flag”, then click the map to place one.</p>
                   ) : (
                     flags.map((flag) => {
                       const id = flag.temp_id || flag.id;
@@ -541,7 +541,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   {highlights.length > 0 && <span className="text-xs font-normal text-slate-500">({highlights.length})</span>}
                 </p>
                 {highlights.length === 0 ? (
-                  <p className="text-xs text-slate-500 pl-6">No areas yet. Tap “Highlight an Area” and draw on the map.</p>
+                  <p className="text-xs text-slate-500 pl-6">No areas yet. Tap Circle, Rectangle, or Triangle, then draw on the map.</p>
                 ) : (
                   highlights.map((shape) => {
                     const isEditing = editing?.type === "area" && editing.id === shape.id;
