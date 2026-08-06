@@ -124,7 +124,7 @@ export default function AreaResizeLayer({ shape, onResize }) {
   if (!handleIds.length) return null;
 
   return createPortal(
-    <div className="pointer-events-none absolute inset-0 z-[750]">
+    <div data-no-map-click className="pointer-events-none absolute inset-0 z-[750]">
       {handleIds.map((hid) => {
         const px = dragId === hid && dragPx ? dragPx : handleLatLngFromShape(map, shape, hid);
         if (!px) return null;

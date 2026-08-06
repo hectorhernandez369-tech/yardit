@@ -33,7 +33,7 @@ export default function AreaSelectionToolbar({
   const transform = placeBelow ? "translate(-50%, 0)" : "translate(-50%, -100%)";
 
   return createPortal(
-    <div className="absolute z-[800]" style={{ left: bbox.cx, top, transform }}>
+    <div data-no-map-click className="absolute z-[800]" style={{ left: bbox.cx, top, transform }}>
       <div className="flex items-center gap-1 rounded-full border-2 border-[#2C4F4E] bg-white/95 p-1 shadow-lg">
         {mode === "resize" ? (
           <>

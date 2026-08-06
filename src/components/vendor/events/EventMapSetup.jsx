@@ -52,11 +52,23 @@ function MapInteractionLock({ active }) {
 }
 
 function MapClickHandler({ active, onDeselect }) {
-  useMapEvents({
-    click: () => {
-      if (active) onDeselect();
-    },
-  });
+  const map = useMap();
+  const stateRef = useRef({ active, onDeselect });
+  stateRef.current = { active, onDeselect };
+  useEffect(() => {
+    const handler = (e) => {
+      const s = stateRef.current;
+      if (!s.active) return;
+      // Ignore clicks that originate inside the floating toolbar or resize
+      // handles (portaled into the map container) so Edit/Resize/Done/Cancel
+      // don't also trigger a map deselect.
+      const target = e?.originalEvent?.target;
+      if (target && typeof target.closest === "function" && target.closest("[data-no-map-click]")) return;
+      s.onDeselect();
+    };
+    map.on("click", handler);
+    return () => map.off("click", handler);
+  }, [map]);
   return null;
 }
 
@@ -306,6 +318,13 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     resizeSnapshotRef.current = null;
     hideCallout();
   };
+
+  const editingAreaRef = useRef(null);
+  useEffect(() => {
+    if (editing?.type === "area" && editingAreaRef.current) {
+      try { editingAreaRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch { /* noop */ }
+    }
+  }, [editing]);
   const onDragStart = (id) => setDraggingAreaId(id);
   const onDragMove = (id, patch) => updateHighlight(id, patch);
   const onDragEnd = (id, patch) => updateHighlight(id, patch);
@@ -546,7 +565,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   highlights.map((shape) => {
                     const isEditing = editing?.type === "area" && editing.id === shape.id;
                     return (
-                      <div key={shape.id} className={`rounded-lg border bg-white p-2.5 ${selectedId === shape.id ? "border-[#5DADA5] ring-1 ring-[#5DADA5]/40" : "border-[#2C4F4E]/10"}`}>
+                      <div key={shape.id} ref={isEditing ? editingAreaRef : null} className={`rounded-lg border bg-white p-2.5 ${selectedId === shape.id ? "border-[#5DADA5] ring-1 ring-[#5DADA5]/40" : "border-[#2C4F4E]/10"}`}>
                         <div className="flex items-center gap-2">
                           <span className="h-5 w-5 shrink-0 rounded-full border border-[#2C4F4E]/20" style={{ backgroundColor: shape.fillColor || "#F4A849" }} />
                           <button type="button" onClick={() => selectArea(shape)} className="flex-1 text-left text-sm font-semibold text-[#2C4F4E] truncate hover:underline">
