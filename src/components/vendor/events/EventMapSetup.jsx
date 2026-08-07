@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { X, MapPin, Flag as FlagIcon, Trash2, Eye, Circle as CircleIcon, Square, Triangle as TriangleIcon } from "lucide-react";
 import { calculateMiles } from "@/lib/vendorEvents";
+import { isPointInShape, offsetShapeGeometry } from "@/lib/areaGeometry";
 import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
 import AreaDrawingLayer from "./AreaDrawingLayer";
 import AreaShapeViews from "./AreaShapeViews";
@@ -246,6 +247,43 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     setSelectedId((cur) => (cur === id ? null : cur));
   };
 
+  const duplicateSelectedShape = () => {
+    if (!selectedShape) return;
+    const dLat = 0.00025;
+    const dLng = 0.00025;
+    const newId = `area_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const newShape = { ...selectedShape, id: newId, ...offsetShapeGeometry(selectedShape, dLat, dLng) };
+    setHighlights((prev) => [...prev, newShape]);
+
+    // Copy any flags that sit inside the original shape into the new shape,
+    // offset by the same delta. renumberFlags assigns them the next sequential
+    // Field numbers (they do NOT keep the original's number).
+    const contained = flags.filter(
+      (f) => isPointInShape(selectedShape, Number(f.latitude), Number(f.longitude))
+    );
+    if (contained.length) {
+      const newFlags = contained.map((f) => ({
+        temp_id: `flag-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        label: "",
+        title: "",
+        description: f.description || "",
+        category: f.category || "",
+        icon_key: f.icon_key || "flag",
+        schedule_entries: [],
+        latitude: Number(f.latitude) + dLat,
+        longitude: Number(f.longitude) + dLng,
+        display_order: 0,
+      }));
+      setFlags((prev) => renumberFlags([...prev, ...newFlags]));
+    }
+
+    setSelectedId(newId);
+    setEditing({ type: "area", id: newId });
+    pinCallout(newId);
+    const c = areaCenter(newShape);
+    if (c) setFlyTarget({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
+  };
+
   const selectFlag = (flag) => {
     const id = flag.temp_id || flag.id;
     setSelectedId(id);
@@ -400,6 +438,15 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                       shape={selectedShape}
                       onDelete={() => removeHighlight(selectedShape.id)}
                       onDone={finishAreaSelection}
+                      onAddFlag={
+                        showFlags
+                          ? () => {
+                              const c = areaCenter(selectedShape);
+                              if (c) addFlag(c[0], c[1]);
+                            }
+                          : undefined
+                      }
+                      onDuplicate={duplicateSelectedShape}
                     />
 
                     <AreaResizeLayer

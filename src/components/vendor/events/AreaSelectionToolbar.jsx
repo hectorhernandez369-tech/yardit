@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { useMap } from "react-leaflet";
-import { Check, Trash2 } from "lucide-react";
+import { Check, Trash2, Flag, Copy } from "lucide-react";
 import { shapeBBoxPixels } from "@/lib/areaGeometry";
 import { useMapRepaint } from "./useMapRepaint";
 
@@ -11,6 +11,8 @@ export default function AreaSelectionToolbar({
   shape,
   onDelete,
   onDone,
+  onAddFlag,
+  onDuplicate,
 }) {
   const map = useMap();
   const container = map.getContainer();
@@ -34,10 +36,42 @@ export default function AreaSelectionToolbar({
       className="absolute z-[800]"
       style={{ left: bbox.cx, top, transform }}
     >
-      <div className="flex items-center gap-1 rounded-full border-2 border-[#2C4F4E] bg-white/95 p-1 shadow-lg">
+      <div className="flex flex-wrap items-center justify-center gap-1 rounded-full border-2 border-[#2C4F4E] bg-white/95 p-1 shadow-lg">
         <span className="px-2 text-[11px] font-bold uppercase tracking-wide text-[#2C4F4E]">
-          Drag to move · handles resize
+          Drag · Resize
         </span>
+
+        {onAddFlag && (
+          <button
+            type="button"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onAddFlag();
+            }}
+            className={`${BTN} bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]`}
+            title="Add flag inside this shape"
+          >
+            <Flag className="h-4 w-4" />
+            Add Flag
+          </button>
+        )}
+
+        {onDuplicate && (
+          <button
+            type="button"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onDuplicate();
+            }}
+            className={`${BTN} bg-white text-[#2C4F4E] hover:bg-slate-100 border border-[#2C4F4E]/30`}
+            title="Duplicate this shape"
+          >
+            <Copy className="h-4 w-4" />
+            Duplicate
+          </button>
+        )}
 
         <button
           type="button"
