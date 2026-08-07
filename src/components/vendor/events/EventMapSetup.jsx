@@ -375,8 +375,8 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   <DraggableAreaShapes
                     shapes={highlights}
                     selectedId={selectedId}
-                    interactive
-                    dragEnabled
+                    interactive={mode !== "flag"}
+                    dragEnabled={mode !== "flag"}
                     onSelect={selectAreaFromMap}
                     onDragStart={onDragStart}
                     onDragMove={onDragMove}
