@@ -384,7 +384,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto overflow-x-hidden max-md:p-3 max-md:gap-3">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="w-5 h-5 text-[#2C4F4E]" /> Event Map Setup
@@ -539,7 +539,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
             )}
 
             {/* Toolbar — all tools visible, no hidden layers */}
-            <div className="flex flex-wrap max-md:flex-nowrap max-md:overflow-x-auto items-center gap-2 rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-2">
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-2">
               {showFlags && (
                 <Button
                   type="button"
