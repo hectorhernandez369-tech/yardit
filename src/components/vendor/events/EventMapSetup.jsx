@@ -81,12 +81,98 @@ const DRAW_HINTS = {
   triangle: "Tap three points.",
 };
 
-const makeFlagIcon = (flag, selected) => L.divIcon({
-  className: "vendor-event-flag-marker",
-  html: `<div style="display:flex;align-items:center;gap:4px;transform:translate(-2px,-28px);"><div style="width:${selected ? 32 : 24}px;height:${selected ? 32 : 24}px;border-radius:9999px;background:#F4A849;border:${selected ? 3 : 2}px solid #2C4F4E;display:flex;align-items:center;justify-content:center;font-size:${selected ? 17 : 13}px;box-shadow:0 3px 8px rgba(0,0,0,.28);">⚑</div><span style="white-space:nowrap;background:${selected ? "#FFF6E8" : "white"};border:1px solid #2C4F4E22;border-radius:9999px;padding:2px 8px;font-size:12px;font-weight:700;color:#2C4F4E;box-shadow:0 2px 6px rgba(0,0,0,.12);">${flag.title || flag.label || "Flag"}</span></div>`,
-  iconSize: [selected ? 32 : 24, selected ? 32 : 24],
-  iconAnchor: [selected ? 16 : 12, selected ? 32 : 24],
-});
+function findContainingShape(flag, highlights) {
+  const lat = Number(flag.latitude);
+  const lng = Number(flag.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return highlights.find((shape) => isPointInShape(shape, lat, lng)) || null;
+}
+
+function getShapePixelBox(map, shape) {
+  if (!map || !shape) return null;
+  if (shape.type === "rectangle") {
+    const a = map.latLngToContainerPoint(shape.bounds[0]);
+    const b = map.latLngToContainerPoint(shape.bounds[1]);
+    return { width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y) };
+  }
+  if (shape.type === "circle") {
+    const dLng = shape.radius / (111320 * Math.cos((shape.center[0] * Math.PI) / 180));
+    const centerPx = map.latLngToContainerPoint(shape.center);
+    const edgePx = map.latLngToContainerPoint([shape.center[0], shape.center[1] + dLng]);
+    const radiusPx = Math.abs(edgePx.x - centerPx.x);
+    return { width: radiusPx * 2, height: radiusPx * 2 };
+  }
+  if (shape.type === "triangle") {
+    const points = (shape.points || []).map((p) => map.latLngToContainerPoint(p));
+    if (!points.length) return null;
+    const xs = points.map((p) => p.x);
+    const ys = points.map((p) => p.y);
+    return { width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
+  }
+  return null;
+}
+
+function makeFlagIcon(flag, selected, map, containingShape) {
+  const box = containingShape ? getShapePixelBox(map, containingShape) : null;
+  const available = box ? Math.max(0, Math.min(box.width, box.height)) : 999;
+
+  let labelMode = "full";
+  let markerSize = selected ? 28 : 22;
+  let fontSize = 11;
+  let padX = 6;
+  let gap = 3;
+
+  if (available < 80) {
+    labelMode = "compact";
+    markerSize = selected ? 22 : 18;
+    fontSize = 10;
+    padX = 4;
+    gap = 2;
+  }
+  if (available < 48) {
+    labelMode = "number";
+    markerSize = selected ? 18 : 15;
+    fontSize = 9;
+    padX = 2;
+    gap = 1;
+  }
+
+  const rawLabel = flag.title || flag.label || "Flag";
+  const match = /(\d+)/.exec(rawLabel);
+  const fieldNumber = match ? match[1] : "";
+
+  const displayLabel =
+    labelMode === "full"
+      ? rawLabel
+      : labelMode === "compact"
+        ? fieldNumber ? `F${fieldNumber}` : rawLabel
+        : fieldNumber || "";
+
+  const estimatedLabelWidth = displayLabel.length * fontSize * 0.62 + padX * 2;
+  const totalWidth = markerSize + (displayLabel ? gap + estimatedLabelWidth : 0);
+
+  const scale =
+    box && box.width > 0
+      ? Math.min(1, Math.max(0.45, (box.width - 8) / totalWidth))
+      : 1;
+
+  const finalMarkerSize = Math.max(12, Math.round(markerSize * scale));
+  const finalFontSize = Math.max(8, Math.round(fontSize * scale));
+
+  const html = `
+    <div style="display:flex;align-items:center;justify-content:center;gap:${Math.max(1, Math.round(gap * scale))}px;white-space:nowrap;transform:translate(-50%,-50%);pointer-events:auto;">
+      <div style="width:${finalMarkerSize}px;height:${finalMarkerSize}px;min-width:${finalMarkerSize}px;border-radius:9999px;background:#F4A849;border:${selected ? 2 : 1.5}px solid #2C4F4E;display:flex;align-items:center;justify-content:center;font-size:${Math.max(9, finalFontSize)}px;line-height:1;box-shadow:0 2px 5px rgba(0,0,0,.22);">⚑</div>
+      ${displayLabel ? `<span style="background:${selected ? "#FFF6E8" : "rgba(255,255,255,.94)"};border:1px solid #2C4F4E22;border-radius:9999px;padding:1px ${Math.max(2, Math.round(padX * scale))}px;font-size:${finalFontSize}px;font-weight:700;color:#2C4F4E;line-height:1.25;box-shadow:0 1px 4px rgba(0,0,0,.12);">${displayLabel}</span>` : ""}
+    </div>
+  `;
+
+  return L.divIcon({
+    className: "vendor-event-flag-marker",
+    html,
+    iconSize: [1, 1],
+    iconAnchor: [0, 0],
+  });
+}
 
 function areaCenter(shape) {
   if (shape.type === "circle") return shape.center;
@@ -151,6 +237,18 @@ function MapReady({ onReady }) {
   return null;
 }
 
+function MapZoomWatcher({ onZoom }) {
+  const map = useMapEvents({
+    zoomend() {
+      onZoom(map.getZoom());
+    },
+  });
+  useEffect(() => {
+    onZoom(map.getZoom());
+  }, [map, onZoom]);
+  return null;
+}
+
 
 
 export default function EventMapSetup({ open, onOpenChange, eventType, value, onChange }) {
@@ -170,6 +268,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
   const [flyTarget, setFlyTarget] = useState(null);
   const [draggingAreaId, setDraggingAreaId] = useState(null);
   const [callout, setCallout] = useState({ id: null, shown: false });
+  const [mapZoom, setMapZoom] = useState(15);
   const mapRef = useRef(null);
   const calloutTimerRef = useRef(null);
   const isMobile = useIsMobile();
@@ -328,7 +427,9 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
 
   const selectAreaFromMap = (shape) => {
     setSelectedId(shape.id);
-    setEditing({ type: "area", id: shape.id });
+    // On mobile, a tap only selects (for drag/resize). Long-press opens the
+    // edit sheet so panning across a shape doesn't accidentally open it.
+    if (!isMobile) setEditing({ type: "area", id: shape.id });
     pinCallout(shape.id);
 
     const map = mapRef.current;
@@ -342,6 +443,15 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
         ts: Date.now(),
       });
     }
+  };
+
+  const openMobileShapeEditor = (shapeId) => {
+    if (!isMobile) return;
+    const shape = highlights.find((h) => h.id === shapeId);
+    if (!shape) return;
+    setSelectedId(shapeId);
+    setEditing({ type: "area", id: shapeId });
+    pinCallout(shapeId);
   };
 
   const finishAreaSelection = () => {
@@ -416,6 +526,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
               <MapContainer center={center} zoom={15} className="h-full w-full" scrollWheelZoom>
                 <VendorEventMapboxTileLayer mapStyle={mapStyle} />
                 <MapReady onReady={(m) => { mapRef.current = m; }} />
+                <MapZoomWatcher onZoom={setMapZoom} />
                 <FitEventArea center={center} radiusMeters={radiusMeters} showRadius={showFlags} />
                 <FlyTo target={flyTarget} />
                 <MapTapHandler
@@ -445,6 +556,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                     interactive={mode !== "flag"}
                     dragEnabled={mode !== "flag"}
                     onSelect={selectAreaFromMap}
+                    onLongPress={openMobileShapeEditor}
                     onDragStart={onDragStart}
                     onDragMove={onDragMove}
                     onDragEnd={onDragEnd}
@@ -484,11 +596,14 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                 {flags.map((flag) => {
                   const id = flag.temp_id || flag.id;
                   const selected = selectedId === id;
+                  const containingShape = findContainingShape(flag, highlights);
+                  // mapZoom drives re-render so the icon rescales on zoom changes
+                  void mapZoom;
                   return (
                     <Marker
                       key={id}
                       position={[Number(flag.latitude), Number(flag.longitude)]}
-                      icon={makeFlagIcon(flag, selected)}
+                      icon={makeFlagIcon(flag, selected, mapRef.current, containingShape)}
                       draggable={mode === "none" && !draggingAreaId}
                       bubblingMouseEvents={false}
                       eventHandlers={{

@@ -3,6 +3,8 @@ import { Circle, Polygon, Rectangle } from "react-leaflet";
 import { getShapeStyle } from "./AreaShapeViews";
 
 const MOVE_THRESHOLD_PX = 5;
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_CANCEL_PX = 8;
 
 function pathEl(layer) {
   return layer?._path || layer?._renderer?._path || null;
@@ -74,13 +76,20 @@ function moveGeometry(origShape, dLat, dLng) {
   return {};
 }
 
-function DraggableShape({ shape, selected, interactive, dragEnabled = true, onSelect, onDragStart, onDragMove, onDragEnd }) {
+function DraggableShape({ shape, selected, interactive, dragEnabled = true, onSelect, onLongPress, onDragStart, onDragMove, onDragEnd }) {
   const layerRef = useRef(null);
   const shapeRef = useRef(shape);
   shapeRef.current = shape;
-  const cbRef = useRef({ onSelect, onDragStart, onDragMove, onDragEnd, dragEnabled });
-  cbRef.current = { onSelect, onDragStart, onDragMove, onDragEnd, dragEnabled };
+  const cbRef = useRef({ onSelect, onLongPress, onDragStart, onDragMove, onDragEnd, dragEnabled });
+  cbRef.current = { onSelect, onLongPress, onDragStart, onDragMove, onDragEnd, dragEnabled };
   const dragRef = useRef(null);
+  const longPressRef = useRef(null);
+
+  const clearLongPress = () => {
+    const lp = longPressRef.current;
+    if (lp?.timer) clearTimeout(lp.timer);
+    longPressRef.current = null;
+  };
 
   // Attach pointer handlers once when the path is ready.
   useEffect(() => {
@@ -94,6 +103,20 @@ function DraggableShape({ shape, selected, interactive, dragEnabled = true, onSe
       if (ev.pointerType === "mouse" && ev.button !== 0) return;
       ev.stopPropagation();
       ev.preventDefault();
+      clearLongPress();
+      longPressRef.current = {
+        pointerId: ev.pointerId,
+        startX: ev.clientX,
+        startY: ev.clientY,
+        fired: false,
+        timer: setTimeout(() => {
+          const lp = longPressRef.current;
+          if (!lp || lp.pointerId !== ev.pointerId) return;
+          lp.fired = true;
+          cbRef.current.onSelect?.(shapeRef.current.id);
+          cbRef.current.onLongPress?.(shapeRef.current.id);
+        }, LONG_PRESS_MS),
+      };
       cbRef.current.onSelect(shapeRef.current.id);
       if (!cbRef.current.dragEnabled) return;
       const map = layer._map;
@@ -117,6 +140,12 @@ function DraggableShape({ shape, selected, interactive, dragEnabled = true, onSe
     };
 
     const onPointerMove = (ev) => {
+      const lp = longPressRef.current;
+      if (lp) {
+        const ldx = ev.clientX - lp.startX;
+        const ldy = ev.clientY - lp.startY;
+        if (Math.hypot(ldx, ldy) > LONG_PRESS_MOVE_CANCEL_PX) clearLongPress();
+      }
       const d = dragRef.current;
       if (!d) return;
       ev.preventDefault();
@@ -131,6 +160,8 @@ function DraggableShape({ shape, selected, interactive, dragEnabled = true, onSe
     };
 
     const onPointerUp = (ev) => {
+      const longPressFired = Boolean(longPressRef.current?.fired);
+      clearLongPress();
       const d = dragRef.current;
       dragRef.current = null;
       window.removeEventListener("pointermove", onPointerMove);
@@ -138,7 +169,7 @@ function DraggableShape({ shape, selected, interactive, dragEnabled = true, onSe
       window.removeEventListener("pointercancel", onPointerUp);
       if (!d) return;
       d.map.dragging.enable();
-      if (d.moved) {
+      if (!longPressFired && d.moved) {
         const cur = containerLatLng(d.map, ev);
         const dLat = cur.lat - d.startLatLng.lat;
         const dLng = cur.lng - d.startLatLng.lng;
@@ -147,9 +178,16 @@ function DraggableShape({ shape, selected, interactive, dragEnabled = true, onSe
       cbRef.current.onDragStart(null);
     };
 
+    const onContextMenu = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+    };
     path.addEventListener("pointerdown", onPointerDown);
+    path.addEventListener("contextmenu", onContextMenu);
     return () => {
+      clearLongPress();
       path.removeEventListener("pointerdown", onPointerDown);
+      path.removeEventListener("contextmenu", onContextMenu);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerUp);
@@ -197,6 +235,7 @@ export default function DraggableAreaShapes({
   interactive = true,
   dragEnabled = true,
   onSelect,
+  onLongPress,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -211,6 +250,7 @@ export default function DraggableAreaShapes({
           interactive={interactive}
           dragEnabled={dragEnabled}
           onSelect={onSelect}
+          onLongPress={onLongPress}
           onDragStart={onDragStart}
           onDragMove={onDragMove}
           onDragEnd={onDragEnd}
