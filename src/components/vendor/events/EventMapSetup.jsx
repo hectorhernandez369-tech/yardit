@@ -239,7 +239,12 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
 
   const addHighlight = (shape) => {
     const id = `area_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const item = { id, ...shape };
+    let maxUntitled = 0;
+    highlights.forEach((h) => {
+      const m = /^Untitled Area (\d+)$/.exec(h.title || "");
+      if (m) maxUntitled = Math.max(maxUntitled, Number(m[1]));
+    });
+    const item = { id, ...shape, title: shape.title || `Untitled Area ${maxUntitled + 1}` };
     setHighlights((prev) => [...prev, item]);
     setSelectedId(id);
     setEditing({ type: "area", id });
