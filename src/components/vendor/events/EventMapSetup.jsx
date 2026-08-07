@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { X, MapPin, Flag as FlagIcon, Trash2, Eye, Circle as CircleIcon, Square, Triangle as TriangleIcon } from "lucide-react";
 import { calculateMiles } from "@/lib/vendorEvents";
 import { isPointInShape, offsetShapeGeometry } from "@/lib/areaGeometry";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MobileShapeSheet from "./MobileShapeSheet";
 import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
 import AreaDrawingLayer from "./AreaDrawingLayer";
 import AreaShapeViews from "./AreaShapeViews";
@@ -169,6 +171,10 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
   const [callout, setCallout] = useState({ id: null, shown: false });
   const mapRef = useRef(null);
   const calloutTimerRef = useRef(null);
+  const isMobile = useIsMobile();
+  const maybeFly = (target) => {
+    if (!isMobile) setFlyTarget(target);
+  };
 
   const clearCalloutTimer = () => {
     if (calloutTimerRef.current) { clearTimeout(calloutTimerRef.current); calloutTimerRef.current = null; }
@@ -220,7 +226,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     setSelectedId(flag.temp_id);
     setEditing({ type: "flag", id: flag.temp_id });
     setMode("none");
-    setFlyTarget({ lat, lng, zoom: 17, ts: Date.now() });
+    maybeFly({ lat, lng, zoom: 17, ts: Date.now() });
   };
 
   const updateFlag = (id, patch) => setFlags((prev) => prev.map((f) => (f.temp_id === id || f.id === id ? { ...f, ...patch } : f)));
@@ -238,7 +244,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     setEditing({ type: "area", id });
     pinCallout(id);
     const c = areaCenter(item);
-    if (c) setFlyTarget({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
+    if (c) maybeFly({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
   };
   const updateHighlight = (id, patch) => setHighlights((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)));
   const removeHighlight = (id) => {
@@ -281,7 +287,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     setEditing({ type: "area", id: newId });
     pinCallout(newId);
     const c = areaCenter(newShape);
-    if (c) setFlyTarget({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
+    if (c) maybeFly({ lat: c[0], lng: c[1], zoom: 16, ts: Date.now() });
   };
 
   const selectFlag = (flag) => {
@@ -297,7 +303,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
 
     const centerPoint = areaCenter(shape);
     if (centerPoint) {
-      setFlyTarget({
+      maybeFly({
         lat: centerPoint[0],
         lng: centerPoint[1],
         zoom: 16,
@@ -314,7 +320,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     const map = mapRef.current;
     const centerPoint = areaCenter(shape);
 
-    if (centerPoint && (!map || !isShapeFullyVisible(map, shape))) {
+    if (!isMobile && centerPoint && (!map || !isShapeFullyVisible(map, shape))) {
       setFlyTarget({
         lat: centerPoint[0],
         lng: centerPoint[1],
@@ -338,10 +344,11 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
 
   const editingAreaRef = useRef(null);
   useEffect(() => {
+    if (isMobile) return;
     if (editing?.type === "area" && editingAreaRef.current) {
       try { editingAreaRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch { /* noop */ }
     }
-  }, [editing]);
+  }, [editing, isMobile]);
   const onDragStart = (id) => setDraggingAreaId(id);
   const onDragMove = (id, patch) => updateHighlight(id, patch);
   const onDragEnd = (id, patch) => updateHighlight(id, patch);
@@ -383,7 +390,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
             </div>
 
             {/* Large interactive map */}
-            <div className="relative h-[440px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
+            <div className="relative h-[58vh] md:h-[440px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
               <MapContainer center={center} zoom={15} className="h-full w-full" scrollWheelZoom>
                 <VendorEventMapboxTileLayer mapStyle={mapStyle} />
                 <MapReady onReady={(m) => { mapRef.current = m; }} />
@@ -434,20 +441,22 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
 
                 {drawingMode === "none" && selectedShape && (
                   <>
-                    <AreaSelectionToolbar
-                      shape={selectedShape}
-                      onDelete={() => removeHighlight(selectedShape.id)}
-                      onDone={finishAreaSelection}
-                      onAddFlag={
-                        showFlags
-                          ? () => {
-                              const c = areaCenter(selectedShape);
-                              if (c) addFlag(c[0], c[1]);
-                            }
-                          : undefined
-                      }
-                      onDuplicate={duplicateSelectedShape}
-                    />
+                    {!isMobile && (
+                      <AreaSelectionToolbar
+                        shape={selectedShape}
+                        onDelete={() => removeHighlight(selectedShape.id)}
+                        onDone={finishAreaSelection}
+                        onAddFlag={
+                          showFlags
+                            ? () => {
+                                const c = areaCenter(selectedShape);
+                                if (c) addFlag(c[0], c[1]);
+                              }
+                            : undefined
+                        }
+                        onDuplicate={duplicateSelectedShape}
+                      />
+                    )}
 
                     <AreaResizeLayer
                       shape={selectedShape}
@@ -505,8 +514,23 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
               )}
             </div>
 
+            {isMobile && selectedShape && editing?.type === "area" && editing.id === selectedShape.id && drawingMode === "none" && (
+              <MobileShapeSheet
+                shape={selectedShape}
+                showAddFlag={showFlags}
+                onAddFlag={() => {
+                  const c = areaCenter(selectedShape);
+                  if (c) addFlag(c[0], c[1]);
+                }}
+                onDuplicate={duplicateSelectedShape}
+                onResize={() => toast.info("Drag the handles on the map to resize.")}
+                onDelete={() => removeHighlight(selectedShape.id)}
+                onDone={finishAreaSelection}
+              />
+            )}
+
             {/* Toolbar — all tools visible, no hidden layers */}
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-2">
+            <div className="flex flex-wrap max-md:flex-nowrap max-md:overflow-x-auto items-center gap-2 rounded-xl border border-[#2C4F4E]/15 bg-[#FBFAF7] p-2">
               {showFlags && (
                 <Button
                   type="button"
