@@ -230,6 +230,14 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     maybeFly({ lat, lng, zoom: 17, ts: Date.now() });
   };
 
+  const addFlagToShape = (shape) => {
+    const c = areaCenter(shape);
+    if (!c) return;
+    const fieldName = `Field ${flags.length + 1}`;
+    addFlag(c[0], c[1]);
+    updateHighlight(shape.id, { title: fieldName });
+  };
+
   const updateFlag = (id, patch) => setFlags((prev) => prev.map((f) => (f.temp_id === id || f.id === id ? { ...f, ...patch } : f)));
   const removeFlag = (id) => {
     setFlags((prev) => renumberFlags(prev.filter((f) => f.temp_id !== id && f.id !== id)));
@@ -460,14 +468,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                         shape={selectedShape}
                         onDelete={() => removeHighlight(selectedShape.id)}
                         onDone={finishAreaSelection}
-                        onAddFlag={
-                          showFlags
-                            ? () => {
-                                const c = areaCenter(selectedShape);
-                                if (c) addFlag(c[0], c[1]);
-                              }
-                            : undefined
-                        }
+                        onAddFlag={showFlags ? () => addFlagToShape(selectedShape) : undefined}
                         onDuplicate={duplicateSelectedShape}
                       />
                     )}
@@ -532,10 +533,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
               <MobileShapeSheet
                 shape={selectedShape}
                 showAddFlag={showFlags}
-                onAddFlag={() => {
-                  const c = areaCenter(selectedShape);
-                  if (c) addFlag(c[0], c[1]);
-                }}
+                onAddFlag={() => addFlagToShape(selectedShape)}
                 onDuplicate={duplicateSelectedShape}
                 onResize={() => toast.info("Drag the handles on the map to resize.")}
                 onDelete={() => removeHighlight(selectedShape.id)}
