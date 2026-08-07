@@ -166,6 +166,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
   const [editing, setEditing] = useState(null); // { type:"flag"|"area", id }
   const [mapStyle, setMapStyle] = useState("standard");
   const [showPreview, setShowPreview] = useState(false);
+  const [savingMap, setSavingMap] = useState(false);
   const [flyTarget, setFlyTarget] = useState(null);
   const [draggingAreaId, setDraggingAreaId] = useState(null);
   const [callout, setCallout] = useState({ id: null, shown: false });
@@ -365,9 +366,17 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     callout.id === selectedId &&
     Boolean(selectedShape);
 
-  const save = () => {
-    onChange({ flags, highlights });
-    onOpenChange(false);
+  const save = async () => {
+    setSavingMap(true);
+    try {
+      await onChange?.({ flags, highlights });
+      toast.success("Map setup saved");
+      onOpenChange(false);
+    } catch (err) {
+      toast.error("Could not save map setup");
+    } finally {
+      setSavingMap(false);
+    }
   };
 
   const previewSpots = flags.map((f, i) => ({ ...f, id: f.id || f.temp_id || `flag-${i}` }));
@@ -695,7 +704,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
               <Button type="button" variant="outline" onClick={() => setShowPreview(true)} className="gap-2"><Eye className="w-4 h-4" /> Preview Public Map</Button>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                <Button type="button" onClick={save} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">Save Map Setup</Button>
+                <Button type="button" onClick={save} disabled={savingMap} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">{savingMap ? "Saving..." : "Save Map Setup"}</Button>
               </div>
             </div>
           </div>

@@ -796,10 +796,21 @@ export default function VendorEventForm({ account, user, event = null, approvedV
           flags: form.event_flags || [],
           highlights: form.highlights || [],
         }}
-        onChange={(data) => {
+        onChange={async (data) => {
           setForm((prev) => ({ ...prev, event_flags: data.flags || [], highlights: data.highlights || [] }));
-          if (isEditing && ["multi_spot", "multi_location"].includes(form.event_type)) {
-            syncFlagsToEvent(event.id, data.flags || []);
+          const persistId = isEditing ? event?.id : draftEventId;
+          try {
+            if (persistId) {
+              await base44.entities.VendorEvent.update(persistId, {
+                highlights: data.highlights || [],
+                updated_at: new Date().toISOString(),
+              });
+            }
+            if (isEditing && ["multi_spot", "multi_location"].includes(form.event_type)) {
+              await syncFlagsToEvent(event.id, data.flags || []);
+            }
+          } catch (err) {
+            throw err;
           }
         }}
       />
