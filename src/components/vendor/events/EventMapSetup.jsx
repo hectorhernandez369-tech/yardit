@@ -269,6 +269,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
   const [draggingAreaId, setDraggingAreaId] = useState(null);
   const [callout, setCallout] = useState({ id: null, shown: false });
   const [mapZoom, setMapZoom] = useState(15);
+  const [mapMounted, setMapMounted] = useState(false);
   const mapRef = useRef(null);
   const calloutTimerRef = useRef(null);
   const isMobile = useIsMobile();
@@ -291,7 +292,11 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
   const hideCallout = () => { clearCalloutTimer(); setCallout({ id: null, shown: false }); };
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setMapMounted(false);
+      return;
+    }
+    setMapMounted(true);
     setFlags(value.flags || []);
     setHighlights(value.highlights || []);
     setMode("none");
@@ -489,12 +494,21 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     callout.id === selectedId &&
     Boolean(selectedShape);
 
+  // Unmount the Leaflet map BEFORE the Dialog tears down its portal content.
+  // This lets map.remove() run while the container is still in the DOM,
+  // preventing leaked document-level pointer listeners that crash the app on
+  // the next click after the dialog closes.
+  const requestClose = () => {
+    setMapMounted(false);
+    setTimeout(() => onOpenChange(false), 30);
+  };
+
   const save = async () => {
     setSavingMap(true);
     try {
       await onChange?.({ flags, highlights });
       toast.success("Map setup saved");
-      onOpenChange(false);
+      requestClose();
     } catch (err) {
       toast.error("Could not save map setup");
     } finally {
@@ -506,7 +520,16 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (next) {
+            onOpenChange(true);
+          } else {
+            requestClose();
+          }
+        }}
+      >
         <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto overflow-x-hidden max-md:p-3 max-md:gap-3">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -523,6 +546,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
 
             {/* Large interactive map */}
             <div className="relative h-[58vh] md:h-[440px] overflow-hidden rounded-2xl border border-[#2C4F4E]/20">
+              {mapMounted && (
               <MapContainer center={center} zoom={15} className="h-full w-full" scrollWheelZoom>
                 <VendorEventMapboxTileLayer mapStyle={mapStyle} />
                 <MapReady onReady={(m) => { mapRef.current = m; }} />
@@ -624,6 +648,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   );
                 })}
               </MapContainer>
+              )}
 
               {mode !== "none" && (
                 <div className="pointer-events-none absolute left-1/2 top-2 z-[1000] flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#2C4F4E]/90 px-3 py-1.5 text-white shadow-lg">
