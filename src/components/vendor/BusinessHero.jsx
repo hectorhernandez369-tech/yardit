@@ -184,6 +184,7 @@ export default function BusinessHero({ profile, activeCheckIn, onRefresh, editab
                 {profile?.is_verified_vendor && <Badge className="bg-blue-100 text-blue-800 shadow-sm"><CheckCircle2 className="h-3 w-3" /> Verified Vendor</Badge>}
                 {activeCheckIn && <Badge className="bg-emerald-100 text-black shadow-sm">Live now</Badge>}
               </div>
+              {profile?.id && <p className="text-[10px] sm:text-[11px] text-black/60 font-mono break-all mt-0.5">Account ID: {profile.id}</p>}
               <EditableButton field="description" className="mt-0.5 sm:mt-1 rounded-xl px-2 py-0.5 sm:py-1 -mx-2 hover:bg-white/15">
                 <p className="max-w-3xl text-[11px] sm:text-sm leading-snug sm:leading-relaxed text-black line-clamp-2">{profile?.description || "Add a brief description so customers know what your business offers."}</p>
               </EditableButton>

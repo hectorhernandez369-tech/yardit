@@ -22,6 +22,7 @@ export default function DraftEventCard({ draft, onEdit, onDelete }) {
               <span className="text-xs text-slate-500">Step {step}: {getDraftStepLabel(step)}</span>
             </div>
             <h4 className="font-bold text-slate-900 mt-1 truncate">{title}</h4>
+            <p className="text-[11px] text-slate-400 font-mono break-all">Event ID: {draft.id}</p>
             {displayAddress && (
               <p className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
                 <MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{displayAddress}</span>

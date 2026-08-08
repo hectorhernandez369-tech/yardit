@@ -38,6 +38,7 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
             </div>
 
             <h3 className="text-lg font-bold text-slate-900 leading-snug">{event.title}</h3>
+            <p className="text-[11px] text-slate-400 font-mono break-all">Event ID: {event.id}</p>
             <p className="text-sm text-slate-500 mt-0.5">{formatVendorEventType(event.event_type)}{event.category ? ` · ${event.category}` : ""}</p>
 
             <div className="mt-3 space-y-1.5">

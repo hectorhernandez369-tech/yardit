@@ -103,6 +103,7 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
                 <div className="flex items-start justify-between gap-2 min-w-0">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold break-words">{item.first_name} {item.last_name}</p>
+                    <p className="text-[11px] text-slate-400 font-mono break-all">User ID: {item.id}</p>
                     <p className="text-xs text-slate-600 break-all">{item.authorized_email}</p>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-1.5">

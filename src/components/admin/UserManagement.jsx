@@ -89,6 +89,7 @@ export default function UserManagement() {
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold mb-2">{getUserDisplayName(user)}</h3>
+                  <p className="text-[11px] text-slate-400 font-mono break-all mb-2">User ID: {user.id}</p>
                   <p className="text-sm text-slate-600 mb-2 break-all">{user.email}</p>
                   <div className="flex gap-2 flex-wrap">
                     <Badge className={statusColors[user.accountStatus || "active"]}>
