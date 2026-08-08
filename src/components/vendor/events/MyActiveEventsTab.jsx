@@ -3,15 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, CalendarPlus } from "lucide-react";
 import VendorEventCard from "./VendorEventCard";
-import { getVendorEventStatus } from "@/lib/vendorEvents";
+import { getDashboardEventStatus } from "@/lib/vendorEvents";
+import { canAdminPreviewOrganization } from "@/lib/canAdminPreviewOrganization";
 import { canEditEvent, canManageCollaborators, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
 
 const EVENT_STATUS_ORDER = {
   active: 0,
   coming_soon: 1,
-  upcoming: 2,
-  scheduled: 2,
-  pending_payment: 3,
 };
 
 const sortActiveEvents = (items = []) =>
@@ -26,21 +24,6 @@ const sortActiveEvents = (items = []) =>
     return aStart - bStart;
   });
 
-const EVENT_ADMIN_ROLES = new Set([
-  "admin",
-  "admin_lite",
-  "supervisor",
-  "master",
-  "super_master",
-]);
-
-const hasEventAdminAccess = (user) => {
-  if (user?.isAdmin === true) return true;
-  return EVENT_ADMIN_ROLES.has(
-    String(user?.role || "").toLowerCase()
-  );
-};
-
 export default function MyActiveEventsTab({
   events, attendees, collaborators, vendorAccounts, account, user,
   canCreateAnyEvent, onCreateEvent, onEditEvent, onCollaborators,
@@ -49,35 +32,29 @@ export default function MyActiveEventsTab({
   const now = new Date();
   const currentOrganizationIds = account?.id ? [account.id] : [];
   const organizationById = Object.fromEntries(vendorAccounts.map((a) => [a.id, a]));
-  const isEventAdmin = hasEventAdminAccess(user);
+  const isEventAdmin = canAdminPreviewOrganization(user);
 
   const myEvents = events
     .map((e) => ({
       ...e,
-      computedStatus: getVendorEventStatus(e, now),
+      computedStatus: getDashboardEventStatus(e, now),
       approvedVendorCount: attendees.filter((a) => a.event_id === e.id).length,
     }))
     .filter((e) => !["completed", "cancelled"].includes(e.computedStatus))
     .filter((e) => e.status !== "draft") // drafts live in the Drafts tab
     .filter((e) => {
-      if (isEventAdmin) return true;
-
       const isOwner = e.organizer_business_id === account?.id;
       const isCollab = collaborators.some((c) => c.event_id === e.id && c.organization_id === account?.id && c.status === "accepted");
       return isOwner || isCollab;
     });
 
-  const hosted = isEventAdmin
-    ? sortActiveEvents(myEvents)
-    : sortActiveEvents(
-        myEvents.filter((e) => e.organizer_business_id === account?.id)
-      );
+  const hosted = sortActiveEvents(
+    myEvents.filter((e) => e.organizer_business_id === account?.id)
+  );
 
-  const participating = isEventAdmin
-    ? []
-    : sortActiveEvents(
-        myEvents.filter((e) => e.organizer_business_id !== account?.id)
-      );
+  const participating = sortActiveEvents(
+    myEvents.filter((e) => e.organizer_business_id !== account?.id)
+  );
 
   return (
     <div className="space-y-5">
@@ -111,14 +88,8 @@ export default function MyActiveEventsTab({
       <div>
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h4 className="font-bold text-slate-800">
-              {isEventAdmin ? "All Events" : "My Hosted Events"}
-            </h4>
-            <p className="text-xs text-slate-500">
-              {isEventAdmin
-                ? "All active and pending events available for admin management"
-                : "Events you created and manage"}
-            </p>
+            <h4 className="font-bold text-slate-800">My Hosted Events</h4>
+            <p className="text-xs text-slate-500">Events you created and manage</p>
           </div>
           {canCreateAnyEvent && (
             <Button size="sm" onClick={onCreateEvent} className="bg-[#2C4F4E] text-white hover:bg-[#3d6b6a] gap-1.5">

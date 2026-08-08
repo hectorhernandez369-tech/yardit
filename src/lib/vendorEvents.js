@@ -98,6 +98,40 @@ export function getVendorEventStatus(event, now = new Date()) {
   return visStatus;
 }
 
+/**
+ * Dashboard-specific status for Dashboard → My Events → Active tab.
+ *
+ * Unlike getVendorEventVisibilityStatus(), this does NOT use coming_soon_start_date
+ * or pending_payment. Any non-draft/non-cancelled event with a future startDateTime
+ * is "coming_soon". An event that has started but not ended is "active".
+ */
+export function getDashboardEventStatus(event, now = new Date()) {
+  if (!event) return "draft";
+
+  if (event.status === "cancelled") return "cancelled";
+  if (event.status === "draft") return "draft";
+
+  const start = new Date(event.startDateTime);
+  const end = new Date(event.endDateTime);
+
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime())
+  ) {
+    return event.status || "draft";
+  }
+
+  if (now > end) {
+    return "completed";
+  }
+
+  if (now < start) {
+    return "coming_soon";
+  }
+
+  return "active";
+}
+
 export function formatVendorEventType(type) {
   return VENDOR_EVENT_TYPES.find((item) => item.value === type)?.label || "Vendor Event";
 }
