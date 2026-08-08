@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import ScheduleImportPanel from "@/components/vendor/events/schedule/ScheduleImportPanel";
 import ScheduleRowsEditor from "@/components/vendor/events/schedule/ScheduleRowsEditor";
 import { buildBlankScheduleRows, cleanRowsForSave, normalizeAndSortScheduleRows, normalizeScheduleRows, validateScheduleRows } from "@/lib/vendorEventSchedule";
-import { safeBack } from "@/utils";
+import { safeBack, getPreviousAppRoute } from "@/utils";
 import { canManageSchedule as hasSchedulePermission } from "@/lib/eventCollaboration";
 
 export default function VendorEventSchedule() {
@@ -35,6 +35,29 @@ export default function VendorEventSchedule() {
   const { data: collaborators = [], isLoading: loadingCollaborators } = useQuery({ queryKey: ["scheduleEventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
 
   const usesEventSpots = ["multi_spot", "multi_location"].includes(event?.event_type);
+
+  const buildScheduleBackTarget = () => {
+    const currentParams = new URLSearchParams(window.location.search);
+    let adminPreview = currentParams.get("adminPreview");
+    let accountId = currentParams.get("account");
+
+    // Fall back to previous route params if current URL doesn't carry them
+    if (!adminPreview || !accountId) {
+      const prev = getPreviousAppRoute();
+      if (prev) {
+        const prevParams = new URLSearchParams(prev.split("?")[1] || "");
+        if (!adminPreview) adminPreview = prevParams.get("adminPreview");
+        if (!accountId) accountId = prevParams.get("account");
+      }
+    }
+
+    const backParams = new URLSearchParams({ tab: "events" });
+    if (adminPreview === "1" && accountId) {
+      backParams.set("adminPreview", "1");
+      backParams.set("account", accountId);
+    }
+    return `/VendorDashboard?${backParams.toString()}`;
+  };
 
   const baseFields = useMemo(() => {
     if (usesEventSpots && spots.length) return spots.map((spot, index) => ({ id: spot.id, title: spot.title || spot.label || `Field ${index + 1}` }));
@@ -149,7 +172,7 @@ export default function VendorEventSchedule() {
   return (
     <div className="max-w-7xl mx-auto w-full min-w-0 overflow-x-hidden p-3 sm:p-6 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <Button variant="outline" onClick={() => safeBack(navigate, `/VendorEventDashboard?id=${event.id}`)} className="bg-white w-fit"><ArrowLeft className="h-4 w-4" /> Back</Button>
+        <Button variant="outline" onClick={() => safeBack(navigate, buildScheduleBackTarget())} className="bg-white w-fit"><ArrowLeft className="h-4 w-4" /> Back</Button>
         <Button onClick={saveSchedule} disabled={saving} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"><Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Schedule"}</Button>
       </div>
 
