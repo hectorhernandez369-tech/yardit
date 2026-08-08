@@ -160,7 +160,7 @@ export default function VendorDashboard() {
     ? `${user?.id || user?.email}:${account.id}:${adminPreviewAccountId}:vendor`
     : null;
 
-  const isOwner = canAdminPreview || !!account && (
+  const isOwner = canAdminPreviewOrganization(user) || !!account && (
     account.owner_user_id === user?.id ||
     account.owner_user_id === user?.email ||
     account.owner_email === user?.email

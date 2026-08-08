@@ -119,7 +119,7 @@ export default function LeagueTeamDashboard() {
   const adminPreviewSessionKey = canAdminPreview && account?.id === adminPreviewAccountId
     ? `${user?.id || user?.email}:${account.id}:${adminPreviewAccountId}:league_team`
     : null;
-  const isOwner = canAdminPreview || userOwnsLeagueAccount(account, user);
+  const isOwner = canAdminPreviewOrganization(user) || userOwnsLeagueAccount(account, user);
 
   const { data: updates = [] } = useQuery({ queryKey: ["leagueDashboardUpdates", account?.id], queryFn: () => base44.entities.VendorUpdate.filter({ vendor_account_id: account.id }, "-created_date"), enabled: !!account?.id });
   const { data: ownerGames = [] } = useQuery({ queryKey: ["leagueDashboardGames", account?.id, "owner"], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: account.id }, "sort_order"), enabled: !!account?.id && isOwner });
