@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 
 const STATUS_CONFIG = {
-  active:          { label: "Live",          dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  active:          { label: "Active",        dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   coming_soon:     { label: "Coming Soon",   dot: "bg-amber-400",   badge: "bg-amber-50 text-amber-700 border-amber-200" },
   scheduled:       { label: "Upcoming",      dot: "bg-blue-400",    badge: "bg-blue-50 text-blue-700 border-blue-200" },
   upcoming:        { label: "Upcoming",      dot: "bg-blue-400",    badge: "bg-blue-50 text-blue-700 border-blue-200" },

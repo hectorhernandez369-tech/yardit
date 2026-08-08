@@ -227,6 +227,7 @@ export default function VendorEventsTab({ account, user }) {
             collaborators={collaborators}
             vendorAccounts={vendorAccounts}
             account={account}
+            user={user}
             canCreateAnyEvent={canCreateAnyEvent}
             onCreateEvent={openCreate}
             onEditEvent={setEditingEvent}

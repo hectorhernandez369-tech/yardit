@@ -6,14 +6,50 @@ import VendorEventCard from "./VendorEventCard";
 import { getVendorEventStatus } from "@/lib/vendorEvents";
 import { canEditEvent, canManageCollaborators, canManageFlags, canManageSchedule, canManageVendors, getHostedByLabels } from "@/lib/eventCollaboration";
 
+const EVENT_STATUS_ORDER = {
+  active: 0,
+  coming_soon: 1,
+  upcoming: 2,
+  scheduled: 2,
+  pending_payment: 3,
+};
+
+const sortActiveEvents = (items = []) =>
+  [...items].sort((a, b) => {
+    const aRank = EVENT_STATUS_ORDER[a.computedStatus] ?? 50;
+    const bRank = EVENT_STATUS_ORDER[b.computedStatus] ?? 50;
+
+    if (aRank !== bRank) return aRank - bRank;
+
+    const aStart = new Date(a.startDateTime || 0).getTime();
+    const bStart = new Date(b.startDateTime || 0).getTime();
+    return aStart - bStart;
+  });
+
+const EVENT_ADMIN_ROLES = new Set([
+  "admin",
+  "admin_lite",
+  "supervisor",
+  "master",
+  "super_master",
+]);
+
+const hasEventAdminAccess = (user) => {
+  if (user?.isAdmin === true) return true;
+  return EVENT_ADMIN_ROLES.has(
+    String(user?.role || "").toLowerCase()
+  );
+};
+
 export default function MyActiveEventsTab({
-  events, attendees, collaborators, vendorAccounts, account,
+  events, attendees, collaborators, vendorAccounts, account, user,
   canCreateAnyEvent, onCreateEvent, onEditEvent, onCollaborators,
   navigate, pendingCollaborationInvites, onReviewInvite,
 }) {
   const now = new Date();
   const currentOrganizationIds = account?.id ? [account.id] : [];
   const organizationById = Object.fromEntries(vendorAccounts.map((a) => [a.id, a]));
+  const isEventAdmin = hasEventAdminAccess(user);
 
   const myEvents = events
     .map((e) => ({
@@ -24,13 +60,24 @@ export default function MyActiveEventsTab({
     .filter((e) => !["completed", "cancelled"].includes(e.computedStatus))
     .filter((e) => e.status !== "draft") // drafts live in the Drafts tab
     .filter((e) => {
+      if (isEventAdmin) return true;
+
       const isOwner = e.organizer_business_id === account?.id;
       const isCollab = collaborators.some((c) => c.event_id === e.id && c.organization_id === account?.id && c.status === "accepted");
       return isOwner || isCollab;
     });
 
-  const hosted = myEvents.filter((e) => e.organizer_business_id === account?.id);
-  const participating = myEvents.filter((e) => e.organizer_business_id !== account?.id);
+  const hosted = isEventAdmin
+    ? sortActiveEvents(myEvents)
+    : sortActiveEvents(
+        myEvents.filter((e) => e.organizer_business_id === account?.id)
+      );
+
+  const participating = isEventAdmin
+    ? []
+    : sortActiveEvents(
+        myEvents.filter((e) => e.organizer_business_id !== account?.id)
+      );
 
   return (
     <div className="space-y-5">
@@ -64,8 +111,14 @@ export default function MyActiveEventsTab({
       <div>
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h4 className="font-bold text-slate-800">My Hosted Events</h4>
-            <p className="text-xs text-slate-500">Events you created and manage</p>
+            <h4 className="font-bold text-slate-800">
+              {isEventAdmin ? "All Events" : "My Hosted Events"}
+            </h4>
+            <p className="text-xs text-slate-500">
+              {isEventAdmin
+                ? "All active and pending events available for admin management"
+                : "Events you created and manage"}
+            </p>
           </div>
           {canCreateAnyEvent && (
             <Button size="sm" onClick={onCreateEvent} className="bg-[#2C4F4E] text-white hover:bg-[#3d6b6a] gap-1.5">
@@ -88,11 +141,26 @@ export default function MyActiveEventsTab({
                 hostedLabels={getHostedByLabels(event, collaborators, vendorAccounts)}
                 isCollaborating={false}
                 ownerName={organizationById[event.organizer_business_id]?.business_name || event.organizer_business_name}
-                canEdit={canEditEvent(event, collaborators, currentOrganizationIds)}
-                canManageVendors={canManageVendors(event, collaborators, currentOrganizationIds)}
-                canManageFlags={canManageFlags(event, collaborators, currentOrganizationIds)}
-                canManageSchedule={canManageSchedule(event, collaborators, currentOrganizationIds)}
-                canManageCollaborators={canManageCollaborators(event, collaborators, currentOrganizationIds)}
+                canEdit={
+                  isEventAdmin ||
+                  canEditEvent(event, collaborators, currentOrganizationIds)
+                }
+                canManageVendors={
+                  isEventAdmin ||
+                  canManageVendors(event, collaborators, currentOrganizationIds)
+                }
+                canManageFlags={
+                  isEventAdmin ||
+                  canManageFlags(event, collaborators, currentOrganizationIds)
+                }
+                canManageSchedule={
+                  isEventAdmin ||
+                  canManageSchedule(event, collaborators, currentOrganizationIds)
+                }
+                canManageCollaborators={
+                  isEventAdmin ||
+                  canManageCollaborators(event, collaborators, currentOrganizationIds)
+                }
                 onEdit={() => onEditEvent(event)}
                 onManage={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
                 onEditFlags={() => navigate(`/VendorEventFlags?id=${event.id}`)}
@@ -121,11 +189,26 @@ export default function MyActiveEventsTab({
                 hostedLabels={getHostedByLabels(event, collaborators, vendorAccounts)}
                 isCollaborating={true}
                 ownerName={organizationById[event.organizer_business_id]?.business_name || event.organizer_business_name}
-                canEdit={canEditEvent(event, collaborators, currentOrganizationIds)}
-                canManageVendors={canManageVendors(event, collaborators, currentOrganizationIds)}
-                canManageFlags={canManageFlags(event, collaborators, currentOrganizationIds)}
-                canManageSchedule={canManageSchedule(event, collaborators, currentOrganizationIds)}
-                canManageCollaborators={canManageCollaborators(event, collaborators, currentOrganizationIds)}
+                canEdit={
+                  isEventAdmin ||
+                  canEditEvent(event, collaborators, currentOrganizationIds)
+                }
+                canManageVendors={
+                  isEventAdmin ||
+                  canManageVendors(event, collaborators, currentOrganizationIds)
+                }
+                canManageFlags={
+                  isEventAdmin ||
+                  canManageFlags(event, collaborators, currentOrganizationIds)
+                }
+                canManageSchedule={
+                  isEventAdmin ||
+                  canManageSchedule(event, collaborators, currentOrganizationIds)
+                }
+                canManageCollaborators={
+                  isEventAdmin ||
+                  canManageCollaborators(event, collaborators, currentOrganizationIds)
+                }
                 onEdit={() => onEditEvent(event)}
                 onManage={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
                 onEditFlags={() => navigate(`/VendorEventFlags?id=${event.id}`)}

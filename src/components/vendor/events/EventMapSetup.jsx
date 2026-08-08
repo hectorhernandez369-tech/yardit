@@ -16,7 +16,7 @@ import DraggableAreaShapes, { isShapeFullyVisible } from "./DraggableAreaShape";
 import MapSetupHighlightEditor from "./MapSetupHighlightEditor";
 import MapSetupFlagEditor from "./MapSetupFlagEditor";
 import PublicVendorEventMap from "./PublicVendorEventMap";
-import AreaLabelOverlay from "./AreaLabelOverlay";
+import AreaLabelOverlay, { canRenderAreaTitle } from "./AreaLabelOverlay";
 import AreaSelectionToolbar from "./AreaSelectionToolbar";
 import AreaResizeLayer from "./AreaResizeLayer";
 import "leaflet/dist/leaflet.css";
@@ -399,6 +399,19 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
     setSelectedId((cur) => (cur === id ? null : cur));
   };
 
+  const flagsForShape = (shape) =>
+    flags.filter((flag) =>
+      isPointInShape(
+        shape,
+        Number(flag.latitude),
+        Number(flag.longitude)
+      )
+    );
+
+  const unassignedFlags = flags.filter(
+    (flag) => !findContainingShape(flag, highlights)
+  );
+
   const addHighlight = (shape) => {
     const id = `area_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     let maxUntitled = 0;
@@ -528,9 +541,55 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
       try { editingAreaRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch { /* noop */ }
     }
   }, [editing, isMobile]);
+  const moveContainedFlagsWithShape = (shape, patch) => {
+    if (!shape || !patch) return;
+
+    const beforeCenter = areaCenter(shape);
+    const afterShape = { ...shape, ...patch };
+    const afterCenter = areaCenter(afterShape);
+
+    if (!beforeCenter || !afterCenter) return;
+
+    const dLat = afterCenter[0] - beforeCenter[0];
+    const dLng = afterCenter[1] - beforeCenter[1];
+
+    if (!Number.isFinite(dLat) || !Number.isFinite(dLng)) return;
+    if (dLat === 0 && dLng === 0) return;
+
+    setFlags((prev) =>
+      prev.map((flag) => {
+        const lat = Number(flag.latitude);
+        const lng = Number(flag.longitude);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          return flag;
+        }
+
+        if (!isPointInShape(shape, lat, lng)) {
+          return flag;
+        }
+
+        return {
+          ...flag,
+          latitude: lat + dLat,
+          longitude: lng + dLng,
+        };
+      })
+    );
+  };
+
   const onDragStart = (id) => setDraggingAreaId(id);
-  const onDragMove = (id, patch) => updateHighlight(id, patch);
-  const onDragEnd = (id, patch) => updateHighlight(id, patch);
+  const onDragMove = (id, patch) => {
+    const shape = highlights.find((item) => item.id === id);
+    if (!shape) return;
+
+    moveContainedFlagsWithShape(shape, patch);
+    updateHighlight(id, patch);
+  };
+
+  const onDragEnd = (id, patch) => {
+    updateHighlight(id, patch);
+  };
 
   const drawingMode = mode === "flag" || mode === "none" ? "none" : mode;
   const selectedShape =
@@ -684,8 +743,12 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   const id = flag.temp_id || flag.id;
                   const selected = selectedId === id;
                   const containingShape = findContainingShape(flag, highlights);
+                  const shapeTitleVisible =
+                    containingShape &&
+                    canRenderAreaTitle(mapRef.current, containingShape);
                   // mapZoom drives re-render so the icon rescales on zoom changes
                   void mapZoom;
+                  if (shapeTitleVisible) return null;
                   return (
                     <Marker
                       key={id}
@@ -825,12 +888,12 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                 <div className="space-y-2">
                   <p className="text-sm font-bold text-[#2C4F4E] flex items-center gap-1.5">
                     <FlagIcon className="w-4 h-4" /> Flags
-                    {flags.length > 0 && <span className="text-xs font-normal text-slate-500">({flags.length})</span>}
+                    {unassignedFlags.length > 0 && <span className="text-xs font-normal text-slate-500">({unassignedFlags.length})</span>}
                   </p>
-                  {flags.length === 0 ? (
-                    <p className="text-xs text-slate-500 pl-6">No flags yet. Tap “Add Flag”, then click the map to place one.</p>
+                  {unassignedFlags.length === 0 ? (
+                    <p className="text-xs text-slate-500 pl-6">No standalone flags. Field flags inside shapes are shown with their field area below.</p>
                   ) : (
-                    flags.map((flag) => {
+                    unassignedFlags.map((flag) => {
                       const id = flag.temp_id || flag.id;
                       const isEditing = editing?.type === "flag" && editing.id === id;
                       return (
@@ -860,6 +923,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                   <p className="text-xs text-slate-500 pl-6">No areas yet. Tap Circle, Rectangle, or Triangle, then draw on the map.</p>
                 ) : (
                   highlights.map((shape) => {
+                    const containedFlags = flagsForShape(shape);
                     return (
                       <div
                         key={shape.id}
@@ -899,6 +963,51 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
+
+                        {containedFlags.map((flag) => {
+                          const flagId = flag.temp_id || flag.id;
+                          const isFlagEditing =
+                            editing?.type === "flag" && editing.id === flagId;
+
+                          return (
+                            <div
+                              key={flagId}
+                              className="mt-2 ml-7 rounded-lg border border-[#2C4F4E]/10 bg-[#FBFAF7] p-2"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="h-5 w-5 shrink-0 rounded-full bg-[#F4A849] border border-[#2C4F4E]/30 flex items-center justify-center text-[10px]">
+                                  ⚑
+                                </span>
+
+                                <button
+                                  type="button"
+                                  onClick={() => selectFlag(flag)}
+                                  className="flex-1 truncate text-left text-sm font-semibold text-[#2C4F4E] hover:underline"
+                                >
+                                  {flag.title || flag.label || "Field"}
+                                </button>
+
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditing({ type: "flag", id: flagId })}
+                                  className="h-8 gap-1.5"
+                                >
+                                  Edit
+                                </Button>
+                              </div>
+
+                              {isFlagEditing && (
+                                <MapSetupFlagEditor
+                                  flag={flag}
+                                  onUpdate={(patch) => updateFlag(flagId, patch)}
+                                  onDelete={() => removeFlag(flagId)}
+                                  onClose={() => setEditing(null)}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })
