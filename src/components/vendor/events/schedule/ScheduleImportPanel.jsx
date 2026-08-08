@@ -44,31 +44,53 @@ export default function ScheduleImportPanel({ fields, eventDate, onConfirm }) {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       if (!file_url) throw new Error("The file could not be uploaded.");
 
-      const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: {
-          type: "object",
-          properties: {
-            rows: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  Field: { type: ["string", "number"] },
-                  Activity: { type: ["string", "number"] },
-                  "Start Time": { type: ["string", "number"] },
-                  "End Time": { type: ["string", "number"] },
-                  Date: { type: ["string", "number"] },
-                  Notes: { type: ["string", "number"] },
+      // Try the structured parser first — handles matrix/tournament formats
+      // where columns are fields and cells contain matchups like "(10U) Team A vs. Team B"
+      let rows = [];
+      try {
+        const parsed = await base44.functions.invoke("parseLeagueScheduleUpload", { file_url });
+        const parsedGames = parsed?.data?.games || [];
+        if (parsedGames.length) {
+          rows = parsedGames.map((game) => ({
+            Field: game.field_name || "",
+            Activity: game.game_title || "",
+            "Start Time": game.start_time || "",
+            "End Time": game.end_time || "",
+            Date: game.game_date || "",
+            Notes: game.division ? `${game.division}` : (game.notes || ""),
+          }));
+        }
+      } catch {
+        // Fall through to ExtractDataFromUploadedFile below
+      }
+
+      if (!rows.length) {
+        const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
+          file_url,
+          json_schema: {
+            type: "object",
+            properties: {
+              rows: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    Field: { type: ["string", "number"] },
+                    Activity: { type: ["string", "number"] },
+                    "Start Time": { type: ["string", "number"] },
+                    "End Time": { type: ["string", "number"] },
+                    Date: { type: ["string", "number"] },
+                    Notes: { type: ["string", "number"] },
+                  },
                 },
               },
             },
           },
-        },
-      });
+        });
+        rows = Array.isArray(extracted?.output) ? extracted.output : extracted?.output?.rows || [];
+      }
 
-      const rows = Array.isArray(extracted?.output) ? extracted.output : extracted?.output?.rows || [];
-      if (!rows.length) throw new Error("No schedule rows were found. Confirm the spreadsheet contains Field, Activity, Start Time, and Date columns.");
+      if (!rows.length) throw new Error("No schedule rows were found. Confirm the spreadsheet contains Field, Activity, Start Time, and Date columns, or use a tournament matrix format.");
 
       const mappedRows = rows.map((item, index) => {
         const originalFieldName = String(getValue(item, ["field", "field name", "flag", "area", "location"]) || "Main Event").trim();
