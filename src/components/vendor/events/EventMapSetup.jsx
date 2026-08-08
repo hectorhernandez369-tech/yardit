@@ -90,26 +90,65 @@ function findContainingShape(flag, highlights) {
 
 function getShapePixelBox(map, shape) {
   if (!map || !shape) return null;
-  if (shape.type === "rectangle") {
-    const a = map.latLngToContainerPoint(shape.bounds[0]);
-    const b = map.latLngToContainerPoint(shape.bounds[1]);
-    return { width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y) };
+
+  try {
+    const container = map.getContainer?.();
+    if (!container || !container.isConnected) return null;
+
+    if (shape.type === "rectangle") {
+      if (!Array.isArray(shape.bounds) || shape.bounds.length < 2) return null;
+      const a = map.latLngToContainerPoint(shape.bounds[0]);
+      const b = map.latLngToContainerPoint(shape.bounds[1]);
+      return {
+        width: Math.abs(b.x - a.x),
+        height: Math.abs(b.y - a.y),
+      };
+    }
+
+    if (shape.type === "circle") {
+      if (!Array.isArray(shape.center) || shape.center.length < 2) return null;
+
+      const radius = Number(shape.radius);
+      if (!Number.isFinite(radius)) return null;
+
+      const dLng =
+        radius /
+        (111320 * Math.cos((shape.center[0] * Math.PI) / 180));
+
+      const centerPx = map.latLngToContainerPoint(shape.center);
+      const edgePx = map.latLngToContainerPoint([
+        shape.center[0],
+        shape.center[1] + dLng,
+      ]);
+
+      const radiusPx = Math.abs(edgePx.x - centerPx.x);
+
+      return {
+        width: radiusPx * 2,
+        height: radiusPx * 2,
+      };
+    }
+
+    if (shape.type === "triangle") {
+      if (!Array.isArray(shape.points) || shape.points.length < 3) return null;
+
+      const points = shape.points.map((p) =>
+        map.latLngToContainerPoint(p)
+      );
+
+      const xs = points.map((p) => p.x);
+      const ys = points.map((p) => p.y);
+
+      return {
+        width: Math.max(...xs) - Math.min(...xs),
+        height: Math.max(...ys) - Math.min(...ys),
+      };
+    }
+
+    return null;
+  } catch {
+    return null;
   }
-  if (shape.type === "circle") {
-    const dLng = shape.radius / (111320 * Math.cos((shape.center[0] * Math.PI) / 180));
-    const centerPx = map.latLngToContainerPoint(shape.center);
-    const edgePx = map.latLngToContainerPoint([shape.center[0], shape.center[1] + dLng]);
-    const radiusPx = Math.abs(edgePx.x - centerPx.x);
-    return { width: radiusPx * 2, height: radiusPx * 2 };
-  }
-  if (shape.type === "triangle") {
-    const points = (shape.points || []).map((p) => map.latLngToContainerPoint(p));
-    if (!points.length) return null;
-    const xs = points.map((p) => p.x);
-    const ys = points.map((p) => p.y);
-    return { width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
-  }
-  return null;
 }
 
 function makeFlagIcon(flag, selected, map, containingShape) {
@@ -231,9 +270,19 @@ function MapTapHandler({ active, eventLocation, onAddFlag }) {
   return null;
 }
 
-function MapReady({ onReady }) {
+function MapReady({ mapRef }) {
   const map = useMap();
-  useEffect(() => { onReady(map); }, [map, onReady]);
+
+  useEffect(() => {
+    mapRef.current = map;
+
+    return () => {
+      if (mapRef.current === map) {
+        mapRef.current = null;
+      }
+    };
+  }, [map, mapRef]);
+
   return null;
 }
 
@@ -294,6 +343,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
   useEffect(() => {
     if (!open) {
       setMapMounted(false);
+      mapRef.current = null;
       return;
     }
     setMapMounted(true);
@@ -499,8 +549,21 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
   // preventing leaked document-level pointer listeners that crash the app on
   // the next click after the dialog closes.
   const requestClose = () => {
+    clearCalloutTimer();
+    setMode("none");
+    setHighlightOpen(false);
+    setSelectedId(null);
+    setEditing(null);
+    setDraggingAreaId(null);
+    setFlyTarget(null);
+    setCallout({ id: null, shown: false });
+
     setMapMounted(false);
-    setTimeout(() => onOpenChange(false), 30);
+
+    setTimeout(() => {
+      mapRef.current = null;
+      onOpenChange(false);
+    }, 30);
   };
 
   const save = async () => {
@@ -549,7 +612,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
               {mapMounted && (
               <MapContainer center={center} zoom={15} className="h-full w-full" scrollWheelZoom>
                 <VendorEventMapboxTileLayer mapStyle={mapStyle} />
-                <MapReady onReady={(m) => { mapRef.current = m; }} />
+                <MapReady mapRef={mapRef} />
                 <MapZoomWatcher onZoom={setMapZoom} />
                 <FitEventArea center={center} radiusMeters={radiusMeters} showRadius={showFlags} />
                 <FlyTo target={flyTarget} />
@@ -846,7 +909,7 @@ export default function EventMapSetup({ open, onOpenChange, eventType, value, on
             <div className="flex flex-wrap justify-between gap-2 border-t border-slate-100 pt-4">
               <Button type="button" variant="outline" onClick={() => setShowPreview(true)} className="gap-2"><Eye className="w-4 h-4" /> Preview Public Map</Button>
               <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={requestClose}>Cancel</Button>
                 <Button type="button" onClick={save} disabled={savingMap} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">{savingMap ? "Saving..." : "Save Map Setup"}</Button>
               </div>
             </div>
