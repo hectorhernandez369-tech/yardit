@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Pencil, Trash2, MapPin, CalendarClock } from "lucide-react";
+import { Pencil, Trash2, MapPin, CalendarClock, Rocket } from "lucide-react";
 import { format } from "date-fns";
 import { getDraftStepLabel } from "@/lib/vendorEventDraft";
 
-export default function DraftEventCard({ draft, onEdit, onDelete }) {
+export default function DraftEventCard({ draft, onEdit, onDelete, onPublish }) {
   const formData = draft.draft_form_data || {};
   const title = formData.title?.trim() || draft.title?.trim() || "Untitled Event";
   const step = draft.draft_current_step || 1;
@@ -33,6 +33,11 @@ export default function DraftEventCard({ draft, onEdit, onDelete }) {
             <Button size="sm" onClick={onEdit} className="bg-[#2C4F4E] text-white hover:bg-[#3d6b6a] h-8 gap-1.5">
               <Pencil className="h-3.5 w-3.5" /> Edit
             </Button>
+            {onPublish && (
+              <Button size="sm" onClick={onPublish} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635] h-8 gap-1.5 font-bold">
+                <Rocket className="h-3.5 w-3.5" /> Publish
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={onDelete} className="h-8 gap-1.5 border-red-200 text-red-600 hover:bg-red-50">
               <Trash2 className="h-3.5 w-3.5" /> Delete
             </Button>

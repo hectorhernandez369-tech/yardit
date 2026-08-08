@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, CalendarClock, Flag, Loader2, Mail, Map, Trophy, Users } from "lucide-react";
+import { ArrowLeft, CalendarClock, Flag, Loader2, Mail, Map, Rocket, Trophy, Users } from "lucide-react";
 import { format } from "date-fns";
 import EventSpotManager from "@/components/vendor/events/EventSpotManager";
 import InviteVendorsModal from "@/components/vendor/events/InviteVendorsModal";
@@ -114,6 +114,17 @@ export default function VendorEventDashboard() {
     refresh();
   };
 
+  const publishEvent = async (event) => {
+    if (!window.confirm(`Publish "${event.title}"? It will appear on the public map.`)) return;
+    try {
+      await base44.entities.VendorEvent.update(event.id, { status: "published", updated_at: new Date().toISOString() });
+      queryClient.invalidateQueries({ queryKey: ["vendorEvent", eventId] });
+      toast.success("Event published!");
+    } catch (err) {
+      toast.error("Failed to publish event.");
+    }
+  };
+
   if (isLoading || loadingUser || loadingVendorAccounts || loadingCollaborators) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (!event) return <div className="p-6 text-center">Event not found.</div>;
   if (!canAccessDashboard) return <div className="p-6 text-center text-[#2C4F4E] font-bold">You do not have permission for this action.</div>;
@@ -138,6 +149,7 @@ export default function VendorEventDashboard() {
               {isLeagueEvent && canEdit && <Button variant="outline" onClick={() => setShowAttachGames(true)}><Trophy className="h-4 w-4" /> Import Games from Schedule Manager</Button>}
               {isLeagueEvent && canEdit && <Button variant="outline" onClick={() => navigate(`/LeagueEventMap?id=${event.id}`)}><Map className="h-4 w-4" /> Event Map</Button>}
               {canSchedule && <Button variant="outline" onClick={() => navigate(`/VendorEventSchedule?id=${event.id}`)}><CalendarClock className="h-4 w-4" /> Schedule</Button>}
+              {canEdit && event.status === "draft" && <Button onClick={() => publishEvent(event)} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635] font-bold"><Rocket className="h-4 w-4" /> Publish Event</Button>}
               <Button variant="outline" onClick={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}>View Public Page</Button>
             </div>
           </div>

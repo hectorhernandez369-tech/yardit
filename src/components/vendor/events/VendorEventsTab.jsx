@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CalendarPlus, Store, CalendarDays, Clock, FileText } from "lucide-react";
+import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import VendorEventForm from "./VendorEventForm";
 import EventCollaboratorsPanel from "./EventCollaboratorsPanel";
@@ -168,6 +169,17 @@ export default function VendorEventsTab({ account, user }) {
     updateEventsUrl({ create: true });
   };
 
+  const publishDraft = async (draft) => {
+    if (!window.confirm(`Publish "${draft.title || "Untitled Event"}"? It will appear on the public map.`)) return;
+    try {
+      await base44.entities.VendorEvent.update(draft.id, { status: "published", updated_at: new Date().toISOString() });
+      toast.success("Event published!");
+      invalidate();
+    } catch (err) {
+      toast.error("Failed to publish event. Please open the event and try again.");
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -259,6 +271,7 @@ export default function VendorEventsTab({ account, user }) {
                     key={draft.id}
                     draft={draft}
                     onEdit={() => editDraft(draft)}
+                    onPublish={() => publishDraft(draft)}
                     onDelete={() => {
                       if (window.confirm("Delete this draft permanently?")) deleteDraft(draft);
                     }}
