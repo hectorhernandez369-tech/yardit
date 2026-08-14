@@ -213,6 +213,12 @@ export default function OrganizerAccountSwitcher({ accounts, activeAccount, defa
   const handleSelect = useOrganizerAccountSelect({ dashboardType, currentTab, onSelectSameDashboard, adminPreview });
   if (!accounts || accounts.length === 0) return null;
   const activeConfig = getOrganizerTypeConfig(activeAccount);
+  const makeGlobalDefault = () => {
+    if (activeAccount?.id && !adminPreview) {
+      localStorage.setItem("yardit_default_organizer_account_id", activeAccount.id);
+    }
+    onMakeDefaultPage?.();
+  };
 
   return (
     <div className="bg-[#2C4F4E] text-white px-4 py-2 flex items-center gap-2 text-sm">
@@ -236,7 +242,7 @@ export default function OrganizerAccountSwitcher({ accounts, activeAccount, defa
       <DefaultVendorPageControl
         canManage={canManageDefaultPage}
         isDefault={isDefaultPage}
-        onMakeDefault={onMakeDefaultPage}
+        onMakeDefault={makeGlobalDefault}
         className="ml-auto shrink-0"
       />
     </div>
