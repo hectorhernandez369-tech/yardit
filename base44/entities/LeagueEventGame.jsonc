@@ -14,6 +14,22 @@
       "type": "string",
       "description": "League/Team VendorAccount ID"
     },
+    "league_event_field_id": {
+      "type": "string",
+      "description": "LeagueEventField assignment for this game within this specific event"
+    },
+    "field_name_snapshot": {
+      "type": "string",
+      "description": "Field name captured for display when this event-game link was assigned"
+    },
+    "spot_id": {
+      "type": "string",
+      "description": "Optional legacy/public schedule spot relationship"
+    },
+    "field_name": {
+      "type": "string",
+      "description": "Optional legacy field label for compatibility; league_event_field_id is authoritative"
+    },
     "display_order": {
       "type": "number",
       "default": 0
