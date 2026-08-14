@@ -19,6 +19,13 @@ export default function MobileVendorHeader({ account, activeCheckIn, activePin, 
     document.getElementById("vendor-public-preview-button")?.click();
   };
 
+  const makeGlobalDefault = () => {
+    if (account?.id && !adminPreview) {
+      localStorage.setItem("yardit_default_organizer_account_id", account.id);
+    }
+    onMakeDefaultPage?.();
+  };
+
   return (
     <div className="sm:hidden bg-white text-[#2C4F4E]">
       <div className="flex items-center gap-3 px-3 py-2.5">
@@ -55,7 +62,7 @@ export default function MobileVendorHeader({ account, activeCheckIn, activePin, 
         <DefaultVendorPageControl
           canManage={canManageDefaultPage}
           isDefault={isDefaultPage}
-          onMakeDefault={onMakeDefaultPage}
+          onMakeDefault={makeGlobalDefault}
           className="shrink-0 border-[#2C4F4E]/20 bg-[#F4A849] px-2 text-[10px] text-[#2C4F4E] hover:bg-[#E39635]"
         />
         <Button onClick={handlePreview} size="sm" className="h-8 shrink-0 rounded-full bg-[#5DADA5] px-3 text-xs text-white hover:bg-[#4A9B93]">
