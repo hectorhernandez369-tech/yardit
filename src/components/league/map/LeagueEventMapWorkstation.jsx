@@ -34,8 +34,21 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
   const { data: links = [] } = useQuery({ queryKey: ["leagueEventMapLinks", eventId], queryFn: () => base44.entities.LeagueEventGame.filter({ event_id: eventId }), enabled: !!eventId && !draftMode, initialData: [] });
 
   const eventGames = useMemo(() => {
-    const linkedIds = new Set(links.map((l) => l.league_game_id));
-    return allGames.filter((g) => g.league_event_id === eventId || linkedIds.has(g.id));
+    const gameById = new Map(allGames.map((game) => [game.id, game]));
+    return links
+      .filter((link) => link?.is_visible !== false)
+      .map((link) => {
+        const game = gameById.get(link.league_game_id);
+        if (!game) return null;
+        return {
+          ...game,
+          league_event_id: eventId,
+          league_event_field_id: link.league_event_field_id || "",
+          field_name_snapshot: link.field_name_snapshot || link.field_name || "",
+          event_link_id: link.id,
+        };
+      })
+      .filter(Boolean);
   }, [allGames, links, eventId]);
 
   const [fields, setFields] = useState([]);
@@ -61,7 +74,6 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Hydrate local state — from props in draft mode, from server otherwise.
   useEffect(() => {
     if (loaded || !event) return;
     if (draftMode) {
@@ -79,7 +91,6 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
     setPublishedObjects(clone(mapRecord?.published_objects || []));
     setHasUnpublished(!!mapRecord?.has_unpublished_changes || (!mapRecord && serverFields.length > 0));
     setLoaded(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serverFields, mapRecord, event, loaded, draftMode, initialFields, initialObjects]);
 
   const snapshot = useCallback(() => ({ fields: clone(fields), objects: clone(objects) }), [fields, objects]);
@@ -114,7 +125,6 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
 
   const markDirty = () => setHasUnpublished(true);
 
-  // --- Field operations ---
   const addField = (center) => {
     const id = uid();
     const order = fields.length;
@@ -130,7 +140,7 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
   };
 
   const deleteField = (id) => {
-    const assigned = gamesOnField(id, allGames);
+    const assigned = gamesOnField(id, eventGames);
     if (assigned.length) {
       toast.error(`This field is assigned to ${assigned.length} game${assigned.length === 1 ? "" : "s"}. Reassign or unschedule those games before deleting the field.`);
       return;
@@ -140,7 +150,6 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
     markDirty();
   };
 
-  // --- Venue object operations ---
   const addObject = (obj) => {
     mutate(() => setObjects((o) => [...o, { ...obj, display_order: o.length }]));
     setSelected({ id: obj.id, type: obj.type });
@@ -207,15 +216,13 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
 
   const gameCounts = useMemo(() => {
     const counts = {};
-    fields.forEach((f) => { counts[f.id] = allGames.filter((g) => g.league_event_field_id === f.id).length; });
+    fields.forEach((f) => { counts[f.id] = eventGames.filter((g) => g.league_event_field_id === f.id).length; });
     return counts;
-  }, [fields, allGames]);
+  }, [fields, eventGames]);
 
-  // --- Save / publish ---
   const persistFields = async () => {
     const currentServerIds = new Set(serverFieldIds);
     const localIds = new Set(fields.map((f) => f.id));
-    // Deletes
     for (const sid of serverFieldIds) {
       if (!localIds.has(sid)) {
         await base44.entities.LeagueEventField.delete(sid).catch(() => {});
@@ -233,7 +240,6 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
         if (createdRecord) { idMap[f.id] = createdRecord.id; created++; }
       }
     }
-    // Remap local temp ids to server ids so games can reference them
     if (created) {
       setFields((arr) => arr.map((f) => idMap[f.id] ? { ...f, id: idMap[f.id] } : f));
       setServerFieldIds((s) => new Set([...s, ...Object.values(idMap)]));
@@ -328,16 +334,24 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
     queryClient.invalidateQueries({ queryKey: ["leagueEventMapRecord", eventId] });
   };
 
-  // Assign a game to the selected field from the map field panel.
   const assignGame = async (game, field) => {
     if (!serverFieldIds.has(field.id)) {
       toast.error("Save the field first so it has a permanent record, then assign games.");
       return;
     }
-    const check = canAssignGameToField(game, field, allGames);
+    const check = canAssignGameToField(game, field, eventGames);
     if (!check.ok) { toast.error(check.reason); return; }
-    await base44.entities.LeagueGame.update(game.id, { league_event_field_id: field.id, field_name_snapshot: field.name, league_event_id: eventId });
-    queryClient.invalidateQueries({ queryKey: ["leagueEventMapGames", event?.organizer_business_id] });
+    const link = links.find((item) => item.league_game_id === game.id);
+    if (!link?.id) {
+      toast.error("Attach this game to the event before assigning it to a field.");
+      return;
+    }
+    await base44.entities.LeagueEventGame.update(link.id, {
+      league_event_field_id: field.id,
+      field_name_snapshot: field.name,
+      field_name: field.name,
+    });
+    queryClient.invalidateQueries({ queryKey: ["leagueEventMapLinks", eventId] });
     toast.success(`${game.home_team || "Game"} vs ${game.away_team || ""} assigned to ${field.name}.`);
   };
 
@@ -359,7 +373,7 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
     }
     if (!draftMode && view === "schedule" && selected.type === "field") {
       const field = fields.find((f) => f.id === selected.id);
-      return <FieldPanel field={field} games={allGames} eventGames={eventGames} onAssignGame={assignGame} onAddGame={() => navigate(`/LeagueTeamDashboard?tab=schedule&account=${account?.id}`)} onOpenSchedule={() => navigate(`/LeagueTeamDashboard?tab=schedule&account=${account?.id}`)} onClose={() => setSelected({ id: null, type: null })} />;
+      return <FieldPanel field={field} games={eventGames} eventGames={eventGames} onAssignGame={assignGame} onAddGame={() => navigate(`/LeagueTeamDashboard?tab=schedule&account=${account?.id}`)} onOpenSchedule={() => navigate(`/LeagueTeamDashboard?tab=schedule&account=${account?.id}`)} onClose={() => setSelected({ id: null, type: null })} />;
     }
     if (selected.id) {
       return <ObjectSettingsPanel object={selectedObject} type={selected.type} onChange={(patch) => selected.type === "field" ? updateField(selected.id, patch) : updateObject(selected.id, patch)} onDelete={() => selected.type === "field" ? deleteField(selected.id) : deleteObject(selected.id)} onDuplicate={() => duplicateObject(selected.id, selected.type)} onManageGames={draftMode ? undefined : () => setView("schedule")} gameCount={gameCounts[selected.id]} />;
@@ -383,7 +397,7 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
       <div className="fixed inset-0 z-[4000] flex flex-col bg-slate-50">
         <TopBar />
         <div className="relative flex-1">
-          <VenueMapCanvas event={event} fields={fields} objects={objects} activeTool={activeTool} setActiveTool={setActiveTool} selectedId={selected.id} selectedType={selected.type} onSelect={(id, type) => setSelected({ id, type })} onAddField={addField} onAddObject={addObject} onUpdateField={updateField} onUpdateObject={updateObject} view={view} games={allGames} onSelectField={(f) => setSelected({ id: f.id, type: "field" })} mapRef={mapRef} />
+          <VenueMapCanvas event={event} fields={fields} objects={objects} activeTool={activeTool} setActiveTool={setActiveTool} selectedId={selected.id} selectedType={selected.type} onSelect={(id, type) => setSelected({ id, type })} onAddField={addField} onAddObject={addObject} onUpdateField={updateField} onUpdateObject={updateObject} view={view} games={eventGames} onSelectField={(f) => setSelected({ id: f.id, type: "field" })} mapRef={mapRef} />
         </div>
         {layersOpen && <div className="absolute inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl"><RightContent /></div>}
         {!layersOpen && selected.id && <div className="absolute inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl"><RightContent /></div>}
@@ -398,7 +412,7 @@ export default function LeagueEventMapWorkstation({ eventId, draftMode = false, 
       <div className="flex min-h-0 flex-1">
         <div className="w-56 shrink-0"><MapToolbar activeTool={activeTool} setTool={setActiveTool} layout="panel" view={view} setView={setView} layersOpen={layersOpen} setLayersOpen={setLayersOpen} canUndo={!!history.length} canRedo={!!future.length} onUndo={undo} onRedo={redo} onSaveDraft={saveDraft} onPublish={draftMode ? saveDraft : publish} saving={saving} onFitVenue={fitVenue} onSetDefault={setDefaultView} onResetView={resetView} hasUnpublished={hasUnpublished} draftMode={draftMode} /></div>
         <div className="relative min-w-0 flex-1">
-          <VenueMapCanvas event={event} fields={fields} objects={objects} activeTool={activeTool} setActiveTool={setActiveTool} selectedId={selected.id} selectedType={selected.type} onSelect={(id, type) => setSelected({ id, type })} onAddField={addField} onAddObject={addObject} onUpdateField={updateField} onUpdateObject={updateObject} view={view} games={allGames} onSelectField={(f) => setSelected({ id: f.id, type: "field" })} mapRef={mapRef} />
+          <VenueMapCanvas event={event} fields={fields} objects={objects} activeTool={activeTool} setActiveTool={setActiveTool} selectedId={selected.id} selectedType={selected.type} onSelect={(id, type) => setSelected({ id, type })} onAddField={addField} onAddObject={addObject} onUpdateField={updateField} onUpdateObject={updateObject} view={view} games={eventGames} onSelectField={(f) => setSelected({ id: f.id, type: "field" })} mapRef={mapRef} />
         </div>
         <div className="w-80 shrink-0 overflow-y-auto border-l border-slate-200 bg-white"><RightContent /></div>
       </div>
