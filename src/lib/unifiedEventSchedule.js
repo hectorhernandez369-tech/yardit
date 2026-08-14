@@ -33,8 +33,11 @@ export function getLinkedLeagueGames({ leagueEventLinks = [], leagueGames = [] }
       return {
         ...game,
         schedule_item_type: "league_game",
+        event_link_id: link?.id || "",
         spot_id: link?.spot_id || game?.spot_id || "",
-        field_name: link?.field_name || game?.field_name || game?.location || "Main Event",
+        league_event_field_id: link?.league_event_field_id || "",
+        field_name_snapshot: link?.field_name_snapshot || link?.field_name || "",
+        field_name: link?.field_name_snapshot || link?.field_name || game?.field_name || game?.location || "Main Event",
         display_order: link?.display_order ?? game?.sort_order ?? 0,
       };
     });
