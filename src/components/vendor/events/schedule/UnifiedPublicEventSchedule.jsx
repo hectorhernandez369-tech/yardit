@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin } from "lucide-react";
 import { getUnifiedEventSchedule } from "@/lib/unifiedEventSchedule";
 
@@ -18,6 +19,14 @@ const dateLabel = (value) => {
   return date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
 };
 
+const itemTime = (item) => {
+  const time = item?.start_time ? new Date(item.start_time).getTime() : Number.POSITIVE_INFINITY;
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
+};
+
+const fieldNameFor = (item) => String(item?.field_name || item?.location || "Main Event").trim() || "Main Event";
+const originalOrderFor = (item) => Number(item?.display_order ?? item?.sort_order ?? 0);
+
 const gameStatusLabel = (game) => {
   const status = String(game?.status || "upcoming").toLowerCase();
   if (status === "final") return "Final";
@@ -32,6 +41,7 @@ const showGameScore = (game) => {
 };
 
 export default function UnifiedPublicEventSchedule({ leagueEventLinks = [], leagueGames = [], scheduleEntries = [], selectedSpotId = "", selectedFieldName = "", onClearField, onViewFieldOnMap }) {
+  const [viewMode, setViewMode] = useState("original");
   const schedule = getUnifiedEventSchedule({ leagueEventLinks, leagueGames, scheduleEntries });
 
   const filteredItems = useMemo(() => {
@@ -39,16 +49,66 @@ export default function UnifiedPublicEventSchedule({ leagueEventLinks = [], leag
     return schedule.items.filter((item) => {
       if (selectedSpotId) {
         if (item?.spot_id === selectedSpotId) return true;
-        return !item?.spot_id && selectedFieldName && String(item?.field_name || "").trim().toLowerCase() === String(selectedFieldName).trim().toLowerCase();
+        return !item?.spot_id && selectedFieldName && fieldNameFor(item).toLowerCase() === String(selectedFieldName).trim().toLowerCase();
       }
-      return selectedFieldName && String(item?.field_name || "").trim().toLowerCase() === String(selectedFieldName).trim().toLowerCase();
+      return selectedFieldName && fieldNameFor(item).toLowerCase() === String(selectedFieldName).trim().toLowerCase();
     });
   }, [schedule.items, selectedSpotId, selectedFieldName]);
 
+  const displayItems = useMemo(() => {
+    const items = [...filteredItems];
+    if (viewMode === "time") {
+      return items.sort((a, b) => itemTime(a) - itemTime(b) || originalOrderFor(a) - originalOrderFor(b));
+    }
+    if (viewMode === "field") {
+      return items.sort((a, b) => {
+        const fieldCompare = fieldNameFor(a).localeCompare(fieldNameFor(b), undefined, { numeric: true, sensitivity: "base" });
+        if (fieldCompare !== 0) return fieldCompare;
+        return itemTime(a) - itemTime(b) || originalOrderFor(a) - originalOrderFor(b);
+      });
+    }
+    return items.sort((a, b) => originalOrderFor(a) - originalOrderFor(b) || itemTime(a) - itemTime(b));
+  }, [filteredItems, viewMode]);
+
   if (!schedule.items.length) return null;
 
-  const groups = filteredItems.reduce((result, item) => {
-    const fieldName = String(item?.field_name || item?.location || "Main Event").trim() || "Main Event";
+  const renderRow = (item, showFieldBadge = false) => {
+    const isLeagueGame = item.schedule_item_type === "league_game";
+    const fieldName = fieldNameFor(item);
+    return (
+      <div key={`${item.schedule_item_type}-${item.id}`} className="rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            {showFieldBadge && <Badge variant="outline" className="mb-2 border-[#2C4F4E]/20 bg-white text-[#2C4F4E]">{fieldName}</Badge>}
+            {isLeagueGame ? (
+              <>
+                <p className="text-sm font-bold text-slate-500">{item.division || item.age_group || "Game"}</p>
+                <p className="font-black text-[#2C4F4E]">{item.home_team || "Home"} vs {item.away_team || "Away"}</p>
+              </>
+            ) : (
+              <p className="font-black text-[#2C4F4E]">{item.title}</p>
+            )}
+            <p className="mt-1 text-sm text-slate-600">{dateLabel(item.start_time)}{" · "}{timeLabel(item.start_time)}{item.end_time ? ` - ${timeLabel(item.end_time)}` : ""}</p>
+            {item.notes && <p className="mt-1 text-xs text-slate-500">{item.notes}</p>}
+            {isLeagueGame && item.league_event_field_id && onViewFieldOnMap && (
+              <button type="button" onClick={() => onViewFieldOnMap(item)} className="mt-2 inline-flex items-center gap-1 rounded-full border border-[#2C4F4E]/20 bg-white px-3 py-1 text-xs font-bold text-[#2C4F4E] hover:bg-[#5DADA5]/10">
+                <MapPin className="h-3 w-3" /> View Field on Map
+              </button>
+            )}
+          </div>
+          {isLeagueGame && (
+            <div className="shrink-0 text-right">
+              <Badge className="capitalize bg-[#5DADA5] text-white">{gameStatusLabel(item)}</Badge>
+              {showGameScore(item) && <p className="mt-2 text-lg font-black text-[#2C4F4E]">{Number(item.home_score || 0)} - {Number(item.away_score || 0)}</p>}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const groupedByField = displayItems.reduce((result, item) => {
+    const fieldName = fieldNameFor(item);
     if (!result[fieldName]) result[fieldName] = [];
     result[fieldName].push(item);
     return result;
@@ -57,54 +117,39 @@ export default function UnifiedPublicEventSchedule({ leagueEventLinks = [], leag
   return (
     <Card id="public-event-schedule" className="rounded-3xl bg-white">
       <CardContent className="p-5 sm:p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-2xl font-black text-[#2C4F4E]">{selectedFieldName ? `${selectedFieldName} Schedule` : "Schedule"}</h2>
             {selectedFieldName && <p className="text-sm text-slate-500">Showing activities assigned to this field.</p>}
           </div>
-          {selectedFieldName && onClearField && <button type="button" onClick={onClearField} className="text-sm font-bold text-[#2C4F4E] underline">View all fields</button>}
+          <div className="flex flex-wrap items-center gap-2">
+            {!selectedFieldName && (
+              <Select value={viewMode} onValueChange={setViewMode}>
+                <SelectTrigger className="h-9 w-[170px] bg-white text-sm font-semibold text-[#2C4F4E]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="original">Original Schedule</SelectItem>
+                  <SelectItem value="field">By Field</SelectItem>
+                  <SelectItem value="time">By Time</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            {selectedFieldName && onClearField && <button type="button" onClick={onClearField} className="text-sm font-bold text-[#2C4F4E] underline">View all fields</button>}
+          </div>
         </div>
 
-        {filteredItems.length === 0 ? (
+        {displayItems.length === 0 ? (
           <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-500">No schedule entries are assigned to this field.</div>
-        ) : (
-          Object.entries(groups).map(([fieldName, rows]) => (
+        ) : viewMode === "field" && !selectedFieldName ? (
+          Object.entries(groupedByField).map(([fieldName, rows]) => (
             <section key={fieldName} className="space-y-2">
               <h3 className="rounded-xl bg-[#2C4F4E] px-4 py-2 font-black text-white">{fieldName}</h3>
-              {rows.map((item) => {
-                const isLeagueGame = item.schedule_item_type === "league_game";
-                return (
-                  <div key={`${item.schedule_item_type}-${item.id}`} className="rounded-2xl border border-[#2C4F4E]/10 bg-[#FBFAF7] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        {isLeagueGame ? (
-                          <>
-                            <p className="text-sm font-bold text-slate-500">{item.division || item.age_group || "Game"}</p>
-                            <p className="font-black text-[#2C4F4E]">{item.home_team || "Home"} vs {item.away_team || "Away"}</p>
-                          </>
-                        ) : (
-                          <p className="font-black text-[#2C4F4E]">{item.title}</p>
-                        )}
-                        <p className="mt-1 text-sm text-slate-600">{dateLabel(item.start_time)}{" · "}{timeLabel(item.start_time)}{item.end_time ? ` - ${timeLabel(item.end_time)}` : ""}</p>
-                        {item.notes && <p className="mt-1 text-xs text-slate-500">{item.notes}</p>}
-                        {isLeagueGame && item.league_event_field_id && onViewFieldOnMap && (
-                          <button type="button" onClick={() => onViewFieldOnMap(item)} className="mt-2 inline-flex items-center gap-1 rounded-full border border-[#2C4F4E]/20 bg-white px-3 py-1 text-xs font-bold text-[#2C4F4E] hover:bg-[#5DADA5]/10">
-                            <MapPin className="h-3 w-3" /> View Field on Map
-                          </button>
-                        )}
-                      </div>
-                      {isLeagueGame && (
-                        <div className="shrink-0 text-right">
-                          <Badge className="capitalize bg-[#5DADA5] text-white">{gameStatusLabel(item)}</Badge>
-                          {showGameScore(item) && <p className="mt-2 text-lg font-black text-[#2C4F4E]">{Number(item.home_score || 0)} - {Number(item.away_score || 0)}</p>}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {rows.map((item) => renderRow(item, false))}
             </section>
           ))
+        ) : (
+          <div className="space-y-2">
+            {displayItems.map((item) => renderRow(item, !selectedFieldName))}
+          </div>
         )}
       </CardContent>
     </Card>
