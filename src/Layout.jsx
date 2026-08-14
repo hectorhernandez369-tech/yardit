@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { HuntProvider, useHunt, HUNT_ENABLED } from "./components/hunt/HuntContext";
 import { Map as MapIcon, Crosshair } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
+import { getUserVendorAccounts, isLeagueTeamAccount } from "@/lib/getUserVendorAccounts";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { useAppMode } from "./components/shared/DemoMode";
@@ -68,7 +68,6 @@ function LayoutContent({ children, user, setUser }) {
       }
 
       if (user?.id) {
-      // Master admins always get vendor dashboard access (auto-provisioned)
       const masterRoles = new Set(["master", "super_master"]);
       if (masterRoles.has(user.role)) {
         setHasVendorAccount(true);
@@ -183,8 +182,6 @@ function LayoutContent({ children, user, setUser }) {
             </div>
 
             <nav className="yardit-nav-items flex items-center gap-2 flex-wrap">
-              {/* My Hunt link moved to My Listings */}
-
               {canViewLaunchChecklist && (
                 <Button
                   variant="ghost"
@@ -222,10 +219,10 @@ function LayoutContent({ children, user, setUser }) {
 
               {hasVendorAccount && startupPage === "vendor" && (
                 <Button
-                  variant={location.pathname === "/VendorDashboard" ? "secondary" : "ghost"}
+                  variant={location.pathname === "/VendorDashboard" || location.pathname === "/LeagueTeamDashboard" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => navigate("/VendorDashboard")}
-                  className={`gap-2 ${location.pathname === "/VendorDashboard" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
+                  className={`gap-2 ${location.pathname === "/VendorDashboard" || location.pathname === "/LeagueTeamDashboard" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
                 >
                   <Store className="w-4 h-4" />
                   <span>Dashboard</span>
@@ -250,7 +247,6 @@ function LayoutContent({ children, user, setUser }) {
                     <span className="yardit-nav-alerts-label hidden">Alerts</span>
                   </div>
                 )}
-
 
                 {user && (
                   <>
@@ -396,7 +392,6 @@ export default function Layout({ children }) {
 
         base44.functions.invoke("syncNeighborhoodCoHostInvite", {}).catch(() => {});
 
-        // Startup page redirect — only once per browser session
         const startupPage = localStorage.getItem("yardit_startup_page");
         const isRoot = window.location.pathname === "/" || window.location.pathname === createPageUrl("Home");
         const startupAlreadyChecked = sessionStorage.getItem(STARTUP_CHECK_KEY) === "true";
@@ -405,10 +400,18 @@ export default function Layout({ children }) {
           sessionStorage.setItem(STARTUP_CHECK_KEY, "true");
 
           if (startupPage === "vendor" && isRoot) {
-            const vendorAccounts = await getUserVendorAccounts(currentUser).catch(() => []);
+            const organizerAccounts = await getUserVendorAccounts(currentUser).catch(() => []);
 
-            if (vendorAccounts.length > 0) {
-              window.location.replace("/VendorDashboard");
+            if (organizerAccounts.length > 0) {
+              const userKey = currentUser?.id || currentUser?.email || "";
+              const globalDefaultId = localStorage.getItem("yardit_default_organizer_account_id");
+              const legacyLeagueDefaultId = userKey ? localStorage.getItem(`yardit_default_league_account_id:${userKey}`) : localStorage.getItem("yardit_default_league_account_id");
+              const legacyVendorDefaultId = userKey ? localStorage.getItem(`yardit_default_vendor_account_id:${userKey}`) : localStorage.getItem("yardit_default_vendor_account_id");
+              const preferredId = globalDefaultId || legacyLeagueDefaultId || legacyVendorDefaultId;
+              const preferredAccount = organizerAccounts.find((account) => account.id === preferredId) || organizerAccounts[0];
+              localStorage.setItem("yardit_default_organizer_account_id", preferredAccount.id);
+              const route = isLeagueTeamAccount(preferredAccount) ? "/LeagueTeamDashboard" : "/VendorDashboard";
+              window.location.replace(`${route}?account=${encodeURIComponent(preferredAccount.id)}`);
               return;
             }
 
