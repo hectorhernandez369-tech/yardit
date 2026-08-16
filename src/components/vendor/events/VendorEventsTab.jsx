@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { CalendarPlus, Store, CalendarDays, Clock, FileText } from "lucide-react";
+import { CalendarPlus, Store, CalendarDays, Clock, FileText, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import VendorEventForm from "./VendorEventForm";
@@ -31,7 +31,8 @@ export default function VendorEventsTab({ account, user }) {
   const [editingEvent, setEditingEvent] = useState(null);
   const [collaboratorEvent, setCollaboratorEvent] = useState(null);
   const [reviewInvite, setReviewInvite] = useState(null);
-  // Draft resume state: when set, the Create dialog loads this draft into the form.
+  const [cancelEvent, setCancelEvent] = useState(null);
+  const [isCancellingEvent, setIsCancellingEvent] = useState(false);
   const [resumeDraft, setResumeDraft] = useState(null);
   const [showDraftGate, setShowDraftGate] = useState(false);
 
@@ -119,7 +120,28 @@ export default function VendorEventsTab({ account, user }) {
     queryClient.invalidateQueries({ queryKey: ["allEventCollaborators"] });
   };
 
-  // --- Create Event entry with draft resume gate ---
+  const confirmCancelEvent = async () => {
+    if (!cancelEvent?.id || cancelEvent.organizer_business_id !== account?.id) return;
+    setIsCancellingEvent(true);
+    try {
+      await base44.entities.VendorEvent.update(cancelEvent.id, {
+        status: "cancelled",
+        visibility_status: "cancelled",
+        updated_at: new Date().toISOString(),
+      });
+      await queryClient.invalidateQueries({ queryKey: ["vendorEvents"] });
+      setCancelEvent(null);
+      setTab("history");
+      updateEventsUrl({ subtab: "history" });
+      toast.success("Event cancelled and moved to History.");
+    } catch (error) {
+      console.error("Failed to cancel event:", error);
+      toast.error("Failed to cancel the event. Please try again.");
+    } finally {
+      setIsCancellingEvent(false);
+    }
+  };
+
   const openCreate = () => {
     if (drafts.length > 0) {
       setShowDraftGate(true);
@@ -247,6 +269,7 @@ export default function VendorEventsTab({ account, user }) {
             navigate={navigate}
             pendingCollaborationInvites={pendingCollaborationInvites}
             onReviewInvite={setReviewInvite}
+            onCancelEvent={setCancelEvent}
           />
         </TabsContent>
 
@@ -293,7 +316,6 @@ export default function VendorEventsTab({ account, user }) {
         </TabsContent>
       </Tabs>
 
-      {/* Resume-draft gate — shown when opening Create with an existing draft */}
       <CreateEventDraftGate
         open={showDraftGate}
         onOpenChange={setShowDraftGate}
@@ -306,7 +328,30 @@ export default function VendorEventsTab({ account, user }) {
         }}
       />
 
-      {/* Create event dialog — loads the resumeDraft (if any) into the form */}
+      <Dialog open={!!cancelEvent} onOpenChange={(open) => !open && !isCancellingEvent && setCancelEvent(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <TriangleAlert className="h-5 w-5" /> Cancel Event?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              Are you sure you want to delete <strong>“{cancelEvent?.title || "this event"}”</strong> from Active Events?
+            </p>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              The event will not be permanently deleted. It will be marked <strong>Cancelled</strong> and moved to <strong>History</strong>.
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" disabled={isCancellingEvent} onClick={() => setCancelEvent(null)}>Keep Event</Button>
+              <Button disabled={isCancellingEvent} onClick={confirmCancelEvent} className="bg-red-600 text-white hover:bg-red-700">
+                {isCancellingEvent ? "Cancelling…" : "Yes, Cancel Event"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showCreate} onOpenChange={closeCreate}>
         <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0">
           <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 rounded-t-lg flex items-start justify-between gap-3">
@@ -335,7 +380,6 @@ export default function VendorEventsTab({ account, user }) {
         </DialogContent>
       </Dialog>
 
-      {/* Edit event dialog */}
       <Dialog open={!!editingEvent} onOpenChange={(open) => !open && setEditingEvent(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(event) => event.preventDefault()}>
           <DialogHeader><DialogTitle>Edit Event Details</DialogTitle></DialogHeader>
@@ -354,7 +398,6 @@ export default function VendorEventsTab({ account, user }) {
         </DialogContent>
       </Dialog>
 
-      {/* Collaborators dialog */}
       <Dialog open={!!collaboratorEvent} onOpenChange={(open) => !open && setCollaboratorEvent(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Collaborators</DialogTitle></DialogHeader>
@@ -372,7 +415,6 @@ export default function VendorEventsTab({ account, user }) {
         </DialogContent>
       </Dialog>
 
-      {/* Review invite dialog */}
       <Dialog open={!!reviewInvite} onOpenChange={(open) => !open && setReviewInvite(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Review Collaboration Invite</DialogTitle></DialogHeader>
