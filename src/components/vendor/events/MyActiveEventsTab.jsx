@@ -1,7 +1,10 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, CalendarPlus } from "lucide-react";
+import { CalendarDays, CalendarPlus, FileText, Trash2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 import VendorEventCard from "./VendorEventCard";
 import { getDashboardEventStatus } from "@/lib/vendorEvents";
 import { canAdminPreviewOrganization } from "@/lib/canAdminPreviewOrganization";
@@ -29,10 +32,15 @@ export default function MyActiveEventsTab({
   canCreateAnyEvent, onCreateEvent, onEditEvent, onCollaborators,
   navigate, pendingCollaborationInvites, onReviewInvite, onCancelEvent,
 }) {
+  const queryClient = useQueryClient();
   const now = new Date();
   const currentOrganizationIds = account?.id ? [account.id] : [];
   const organizationById = Object.fromEntries(vendorAccounts.map((a) => [a.id, a]));
   const isEventAdmin = canAdminPreviewOrganization(user);
+
+  const drafts = events
+    .filter((e) => e.status === "draft" && e.organizer_business_id === account?.id)
+    .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
 
   const myEvents = events
     .map((e) => ({
@@ -55,6 +63,19 @@ export default function MyActiveEventsTab({
   const participating = sortActiveEvents(
     myEvents.filter((e) => e.organizer_business_id !== account?.id)
   );
+
+  const deleteDraft = async (draft) => {
+    if (!draft?.id || draft.organizer_business_id !== account?.id) return;
+    if (!window.confirm(`Delete draft "${draft.title || "Untitled Event"}" permanently? This cannot be undone.`)) return;
+    try {
+      await base44.entities.VendorEvent.delete(draft.id);
+      await queryClient.invalidateQueries({ queryKey: ["vendorEvents"] });
+      toast.success("Draft deleted.");
+    } catch (error) {
+      console.error("Failed to delete draft:", error);
+      toast.error("Failed to delete draft. Please try again.");
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -81,6 +102,39 @@ export default function MyActiveEventsTab({
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {drafts.length > 0 && (
+        <div>
+          <div className="mb-3">
+            <h4 className="font-bold text-slate-800">Draft Events</h4>
+            <p className="text-xs text-slate-500">Unpublished events you started. Drafts are not public.</p>
+          </div>
+          <div className="space-y-2">
+            {drafts.map((draft) => (
+              <Card key={draft.id} className="rounded-xl border border-amber-200 bg-amber-50/40">
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge className="bg-amber-400 text-amber-900 text-[10px] font-bold">Draft</Badge>
+                      <FileText className="h-3.5 w-3.5 text-amber-700" />
+                    </div>
+                    <p className="font-semibold text-slate-800 truncate">{draft.title || "Untitled Event"}</p>
+                    <p className="text-xs text-slate-500">Not published</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => navigate("/VendorDashboard?tab=events&subtab=drafts")}>
+                      Open Drafts
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => deleteDraft(draft)} className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       )}
 
       <div>
