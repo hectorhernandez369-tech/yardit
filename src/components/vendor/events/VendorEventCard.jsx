@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarClock, CalendarDays, Flag, MapPin, Pencil, Users, Clock, ExternalLink, ChevronRight } from "lucide-react";
+import { CalendarClock, CalendarDays, Flag, MapPin, Pencil, Users, Clock, ExternalLink, ChevronRight, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus } from "@/lib/vendorEvents";
 
@@ -16,7 +16,7 @@ const STATUS_CONFIG = {
   pending_payment: { label: "Pending Payment", dot: "bg-amber-500", badge: "bg-amber-50 text-amber-700 border-amber-200" },
 };
 
-export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, hostedLabels, isCollaborating = false, ownerName = "", canEdit = false, canManageVendors = false, canManageFlags = false, canManageSchedule = false, canManageCollaborators = false, onView, onEdit, onManage, onEditFlags, onSchedule, onCollaborators }) {
+export default function VendorEventCard({ event, distanceMiles, approvedVendorCount = 0, hostedLabels, isCollaborating = false, ownerName = "", canEdit = false, canManageVendors = false, canManageFlags = false, canManageSchedule = false, canManageCollaborators = false, onView, onEdit, onManage, onEditFlags, onSchedule, onCollaborators, onCancel }) {
   const status = getVendorEventStatus(event);
   const cfg = STATUS_CONFIG[status] || { label: status, dot: "bg-slate-400", badge: "bg-slate-100 text-slate-600 border-slate-200" };
 
@@ -73,7 +73,7 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
         </div>
 
         {/* Action row */}
-        {(canEdit || canManageVendors || canManageFlags || canManageSchedule || canManageCollaborators) && (
+        {(canEdit || canManageVendors || canManageFlags || canManageSchedule || canManageCollaborators || onCancel) && (
           <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
             {canEdit && (
               <Button size="sm" variant="outline" onClick={onEdit} className="h-8 gap-1.5 text-xs border-slate-200">
@@ -93,6 +93,11 @@ export default function VendorEventCard({ event, distanceMiles, approvedVendorCo
             {canManageCollaborators && (
               <Button size="sm" variant="outline" onClick={onCollaborators} className="h-8 gap-1.5 text-xs border-slate-200">
                 <Users className="h-3.5 w-3.5" /> Collaborators
+              </Button>
+            )}
+            {onCancel && (
+              <Button size="sm" variant="outline" onClick={onCancel} className="h-8 gap-1.5 text-xs border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
+                <Trash2 className="h-3.5 w-3.5" /> Delete Event
               </Button>
             )}
             {canManageVendors && (
