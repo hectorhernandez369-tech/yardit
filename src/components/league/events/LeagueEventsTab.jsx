@@ -5,8 +5,9 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { CalendarPlus, Eye, MapPin, Pencil, Settings } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CalendarPlus, Eye, MapPin, Pencil, Settings, Trash2, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
 import VendorEventForm from "@/components/vendor/events/VendorEventForm";
 import { getVendorEventStatus } from "@/lib/vendorEvents";
 import { formatGameDate } from "@/components/league/schedule/leagueGameUtils";
@@ -21,14 +22,9 @@ const buildLeagueEventReturnState = (eventId, eventSubtab = "active") => ({
 
 const saveEventCardPosition = (eventId) => {
   if (!eventId) return;
-
   sessionStorage.setItem(
     "yardit_league_event_restore",
-    JSON.stringify({
-      eventId,
-      scrollY: window.scrollY,
-      savedAt: Date.now(),
-    })
+    JSON.stringify({ eventId, scrollY: window.scrollY, savedAt: Date.now() })
   );
 };
 
@@ -39,6 +35,8 @@ export default function LeagueEventsTab({ account, user }) {
   const [showCreate, setShowCreate] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [eventSubtab, setEventSubtab] = useState(location.state?.eventSubtab || "active");
+  const [eventToRemove, setEventToRemove] = useState(null);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   const { data: events = [] } = useQuery({
     queryKey: ["leagueEvents", account?.id],
@@ -64,14 +62,7 @@ export default function LeagueEventsTab({ account, user }) {
 
     const timer = window.setTimeout(() => {
       const card = document.getElementById(`league-event-card-${selectedEventId}`);
-
-      if (card) {
-        card.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }
-
+      if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
       sessionStorage.removeItem("yardit_league_event_restore");
     }, 150);
 
@@ -90,27 +81,43 @@ export default function LeagueEventsTab({ account, user }) {
 
   const handleViewInfo = (event) => {
     if (!event?.id) return;
-
     saveEventCardPosition(event.id);
-
-    navigate(
-      `/VendorEventDetail?id=${encodeURIComponent(event.id)}&organizerPreview=1`,
-      { state: buildLeagueEventReturnState(event.id, eventSubtab) }
-    );
+    navigate(`/VendorEventDetail?id=${encodeURIComponent(event.id)}&organizerPreview=1`, { state: buildLeagueEventReturnState(event.id, eventSubtab) });
   };
 
   const handleViewOnMap = (event) => {
     if (!event?.id) return;
-
     saveEventCardPosition(event.id);
-
-    navigate(
-      `/Home?eventId=${encodeURIComponent(event.id)}&organizerPreview=1`,
-      { state: buildLeagueEventReturnState(event.id, eventSubtab) }
-    );
+    navigate(`/Home?eventId=${encodeURIComponent(event.id)}&organizerPreview=1`, { state: buildLeagueEventReturnState(event.id, eventSubtab) });
   };
 
-  const eventCard = (event) => (
+  const confirmRemoveEvent = async () => {
+    if (!eventToRemove?.id || eventToRemove.organizer_business_id !== account?.id) return;
+    setIsRemoving(true);
+    try {
+      if (eventToRemove.status === "draft") {
+        await base44.entities.VendorEvent.delete(eventToRemove.id);
+        toast.success("Draft deleted permanently.");
+      } else {
+        await base44.entities.VendorEvent.update(eventToRemove.id, {
+          status: "cancelled",
+          visibility_status: "cancelled",
+          updated_at: new Date().toISOString(),
+        });
+        toast.success("Event cancelled and moved to History.");
+        setEventSubtab("history");
+      }
+      setEventToRemove(null);
+      await refresh();
+    } catch (error) {
+      console.error("Failed to remove league event:", error);
+      toast.error("Could not update this event. Please try again.");
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
+  const eventCard = (event, isHistory = false) => (
     <div id={`league-event-card-${event.id}`} data-event-id={event.id} key={event.id}>
       <Card className="rounded-2xl bg-white">
         <CardContent className="p-4 space-y-3">
@@ -123,24 +130,22 @@ export default function LeagueEventsTab({ account, user }) {
 
             <div className="mt-4 grid grid-cols-2 gap-3">
               <Button type="button" onClick={() => handleManageEvent(event)} className="w-full rounded-xl bg-[#2C5F5B] font-bold text-white hover:bg-[#244f4c]">
-                <Settings className="mr-2 h-4 w-4" />
-                Manage
+                <Settings className="mr-2 h-4 w-4" /> Manage
               </Button>
-
               <Button type="button" variant="outline" onClick={() => handleViewInfo(event)} className="w-full rounded-xl border-[#5DADA5] font-bold text-[#2C5F5B]">
-                <Eye className="mr-2 h-4 w-4" />
-                View Info
+                <Eye className="mr-2 h-4 w-4" /> View Info
               </Button>
-
               <Button type="button" variant="outline" onClick={() => handleEditEvent(event)} className="w-full rounded-xl font-bold">
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
+                <Pencil className="mr-2 h-4 w-4" /> Edit
               </Button>
-
               <Button type="button" variant="outline" onClick={() => handleViewOnMap(event)} className="w-full rounded-xl font-bold">
-                <MapPin className="mr-2 h-4 w-4" />
-                View on Map
+                <MapPin className="mr-2 h-4 w-4" /> View on Map
               </Button>
+              {!isHistory && (
+                <Button type="button" variant="outline" onClick={() => setEventToRemove(event)} className="col-span-2 w-full rounded-xl border-red-200 font-bold text-red-600 hover:bg-red-50 hover:text-red-700">
+                  <Trash2 className="mr-2 h-4 w-4" /> {event.status === "draft" ? "Delete Draft" : "Delete Event"}
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -163,9 +168,37 @@ export default function LeagueEventsTab({ account, user }) {
           <TabsTrigger value="active">Active Events</TabsTrigger>
           <TabsTrigger value="history">Event History</TabsTrigger>
         </TabsList>
-        <TabsContent value="active" className="mt-4 space-y-3">{activeEvents.length ? activeEvents.map(eventCard) : <p className="rounded-2xl bg-white p-4 text-sm text-slate-500">No active league events yet.</p>}</TabsContent>
-        <TabsContent value="history" className="mt-4 space-y-3">{historyEvents.length ? historyEvents.map(eventCard) : <p className="rounded-2xl bg-white p-4 text-sm text-slate-500">No event history yet.</p>}</TabsContent>
+        <TabsContent value="active" className="mt-4 space-y-3">{activeEvents.length ? activeEvents.map((event) => eventCard(event, false)) : <p className="rounded-2xl bg-white p-4 text-sm text-slate-500">No active league events yet.</p>}</TabsContent>
+        <TabsContent value="history" className="mt-4 space-y-3">{historyEvents.length ? historyEvents.map((event) => eventCard(event, true)) : <p className="rounded-2xl bg-white p-4 text-sm text-slate-500">No event history yet.</p>}</TabsContent>
       </Tabs>
+
+      <Dialog open={!!eventToRemove} onOpenChange={(open) => !open && !isRemoving && setEventToRemove(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <TriangleAlert className="h-5 w-5" /> {eventToRemove?.status === "draft" ? "Delete Draft?" : "Cancel Event?"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              {eventToRemove?.status === "draft"
+                ? <>Delete <strong>“{eventToRemove?.title || "this draft"}”</strong> permanently?</>
+                : <>Remove <strong>“{eventToRemove?.title || "this event"}”</strong> from Active Events?</>}
+            </p>
+            <div className={`rounded-xl border p-3 text-sm ${eventToRemove?.status === "draft" ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+              {eventToRemove?.status === "draft"
+                ? "This draft has never been published and will be permanently deleted. This cannot be undone."
+                : <>The event will not be permanently deleted. It will be marked <strong>Cancelled</strong> and moved to <strong>Event History</strong>.</>}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" disabled={isRemoving} onClick={() => setEventToRemove(null)}>Keep Event</Button>
+              <Button disabled={isRemoving} onClick={confirmRemoveEvent} className="bg-red-600 text-white hover:bg-red-700">
+                {isRemoving ? "Updating…" : eventToRemove?.status === "draft" ? "Yes, Delete Draft" : "Yes, Cancel Event"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
