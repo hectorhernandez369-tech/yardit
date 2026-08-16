@@ -27,7 +27,7 @@ const sortActiveEvents = (items = []) =>
 export default function MyActiveEventsTab({
   events, attendees, collaborators, vendorAccounts, account, user,
   canCreateAnyEvent, onCreateEvent, onEditEvent, onCollaborators,
-  navigate, pendingCollaborationInvites, onReviewInvite,
+  navigate, pendingCollaborationInvites, onReviewInvite, onCancelEvent,
 }) {
   const now = new Date();
   const currentOrganizationIds = account?.id ? [account.id] : [];
@@ -41,7 +41,7 @@ export default function MyActiveEventsTab({
       approvedVendorCount: attendees.filter((a) => a.event_id === e.id).length,
     }))
     .filter((e) => !["completed", "cancelled"].includes(e.computedStatus))
-    .filter((e) => e.status !== "draft") // drafts live in the Drafts tab
+    .filter((e) => e.status !== "draft")
     .filter((e) => {
       const isOwner = e.organizer_business_id === account?.id;
       const isCollab = collaborators.some((c) => c.event_id === e.id && c.organization_id === account?.id && c.status === "accepted");
@@ -58,7 +58,6 @@ export default function MyActiveEventsTab({
 
   return (
     <div className="space-y-5">
-      {/* Pending invites */}
       {pendingCollaborationInvites.length > 0 && (
         <Card className="border-amber-200 bg-amber-50 rounded-2xl">
           <CardContent className="p-4 space-y-2">
@@ -84,7 +83,6 @@ export default function MyActiveEventsTab({
         </Card>
       )}
 
-      {/* Hosted events */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -112,40 +110,25 @@ export default function MyActiveEventsTab({
                 hostedLabels={getHostedByLabels(event, collaborators, vendorAccounts)}
                 isCollaborating={false}
                 ownerName={organizationById[event.organizer_business_id]?.business_name || event.organizer_business_name}
-                canEdit={
-                  isEventAdmin ||
-                  canEditEvent(event, collaborators, currentOrganizationIds)
-                }
-                canManageVendors={
-                  isEventAdmin ||
-                  canManageVendors(event, collaborators, currentOrganizationIds)
-                }
-                canManageFlags={
-                  isEventAdmin ||
-                  canManageFlags(event, collaborators, currentOrganizationIds)
-                }
-                canManageSchedule={
-                  isEventAdmin ||
-                  canManageSchedule(event, collaborators, currentOrganizationIds)
-                }
-                canManageCollaborators={
-                  isEventAdmin ||
-                  canManageCollaborators(event, collaborators, currentOrganizationIds)
-                }
+                canEdit={isEventAdmin || canEditEvent(event, collaborators, currentOrganizationIds)}
+                canManageVendors={isEventAdmin || canManageVendors(event, collaborators, currentOrganizationIds)}
+                canManageFlags={isEventAdmin || canManageFlags(event, collaborators, currentOrganizationIds)}
+                canManageSchedule={isEventAdmin || canManageSchedule(event, collaborators, currentOrganizationIds)}
+                canManageCollaborators={isEventAdmin || canManageCollaborators(event, collaborators, currentOrganizationIds)}
                 onEdit={() => onEditEvent(event)}
                 onManage={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
                 onEditFlags={() => navigate(`/VendorEventFlags?id=${event.id}`)}
                 onSchedule={() => navigate(`/VendorEventSchedule?id=${event.id}`)}
                 onCollaborators={() => onCollaborators(event)}
                 onView={() => navigate(`/VendorEventPublicPage?id=${event.id}`)}
+                onCancel={() => onCancelEvent?.(event)}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* Participating events */}
-      {(participating.length > 0) && (
+      {participating.length > 0 && (
         <div>
           <div className="mb-3">
             <h4 className="font-bold text-slate-800">Events I'm Participating In</h4>
@@ -160,26 +143,11 @@ export default function MyActiveEventsTab({
                 hostedLabels={getHostedByLabels(event, collaborators, vendorAccounts)}
                 isCollaborating={true}
                 ownerName={organizationById[event.organizer_business_id]?.business_name || event.organizer_business_name}
-                canEdit={
-                  isEventAdmin ||
-                  canEditEvent(event, collaborators, currentOrganizationIds)
-                }
-                canManageVendors={
-                  isEventAdmin ||
-                  canManageVendors(event, collaborators, currentOrganizationIds)
-                }
-                canManageFlags={
-                  isEventAdmin ||
-                  canManageFlags(event, collaborators, currentOrganizationIds)
-                }
-                canManageSchedule={
-                  isEventAdmin ||
-                  canManageSchedule(event, collaborators, currentOrganizationIds)
-                }
-                canManageCollaborators={
-                  isEventAdmin ||
-                  canManageCollaborators(event, collaborators, currentOrganizationIds)
-                }
+                canEdit={isEventAdmin || canEditEvent(event, collaborators, currentOrganizationIds)}
+                canManageVendors={isEventAdmin || canManageVendors(event, collaborators, currentOrganizationIds)}
+                canManageFlags={isEventAdmin || canManageFlags(event, collaborators, currentOrganizationIds)}
+                canManageSchedule={isEventAdmin || canManageSchedule(event, collaborators, currentOrganizationIds)}
+                canManageCollaborators={isEventAdmin || canManageCollaborators(event, collaborators, currentOrganizationIds)}
                 onEdit={() => onEditEvent(event)}
                 onManage={() => navigate(`/VendorEventDashboard?id=${event.id}`)}
                 onEditFlags={() => navigate(`/VendorEventFlags?id=${event.id}`)}
