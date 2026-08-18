@@ -6,9 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { clearAdminSession } from "../components/admin/AdminLoginModal";
 import { useAuth } from "@/lib/AuthContext";
-import InstallPromptDialog from "@/components/install/InstallPromptDialog";
 import DeleteAccountDialog from "@/components/settings/DeleteAccountDialog";
-import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton } from "@/lib/installPrompt";
 import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import { Lightbulb } from "lucide-react";
 
@@ -16,10 +14,6 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [user, setUser] = useState(null);
-  const [showInstallDialog, setShowInstallDialog] = useState(false);
-  const [installDialogMode, setInstallDialogMode] = useState("ios");
-  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
-  const [canInstallApp, setCanInstallApp] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [startupPage, setStartupPage] = useState(() => localStorage.getItem("yardit_startup_page") === "vendor" ? "vendor" : "map");
   const [hasVendorAccount, setHasVendorAccount] = useState(false);
@@ -52,51 +46,6 @@ export default function SettingsPage() {
     setStartupPage(value);
     localStorage.setItem("yardit_startup_page", value);
     window.dispatchEvent(new CustomEvent("yardit:startup-page-changed", { detail: value }));
-  };
-
-  useEffect(() => {
-    const updateInstallState = () => {
-      setCanInstallApp(shouldShowInstallButton());
-    };
-
-    const handleBeforeInstallPrompt = (event) => {
-      event.preventDefault();
-      setDeferredInstallPrompt(event);
-      setCanInstallApp(true);
-    };
-
-    const handleInstalled = () => {
-      setDeferredInstallPrompt(null);
-      setCanInstallApp(false);
-      setShowInstallDialog(false);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("appinstalled", handleInstalled);
-    updateInstallState();
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", handleInstalled);
-    };
-  }, [deferredInstallPrompt]);
-
-  const handleInstallClick = async () => {
-    if (isIosDevice()) {
-      setInstallDialogMode("ios");
-      setShowInstallDialog(true);
-      return;
-    }
-
-    if (deferredInstallPrompt) {
-      await deferredInstallPrompt.prompt();
-      setDeferredInstallPrompt(null);
-      setCanInstallApp(false);
-      return;
-    }
-
-    setInstallDialogMode("fallback");
-    setShowInstallDialog(true);
   };
 
   if (!user) {
@@ -137,22 +86,20 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {canInstallApp && (
-          <Card className="mb-4 rounded-lg border-0 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Install Yardit</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={handleInstallClick}
-                variant="outline"
-                className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
-              >
-                Install Yardit
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        <Card className="mb-4 rounded-lg border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Install Yardit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => navigate("/install")}
+              variant="outline"
+              className="w-full justify-start text-left font-normal text-slate-700 border-slate-300 hover:bg-slate-50"
+            >
+              Install Yardit
+            </Button>
+          </CardContent>
+        </Card>
 
         <Card className="mb-4 rounded-lg border-0 shadow-sm">
           <CardHeader className="pb-2">
@@ -265,7 +212,6 @@ export default function SettingsPage() {
         </Card>
         </div>
 
-        <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} mode={installDialogMode} />
         <DeleteAccountDialog open={showDeleteAccount} onOpenChange={setShowDeleteAccount} onDeleted={handleAccountDeleted} />
       </div>
     </div>
