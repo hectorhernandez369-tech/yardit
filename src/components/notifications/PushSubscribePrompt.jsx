@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { afterSetupPromptKey, declinedPromptKey, enablePushPromptSubscription, evaluatePushPromptEligibility, lastPushErrorKey, logPushPromptDecision, syncGrantedPushSubscription } from "@/lib/pushPromptActions";
 
 const sessionPromptKey = (userId) => `yardit_push_prompt_session_${userId}`;
+const openingCountKey = (userId) => `yardit_push_prompt_opening_count_${userId}`;
 
 const errorText = (status) => {
   if (status === "needs_install") return "Install Yardit to your Home Screen first, then open the installed app to enable push notifications.";
@@ -50,7 +51,16 @@ export default function PushSubscribePrompt({ user }) {
       requestPrompt("account_setup_complete");
     } else if (sessionStorage.getItem(sessionPromptKey(user.id)) !== "true") {
       sessionStorage.setItem(sessionPromptKey(user.id), "true");
-      timers.push(setTimeout(() => requestPrompt("session_check"), 1200));
+
+      const previousCount = Number.parseInt(localStorage.getItem(openingCountKey(user.id)) || "0", 10);
+      const openingCount = Number.isFinite(previousCount) ? previousCount + 1 : 1;
+      localStorage.setItem(openingCountKey(user.id), String(openingCount));
+
+      if (openingCount % 2 === 1) {
+        timers.push(setTimeout(() => requestPrompt("every_other_opening"), 1200));
+      } else {
+        logPushPromptDecision(user, "every_other_opening_skipped", { openingCount });
+      }
     }
 
     const handleAccountSetupComplete = (event) => {
