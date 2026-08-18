@@ -34,6 +34,7 @@ import AuthDebug from './pages/AuthDebug';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import CommunityGuidelines from './pages/CommunityGuidelines';
+import InstallYardit from './pages/InstallYardit';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import YarditSplashScreen from '@/components/install/YarditSplashScreen';
@@ -104,6 +105,8 @@ const AuthenticatedApp = () => {
               }
             />
           )}
+          <Route path="/install" element={<InstallYardit />} />
+          <Route path="/InstallYardit" element={<InstallYardit />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/community-guidelines" element={<CommunityGuidelines />} />
@@ -139,6 +142,8 @@ const AuthenticatedApp = () => {
             }
           />
         ))}
+        <Route path="/install" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
+        <Route path="/InstallYardit" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
         <Route path="/VendorDashboard" element={<YarditEventsShell><VendorDashboard /></YarditEventsShell>} />
         <Route path="/VendorSignup" element={<YarditEventsShell><VendorSignupGate><VendorSignup /></VendorSignupGate></YarditEventsShell>} />
         <Route path="/VendorSetup" element={<YarditEventsShell><VendorSignupGate><VendorSetup /></VendorSignupGate></YarditEventsShell>} />
