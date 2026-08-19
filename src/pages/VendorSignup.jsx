@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { AlertTriangle, Building2, CheckCircle2, Loader2, MapPin, Store } from "lucide-react";
 import AddressFields from "@/components/shared/AddressFields";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
-import { buildVendorAccountIdentityFields } from "@/lib/vendorAccountIdentity";
 import { getUserVendorAccounts } from "@/lib/getUserVendorAccounts";
 import { toast } from "sonner";
 import { EVENTS_EXPERIENCE, getPreferredExperience, setPreferredExperience } from "@/lib/experience";
@@ -31,7 +30,9 @@ export default function VendorSignup() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const organizerType = urlParams.get("organizer") || localStorage.getItem("yardit_organizer_account_type") || "vendor_event";
+  const addingAnother = urlParams.get("mode") === "add";
   const dashboardPath = organizerType === "league_team" ? "/LeagueTeamDashboard" : "/VendorDashboard";
+  const organizerLabel = organizerType === "league_team" ? "League/Team Organizer" : "Vendor";
   const [user, setUser] = useState(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -71,10 +72,12 @@ export default function VendorSignup() {
   useEffect(() => {
     base44.auth.me().then(async (currentUser) => {
       setUser(currentUser);
-      const existing = await getUserVendorAccounts(currentUser, { organizerType });
-      if (existing.length > 0) {
-        navigate(dashboardPath);
-        return;
+      if (!addingAnother) {
+        const existing = await getUserVendorAccounts(currentUser, { organizerType });
+        if (existing.length > 0) {
+          navigate(dashboardPath);
+          return;
+        }
       }
       // Check for admin-pre-created accounts matching this email
       const byEmail = await base44.entities.VendorAccount.filter({ owner_email: currentUser.email }).catch(() => []);
@@ -90,7 +93,7 @@ export default function VendorSignup() {
       });
       setLoading(false);
     }).catch(() => {
-      base44.auth.redirectToLogin(`${window.location.origin}/VendorSignup`);
+      base44.auth.redirectToLogin(window.location.href);
     });
   }, []);
 
@@ -135,7 +138,7 @@ export default function VendorSignup() {
       });
       const account = response?.data?.account;
       if (!account) {
-        const message = response?.data?.error || "Could not create your Vendor Account right now.";
+        const message = response?.data?.error || "Could not create your Organizer Account right now.";
         toast.error(message);
         setSaving(false);
         return;
@@ -151,7 +154,7 @@ export default function VendorSignup() {
       toast.success("Organizer account created on the Free tier.");
     } catch (error) {
       setSaving(false);
-      const message = error?.response?.data?.error || error?.message || "Could not create your Vendor Account right now.";
+      const message = error?.response?.data?.error || error?.message || "Could not create your Organizer Account right now.";
       toast.error(message);
     }
   };
@@ -168,8 +171,8 @@ export default function VendorSignup() {
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-[#5DADA5]/10 p-3"><Building2 className="h-6 w-6 text-[#2C4F4E]" /></div>
               <div>
-                <CardTitle className="text-2xl text-[#2C4F4E]">Create Vendor Account</CardTitle>
-                <p className="mt-1 text-sm text-slate-600">Vendor accounts are intended for businesses, organizations, event hosts, and active vendors.</p>
+                <CardTitle className="text-2xl text-[#2C4F4E]">{addingAnother ? `Create Another ${organizerLabel} Account` : `Create ${organizerLabel} Account`}</CardTitle>
+                <p className="mt-1 text-sm text-slate-600">This organizer account will use your existing Yardit login.</p>
               </div>
             </div>
           </CardHeader>
@@ -180,15 +183,14 @@ export default function VendorSignup() {
               ))}
             </div>
 
-            {/* Account claim flow for admin-pre-created accounts */}
             {step === 1 && claimableAccounts.length > 0 && (
               <div className="space-y-4">
                 <div className="rounded-2xl border border-[#5DADA5]/40 bg-[#5DADA5]/5 p-4">
                   <div className="flex items-start gap-3">
                     <Store className="h-5 w-5 text-[#5DADA5] shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-bold text-[#2C4F4E]">A vendor account already exists for your email</p>
-                      <p className="mt-1 text-sm text-slate-600">An account was pre-created for <strong>{user?.email}</strong>. Claim it to get immediate access to the Vendor Dashboard.</p>
+                      <p className="text-sm font-bold text-[#2C4F4E]">An organizer account already exists for your email</p>
+                      <p className="mt-1 text-sm text-slate-600">An account was pre-created for <strong>{user?.email}</strong>. Claim it for access.</p>
                     </div>
                   </div>
                 </div>
@@ -196,7 +198,7 @@ export default function VendorSignup() {
                   <div key={acct.id} className="rounded-2xl border border-slate-200 bg-white p-4 flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-[#2C4F4E]">{acct.business_name}</p>
-                      <p className="text-xs text-slate-500">{acct.business_category || "Vendor Account"} · {(acct.vendor_tier || "free").replace("_", " ")} tier</p>
+                      <p className="text-xs text-slate-500">{acct.business_category || "Organizer Account"} · {(acct.vendor_tier || "free").replace("_", " ")} tier</p>
                     </div>
                     <Button onClick={() => handleClaimAccount(acct)} disabled={claiming} className="shrink-0 bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635] font-semibold">
                       {claiming ? <Loader2 className="h-4 w-4 animate-spin" /> : "Claim Account"}
@@ -205,7 +207,7 @@ export default function VendorSignup() {
                 ))}
                 <div className="border-t border-slate-100 pt-3">
                   <p className="text-xs text-slate-500 mb-2">Want to create a different account instead?</p>
-                  <Button variant="outline" onClick={() => setStep(2)} className="w-full rounded-xl text-slate-600">Create a New Vendor Account</Button>
+                  <Button variant="outline" onClick={() => setStep(2)} className="w-full rounded-xl text-slate-600">Create a New Organizer Account</Button>
                 </div>
               </div>
             )}
@@ -213,8 +215,8 @@ export default function VendorSignup() {
             {step === 1 && claimableAccounts.length === 0 && (
               <div className="space-y-4">
                 <div className="rounded-2xl border bg-slate-50 p-4">
-                  <p className="text-sm font-semibold text-[#2C4F4E]">Basic account info</p>
-                  <p className="mt-1 text-sm text-slate-600">You'll use the same Yardit login for residential listings and vendor features.</p>
+                  <p className="text-sm font-semibold text-[#2C4F4E]">Your Yardit login</p>
+                  <p className="mt-1 text-sm text-slate-600">You do not need another Yardit login. This new organizer account will be added to this one.</p>
                   <p className="mt-3 text-sm text-slate-700"><strong>Email:</strong> {user.email}</p>
                 </div>
                 <Button onClick={() => setStep(2)} className="w-full rounded-xl bg-[#5DADA5] hover:bg-[#4A9B93]">Continue</Button>
@@ -237,17 +239,17 @@ export default function VendorSignup() {
             {step === 3 && (
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2 sm:col-span-2"><Label>Business Name *</Label><Input value={businessForm.business_name} onChange={(e) => setBusinessForm({ ...businessForm, business_name: e.target.value })} placeholder="Business or organization name" /></div>
-                  <div className="space-y-2"><Label>Business Category *</Label><Input value={businessForm.business_category} onChange={(e) => setBusinessForm({ ...businessForm, business_category: e.target.value })} placeholder="Food truck, nonprofit, event host..." /></div>
+                  <div className="space-y-2 sm:col-span-2"><Label>Business / Organization Name *</Label><Input value={businessForm.business_name} onChange={(e) => setBusinessForm({ ...businessForm, business_name: e.target.value })} placeholder="Business, league, team, or organization name" /></div>
+                  <div className="space-y-2"><Label>Category *</Label><Input value={businessForm.business_category} onChange={(e) => setBusinessForm({ ...businessForm, business_category: e.target.value })} placeholder="Food truck, league, team, event host..." /></div>
                   <div className="space-y-2"><Label>EIN / 501(c)(3) / Tax ID *</Label><Input value={businessForm.business_tax_id} onChange={(e) => setBusinessForm({ ...businessForm, business_tax_id: e.target.value })} placeholder="12-3456789" /></div>
-                  <div className="space-y-2 sm:col-span-2"><Label>Business Description</Label><Input value={businessForm.description} onChange={(e) => setBusinessForm({ ...businessForm, description: e.target.value })} placeholder="What do you offer?" /></div>
+                  <div className="space-y-2 sm:col-span-2"><Label>Description</Label><Input value={businessForm.description} onChange={(e) => setBusinessForm({ ...businessForm, description: e.target.value })} placeholder="Tell people about this organization" /></div>
                   <div className="space-y-2 sm:col-span-2"><Label>Website</Label><Input value={businessForm.website} onChange={(e) => setBusinessForm({ ...businessForm, website: e.target.value })} placeholder="https://example.com" /></div>
                   <div className="space-y-2"><Label>Phone</Label><Input value={businessForm.phone} onChange={(e) => setBusinessForm({ ...businessForm, phone: e.target.value })} placeholder="Business phone" /></div>
                   <div className="space-y-2"><Label>Instagram</Label><Input value={businessForm.instagram_url} onChange={(e) => setBusinessForm({ ...businessForm, instagram_url: e.target.value })} placeholder="Instagram URL" /></div>
                 </div>
 
                 <div className="rounded-2xl border p-4">
-                  <Label className="mb-4 block font-bold text-[#2C4F4E]">Business Address</Label>
+                  <Label className="mb-4 block font-bold text-[#2C4F4E]">Business / Organization Address</Label>
                   <p className="mb-4 text-xs text-slate-500">This is separate from your residential address and may be different.</p>
                   <div className="space-y-4">
                     <AddressFields
@@ -261,23 +263,23 @@ export default function VendorSignup() {
                   </div>
                 </div>
 
-                <Button onClick={createVendorAccount} disabled={saving} className="w-full rounded-xl bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">{saving ? "Creating..." : "Create Free Vendor Account"}</Button>
+                <Button onClick={createVendorAccount} disabled={saving} className="w-full rounded-xl bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]">{saving ? "Creating..." : `Create Free ${organizerLabel} Account`}</Button>
               </div>
             )}
 
             {step === 4 && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-800"><CheckCircle2 className="mb-2 h-5 w-5" /><p className="font-bold">Complete Your Vendor Setup</p><p className="text-sm">Your vendor account is ready on the Free tier. Finish setup when you're ready.</p></div>
+                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-800"><CheckCircle2 className="mb-2 h-5 w-5" /><p className="font-bold">Organizer Account Created</p><p className="text-sm">Your new organizer account is ready on the Free tier and is attached to your existing Yardit login.</p></div>
                 <VendorSetupProgress
                   account={createdAccount}
                   pins={[]}
-                  onStepClick={(setupStep) => navigate(`${dashboardPath}?setupStep=${setupStep.key}&tab=${setupStep.tab}`)}
-                  onContinue={() => navigate(`${dashboardPath}?setupStep=business&tab=profile`)}
+                  onStepClick={(setupStep) => navigate(`${dashboardPath}?account=${createdAccount?.id || ""}&setupStep=${setupStep.key}&tab=${setupStep.tab}`)}
+                  onContinue={() => navigate(`${dashboardPath}?account=${createdAccount?.id || ""}&setupStep=business&tab=profile`)}
                 />
                 <div className="grid gap-2 sm:grid-cols-3">
                   <Button onClick={() => setStep(3)} variant="outline" className="w-full rounded-xl">Back</Button>
-                  <Button onClick={() => navigate(`${dashboardPath}?setupStep=business&tab=profile`)} className="w-full rounded-xl bg-[#5DADA5] hover:bg-[#4A9B93]">Next</Button>
-                  <Button onClick={() => navigate(dashboardPath)} variant="outline" className="w-full rounded-xl bg-white">Finish Later</Button>
+                  <Button onClick={() => navigate(`${dashboardPath}?account=${createdAccount?.id || ""}&setupStep=business&tab=profile`)} className="w-full rounded-xl bg-[#5DADA5] hover:bg-[#4A9B93]">Next</Button>
+                  <Button onClick={() => navigate(`${dashboardPath}?account=${createdAccount?.id || ""}`)} variant="outline" className="w-full rounded-xl bg-white">Finish Later</Button>
                 </div>
               </div>
             )}
