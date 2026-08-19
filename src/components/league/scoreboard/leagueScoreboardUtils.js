@@ -2,6 +2,7 @@ import { sortLeagueGames } from "@/components/league/schedule/leagueGameUtils";
 
 const normalize = (value) => String(value || "").trim().toLowerCase();
 const divisionOf = (game) => String(game.division || game.age_group || "").trim();
+export const effectiveGameStatus = (game) => game.status === "upcoming" && game.game_date && game.game_date < new Date().toISOString().slice(0, 10) ? "final" : game.status || "upcoming";
 const explicitWeek = (game) => {
   const value = String(game.week || "").trim();
   if (value) return value.replace(/^week\s*/i, "");
@@ -55,7 +56,7 @@ export function calculateStandings(games = []) {
     const home = ensureTeam(group, game.home_team_id, game.home_team);
     const away = ensureTeam(group, game.away_team_id, game.away_team);
     const validScores = game.home_score !== null && game.home_score !== undefined && game.home_score !== "" && game.away_score !== null && game.away_score !== undefined && game.away_score !== "" && Number.isFinite(Number(game.home_score)) && Number.isFinite(Number(game.away_score));
-    if (game.status !== "final" || !validScores || !home || !away) return;
+    if (effectiveGameStatus(game) !== "final" || !validScores || !home || !away) return;
     const homeScore = Number(game.home_score); const awayScore = Number(game.away_score);
     if (homeScore > awayScore) { home.wins += 1; away.losses += 1; }
     else if (awayScore > homeScore) { away.wins += 1; home.losses += 1; }
