@@ -11,7 +11,10 @@ export default function VendorAccountIntro() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const organizerType = urlParams.get("organizer") || localStorage.getItem("yardit_organizer_account_type") || "vendor_event";
+  const addingAnother = urlParams.get("mode") === "add";
   const dashboardPath = organizerType === "league_team" ? "/LeagueTeamDashboard" : "/VendorDashboard";
+  const organizerLabel = organizerType === "league_team" ? "League/Team Organizer" : "Vendor/Event Organizer";
+
   useEffect(() => {
     if (urlParams.get("experience") === "events") setPreferredExperience(EVENTS_EXPERIENCE);
   }, []);
@@ -20,6 +23,7 @@ export default function VendorAccountIntro() {
 
   useEffect(() => {
     base44.auth.me().then(async (user) => {
+      if (addingAnother) return;
       const accounts = await getUserVendorAccounts(user, { organizerType });
       if (accounts.length > 0) {
         setAlreadyHasAccount(true);
@@ -42,7 +46,7 @@ export default function VendorAccountIntro() {
         <Card className="border-2 border-[#2C4F4E] bg-white shadow-xl max-w-md w-full">
           <CardContent className="p-8 text-center space-y-4">
             <Store className="w-12 h-12 text-[#5DADA5] mx-auto" />
-            <h2 className="text-xl font-bold text-[#2C4F4E]">You already have a Vendor account.</h2>
+            <h2 className="text-xl font-bold text-[#2C4F4E]">You already have a {organizerLabel} account.</h2>
             <p className="text-slate-500 text-sm">Redirecting you to your dashboard...</p>
             <Button onClick={() => navigate(dashboardPath)} className="w-full bg-[#5DADA5] hover:bg-[#4A9B93] text-white">
               Go to Dashboard
@@ -60,34 +64,36 @@ export default function VendorAccountIntro() {
           <CardHeader className="bg-[#5DADA5] text-white rounded-t-lg">
             <CardTitle className="flex items-center gap-2 text-2xl">
               <Store className="w-6 h-6" />
-              Open a Vendor Account
+              {addingAnother ? `Open Another ${organizerLabel} Account` : `Open a ${organizerLabel} Account`}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-5">
             <p className="text-[#2C4F4E] text-lg leading-relaxed">
-              Vendor accounts are for food trucks, mobile sellers, local businesses, and event vendors who want more ways to be discovered on Yardit.
+              {organizerType === "league_team"
+                ? "League/Team organizer accounts are for leagues, teams, games, schedules, and sports events managed through Yardit."
+                : "Vendor accounts are for food trucks, mobile sellers, local businesses, and event vendors who want more ways to be discovered on Yardit."}
             </p>
 
             <div className="grid gap-4 md:grid-cols-3">
               <div className="rounded-xl border border-[#2C4F4E]/20 bg-[#F3E6CF] p-4">
                 <MapPin className="w-6 h-6 text-[#5DADA5] mb-2" />
                 <h3 className="font-semibold text-[#2C4F4E]">Show live locations</h3>
-                <p className="text-sm text-slate-700 mt-1">Create vendor pins so customers can find you faster.</p>
+                <p className="text-sm text-slate-700 mt-1">Create locations and event details so people can find you faster.</p>
               </div>
               <div className="rounded-xl border border-[#2C4F4E]/20 bg-[#F3E6CF] p-4">
                 <Megaphone className="w-6 h-6 text-[#F4A849] mb-2" />
-                <h3 className="font-semibold text-[#2C4F4E]">Promote your business</h3>
-                <p className="text-sm text-slate-700 mt-1">Share photos, updates, and business details.</p>
+                <h3 className="font-semibold text-[#2C4F4E]">Promote your organization</h3>
+                <p className="text-sm text-slate-700 mt-1">Share photos, updates, schedules, and organization details.</p>
               </div>
               <div className="rounded-xl border border-[#2C4F4E]/20 bg-[#F3E6CF] p-4">
                 <Users className="w-6 h-6 text-[#5DADA5] mb-2" />
-                <h3 className="font-semibold text-[#2C4F4E]">Join events</h3>
-                <p className="text-sm text-slate-700 mt-1">Request to join vendor events and manage attendance.</p>
+                <h3 className="font-semibold text-[#2C4F4E]">Manage activity</h3>
+                <p className="text-sm text-slate-700 mt-1">Manage events and the people connected to this organizer account.</p>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button onClick={() => navigate(`/VendorSignup?organizer=${organizerType}`)} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
+              <Button onClick={() => navigate(`/VendorSignup?organizer=${organizerType}${addingAnother ? "&mode=add" : ""}`)} className="bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E] border-2 border-[#2C4F4E] font-semibold">
                 Continue to Setup
               </Button>
               <Button variant="outline" onClick={() => navigate("/Profile")} className="border-[#2C4F4E] text-[#2C4F4E]">
