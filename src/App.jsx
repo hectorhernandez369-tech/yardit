@@ -20,6 +20,7 @@ import VendorPublicPage from './pages/VendorPublicPage';
 import VendorSignup from './pages/VendorSignup';
 import VendorSetup from './pages/VendorSetup';
 import VendorAccountIntro from './pages/VendorAccountIntro';
+import SportsAccountSignup from './pages/SportsAccountSignup';
 import VendorEventDashboard from './pages/VendorEventDashboard';
 import LeagueTeamDashboard from './pages/LeagueTeamDashboard';
 import TeamDashboard from './pages/TeamDashboard';
@@ -101,6 +102,7 @@ const AuthenticatedApp = () => {
     <Route path="/VendorSignup" element={<YarditEventsShell><VendorSignupGate><VendorSignup /></VendorSignupGate></YarditEventsShell>} />
     <Route path="/VendorSetup" element={<YarditEventsShell><VendorSignupGate><VendorSetup /></VendorSignupGate></YarditEventsShell>} />
     <Route path="/VendorAccountIntro" element={<YarditEventsShell><VendorSignupGate><VendorAccountIntro /></VendorSignupGate></YarditEventsShell>} />
+    <Route path="/SportsAccountSignup" element={<YarditEventsShell><SportsAccountSignup /></YarditEventsShell>} />
     <Route path="/VendorEventDashboard" element={<YarditEventsShell><VendorEventDashboard /></YarditEventsShell>} />
     <Route path="/LeagueTeamDashboard" element={<YarditEventsShell><LeagueTeamDashboard /></YarditEventsShell>} />
     <Route path="/TeamDashboard" element={<YarditEventsShell><TeamDashboard /></YarditEventsShell>} />
