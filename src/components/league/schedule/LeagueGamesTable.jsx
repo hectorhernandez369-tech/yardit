@@ -25,6 +25,7 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
   const [weekFilter, setWeekFilter] = useState(ALL);
   const [teamFilter, setTeamFilter] = useState(ALL);
   const [divisionFilter, setDivisionFilter] = useState(ALL);
+  const [organizeBy, setOrganizeBy] = useState("week");
   const [selectedGameIds, setSelectedGameIds] = useState([]);
 
   const permissionList = useMemo(() => membershipPermissions(memberships), [memberships]);
@@ -33,14 +34,23 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
   const divisionOptions = useMemo(() => uniqueSorted(sortedGames.map((game) => game.division || game.age_group || "")), [sortedGames]);
   const teamOptions = useMemo(() => uniqueSorted(sortedGames.flatMap((game) => [game.home_team || "", game.away_team || ""])), [sortedGames]);
 
-  const filteredGames = useMemo(() => sortedGames.filter((game) => {
-    const week = game.notes || game.week || "";
-    const division = game.division || game.age_group || "";
-    const teams = [game.home_team || "", game.away_team || ""];
-    return (weekFilter === ALL || optionValue(week) === weekFilter) &&
-      (divisionFilter === ALL || optionValue(division) === divisionFilter) &&
-      (teamFilter === ALL || teams.some((team) => optionValue(team) === teamFilter));
-  }), [sortedGames, weekFilter, teamFilter, divisionFilter]);
+  const filteredGames = useMemo(() => {
+    const matchingGames = sortedGames.filter((game) => {
+      const week = game.notes || game.week || "";
+      const division = game.division || game.age_group || "";
+      const teams = [game.home_team || "", game.away_team || ""];
+      return (weekFilter === ALL || optionValue(week) === weekFilter) &&
+        (divisionFilter === ALL || optionValue(division) === divisionFilter) &&
+        (teamFilter === ALL || teams.some((team) => optionValue(team) === teamFilter));
+    });
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+    const organizeValue = (game) => organizeBy === "team"
+      ? `${game.home_team || ""}|${game.away_team || ""}`
+      : organizeBy === "division"
+        ? game.division || game.age_group || ""
+        : game.notes || game.week || "";
+    return [...matchingGames].sort((a, b) => collator.compare(organizeValue(a), organizeValue(b)) || String(a.game_date || "").localeCompare(String(b.game_date || "")) || String(a.start_time || "").localeCompare(String(b.start_time || "")));
+  }, [sortedGames, weekFilter, teamFilter, divisionFilter, organizeBy]);
 
   const saveManualGame = async () => {
     const game = normalizeLeagueGame(manualGame, account, sortedGames.length, "manual");
@@ -135,7 +145,8 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
               </div>
               {canManageSchedule && sortedGames.length > 0 && <div className="flex flex-wrap items-center gap-3"><label className="flex items-center gap-2 text-sm font-semibold text-[#2C4F4E]"><input type="checkbox" checked={allFilteredSelected} onChange={toggleAllFiltered} className="h-4 w-4 accent-[#006168]" /> Select all</label><Button type="button" size="sm" variant="outline" disabled={!selectedGameIds.length} onClick={deleteSelectedGames} className="gap-2 border-red-300 text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" /> Delete{selectedGameIds.length ? ` (${selectedGameIds.length})` : ""}</Button></div>}
             </div>
-            <div className="grid gap-2 sm:grid-cols-3 lg:w-[620px]">
+            <div className="grid gap-2 sm:grid-cols-2 lg:w-[800px] lg:grid-cols-4">
+              <Select value={organizeBy} onValueChange={setOrganizeBy}><SelectTrigger className="h-9"><SelectValue placeholder="Organize by" /></SelectTrigger><SelectContent><SelectItem value="week">Organize by Week</SelectItem><SelectItem value="team">Organize by Team</SelectItem><SelectItem value="division">Organize by Division</SelectItem></SelectContent></Select>
               <Select value={weekFilter} onValueChange={setWeekFilter}><SelectTrigger className="h-9"><SelectValue placeholder="Week" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All weeks</SelectItem>{weekOptions.map((week) => <SelectItem key={optionValue(week)} value={optionValue(week)}>{optionLabel(week, "Unassigned week")}</SelectItem>)}</SelectContent></Select>
               <Select value={teamFilter} onValueChange={setTeamFilter}><SelectTrigger className="h-9"><SelectValue placeholder="Team" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All teams</SelectItem>{teamOptions.map((team) => <SelectItem key={optionValue(team)} value={optionValue(team)}>{optionLabel(team, "Unnamed team")}</SelectItem>)}</SelectContent></Select>
               <Select value={divisionFilter} onValueChange={setDivisionFilter}><SelectTrigger className="h-9"><SelectValue placeholder="Division" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All divisions</SelectItem>{divisionOptions.map((division) => <SelectItem key={optionValue(division)} value={optionValue(division)}>{optionLabel(division, "No division")}</SelectItem>)}</SelectContent></Select>
