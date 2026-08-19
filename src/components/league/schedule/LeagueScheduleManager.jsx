@@ -11,7 +11,7 @@ export default function LeagueScheduleManager({ account, user, games = [], assig
       <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
         <CardContent className="p-5 space-y-2">
           <h2 className="flex items-center gap-2 text-2xl font-black text-[#2C4F4E]"><Trophy className="h-5 w-5" /> Master Schedule</h2>
-          <p className="text-sm text-slate-600">One master LeagueGame schedule is the source of truth for league, team, scoreboard, and event views.</p>
+          <p className="text-sm text-slate-600">Upload or manage your league schedule here once. Yardit uses these same games for teams, scores, and league events so you do not have to enter the same game again.</p>
         </CardContent>
       </Card>
       {canManageSchedule && <LeagueScheduleFormatGuide />}
