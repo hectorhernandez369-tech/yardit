@@ -1,0 +1,9 @@
+import { useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { calculateStandings } from "@/components/league/scoreboard/leagueScoreboardUtils";
+
+export default function LeagueStandingsTab({ games }) {
+  const groups = useMemo(() => calculateStandings(games), [games]);
+  if (!groups.length) return <Card className="rounded-2xl bg-white"><CardContent className="p-5 text-sm text-slate-500">No teams are available for standings yet.</CardContent></Card>;
+  return <div className="space-y-4">{groups.map((group) => <Card key={group.division} className="overflow-hidden rounded-2xl bg-white"><div className="bg-[#E7D7B8] px-4 py-3"><h3 className="font-black text-[#2C4F4E]">{group.division}</h3></div><CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full min-w-[520px] text-sm"><thead className="border-b bg-slate-50 text-[#2C4F4E]"><tr><th className="px-4 py-3 text-left">Team Name</th><th className="px-3 py-3 text-center">Wins</th><th className="px-3 py-3 text-center">Losses</th><th className="px-3 py-3 text-center">Ties</th><th className="px-4 py-3 text-right">Win %</th></tr></thead><tbody>{group.teams.map((team) => <tr key={team.team} className="border-b last:border-0"><td className="px-4 py-3 font-bold text-slate-900">{team.team}</td><td className="px-3 py-3 text-center">{team.wins}</td><td className="px-3 py-3 text-center">{team.losses}</td><td className="px-3 py-3 text-center">{team.ties}</td><td className="px-4 py-3 text-right font-black text-[#006168]">{team.winPercentage.toFixed(3)}</td></tr>)}</tbody></table></div></CardContent></Card>)}</div>;
+}
