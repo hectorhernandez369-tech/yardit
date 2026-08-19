@@ -9,8 +9,13 @@ export default function AcceptedLeagueTeams({ account }) {
   const { data: teams = [], refetch: refetchTeams } = useQuery({ queryKey: ["leagueTeams", account?.id], queryFn: () => base44.entities.LeagueTeam.filter({ league_account_id: account.id, is_active: true }, "team_name"), enabled: !!account?.id });
   const { data: games = [], refetch: refetchGames } = useQuery({ queryKey: ["acceptedScheduleTeams", account?.id], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: account.id }), enabled: !!account?.id });
   const teamOptions = useMemo(() => {
-    const options = teams.map((team) => ({ ...team, option_id: team.id, imported_name: team.team_name }));
-    const officialNames = new Set(teams.map((team) => String(team.team_name || "").trim().toLowerCase()));
+    const officialByName = new Map();
+    teams.forEach((team) => {
+      const normalized = String(team.team_name || "").trim().toLowerCase();
+      if (normalized && !officialByName.has(normalized)) officialByName.set(normalized, { ...team, option_id: team.id, imported_name: team.team_name });
+    });
+    const options = [...officialByName.values()];
+    const officialNames = new Set(officialByName.keys());
     const scheduleNames = new Map();
     games.forEach((game) => [[game.home_team, game.home_team_id], [game.away_team, game.away_team_id]].forEach(([name, id]) => {
       const normalized = String(name || "").trim().toLowerCase();

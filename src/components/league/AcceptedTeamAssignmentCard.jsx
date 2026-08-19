@@ -19,8 +19,8 @@ export default function AcceptedTeamAssignmentCard({ request, account, teams, ga
     const normalized = String(option.imported_name || team.team_name).trim().toLowerCase();
     const gameUpdates = games.flatMap((game) => {
       const patch = { id: game.id };
-      if (!game.home_team_id && String(game.home_team || "").trim().toLowerCase() === normalized) patch.home_team_id = team.id;
-      if (!game.away_team_id && String(game.away_team || "").trim().toLowerCase() === normalized) patch.away_team_id = team.id;
+      if (String(game.home_team || "").trim().toLowerCase() === normalized && game.home_team_id !== team.id) patch.home_team_id = team.id;
+      if (String(game.away_team || "").trim().toLowerCase() === normalized && game.away_team_id !== team.id) patch.away_team_id = team.id;
       return Object.keys(patch).length > 1 ? [patch] : [];
     });
     if (gameUpdates.length) await base44.entities.LeagueGame.bulkUpdate(gameUpdates);
@@ -37,6 +37,6 @@ export default function AcceptedTeamAssignmentCard({ request, account, teams, ga
   return <div className="rounded-xl border p-3 text-sm space-y-3">
     <div><p className="font-bold text-[#2C4F4E]">{request.organization_name}</p><p>{request.requesting_email}</p></div>
     <div className="flex flex-wrap gap-1">{assigned.length ? assigned.map((item) => <Badge key={item.id} className="bg-green-100 text-green-800">{item.team_name} · Score access</Badge>) : <Badge variant="outline">No official team assigned</Badge>}</div>
-    <div className="flex flex-col gap-2 sm:flex-row"><Select value={teamId} onValueChange={setTeamId}><SelectTrigger><SelectValue placeholder="Choose official team" /></SelectTrigger><SelectContent>{teams.map((team) => <SelectItem key={team.option_id} value={team.option_id}>{team.team_name} · {team.division || "No division"}</SelectItem>)}</SelectContent></Select><Button onClick={assignTeam} disabled={!teamId} className="shrink-0 bg-[#006168] text-white hover:bg-[#004f55]">Assign Team</Button></div>
+    <div className="flex flex-col gap-2 sm:flex-row"><Select value={teamId} onValueChange={setTeamId}><SelectTrigger><SelectValue placeholder="Choose official team" /></SelectTrigger><SelectContent>{teams.map((team) => <SelectItem key={team.option_id} value={team.option_id}>{team.team_name}</SelectItem>)}</SelectContent></Select><Button onClick={assignTeam} disabled={!teamId} className="shrink-0 bg-[#006168] text-white hover:bg-[#004f55]">Assign Team</Button></div>
   </div>;
 }
