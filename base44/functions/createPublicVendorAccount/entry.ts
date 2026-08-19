@@ -8,7 +8,10 @@ function normalizeVendorSearchText(value) {
 }
 
 function normalizeOrganizerType(value) {
-  return String(value || '') === 'league_team' ? 'league_team' : 'vendor_event';
+  const normalized = String(value || '').trim();
+  if (normalized === 'league' || normalized === 'team') return normalized;
+  if (normalized === 'league_team') return 'league';
+  return 'vendor_event';
 }
 
 function slugifyVendorName(name) {
@@ -39,11 +42,7 @@ function getNextVendorAccountNumber(accounts = [], reservations = []) {
 
 function getNextVendorSlug(businessName, accounts = [], reservations = []) {
   const baseSlug = slugifyVendorName(businessName);
-  const used = new Set(
-    [...accounts, ...reservations]
-      .map((item) => normalizeVendorSearchText(item?.vendor_slug))
-      .filter(Boolean)
-  );
+  const used = new Set([...accounts, ...reservations].map((item) => normalizeVendorSearchText(item?.vendor_slug)).filter(Boolean));
   if (!used.has(baseSlug)) return baseSlug;
   let suffix = 2;
   while (used.has(`${baseSlug}-${suffix}`)) suffix += 1;
@@ -64,18 +63,13 @@ function getVendorBetaAllowlist(raw) {
   } catch {
     parsed = String(raw).split(',').map((entry) => entry.trim()).filter(Boolean);
   }
-  return parsed
-    .map((entry) => String(entry).trim())
-    .filter(Boolean)
-    .flatMap((entry) => entry.split(/\r?\n/).map((line) => line.trim()).filter(Boolean));
+  return parsed.map((entry) => String(entry).trim()).filter(Boolean).flatMap((entry) => entry.split(/\r?\n/).map((line) => line.trim()).filter(Boolean));
 }
 
 function isVendorLaunchBypassUser(user, allowlistRaw) {
   if (!user) return false;
   const role = String(user.role || '').toLowerCase();
-  if (role === 'admin' || role === 'master' || role === 'super_master' || user.isAdmin === true) {
-    return true;
-  }
+  if (role === 'admin' || role === 'master' || role === 'super_master' || user.isAdmin === true) return true;
   const allowlist = getVendorBetaAllowlist(allowlistRaw);
   const email = String(user.email || '').toLowerCase();
   const id = user.id || '';
@@ -101,156 +95,71 @@ export default async function(req) {
       user.email ? base44.asServiceRole.entities.VendorAccount.filter({ owner_email: user.email }) : Promise.resolve([]),
     ]);
     const existingOwnedMap = new Map();
-    [...ownedByUserId, ...ownedByEmail]
-      .filter((account) => account?.is_active !== false)
-      .forEach((account) => existingOwnedMap.set(account.id, account));
+    [...ownedByUserId, ...ownedByEmail].filter((account) => account?.is_active !== false).forEach((account) => existingOwnedMap.set(account.id, account));
     const existingOwned = [...existingOwnedMap.values()];
     const alreadyVendor = existingOwned.some((account) => normalizeOrganizerType(account?.organization_type) === 'vendor_event');
 
-    // Keep new public Vendor/Event signup closed. Existing Vendor owners, admins,
-    // and beta-allowlisted users may add another Vendor account. League/Team
-    // organizer accounts are outside the protected vendor beta gate.
     if (targetOrganizerType === 'vendor_event') {
       const publicEnabledRaw = await readSetting(base44, 'vendor_public_signup_enabled');
       const publicEnabled = String(publicEnabledRaw || '').toLowerCase() === 'true';
       const allowlistRaw = await readSetting(base44, 'vendor_beta_allowlist');
       const authorized = publicEnabled || alreadyVendor || isVendorLaunchBypassUser(user, allowlistRaw);
       if (!authorized) {
-        return Response.json(
-          { error: 'Vendor public signup is not available yet.', code: 'vendor_signup_closed' },
-          { status: 403 }
-        );
+        return Response.json({ error: 'Vendor public signup is not available yet.', code: 'vendor_signup_closed' }, { status: 403 });
       }
     }
 
     const businessName = String(businessForm.business_name || '').trim();
     const businessCategory = String(businessForm.business_category || '').trim();
     const businessTaxId = String(businessForm.business_tax_id || '').trim();
+    if (!businessName || !businessCategory) return Response.json({ error: 'Business name and category are required.' }, { status: 400 });
 
-    if (!businessName || !businessCategory) {
-      return Response.json({ error: 'Business name and category are required.' }, { status: 400 });
-    }
-
-    // Multiple organizer accounts can belong to one Yardit login. Only stop an
-    // accidental duplicate of the same organizer type with the same name.
     const requestedName = normalizeVendorSearchText(businessName);
     const duplicateOwned = existingOwned.find((account) => {
       const accountType = normalizeOrganizerType(account?.organization_type);
-      const accountName = normalizeVendorSearchText(
-        account?.business_name || account?.vendor_display_name || account?.legal_business_name
-      );
+      const accountName = normalizeVendorSearchText(account?.business_name || account?.vendor_display_name || account?.legal_business_name);
       return accountType === targetOrganizerType && accountName === requestedName;
     });
-    if (duplicateOwned) {
-      return Response.json(
-        { error: 'You already have an active organizer account with this name.', code: 'duplicate_organizer_account' },
-        { status: 409 }
-      );
-    }
+    if (duplicateOwned) return Response.json({ error: 'You already have an active organizer account with this name.', code: 'duplicate_organizer_account' }, { status: 409 });
 
-    const businessAddress = [
-      businessForm.business_street_address,
-      businessForm.business_city,
-      businessForm.business_state,
-      businessForm.business_zip_code,
-    ].filter(Boolean).join(', ');
-
+    const businessAddress = [businessForm.business_street_address, businessForm.business_city, businessForm.business_state, businessForm.business_zip_code].filter(Boolean).join(', ');
     const [existingAccounts, existingReservations] = await Promise.all([
       base44.asServiceRole.entities.VendorAccount.list(),
       base44.asServiceRole.entities.VendorAccountIdentityReservation.list(),
     ]);
-
     const vendorAccountNumber = getNextVendorAccountNumber(existingAccounts, existingReservations);
     const vendorSlug = getNextVendorSlug(businessName, existingAccounts, existingReservations);
     const now = new Date().toISOString();
 
+    const organizationType = targetOrganizerType === 'league' ? 'league' : targetOrganizerType === 'team' ? 'team' : 'vendor';
     const identityFields = {
-      owner_email: user.email || '',
-      owner_user_id: user.id || '',
-      vendor_account_number: vendorAccountNumber,
-      account_number: vendorAccountNumber,
-      vendor_slug: vendorSlug,
-      vendor_display_name: businessName,
-      legal_business_name: businessName,
-      organization_type: targetOrganizerType === 'league_team' ? 'league_team' : 'vendor',
-      subscription_status: 'active',
-      is_verified_vendor: false,
-      is_active: true,
-      organization_user_ids: user.id ? [user.id] : [],
-      organization_staff_emails: user.email ? [user.email] : [],
-      organization_permissions: {},
-      assigned_pin_ids: [],
-      team_settings: {},
+      owner_email: user.email || '', owner_user_id: user.id || '', vendor_account_number: vendorAccountNumber, account_number: vendorAccountNumber,
+      vendor_slug: vendorSlug, vendor_display_name: businessName, legal_business_name: businessName, organization_type: organizationType,
+      subscription_status: 'active', is_verified_vendor: false, is_active: true,
+      organization_user_ids: user.id ? [user.id] : [], organization_staff_emails: user.email ? [user.email] : [], organization_permissions: {}, assigned_pin_ids: [], team_settings: {},
     };
 
     const [reservationNum, reservationSlug] = await Promise.all([
-      base44.asServiceRole.entities.VendorAccountIdentityReservation.create({
-        type: 'vendor_account_number',
-        value: vendorAccountNumber,
-        vendor_account_id: 'pending',
-        vendor_account_number: vendorAccountNumber,
-        vendor_slug: vendorSlug,
-        business_name_at_assignment: businessName,
-        owner_user_id: user.id || '',
-        owner_email: user.email || '',
-        status: 'reserved',
-        reserved_at: now,
-      }),
-      base44.asServiceRole.entities.VendorAccountIdentityReservation.create({
-        type: 'vendor_slug',
-        value: vendorSlug,
-        vendor_account_id: 'pending',
-        vendor_account_number: vendorAccountNumber,
-        vendor_slug: vendorSlug,
-        business_name_at_assignment: businessName,
-        owner_user_id: user.id || '',
-        owner_email: user.email || '',
-        status: 'reserved',
-        reserved_at: now,
-      }),
+      base44.asServiceRole.entities.VendorAccountIdentityReservation.create({ type: 'vendor_account_number', value: vendorAccountNumber, vendor_account_id: 'pending', vendor_account_number: vendorAccountNumber, vendor_slug: vendorSlug, business_name_at_assignment: businessName, owner_user_id: user.id || '', owner_email: user.email || '', status: 'reserved', reserved_at: now }),
+      base44.asServiceRole.entities.VendorAccountIdentityReservation.create({ type: 'vendor_slug', value: vendorSlug, vendor_account_id: 'pending', vendor_account_number: vendorAccountNumber, vendor_slug: vendorSlug, business_name_at_assignment: businessName, owner_user_id: user.id || '', owner_email: user.email || '', status: 'reserved', reserved_at: now }),
     ]);
 
     const account = await base44.asServiceRole.entities.VendorAccount.create({
-      business_name: businessName,
-      business_category: businessCategory,
-      business_tax_id: businessTaxId,
-      description: String(businessForm.description || '').trim(),
-      business_street_address: String(businessForm.business_street_address || '').trim(),
-      business_city: String(businessForm.business_city || '').trim(),
-      business_state: String(businessForm.business_state || ''),
-      business_zip_code: String(businessForm.business_zip_code || '').trim(),
-      business_address: businessAddress,
-      location: businessAddress,
-      website: String(businessForm.website || '').trim(),
-      phone: String(businessForm.phone || '').trim(),
-      business_phone: String(businessForm.phone || '').trim(),
-      facebook_url: String(businessForm.facebook_url || '').trim(),
-      instagram_url: String(businessForm.instagram_url || '').trim(),
-      tiktok_url: String(businessForm.tiktok_url || '').trim(),
-      ...identityFields,
-      vendor_tier: 'free',
-      vendor_setup_status: 'setup_required',
-      extra_users_count: 0,
-      extra_pins_count: 0,
-      current_authorized_users: 1,
-      current_vendor_pins: 0,
-      is_active: true,
+      business_name: businessName, business_category: businessCategory, business_tax_id: businessTaxId, description: String(businessForm.description || '').trim(),
+      business_street_address: String(businessForm.business_street_address || '').trim(), business_city: String(businessForm.business_city || '').trim(), business_state: String(businessForm.business_state || ''), business_zip_code: String(businessForm.business_zip_code || '').trim(),
+      business_address: businessAddress, location: businessAddress, website: String(businessForm.website || '').trim(), phone: String(businessForm.phone || '').trim(), business_phone: String(businessForm.phone || '').trim(),
+      facebook_url: String(businessForm.facebook_url || '').trim(), instagram_url: String(businessForm.instagram_url || '').trim(), tiktok_url: String(businessForm.tiktok_url || '').trim(),
+      ...identityFields, vendor_tier: 'free', vendor_setup_status: 'setup_required', extra_users_count: 0, extra_pins_count: 0, current_authorized_users: 1, current_vendor_pins: 0, is_active: true,
     });
 
     await Promise.all([
-      base44.asServiceRole.entities.VendorAccountIdentityReservation.update(reservationNum.id, {
-        vendor_account_id: account.id,
-        status: 'assigned',
-      }),
-      base44.asServiceRole.entities.VendorAccountIdentityReservation.update(reservationSlug.id, {
-        vendor_account_id: account.id,
-        status: 'assigned',
-      }),
+      base44.asServiceRole.entities.VendorAccountIdentityReservation.update(reservationNum.id, { vendor_account_id: account.id, status: 'assigned' }),
+      base44.asServiceRole.entities.VendorAccountIdentityReservation.update(reservationSlug.id, { vendor_account_id: account.id, status: 'assigned' }),
     ]);
 
     return Response.json({ ok: true, account });
   } catch (error) {
     console.error('createPublicVendorAccount failed:', error?.message || error);
-    return Response.json({ error: error?.message || 'Failed to create vendor account' }, { status: 500 });
+    return Response.json({ error: error?.message || 'Failed to create organizer account' }, { status: 500 });
   }
 }
