@@ -15,6 +15,7 @@ const unique = (items) => [...new Set(items.filter(Boolean))].sort((a, b) => Str
 
 export default function TeamScheduleManager({ account, user, section = "all" }) {
   const [leagueFilter, setLeagueFilter] = useState(ALL);
+  const [townFilter, setTownFilter] = useState(ALL);
   const [teamFilter, setTeamFilter] = useState(ALL);
   const [divisionFilter, setDivisionFilter] = useState(ALL);
 
@@ -53,15 +54,17 @@ export default function TeamScheduleManager({ account, user, section = "all" }) 
   const linkedIds = useMemo(() => new Set(links.map((link) => link.league_game_id)), [links]);
   const myGames = useMemo(() => sortLeagueGames(leagueGames.filter((game) => linkedIds.has(game.id))), [leagueGames, linkedIds]);
   const availableGames = useMemo(() => sortLeagueGames(leagueGames.filter((game) => !linkedIds.has(game.id))), [leagueGames, linkedIds]);
+  const townOptions = useMemo(() => unique(leagueGames.flatMap((game) => [game.home_town, game.away_town])), [leagueGames]);
   const teamOptions = useMemo(() => unique(leagueGames.flatMap((game) => [game.home_team, game.away_team])), [leagueGames]);
   const divisionOptions = useMemo(() => unique(leagueGames.map((game) => game.division || game.age_group)), [leagueGames]);
 
   const filteredAvailableGames = useMemo(() => availableGames.filter((game) => {
     const leagueMatches = leagueFilter === ALL || game.vendor_account_id === leagueFilter;
+    const townMatches = townFilter === ALL || [game.home_town, game.away_town].some((town) => normalize(town) === normalize(townFilter));
     const teamMatches = teamFilter === ALL || [game.home_team, game.away_team].some((team) => normalize(team) === normalize(teamFilter));
     const divisionMatches = divisionFilter === ALL || normalize(game.division || game.age_group) === normalize(divisionFilter);
-    return leagueMatches && teamMatches && divisionMatches;
-  }), [availableGames, leagueFilter, teamFilter, divisionFilter]);
+    return leagueMatches && townMatches && teamMatches && divisionMatches;
+  }), [availableGames, leagueFilter, townFilter, teamFilter, divisionFilter]);
 
   const addGame = async (game) => {
     const existing = await base44.entities.TeamScheduleGameLink.filter({ team_account_id: account.id, league_game_id: game.id, is_active: true }).catch(() => []);
@@ -83,6 +86,20 @@ export default function TeamScheduleManager({ account, user, section = "all" }) 
     if (!link) return;
     await base44.entities.TeamScheduleGameLink.update(link.id, { is_active: false });
     toast.success("Game removed from My Team Schedule.");
+    refetchLinks();
+  };
+
+  const addAllFilteredGames = async () => {
+    if (!filteredAvailableGames.length) return toast.info("No available games match those filters.");
+    await base44.entities.TeamScheduleGameLink.bulkCreate(filteredAvailableGames.map((game) => ({
+      team_account_id: account.id,
+      league_account_id: game.vendor_account_id,
+      league_game_id: game.id,
+      added_by_user_id: user?.id || "",
+      added_at: new Date().toISOString(),
+      is_active: true,
+    })));
+    toast.success(`${filteredAvailableGames.length} games added to My Team Schedule.`);
     refetchLinks();
   };
 
@@ -114,12 +131,13 @@ export default function TeamScheduleManager({ account, user, section = "all" }) 
       <CardHeader><CardTitle className="text-[#2C4F4E]">Add Games From My League</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         {leagueIds.length === 0 ? <p className="rounded-xl border border-dashed p-4 text-sm text-slate-500">This team has not been accepted into a league yet. Use the Leagues tab to request access.</p> : <>
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <Select value={leagueFilter} onValueChange={setLeagueFilter}><SelectTrigger><SelectValue placeholder="League" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All accepted leagues</SelectItem>{leagues.map((league) => <SelectItem key={league.id} value={league.id}>{league.business_name}</SelectItem>)}</SelectContent></Select>
-            <Select value={teamFilter} onValueChange={setTeamFilter}><SelectTrigger><SelectValue placeholder="Team" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All teams</SelectItem>{teamOptions.map((team) => <SelectItem key={team} value={team}>{team}</SelectItem>)}</SelectContent></Select>
+            <Select value={townFilter} onValueChange={setTownFilter}><SelectTrigger><SelectValue placeholder="Town" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All towns</SelectItem>{townOptions.map((town) => <SelectItem key={town} value={town}>{town}</SelectItem>)}</SelectContent></Select>
             <Select value={divisionFilter} onValueChange={setDivisionFilter}><SelectTrigger><SelectValue placeholder="Division" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All divisions</SelectItem>{divisionOptions.map((division) => <SelectItem key={division} value={division}>{division}</SelectItem>)}</SelectContent></Select>
+            <Select value={teamFilter} onValueChange={setTeamFilter}><SelectTrigger><SelectValue placeholder="Team" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All teams</SelectItem>{teamOptions.map((team) => <SelectItem key={team} value={team}>{team}</SelectItem>)}</SelectContent></Select>
           </div>
-          <p className="text-xs text-slate-500">Filter the league Master Schedule, then add only the games that belong on this team account.</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-slate-500">Choose a town and keep All divisions, or select one division, then add every matching game at once.</p><Button onClick={addAllFilteredGames} disabled={!filteredAvailableGames.length} className="shrink-0 gap-1 bg-[#006168] text-white hover:bg-[#004f55]"><Plus className="h-4 w-4" /> Add All Matching Games ({filteredAvailableGames.length})</Button></div>
           {filteredAvailableGames.length === 0 ? <p className="rounded-xl border border-dashed p-4 text-sm text-slate-500">No available games match those filters.</p> :
             <div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[850px] text-xs"><thead className="bg-slate-100 text-[#2C4F4E]"><tr>{["Matchup","Division","Date","Time","Field","League","Status",""] .map((h) => <th key={h} className="px-2 py-2 text-left font-black">{h}</th>)}</tr></thead><tbody>{filteredAvailableGames.map((game) => renderGameRow(game, <Button size="sm" className="h-7 gap-1 bg-[#5DADA5] text-white hover:bg-[#4A9B93] text-xs" onClick={() => addGame(game)}><Plus className="h-3 w-3" /> Add to My Team Schedule</Button>))}</tbody></table></div>}
         </>}
