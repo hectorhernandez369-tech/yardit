@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +34,13 @@ export default function VendorDetailsForm({ account, onRefresh }) {
   const [expanded, setExpanded] = useState(true);
   const logoInputRef = useRef(null);
 
+  // Keep the form in sync with the latest account snapshot so fields that
+  // load after mount (e.g. business_logo) are never overwritten with stale
+  // empty values on save.
+  useEffect(() => {
+    setForm({ ...account });
+  }, [account]);
+
   const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const uploadLogo = async (event) => {
@@ -48,9 +55,8 @@ export default function VendorDetailsForm({ account, onRefresh }) {
   };
 
   const saveProfile = async () => {
-    setSaving(true);
     const businessAddress = [form.business_street_address, form.business_city, form.business_state, form.business_zip_code].filter(Boolean).join(", ");
-    const payload = {
+    const resolved = {
       business_name: form.business_name,
       vendor_display_name: form.vendor_display_name || form.business_name,
       legal_business_name: form.legal_business_name || form.business_name,
@@ -73,10 +79,33 @@ export default function VendorDetailsForm({ account, onRefresh }) {
       business_address: businessAddress,
       location: businessAddress || form.location,
     };
-    await base44.entities.VendorAccount.update(account.id, payload);
-    toast.success("Vendor page updated");
-    await onRefresh();
-    setSaving(false);
+
+    // Only send fields that actually changed vs. the current account snapshot.
+    const payload = {};
+    Object.entries(resolved).forEach(([key, value]) => {
+      const current = account[key];
+      const normalize = (v) => (v === "" || v === null || v === undefined ? "" : v);
+      if (normalize(value) !== normalize(current)) {
+        payload[key] = value;
+      }
+    });
+
+    if (Object.keys(payload).length === 0) {
+      toast.info("No changes to save");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await base44.entities.VendorAccount.update(account.id, payload);
+      toast.success(`Saved ${Object.keys(payload).length} change${Object.keys(payload).length > 1 ? "s" : ""}`);
+      await onRefresh();
+    } catch (error) {
+      toast.error("Could not save changes");
+      throw error;
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
