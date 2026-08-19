@@ -2,315 +2,69 @@
   "name": "VendorAccount",
   "type": "object",
   "properties": {
-    "business_name": {
-      "type": "string",
-      "description": "Vendor business name"
-    },
-    "vendor_display_name": {
-      "type": "string",
-      "description": "Public-facing business name"
-    },
-    "legal_business_name": {
-      "type": "string",
-      "description": "Legal or billing business name"
-    },
+    "business_name": { "type": "string", "description": "Vendor business or organization name" },
+    "vendor_display_name": { "type": "string", "description": "Public-facing business or organization name" },
+    "legal_business_name": { "type": "string", "description": "Legal or billing business name" },
     "organization_type": {
       "type": "string",
-      "enum": [
-        "vendor",
-        "event_organizer",
-        "league_team",
-        "nonprofit",
-        "food_truck",
-        "retail",
-        "service",
-        "other"
-      ],
+      "enum": ["vendor", "event_organizer", "league", "team", "league_team", "nonprofit", "food_truck", "retail", "service", "other"],
       "default": "vendor",
-      "description": "Organization category and dashboard type"
+      "description": "Organization category and dashboard type. league_team is retained for legacy accounts."
     },
-    "business_logo": {
-      "type": "string",
-      "description": "Business logo URL"
-    },
-    "business_category": {
-      "type": "string",
-      "description": "Vendor business category"
-    },
-    "business_tax_id": {
-      "type": "string",
-      "description": "EIN, 501(c)(3), or Business Tax ID in formatted form"
-    },
-    "business_street_address": {
-      "type": "string",
-      "description": "Business street address"
-    },
-    "business_city": {
-      "type": "string",
-      "description": "Business city"
-    },
-    "business_state": {
-      "type": "string",
-      "description": "Business state"
-    },
-    "business_zip_code": {
-      "type": "string",
-      "description": "Business ZIP code"
-    },
-    "business_address": {
-      "type": "string",
-      "description": "Combined business address"
-    },
-    "latitude": {
-      "type": "number",
-      "description": "Business latitude"
-    },
-    "longitude": {
-      "type": "number",
-      "description": "Business longitude"
-    },
-    "owner_name": {
-      "type": "string",
-      "description": "Vendor owner name"
-    },
-    "owner_email": {
-      "type": "string",
-      "description": "Email of the Yardit user who owns this vendor account"
-    },
-    "owner_user_id": {
-      "type": "string",
-      "description": "Owner user ID"
-    },
-    "vendor_account_number": {
-      "type": "string",
-      "description": "Primary public support/search vendor account number, e.g. VND-100001"
-    },
-    "account_number": {
-      "type": "string",
-      "description": "Legacy vendor account number alias"
-    },
-    "vendor_slug": {
-      "type": "string",
-      "description": "Stable unique public URL slug for vendor pages"
-    },
-    "subscription_status": {
-      "type": "string",
-      "enum": [
-        "active",
-        "trialing",
-        "past_due",
-        "inactive",
-        "canceled"
-      ],
-      "default": "active",
-      "description": "Vendor subscription status"
-    },
-    "is_verified_vendor": {
-      "type": "boolean",
-      "default": false,
-      "description": "Whether the vendor has been verified"
-    },
-    "verified_at": {
-      "type": "string",
-      "format": "date-time",
-      "description": "When this vendor was verified"
-    },
-    "verified_by": {
-      "type": "string",
-      "description": "Admin user ID or system actor that verified this vendor"
-    },
-    "organization_user_ids": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Future-ready organization member user IDs"
-    },
-    "organization_staff_emails": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Future-ready organization staff emails"
-    },
-    "organization_permissions": {
-      "type": "object",
-      "description": "Future-ready organization permission configuration"
-    },
-    "assigned_pin_ids": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Future-ready assigned vendor pin IDs"
-    },
-    "team_settings": {
-      "type": "object",
-      "description": "Future-ready team and event staff settings"
-    },
-    "is_demo_vendor": {
-      "type": "boolean",
-      "default": false,
-      "description": "Whether this is a demo vendor account"
-    },
-    "is_internal_admin_vendor": {
-      "type": "boolean",
-      "default": false,
-      "description": "Whether this vendor account was auto-created for a master admin user"
-    },
-    "vendor_origin": {
-      "type": "string",
-      "enum": [
-        "public_signup",
-        "admin_auto_created",
-        "migration",
-        "other"
-      ],
-      "default": "public_signup",
-      "description": "How this vendor account was originally created"
-    },
-    "description": {
-      "type": "string",
-      "description": "Short public vendor bio or business description"
-    },
-    "phone": {
-      "type": "string",
-      "description": "Public business phone number"
-    },
-    "business_phone": {
-      "type": "string",
-      "description": "Business phone number used for search"
-    },
-    "location": {
-      "type": "string",
-      "description": "Public business location or service area"
-    },
-    "hero_background_color": {
-      "type": "string",
-      "default": "#FFFFFF",
-      "description": "Business hero background color"
-    },
-    "email": {
-      "type": "string",
-      "description": "Public business email address"
-    },
-    "website": {
-      "type": "string",
-      "description": "Public business website URL"
-    },
-    "public_contact_visibility": {
-      "type": "string",
-      "enum": [
-        "show",
-        "hide"
-      ],
-      "default": "hide",
-      "description": "Whether phone, email and website are visible on public business profiles, event pages and map cards"
-    },
-    "facebook_url": {
-      "type": "string",
-      "description": "Facebook profile or page URL"
-    },
-    "instagram_url": {
-      "type": "string",
-      "description": "Instagram profile URL"
-    },
-    "tiktok_url": {
-      "type": "string",
-      "description": "TikTok profile URL"
-    },
-    "photo_urls": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Public business photo gallery URLs"
-    },
-    "featured_photo_url": {
-      "type": "string",
-      "description": "Featured public business photo URL"
-    },
-    "vendor_tier": {
-      "type": "string",
-      "enum": [
-        "free",
-        "starter",
-        "pro",
-        "growth",
-        "event_organizer"
-      ],
-      "default": "free",
-      "description": "Vendor subscription tier"
-    },
-    "vendor_setup_status": {
-      "type": "string",
-      "enum": [
-        "setup_required",
-        "in_progress",
-        "complete"
-      ],
-      "default": "setup_required",
-      "description": "Vendor onboarding/setup status"
-    },
-    "setup_tier_confirmed": {
-      "type": "boolean",
-      "default": false,
-      "description": "Whether the vendor confirmed their setup tier selection"
-    },
-    "setup_dashboard_entered": {
-      "type": "boolean",
-      "default": false,
-      "description": "Whether the vendor entered the dashboard during setup"
-    },
-    "extra_users_count": {
-      "type": "number",
-      "default": 0,
-      "description": "Additional paid authorized users"
-    },
-    "extra_pins_count": {
-      "type": "number",
-      "default": 0,
-      "description": "Additional paid truck pins"
-    },
-    "current_authorized_users": {
-      "type": "number",
-      "default": 0,
-      "description": "Current authorized user count"
-    },
-    "current_vendor_pins": {
-      "type": "number",
-      "default": 0,
-      "description": "Current vendor pin count"
-    },
-    "stripe_customer_id": {
-      "type": "string",
-      "description": "Stripe Customer ID for vendor billing"
-    },
-    "stripe_subscription_id": {
-      "type": "string",
-      "description": "Active Stripe Subscription ID for vendor billing"
-    },
-    "pending_vendor_tier": {
-      "type": "string",
-      "description": "Pending vendor tier awaiting Stripe webhook confirmation"
-    },
-    "pending_subscription_checkout_session_id": {
-      "type": "string",
-      "description": "Pending Stripe Checkout Session ID for vendor subscription"
-    },
-    "is_active": {
-      "type": "boolean",
-      "default": true,
-      "description": "Whether the vendor account is active"
-    }
+    "business_logo": { "type": "string", "description": "Business logo URL" },
+    "business_category": { "type": "string", "description": "Vendor or sports organization category" },
+    "business_tax_id": { "type": "string", "description": "EIN, 501(c)(3), or Business Tax ID in formatted form" },
+    "business_street_address": { "type": "string", "description": "Business street address" },
+    "business_city": { "type": "string", "description": "Business city" },
+    "business_state": { "type": "string", "description": "Business state" },
+    "business_zip_code": { "type": "string", "description": "Business ZIP code" },
+    "business_address": { "type": "string", "description": "Combined business address" },
+    "latitude": { "type": "number", "description": "Business latitude" },
+    "longitude": { "type": "number", "description": "Business longitude" },
+    "owner_name": { "type": "string", "description": "Account owner name" },
+    "owner_email": { "type": "string", "description": "Email of the Yardit user who owns this organizer account" },
+    "owner_user_id": { "type": "string", "description": "Owner user ID" },
+    "vendor_account_number": { "type": "string", "description": "Primary public support/search organizer account number" },
+    "account_number": { "type": "string", "description": "Legacy organizer account number alias" },
+    "vendor_slug": { "type": "string", "description": "Stable unique public URL slug" },
+    "subscription_status": { "type": "string", "enum": ["active", "trialing", "past_due", "inactive", "canceled"], "default": "active", "description": "Subscription status" },
+    "is_verified_vendor": { "type": "boolean", "default": false, "description": "Whether the account has been verified" },
+    "verified_at": { "type": "string", "format": "date-time", "description": "When this account was verified" },
+    "verified_by": { "type": "string", "description": "Admin user ID or system actor that verified this account" },
+    "organization_user_ids": { "type": "array", "items": { "type": "string" }, "description": "Organization member user IDs" },
+    "organization_staff_emails": { "type": "array", "items": { "type": "string" }, "description": "Organization staff emails" },
+    "organization_permissions": { "type": "object", "description": "Organization permission configuration" },
+    "assigned_pin_ids": { "type": "array", "items": { "type": "string" }, "description": "Assigned vendor pin IDs" },
+    "team_settings": { "type": "object", "description": "Team and event staff settings" },
+    "is_demo_vendor": { "type": "boolean", "default": false, "description": "Whether this is a demo account" },
+    "is_internal_admin_vendor": { "type": "boolean", "default": false, "description": "Whether this organizer account was auto-created for a master admin user" },
+    "vendor_origin": { "type": "string", "enum": ["public_signup", "admin_auto_created", "migration", "other"], "default": "public_signup", "description": "How this organizer account was originally created" },
+    "description": { "type": "string", "description": "Short public bio or description" },
+    "phone": { "type": "string", "description": "Public phone number" },
+    "business_phone": { "type": "string", "description": "Phone number used for search" },
+    "location": { "type": "string", "description": "Public location or service area" },
+    "hero_background_color": { "type": "string", "default": "#FFFFFF", "description": "Profile hero background color" },
+    "email": { "type": "string", "description": "Public email address" },
+    "website": { "type": "string", "description": "Public website URL" },
+    "public_contact_visibility": { "type": "string", "enum": ["show", "hide"], "default": "hide", "description": "Whether contact information is public" },
+    "facebook_url": { "type": "string", "description": "Facebook profile or page URL" },
+    "instagram_url": { "type": "string", "description": "Instagram profile URL" },
+    "tiktok_url": { "type": "string", "description": "TikTok profile URL" },
+    "photo_urls": { "type": "array", "items": { "type": "string" }, "description": "Public photo gallery URLs" },
+    "featured_photo_url": { "type": "string", "description": "Featured public photo URL" },
+    "vendor_tier": { "type": "string", "enum": ["free", "starter", "pro", "growth", "event_organizer"], "default": "free", "description": "Current subscription tier; billing can branch by organization_type" },
+    "vendor_setup_status": { "type": "string", "enum": ["setup_required", "in_progress", "complete"], "default": "setup_required", "description": "Onboarding/setup status" },
+    "setup_tier_confirmed": { "type": "boolean", "default": false, "description": "Whether setup tier selection is confirmed" },
+    "setup_dashboard_entered": { "type": "boolean", "default": false, "description": "Whether the dashboard was entered during setup" },
+    "extra_users_count": { "type": "number", "default": 0, "description": "Additional paid authorized users" },
+    "extra_pins_count": { "type": "number", "default": 0, "description": "Additional paid truck pins" },
+    "current_authorized_users": { "type": "number", "default": 0, "description": "Current authorized user count" },
+    "current_vendor_pins": { "type": "number", "default": 0, "description": "Current vendor pin count" },
+    "stripe_customer_id": { "type": "string", "description": "Stripe Customer ID" },
+    "stripe_subscription_id": { "type": "string", "description": "Active Stripe Subscription ID" },
+    "pending_vendor_tier": { "type": "string", "description": "Pending tier awaiting Stripe webhook confirmation" },
+    "pending_subscription_checkout_session_id": { "type": "string", "description": "Pending Stripe Checkout Session ID" },
+    "is_active": { "type": "boolean", "default": true, "description": "Whether the organizer account is active" }
   },
-  "required": [
-    "business_name",
-    "owner_user_id",
-    "owner_email",
-    "vendor_account_number",
-    "vendor_tier",
-    "subscription_status",
-    "is_active"
-  ]
+  "required": ["business_name", "owner_user_id", "owner_email", "vendor_account_number", "vendor_tier", "subscription_status", "is_active"]
 }
