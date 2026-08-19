@@ -128,7 +128,7 @@ export default function TeamDashboard() {
   const tabList = [
     { value: "profile", label: "My Page" },
     { value: "schedule", label: "My Team Schedule" },
-    { value: "leagues", label: "Leagues" },
+    { value: "leagues", label: "My League" },
     { value: "scoreboard", label: "My Scoreboard" },
     { value: "events", label: "My Events" },
   ];
@@ -145,8 +145,8 @@ export default function TeamDashboard() {
       </div>
       <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 lg:p-6 space-y-3 sm:space-y-6">
         <TabsContent value="profile" className="mt-0"><VendorBusinessPage account={account} pins={[]} checkIns={[]} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
-        <TabsContent value="schedule" className="mt-0"><TeamScheduleManager account={account} user={user} /></TabsContent>
-        <TabsContent value="leagues" className="mt-0"><TeamLeagueConnections account={account} user={user} onRefresh={refreshDashboard} /></TabsContent>
+        <TabsContent value="schedule" className="mt-0"><TeamScheduleManager account={account} user={user} section="schedule" /></TabsContent>
+        <TabsContent value="leagues" className="mt-0"><div className="space-y-4"><TeamLeagueConnections account={account} user={user} onRefresh={refreshDashboard} /><TeamScheduleManager account={account} user={user} section="add" /></div></TabsContent>
         <TabsContent value="scoreboard" className="mt-0"><LeagueScoreboard account={account} user={user} games={myGames} assignments={[]} memberships={memberships} isOwner={false} onRefresh={refreshDashboard} /></TabsContent>
         <TabsContent value="events" className="mt-0"><LeagueEventsTab account={account} user={user} /></TabsContent>
       </div>

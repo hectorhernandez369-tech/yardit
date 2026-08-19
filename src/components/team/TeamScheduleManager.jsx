@@ -13,7 +13,7 @@ const ALL = "__all__";
 const normalize = (value) => String(value || "").trim().toLowerCase();
 const unique = (items) => [...new Set(items.filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)));
 
-export default function TeamScheduleManager({ account, user }) {
+export default function TeamScheduleManager({ account, user, section = "all" }) {
   const [leagueFilter, setLeagueFilter] = useState(ALL);
   const [teamFilter, setTeamFilter] = useState(ALL);
   const [divisionFilter, setDivisionFilter] = useState(ALL);
@@ -101,16 +101,16 @@ export default function TeamScheduleManager({ account, user }) {
   };
 
   return <div className="space-y-4">
-    <Card className="rounded-2xl bg-white">
+    {section !== "add" && <Card className="rounded-2xl bg-white">
       <CardHeader><CardTitle className="flex items-center gap-2 text-[#2C4F4E]"><CalendarDays className="h-5 w-5" /> My Team Schedule</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-slate-600">These are the league games you chose to keep on this team account. The league's Master Schedule stays the source of truth, so league changes automatically appear here.</p>
-        {myGames.length === 0 ? <p className="rounded-xl border border-dashed p-4 text-sm text-slate-500">No games added yet. Use “Add Games From My League” below.</p> :
+        {myGames.length === 0 ? <p className="rounded-xl border border-dashed p-4 text-sm text-slate-500">No games added yet. Use “Add Games From My League” in the My League tab.</p> :
           <div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[850px] text-xs"><thead className="bg-[#E7D7B8] text-[#2C4F4E]"><tr>{["Matchup","Division","Date","Time","Field","League","Status",""] .map((h) => <th key={h} className="px-2 py-2 text-left font-black">{h}</th>)}</tr></thead><tbody>{myGames.map((game) => renderGameRow(game, <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3" /> Remove</Button>))}</tbody></table></div>}
       </CardContent>
-    </Card>
+    </Card>}
 
-    <Card className="rounded-2xl bg-white">
+    {section !== "schedule" && <Card className="rounded-2xl bg-white">
       <CardHeader><CardTitle className="text-[#2C4F4E]">Add Games From My League</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         {leagueIds.length === 0 ? <p className="rounded-xl border border-dashed p-4 text-sm text-slate-500">This team has not been accepted into a league yet. Use the Leagues tab to request access.</p> : <>
@@ -124,6 +124,6 @@ export default function TeamScheduleManager({ account, user }) {
             <div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[850px] text-xs"><thead className="bg-slate-100 text-[#2C4F4E]"><tr>{["Matchup","Division","Date","Time","Field","League","Status",""] .map((h) => <th key={h} className="px-2 py-2 text-left font-black">{h}</th>)}</tr></thead><tbody>{filteredAvailableGames.map((game) => renderGameRow(game, <Button size="sm" className="h-7 gap-1 bg-[#5DADA5] text-white hover:bg-[#4A9B93] text-xs" onClick={() => addGame(game)}><Plus className="h-3 w-3" /> Add to My Team Schedule</Button>))}</tbody></table></div>}
         </>}
       </CardContent>
-    </Card>
+    </Card>}
   </div>;
 }
