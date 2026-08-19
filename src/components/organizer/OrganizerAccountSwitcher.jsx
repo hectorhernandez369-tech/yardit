@@ -8,42 +8,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import DefaultVendorPageControl from "@/components/vendor/DefaultVendorPageControl";
 
 export const ORGANIZER_TYPE_CONFIG = {
-  vendor_event: {
-    label: "Vendor/Event Organizer",
-    shortLabel: "Vendor",
-    icon: Store,
-    route: "/VendorDashboard",
-    createPath: "/VendorAccountIntro?organizer=vendor_event",
-    badgeClass: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100",
-    iconClass: "text-[#F4A849]",
-  },
-  league: {
-    label: "League Organizer",
-    shortLabel: "League",
-    icon: Trophy,
-    route: "/LeagueTeamDashboard",
-    createPath: "/VendorAccountIntro?organizer=league",
-    badgeClass: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100",
-    iconClass: "text-blue-600",
-  },
-  team: {
-    label: "Team Organizer",
-    shortLabel: "Team",
-    icon: Users,
-    route: "/LeagueTeamDashboard",
-    createPath: "/VendorAccountIntro?organizer=team",
-    badgeClass: "bg-green-100 text-green-800 border-green-200 hover:bg-green-100",
-    iconClass: "text-green-600",
-  },
-  league_team: {
-    label: "League Organizer",
-    shortLabel: "League",
-    icon: Trophy,
-    route: "/LeagueTeamDashboard",
-    createPath: "/VendorAccountIntro?organizer=league",
-    badgeClass: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100",
-    iconClass: "text-blue-600",
-  },
+  vendor_event: { label: "Vendor/Event Organizer", shortLabel: "Vendor", icon: Store, route: "/VendorDashboard", createPath: "/VendorAccountIntro?organizer=vendor_event", badgeClass: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100", iconClass: "text-[#F4A849]" },
+  league: { label: "League Organizer", shortLabel: "League", icon: Trophy, route: "/LeagueTeamDashboard", createPath: "/VendorAccountIntro?organizer=league", badgeClass: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100", iconClass: "text-blue-600" },
+  team: { label: "Team Organizer", shortLabel: "Team", icon: Users, route: "/TeamDashboard", createPath: "/VendorAccountIntro?organizer=team", badgeClass: "bg-green-100 text-green-800 border-green-200 hover:bg-green-100", iconClass: "text-green-600" },
+  league_team: { label: "League Organizer", shortLabel: "League", icon: Trophy, route: "/LeagueTeamDashboard", createPath: "/VendorAccountIntro?organizer=league", badgeClass: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100", iconClass: "text-blue-600" },
   fair_organizer: { label: "Fair Organizer", shortLabel: "Fair", icon: Store, route: "/VendorDashboard", createPath: "/VendorAccountIntro?organizer=fair_organizer", badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100", iconClass: "text-emerald-600" },
   school_organizer: { label: "School Organizer", shortLabel: "School", icon: Store, route: "/VendorDashboard", createPath: "/VendorAccountIntro?organizer=school_organizer", badgeClass: "bg-violet-100 text-violet-800 border-violet-200 hover:bg-violet-100", iconClass: "text-violet-600" },
   tournament_organizer: { label: "Tournament Organizer", shortLabel: "Tournament", icon: Trophy, route: "/LeagueTeamDashboard", createPath: "/VendorAccountIntro?organizer=tournament_organizer", badgeClass: "bg-cyan-100 text-cyan-800 border-cyan-200 hover:bg-cyan-100", iconClass: "text-cyan-600" },
@@ -54,7 +22,11 @@ const ORGANIZATION_TYPE_TO_ORGANIZER_TYPE = {
   league: "league", team: "team", league_team: "league", fair_organizer: "fair_organizer", school_organizer: "school_organizer", tournament_organizer: "tournament_organizer",
 };
 
-export const getOrganizerDashboardType = (account) => ORGANIZATION_TYPE_TO_ORGANIZER_TYPE[account?.organization_type] || account?.organization_type || "vendor_event";
+export const getOrganizerDashboardType = (account) => {
+  const name = String(account?.business_name || account?.vendor_display_name || "").trim().toLowerCase();
+  if (account?.organization_type === "league_team" && name === "lindsay youth football and cheer") return "team";
+  return ORGANIZATION_TYPE_TO_ORGANIZER_TYPE[account?.organization_type] || account?.organization_type || "vendor_event";
+};
 export const getOrganizerTypeConfig = (accountOrType) => {
   const type = typeof accountOrType === "string" ? accountOrType : getOrganizerDashboardType(accountOrType);
   return ORGANIZER_TYPE_CONFIG[type] || { label: "Organizer Account", shortLabel: "Organizer", icon: Store, route: "/VendorDashboard", createPath: "/VendorAccountIntro", badgeClass: "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-100", iconClass: "text-slate-500" };
