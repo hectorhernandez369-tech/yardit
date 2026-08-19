@@ -243,7 +243,7 @@ export default function LeagueTeamDashboard() {
   };
 
   const tabList = isOwner
-    ? [{ value: "profile", label: "My Page" }, { value: "schedule", label: "Master Schedule" }, { value: "teams", label: "Teams" }, { value: "leagues", label: "Invitations" }, { value: "scoreboard", label: "Scoreboard" }, { value: "audit", label: "Score Review" }, { value: "events", label: "Events" }]
+    ? [{ value: "profile", label: "My Page" }, { value: "schedule", label: "Master Schedule" }, { value: "teams", label: "Teams" }, { value: "leagues", label: "Leagues" }, { value: "scoreboard", label: "Scoreboard" }, { value: "audit", label: "Score Review" }, { value: "events", label: "Events" }]
     : [{ value: "profile", label: "My Page" }, { value: "my_schedule", label: "My Schedule" }, { value: "schedule", label: "Full League Schedule" }, { value: "scoreboard", label: "My Scoreboard" }, { value: "events", label: "My Events" }, { value: "leagues", label: "Find My League" }, { value: "staff", label: "Staff" }];
   const canManageDefaultPage = !canAdminPreview && isOwner;
   const isDefaultPage = account?.id === defaultAccountId;

@@ -132,7 +132,38 @@ export default function LeagueConnectionsTab({ account, user, accounts = [], isO
 
   return (
     <div className="space-y-4">
-      {!isOwner && <Card className="rounded-2xl bg-white"><CardHeader><CardTitle className="flex items-center gap-2 text-[#2C4F4E]"><Search className="h-5 w-5" /> Find My League</CardTitle></CardHeader><CardContent className="space-y-4"><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search league name, city, state, account number, sport, or season" /><div className="rounded-xl border bg-slate-50 p-3 text-sm"><p><strong>Organization:</strong> {account.business_name}</p><p><strong>Requesting person:</strong> {user?.full_name || user?.email}</p><p><strong>Verified email:</strong> {user?.email || "Required"}</p><p><strong>Team account number:</strong> {account.vendor_account_number || account.account_number || "Not assigned"}</p><p><strong>Town / Sport:</strong> {account.business_city || account.location || "Town not set"} · {account.business_category || "Sport not set"}</p></div><Input value={divisionText} onChange={(e) => setDivisionText(e.target.value)} placeholder="Requested divisions, comma-separated" /><Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Optional message to the league owner" />{candidateLeagues.map((league) => <div key={league.id} className="flex flex-col gap-2 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-bold text-[#2C4F4E]">{league.business_name}</p><p className="text-xs text-slate-500">{league.business_city}, {league.business_state} · {league.vendor_account_number || league.account_number}</p></div><Button disabled={myPendingRequestIds.has(league.id)} onClick={() => submitJoinRequest(league)} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{myPendingRequestIds.has(league.id) ? "Pending" : "Request to Join"}</Button></div>)}</CardContent></Card>}
+      <Card className="rounded-2xl bg-white">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-[#2C4F4E]">
+            <Search className="h-5 w-5" /> Find and Join a League
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search league name, city, state, account number, sport, or season" />
+          <div className="rounded-xl border bg-slate-50 p-3 text-sm">
+            <p><strong>Organization:</strong> {account.business_name}</p>
+            <p><strong>Requesting person:</strong> {user?.full_name || user?.email}</p>
+            <p><strong>Verified email:</strong> {user?.email || "Required"}</p>
+            <p><strong>Team account number:</strong> {account.vendor_account_number || account.account_number || "Not assigned"}</p>
+            <p><strong>Town / Sport:</strong> {account.business_city || account.location || "Town not set"} · {account.business_category || "Sport not set"}</p>
+          </div>
+          <Input value={divisionText} onChange={(e) => setDivisionText(e.target.value)} placeholder="Requested divisions, comma-separated" />
+          <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Optional message to the league owner" />
+          {candidateLeagues.map((league) => (
+            <div key={league.id} className="flex flex-col gap-2 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-bold text-[#2C4F4E]">{league.business_name}</p>
+                <p className="text-xs text-slate-500">{league.business_city}, {league.business_state} · {league.vendor_account_number || league.account_number}</p>
+              </div>
+              <Button disabled={myPendingRequestIds.has(league.id)} onClick={() => submitJoinRequest(league)} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">
+                {myPendingRequestIds.has(league.id) ? "Pending" : "Request to Join"}
+              </Button>
+            </div>
+          ))}
+          {search && candidateLeagues.length === 0 && <p className="text-sm text-slate-500">No leagues found. Try a different search.</p>}
+          {!search && <p className="text-sm text-slate-500">Start typing to search for a league to join. The league owner must approve your request before your team is added.</p>}
+        </CardContent>
+      </Card>
 
       {isOwner && <Card className="rounded-2xl bg-white"><CardHeader><CardTitle className="flex items-center gap-2 text-[#2C4F4E]"><UserPlus className="h-5 w-5" /> Invitations & Requests</CardTitle></CardHeader><CardContent className="space-y-4"><div className="grid gap-2 lg:grid-cols-[1fr_180px_180px_auto]"><Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="Invite team or staff by email" /><Select value={inviteType} onValueChange={setInviteType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["team_organization", "league_staff", "scorekeeper", "scheduler", "viewer"].map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select><Select value={inviteRole} onValueChange={setInviteRole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.keys(ROLE_PRESETS).map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent></Select><Button onClick={inviteMember} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">Invite</Button></div>{incomingRequests.map((request) => <div key={request.id} className="rounded-xl border p-3"><div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between"><div><p className="font-bold text-[#2C4F4E]">{request.requesting_name} from {request.organization_name} is requesting to join {account.business_name}.</p><p className="text-xs text-slate-600">Verified email: {request.requesting_email}</p><p className="text-xs text-slate-600">Account: {request.organization_account_number || "None"} · Town: {request.town_name || "None"} · Sport: {request.sport || "None"}</p><p className="text-xs text-slate-600">Requested divisions: {(request.requested_divisions || []).join(", ") || "None"}</p><p className="text-xs text-slate-600">Created: {request.created_at ? new Date(request.created_at).toLocaleDateString() : "Unknown"}</p><p className="mt-1 text-sm text-slate-700">{request.request_message}</p></div><Badge>{request.status}</Badge></div>{request.status === "pending" && <div className="mt-3 flex flex-wrap gap-2"><Button onClick={() => reviewRequest(request, "approved")} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">Approve View-Only</Button><Button variant="outline" onClick={() => reviewRequest(request, "denied")}>Deny</Button></div>}</div>)}</CardContent></Card>}
 
