@@ -96,13 +96,25 @@ export default async function(req) {
     const organizerType = body?.organizerType || 'vendor_event';
     const targetOrganizerType = normalizeOrganizerType(organizerType);
 
-    // Keep the launch gate on Vendor/Event accounts only. League/Team accounts
-    // are organizer accounts but are not part of the protected vendor beta gate.
+    const [ownedByUserId, ownedByEmail] = await Promise.all([
+      user.id ? base44.asServiceRole.entities.VendorAccount.filter({ owner_user_id: user.id }) : Promise.resolve([]),
+      user.email ? base44.asServiceRole.entities.VendorAccount.filter({ owner_email: user.email }) : Promise.resolve([]),
+    ]);
+    const existingOwnedMap = new Map();
+    [...ownedByUserId, ...ownedByEmail]
+      .filter((account) => account?.is_active !== false)
+      .forEach((account) => existingOwnedMap.set(account.id, account));
+    const existingOwned = [...existingOwnedMap.values()];
+    const alreadyVendor = existingOwned.some((account) => normalizeOrganizerType(account?.organization_type) === 'vendor_event');
+
+    // Keep new public Vendor/Event signup closed. Existing Vendor owners, admins,
+    // and beta-allowlisted users may add another Vendor account. League/Team
+    // organizer accounts are outside the protected vendor beta gate.
     if (targetOrganizerType === 'vendor_event') {
       const publicEnabledRaw = await readSetting(base44, 'vendor_public_signup_enabled');
       const publicEnabled = String(publicEnabledRaw || '').toLowerCase() === 'true';
       const allowlistRaw = await readSetting(base44, 'vendor_beta_allowlist');
-      const authorized = publicEnabled || isVendorLaunchBypassUser(user, allowlistRaw);
+      const authorized = publicEnabled || alreadyVendor || isVendorLaunchBypassUser(user, allowlistRaw);
       if (!authorized) {
         return Response.json(
           { error: 'Vendor public signup is not available yet.', code: 'vendor_signup_closed' },
@@ -121,15 +133,6 @@ export default async function(req) {
 
     // Multiple organizer accounts can belong to one Yardit login. Only stop an
     // accidental duplicate of the same organizer type with the same name.
-    const [ownedByUserId, ownedByEmail] = await Promise.all([
-      user.id ? base44.asServiceRole.entities.VendorAccount.filter({ owner_user_id: user.id }) : Promise.resolve([]),
-      user.email ? base44.asServiceRole.entities.VendorAccount.filter({ owner_email: user.email }) : Promise.resolve([]),
-    ]);
-    const existingOwnedMap = new Map();
-    [...ownedByUserId, ...ownedByEmail]
-      .filter((account) => account?.is_active !== false)
-      .forEach((account) => existingOwnedMap.set(account.id, account));
-    const existingOwned = [...existingOwnedMap.values()];
     const requestedName = normalizeVendorSearchText(businessName);
     const duplicateOwned = existingOwned.find((account) => {
       const accountType = normalizeOrganizerType(account?.organization_type);
