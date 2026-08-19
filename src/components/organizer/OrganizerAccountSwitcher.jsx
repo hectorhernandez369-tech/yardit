@@ -165,7 +165,8 @@ export function OrganizerAccountCreateMenu() {
     const config = getOrganizerTypeConfig(type);
     localStorage.setItem("yardit_pending_organizer_type", type);
     setOpen(false);
-    navigate(config.createPath);
+    const separator = config.createPath.includes("?") ? "&" : "?";
+    navigate(`${config.createPath}${separator}mode=add`);
   };
 
   return (
