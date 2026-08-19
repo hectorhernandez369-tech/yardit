@@ -1,0 +1,13 @@
+{
+  "name": "TeamScheduleGameLink",
+  "type": "object",
+  "properties": {
+    "team_account_id": { "type": "string" },
+    "league_account_id": { "type": "string" },
+    "league_game_id": { "type": "string" },
+    "added_by_user_id": { "type": "string" },
+    "added_at": { "type": "string", "format": "date-time" },
+    "is_active": { "type": "boolean", "default": true }
+  },
+  "required": ["team_account_id", "league_account_id", "league_game_id", "is_active"]
+}
