@@ -22,6 +22,7 @@ import VendorSetup from './pages/VendorSetup';
 import VendorAccountIntro from './pages/VendorAccountIntro';
 import VendorEventDashboard from './pages/VendorEventDashboard';
 import LeagueTeamDashboard from './pages/LeagueTeamDashboard';
+import TeamDashboard from './pages/TeamDashboard';
 import VendorEventFlags from './pages/VendorEventFlags';
 import VendorEventSchedule from './pages/VendorEventSchedule';
 import VendorEventDetail from './pages/VendorEventDetail';
@@ -66,136 +67,74 @@ const AuthenticatedApp = () => {
     refetchOnWindowFocus: true,
   });
 
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <YarditSplashScreen experience={getPreferredExperience()} />
-    );
-  }
+  if (isLoadingPublicSettings || isLoadingAuth) return <YarditSplashScreen experience={getPreferredExperience()} />;
+  if (authError && !isGuest && authError.type === 'user_not_registered') return <UserNotRegisteredError />;
 
-  // Handle authentication errors
-  if (authError && !isGuest && authError.type === 'user_not_registered') {
-    return <UserNotRegisteredError />;
-  }
-
-  const isComingSoonMode =
-    isComingSoonModeEnabled(publicAppSettings) &&
-    !isAuthenticated &&
-    !getTesterBypass() &&
-    !shouldBypassComingSoonForCurrentUrl();
+  const isComingSoonMode = isComingSoonModeEnabled(publicAppSettings) && !isAuthenticated && !getTesterBypass() && !shouldBypassComingSoonForCurrentUrl();
   const AdminPage = Pages.AdminLite;
-
-  if (isLoadingAppSettings) {
-    return (
-      <YarditSplashScreen experience={getPreferredExperience()} />
-    );
-  }
+  if (isLoadingAppSettings) return <YarditSplashScreen experience={getPreferredExperience()} />;
 
   if (isComingSoonMode) {
-    return (
-      <>
-        <Routes>
-          {AdminPage && (
-            <Route
-              path="/AdminLite"
-              element={
-                <LayoutWrapper currentPageName="AdminLite">
-                  <AdminPage />
-                </LayoutWrapper>
-              }
-            />
-          )}
-          <Route path="/install" element={<InstallYardit />} />
-          <Route path="/InstallYardit" element={<InstallYardit />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/community-guidelines" element={<CommunityGuidelines />} />
-          <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
-          <Route path="/TermsOfService" element={<TermsOfService />} />
-          <Route path="/CommunityGuidelines" element={<CommunityGuidelines />} />
-          <Route path="/ComingSoon" element={<ComingSoon />} />
-          <Route path="/auth-callback" element={<YarditSplashScreen />} />
-          <Route path="/auth-debug" element={<AuthDebug />} />
-          <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
-        </Routes>
-      </>
-    );
+    return <Routes>
+      {AdminPage && <Route path="/AdminLite" element={<LayoutWrapper currentPageName="AdminLite"><AdminPage /></LayoutWrapper>} />}
+      <Route path="/install" element={<InstallYardit />} />
+      <Route path="/InstallYardit" element={<InstallYardit />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/community-guidelines" element={<CommunityGuidelines />} />
+      <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
+      <Route path="/TermsOfService" element={<TermsOfService />} />
+      <Route path="/CommunityGuidelines" element={<CommunityGuidelines />} />
+      <Route path="/ComingSoon" element={<ComingSoon />} />
+      <Route path="/auth-callback" element={<YarditSplashScreen />} />
+      <Route path="/auth-debug" element={<AuthDebug />} />
+      <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
+    </Routes>;
   }
 
-  // Render the main app
-  return (
-    <>
-      <Routes>
-        <Route path="/" element={
-          <LayoutWrapper currentPageName={mainPageKey}>
-            <MainPage />
-          </LayoutWrapper>
-        } />
-        {Object.entries(Pages).map(([path, Page]) => (
-          <Route
-            key={path}
-            path={`/${path}`}
-            element={
-              <LayoutWrapper currentPageName={path}>
-                <Page />
-              </LayoutWrapper>
-            }
-          />
-        ))}
-        <Route path="/install" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
-        <Route path="/InstallYardit" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
-        <Route path="/VendorDashboard" element={<YarditEventsShell><VendorDashboard /></YarditEventsShell>} />
-        <Route path="/VendorSignup" element={<YarditEventsShell><VendorSignupGate><VendorSignup /></VendorSignupGate></YarditEventsShell>} />
-        <Route path="/VendorSetup" element={<YarditEventsShell><VendorSignupGate><VendorSetup /></VendorSignupGate></YarditEventsShell>} />
-        <Route path="/VendorAccountIntro" element={<YarditEventsShell><VendorSignupGate><VendorAccountIntro /></VendorSignupGate></YarditEventsShell>} />
-        <Route path="/VendorEventDashboard" element={<YarditEventsShell><VendorEventDashboard /></YarditEventsShell>} />
-        <Route path="/LeagueTeamDashboard" element={<YarditEventsShell><LeagueTeamDashboard /></YarditEventsShell>} />
-        <Route path="/VendorEventFlags" element={<YarditEventsShell><VendorEventFlags /></YarditEventsShell>} />
-        <Route path="/VendorEventSchedule" element={<YarditEventsShell><VendorEventSchedule /></YarditEventsShell>} />
-        <Route path="/VendorEventPublicPage" element={<LayoutWrapper currentPageName="VendorEventPublicPage"><VendorEventDetail /></LayoutWrapper>} />
-        <Route path="/VendorEventDetail" element={<LayoutWrapper currentPageName="VendorEventDetail"><VendorEventDetail /></LayoutWrapper>} />
-        <Route path="/AccountOptions" element={<LayoutWrapper currentPageName="AccountOptions"><AccountOptions /></LayoutWrapper>} />
-        <Route path="/VendorPinPreview" element={<LayoutWrapper currentPageName="VendorPinPreview"><VendorPinPreview /></LayoutWrapper>} />
-        <Route path="/VendorPublicPage" element={<LayoutWrapper currentPageName="VendorPublicPage"><VendorPublicPage /></LayoutWrapper>} />
-        <Route path="/vendor/:vendorSlug" element={<LayoutWrapper currentPageName="VendorPublicPage"><VendorPublicPage /></LayoutWrapper>} />
-        <Route path="/CreateListingUpgradeReturn" element={<LayoutWrapper currentPageName="CreateListingUpgradeReturn"><CreateListingUpgradeReturn /></LayoutWrapper>} />
-        <Route path="/PrintableChecklist" element={<PrintableChecklist />} />
-        <Route path="/LaunchChecklist" element={<LayoutWrapper currentPageName="LaunchChecklist"><LaunchChecklist /></LayoutWrapper>} />
-        <Route path="/ComingSoon" element={<ComingSoon />} />
-        <Route path="/auth-callback" element={<YarditSplashScreen />} />
-        <Route path="/auth-debug" element={<AuthDebug />} />
-        <Route path="/assisted-listing" element={<AssistedListingApproval />} />
-        <Route path="/LeagueEventMap" element={<LeagueEventMap />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/PaymentAudit" element={<LayoutWrapper currentPageName="PaymentAudit"><PaymentAudit /></LayoutWrapper>} />
-        <Route path="/privacy" element={<LayoutWrapper currentPageName="PrivacyPolicy"><PrivacyPolicy /></LayoutWrapper>} />
-        <Route path="/terms" element={<LayoutWrapper currentPageName="TermsOfService"><TermsOfService /></LayoutWrapper>} />
-        <Route path="/community-guidelines" element={<LayoutWrapper currentPageName="CommunityGuidelines"><CommunityGuidelines /></LayoutWrapper>} />
-        <Route path="/PrivacyPolicy" element={<LayoutWrapper currentPageName="PrivacyPolicy"><PrivacyPolicy /></LayoutWrapper>} />
-        <Route path="/TermsOfService" element={<LayoutWrapper currentPageName="TermsOfService"><TermsOfService /></LayoutWrapper>} />
-        <Route path="/CommunityGuidelines" element={<LayoutWrapper currentPageName="CommunityGuidelines"><CommunityGuidelines /></LayoutWrapper>} />
-        <Route path="/reward/redeem/:token" element={<RewardRedeem />} />
-        <Route path="*" element={<PageNotFound />} />
-      </Routes>
-    </>
-  );
+  return <Routes>
+    <Route path="/" element={<LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>} />
+    {Object.entries(Pages).map(([path, Page]) => <Route key={path} path={`/${path}`} element={<LayoutWrapper currentPageName={path}><Page /></LayoutWrapper>} />)}
+    <Route path="/install" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
+    <Route path="/InstallYardit" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
+    <Route path="/VendorDashboard" element={<YarditEventsShell><VendorDashboard /></YarditEventsShell>} />
+    <Route path="/VendorSignup" element={<YarditEventsShell><VendorSignupGate><VendorSignup /></VendorSignupGate></YarditEventsShell>} />
+    <Route path="/VendorSetup" element={<YarditEventsShell><VendorSignupGate><VendorSetup /></VendorSignupGate></YarditEventsShell>} />
+    <Route path="/VendorAccountIntro" element={<YarditEventsShell><VendorSignupGate><VendorAccountIntro /></VendorSignupGate></YarditEventsShell>} />
+    <Route path="/VendorEventDashboard" element={<YarditEventsShell><VendorEventDashboard /></YarditEventsShell>} />
+    <Route path="/LeagueTeamDashboard" element={<YarditEventsShell><LeagueTeamDashboard /></YarditEventsShell>} />
+    <Route path="/TeamDashboard" element={<YarditEventsShell><TeamDashboard /></YarditEventsShell>} />
+    <Route path="/VendorEventFlags" element={<YarditEventsShell><VendorEventFlags /></YarditEventsShell>} />
+    <Route path="/VendorEventSchedule" element={<YarditEventsShell><VendorEventSchedule /></YarditEventsShell>} />
+    <Route path="/VendorEventPublicPage" element={<LayoutWrapper currentPageName="VendorEventPublicPage"><VendorEventDetail /></LayoutWrapper>} />
+    <Route path="/VendorEventDetail" element={<LayoutWrapper currentPageName="VendorEventDetail"><VendorEventDetail /></LayoutWrapper>} />
+    <Route path="/AccountOptions" element={<LayoutWrapper currentPageName="AccountOptions"><AccountOptions /></LayoutWrapper>} />
+    <Route path="/VendorPinPreview" element={<LayoutWrapper currentPageName="VendorPinPreview"><VendorPinPreview /></LayoutWrapper>} />
+    <Route path="/VendorPublicPage" element={<LayoutWrapper currentPageName="VendorPublicPage"><VendorPublicPage /></LayoutWrapper>} />
+    <Route path="/vendor/:vendorSlug" element={<LayoutWrapper currentPageName="VendorPublicPage"><VendorPublicPage /></LayoutWrapper>} />
+    <Route path="/CreateListingUpgradeReturn" element={<LayoutWrapper currentPageName="CreateListingUpgradeReturn"><CreateListingUpgradeReturn /></LayoutWrapper>} />
+    <Route path="/PrintableChecklist" element={<PrintableChecklist />} />
+    <Route path="/LaunchChecklist" element={<LayoutWrapper currentPageName="LaunchChecklist"><LaunchChecklist /></LayoutWrapper>} />
+    <Route path="/ComingSoon" element={<ComingSoon />} />
+    <Route path="/auth-callback" element={<YarditSplashScreen />} />
+    <Route path="/auth-debug" element={<AuthDebug />} />
+    <Route path="/assisted-listing" element={<AssistedListingApproval />} />
+    <Route path="/LeagueEventMap" element={<LeagueEventMap />} />
+    <Route path="/events" element={<Events />} />
+    <Route path="/PaymentAudit" element={<LayoutWrapper currentPageName="PaymentAudit"><PaymentAudit /></LayoutWrapper>} />
+    <Route path="/privacy" element={<LayoutWrapper currentPageName="PrivacyPolicy"><PrivacyPolicy /></LayoutWrapper>} />
+    <Route path="/terms" element={<LayoutWrapper currentPageName="TermsOfService"><TermsOfService /></LayoutWrapper>} />
+    <Route path="/community-guidelines" element={<LayoutWrapper currentPageName="CommunityGuidelines"><CommunityGuidelines /></LayoutWrapper>} />
+    <Route path="/PrivacyPolicy" element={<LayoutWrapper currentPageName="PrivacyPolicy"><PrivacyPolicy /></LayoutWrapper>} />
+    <Route path="/TermsOfService" element={<LayoutWrapper currentPageName="TermsOfService"><TermsOfService /></LayoutWrapper>} />
+    <Route path="/CommunityGuidelines" element={<LayoutWrapper currentPageName="CommunityGuidelines"><CommunityGuidelines /></LayoutWrapper>} />
+    <Route path="/reward/redeem/:token" element={<RewardRedeem />} />
+    <Route path="*" element={<PageNotFound />} />
+  </Routes>;
 };
 
-
 function App() {
-
-  return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <NavigationTracker />
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-        <VisualEditAgent />
-      </QueryClientProvider>
-    </AuthProvider>
-  )
+  return <AuthProvider><QueryClientProvider client={queryClientInstance}><Router><NavigationTracker /><AuthenticatedApp /></Router><Toaster /><VisualEditAgent /></QueryClientProvider></AuthProvider>
 }
 
 export default App
