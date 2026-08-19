@@ -7,6 +7,10 @@ function normalizeVendorSearchText(value) {
   return String(value || '').toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
+function normalizeOrganizerType(value) {
+  return String(value || '') === 'league_team' ? 'league_team' : 'vendor_event';
+}
+
 function slugifyVendorName(name) {
   const slug = normalizeVendorSearchText(name)
     .replace(/&/g, ' and ')
@@ -90,18 +94,21 @@ export default async function(req) {
     const body = await req.json().catch(() => ({}));
     const businessForm = body?.businessForm || {};
     const organizerType = body?.organizerType || 'vendor_event';
+    const targetOrganizerType = normalizeOrganizerType(organizerType);
 
-    // --- Launch gate authorization ---
-    const publicEnabledRaw = await readSetting(base44, 'vendor_public_signup_enabled');
-    const publicEnabled = String(publicEnabledRaw || '').toLowerCase() === 'true';
-    const allowlistRaw = await readSetting(base44, 'vendor_beta_allowlist');
-
-    const authorized = publicEnabled || isVendorLaunchBypassUser(user, allowlistRaw);
-    if (!authorized) {
-      return Response.json(
-        { error: 'Vendor public signup is not available yet.', code: 'vendor_signup_closed' },
-        { status: 403 }
-      );
+    // Keep the launch gate on Vendor/Event accounts only. League/Team accounts
+    // are organizer accounts but are not part of the protected vendor beta gate.
+    if (targetOrganizerType === 'vendor_event') {
+      const publicEnabledRaw = await readSetting(base44, 'vendor_public_signup_enabled');
+      const publicEnabled = String(publicEnabledRaw || '').toLowerCase() === 'true';
+      const allowlistRaw = await readSetting(base44, 'vendor_beta_allowlist');
+      const authorized = publicEnabled || isVendorLaunchBypassUser(user, allowlistRaw);
+      if (!authorized) {
+        return Response.json(
+          { error: 'Vendor public signup is not available yet.', code: 'vendor_signup_closed' },
+          { status: 403 }
+        );
+      }
     }
 
     const businessName = String(businessForm.business_name || '').trim();
@@ -112,20 +119,32 @@ export default async function(req) {
       return Response.json({ error: 'Business name and category are required.' }, { status: 400 });
     }
 
-    // --- Prevent accidental duplicate active accounts ---
+    // Multiple organizer accounts can belong to one Yardit login. Only stop an
+    // accidental duplicate of the same organizer type with the same name.
     const [ownedByUserId, ownedByEmail] = await Promise.all([
       user.id ? base44.asServiceRole.entities.VendorAccount.filter({ owner_user_id: user.id }) : Promise.resolve([]),
       user.email ? base44.asServiceRole.entities.VendorAccount.filter({ owner_email: user.email }) : Promise.resolve([]),
     ]);
-    const existingOwned = [...ownedByUserId, ...ownedByEmail].filter((account) => account?.is_active !== false);
-    if (existingOwned.length > 0) {
+    const existingOwnedMap = new Map();
+    [...ownedByUserId, ...ownedByEmail]
+      .filter((account) => account?.is_active !== false)
+      .forEach((account) => existingOwnedMap.set(account.id, account));
+    const existingOwned = [...existingOwnedMap.values()];
+    const requestedName = normalizeVendorSearchText(businessName);
+    const duplicateOwned = existingOwned.find((account) => {
+      const accountType = normalizeOrganizerType(account?.organization_type);
+      const accountName = normalizeVendorSearchText(
+        account?.business_name || account?.vendor_display_name || account?.legal_business_name
+      );
+      return accountType === targetOrganizerType && accountName === requestedName;
+    });
+    if (duplicateOwned) {
       return Response.json(
-        { error: 'You already have an active Vendor Account.', code: 'duplicate_vendor_account' },
+        { error: 'You already have an active organizer account with this name.', code: 'duplicate_organizer_account' },
         { status: 409 }
       );
     }
 
-    // --- Preserve identity reservation behavior ---
     const businessAddress = [
       businessForm.business_street_address,
       businessForm.business_city,
@@ -150,7 +169,7 @@ export default async function(req) {
       vendor_slug: vendorSlug,
       vendor_display_name: businessName,
       legal_business_name: businessName,
-      organization_type: organizerType === 'league_team' ? 'league_team' : 'vendor',
+      organization_type: targetOrganizerType === 'league_team' ? 'league_team' : 'vendor',
       subscription_status: 'active',
       is_verified_vendor: false,
       is_active: true,
