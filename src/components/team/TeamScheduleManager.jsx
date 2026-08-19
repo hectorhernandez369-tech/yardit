@@ -49,10 +49,17 @@ export default function TeamScheduleManager({ account, user, section = "all" }) 
     queryFn: () => base44.entities.TeamScheduleGameLink.filter({ team_account_id: account.id, is_active: true }, "added_at").catch(() => []),
     enabled: !!account?.id,
   });
+  const { data: assignments = [] } = useQuery({
+    queryKey: ["teamOfficialAssignments", account?.id],
+    queryFn: () => base44.entities.LeagueTeamAssignment.filter({ team_account_id: account.id, is_active: true }).catch(() => []),
+    enabled: !!account?.id,
+  });
 
   const linkedIds = useMemo(() => new Set(links.map((link) => link.league_game_id)), [links]);
-  const myGames = useMemo(() => sortLeagueGames(leagueGames.filter((game) => linkedIds.has(game.id))), [leagueGames, linkedIds]);
-  const availableGames = useMemo(() => sortLeagueGames(leagueGames.filter((game) => !linkedIds.has(game.id))), [leagueGames, linkedIds]);
+  const assignedTeamIds = useMemo(() => new Set(assignments.map((item) => item.team_id).filter(Boolean)), [assignments]);
+  const belongsToAssignedTeam = (game) => assignedTeamIds.has(game.home_team_id) || assignedTeamIds.has(game.away_team_id);
+  const myGames = useMemo(() => sortLeagueGames(leagueGames.filter((game) => linkedIds.has(game.id) || belongsToAssignedTeam(game))), [leagueGames, linkedIds, assignedTeamIds]);
+  const availableGames = useMemo(() => sortLeagueGames(leagueGames.filter((game) => !linkedIds.has(game.id) && !belongsToAssignedTeam(game))), [leagueGames, linkedIds, assignedTeamIds]);
   const teamOptions = useMemo(() => unique(leagueGames.flatMap((game) => [game.home_team, game.away_team])), [leagueGames]);
   const divisionOptions = useMemo(() => unique(leagueGames.map((game) => game.division || game.age_group)), [leagueGames]);
 
@@ -120,7 +127,7 @@ export default function TeamScheduleManager({ account, user, section = "all" }) 
       <CardContent className="space-y-3">
         <p className="text-sm text-slate-600">These are the league games you chose to keep on this team account. The league's Master Schedule stays the source of truth, so league changes automatically appear here.</p>
         {myGames.length === 0 ? <p className="rounded-xl border border-dashed p-4 text-sm text-slate-500">No games added yet. Use “Add Games From My League” in the My League tab.</p> :
-          <div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[850px] text-xs"><thead className="bg-[#E7D7B8] text-[#2C4F4E]"><tr>{["Matchup","Division","Date","Time","Field","League","Status",""] .map((h) => <th key={h} className="px-2 py-2 text-left font-black">{h}</th>)}</tr></thead><tbody>{myGames.map((game) => renderGameRow(game, <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3" /> Remove</Button>))}</tbody></table></div>}
+          <div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[850px] text-xs"><thead className="bg-[#E7D7B8] text-[#2C4F4E]"><tr>{["Matchup","Division","Date","Time","Field","League","Status",""] .map((h) => <th key={h} className="px-2 py-2 text-left font-black">{h}</th>)}</tr></thead><tbody>{myGames.map((game) => renderGameRow(game, linkedIds.has(game.id) ? <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3" /> Remove</Button> : <Badge className="bg-green-100 text-green-800">Assigned by League</Badge>))}</tbody></table></div>}
       </CardContent>
     </Card>}
 

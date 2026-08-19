@@ -74,8 +74,10 @@ export default function TeamDashboard() {
   const leagueIds = useMemo(() => [...new Set(memberships.map((item) => item.league_account_id).filter(Boolean))], [memberships]);
   const { data: leagueGames = [] } = useQuery({ queryKey: ["teamDashboardLeagueGames", leagueIds.join("|")], queryFn: async () => (await Promise.all(leagueIds.map((id) => base44.entities.LeagueGame.filter({ vendor_account_id: id }, "sort_order").catch(() => [])))).flat(), enabled: leagueIds.length > 0 });
   const { data: scheduleLinks = [] } = useQuery({ queryKey: ["teamDashboardScheduleLinks", account?.id], queryFn: () => base44.entities.TeamScheduleGameLink.filter({ team_account_id: account.id, is_active: true }).catch(() => []), enabled: !!account?.id });
+  const { data: teamAssignments = [] } = useQuery({ queryKey: ["teamDashboardAssignments", account?.id], queryFn: () => base44.entities.LeagueTeamAssignment.filter({ team_account_id: account.id, is_active: true }).catch(() => []), enabled: !!account?.id });
   const scheduleIds = useMemo(() => new Set(scheduleLinks.map((item) => item.league_game_id)), [scheduleLinks]);
-  const myGames = useMemo(() => leagueGames.filter((game) => scheduleIds.has(game.id)), [leagueGames, scheduleIds]);
+  const assignedTeamIds = useMemo(() => new Set(teamAssignments.map((item) => item.team_id).filter(Boolean)), [teamAssignments]);
+  const myGames = useMemo(() => leagueGames.filter((game) => scheduleIds.has(game.id) || assignedTeamIds.has(game.home_team_id) || assignedTeamIds.has(game.away_team_id)), [leagueGames, scheduleIds, assignedTeamIds]);
 
   const refreshDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ["teamDashboardAccounts"] });
@@ -83,7 +85,9 @@ export default function TeamDashboard() {
     queryClient.invalidateQueries({ queryKey: ["teamDashboardMemberships"] });
     queryClient.invalidateQueries({ queryKey: ["teamDashboardLeagueGames"] });
     queryClient.invalidateQueries({ queryKey: ["teamDashboardScheduleLinks"] });
+    queryClient.invalidateQueries({ queryKey: ["teamDashboardAssignments"] });
     queryClient.invalidateQueries({ queryKey: ["teamScheduleLinks"] });
+    queryClient.invalidateQueries({ queryKey: ["teamOfficialAssignments"] });
   };
 
   const handleTabChange = (nextTab) => {
@@ -147,7 +151,7 @@ export default function TeamDashboard() {
         <TabsContent value="profile" className="mt-0"><VendorBusinessPage account={account} pins={[]} checkIns={[]} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
         <TabsContent value="schedule" className="mt-0"><TeamScheduleManager account={account} user={user} section="schedule" /></TabsContent>
         <TabsContent value="leagues" className="mt-0"><div className="space-y-4"><TeamLeagueConnections account={account} user={user} onRefresh={refreshDashboard} /><TeamScheduleManager account={account} user={user} section="add" /></div></TabsContent>
-        <TabsContent value="scoreboard" className="mt-0"><LeagueScoreboard account={account} user={user} games={myGames} assignments={[]} memberships={memberships} isOwner={false} onRefresh={refreshDashboard} /></TabsContent>
+        <TabsContent value="scoreboard" className="mt-0"><LeagueScoreboard account={account} user={user} games={myGames} assignments={teamAssignments} memberships={memberships} isOwner={false} onRefresh={refreshDashboard} /></TabsContent>
         <TabsContent value="events" className="mt-0"><LeagueEventsTab account={account} user={user} /></TabsContent>
       </div>
     </Tabs>
