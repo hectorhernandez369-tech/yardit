@@ -10,9 +10,9 @@ import MobileVendorHeader from "@/components/vendor/MobileVendorHeader";
 import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import LeagueAccessDenied from "@/components/league/LeagueAccessDenied";
 import LeagueEventsTab from "@/components/league/events/LeagueEventsTab";
-import LeagueConnectionsTab from "@/components/league/LeagueConnectionsTab";
 import LeagueScoreboard from "@/components/league/scoreboard/LeagueScoreboard";
 import TeamScheduleManager from "@/components/team/TeamScheduleManager";
+import TeamLeagueConnections from "@/components/team/TeamLeagueConnections";
 import { getUserVendorAccounts, isTeamAccount, isVendorDashboardAccount } from "@/lib/getUserVendorAccounts";
 import { userOwnsLeagueAccount } from "@/lib/leaguePermissions";
 import { toast } from "sonner";
@@ -59,7 +59,6 @@ export default function TeamDashboard() {
   const account = accounts.find((item) => item.id === activeAccountId) || accounts[0] || null;
   const isOwner = userOwnsLeagueAccount(account, user);
 
-  // Convert the known legacy Lindsay organization from the old combined type to a real Team account.
   useEffect(() => {
     if (!account?.id || !isOwner) return;
     const name = String(account.business_name || account.vendor_display_name || "").trim().toLowerCase();
@@ -147,7 +146,7 @@ export default function TeamDashboard() {
       <div className="max-w-7xl mx-auto w-full min-w-0 p-2 pb-24 sm:p-5 lg:p-6 space-y-3 sm:space-y-6">
         <TabsContent value="profile" className="mt-0"><VendorBusinessPage account={account} pins={[]} checkIns={[]} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
         <TabsContent value="schedule" className="mt-0"><TeamScheduleManager account={account} user={user} /></TabsContent>
-        <TabsContent value="leagues" className="mt-0"><LeagueConnectionsTab account={account} user={user} accounts={accounts} isOwner={false} onRefresh={refreshDashboard} /></TabsContent>
+        <TabsContent value="leagues" className="mt-0"><TeamLeagueConnections account={account} user={user} onRefresh={refreshDashboard} /></TabsContent>
         <TabsContent value="scoreboard" className="mt-0"><LeagueScoreboard account={account} user={user} games={myGames} assignments={[]} memberships={memberships} isOwner={false} onRefresh={refreshDashboard} /></TabsContent>
         <TabsContent value="events" className="mt-0"><LeagueEventsTab account={account} user={user} /></TabsContent>
       </div>
