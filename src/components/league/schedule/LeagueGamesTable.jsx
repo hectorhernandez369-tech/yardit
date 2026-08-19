@@ -25,6 +25,7 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
   const [weekFilter, setWeekFilter] = useState(ALL);
   const [teamFilter, setTeamFilter] = useState(ALL);
   const [divisionFilter, setDivisionFilter] = useState(ALL);
+  const [selectedGameIds, setSelectedGameIds] = useState([]);
 
   const permissionList = useMemo(() => membershipPermissions(memberships), [memberships]);
   const sortedGames = useMemo(() => sortLeagueGames(games), [games]);
@@ -67,7 +68,22 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
   const removeGame = async (game) => {
     if (!window.confirm("Delete this game? Attached events will lose this game link.")) return;
     await base44.entities.LeagueGame.delete(game.id);
+    setSelectedGameIds((ids) => ids.filter((id) => id !== game.id));
     toast.success("Game deleted.");
+    onRefresh?.();
+  };
+
+  const filteredGameIds = filteredGames.map((game) => game.id);
+  const allFilteredSelected = filteredGameIds.length > 0 && filteredGameIds.every((id) => selectedGameIds.includes(id));
+  const toggleGame = (gameId) => setSelectedGameIds((ids) => ids.includes(gameId) ? ids.filter((id) => id !== gameId) : [...ids, gameId]);
+  const toggleAllFiltered = () => setSelectedGameIds((ids) => allFilteredSelected ? ids.filter((id) => !filteredGameIds.includes(id)) : [...new Set([...ids, ...filteredGameIds])]);
+
+  const deleteSelectedGames = async () => {
+    if (!selectedGameIds.length) return;
+    if (!window.confirm(`Delete ${selectedGameIds.length} selected game${selectedGameIds.length === 1 ? "" : "s"}? Attached events will lose these game links.`)) return;
+    await base44.entities.LeagueGame.deleteMany({ id: { $in: selectedGameIds }, vendor_account_id: account.id });
+    setSelectedGameIds([]);
+    toast.success("Selected games deleted.");
     onRefresh?.();
   };
 
@@ -112,9 +128,12 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
       <Card className="rounded-2xl bg-white">
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h3 className="font-black text-[#2C4F4E]">Imported & Manual Games</h3>
-              <p className="text-xs text-slate-500">Showing {filteredGames.length} of {sortedGames.length} games</p>
+            <div className="space-y-2">
+              <div>
+                <h3 className="font-black text-[#2C4F4E]">Imported & Manual Games</h3>
+                <p className="text-xs text-slate-500">Showing {filteredGames.length} of {sortedGames.length} games</p>
+              </div>
+              {canManageSchedule && sortedGames.length > 0 && <div className="flex flex-wrap items-center gap-3"><label className="flex items-center gap-2 text-sm font-semibold text-[#2C4F4E]"><input type="checkbox" checked={allFilteredSelected} onChange={toggleAllFiltered} className="h-4 w-4 accent-[#006168]" /> Select all</label><Button type="button" size="sm" variant="outline" disabled={!selectedGameIds.length} onClick={deleteSelectedGames} className="gap-2 border-red-300 text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" /> Delete{selectedGameIds.length ? ` (${selectedGameIds.length})` : ""}</Button></div>}
             </div>
             <div className="grid gap-2 sm:grid-cols-3 lg:w-[620px]">
               <Select value={weekFilter} onValueChange={setWeekFilter}><SelectTrigger className="h-9"><SelectValue placeholder="Week" /></SelectTrigger><SelectContent><SelectItem value={ALL}>All weeks</SelectItem>{weekOptions.map((week) => <SelectItem key={optionValue(week)} value={optionValue(week)}>{optionLabel(week, "Unassigned week")}</SelectItem>)}</SelectContent></Select>
@@ -130,8 +149,8 @@ export default function LeagueGamesTable({ account, user, games = [], assignment
           ) : (
             <div className="overflow-x-auto rounded-xl border">
               <table className="w-full min-w-[860px] text-xs">
-                <thead className="bg-[#E7D7B8] text-[#2C4F4E]"><tr>{["Week", "Div", "Matchup", "Date", "Time", "Schedule Field", "Status", "Score", ""].map((heading) => <th key={heading} className="px-2 py-2 text-left font-black">{heading}</th>)}</tr></thead>
-                <tbody>{filteredGames.map((game) => <tr key={game.id} className="border-t align-top"><td className="px-2 py-2 whitespace-nowrap">{game.notes || ""}</td><td className="px-2 py-2 whitespace-nowrap font-semibold">{game.division || game.age_group}</td><td className="px-2 py-2"><div className="font-bold leading-tight">{game.home_team || "TBD"}</div><div className="text-slate-500 leading-tight">vs {game.away_team || "TBD"}</div></td><td className="px-2 py-2 whitespace-nowrap">{formatGameDate(game.game_date)}</td><td className="px-2 py-2 whitespace-nowrap">{formatGameTime(game.start_time)}</td><td className="px-2 py-2 max-w-[140px] truncate">{game.field_name || game.location || "—"}</td><td className="px-2 py-2">{canManageSchedule ? <Select value={game.status || "upcoming"} onValueChange={(value) => updateStatus(game, value)}><SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select> : <span className="capitalize">{game.status || "upcoming"}</span>}</td><td className="px-2 py-2 whitespace-nowrap font-bold">{Number(game.home_score || 0)} - {Number(game.away_score || 0)}</td><td className="px-2 py-2"><div className="flex flex-nowrap gap-1">{canEditGame(game) && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setEditingGame(game)}>Edit</Button>}{canManageSchedule && <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => duplicateGame(game)}><Copy className="h-3 w-3" /></Button>}{canManageSchedule && <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3 text-red-600" /></Button>}</div></td></tr>)}</tbody>
+                <thead className="bg-[#E7D7B8] text-[#2C4F4E]"><tr>{canManageSchedule && <th className="px-2 py-2 text-left"><input type="checkbox" aria-label="Select all visible games" checked={allFilteredSelected} onChange={toggleAllFiltered} className="h-4 w-4 accent-[#006168]" /></th>}{["Week", "Div", "Matchup", "Date", "Time", "Schedule Field", "Status", "Score", ""].map((heading) => <th key={heading} className="px-2 py-2 text-left font-black">{heading}</th>)}</tr></thead>
+                <tbody>{filteredGames.map((game) => <tr key={game.id} className="border-t align-top">{canManageSchedule && <td className="px-2 py-2"><input type="checkbox" aria-label={`Select ${game.game_title || "game"}`} checked={selectedGameIds.includes(game.id)} onChange={() => toggleGame(game.id)} className="h-4 w-4 accent-[#006168]" /></td>}<td className="px-2 py-2 whitespace-nowrap">{game.notes || ""}</td><td className="px-2 py-2 whitespace-nowrap font-semibold">{game.division || game.age_group}</td><td className="px-2 py-2"><div className="font-bold leading-tight">{game.home_team || "TBD"}</div><div className="text-slate-500 leading-tight">vs {game.away_team || "TBD"}</div></td><td className="px-2 py-2 whitespace-nowrap">{formatGameDate(game.game_date)}</td><td className="px-2 py-2 whitespace-nowrap">{formatGameTime(game.start_time)}</td><td className="px-2 py-2 max-w-[140px] truncate">{game.field_name || game.location || "—"}</td><td className="px-2 py-2">{canManageSchedule ? <Select value={game.status || "upcoming"} onValueChange={(value) => updateStatus(game, value)}><SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger><SelectContent>{LEAGUE_GAME_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select> : <span className="capitalize">{game.status || "upcoming"}</span>}</td><td className="px-2 py-2 whitespace-nowrap font-bold">{Number(game.home_score || 0)} - {Number(game.away_score || 0)}</td><td className="px-2 py-2"><div className="flex flex-nowrap gap-1">{canEditGame(game) && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setEditingGame(game)}>Edit</Button>}{canManageSchedule && <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => duplicateGame(game)}><Copy className="h-3 w-3" /></Button>}{canManageSchedule && <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => removeGame(game)}><Trash2 className="h-3 w-3 text-red-600" /></Button>}</div></td></tr>)}</tbody>
               </table>
             </div>
           )}
