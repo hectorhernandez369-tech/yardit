@@ -59,7 +59,6 @@ import QuickMapFilters from "@/components/map/QuickMapFilters";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
-import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
@@ -490,8 +489,6 @@ export default function HomePage() {
   const MARQUEE_COLLAPSED_MIN_ZOOM = 12;
   const MARQUEE_HIDDEN_MIN_ZOOM = 10;
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
-  const [showUpcomingWeekend, setShowUpcomingWeekend] = useState(false);
-  const [upcomingRadiusMiles, setUpcomingRadiusMiles] = useState(15);
   const showListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
@@ -1443,12 +1440,6 @@ export default function HomePage() {
           <div className="flex items-center gap-2 ml-auto">
             {view === "map" &&
             <>
-                <ComingSoonWeekendToggle
-                  enabled={showUpcomingWeekend}
-                  onToggle={setShowUpcomingWeekend}
-                  radiusMiles={upcomingRadiusMiles}
-                  onRadiusChange={setUpcomingRadiusMiles}
-                />
                 <Button
                 variant="outline"
                 size="sm"
@@ -1587,17 +1578,9 @@ export default function HomePage() {
                 </>
             }
               
-              {!showUpcomingWeekend && <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />}
-              {showUpcomingWeekend && (
-                <ComingSoonWeekendMapLayer
-                  enabled={showUpcomingWeekend}
-                  listings={listings}
-                  userLocation={userLocation}
-                  radiusMiles={upcomingRadiusMiles}
-                />
-              )}
+              <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />
 
-              {!showUpcomingWeekend && visiblePins.map((listing) => {
+              {visiblePins.map((listing) => {
               if (!isShowingAllListings && hiddenByMarqueeIds.has(listing.id)) return null;
 
               const isMarquee = isMarqueeListing(listing);
@@ -1851,32 +1834,28 @@ export default function HomePage() {
 
             })}
 
-              {!showUpcomingWeekend && (
-                <PromoDiscoveryMarkers
-                  promos={promoDiscoveryCodes}
-                  currentZoom={currentZoom}
-                  coverCandidates={promoCoverCandidates}
-                  clusterCandidates={clusterPts}
-                  clusterRadius={50}
-                  clusterMinPoints={2}
-                />
-              )}
+              <PromoDiscoveryMarkers
+                promos={promoDiscoveryCodes}
+                currentZoom={currentZoom}
+                coverCandidates={promoCoverCandidates}
+                clusterCandidates={clusterPts}
+                clusterRadius={50}
+                clusterMinPoints={2}
+              />
 
               {/* Vendor Event Stacked Markers (Coming Soon + Active, with stacking) */}
-              {!showUpcomingWeekend && (
-                <VendorEventMapMarkers
-                  vendorEvents={vendorEvents}
-                  showVendorEvents={quickMapFilters.events}
-                  eventScheduleEntries={eventScheduleEntries}
-                  leagueEventLinks={leagueEventLinks}
-                  leagueGames={leagueGames}
-                  selectedEventId={requestedEventId}
-                  previewEventIds={vendorEventPreviewIds}
-                  leagueReturnState={leagueReturnState} />
-              )}
+              <VendorEventMapMarkers
+              vendorEvents={vendorEvents}
+              showVendorEvents={quickMapFilters.events}
+              eventScheduleEntries={eventScheduleEntries}
+              leagueEventLinks={leagueEventLinks}
+              leagueGames={leagueGames}
+              selectedEventId={requestedEventId}
+              previewEventIds={vendorEventPreviewIds}
+              leagueReturnState={leagueReturnState} />
             
 
-              {!showUpcomingWeekend && liveVendorPins.map(({ checkIn, pin, account }) => {
+              {liveVendorPins.map(({ checkIn, pin, account }) => {
               const vendorStopId = `vendor-${checkIn.id}`;
               const isVendorStop = huntStops.some((stop) => stop.id === vendorStopId);
               const vendorStop = {
@@ -1946,7 +1925,7 @@ export default function HomePage() {
 
             })}
 
-              {!showUpcomingWeekend && neighborhoodParticipantPins.map((pin) => {
+              {neighborhoodParticipantPins.map((pin) => {
               if (!isShowingAllListings && hiddenByMarqueeIds.has(pin.listingId)) return null;
               return (
                 <Marker
@@ -1982,7 +1961,7 @@ export default function HomePage() {
 
             })}
 
-              {!showUpcomingWeekend && marqueeOverlays.map((listing) => {
+              {marqueeOverlays.map((listing) => {
               const isExpanded = openMarqueeIds[listing.id] === "expanded";
               const overlappedCount = listing.overlappedListings?.length || 0;
               const boardHtml = isExpanded ?
