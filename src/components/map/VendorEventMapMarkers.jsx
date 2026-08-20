@@ -147,25 +147,23 @@ export default function VendorEventMapMarkers({
 
                 {unifiedPreview.items.length > 0 && (
                   <div className="rounded-lg bg-slate-50/90 p-1.5 space-y-1">
-                    {unifiedPreview.type === "league_games"
-                      ? unifiedPreview.items.map((game) => (
-                          <div key={game.id} className="space-y-0.5 text-[11px] leading-tight">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="min-w-0 truncate font-semibold text-slate-700">{game.home_team || "Home"} vs {game.away_team || "Away"}</span>
-                              <span className="shrink-0 font-bold text-[#2C4F4E] capitalize">{scoreLabel(game)}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2 text-[10px] text-slate-500">
-                              <span className="min-w-0 truncate">{game.division || game.age_group || game.field_name || "Game"}</span>
-                              <span className="shrink-0">{timeLabel(game.start_time)}</span>
-                            </div>
-                          </div>
-                        ))
-                      : unifiedPreview.items.map((item) => (
-                          <div key={item.id} className="flex items-center justify-between gap-2 text-[11px] leading-tight">
-                            <span className="min-w-0 truncate font-semibold text-slate-700">{item.title}</span>
-                            <span className="shrink-0 text-slate-500">{timeLabel(item.start_time)}</span>
-                          </div>
-                        ))}
+                    {unifiedPreview.items.map((item) => item.schedule_item_type === "league_game" ? (
+                      <div key={item.id} className="space-y-0.5 text-[11px] leading-tight">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="min-w-0 truncate font-semibold text-slate-700">{item.home_team || "Home"} vs {item.away_team || "Away"}</span>
+                          <span className="shrink-0 font-bold text-[#2C4F4E] capitalize">{scoreLabel(item)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 text-[10px] text-slate-500">
+                          <span className="min-w-0 truncate">{item.division || item.age_group || item.field_name || "Game"}</span>
+                          <span className="shrink-0">{timeLabel(item.start_time)}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={item.id} className="flex items-center justify-between gap-2 text-[11px] leading-tight">
+                        <span className="min-w-0 truncate font-semibold text-slate-700">{item.title || item.game_title || "Schedule Item"}</span>
+                        <span className="shrink-0 text-slate-500">{timeLabel(item.start_time)}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
 
