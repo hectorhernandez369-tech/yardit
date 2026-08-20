@@ -1851,28 +1851,32 @@ export default function HomePage() {
 
             })}
 
-              <PromoDiscoveryMarkers
-                promos={promoDiscoveryCodes}
-                currentZoom={currentZoom}
-                coverCandidates={promoCoverCandidates}
-                clusterCandidates={clusterPts}
-                clusterRadius={50}
-                clusterMinPoints={2}
-              />
+              {!showUpcomingWeekend && (
+                <PromoDiscoveryMarkers
+                  promos={promoDiscoveryCodes}
+                  currentZoom={currentZoom}
+                  coverCandidates={promoCoverCandidates}
+                  clusterCandidates={clusterPts}
+                  clusterRadius={50}
+                  clusterMinPoints={2}
+                />
+              )}
 
               {/* Vendor Event Stacked Markers (Coming Soon + Active, with stacking) */}
-              <VendorEventMapMarkers
-              vendorEvents={vendorEvents}
-              showVendorEvents={quickMapFilters.events}
-              eventScheduleEntries={eventScheduleEntries}
-              leagueEventLinks={leagueEventLinks}
-              leagueGames={leagueGames}
-              selectedEventId={requestedEventId}
-              previewEventIds={vendorEventPreviewIds}
-              leagueReturnState={leagueReturnState} />
+              {!showUpcomingWeekend && (
+                <VendorEventMapMarkers
+                  vendorEvents={vendorEvents}
+                  showVendorEvents={quickMapFilters.events}
+                  eventScheduleEntries={eventScheduleEntries}
+                  leagueEventLinks={leagueEventLinks}
+                  leagueGames={leagueGames}
+                  selectedEventId={requestedEventId}
+                  previewEventIds={vendorEventPreviewIds}
+                  leagueReturnState={leagueReturnState} />
+              )}
             
 
-              {liveVendorPins.map(({ checkIn, pin, account }) => {
+              {!showUpcomingWeekend && liveVendorPins.map(({ checkIn, pin, account }) => {
               const vendorStopId = `vendor-${checkIn.id}`;
               const isVendorStop = huntStops.some((stop) => stop.id === vendorStopId);
               const vendorStop = {
@@ -1942,7 +1946,7 @@ export default function HomePage() {
 
             })}
 
-              {neighborhoodParticipantPins.map((pin) => {
+              {!showUpcomingWeekend && neighborhoodParticipantPins.map((pin) => {
               if (!isShowingAllListings && hiddenByMarqueeIds.has(pin.listingId)) return null;
               return (
                 <Marker
@@ -1978,7 +1982,7 @@ export default function HomePage() {
 
             })}
 
-              {marqueeOverlays.map((listing) => {
+              {!showUpcomingWeekend && marqueeOverlays.map((listing) => {
               const isExpanded = openMarqueeIds[listing.id] === "expanded";
               const overlappedCount = listing.overlappedListings?.length || 0;
               const boardHtml = isExpanded ?
