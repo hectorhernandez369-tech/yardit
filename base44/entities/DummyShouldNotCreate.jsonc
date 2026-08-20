@@ -1,0 +1,6 @@
+{
+  "name": "DummyShouldNotCreate",
+  "type": "object",
+  "properties": {},
+  "required": []
+}
