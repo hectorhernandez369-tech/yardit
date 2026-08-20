@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { formatGameDate, formatGameTime, sortLeagueGames } from "@/components/league/schedule/leagueGameUtils";
+import { formatGameDate, formatGameTime, getLeagueGameDisplayStatus, sortLeagueGames } from "@/components/league/schedule/leagueGameUtils";
 
 const ALL = "__all__";
 const normalize = (value) => String(value || "").trim().toLowerCase();
@@ -116,7 +116,7 @@ export default function TeamScheduleManager({ account, user, section = "all" }) 
       <td className="px-2 py-2 whitespace-nowrap">{formatGameTime(game.start_time)}</td>
       <td className="px-2 py-2">{game.field_name || game.location || "—"}</td>
       <td className="px-2 py-2">{league?.business_name || game.league_name || "League"}</td>
-      <td className="px-2 py-2"><Badge variant="outline" className="capitalize">{game.status || "upcoming"}</Badge></td>
+      <td className="px-2 py-2"><Badge variant="outline" className="capitalize">{getLeagueGameDisplayStatus(game)}</Badge></td>
       <td className="px-2 py-2">{action}</td>
     </tr>;
   };
