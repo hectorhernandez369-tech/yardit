@@ -2,7 +2,26 @@ import { sortLeagueGames } from "@/components/league/schedule/leagueGameUtils";
 
 const normalize = (value) => String(value || "").trim().toLowerCase();
 const divisionOf = (game) => String(game.division || game.age_group || "").trim();
-export const effectiveGameStatus = (game) => game.status === "upcoming" && game.game_date && game.game_date < new Date().toISOString().slice(0, 10) ? "final" : game.status || "upcoming";
+export const hasRecordedScore = (game) => {
+  const scoreState = normalize(game?.score_state);
+  if (["submitted", "locked"].includes(scoreState) || game?.score_submitted_at || game?.score_locked_at) return true;
+
+  const hasNumericScores = game?.home_score !== null && game?.home_score !== undefined && game?.home_score !== "" &&
+    game?.away_score !== null && game?.away_score !== undefined && game?.away_score !== "" &&
+    Number.isFinite(Number(game.home_score)) && Number.isFinite(Number(game.away_score));
+
+  // Imported games default to 0-0, so treat only a non-zero pair as score evidence
+  // unless score submission metadata says the score was actually entered.
+  return hasNumericScores && (Number(game.home_score) !== 0 || Number(game.away_score) !== 0);
+};
+
+export const effectiveGameStatus = (game) => {
+  const status = game?.status || "upcoming";
+  const today = new Date().toISOString().slice(0, 10);
+  const isPastScheduledGame = game?.game_date && game.game_date < today && ["upcoming", "pending", "final"].includes(status);
+  if (!isPastScheduledGame) return status;
+  return hasRecordedScore(game) ? "final" : "pending";
+};
 const explicitWeek = (game) => {
   const value = String(game.week || "").trim();
   if (value) return value.replace(/^week\s*/i, "");
