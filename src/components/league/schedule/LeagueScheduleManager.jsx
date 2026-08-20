@@ -3,6 +3,7 @@ import { Trophy } from "lucide-react";
 import LeagueScheduleImporter from "./LeagueScheduleImporter";
 import LeagueGamesTable from "./LeagueGamesTable";
 import LeagueScheduleFormatGuide from "./LeagueScheduleFormatGuide";
+import LeagueTeamScheduleImport from "./LeagueTeamScheduleImport";
 import LeagueAuditHistory from "../LeagueAuditHistory";
 
 export default function LeagueScheduleManager({ account, user, games = [], assignments = [], memberships = [], onRefresh, canManageSchedule = false }) {
@@ -16,6 +17,7 @@ export default function LeagueScheduleManager({ account, user, games = [], assig
       </Card>
       {canManageSchedule && <LeagueScheduleFormatGuide />}
       {canManageSchedule && <LeagueScheduleImporter account={account} existingGames={games} onImported={onRefresh} />}
+      {canManageSchedule && <LeagueTeamScheduleImport account={account} memberships={memberships} existingGames={games} onImported={onRefresh} />}
       <LeagueGamesTable account={account} user={user} games={games} assignments={assignments} memberships={memberships} onRefresh={onRefresh} readOnly={!canManageSchedule} canManageSchedule={canManageSchedule} />
       <LeagueAuditHistory games={games} />
     </div>
