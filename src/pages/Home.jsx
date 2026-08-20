@@ -59,6 +59,7 @@ import QuickMapFilters from "@/components/map/QuickMapFilters";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
+import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
@@ -489,6 +490,8 @@ export default function HomePage() {
   const MARQUEE_COLLAPSED_MIN_ZOOM = 12;
   const MARQUEE_HIDDEN_MIN_ZOOM = 10;
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
+  const [showUpcomingWeekend, setShowUpcomingWeekend] = useState(false);
+  const [upcomingRadiusMiles, setUpcomingRadiusMiles] = useState(15);
   const showListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
@@ -1440,6 +1443,12 @@ export default function HomePage() {
           <div className="flex items-center gap-2 ml-auto">
             {view === "map" &&
             <>
+                <ComingSoonWeekendToggle
+                  enabled={showUpcomingWeekend}
+                  onToggle={setShowUpcomingWeekend}
+                  radiusMiles={upcomingRadiusMiles}
+                  onRadiusChange={setUpcomingRadiusMiles}
+                />
                 <Button
                 variant="outline"
                 size="sm"
@@ -1578,9 +1587,17 @@ export default function HomePage() {
                 </>
             }
               
-              <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />
+              {!showUpcomingWeekend && <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />}
+              {showUpcomingWeekend && (
+                <ComingSoonWeekendMapLayer
+                  enabled={showUpcomingWeekend}
+                  listings={listings}
+                  userLocation={userLocation}
+                  radiusMiles={upcomingRadiusMiles}
+                />
+              )}
 
-              {visiblePins.map((listing) => {
+              {!showUpcomingWeekend && visiblePins.map((listing) => {
               if (!isShowingAllListings && hiddenByMarqueeIds.has(listing.id)) return null;
 
               const isMarquee = isMarqueeListing(listing);
