@@ -144,13 +144,13 @@ export function ComingSoonWeekendToggle({ enabled, onToggle, radiusMiles, onRadi
       </Button>
 
       {enabled && (
-        <div className="absolute right-0 top-full mt-2 z-[1500] w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
-          <div className="flex items-center justify-between gap-3 mb-2">
+        <div className="absolute right-0 top-full mt-1.5 z-[1500] w-48 rounded-lg border border-slate-200 bg-white p-2 shadow-lg sm:w-56 sm:p-3">
+          <div className="mb-1 flex items-center justify-between gap-2 sm:mb-2">
             <div>
-              <p className="text-xs font-semibold text-slate-800">Search radius</p>
-              <p className="text-[11px] text-slate-500">This weekend's yard sales</p>
+              <p className="text-[11px] font-semibold text-slate-800 sm:text-xs">Search radius</p>
+              <p className="hidden text-[11px] text-slate-500 sm:block">This weekend's yard sales</p>
             </div>
-            <span className="text-sm font-bold text-[#2C4F4E]">{radiusMiles} mi</span>
+            <span className="text-xs font-bold text-[#2C4F4E] sm:text-sm">{radiusMiles} mi</span>
           </div>
           <input
             type="range"
