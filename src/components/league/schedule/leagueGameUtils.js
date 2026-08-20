@@ -1,6 +1,29 @@
 export const LEAGUE_GAME_STATUSES = ["upcoming", "pending", "live", "halftime", "delayed", "postponed", "cancelled", "final"];
 
 const pad = (value) => String(value).padStart(2, "0");
+const normalizeStatus = (value) => String(value || "").trim().toLowerCase();
+
+export const hasRecordedLeagueGameScore = (game) => {
+  const scoreState = normalizeStatus(game?.score_state);
+  if (["submitted", "locked"].includes(scoreState) || game?.score_submitted_at || game?.score_locked_at) return true;
+
+  const hasNumericScores = game?.home_score !== null && game?.home_score !== undefined && game?.home_score !== "" &&
+    game?.away_score !== null && game?.away_score !== undefined && game?.away_score !== "" &&
+    Number.isFinite(Number(game.home_score)) && Number.isFinite(Number(game.away_score));
+
+  // Imported games default to 0-0, so only treat 0-0 as recorded when
+  // score submission/lock metadata proves the score was actually entered.
+  return hasNumericScores && (Number(game.home_score) !== 0 || Number(game.away_score) !== 0);
+};
+
+export const getLeagueGameDisplayStatus = (game, now = new Date()) => {
+  const status = normalizeStatus(game?.status) || "upcoming";
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const isPastScheduledGame = Boolean(game?.game_date && String(game.game_date) < today);
+
+  if (!isPastScheduledGame || !["upcoming", "pending", "final"].includes(status)) return status;
+  return hasRecordedLeagueGameScore(game) ? "final" : "pending";
+};
 
 export const toDateOnly = (value) => {
   if (!value) return "";
