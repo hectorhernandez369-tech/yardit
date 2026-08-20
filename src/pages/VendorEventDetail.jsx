@@ -62,13 +62,18 @@ export default function VendorEventDetail() {
   const { data: likes = [] } = useQuery({ queryKey: ["publicEventUpdateLikes", eventId], queryFn: () => base44.entities.EventUpdateLike.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: scheduleEntries = [] } = useQuery({ queryKey: ["publicEventScheduleEntries", eventId], queryFn: () => base44.entities.EventScheduleEntry.filter({ event_id: eventId }, "sort_order"), enabled: !!eventId, initialData: [] });
   const { data: leagueEventLinks = [] } = useQuery({ queryKey: ["publicLeagueEventGames", eventId], queryFn: async () => (await base44.entities.LeagueEventGame.filter({ event_id: eventId }, "display_order")).filter((link) => link?.is_visible !== false), enabled: !!eventId, initialData: [] });
-  const { data: leagueGames = [] } = useQuery({ queryKey: ["publicLeagueGamesForEvent", event?.organizer_business_id], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: event.organizer_business_id }, "sort_order"), enabled: !!event?.organizer_business_id && leagueEventLinks.length > 0, initialData: [] });
+  const { data: leagueGames = [] } = useQuery({ queryKey: ["publicLeagueGamesForEvent", eventId, leagueEventLinks.map((link) => link.league_game_id).join("|")], queryFn: async () => {
+    const ids = [...new Set(leagueEventLinks.map((link) => link.league_game_id).filter(Boolean))];
+    if (!ids.length) return [];
+    const batches = await Promise.all(ids.map((id) => base44.entities.LeagueGame.filter({ id }).catch(() => [])));
+    return batches.flat();
+  }, enabled: !!eventId && leagueEventLinks.length > 0, initialData: [] });
   const { data: leagueFields = [] } = useQuery({ queryKey: ["publicLeagueEventFields", eventId], queryFn: () => base44.entities.LeagueEventField.filter({ league_event_id: eventId, is_active: true }, "display_order"), enabled: !!eventId, initialData: [] });
   const { data: leagueMapRecords = [] } = useQuery({ queryKey: ["publicLeagueEventMap", eventId], queryFn: () => base44.entities.LeagueEventMap.filter({ league_event_id: eventId }), enabled: !!eventId, initialData: [] });
   const leagueMapRecord = leagueMapRecords[0];
   const { data: organizerAccounts = [] } = useQuery({ queryKey: ["publicLeagueOrganizer", event?.organizer_business_id], queryFn: () => base44.entities.VendorAccount.filter({ id: event?.organizer_business_id }), enabled: !!event?.organizer_business_id, initialData: [] });
   const organizerAccountPublic = organizerAccounts[0];
-  const isLeagueEvent = organizerAccountPublic?.organization_type === "league_team";
+  const isLeagueEvent = ["league", "league_team"].includes(organizerAccountPublic?.organization_type);
   const [venueFieldId, setVenueFieldId] = useState("");
   const [highlightFieldId, setHighlightFieldId] = useState("");
 
