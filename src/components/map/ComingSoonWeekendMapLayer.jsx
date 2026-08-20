@@ -86,55 +86,23 @@ function distanceMiles(lat1, lng1, lat2, lng2) {
   return earthRadiusMiles * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function clusterPoints(points, map, radiusPixels = 58) {
-  const clusters = [];
-  const used = new Set();
-
-  for (let i = 0; i < points.length; i += 1) {
-    if (used.has(i)) continue;
-
-    const anchor = map.latLngToContainerPoint([points[i].lat, points[i].lng]);
-    const group = [points[i]];
-    used.add(i);
-
-    for (let j = i + 1; j < points.length; j += 1) {
-      if (used.has(j)) continue;
-      const candidate = map.latLngToContainerPoint([points[j].lat, points[j].lng]);
-      const dx = anchor.x - candidate.x;
-      const dy = anchor.y - candidate.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= radiusPixels) {
-        group.push(points[j]);
-        used.add(j);
-      }
-    }
-
-    clusters.push({
-      lat: group.reduce((sum, point) => sum + point.lat, 0) / group.length,
-      lng: group.reduce((sum, point) => sum + point.lng, 0) / group.length,
-      count: group.length,
-      points: group,
-    });
-  }
-
-  return clusters;
-}
-
-function getBubbleSize(count) {
-  if (count >= 50) return 48;
-  if (count >= 20) return 44;
-  if (count >= 10) return 40;
-  if (count >= 5) return 36;
-  return 32;
-}
-
 export function ComingSoonWeekendToggle({ enabled, onToggle, radiusMiles, onRadiusChange }) {
+  const handleToggle = () => {
+    if (!enabled) {
+      onRadiusChange(1);
+      onToggle(true);
+      return;
+    }
+    onToggle(false);
+  };
+
   return (
     <div className="relative shrink-0">
       <Button
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => onToggle(!enabled)}
+        onClick={handleToggle}
         aria-pressed={enabled}
         className={`h-9 rounded-full shadow-sm px-2 sm:px-3 whitespace-nowrap ${enabled ? "border-[#F4A849] bg-[#FFF7E8] text-[#2C4F4E] hover:bg-[#FFF2D8]" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
       >
@@ -156,7 +124,7 @@ export function ComingSoonWeekendToggle({ enabled, onToggle, radiusMiles, onRadi
             type="range"
             min="1"
             max="50"
-            step="5"
+            step="1"
             value={radiusMiles}
             onChange={(event) => onRadiusChange(Number(event.target.value))}
             className="w-full accent-[#5DADA5]"
@@ -172,7 +140,7 @@ export function ComingSoonWeekendToggle({ enabled, onToggle, radiusMiles, onRadi
   );
 }
 
-export default function ComingSoonWeekendMapLayer({ enabled, listings = [], userLocation, radiusMiles = 15 }) {
+export default function ComingSoonWeekendMapLayer({ enabled, listings = [], userLocation, radiusMiles = 1 }) {
   const map = useMap();
   const layerRef = useRef(L.layerGroup());
   const weekend = useMemo(() => getThisWeekendWindow(new Date()), []);
@@ -209,40 +177,26 @@ export default function ComingSoonWeekendMapLayer({ enabled, listings = [], user
         fillOpacity: 0.12,
         interactive: false,
       });
-      radiusCircle.bindTooltip(`${radiusMiles} mile search radius`, { direction: "center", permanent: false });
       layerRef.current.addLayer(radiusCircle);
 
-      const points = weekendSales
-        .filter((listing) => distanceMiles(center.lat, center.lng, listing.lat, listing.lng) <= radiusMiles)
-        .map((listing) => ({ ...listing, lat: listing.lat, lng: listing.lng }));
+      const count = weekendSales.filter(
+        (listing) => distanceMiles(center.lat, center.lng, listing.lat, listing.lng) <= radiusMiles
+      ).length;
 
-      const clusters = clusterPoints(points, map, 58);
-      clusters.forEach((cluster) => {
-        const size = getBubbleSize(cluster.count);
-        const icon = L.divIcon({
-          className: "yardit-upcoming-weekend-cluster",
-          html: `<div style="width:${size}px;height:${size}px;border-radius:9999px;background:#2C4F4E;border:3px solid #F4A849;display:flex;align-items:center;justify-content:center;color:#ffffff;font-weight:800;font-size:${cluster.count >= 100 ? 12 : 14}px;box-shadow:0 3px 10px rgba(0,0,0,.30);cursor:pointer;">${cluster.count}</div>`,
-          iconSize: [size, size],
-          iconAnchor: [size / 2, size / 2],
-        });
-
-        const marker = L.marker([cluster.lat, cluster.lng], { icon, interactive: true, zIndexOffset: 9000 });
-        marker.bindTooltip(`${cluster.count} upcoming ${cluster.count === 1 ? "sale" : "sales"} this weekend`, {
-          direction: "top",
-          offset: [0, -Math.round(size / 2)],
-        });
-        marker.on("click", () => {
-          if (cluster.count > 1) {
-            map.flyTo([cluster.lat, cluster.lng], Math.min(map.getZoom() + 2, 18), { duration: 0.45 });
-            return;
-          }
-
-          const listing = cluster.points[0];
-          const label = listing?.title || listing?.display_address || listing?.addressText || "Upcoming yard sale";
-          marker.bindPopup(`<div style="font-weight:700;color:#2C4F4E;">${String(label).replace(/[<>]/g, "")}</div><div style="font-size:12px;margin-top:3px;color:#64748b;">Upcoming this weekend</div>`).openPopup();
-        });
-        layerRef.current.addLayer(marker);
+      const countIcon = L.divIcon({
+        className: "yardit-upcoming-radius-count",
+        html: `<div style="width:42px;height:42px;border-radius:9999px;background:#2C4F4E;border:3px solid #F4A849;display:flex;align-items:center;justify-content:center;color:#ffffff;font-weight:800;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.25);pointer-events:none;">${count}</div>`,
+        iconSize: [42, 42],
+        iconAnchor: [21, 21],
       });
+
+      const countMarker = L.marker([center.lat, center.lng], {
+        icon: countIcon,
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: 9000,
+      });
+      layerRef.current.addLayer(countMarker);
     };
 
     renderLayer();
