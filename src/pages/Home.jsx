@@ -59,6 +59,7 @@ import QuickMapFilters from "@/components/map/QuickMapFilters";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
+import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
@@ -489,6 +490,8 @@ export default function HomePage() {
   const MARQUEE_COLLAPSED_MIN_ZOOM = 12;
   const MARQUEE_HIDDEN_MIN_ZOOM = 10;
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
+  const [showUpcomingWeekend, setShowUpcomingWeekend] = useState(false);
+  const [upcomingRadiusMiles, setUpcomingRadiusMiles] = useState(15);
   const showListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
@@ -1148,12 +1151,12 @@ export default function HomePage() {
       }
 
       const isNeighborhoodEvent = listing.listingType === "neighborhood_sale";
-      const shouldShowNeighborhoodChest = isNeighborhoodEvent && currentZoom >= 12;
+      const shouldShowNeighborhoodChest = isNeighborhoodEvent && currentZoom >= 12 && currentZoom < 18;
 
       if (isNeighborhoodEvent) {
         if (shouldShowNeighborhoodChest) {
           pins.push(listing);
-        } else {
+        } else if (currentZoom < 12) {
           cPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id });
         }
         return;
@@ -1208,26 +1211,6 @@ export default function HomePage() {
   }, [eligibleListings, currentZoom, isShowingAllListings, filter, quickMapFilters]);
 
   // NO ZOOM-BASED STATE RESET - persist marquee state across zoom levels
-
-  const neighborhoodHomeCounts = useMemo(() => {
-    const counts = new Map();
-
-    eligibleListings.forEach((listing) => {
-      if (listing.listingType !== "neighborhood_sale") return;
-      const organizerCount = listing.organizer_participation === "organizing_only" ? 0 : 1;
-      counts.set(listing.id, organizerCount);
-    });
-
-    (allJoinRequests || []).forEach((request) => {
-      if (normalizeNeighborhoodJoinStatus(request.status) !== "approved") return;
-      if (request.removed_by_eo === true || request.removed_by_listing_owner === true) return;
-      const saleId = request.saleListingId;
-      if (!saleId || !counts.has(saleId)) return;
-      counts.set(saleId, counts.get(saleId) + 1);
-    });
-
-    return counts;
-  }, [eligibleListings, allJoinRequests]);
 
   const neighborhoodParticipantPins = useMemo(() => {
     if (currentZoom < 18 || !allJoinRequests?.length) return [];
@@ -1460,6 +1443,12 @@ export default function HomePage() {
           <div className="flex items-center gap-2 ml-auto">
             {view === "map" &&
             <>
+                <ComingSoonWeekendToggle
+                  enabled={showUpcomingWeekend}
+                  onToggle={setShowUpcomingWeekend}
+                  radiusMiles={upcomingRadiusMiles}
+                  onRadiusChange={setUpcomingRadiusMiles}
+                />
                 <Button
                 variant="outline"
                 size="sm"
@@ -1598,9 +1587,17 @@ export default function HomePage() {
                 </>
             }
               
-              <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />
+              {!showUpcomingWeekend && <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />}
+              {showUpcomingWeekend && (
+                <ComingSoonWeekendMapLayer
+                  enabled={showUpcomingWeekend}
+                  listings={listings}
+                  userLocation={userLocation}
+                  radiusMiles={upcomingRadiusMiles}
+                />
+              )}
 
-              {visiblePins.map((listing) => {
+              {!showUpcomingWeekend && visiblePins.map((listing) => {
               if (!isShowingAllListings && hiddenByMarqueeIds.has(listing.id)) return null;
 
               const isMarquee = isMarqueeListing(listing);
@@ -1614,8 +1611,6 @@ export default function HomePage() {
               const isDailyPreviewState = listing.mapState === "daily_preview";
               const isFireworksEvent = listing.listingType === "event" && listing.event_icon === "fireworks";
               const goLiveLabel = formatListingGoLive(listing);
-              const neighborhoodHomeCount = listing.listingType === "neighborhood_sale" ? neighborhoodHomeCounts.get(listing.id) : undefined;
-              const markerListing = neighborhoodHomeCount == null ? listing : { ...listing, homeCount: neighborhoodHomeCount, confirmed_count: neighborhoodHomeCount };
 
               return (
                 <Marker
@@ -1623,7 +1618,7 @@ export default function HomePage() {
                   ref={(ref) => {if (ref) markerRefsMap.current[listing.id] = ref;}}
                   position={[listing.lat, listing.lng]}
                   zIndexOffset={isFireworksEvent ? 10000 : 0}
-                  icon={listing.listingType === "event" ? getEventMarkerIcon({ ...listing, ownerUpcomingPreview: isPreviewState }, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, markerListing)}
+                  icon={listing.listingType === "event" ? getEventMarkerIcon({ ...listing, ownerUpcomingPreview: isPreviewState }, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
                   eventHandlers={{
                     click: () => {handlePinClick(listing);},
                     popupopen: () => setSelectedListingId(listing.id),
@@ -1856,28 +1851,32 @@ export default function HomePage() {
 
             })}
 
-              <PromoDiscoveryMarkers
-                promos={promoDiscoveryCodes}
-                currentZoom={currentZoom}
-                coverCandidates={promoCoverCandidates}
-                clusterCandidates={clusterPts}
-                clusterRadius={50}
-                clusterMinPoints={2}
-              />
+              {!showUpcomingWeekend && (
+                <PromoDiscoveryMarkers
+                  promos={promoDiscoveryCodes}
+                  currentZoom={currentZoom}
+                  coverCandidates={promoCoverCandidates}
+                  clusterCandidates={clusterPts}
+                  clusterRadius={50}
+                  clusterMinPoints={2}
+                />
+              )}
 
               {/* Vendor Event Stacked Markers (Coming Soon + Active, with stacking) */}
-              <VendorEventMapMarkers
-              vendorEvents={vendorEvents}
-              showVendorEvents={quickMapFilters.events}
-              eventScheduleEntries={eventScheduleEntries}
-              leagueEventLinks={leagueEventLinks}
-              leagueGames={leagueGames}
-              selectedEventId={requestedEventId}
-              previewEventIds={vendorEventPreviewIds}
-              leagueReturnState={leagueReturnState} />
+              {!showUpcomingWeekend && (
+                <VendorEventMapMarkers
+                  vendorEvents={vendorEvents}
+                  showVendorEvents={quickMapFilters.events}
+                  eventScheduleEntries={eventScheduleEntries}
+                  leagueEventLinks={leagueEventLinks}
+                  leagueGames={leagueGames}
+                  selectedEventId={requestedEventId}
+                  previewEventIds={vendorEventPreviewIds}
+                  leagueReturnState={leagueReturnState} />
+              )}
             
 
-              {liveVendorPins.map(({ checkIn, pin, account }) => {
+              {!showUpcomingWeekend && liveVendorPins.map(({ checkIn, pin, account }) => {
               const vendorStopId = `vendor-${checkIn.id}`;
               const isVendorStop = huntStops.some((stop) => stop.id === vendorStopId);
               const vendorStop = {
@@ -1947,7 +1946,7 @@ export default function HomePage() {
 
             })}
 
-              {neighborhoodParticipantPins.map((pin) => {
+              {!showUpcomingWeekend && neighborhoodParticipantPins.map((pin) => {
               if (!isShowingAllListings && hiddenByMarqueeIds.has(pin.listingId)) return null;
               return (
                 <Marker
@@ -1983,7 +1982,7 @@ export default function HomePage() {
 
             })}
 
-              {marqueeOverlays.map((listing) => {
+              {!showUpcomingWeekend && marqueeOverlays.map((listing) => {
               const isExpanded = openMarqueeIds[listing.id] === "expanded";
               const overlappedCount = listing.overlappedListings?.length || 0;
               const boardHtml = isExpanded ?
