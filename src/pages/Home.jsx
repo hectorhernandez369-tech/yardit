@@ -491,7 +491,7 @@ export default function HomePage() {
   const MARQUEE_HIDDEN_MIN_ZOOM = 10;
   const [isShowingAllListings, setIsShowingAllListings] = useState(false);
   const [showUpcomingWeekend, setShowUpcomingWeekend] = useState(false);
-  const [upcomingRadiusMiles, setUpcomingRadiusMiles] = useState(1);
+  const [upcomingRadiusMiles, setUpcomingRadiusMiles] = useState(15);
   const showListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);

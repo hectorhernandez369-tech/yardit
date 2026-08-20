@@ -154,7 +154,7 @@ export function ComingSoonWeekendToggle({ enabled, onToggle, radiusMiles, onRadi
           </div>
           <input
             type="range"
-            min="1"
+            min="5"
             max="50"
             step="5"
             value={radiusMiles}
@@ -163,7 +163,7 @@ export function ComingSoonWeekendToggle({ enabled, onToggle, radiusMiles, onRadi
             aria-label="Upcoming sale search radius"
           />
           <div className="mt-1 flex justify-between text-[10px] text-slate-400">
-            <span>1 mi</span>
+            <span>5 mi</span>
             <span>50 mi</span>
           </div>
         </div>
@@ -172,7 +172,7 @@ export function ComingSoonWeekendToggle({ enabled, onToggle, radiusMiles, onRadi
   );
 }
 
-export default function ComingSoonWeekendMapLayer({ enabled, listings = [], userLocation, radiusMiles = 1 }) {
+export default function ComingSoonWeekendMapLayer({ enabled, listings = [], userLocation, radiusMiles = 15 }) {
   const map = useMap();
   const layerRef = useRef(L.layerGroup());
   const weekend = useMemo(() => getThisWeekendWindow(new Date()), []);
