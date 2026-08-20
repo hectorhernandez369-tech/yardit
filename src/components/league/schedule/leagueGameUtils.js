@@ -1,4 +1,4 @@
-export const LEAGUE_GAME_STATUSES = ["upcoming", "live", "halftime", "delayed", "postponed", "cancelled", "final"];
+export const LEAGUE_GAME_STATUSES = ["upcoming", "pending", "live", "halftime", "delayed", "postponed", "cancelled", "final"];
 
 const pad = (value) => String(value).padStart(2, "0");
 
