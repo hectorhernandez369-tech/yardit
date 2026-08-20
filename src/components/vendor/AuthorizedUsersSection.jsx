@@ -37,6 +37,7 @@ export default function AuthorizedUsersSection({ vendorAccount }) {
             <Users className="h-4 w-4 text-muted-foreground" />
             <div>
               <p className="text-sm font-medium">{user.authorized_email}</p>
+              <p className="text-[10px] font-mono text-muted-foreground break-all">User ID: {user.id}</p>
               <p className="text-xs text-muted-foreground capitalize">{user.status}</p>
             </div>
           </div>
