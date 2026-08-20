@@ -1148,12 +1148,12 @@ export default function HomePage() {
       }
 
       const isNeighborhoodEvent = listing.listingType === "neighborhood_sale";
-      const shouldShowNeighborhoodChest = isNeighborhoodEvent && currentZoom >= 12 && currentZoom < 18;
+      const shouldShowNeighborhoodChest = isNeighborhoodEvent && currentZoom >= 12;
 
       if (isNeighborhoodEvent) {
         if (shouldShowNeighborhoodChest) {
           pins.push(listing);
-        } else if (currentZoom < 12) {
+        } else {
           cPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id });
         }
         return;
@@ -1208,6 +1208,26 @@ export default function HomePage() {
   }, [eligibleListings, currentZoom, isShowingAllListings, filter, quickMapFilters]);
 
   // NO ZOOM-BASED STATE RESET - persist marquee state across zoom levels
+
+  const neighborhoodHomeCounts = useMemo(() => {
+    const counts = new Map();
+
+    eligibleListings.forEach((listing) => {
+      if (listing.listingType !== "neighborhood_sale") return;
+      const organizerCount = listing.organizer_participation === "organizing_only" ? 0 : 1;
+      counts.set(listing.id, organizerCount);
+    });
+
+    (allJoinRequests || []).forEach((request) => {
+      if (normalizeNeighborhoodJoinStatus(request.status) !== "approved") return;
+      if (request.removed_by_eo === true || request.removed_by_listing_owner === true) return;
+      const saleId = request.saleListingId;
+      if (!saleId || !counts.has(saleId)) return;
+      counts.set(saleId, counts.get(saleId) + 1);
+    });
+
+    return counts;
+  }, [eligibleListings, allJoinRequests]);
 
   const neighborhoodParticipantPins = useMemo(() => {
     if (currentZoom < 18 || !allJoinRequests?.length) return [];
@@ -1594,6 +1614,8 @@ export default function HomePage() {
               const isDailyPreviewState = listing.mapState === "daily_preview";
               const isFireworksEvent = listing.listingType === "event" && listing.event_icon === "fireworks";
               const goLiveLabel = formatListingGoLive(listing);
+              const neighborhoodHomeCount = listing.listingType === "neighborhood_sale" ? neighborhoodHomeCounts.get(listing.id) : undefined;
+              const markerListing = neighborhoodHomeCount == null ? listing : { ...listing, homeCount: neighborhoodHomeCount, confirmed_count: neighborhoodHomeCount };
 
               return (
                 <Marker
@@ -1601,7 +1623,7 @@ export default function HomePage() {
                   ref={(ref) => {if (ref) markerRefsMap.current[listing.id] = ref;}}
                   position={[listing.lat, listing.lng]}
                   zIndexOffset={isFireworksEvent ? 10000 : 0}
-                  icon={listing.listingType === "event" ? getEventMarkerIcon({ ...listing, ownerUpcomingPreview: isPreviewState }, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
+                  icon={listing.listingType === "event" ? getEventMarkerIcon({ ...listing, ownerUpcomingPreview: isPreviewState }, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, markerListing)}
                   eventHandlers={{
                     click: () => {handlePinClick(listing);},
                     popupopen: () => setSelectedListingId(listing.id),
