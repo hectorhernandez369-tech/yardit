@@ -125,6 +125,7 @@ export default function LeagueEventsTab({ account, user }) {
             <div>
               <p className="text-xs font-bold uppercase text-slate-500">{getVendorEventStatus(event)}</p>
               <h3 className="text-lg font-black text-[#2C4F4E]">{event.title}</h3>
+              <p className="text-[10px] font-mono text-slate-400 break-all">Event ID: {event.id}</p>
               <p className="text-sm text-slate-600">{formatGameDate(event.startDateTime?.slice(0, 10))} · {event.display_address || "Location TBD"}</p>
             </div>
 
