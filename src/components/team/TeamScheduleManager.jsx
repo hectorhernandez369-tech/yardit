@@ -110,7 +110,7 @@ export default function TeamScheduleManager({ account, user, section = "all" }) 
   const renderGameRow = (game, action) => {
     const league = leagues.find((item) => item.id === game.vendor_account_id);
     return <tr key={game.id} className="border-t align-top">
-      <td className="px-2 py-2 font-semibold">{game.home_team || "TBD"}<div className="text-slate-500 font-normal">vs {game.away_team || "TBD"}</div></td>
+      <td className="px-2 py-2 font-semibold">{game.home_team || "TBD"}<div className="text-slate-500 font-normal">vs {game.away_team || "TBD"}</div><div className="mt-1 font-mono text-[10px] font-normal text-slate-400 break-all">Game ID: {game.id}</div></td>
       <td className="px-2 py-2">{game.division || game.age_group || "—"}</td>
       <td className="px-2 py-2 whitespace-nowrap">{formatGameDate(game.game_date)}</td>
       <td className="px-2 py-2 whitespace-nowrap">{formatGameTime(game.start_time)}</td>
