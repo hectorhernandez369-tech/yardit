@@ -43,9 +43,17 @@ export default function VendorEventDashboard() {
   const { data: collaborators = [], isLoading: loadingCollaborators } = useQuery({ queryKey: ["eventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
   const { data: updates = [] } = useQuery({ queryKey: ["eventUpdates", eventId], queryFn: () => base44.entities.EventUpdate.filter({ event_id: eventId, is_deleted: false }, "-created_at"), enabled: !!eventId, initialData: [] });
   const { data: leagueEventLinks = [] } = useQuery({ queryKey: ["leagueEventGames", eventId], queryFn: () => base44.entities.LeagueEventGame.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
-  const { data: leagueGames = [] } = useQuery({ queryKey: ["leagueGamesForEvent", event?.organizer_business_id], queryFn: () => base44.entities.LeagueGame.filter({ vendor_account_id: event.organizer_business_id }, "sort_order"), enabled: !!event?.organizer_business_id, initialData: [] });
   const organizerAccount = vendorAccounts.find((account) => account.id === event?.organizer_business_id);
-  const isLeagueEvent = organizerAccount?.organization_type === "league_team";
+  const isLeagueEvent = ["league", "league_team"].includes(organizerAccount?.organization_type);
+  const isTeamEvent = organizerAccount?.organization_type === "team";
+  const { data: leagueGames = [] } = useQuery({ queryKey: ["leagueGamesForEvent", event?.organizer_business_id, isTeamEvent ? leagueEventLinks.map((link) => link.league_game_id).join("|") : "owned"], queryFn: async () => {
+    if (!event?.organizer_business_id) return [];
+    if (!isTeamEvent) return base44.entities.LeagueGame.filter({ vendor_account_id: event.organizer_business_id }, "sort_order");
+    const ids = [...new Set(leagueEventLinks.map((link) => link.league_game_id).filter(Boolean))];
+    if (!ids.length) return [];
+    const batches = await Promise.all(ids.map((id) => base44.entities.LeagueGame.filter({ id }).catch(() => [])));
+    return batches.flat();
+  }, enabled: !!event?.organizer_business_id && !!organizerAccount, initialData: [] });
   const currentOrganizationIds = vendorAccounts.filter((account) => account.owner_user_id === currentUser?.id || account.owner_user_id === currentUser?.email || account.owner_email === currentUser?.email).map((account) => account.id);
   const hostedLabels = getHostedByLabels(event, collaborators, vendorAccounts);
   const canEdit = canEditEvent(event, collaborators, currentOrganizationIds);
