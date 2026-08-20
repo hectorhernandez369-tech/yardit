@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import ScheduleImportPanel from "@/components/vendor/events/schedule/ScheduleImportPanel";
 import ScheduleRowsEditor from "@/components/vendor/events/schedule/ScheduleRowsEditor";
+import AttachGamesDialog from "@/components/league/events/AttachGamesDialog";
 import { buildBlankScheduleRows, cleanRowsForSave, normalizeAndSortScheduleRows, normalizeScheduleRows, validateScheduleRows } from "@/lib/vendorEventSchedule";
 import { safeBack, getPreviousAppRoute } from "@/utils";
 import { canManageSchedule as hasSchedulePermission } from "@/lib/eventCollaboration";
@@ -27,12 +28,25 @@ export default function VendorEventSchedule() {
   const [saving, setSaving] = useState(false);
   const [canManageSchedule, setCanManageSchedule] = useState(false);
   const [accessChecked, setAccessChecked] = useState(false);
+  const [showAttachGames, setShowAttachGames] = useState(false);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["scheduleVendorEvent", eventId], queryFn: () => base44.entities.VendorEvent.filter({ id: eventId }), enabled: !!eventId, initialData: [] });
   const event = events[0];
   const { data: spots = [] } = useQuery({ queryKey: ["scheduleEventSpots", eventId], queryFn: () => base44.entities.EventSpot.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
   const { data: savedEntries = [], isLoading: isLoadingEntries } = useQuery({ queryKey: ["eventScheduleEntries", eventId], queryFn: () => base44.entities.EventScheduleEntry.filter({ event_id: eventId }, "sort_order"), enabled: !!eventId, initialData: [] });
   const { data: collaborators = [], isLoading: loadingCollaborators } = useQuery({ queryKey: ["scheduleEventCollaborators", eventId], queryFn: () => base44.entities.EventCollaborator.filter({ event_id: eventId }), enabled: !!eventId, initialData: [] });
+  const { data: organizerAccounts = [] } = useQuery({ queryKey: ["scheduleOrganizerAccount", event?.organizer_business_id], queryFn: () => base44.entities.VendorAccount.filter({ id: event.organizer_business_id }), enabled: !!event?.organizer_business_id, initialData: [] });
+  const organizerAccount = organizerAccounts[0] || null;
+  const isTeamEvent = organizerAccount?.organization_type === "team";
+  const { data: teamMemberships = [] } = useQuery({ queryKey: ["scheduleTeamMemberships", organizerAccount?.id], queryFn: () => base44.entities.LeagueMembership.filter({ member_account_id: organizerAccount.id, status: "active" }).catch(() => []), enabled: !!organizerAccount?.id && isTeamEvent, initialData: [] });
+  const teamLeagueIds = useMemo(() => [...new Set(teamMemberships.map((item) => item.league_account_id).filter(Boolean))], [teamMemberships]);
+  const { data: teamLeagueGames = [] } = useQuery({ queryKey: ["scheduleTeamLeagueGames", organizerAccount?.id, teamLeagueIds.join("|")], queryFn: async () => (await Promise.all(teamLeagueIds.map((id) => base44.entities.LeagueGame.filter({ vendor_account_id: id }, "sort_order").catch(() => [])))).flat(), enabled: isTeamEvent && teamLeagueIds.length > 0, initialData: [] });
+  const { data: teamScheduleLinks = [] } = useQuery({ queryKey: ["scheduleTeamGameLinks", organizerAccount?.id], queryFn: () => base44.entities.TeamScheduleGameLink.filter({ team_account_id: organizerAccount.id, is_active: true }).catch(() => []), enabled: !!organizerAccount?.id && isTeamEvent, initialData: [] });
+  const { data: teamAssignments = [] } = useQuery({ queryKey: ["scheduleTeamAssignments", organizerAccount?.id], queryFn: () => base44.entities.LeagueTeamAssignment.filter({ team_account_id: organizerAccount.id, is_active: true }).catch(() => []), enabled: !!organizerAccount?.id && isTeamEvent, initialData: [] });
+  const { data: leagueEventLinks = [] } = useQuery({ queryKey: ["scheduleLinkedLeagueGames", eventId], queryFn: () => base44.entities.LeagueEventGame.filter({ event_id: eventId }, "display_order"), enabled: !!eventId, initialData: [] });
+  const teamScheduleGameIds = useMemo(() => new Set(teamScheduleLinks.map((item) => item.league_game_id)), [teamScheduleLinks]);
+  const assignedTeamIds = useMemo(() => new Set(teamAssignments.map((item) => item.team_id).filter(Boolean)), [teamAssignments]);
+  const teamScheduleGames = useMemo(() => teamLeagueGames.filter((game) => teamScheduleGameIds.has(game.id) || assignedTeamIds.has(game.home_team_id) || assignedTeamIds.has(game.away_team_id)), [teamLeagueGames, teamScheduleGameIds, assignedTeamIds]);
 
   const usesEventSpots = ["multi_spot", "multi_location"].includes(event?.event_type);
 
@@ -173,7 +187,10 @@ export default function VendorEventSchedule() {
     <div className="max-w-7xl mx-auto w-full min-w-0 overflow-x-hidden p-3 sm:p-6 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <Button variant="outline" onClick={() => safeBack(navigate, buildScheduleBackTarget())} className="bg-white w-fit"><ArrowLeft className="h-4 w-4" /> Back</Button>
-        <Button onClick={saveSchedule} disabled={saving} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"><Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Schedule"}</Button>
+        <div className="flex flex-wrap gap-2">
+          {isTeamEvent && <Button variant="outline" onClick={() => setShowAttachGames(true)} className="bg-white"><Plus className="h-4 w-4" /> Add Games</Button>}
+          <Button onClick={saveSchedule} disabled={saving} className="bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635]"><Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Schedule"}</Button>
+        </div>
       </div>
 
       <Card className="rounded-3xl bg-white">
@@ -188,6 +205,8 @@ export default function VendorEventSchedule() {
 
       <ScheduleRowsEditor rows={rows} setRows={setRows} fields={fields} eventDate={event.startDateTime} timeBetweenMinutes={timeBetweenMinutes} groupByField={groupByField} onAddField={addCustomField} />
       <ScheduleImportPanel fields={fields} eventDate={event.startDateTime} onConfirm={importRows} />
+
+      {isTeamEvent && organizerAccount && <AttachGamesDialog open={showAttachGames} onOpenChange={setShowAttachGames} event={event} account={organizerAccount} games={teamScheduleGames} existingLinks={leagueEventLinks} sourceLabel="this team's My Team Schedule" onAttached={() => { queryClient.invalidateQueries({ queryKey: ["scheduleLinkedLeagueGames", eventId] }); queryClient.invalidateQueries({ queryKey: ["leagueEventGames", eventId] }); queryClient.invalidateQueries({ queryKey: ["publicLeagueEventGames", eventId] }); queryClient.invalidateQueries({ queryKey: ["publicMapData"] }); }} />}
     </div>
   );
 }
