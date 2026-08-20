@@ -185,17 +185,22 @@ export default function ComingSoonWeekendMapLayer({ enabled, listings = [], user
 
       const countIcon = L.divIcon({
         className: "yardit-upcoming-radius-count",
-        html: `<div style="width:42px;height:42px;border-radius:9999px;background:#2C4F4E;border:3px solid #F4A849;display:flex;align-items:center;justify-content:center;color:#ffffff;font-weight:800;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.25);pointer-events:none;">${count}</div>`,
+        html: `<div style="width:42px;height:42px;border-radius:9999px;background:#2C4F4E;border:3px solid #F4A849;display:flex;align-items:center;justify-content:center;color:#ffffff;font-weight:800;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.25);cursor:pointer;">${count}</div>`,
         iconSize: [42, 42],
         iconAnchor: [21, 21],
       });
 
       const countMarker = L.marker([center.lat, center.lng], {
         icon: countIcon,
-        interactive: false,
-        keyboard: false,
+        interactive: true,
+        keyboard: true,
         zIndexOffset: 9000,
       });
+      const listingWord = count === 1 ? "listing" : "listings";
+      countMarker.bindPopup(
+        `<div style="text-align:center;min-width:170px;"><div style="font-weight:800;color:#2C4F4E;font-size:15px;">${count} ${listingWord} this weekend</div><div style="font-size:12px;margin-top:4px;color:#64748b;">in this area</div></div>`,
+        { closeButton: true, offset: [0, -18] }
+      );
       layerRef.current.addLayer(countMarker);
     };
 
