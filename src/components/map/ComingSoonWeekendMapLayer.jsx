@@ -200,6 +200,18 @@ export default function ComingSoonWeekendMapLayer({ enabled, listings = [], user
         ? { lat: userLocation.lat, lng: userLocation.lng }
         : map.getCenter();
 
+      const radiusCircle = L.circle([center.lat, center.lng], {
+        radius: radiusMiles * 1609.344,
+        color: "#006168",
+        weight: 2,
+        opacity: 0.9,
+        fillColor: "#5DADA5",
+        fillOpacity: 0.12,
+        interactive: false,
+      });
+      radiusCircle.bindTooltip(`${radiusMiles} mile search radius`, { direction: "center", permanent: false });
+      layerRef.current.addLayer(radiusCircle);
+
       const points = weekendSales
         .filter((listing) => distanceMiles(center.lat, center.lng, listing.lat, listing.lng) <= radiusMiles)
         .map((listing) => ({ ...listing, lat: listing.lat, lng: listing.lng }));
