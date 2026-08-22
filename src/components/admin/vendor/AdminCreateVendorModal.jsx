@@ -9,6 +9,54 @@ import { buildVendorAccountIdentityFields } from "@/lib/vendorAccountIdentity";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
+const PROMO_TYPES = [
+  { value: "none", label: "No Promo" },
+  { value: "tier_comp", label: "Free Tier Trial" },
+  { value: "percentage_discount", label: "50% Discount" },
+  { value: "free_checkins", label: "5 Free Check-ins" },
+  { value: "bonus_pins", label: "+1 Bonus Pin" },
+  { value: "free_events", label: "1 Free Event" },
+];
+const PROMO_PERIODS = [7, 14, 30, 60, 90];
+
+function promoDefaults(type) {
+  if (type === "tier_comp") return { promo_value: null, promo_tier: "pro", granted_count: 0 };
+  if (type === "percentage_discount") return { promo_value: 50, promo_tier: null, granted_count: 0 };
+  if (type === "free_checkins") return { promo_value: 5, promo_tier: null, granted_count: 5 };
+  if (type === "bonus_pins") return { promo_value: 1, promo_tier: null, granted_count: 1 };
+  if (type === "free_events") return { promo_value: 1, promo_tier: null, granted_count: 1 };
+  return { promo_value: null, promo_tier: null, granted_count: 0 };
+}
+
+async function createAssistedPromo({ account, promoType, promoDays, adminUser }) {
+  if (!account?.id || !promoType || promoType === "none") return null;
+  const now = new Date();
+  const end = new Date(now.getTime() + Number(promoDays || 30) * 86400000);
+  const defaults = promoDefaults(promoType);
+  const label = PROMO_TYPES.find((item) => item.value === promoType)?.label || "Promotion";
+  return base44.entities.VendorPromotion.create({
+    vendor_account_id: account.id,
+    vendor_account_number: account.vendor_account_number || "",
+    business_name: account.business_name || "",
+    owner_user_id: account.owner_user_id || "",
+    promo_type: promoType,
+    promo_value: defaults.promo_value,
+    promo_tier: defaults.promo_tier,
+    event_type_limit: promoType === "free_events" ? "any" : null,
+    promo_description: `${label} for ${promoDays} days`,
+    duration_type: "days",
+    duration_value: Number(promoDays || 30),
+    start_date: now.toISOString(),
+    end_date: end.toISOString(),
+    status: "active",
+    granted_count: defaults.granted_count,
+    used_count: 0,
+    reason_note: "Granted during assisted vendor account creation",
+    created_by_admin_id: adminUser?.id || "",
+    created_by_admin_name: adminUser?.full_name || adminUser?.email || "",
+  });
+}
+
 export default function AdminCreateVendorModal({ open, onClose, adminUser, onCreated }) {
   const [form, setForm] = useState({
     owner_email: "",
@@ -16,6 +64,8 @@ export default function AdminCreateVendorModal({ open, onClose, adminUser, onCre
     organization_type: "vendor",
     business_category: "",
     vendor_tier: "free",
+    promo_type: "none",
+    promo_days: "30",
   });
   const [saving, setSaving] = useState(false);
 
@@ -71,7 +121,7 @@ export default function AdminCreateVendorModal({ open, onClose, adminUser, onCre
       owner_name: form.owner_email.trim(),
       ...identityFields,
       vendor_tier: form.vendor_tier,
-      subscription_status: "active",
+      subscription_status: form.vendor_tier === "free" ? "inactive" : "active",
       vendor_setup_status: "setup_required",
       extra_users_count: 0,
       extra_pins_count: 0,
@@ -85,6 +135,13 @@ export default function AdminCreateVendorModal({ open, onClose, adminUser, onCre
       base44.entities.VendorAccountIdentityReservation.update(reservationNum.id, { vendor_account_id: account.id, status: "assigned" }),
       base44.entities.VendorAccountIdentityReservation.update(reservationSlug.id, { vendor_account_id: account.id, status: "assigned" }),
     ]);
+
+    const promo = await createAssistedPromo({
+      account,
+      promoType: form.promo_type,
+      promoDays: Number(form.promo_days || 30),
+      adminUser,
+    });
 
     await base44.entities.AdminAuditLog.create({
       user_id: adminUser?.id,
@@ -102,6 +159,9 @@ export default function AdminCreateVendorModal({ open, onClose, adminUser, onCre
         owner_email: account.owner_email,
         vendor_tier: account.vendor_tier,
         subscription_status: account.subscription_status,
+        promo_type: form.promo_type,
+        promo_days: form.promo_type === "none" ? null : Number(form.promo_days || 30),
+        promo_id: promo?.id || null,
         created_by_admin_email: adminUser?.email || null,
         created_at: now,
       }),
@@ -109,7 +169,7 @@ export default function AdminCreateVendorModal({ open, onClose, adminUser, onCre
 
     toast.success(`Vendor account created for ${form.owner_email.trim()}`);
     setSaving(false);
-    setForm({ owner_email: "", business_name: "", organization_type: "vendor", business_category: "", vendor_tier: "free" });
+    setForm({ owner_email: "", business_name: "", organization_type: "vendor", business_category: "", vendor_tier: "free", promo_type: "none", promo_days: "30" });
     onCreated?.(account);
     onClose();
   };
@@ -175,6 +235,30 @@ export default function AdminCreateVendorModal({ open, onClose, adminUser, onCre
                 <SelectItem value="event_organizer">Event Organizer</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-800">Assisted Signup Promo</p>
+            <div className="space-y-1.5">
+              <Label>Promo Type</Label>
+              <Select value={form.promo_type} onValueChange={(v) => update("promo_type", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PROMO_TYPES.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {form.promo_type !== "none" && (
+              <div className="space-y-1.5">
+                <Label>Promo Period</Label>
+                <Select value={form.promo_days} onValueChange={(v) => update("promo_days", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PROMO_PERIODS.map((days) => <SelectItem key={days} value={String(days)}>{days} days</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2 pt-2">
