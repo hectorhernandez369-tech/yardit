@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import VendorPromoModal from "./promos/VendorPromoModal";
 import VendorActivePromos from "./promos/VendorActivePromos";
 import AdminCreateVendorModal from "./AdminCreateVendorModal";
+import FieldVendorSignupModal from "./FieldVendorSignupModal";
 import AdminEditVendorModal from "./AdminEditVendorModal";
 import {
   getOrganizerDashboardType,
@@ -64,6 +65,7 @@ export default function VendorAccountsTable({ user }) {
   const [promoAccount, setPromoAccount] = useState(null);
   const [editAccount, setEditAccount] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showFieldSignup, setShowFieldSignup] = useState(false);
   const isMasterAdmin = canAdminPreviewOrganization(user) || user?.role === "super_master";
   const canEnterOrganizationDashboard = canAdminPreviewOrganization(user);
 
@@ -142,13 +144,22 @@ export default function VendorAccountsTable({ user }) {
           </SelectContent>
         </Select>
         {isMasterAdmin && (
-          <Button
-            size="sm"
-            onClick={() => setShowCreateModal(true)}
-            className="gap-1.5 bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]"
-          >
-            <Plus className="w-3.5 h-3.5" /> Create Vendor Account
-          </Button>
+          <>
+            <Button
+              size="sm"
+              onClick={() => setShowFieldSignup(true)}
+              className="gap-1.5 bg-[#F4A849] text-[#2C4F4E] hover:bg-[#E39635] font-bold"
+            >
+              <Zap className="w-3.5 h-3.5" /> Field Vendor Signup
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowCreateModal(true)}
+              className="gap-1.5 bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]"
+            >
+              <Plus className="w-3.5 h-3.5" /> Create Vendor Account
+            </Button>
+          </>
         )}
       </div>
 
@@ -244,6 +255,16 @@ export default function VendorAccountsTable({ user }) {
           )}
         </div>
       )}
+
+      <FieldVendorSignupModal
+        open={showFieldSignup}
+        onClose={() => setShowFieldSignup(false)}
+        adminUser={user}
+        onCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ["vendorAccountsAdmin"] });
+          queryClient.invalidateQueries({ queryKey: ["vendorPinsAdmin"] });
+        }}
+      />
 
       {/* Create Vendor Modal */}
       <AdminCreateVendorModal
