@@ -35,9 +35,14 @@ export default function VendorNotifyButton({ account }) {
     setBusy(true);
     const status = getBrowserPushStatus();
     let subscriptionId = await getOneSignalSubscriptionId();
-    if (status !== "enabled") {
-      const result = await enableOneSignalPush();
-      if (result.status !== "enabled") { setBusy(false); toast.error("Push notifications are not enabled on this device."); return; }
+    if (status !== "enabled" || !subscriptionId) {
+      const result = await enableOneSignalPush({ userId: user.id });
+      if (result.status !== "enabled") {
+        setBusy(false);
+        const message = result.status === "needs_install" ? "Install Yardit to your Home Screen first, then open the installed app and try again." : result.status === "blocked" ? "Notifications are blocked in your browser or device settings." : result.status === "unsupported" ? "Push notifications are not supported by this browser or device." : "Push notifications are not enabled on this device.";
+        toast.error(message);
+        return;
+      }
       subscriptionId = result.subscriptionId || await getOneSignalSubscriptionId();
     }
     if (subscriptionId) {

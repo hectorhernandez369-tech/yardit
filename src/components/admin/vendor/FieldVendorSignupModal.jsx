@@ -11,6 +11,7 @@ import { Loader2, MapPin, Store, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const DEFAULT_CATEGORY = "Event Vendor";
+<<<<<<< HEAD
 const PROMO_TYPES = [
   { value: "none", label: "No Promo" },
   { value: "tier_comp", label: "Free Tier Trial" },
@@ -72,13 +73,23 @@ export default function FieldVendorSignupModal({ open, onClose, adminUser, onCre
     promo_type: "tier_comp",
     promo_days: "30",
   });
+=======
+
+export default function FieldVendorSignupModal({ open, onClose, adminUser, onCreated }) {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ owner_email: "", business_name: "", business_category: DEFAULT_CATEGORY, phone: "" });
+>>>>>>> origin/main
   const [saving, setSaving] = useState(false);
   const [created, setCreated] = useState(null);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const resetAndClose = () => {
+<<<<<<< HEAD
     setForm({ owner_email: "", business_name: "", business_category: DEFAULT_CATEGORY, phone: "", promo_type: "tier_comp", promo_days: "30" });
+=======
+    setForm({ owner_email: "", business_name: "", business_category: DEFAULT_CATEGORY, phone: "" });
+>>>>>>> origin/main
     setCreated(null);
     setSaving(false);
     onClose?.();
@@ -155,7 +166,11 @@ export default function FieldVendorSignupModal({ open, onClose, adminUser, onCre
         owner_name: ownerEmail,
         ...identityFields,
         vendor_tier: "free",
+<<<<<<< HEAD
         subscription_status: "inactive",
+=======
+        subscription_status: "active",
+>>>>>>> origin/main
         vendor_setup_status: "setup_required",
         extra_users_count: 0,
         extra_pins_count: 0,
@@ -170,6 +185,7 @@ export default function FieldVendorSignupModal({ open, onClose, adminUser, onCre
         base44.entities.VendorAccountIdentityReservation.update(reservationSlug.id, { vendor_account_id: account.id, status: "assigned" }),
       ]);
 
+<<<<<<< HEAD
       const promo = await createSignupPromo({
         account,
         promoType: form.promo_type,
@@ -177,6 +193,8 @@ export default function FieldVendorSignupModal({ open, onClose, adminUser, onCre
         adminUser,
       });
 
+=======
+>>>>>>> origin/main
       await base44.entities.AdminAuditLog.create({
         user_id: adminUser?.id,
         admin_employee_id: adminUser?.employee_id || adminUser?.email || adminUser?.id || "unknown",
@@ -190,9 +208,12 @@ export default function FieldVendorSignupModal({ open, onClose, adminUser, onCre
           business_name: account.business_name,
           owner_email: account.owner_email,
           source: "field_vendor_signup",
+<<<<<<< HEAD
           promo_type: form.promo_type,
           promo_days: form.promo_type === "none" ? null : Number(form.promo_days || 30),
           promo_id: promo?.id || null,
+=======
+>>>>>>> origin/main
           created_at: now,
         }),
       }).catch(() => null);
@@ -224,10 +245,15 @@ export default function FieldVendorSignupModal({ open, onClose, adminUser, onCre
         });
         await base44.entities.VendorAccount.update(created.id, { current_vendor_pins: 1 });
       }
+<<<<<<< HEAD
       const accountId = created.id;
       const pinId = pin.id;
       resetAndClose();
       navigate(`/VendorPinPreview?pinId=${encodeURIComponent(pinId)}&accountId=${encodeURIComponent(accountId)}&fieldDemo=1`);
+=======
+      resetAndClose();
+      navigate(`/VendorPinPreview?pinId=${encodeURIComponent(pin.id)}&accountId=${encodeURIComponent(created.id)}&fieldDemo=1`);
+>>>>>>> origin/main
     } catch (error) {
       console.error("Could not start field demo", error);
       toast.error("Vendor was created, but the demo pin could not be opened.");
@@ -236,14 +262,22 @@ export default function FieldVendorSignupModal({ open, onClose, adminUser, onCre
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && resetAndClose()}>
+<<<<<<< HEAD
       <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
+=======
+      <DialogContent className="max-w-md rounded-2xl">
+>>>>>>> origin/main
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Store className="h-5 w-5" /> Field Vendor Signup</DialogTitle>
         </DialogHeader>
 
         {!created ? (
           <div className="space-y-4">
+<<<<<<< HEAD
             <p className="text-sm text-slate-600">Create a claimable Vendor Account in under a minute. The vendor can finish setup and choose a paid subscription later.</p>
+=======
+            <p className="text-sm text-slate-600">Create a claimable Vendor Account in under a minute. The vendor can finish setup later.</p>
+>>>>>>> origin/main
             <div className="space-y-1.5">
               <Label>Business Name *</Label>
               <Input value={form.business_name} onChange={(e) => update("business_name", e.target.value)} placeholder="Business name" />
@@ -251,7 +285,11 @@ export default function FieldVendorSignupModal({ open, onClose, adminUser, onCre
             <div className="space-y-1.5">
               <Label>Vendor Email *</Label>
               <Input type="email" value={form.owner_email} onChange={(e) => update("owner_email", e.target.value)} placeholder="vendor@example.com" />
+<<<<<<< HEAD
               <p className="text-xs text-slate-500">They must use this same email to claim the account.</p>
+=======
+              <p className="text-xs text-slate-500">They should use this same email when they sign in so Yardit can offer the account to them.</p>
+>>>>>>> origin/main
             </div>
             <div className="space-y-1.5">
               <Label>Category</Label>
@@ -271,6 +309,7 @@ export default function FieldVendorSignupModal({ open, onClose, adminUser, onCre
               <Label>Phone <span className="font-normal text-slate-400">(optional)</span></Label>
               <Input value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="Vendor phone" />
             </div>
+<<<<<<< HEAD
 
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-3">
               <p className="text-xs font-bold uppercase tracking-wide text-amber-800">Signup Promo</p>
@@ -292,6 +331,8 @@ export default function FieldVendorSignupModal({ open, onClose, adminUser, onCre
               )}
             </div>
 
+=======
+>>>>>>> origin/main
             <Button onClick={createFieldVendor} disabled={saving} className="w-full bg-[#2C4F4E] text-white hover:bg-[#3d6b6a]">
               {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating...</> : "Create Vendor & Start Demo"}
             </Button>
@@ -303,7 +344,11 @@ export default function FieldVendorSignupModal({ open, onClose, adminUser, onCre
                 <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
                 <div>
                   <p className="font-bold text-[#2C4F4E]">{created.business_name} is ready</p>
+<<<<<<< HEAD
                   <p className="text-sm text-slate-600">Account created. The vendor can claim it, finish setup, and subscribe from their own Yardit login.</p>
+=======
+                  <p className="text-sm text-slate-600">Free account created. Setup can be finished later from the vendor's own login.</p>
+>>>>>>> origin/main
                   <p className="mt-1 text-xs text-slate-500">Account #{created.vendor_account_number || created.id}</p>
                 </div>
               </div>
