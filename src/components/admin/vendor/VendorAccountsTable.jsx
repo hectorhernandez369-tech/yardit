@@ -66,6 +66,7 @@ export default function VendorAccountsTable({ user }) {
   const [editAccount, setEditAccount] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showFieldSignup, setShowFieldSignup] = useState(false);
+  const [postCreatePromoAccount, setPostCreatePromoAccount] = useState(null);
   const isMasterAdmin = canAdminPreviewOrganization(user) || user?.role === "super_master";
   const canEnterOrganizationDashboard = canAdminPreviewOrganization(user);
 
@@ -260,9 +261,10 @@ export default function VendorAccountsTable({ user }) {
         open={showFieldSignup}
         onClose={() => setShowFieldSignup(false)}
         adminUser={user}
-        onCreated={() => {
+        onCreated={(account) => {
           queryClient.invalidateQueries({ queryKey: ["vendorAccountsAdmin"] });
           queryClient.invalidateQueries({ queryKey: ["vendorPinsAdmin"] });
+          setPostCreatePromoAccount(account);
         }}
       />
 
@@ -271,7 +273,10 @@ export default function VendorAccountsTable({ user }) {
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         adminUser={user}
-        onCreated={() => queryClient.invalidateQueries({ queryKey: ["vendorAccountsAdmin"] })}
+        onCreated={(account) => {
+          queryClient.invalidateQueries({ queryKey: ["vendorAccountsAdmin"] });
+          setPostCreatePromoAccount(account);
+        }}
       />
 
       <AdminEditVendorModal
@@ -282,14 +287,20 @@ export default function VendorAccountsTable({ user }) {
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["vendorAccountsAdmin"] })}
       />
 
-      {/* Promo Modal */}
+      {/* Existing Promo Modal — reused after assisted creation and from Apply Promo */}
       <VendorPromoModal
-        open={!!promoAccount}
-        onClose={() => setPromoAccount(null)}
-        account={promoAccount}
+        open={!!(promoAccount || postCreatePromoAccount)}
+        onClose={() => {
+          setPromoAccount(null);
+          setPostCreatePromoAccount(null);
+        }}
+        account={promoAccount || postCreatePromoAccount}
         user={user}
         onPromoCreated={() => {
-          queryClient.invalidateQueries({ queryKey: ["vendorPromos", promoAccount?.id] });
+          const activeAccount = promoAccount || postCreatePromoAccount;
+          queryClient.invalidateQueries({ queryKey: ["vendorPromos", activeAccount?.id] });
+          setPromoAccount(null);
+          setPostCreatePromoAccount(null);
         }}
       />
     </div>
