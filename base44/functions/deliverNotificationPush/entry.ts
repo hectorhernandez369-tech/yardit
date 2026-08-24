@@ -16,6 +16,9 @@ const PUSH_TYPES = new Set([
   'neighborhood_sale_warning_48h',
   'neighborhood_sale_active',
   'neighborhood_sale_participant_standalone',
+  'neighborhood_sale_participant_removed',
+  'neighborhood_sale_committed',
+  'join_invitation',
   'neighborhood_sale_fallback_applied',
   'neighborhood_sale_fallback_cancelled',
   'neighborhood_sale_payment_retry_scheduled',
@@ -38,6 +41,8 @@ const PUSH_TYPES = new Set([
   'league_join_denied',
   'league_team_assignment_completed',
   'event_collaboration_accepted',
+  'event_collaboration_declined',
+  'vendor_message',
   'launch_alert',
 ]);
 const ADMIN_INBOX_TYPES = new Set(['admin', 'admin_note', 'admin_report', 'admin_case', 'admin_billing', 'admin_vendor_account_auto_created', 'billing_cycles']);
