@@ -72,11 +72,13 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     const handleReady = () => refresh();
     const handleFocus = () => refresh();
     window.addEventListener("yardit:onesignal-ready", handleReady);
+    window.addEventListener("yardit:push-subscription-change", handleReady);
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleFocus);
     return () => {
       cancelled = true;
       window.removeEventListener("yardit:onesignal-ready", handleReady);
+      window.removeEventListener("yardit:push-subscription-change", handleReady);
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleFocus);
     };
