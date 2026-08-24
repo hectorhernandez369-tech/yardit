@@ -27,6 +27,9 @@
           });
           window.__YARDIT_ONESIGNAL_INSTANCE__ = OneSignal;
           window.__YARDIT_ONESIGNAL_READY__ = true;
+          OneSignal.User?.PushSubscription?.addEventListener?.("change", function(event) {
+            window.dispatchEvent(new CustomEvent("yardit:push-subscription-change", { detail: event?.current || {} }));
+          });
           window.dispatchEvent(new Event("yardit:onesignal-ready"));
         } catch (error) {
           window.__YARDIT_ONESIGNAL_READY__ = false;
