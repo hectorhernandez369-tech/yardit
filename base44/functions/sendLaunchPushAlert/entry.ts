@@ -86,7 +86,19 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: result.errors || result.error || 'OneSignal rejected the push alert.' });
     }
 
-    return Response.json({ success: true, notification_id: result.id, recipients: result.recipients || 0, bell_notifications_created: bellRecords.length, deep_link: notificationPath });
+    const recipients = Number(result.recipients || 0);
+    if (recipients <= 0) {
+      return Response.json({
+        success: false,
+        error: 'OneSignal found 0 active push recipients. No device push was delivered.',
+        notification_id: result.id || null,
+        recipients: 0,
+        bell_notifications_created: bellRecords.length,
+        deep_link: notificationPath,
+      });
+    }
+
+    return Response.json({ success: true, notification_id: result.id, recipients, bell_notifications_created: bellRecords.length, deep_link: notificationPath });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
