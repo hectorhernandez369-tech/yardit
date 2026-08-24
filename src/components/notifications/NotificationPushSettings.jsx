@@ -74,8 +74,10 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
 
   const savePushSubscription = async (status, subscriptionId) => {
     const existing = await base44.entities.PushSubscription.filter({ user_id: user.id });
-    const matching = existing.find((row) => subscriptionId && row.onesignal_subscription_id === subscriptionId) || newestRecord(existing);
-    const data = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: status, is_active: status === "enabled", user_agent: navigator.userAgent, updated_at: new Date().toISOString() };
+    const currentUserAgent = navigator.userAgent;
+    const matching = existing.find((row) => subscriptionId && row.onesignal_subscription_id === subscriptionId)
+      || existing.find((row) => row.user_agent === currentUserAgent);
+    const data = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: status, is_active: status === "enabled", user_agent: currentUserAgent, updated_at: new Date().toISOString() };
     if (matching) await base44.entities.PushSubscription.update(matching.id, data);
     else await base44.entities.PushSubscription.create({ ...data, created_at: new Date().toISOString() });
     queryClient.invalidateQueries({ queryKey: ["pushSubscription", user?.id] });
