@@ -28,6 +28,13 @@ const defaults = {
   marketing_push_enabled: false
 };
 
+const recordTimestamp = (record) => {
+  const value = record?.last_updated_at || record?.updated_at || record?.updated_date || record?.created_at || record?.created_date;
+  const parsed = value ? new Date(value).getTime() : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+const newestRecord = (records = []) => [...records].sort((a, b) => recordTimestamp(b) - recordTimestamp(a))[0] || null;
+
 const pushErrorMessage = (status) => status === "needs_install" ? "Install Yardit to your Home Screen first, then open the installed app to enable push notifications." :
   status === "onesignal_not_ready" ? "The push service is still loading. Please wait a few seconds and try again." :
   status === "registration_timeout" ? "Notifications were allowed, but browser registration did not finish. Refresh Yardit and try again." :
@@ -46,13 +53,13 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
 
   const { data: preference } = useQuery({
     queryKey: ["notificationPreference", user?.id],
-    queryFn: async () => (await base44.entities.NotificationPreference.filter({ user_id: user.id }))[0] || null,
+    queryFn: async () => newestRecord(await base44.entities.NotificationPreference.filter({ user_id: user.id })),
     enabled: !!user?.id,
   });
 
   const { data: pushSubscription } = useQuery({
     queryKey: ["pushSubscription", user?.id],
-    queryFn: async () => (await base44.entities.PushSubscription.filter({ user_id: user.id }))[0] || null,
+    queryFn: async () => newestRecord(await base44.entities.PushSubscription.filter({ user_id: user.id })),
     enabled: !!user?.id,
   });
 
@@ -67,8 +74,9 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
 
   const savePushSubscription = async (status, subscriptionId) => {
     const existing = await base44.entities.PushSubscription.filter({ user_id: user.id });
+    const matching = existing.find((row) => subscriptionId && row.onesignal_subscription_id === subscriptionId) || newestRecord(existing);
     const data = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: status, is_active: status === "enabled", user_agent: navigator.userAgent, updated_at: new Date().toISOString() };
-    if (existing[0]) await base44.entities.PushSubscription.update(existing[0].id, data);
+    if (matching) await base44.entities.PushSubscription.update(matching.id, data);
     else await base44.entities.PushSubscription.create({ ...data, created_at: new Date().toISOString() });
     queryClient.invalidateQueries({ queryKey: ["pushSubscription", user?.id] });
   };
