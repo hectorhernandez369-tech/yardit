@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     const requesterName = requester?.full_name || requester?.email || 'Someone';
     const eventTitle = sale?.title || 'your Neighborhood Sale';
 
-    const notification = await base44.asServiceRole.entities.Notification.create({
+    const notification = {
       userId: joinRequest.ownerUserId,
       user_id: joinRequest.ownerUserId,
       title: 'New Join Request',
@@ -48,6 +48,13 @@ Deno.serve(async (req) => {
       related_entity_id: joinRequest.saleListingId,
       read: false,
       is_read: false,
+      recipient: 'Neighborhood Sale organizer',
+      trigger: 'A seller requests to join a Neighborhood Sale',
+      delivery_methods: ['push', 'bell'],
+      deep_link: '/MyListings',
+      dedupe_key: `join_request_${joinRequest.id}_${joinRequest.ownerUserId}`,
+      registry_status: 'active',
+      registry_version: '2026-08-24',
       metadata: {
         join_request_id: joinRequest.id,
         sale_listing_id: joinRequest.saleListingId,
@@ -57,9 +64,10 @@ Deno.serve(async (req) => {
         requester_name: requester?.full_name || '',
         event_title: eventTitle,
       },
-    });
-
-    return Response.json({ success: true, notification_id: notification.id });
+    };
+    const response = await base44.asServiceRole.functions.invoke('deliverNotificationPush', notification);
+    const delivery = response?.data || response || {};
+    return Response.json({ success: delivery.success === true, notification_id: delivery.history_notification_id || null, delivery });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
