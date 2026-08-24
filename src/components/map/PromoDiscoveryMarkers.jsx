@@ -282,7 +282,7 @@ export default function PromoDiscoveryMarkers({ promos = [], currentZoom = 13, c
                 </h3>
 
                 <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                  Yardit is officially launching in Lindsay July 24th–26th.
+                  Yardit is officially launching in Lindsay September 11th–13th.
                 </p>
 
                 <p className="mt-1 text-sm leading-relaxed text-slate-600">
