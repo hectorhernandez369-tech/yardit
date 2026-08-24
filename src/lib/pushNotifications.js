@@ -189,7 +189,8 @@ export function canStorePushStatus(status) {
 }
 
 export function pushStatusLabel(status) {
-  if (status === "enabled") return "Enabled";
+  if (status === "enabled") return "Connected";
+  if (status === "permission_granted") return "Allowed, checking connection";
   if (status === "not_connected") return "Allowed, not connected";
   if (status === "blocked") return "Blocked by browser/device";
   if (status === "needs_install") return "Install app first";
@@ -218,51 +219,36 @@ export async function enableOneSignalPush({ userId } = {}) {
     return { status: preflightFailure, subscriptionId: "" };
   }
 
-  if (!window.OneSignalDeferred) {
-    logPushDebug("onesignal_not_ready");
+  const OneSignal = window.__YARDIT_ONESIGNAL_INSTANCE__;
+  if (!OneSignal || window.__YARDIT_ONESIGNAL_READY__ !== true) {
+    logPushDebug("onesignal_not_ready", { initError: window.__YARDIT_ONESIGNAL_INIT_ERROR__ || "" });
     return { status: "onesignal_not_ready", subscriptionId: "" };
   }
 
-  return new Promise((resolve) => {
-    let resolved = false;
-    const finish = (result) => {
-      if (resolved) return;
-      resolved = true;
-      logPushDebug("enable_finish", result);
-      resolve(result);
-    };
+  try {
+    // This call is intentionally executed directly from the user's button/toggle action.
+    // When browser permission is still undecided, it opens the native Allow/Block prompt.
+    if (window.Notification.permission !== "granted") {
+      const permissionRequest = await withTimeout(OneSignal.Notifications.requestPermission(), 12000, "timeout");
+      logPushDebug("permission_result", { permissionResult: getPermissionResult(), permissionRequest });
+    }
 
-    const oneSignalReadyTimeout = setTimeout(() => finish({ status: "onesignal_not_ready", subscriptionId: "" }), 15000);
+    if (window.Notification.permission !== "granted") {
+      return { status: window.Notification.permission === "denied" ? "blocked" : "not_enabled", subscriptionId: "" };
+    }
 
-    window.OneSignalDeferred.push(async (OneSignal) => {
-      clearTimeout(oneSignalReadyTimeout);
-      try {
-        const permissionRequest = window.Notification.permission === "granted"
-          ? "granted"
-          : await withTimeout(OneSignal.Notifications.requestPermission(), 12000, "timeout");
-        logPushDebug("permission_result", { permissionResult: getPermissionResult(), permissionRequest });
-        if (window.Notification.permission !== "granted") {
-          finish({ status: window.Notification.permission === "denied" ? "blocked" : "not_enabled", subscriptionId: "" });
-          return;
-        }
+    const serviceWorkerReady = await waitForServiceWorkerReady();
+    if (!serviceWorkerReady) return { status: "service_worker_not_ready", subscriptionId: "" };
 
-        const serviceWorkerReady = await waitForServiceWorkerReady();
-        if (!serviceWorkerReady) {
-          finish({ status: "service_worker_not_ready", subscriptionId: "" });
-          return;
-        }
-
-        await withTimeout(OneSignal.User.PushSubscription.optIn(), 12000, null);
-        if (userId && OneSignal.login) await withTimeout(OneSignal.login(String(userId)), 12000, null);
-        await withTimeout(OneSignal.User.PushSubscription.optIn(), 12000, null);
-        const subscriptionId = await waitForOneSignalSubscriptionId(OneSignal);
-        finish({ status: subscriptionId ? "enabled" : "registration_timeout", subscriptionId });
-      } catch (error) {
-        logPushDebug("enable_error", { error: error?.message || String(error) });
-        finish({ status: "not_enabled", subscriptionId: "" });
-      }
-    });
-  });
+    if (userId && OneSignal.login) await withTimeout(OneSignal.login(String(userId)), 12000, null);
+    await withTimeout(OneSignal.User.PushSubscription.optIn(), 12000, null);
+    const subscriptionId = await waitForOneSignalSubscriptionId(OneSignal);
+    const optedIn = OneSignal.User?.PushSubscription?.optedIn === true;
+    return { status: subscriptionId && optedIn ? "enabled" : "registration_timeout", subscriptionId, optedIn };
+  } catch (error) {
+    logPushDebug("enable_error", { error: error?.message || String(error) });
+    return { status: "not_enabled", subscriptionId: "", error: error?.message || String(error) };
+  }
 }
 
 export async function getOneSignalSubscriptionId() {
