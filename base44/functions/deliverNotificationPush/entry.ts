@@ -103,6 +103,11 @@ function isPushAllowedByPreferences(type, pref) {
   return pref[getPreferenceField(type)] !== false;
 }
 
+function notificationAssetUrl(path: string) {
+  const base = String(Deno.env.get('APP_BASE_URL') || 'https://yardit.app').trim().replace(/\/$/, '');
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 async function sendOneSignal(subscriptionId, title, message, url) {
   const rawApiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
   if (!rawApiKey) throw new Error('OneSignal API key is not configured.');
@@ -110,7 +115,15 @@ async function sendOneSignal(subscriptionId, title, message, url) {
   const response = await fetch('https://api.onesignal.com/notifications', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json; charset=utf-8', Authorization: `Key ${apiKey}` },
-    body: JSON.stringify({ app_id: ONESIGNAL_APP_ID, include_subscription_ids: [subscriptionId], headings: { en: title }, contents: { en: message }, ...(url ? { url } : {}) })
+    body: JSON.stringify({
+      app_id: ONESIGNAL_APP_ID,
+      include_subscription_ids: [subscriptionId],
+      headings: { en: title },
+      contents: { en: message },
+      chrome_web_icon: notificationAssetUrl('/yardit-notification-icon-192.png'),
+      chrome_web_badge: notificationAssetUrl('/yardit-notification-badge-72.png'),
+      ...(url ? { url } : {})
+    })
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(JSON.stringify(result.errors || result.error || result));
