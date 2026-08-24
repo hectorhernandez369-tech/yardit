@@ -281,18 +281,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    const logId = await saveDeliveryLog(base44, retryLog, compactRecord({
+    const logId = await saveDeliveryLog(base44, retryLog, {
       user_id: userId,
       notification_id: historyNotificationId,
       notification_type: type,
-      source_type: notification.related_entity_type,
-      source_id: notification.related_entity_id,
+      source_type: notification.related_entity_type || '',
+      source_id: notification.related_entity_id || '',
       push_sent: true,
       push_sent_at: new Date().toISOString(),
       onesignal_player_id: delivery.target === 'subscription_ids' ? subscriptionIds[0] : `external_id:${userId}`,
       error_message: '',
       dedupe_key: dedupeKey,
-    }));
+    });
 
     return Response.json({
       success: true,
