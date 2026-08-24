@@ -55,7 +55,9 @@ export async function evaluatePushPromptEligibility(user) {
   const runtimeSubscriptionId = await getOneSignalSubscriptionId();
   const preference = newestRecord(await base44.entities.NotificationPreference.filter({ user_id: user.id }));
   const subscriptions = await base44.entities.PushSubscription.filter({ user_id: user.id });
-  const subscription = subscriptions.find((row) => runtimeSubscriptionId && row.onesignal_subscription_id === runtimeSubscriptionId) || newestRecord(subscriptions);
+  const subscription = runtimeSubscriptionId
+    ? subscriptions.find((row) => row.onesignal_subscription_id === runtimeSubscriptionId)
+    : newestRecord(subscriptions);
   const alreadySubscribed = preference?.push_enabled === true && subscription?.permission_status === "enabled" && subscription?.is_active === true && subscription?.onesignal_subscription_id;
   if (alreadySubscribed) return { show: false, reason: "already_subscribed", browserStatus, subscriptionId: subscription.onesignal_subscription_id || runtimeSubscriptionId };
 
@@ -81,8 +83,10 @@ export async function enablePushPromptSubscription(user) {
 
   if (canStorePushStatus(result.status)) {
     const existingRows = await base44.entities.PushSubscription.filter({ user_id: user.id });
-    const existingSubscription = existingRows.find((row) => subscriptionId && row.onesignal_subscription_id === subscriptionId) || newestRecord(existingRows);
-    const data = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: result.status, is_active: result.status === "enabled", user_agent: navigator.userAgent, updated_at: new Date().toISOString() };
+    const currentUserAgent = navigator.userAgent;
+    const existingSubscription = existingRows.find((row) => subscriptionId && row.onesignal_subscription_id === subscriptionId)
+      || existingRows.find((row) => row.user_agent === currentUserAgent);
+    const data = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: result.status, is_active: result.status === "enabled", user_agent: currentUserAgent, updated_at: new Date().toISOString() };
     if (existingSubscription) await base44.entities.PushSubscription.update(existingSubscription.id, data);
     else await base44.entities.PushSubscription.create({ ...data, created_at: new Date().toISOString() });
   }
