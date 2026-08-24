@@ -252,12 +252,12 @@ export async function enableOneSignalPush({ userId } = {}) {
 }
 
 export async function getOneSignalSubscriptionId() {
-  if (typeof window === "undefined" || !window.OneSignalDeferred) return "";
-  return new Promise((resolve) => {
-    window.OneSignalDeferred.push(async (OneSignal) => {
-      const subscriptionId = OneSignal.User?.PushSubscription?.id || "";
-      logPushDebug("get_subscription_id", { subscriptionId });
-      resolve(subscriptionId);
-    });
-  });
+  if (typeof window === "undefined") return "";
+  const OneSignal = window.__YARDIT_ONESIGNAL_INSTANCE__;
+  if (OneSignal && window.__YARDIT_ONESIGNAL_READY__ === true) {
+    const subscriptionId = OneSignal.User?.PushSubscription?.id || "";
+    logPushDebug("get_subscription_id", { subscriptionId });
+    return subscriptionId;
+  }
+  return "";
 }
