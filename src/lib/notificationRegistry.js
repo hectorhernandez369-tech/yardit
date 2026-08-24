@@ -393,6 +393,15 @@ export const NOTIFICATION_REGISTRY = {
     message: "Yardit has a launch update.",
     deep_link: "/ComingSoon",
   },
+  launch_alert: {
+    recipient: "Yardit users with push notifications enabled",
+    trigger: "Master admin sends a launch or major app-wide alert",
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
+    status: "active",
+    title: "Yardit alert",
+    message: "Important Yardit update.",
+    deep_link: "/Notifications",
+  },
   report_received: {
     recipient: "reporting user",
     trigger: "User submits a report",
