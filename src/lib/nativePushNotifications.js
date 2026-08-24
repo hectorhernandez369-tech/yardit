@@ -9,6 +9,12 @@ export function isNativeYarditApp() {
   return Capacitor.isNativePlatform();
 }
 
+export function getNativePushPlatform() {
+  if (!isNativeYarditApp()) return 'web';
+  const platform = Capacitor.getPlatform();
+  return platform === 'ios' ? 'ios' : platform === 'android' ? 'android' : 'web';
+}
+
 function emitNativePushChange(detail = {}) {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent('yardit:push-subscription-change', { detail }));

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, getRuntimePushConnection, pushStatusLabel } from "@/lib/pushNotifications";
 import { hasVerifiedPrimaryAddress } from "@/lib/trustActions";
-import { isNativeYarditApp } from "@/lib/nativePushNotifications";
+import { getNativePushPlatform, isNativeYarditApp } from "@/lib/nativePushNotifications";
 import PushCategoryRow from "./PushCategoryRow";
 import AlertsPushGroup from "./AlertsPushGroup";
 import VendorSubscriptionManager from "./VendorSubscriptionManager";
@@ -36,6 +36,21 @@ const recordTimestamp = (record) => {
 };
 const newestRecord = (records = []) => [...records].sort((a, b) => recordTimestamp(b) - recordTimestamp(a))[0] || null;
 
+const PUSH_DEVICE_KEY = "yardit_push_device_key_v1";
+const getPushDeviceKey = () => {
+  if (typeof window === "undefined") return "";
+  try {
+    let key = localStorage.getItem(PUSH_DEVICE_KEY);
+    if (!key) {
+      key = globalThis.crypto?.randomUUID?.() || `yd-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(PUSH_DEVICE_KEY, key);
+    }
+    return key;
+  } catch {
+    return "";
+  }
+};
+
 const pushErrorMessage = (status) => status === "needs_install" ? "Install Yardit to your Home Screen first, then open the installed app to enable push notifications." :
   status === "onesignal_not_ready" ? "The push service is still loading. Please wait a few seconds and try again." :
   status === "registration_timeout" ? "Notifications were allowed, but browser registration did not finish. Refresh Yardit and try again." :
@@ -49,6 +64,8 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
   const [browserStatus, setBrowserStatus] = useState("not_enabled");
   const [runtimeSubscriptionId, setRuntimeSubscriptionId] = useState("");
   const [runtimeConnected, setRuntimeConnected] = useState(false);
+  const [runtimePushToken, setRuntimePushToken] = useState("");
+  const [runtimePlatform, setRuntimePlatform] = useState(isNativeYarditApp() ? getNativePushPlatform() : "web");
   const [enabling, setEnabling] = useState(false);
   const verifiedAddress = hasVerifiedPrimaryAddress(user);
 
@@ -57,6 +74,8 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     setBrowserStatus(runtime.connected ? "enabled" : runtime.browserStatus);
     setRuntimeSubscriptionId(runtime.subscriptionId || "");
     setRuntimeConnected(runtime.connected === true);
+    setRuntimePushToken(runtime.pushToken || "");
+    setRuntimePlatform(runtime.platform || (isNativeYarditApp() ? getNativePushPlatform() : "web"));
     return runtime;
   };
 
@@ -68,6 +87,8 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
       setBrowserStatus(runtime.connected ? "enabled" : runtime.browserStatus);
       setRuntimeSubscriptionId(runtime.subscriptionId || "");
       setRuntimeConnected(runtime.connected === true);
+      setRuntimePushToken(runtime.pushToken || "");
+      setRuntimePlatform(runtime.platform || (isNativeYarditApp() ? getNativePushPlatform() : "web"));
     };
     refresh();
     const handleReady = () => refresh();
@@ -107,12 +128,25 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notificationPreference", user?.id] }),
   });
 
-  const savePushSubscription = async (status, subscriptionId) => {
+  const savePushSubscription = async (status, subscriptionId, runtime = {}) => {
     const existing = await base44.entities.PushSubscription.filter({ user_id: user.id });
-    const currentUserAgent = `${isNativeYarditApp() ? "native:" : "web:"}${navigator.userAgent}`;
+    const deviceKey = getPushDeviceKey();
+    const platform = runtime.platform || runtimePlatform || (isNativeYarditApp() ? getNativePushPlatform() : "web");
+    const pushToken = runtime.pushToken || runtimePushToken || "";
+    const currentUserAgent = `${platform}:${navigator.userAgent}`;
     const matching = existing.find((row) => subscriptionId && row.onesignal_subscription_id === subscriptionId)
-      || (!subscriptionId ? existing.find((row) => row.user_agent === currentUserAgent) : null);
-    const data = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: status, is_active: status === "enabled", user_agent: currentUserAgent, updated_at: new Date().toISOString() };
+      || (deviceKey ? existing.find((row) => row.device_key === deviceKey) : null);
+    const data = {
+      user_id: user.id,
+      onesignal_subscription_id: subscriptionId,
+      permission_status: status,
+      is_active: status === "enabled",
+      user_agent: currentUserAgent,
+      platform,
+      device_key: deviceKey,
+      push_token: pushToken,
+      updated_at: new Date().toISOString(),
+    };
     if (matching) await base44.entities.PushSubscription.update(matching.id, data);
     else await base44.entities.PushSubscription.create({ ...data, created_at: new Date().toISOString() });
     queryClient.invalidateQueries({ queryKey: ["pushSubscription", user?.id] });
@@ -121,7 +155,7 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
   useEffect(() => {
     if (!user?.id || !runtimeConnected || !runtimeSubscriptionId) return;
     const matching = pushSubscriptions.find((row) => row.onesignal_subscription_id === runtimeSubscriptionId && row.is_active === true && row.permission_status === "enabled");
-    if (!matching) savePushSubscription("enabled", runtimeSubscriptionId);
+    if (!matching) savePushSubscription("enabled", runtimeSubscriptionId, { platform: runtimePlatform, pushToken: runtimePushToken });
   }, [user?.id, runtimeConnected, runtimeSubscriptionId, pushSubscriptions]);
 
   const ensurePushPermissionForOptIn = async ({ showSuccess = false } = {}) => {
@@ -141,12 +175,14 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     try {
       const result = await enableOneSignalPush({ userId: user.id });
       const subscriptionId = result.subscriptionId || await getOneSignalSubscriptionId();
-      if (canStorePushStatus(result.status)) await savePushSubscription(result.status, subscriptionId);
+      if (canStorePushStatus(result.status)) await savePushSubscription(result.status, subscriptionId, result);
 
       if (result.status === "enabled" && subscriptionId) {
         setBrowserStatus("enabled");
         setRuntimeSubscriptionId(subscriptionId);
         setRuntimeConnected(true);
+        setRuntimePushToken(result.pushToken || "");
+        setRuntimePlatform(result.platform || runtimePlatform);
         localStorage.removeItem("yardit_last_push_error");
         await saveMutation.mutateAsync({ push_enabled: true });
         if (showSuccess) toast.success("This device is now connected for Yardit push notifications");
