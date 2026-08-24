@@ -54,8 +54,10 @@ export default function VendorNotifyButton({ account }) {
     }
     if (subscriptionId) {
       const existingPushRows = await base44.entities.PushSubscription.filter({ user_id: user.id });
-      const matchingPushRow = existingPushRows.find((row) => row.onesignal_subscription_id === subscriptionId) || newestRecord(existingPushRows);
-      const pushData = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: "enabled", is_active: true, user_agent: navigator.userAgent, updated_at: new Date().toISOString() };
+      const currentUserAgent = navigator.userAgent;
+      const matchingPushRow = existingPushRows.find((row) => row.onesignal_subscription_id === subscriptionId)
+        || existingPushRows.find((row) => row.user_agent === currentUserAgent);
+      const pushData = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: "enabled", is_active: true, user_agent: currentUserAgent, updated_at: new Date().toISOString() };
       if (matchingPushRow) await base44.entities.PushSubscription.update(matchingPushRow.id, pushData);
       else await base44.entities.PushSubscription.create({ ...pushData, created_at: new Date().toISOString() });
     }
