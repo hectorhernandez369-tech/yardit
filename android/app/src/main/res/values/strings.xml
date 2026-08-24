@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Yardit</string>
+    <string name="title_activity_main">Yardit</string>
+    <string name="package_name">com.base690f554506edf795e5d84121.app</string>
+    <string name="custom_url_scheme">com.base690f554506edf795e5d84121.app</string>
+</resources>
