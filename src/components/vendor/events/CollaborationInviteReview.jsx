@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,7 +21,7 @@ export default function CollaborationInviteReview({ invite, event, receivingOrga
       : { status, declined_at: now, responded_at: now };
 
     await base44.entities.EventCollaborator.update(invite.id, updateData);
-    await base44.entities.Notification.create({
+    await sendYarditNotification({
       userId: event.organizer_user_id,
       user_id: event.organizer_user_id,
       user_email: invitingOrganization?.owner_email || invitingOrganization?.email,
