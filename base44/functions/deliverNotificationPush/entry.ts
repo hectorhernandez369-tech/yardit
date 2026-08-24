@@ -35,6 +35,9 @@ const PUSH_TYPES = new Set([
   'league_invite_received',
   'league_join_request',
   'league_join_approved',
+  'league_join_denied',
+  'league_team_assignment_completed',
+  'event_collaboration_accepted',
   'launch_alert',
 ]);
 const ADMIN_INBOX_TYPES = new Set(['admin', 'admin_note', 'admin_report', 'admin_case', 'admin_billing', 'admin_vendor_account_auto_created', 'billing_cycles']);
