@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -63,7 +64,7 @@ export default function TeamLeagueConnections({ account, user, onRefresh }) {
       created_at: now,
     });
     if (league.owner_user_id) {
-      await base44.entities.Notification.create({ user_id: league.owner_user_id, userId: league.owner_user_id, title: "New team join request", message: `${account.business_name} is requesting to join ${league.business_name}.`, type: "league_join_request", related_entity_type: "LeagueJoinRequest", deep_link: "/LeagueTeamDashboard?tab=leagues" }).catch(() => {});
+      await sendYarditNotification({ user_id: league.owner_user_id, userId: league.owner_user_id, title: "New team join request", message: `${account.business_name} is requesting to join ${league.business_name}.`, type: "league_join_request", related_entity_type: "LeagueJoinRequest", deep_link: "/LeagueTeamDashboard?tab=leagues" }).catch(() => {});
     }
     toast.success("Request sent to the League.");
     setMessage("");
