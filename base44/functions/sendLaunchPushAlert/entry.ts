@@ -67,6 +67,8 @@ Deno.serve(async (req) => {
       included_segments: ['All'],
       headings: { en: cleanTitle },
       contents: { en: cleanMessage },
+      chrome_web_icon: appUrl('/yardit-notification-icon-192.png'),
+      chrome_web_badge: appUrl('/yardit-notification-badge-72.png'),
       ...(launchUrl ? { url: launchUrl } : {})
     };
 
