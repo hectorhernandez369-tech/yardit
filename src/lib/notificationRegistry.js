@@ -1,4 +1,4 @@
-export const NOTIFICATION_REGISTRY_VERSION = "2026-06-24";
+export const NOTIFICATION_REGISTRY_VERSION = "2026-08-24";
 
 export const DELIVERY = {
   PUSH: "push",
@@ -284,6 +284,51 @@ export const NOTIFICATION_REGISTRY = {
     title: "Vendor you follow checked in",
     message: "A vendor you follow checked in.",
     deep_link: "/VendorPublicPage",
+  },
+  league_team_connection: {
+    recipient: "team or league account owner",
+    trigger: "A league connection request is created for a team",
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
+    status: "active",
+    title: "League connection request",
+    message: "A league wants to connect with your team.",
+    deep_link: "/Notifications",
+  },
+  league_connected: {
+    recipient: "team or league account owner",
+    trigger: "A league/team connection is completed",
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
+    status: "active",
+    title: "League connection completed",
+    message: "Your team is now connected to the league.",
+    deep_link: "/Notifications",
+  },
+  league_invite: {
+    recipient: "invited league or team account owner",
+    trigger: "A league or team invitation is created",
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
+    status: "active",
+    title: "League invitation",
+    message: "You have a new league invitation.",
+    deep_link: "/Notifications",
+  },
+  league_connection_approved: {
+    recipient: "requesting league or team account owner",
+    trigger: "A league connection request is approved",
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
+    status: "active",
+    title: "League connection approved",
+    message: "Your league connection request was approved.",
+    deep_link: "/Notifications",
+  },
+  league_invite_received: {
+    recipient: "invited league or team account owner",
+    trigger: "Legacy league invitation notification is received",
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.BELL],
+    status: "active",
+    title: "League invitation",
+    message: "You have a new league invitation.",
+    deep_link: "/Notifications",
   },
   report_received: {
     recipient: "reporting user",
