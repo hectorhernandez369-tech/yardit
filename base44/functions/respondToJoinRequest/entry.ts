@@ -242,7 +242,7 @@ Deno.serve(async (req) => {
         userId: requesterUserId,
         title: 'Removed from Neighborhood Sale',
         message: 'Removed from neighborhood sale',
-        type: 'neighborhood_sale_participant_removed',
+        type: 'removed_from_neighborhood',
         relatedEntityId: requestId,
         metadata: { sale_listing_id: saleListingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle },
       });
