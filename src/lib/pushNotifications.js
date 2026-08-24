@@ -1,4 +1,4 @@
-import { enableNativePush, getNativePushConnection, getNativeSubscriptionId, isNativeYarditApp } from '@/lib/nativePushNotifications';
+import { enableNativePush, getNativePushConnection, getNativeSubscriptionId, isNativeYarditApp, logoutNativePushIdentity } from '@/lib/nativePushNotifications';
 
 export const PUSH_RADIUS_OPTIONS = [1, 2, 5, 10, 25];
 
@@ -267,4 +267,15 @@ export async function getOneSignalSubscriptionId() {
     return subscriptionId;
   }
   return "";
+}
+
+export async function logoutPushIdentity() {
+  if (isNativeYarditApp()) {
+    await logoutNativePushIdentity();
+    return;
+  }
+  if (typeof window === 'undefined') return;
+  const OneSignal = window.__YARDIT_ONESIGNAL_INSTANCE__;
+  if (!OneSignal || window.__YARDIT_ONESIGNAL_READY__ !== true || typeof OneSignal.logout !== 'function') return;
+  await withTimeout(OneSignal.logout(), 1500, null);
 }

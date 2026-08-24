@@ -200,3 +200,11 @@ export async function getNativeSubscriptionId() {
   if (!ready) return '';
   return (await OneSignal.User.pushSubscription.getIdAsync()) || '';
 }
+
+
+export async function logoutNativePushIdentity() {
+  if (!isNativeYarditApp()) return;
+  const ready = await initializeNativePush();
+  if (!ready) return;
+  await OneSignal.logout();
+}

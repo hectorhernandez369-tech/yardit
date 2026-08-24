@@ -9,6 +9,7 @@ import { normalizeUser } from '@/lib/normalizeUser';
 import { recordAuthDebugEvent } from '@/lib/authDebug';
 import { EVENTS_EXPERIENCE, EXPERIENCE_STORAGE_KEY } from '@/lib/experience';
 import { bindNativePushIdentity, isNativeYarditApp } from '@/lib/nativePushNotifications';
+import { logoutPushIdentity } from '@/lib/pushNotifications';
 
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
@@ -378,16 +379,19 @@ export const AuthProvider = ({ children }) => {
       finishLogout();
     };
 
-    const timeoutId = window.setTimeout(safeFinish, 400);
+    const timeoutId = window.setTimeout(safeFinish, 1800);
 
-    logUserActivity({
-      user_id: currentUser.id,
-      event_type: "logout",
-      event_label: "Logged Out",
-      target_type: "account",
-      target_id: currentUser.id,
-      source_page: window.location.pathname,
-    }).finally(() => {
+    Promise.allSettled([
+      logUserActivity({
+        user_id: currentUser.id,
+        event_type: "logout",
+        event_label: "Logged Out",
+        target_type: "account",
+        target_id: currentUser.id,
+        source_page: window.location.pathname,
+      }),
+      logoutPushIdentity(),
+    ]).finally(() => {
       window.clearTimeout(timeoutId);
       safeFinish();
     });
