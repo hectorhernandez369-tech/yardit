@@ -1,10 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const ONESIGNAL_APP_ID = "44d72407-6c94-4258-95f7-fd22c3157040";
-
 function appUrl(path = "/Notifications") {
-  const base = String(Deno.env.get('APP_BASE_URL') || '').trim().replace(/\/$/, '');
-  if (!base) return path;
+  const base = String(Deno.env.get('APP_BASE_URL') || 'https://yardit.app').trim().replace(/\/$/, '');
   if (/^https?:\/\//i.test(path)) return path;
   return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
@@ -13,11 +10,17 @@ function compactRecord(record) {
   return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined && value !== null && value !== ''));
 }
 
+function relationId(value) {
+  if (!value) return '';
+  if (typeof value === 'object') return String(value.id || value._id || '');
+  return String(value);
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
     const profiles = await base44.asServiceRole.entities.AdminProfile.filter({ user_id: user.id });
     const emailProfiles = profiles.length ? [] : await base44.asServiceRole.entities.AdminProfile.filter({ email: user.email?.toLowerCase() });
@@ -25,7 +28,7 @@ Deno.serve(async (req) => {
     const isMasterAdmin = ['master', 'super_master'].includes(user.role) || adminProfile?.role_label === 'master';
 
     if (!isMasterAdmin) {
-      return Response.json({ error: 'Only master admins can send launch push alerts.' }, { status: 403 });
+      return Response.json({ success: false, error: 'Only master admins can send launch push alerts.' }, { status: 403 });
     }
 
     const { title, message, url, deep_link, dry_run } = await req.json();
@@ -38,68 +41,56 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, dry_run: true, title: cleanTitle, message: cleanMessage, url: launchUrl, deep_link: notificationPath });
     }
 
-    const rawApiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
-    if (!rawApiKey) return Response.json({ error: 'OneSignal API key is not configured.' }, { status: 500 });
-    const apiKey = rawApiKey.trim().replace(/^Basic\s+/i, '').replace(/^Key\s+/i, '');
-
     const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 500);
     const dedupeBatch = `launch_push_${Date.now()}`;
-    const bellRecords = allUsers.map((recipientUser) => compactRecord({
-      userId: recipientUser.id,
-      user_id: recipientUser.id,
-      user_email: recipientUser.email,
-      title: cleanTitle,
-      message: cleanMessage,
-      read: false,
-      is_read: false,
-      type: 'account_update',
-      delivery_methods: ['bell'],
+    const results = [];
+
+    for (const recipientUser of allUsers) {
+      const recipientId = relationId(recipientUser.id);
+      if (!recipientId) continue;
+      try {
+        const response = await base44.asServiceRole.functions.invoke('deliverNotificationPush', compactRecord({
+          user_id: recipientId,
+          user_email: recipientUser.email,
+          title: cleanTitle,
+          message: cleanMessage,
+          type: 'launch_alert',
+          recipient: 'Yardit user',
+          trigger: 'Master admin launch alert',
+          delivery_methods: ['push', 'bell'],
+          deep_link: notificationPath,
+          dedupe_key: `${dedupeBatch}_${recipientId}`,
+          registry_status: 'active',
+          registry_version: '2026-08-24',
+          metadata: { source: 'launch_push_alert', url: launchUrl },
+        }));
+        const delivery = response?.data || response;
+        results.push({ user_id: recipientId, email: recipientUser.email, ...delivery });
+      } catch (error) {
+        results.push({ user_id: recipientId, email: recipientUser.email, success: false, error: error.message });
+      }
+    }
+
+    const delivered = results.filter((row) => row.success === true && Number(row.recipient_count || 0) > 0).length;
+    const deliveredDevices = results.reduce((sum, row) => sum + (row.success === true ? Number(row.recipient_count || 0) : 0), 0);
+    const noRecipient = results.filter((row) => row.reason === 'No active OneSignal recipient').length;
+    const disabled = results.filter((row) => row.reason === 'Push disabled').length;
+    const failed = results.filter((row) => row.success === false && !row.skipped).length;
+
+    return Response.json({
+      success: delivered > 0,
+      recipients: deliveredDevices,
+      users_delivered: delivered,
+      users_checked: results.length,
+      users_no_active_recipient: noRecipient,
+      users_push_disabled: disabled,
+      users_failed: failed,
+      bell_notifications_created: results.filter((row) => row.history_notification_id).length,
       deep_link: notificationPath,
-      dedupe_key: `${dedupeBatch}_${recipientUser.id}`,
-      registry_status: 'active',
-      registry_version: '2026-06-24',
-      metadata: { source: 'launch_push_alert', url: launchUrl }
-    }));
-    if (bellRecords.length) await base44.asServiceRole.entities.Notification.bulkCreate(bellRecords);
-
-    const payload = {
-      app_id: ONESIGNAL_APP_ID,
-      included_segments: ['All'],
-      headings: { en: cleanTitle },
-      contents: { en: cleanMessage },
-      chrome_web_icon: appUrl('/yardit-notification-icon-192.png'),
-      chrome_web_badge: appUrl('/yardit-notification-badge-72.png'),
-      ...(launchUrl ? { url: launchUrl } : {})
-    };
-
-    const response = await fetch('https://api.onesignal.com/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        Authorization: `Key ${apiKey}`
-      },
-      body: JSON.stringify(payload)
+      results,
+      error: delivered > 0 ? undefined : 'No active OneSignal recipient received the launch alert.',
     });
-
-    const result = await response.json();
-    if (!response.ok) {
-      return Response.json({ success: false, error: result.errors || result.error || 'OneSignal rejected the push alert.' });
-    }
-
-    const recipients = Number(result.recipients || 0);
-    if (recipients <= 0) {
-      return Response.json({
-        success: false,
-        error: 'OneSignal found 0 active push recipients. No device push was delivered.',
-        notification_id: result.id || null,
-        recipients: 0,
-        bell_notifications_created: bellRecords.length,
-        deep_link: notificationPath,
-      });
-    }
-
-    return Response.json({ success: true, notification_id: result.id, recipients, bell_notifications_created: bellRecords.length, deep_link: notificationPath });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 });
