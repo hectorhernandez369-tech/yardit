@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -360,7 +361,7 @@ export default function MyListingsPage() {
           if (l.listingType === "neighborhood_sale") {
             await base44.functions.invoke("syncNeighborhoodDeadlineJobs", { data: { ...l, status: "expired" }, event: { type: "update", entity_id: l.id } }).catch(console.error);
           }
-          const notif = await base44.entities.Notification.create({
+          const notif = await sendYarditNotification({
             user_id: user?.id, userId: user?.id, type: "listing_expired", title: "Listing Expired",
             message: `Your listing "${l.title}" has expired.`, related_entity_type: "listing", related_entity_id: l.id, is_read: false, read: false,
           });
@@ -508,7 +509,7 @@ export default function MyListingsPage() {
         });
       }
 
-      await base44.entities.Notification.create({
+      await sendYarditNotification({
         userId: selectedUser.id, user_id: selectedUser.id, user_email: selectedUser.email,
         title: "Neighborhood Sale Co-Host Invite",
         message: `${getUserDisplayName(user) || "A Yardit user"} invited you to co-host \"${editingListing.title}\".`,
@@ -556,7 +557,7 @@ export default function MyListingsPage() {
   const handleResendInvite = async (row) => {
     setIsUpdatingCoHost(true);
     try {
-      await base44.entities.Notification.create({
+      await sendYarditNotification({
         userId: row.userId, user_id: row.userId, user_email: row.email,
         title: "Neighborhood Sale Co-Host Invite",
         message: `${getUserDisplayName(user) || "A Yardit user"} invited you to co-host "${editingListing?.title}".`,
