@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   ios: {
     handleApplicationNotifications: false,
-  }
+  },
 };
 
 export default config;
