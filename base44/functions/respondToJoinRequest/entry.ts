@@ -97,7 +97,7 @@ async function syncSale(base44, saleListingId) {
 }
 
 async function notify(base44, data) {
-  await base44.asServiceRole.entities.Notification.create({
+  const notification = {
     userId: data.userId,
     user_id: data.userId,
     title: data.title,
@@ -108,7 +108,14 @@ async function notify(base44, data) {
     metadata: data.metadata || {},
     read: false,
     is_read: false,
-  });
+    delivery_methods: ['push', 'bell'],
+    deep_link: data.deepLink || '/Notifications',
+    dedupe_key: data.dedupeKey || `${data.type}_${data.userId}_${data.relatedEntityId || 'general'}`,
+    registry_status: 'active',
+    registry_version: '2026-08-24',
+  };
+  const response = await base44.asServiceRole.functions.invoke('deliverNotificationPush', notification);
+  return response?.data || response || {};
 }
 
 Deno.serve(async (req) => {
@@ -191,7 +198,7 @@ Deno.serve(async (req) => {
         userId: requesterUserId,
         title: 'Join Request Approved',
         message: `Approved — you joined ${eventTitle}`,
-        type: 'join_response_accept',
+        type: 'join_request_accepted',
         relatedEntityId: requestId,
         metadata: { sale_listing_id: saleListingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle },
       });
@@ -216,7 +223,7 @@ Deno.serve(async (req) => {
         userId: requesterUserId,
         title: 'Join Request Denied',
         message: 'Denied — your yard sale was not included with this Neighborhood Sale. Any existing listing keeps its original tier and standalone visibility.',
-        type: 'join_response_deny',
+        type: 'join_request_denied',
         relatedEntityId: requestId,
         metadata: { sale_listing_id: saleListingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle },
       });
@@ -235,7 +242,7 @@ Deno.serve(async (req) => {
         userId: requesterUserId,
         title: 'Removed from Neighborhood Sale',
         message: 'Removed from neighborhood sale',
-        type: 'removed_from_neighborhood',
+        type: 'neighborhood_sale_participant_removed',
         relatedEntityId: requestId,
         metadata: { sale_listing_id: saleListingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle },
       });
