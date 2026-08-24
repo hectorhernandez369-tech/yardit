@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,7 +28,7 @@ export default function EventCollaboratorsPanel({ event, currentUser, currentOrg
     const now = new Date().toISOString();
     await base44.entities.EventCollaborator.update(collaborator.id, { status: "accepted", accepted_at: now, responded_at: now, permissions: collaborator.permissions });
     const organization = organizations.find((item) => item.id === collaborator.organization_id);
-    await base44.entities.Notification.create({
+    await sendYarditNotification({
       userId: event.organizer_user_id,
       user_id: event.organizer_user_id,
       title: "Collaboration Invite Accepted",
