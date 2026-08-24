@@ -11,33 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Yardit | Find Yard Sales & Community Events</title>
     <meta name="description" content="Find yard sales, neighborhood sales, estate sales, vendor events, and community events on Yardit's interactive local map." />
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.__YARDIT_ONESIGNAL_READY__ = false;
-      OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          await OneSignal.init({
-            appId: "44d72407-6c94-4258-95f7-fd22c3157040",
-            allowLocalhostAsSecureOrigin: true,
-            autoResubscribe: true,
-            serviceWorkerPath: "/OneSignalSDKWorker.js",
-            serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
-            serviceWorkerParam: { scope: "/" }
-          });
-          window.__YARDIT_ONESIGNAL_INSTANCE__ = OneSignal;
-          window.__YARDIT_ONESIGNAL_READY__ = true;
-          OneSignal.User?.PushSubscription?.addEventListener?.("change", function(event) {
-            window.dispatchEvent(new CustomEvent("yardit:push-subscription-change", { detail: event?.current || {} }));
-          });
-          window.dispatchEvent(new Event("yardit:onesignal-ready"));
-        } catch (error) {
-          window.__YARDIT_ONESIGNAL_READY__ = false;
-          window.__YARDIT_ONESIGNAL_INIT_ERROR__ = error?.message || String(error);
-          window.dispatchEvent(new Event("yardit:onesignal-error"));
-        }
-      });
-    </script>
+
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />

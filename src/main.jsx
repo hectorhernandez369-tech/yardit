@@ -2,6 +2,14 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from '@/App.jsx'
 import '@/index.css'
+import { isNativeYarditApp, initializeNativePush } from '@/lib/nativePushNotifications';
+import { initializeWebPush } from '@/lib/webPushBootstrap';
+
+if (isNativeYarditApp()) {
+  void initializeNativePush();
+} else {
+  initializeWebPush();
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   // <React.StrictMode>
