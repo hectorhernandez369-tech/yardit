@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -97,7 +98,7 @@ export default function InviteVendorsModal({ open, onOpenChange, event, organize
         updated_at: now,
       });
 
-      await base44.entities.Notification.create({
+      await sendYarditNotification({
         userId: vendor.owner_user_id,
         user_id: vendor.owner_user_id,
         user_email: vendor.email,
