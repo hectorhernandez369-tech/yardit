@@ -61,7 +61,7 @@ export async function evaluatePushPromptEligibility(user) {
   const alreadySubscribed = preference?.push_enabled === true && subscription?.permission_status === "enabled" && subscription?.is_active === true && subscription?.onesignal_subscription_id;
   if (alreadySubscribed) return { show: false, reason: "already_subscribed", browserStatus, subscriptionId: subscription.onesignal_subscription_id || runtimeSubscriptionId };
 
-  return { show: true, reason: browserStatus === "enabled" ? "eligible_permission_granted" : "eligible", browserStatus, subscriptionId: runtimeSubscriptionId };
+  return { show: true, reason: browserStatus === "permission_granted" ? "eligible_permission_granted" : "eligible", browserStatus, subscriptionId: runtimeSubscriptionId };
 }
 
 export async function shouldShowPushPrompt(user) {
