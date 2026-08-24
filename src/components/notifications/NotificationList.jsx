@@ -1,5 +1,6 @@
 import React from "react";
 import { base44 } from "@/api/base44Client";
+import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -60,7 +61,7 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
           }
         }
 
-        await base44.entities.Notification.create({
+        await sendYarditNotification({
           userId: reqUserId,
           user_id: reqUserId,
           title: "Neighborhood Sale Request",
@@ -87,7 +88,7 @@ export default function NotificationList({ notifications, onMarkAllRead, onClose
           }
         }
 
-        await base44.entities.Notification.create({
+        await sendYarditNotification({
           userId: reqUserId,
           user_id: reqUserId,
           title: "Neighborhood Sale Request",
