@@ -169,6 +169,19 @@ function notificationAssetUrl(path: string) {
   return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
+
+function webDestinationUrl(path: string) {
+  const value = String(path || '').trim();
+  if (!value) return '';
+  try {
+    const parsed = new URL(value, 'https://yardit.app');
+    if (parsed.protocol !== 'https:') return '';
+    return parsed.toString();
+  } catch {
+    return '';
+  }
+}
+
 function oneSignalError(result) {
   const detail = result?.errors || result?.error;
   if (!detail) return '';
@@ -189,7 +202,10 @@ async function postOneSignal(target, title, message, url) {
       contents: { en: message },
       chrome_web_icon: notificationAssetUrl('/yardit-notification-icon-192.png'),
       chrome_web_badge: notificationAssetUrl('/yardit-notification-badge-72.png'),
-      ...(url ? { url } : {})
+      small_icon: 'ic_stat_onesignal_default',
+      large_icon: 'ic_onesignal_large_icon_default',
+      ...(url ? { data: { deep_link: url } } : {}),
+      ...(webDestinationUrl(url) ? { web_url: webDestinationUrl(url) } : {})
     })
   });
   const result = await response.json().catch(() => ({}));

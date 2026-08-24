@@ -14,6 +14,20 @@ function emitNativePushChange(detail = {}) {
   window.dispatchEvent(new CustomEvent('yardit:push-subscription-change', { detail }));
 }
 
+
+function routeNativeNotification(deepLink) {
+  if (typeof window === 'undefined' || !deepLink) return;
+  try {
+    const target = new URL(String(deepLink), 'https://yardit.app');
+    if (target.hostname !== 'yardit.app' && target.hostname !== 'www.yardit.app') return;
+    const localTarget = `${target.pathname}${target.search}${target.hash}` || '/';
+    window.history.pushState({}, '', localTarget);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  } catch (error) {
+    console.warn('[Yardit Push] Could not open notification destination', error);
+  }
+}
+
 export async function initializeNativePush() {
   if (!isNativeYarditApp()) return false;
   if (initializationPromise) return initializationPromise;
@@ -29,6 +43,10 @@ export async function initializeNativePush() {
         });
         OneSignal.Notifications.addEventListener('permissionChange', (permission) => {
           emitNativePushChange({ permission });
+        });
+        OneSignal.Notifications.addEventListener('click', (event) => {
+          const deepLink = event?.notification?.additionalData?.deep_link;
+          routeNativeNotification(deepLink);
         });
       }
 
