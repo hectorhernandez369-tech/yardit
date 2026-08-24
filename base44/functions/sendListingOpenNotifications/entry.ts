@@ -143,10 +143,12 @@ Deno.serve(async (req) => {
         },
       };
 
+      let delivery = null;
       if (!dryRun) {
-        await base44.asServiceRole.entities.Notification.create(notification);
+        const response = await base44.asServiceRole.functions.invoke('deliverNotificationPush', notification);
+        delivery = response?.data || response || null;
       }
-      created.push({ listing_id: listing.id, owner_user_id: listing.ownerUserId, dedupe_key: dedupeKey, dry_run: dryRun });
+      created.push({ listing_id: listing.id, owner_user_id: listing.ownerUserId, dedupe_key: dedupeKey, dry_run: dryRun, delivery });
     }
 
     return Response.json({ success: true, dry_run: dryRun, created_count: created.length, created, skipped_count: skipped.length });
