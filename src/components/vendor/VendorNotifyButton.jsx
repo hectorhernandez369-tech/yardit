@@ -7,6 +7,13 @@ import { toast } from "sonner";
 import { enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, PUSH_RADIUS_OPTIONS } from "@/lib/pushNotifications";
 import { hasVerifiedPrimaryAddress } from "@/lib/trustActions";
 
+const recordTimestamp = (record) => {
+  const value = record?.updated_at || record?.updated_date || record?.created_at || record?.created_date;
+  const parsed = value ? new Date(value).getTime() : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+const newestRecord = (records = []) => [...records].sort((a, b) => recordTimestamp(b) - recordTimestamp(a))[0] || null;
+
 export default function VendorNotifyButton({ account }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
@@ -47,8 +54,9 @@ export default function VendorNotifyButton({ account }) {
     }
     if (subscriptionId) {
       const existingPushRows = await base44.entities.PushSubscription.filter({ user_id: user.id });
+      const matchingPushRow = existingPushRows.find((row) => row.onesignal_subscription_id === subscriptionId) || newestRecord(existingPushRows);
       const pushData = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: "enabled", is_active: true, user_agent: navigator.userAgent, updated_at: new Date().toISOString() };
-      if (existingPushRows[0]) await base44.entities.PushSubscription.update(existingPushRows[0].id, pushData);
+      if (matchingPushRow) await base44.entities.PushSubscription.update(matchingPushRow.id, pushData);
       else await base44.entities.PushSubscription.create({ ...pushData, created_at: new Date().toISOString() });
     }
     await saveMutation.mutateAsync({ user_id: user.id, vendor_account_id: account.id, radius_miles: radius, subscription_enabled: true, created_at: subscription?.created_at || new Date().toISOString(), updated_at: new Date().toISOString() });
