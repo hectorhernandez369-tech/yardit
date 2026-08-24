@@ -23,6 +23,14 @@ export const lastPushErrorKey = (userId) => `yardit_push_last_error_${userId}`;
 
 const canLogPushDecision = (user) => import.meta.env?.DEV || user?.isAdmin === true || ["admin", "master", "super_master", "supervisor"].includes(user?.role);
 
+const recordTimestamp = (record) => {
+  const value = record?.last_updated_at || record?.updated_at || record?.updated_date || record?.created_at || record?.created_date;
+  const parsed = value ? new Date(value).getTime() : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const newestRecord = (records = []) => [...records].sort((a, b) => recordTimestamp(b) - recordTimestamp(a))[0] || null;
+
 export function logPushPromptDecision(user, source, decision) {
   if (!canLogPushDecision(user)) return;
   console.info("[Yardit Push Prompt]", source, {
@@ -45,8 +53,9 @@ export async function evaluatePushPromptEligibility(user) {
   if (browserStatus === "onesignal_not_ready") return { show: false, reason: "onesignal_not_ready", browserStatus, retryable: true };
 
   const runtimeSubscriptionId = await getOneSignalSubscriptionId();
-  const [preference] = await base44.entities.NotificationPreference.filter({ user_id: user.id });
-  const [subscription] = await base44.entities.PushSubscription.filter({ user_id: user.id });
+  const preference = newestRecord(await base44.entities.NotificationPreference.filter({ user_id: user.id }));
+  const subscriptions = await base44.entities.PushSubscription.filter({ user_id: user.id });
+  const subscription = subscriptions.find((row) => runtimeSubscriptionId && row.onesignal_subscription_id === runtimeSubscriptionId) || newestRecord(subscriptions);
   const alreadySubscribed = preference?.push_enabled === true && subscription?.permission_status === "enabled" && subscription?.is_active === true && subscription?.onesignal_subscription_id;
   if (alreadySubscribed) return { show: false, reason: "already_subscribed", browserStatus, subscriptionId: subscription.onesignal_subscription_id || runtimeSubscriptionId };
 
@@ -71,14 +80,15 @@ export async function enablePushPromptSubscription(user) {
   const subscriptionId = result.subscriptionId || await getOneSignalSubscriptionId();
 
   if (canStorePushStatus(result.status)) {
-    const [existingSubscription] = await base44.entities.PushSubscription.filter({ user_id: user.id });
+    const existingRows = await base44.entities.PushSubscription.filter({ user_id: user.id });
+    const existingSubscription = existingRows.find((row) => subscriptionId && row.onesignal_subscription_id === subscriptionId) || newestRecord(existingRows);
     const data = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: result.status, is_active: result.status === "enabled", user_agent: navigator.userAgent, updated_at: new Date().toISOString() };
     if (existingSubscription) await base44.entities.PushSubscription.update(existingSubscription.id, data);
     else await base44.entities.PushSubscription.create({ ...data, created_at: new Date().toISOString() });
   }
 
   if (result.status === "enabled" && subscriptionId) {
-    const [preference] = await base44.entities.NotificationPreference.filter({ user_id: user.id });
+    const preference = newestRecord(await base44.entities.NotificationPreference.filter({ user_id: user.id }));
     const prefData = { ...DEFAULT_PREFS, ...(preference || {}), push_enabled: true, user_id: user.id, last_updated_at: new Date().toISOString() };
     if (preference) await base44.entities.NotificationPreference.update(preference.id, prefData);
     else await base44.entities.NotificationPreference.create(prefData);
