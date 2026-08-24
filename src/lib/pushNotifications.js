@@ -156,10 +156,32 @@ async function waitForServiceWorkerReady() {
 export function getBrowserPushStatus() {
   const preflightFailure = getPreflightFailureStatus();
   if (preflightFailure) return preflightFailure;
-  if (window.Notification.permission === "granted") return "enabled";
   if (window.Notification.permission === "denied") return "blocked";
+  if (window.Notification.permission === "granted") return "permission_granted";
   if (!window.OneSignalDeferred) return "onesignal_not_ready";
   return "not_enabled";
+}
+
+export async function getRuntimePushConnection() {
+  const browserStatus = getBrowserPushStatus();
+  if (browserStatus !== "permission_granted") {
+    return { browserStatus, permissionGranted: false, subscriptionId: "", optedIn: false, connected: false };
+  }
+
+  const OneSignal = window.__YARDIT_ONESIGNAL_INSTANCE__;
+  if (!OneSignal || window.__YARDIT_ONESIGNAL_READY__ !== true) {
+    return { browserStatus: "onesignal_not_ready", permissionGranted: true, subscriptionId: "", optedIn: false, connected: false };
+  }
+
+  const subscriptionId = OneSignal.User?.PushSubscription?.id || "";
+  const optedIn = OneSignal.User?.PushSubscription?.optedIn === true;
+  return {
+    browserStatus,
+    permissionGranted: true,
+    subscriptionId,
+    optedIn,
+    connected: !!subscriptionId && optedIn,
+  };
 }
 
 export function canStorePushStatus(status) {
