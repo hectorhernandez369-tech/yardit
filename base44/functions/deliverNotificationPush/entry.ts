@@ -16,7 +16,7 @@ const PUSH_TYPES = new Set([
   'neighborhood_sale_warning_48h',
   'neighborhood_sale_active',
   'neighborhood_sale_participant_standalone',
-  'neighborhood_sale_participant_removed',
+  'removed_from_neighborhood',
   'neighborhood_sale_committed',
   'join_invitation',
   'neighborhood_sale_fallback_applied',
