@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, getRuntimePushConnection, pushStatusLabel } from "@/lib/pushNotifications";
 import { hasVerifiedPrimaryAddress } from "@/lib/trustActions";
+import { isNativeYarditApp } from "@/lib/nativePushNotifications";
 import PushCategoryRow from "./PushCategoryRow";
 import AlertsPushGroup from "./AlertsPushGroup";
 import VendorSubscriptionManager from "./VendorSubscriptionManager";
@@ -108,9 +109,9 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
 
   const savePushSubscription = async (status, subscriptionId) => {
     const existing = await base44.entities.PushSubscription.filter({ user_id: user.id });
-    const currentUserAgent = navigator.userAgent;
+    const currentUserAgent = `${isNativeYarditApp() ? "native:" : "web:"}${navigator.userAgent}`;
     const matching = existing.find((row) => subscriptionId && row.onesignal_subscription_id === subscriptionId)
-      || existing.find((row) => row.user_agent === currentUserAgent);
+      || (!subscriptionId ? existing.find((row) => row.user_agent === currentUserAgent) : null);
     const data = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: status, is_active: status === "enabled", user_agent: currentUserAgent, updated_at: new Date().toISOString() };
     if (matching) await base44.entities.PushSubscription.update(matching.id, data);
     else await base44.entities.PushSubscription.create({ ...data, created_at: new Date().toISOString() });
@@ -191,9 +192,9 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
   return <Card className="border-2 border-[#5DADA5]/30 shadow-sm">
     <CardHeader><CardTitle className="flex items-center gap-2 text-[#2C4F4E]"><Bell className="h-5 w-5" /> Notification Settings</CardTitle></CardHeader>
     <CardContent className="space-y-4">
-      <p className="text-sm text-slate-600">Choose which notifications you want sent as push alerts. Turning on any push category will first ask this browser/device for notification permission if Yardit is not already connected. These settings do not remove notifications from your Yardit notification history.</p>
+      <p className="text-sm text-slate-600">Choose which notifications you want sent as push alerts. {isNativeYarditApp() ? "The installed Yardit app will ask your phone for notification permission." : "Yardit will ask this browser/device for web notification permission."} These settings do not remove notifications from your Yardit notification history.</p>
       <div className="flex flex-col gap-3 rounded-2xl bg-[#F3E6CF] p-4 sm:flex-row sm:items-center sm:justify-between">
-       <div><p className="font-bold text-[#2C4F4E]">Push permission: {pushStatusLabel(displayStatus)}</p><p className="text-xs text-slate-600">Bell/history notifications are always kept separately.</p>{displayStatus === "not_connected" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Your browser already allows notifications, but this device is not currently connected to OneSignal. Tap Repair Push Connection.</p>}{browserStatus === "blocked" && <p className="mt-1 text-xs font-semibold text-red-700">Notifications are blocked for Yardit in your browser/device settings. Browsers do not allow Yardit to reopen that permission prompt after you block it; allow Yardit notifications in your device/browser settings, return here, then tap Enable again.</p>}{browserStatus === "needs_install" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">On iPhone or iPad, install Yardit to your Home Screen first, open the installed Yardit app, then enable notifications here.</p>}{browserStatus === "onesignal_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">The push service is still loading. Wait a few seconds and tap Enable again.</p>}{browserStatus === "service_worker_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Preparing the notification service. Please try again in a moment.</p>}</div>
+       <div><p className="font-bold text-[#2C4F4E]">Push permission: {pushStatusLabel(displayStatus)}</p><p className="text-xs text-slate-600">Bell/history notifications are always kept separately.</p>{displayStatus === "not_connected" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Your browser already allows notifications, but this device is not currently connected to OneSignal. Tap Repair Push Connection.</p>}{browserStatus === "blocked" && <p className="mt-1 text-xs font-semibold text-red-700">Notifications are blocked for Yardit in your device settings. Browsers do not allow Yardit to reopen that permission prompt after you block it; allow Yardit notifications in your device/browser settings, return here, then tap Enable again.</p>}{browserStatus === "needs_install" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">On iPhone or iPad, install Yardit to your Home Screen first, open the installed Yardit app, then enable notifications here.</p>}{browserStatus === "onesignal_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">The push service is still loading. Wait a few seconds and tap Enable again.</p>}{browserStatus === "service_worker_not_ready" && <p className="mt-1 text-xs font-semibold text-[#2C4F4E]">Preparing the notification service. Please try again in a moment.</p>}</div>
        {showEnableButton && <Button onClick={handleEnablePush} disabled={disableEnableButton} className="bg-[#5DADA5] text-white hover:bg-[#4A9B93]">{enabling && <Loader2 className="h-4 w-4 animate-spin" />} {enableButtonLabel}</Button>}
       </div>
       <PushDebugPanel user={user} storedSubscriptionId={runtimeSubscriptionId || newestRecord(pushSubscriptions)?.onesignal_subscription_id} />

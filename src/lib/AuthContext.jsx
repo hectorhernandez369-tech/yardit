@@ -8,6 +8,7 @@ import { logUserActivity, logUserActivityOncePerSession } from './logUserActivit
 import { normalizeUser } from '@/lib/normalizeUser';
 import { recordAuthDebugEvent } from '@/lib/authDebug';
 import { EVENTS_EXPERIENCE, EXPERIENCE_STORAGE_KEY } from '@/lib/experience';
+import { bindNativePushIdentity, isNativeYarditApp } from '@/lib/nativePushNotifications';
 
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
@@ -141,6 +142,11 @@ export const AuthProvider = ({ children }) => {
       setIsGuest(false);
       setUser(currentUser);
       setIsAuthenticated(true);
+      if (currentUser?.id && isNativeYarditApp()) {
+        void bindNativePushIdentity(currentUser.id).catch((error) => {
+          console.warn('[Yardit Push] Native OneSignal identity binding failed', error);
+        });
+      }
       setIsLoadingAuth(false);
       const restoredReturnTo = restoreAuthReturnTo();
       if (!restoredReturnTo && localStorage.getItem(EXPERIENCE_STORAGE_KEY) === EVENTS_EXPERIENCE && window.location.pathname === "/") {

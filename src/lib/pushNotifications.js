@@ -1,3 +1,5 @@
+import { enableNativePush, getNativePushConnection, getNativeSubscriptionId, isNativeYarditApp } from '@/lib/nativePushNotifications';
+
 export const PUSH_RADIUS_OPTIONS = [1, 2, 5, 10, 25];
 
 const VALID_STORED_PUSH_STATUSES = ["enabled", "not_enabled", "blocked", "unsupported"];
@@ -39,6 +41,7 @@ function logPushDebug(stage, extra = {}) {
 }
 
 function getPreflightFailureStatus() {
+  if (isNativeYarditApp()) return null;
   if (typeof window === "undefined") return "unsupported";
   if (isIosDevice() && !isStandaloneApp()) return "needs_install";
   if (!("Notification" in window) || !window.isSecureContext) return "unsupported";
@@ -154,6 +157,7 @@ async function waitForServiceWorkerReady() {
 }
 
 export function getBrowserPushStatus() {
+  if (isNativeYarditApp()) return "not_enabled";
   const preflightFailure = getPreflightFailureStatus();
   if (preflightFailure) return preflightFailure;
   if (window.Notification.permission === "denied") return "blocked";
@@ -163,6 +167,7 @@ export function getBrowserPushStatus() {
 }
 
 export async function getRuntimePushConnection() {
+  if (isNativeYarditApp()) return getNativePushConnection();
   const browserStatus = getBrowserPushStatus();
   if (browserStatus !== "permission_granted") {
     return { browserStatus, permissionGranted: false, subscriptionId: "", optedIn: false, connected: false };
@@ -212,6 +217,7 @@ async function waitForOneSignalSubscriptionId(OneSignal) {
 }
 
 export async function enableOneSignalPush({ userId } = {}) {
+  if (isNativeYarditApp()) return enableNativePush({ userId });
   logPushDebug("enable_start");
   const preflightFailure = getPreflightFailureStatus();
   if (preflightFailure) {
@@ -252,6 +258,7 @@ export async function enableOneSignalPush({ userId } = {}) {
 }
 
 export async function getOneSignalSubscriptionId() {
+  if (isNativeYarditApp()) return getNativeSubscriptionId();
   if (typeof window === "undefined") return "";
   const OneSignal = window.__YARDIT_ONESIGNAL_INSTANCE__;
   if (OneSignal && window.__YARDIT_ONESIGNAL_READY__ === true) {
