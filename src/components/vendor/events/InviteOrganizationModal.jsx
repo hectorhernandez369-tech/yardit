@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -62,7 +63,7 @@ export default function InviteOrganizationModal({ open, onOpenChange, event, cur
       status: "pending",
       is_primary_owner: false,
     });
-    await base44.entities.Notification.create({
+    await sendYarditNotification({
       userId: organization.owner_user_id,
       user_id: organization.owner_user_id,
       user_email: organization.owner_email || organization.email,
