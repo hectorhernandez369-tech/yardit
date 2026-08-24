@@ -14,14 +14,25 @@
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.__YARDIT_ONESIGNAL_READY__ = false;
       OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "44d72407-6c94-4258-95f7-fd22c3157040",
-          allowLocalhostAsSecureOrigin: true,
-          serviceWorkerPath: "/OneSignalSDKWorker.js",
-          serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
-          serviceWorkerParam: { scope: "/" }
-        });
+        try {
+          await OneSignal.init({
+            appId: "44d72407-6c94-4258-95f7-fd22c3157040",
+            allowLocalhostAsSecureOrigin: true,
+            autoResubscribe: true,
+            serviceWorkerPath: "/OneSignalSDKWorker.js",
+            serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
+            serviceWorkerParam: { scope: "/" }
+          });
+          window.__YARDIT_ONESIGNAL_INSTANCE__ = OneSignal;
+          window.__YARDIT_ONESIGNAL_READY__ = true;
+          window.dispatchEvent(new Event("yardit:onesignal-ready"));
+        } catch (error) {
+          window.__YARDIT_ONESIGNAL_READY__ = false;
+          window.__YARDIT_ONESIGNAL_INIT_ERROR__ = error?.message || String(error);
+          window.dispatchEvent(new Event("yardit:onesignal-error"));
+        }
       });
     </script>
     
