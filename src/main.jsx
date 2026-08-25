@@ -3,9 +3,11 @@ import ReactDOM from 'react-dom/client'
 import App from '@/App.jsx'
 import '@/index.css'
 import { isNativeYarditApp, initializeNativePush } from '@/lib/nativePushNotifications';
+import { initializeNativeAuthBridge } from '@/lib/nativeAuthBridge';
 import { initializeWebPush } from '@/lib/webPushBootstrap';
 
 if (isNativeYarditApp()) {
+  void initializeNativeAuthBridge();
   void initializeNativePush();
 } else {
   initializeWebPush();
