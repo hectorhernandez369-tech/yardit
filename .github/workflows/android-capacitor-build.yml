@@ -12,6 +12,15 @@ on:
       - 'package-lock.json'
       - '.github/workflows/android-capacitor-build.yml'
   workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'Android version code (must increase for every Play upload)'
+        required: true
+        default: '2'
+      version_name:
+        description: 'User-facing Yardit version name'
+        required: true
+        default: '1.0.1'
 
 jobs:
   build-android:
@@ -43,4 +52,27 @@ jobs:
         with:
           name: yardit-capacitor-test-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - name: Prepare Yardit release signing
+        if: ${{ github.event_name == 'workflow_dispatch' && secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 != '' }}
+        shell: bash
+        run: |
+          echo "${{ secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/yardit-upload-key.jks"
+      - name: Build signed Play Store AAB
+        if: ${{ github.event_name == 'workflow_dispatch' && secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 != '' }}
+        working-directory: android
+        env:
+          YARDIT_KEYSTORE_PATH: ${{ runner.temp }}/yardit-upload-key.jks
+          YARDIT_KEYSTORE_PASSWORD: ${{ secrets.YARDIT_UPLOAD_KEYSTORE_PASSWORD }}
+          YARDIT_KEY_ALIAS: ${{ secrets.YARDIT_UPLOAD_KEY_ALIAS }}
+          YARDIT_KEY_PASSWORD: ${{ secrets.YARDIT_UPLOAD_KEY_PASSWORD }}
+          YARDIT_VERSION_CODE: ${{ inputs.version_code }}
+          YARDIT_VERSION_NAME: ${{ inputs.version_name }}
+        run: ./gradlew bundleRelease
+      - name: Upload signed Yardit AAB
+        if: ${{ github.event_name == 'workflow_dispatch' && secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: yardit-play-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
