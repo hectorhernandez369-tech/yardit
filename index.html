@@ -26,6 +26,26 @@
     <meta property="twitter:image" content="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/aa5288319_file_00000000c1b871f5aeb839b78344a9a4.png" />
   </head>
   <body>
+    <script>
+      (function () {
+        try {
+          var search = new URLSearchParams(window.location.search || '');
+          if (search.get('yardit_native_auth') !== '1') return;
+
+          var token = search.get('access_token');
+          if (!token && window.location.hash) {
+            var rawHash = window.location.hash.slice(1);
+            var hashQuery = rawHash.indexOf('?') >= 0 ? rawHash.split('?').slice(1).join('?') : rawHash;
+            token = new URLSearchParams(hashQuery).get('access_token');
+          }
+
+          if (!token) return;
+          window.location.replace('yardit://auth-callback?access_token=' + encodeURIComponent(token));
+        } catch (error) {
+          console.warn('[Yardit Auth] Native browser handoff failed', error);
+        }
+      })();
+    </script>
     <div id="yardit-initial-splash" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#000000;color:#F4C542;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
       <div style="width:min(320px,80vw);display:flex;flex-direction:column;align-items:center;">
         <img src="https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png" alt="Yardit" style="width:224px;max-width:100%;height:auto;margin-bottom:32px;object-fit:contain;" />
