@@ -3,6 +3,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 
 const BASE44_ACCESS_TOKEN_KEY = 'base44_access_token';
 const NATIVE_AUTH_SCHEME = 'yardit://auth-callback';
+const HOSTED_NATIVE_AUTH_FLAG = 'yardit_native_auth';
 
 function readParamFromUrl(url, name) {
   try {
@@ -35,13 +36,33 @@ function handleNativeAuthUrl(url) {
     return false;
   }
 
-  // Reload the bundled Yardit app so Base44 initializes with the newly saved token.
   window.location.replace('/');
   return true;
 }
 
 export function getNativeLoginReturnUrl() {
-  return 'https://yardit.app/?yardit_native_auth=1';
+  return `https://yardit.app/?${HOSTED_NATIVE_AUTH_FLAG}=1`;
+}
+
+export function handoffHostedNativeAuthCallback() {
+  if (typeof window === 'undefined' || Capacitor.isNativePlatform()) return false;
+
+  const current = new URL(window.location.href);
+  if (current.searchParams.get(HOSTED_NATIVE_AUTH_FLAG) !== '1') return false;
+
+  const accessToken = readParamFromUrl(window.location.href, 'access_token');
+  if (!accessToken) return false;
+
+  const callbackParams = new URLSearchParams();
+  callbackParams.set('access_token', accessToken);
+
+  for (const key of ['id_token', 'refresh_token', 'token_type', 'expires_in', 'scope', 'state']) {
+    const value = readParamFromUrl(window.location.href, key);
+    if (value) callbackParams.set(key, value);
+  }
+
+  window.location.replace(`${NATIVE_AUTH_SCHEME}?${callbackParams.toString()}`);
+  return true;
 }
 
 export async function initializeNativeAuthBridge() {
