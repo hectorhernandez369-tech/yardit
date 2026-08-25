@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+def yarditKeystorePath = System.getenv('YARDIT_KEYSTORE_PATH')
+def yarditKeystorePassword = System.getenv('YARDIT_KEYSTORE_PASSWORD')
+def yarditKeyAlias = System.getenv('YARDIT_KEY_ALIAS')
+def yarditKeyPassword = System.getenv('YARDIT_KEY_PASSWORD')
+def yarditReleaseSigningReady = yarditKeystorePath && yarditKeystorePassword && yarditKeyAlias && yarditKeyPassword
+
 android {
     namespace "com.base690f554506edf795e5d84121.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +13,8 @@ android {
         applicationId "com.base690f554506edf795e5d84121.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode (System.getenv('YARDIT_VERSION_CODE') ?: '1').toInteger()
+        versionName System.getenv('YARDIT_VERSION_NAME') ?: '1.0'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +22,21 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (yarditReleaseSigningReady) {
+            release {
+                storeFile file(yarditKeystorePath)
+                storePassword yarditKeystorePassword
+                keyAlias yarditKeyAlias
+                keyPassword yarditKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            if (yarditReleaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
