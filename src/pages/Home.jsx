@@ -911,15 +911,30 @@ export default function HomePage() {
         if (category && String(category).trim()) values.add(String(category).trim());
       });
     });
+    seasonalLocations.forEach((location) => {
+      [location.title, location.address, location.city].forEach((value) => {
+        if (value && String(value).trim()) values.add(String(value).trim());
+      });
+    });
 
     return Array.from(values)
       .filter((value) => value.toLowerCase().includes(query))
       .slice(0, 8);
-  }, [listings, searchQuery]);
+  }, [listings, seasonalLocations, searchQuery]);
 
   const handleSearchSuggestionSelect = useCallback((suggestion) => {
     setSearchQuery(suggestion);
     setShowSearchSuggestions(false);
+
+    const seasonalMatch = seasonalLocations.find((location) =>
+      [location.title, location.address].some((value) => value?.toLowerCase().trim() === suggestion.toLowerCase().trim())
+    );
+    if (seasonalMatch) {
+      setView("map");
+      setMapCenter([seasonalMatch.latitude, seasonalMatch.longitude]);
+      setMapZoom(17);
+      return;
+    }
 
     const cityName = suggestion.split(",")[0].trim().toLowerCase();
     const fallbackCityNames = FALLBACK_CITY_SUGGESTIONS.map((city) => city.split(",")[0].trim().toLowerCase());
@@ -934,7 +949,7 @@ export default function HomePage() {
     const avgLng = validListings.reduce((sum, listing) => sum + listing.lng, 0) / validListings.length;
     setMapCenter([avgLat, avgLng]);
     setMapZoom(12);
-  }, [listings]);
+  }, [listings, seasonalLocations]);
 
   const handleListViewRefresh = useCallback(async () => {
     await Promise.all(isPublicHomeMode ? [
