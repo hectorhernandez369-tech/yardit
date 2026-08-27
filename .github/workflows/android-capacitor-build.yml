@@ -54,12 +54,12 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Prepare Yardit release signing
-        if: ${{ github.event_name == 'workflow_dispatch' && secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 != '' }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: bash
         run: |
           echo "${{ secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/yardit-upload-key.jks"
       - name: Build signed Play Store AAB
-        if: ${{ github.event_name == 'workflow_dispatch' && secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 != '' }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         working-directory: android
         env:
           YARDIT_KEYSTORE_PATH: ${{ runner.temp }}/yardit-upload-key.jks
@@ -70,7 +70,7 @@ jobs:
           YARDIT_VERSION_NAME: ${{ inputs.version_name }}
         run: ./gradlew bundleRelease
       - name: Upload signed Yardit AAB
-        if: ${{ github.event_name == 'workflow_dispatch' && secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 != '' }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v4
         with:
           name: yardit-play-release-aab
