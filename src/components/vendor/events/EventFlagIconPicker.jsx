@@ -9,7 +9,7 @@ export default function EventFlagIconPicker({ value = "flag", onChange }) {
       {categories.map((category) => (
         <div key={category} className="space-y-2">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{category}</p>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
             {EVENT_FLAG_ICONS.filter((icon) => icon.category === category).map((icon) => (
               <button
                 key={icon.key}
@@ -21,8 +21,16 @@ export default function EventFlagIconPicker({ value = "flag", onChange }) {
                 )}
                 title={icon.label}
               >
-                <span className="block text-xl leading-none">{icon.icon}</span>
-                <span className="mt-1 block truncate text-[10px] font-semibold text-[#2C4F4E]">{icon.label}</span>
+                <span className="flex h-12 items-center justify-center">
+                  {icon.image ? (
+                    <img src={icon.image} alt="" className="h-11 w-11 object-contain" />
+                  ) : (
+                    <span className="text-xl leading-none">{icon.icon}</span>
+                  )}
+                </span>
+                <span className="mt-1 block min-h-[2rem] text-[10px] font-semibold leading-tight text-[#2C4F4E]">
+                  {icon.label}
+                </span>
               </button>
             ))}
           </div>
