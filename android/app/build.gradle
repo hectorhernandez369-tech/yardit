@@ -13,8 +13,8 @@ android {
         applicationId "com.base690f554506edf795e5d84121.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode (System.getenv('YARDIT_VERSION_CODE') ?: '1').toInteger()
-        versionName System.getenv('YARDIT_VERSION_NAME') ?: '1.0'
+        versionCode = Integer.parseInt(System.getenv('YARDIT_VERSION_CODE') ?: '1')
+        versionName = System.getenv('YARDIT_VERSION_NAME') ?: '1.0'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
