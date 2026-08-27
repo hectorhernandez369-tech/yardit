@@ -31,6 +31,19 @@
       "type": "string",
       "description": "Title for holiday light displays"
     },
+    "custom_icon_url": {
+      "type": "string",
+      "description": "Optional custom seasonal map icon URL"
+    },
+    "teaser_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When a custom seasonal teaser marker switches to its normal active appearance"
+    },
+    "account_email_hash": {
+      "type": "string",
+      "description": "Private one-way hash used to associate a seasonal location with an account email"
+    },
     "street_address": {
       "type": "string",
       "description": "Street number and name (e.g., 123 Main St)"

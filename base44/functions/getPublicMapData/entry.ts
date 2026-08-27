@@ -60,6 +60,16 @@ function isPublicVendorEvent(event, now) {
   return true;
 }
 
+function isPublicSeasonalLocation(location, now) {
+  if (location?.type !== 'halloween_candy' || location?.status !== 'active') return false;
+  if (!isValidCoordinate(location.latitude) || !isValidCoordinate(location.longitude)) return false;
+  if (location.expires_at) {
+    const expires = new Date(location.expires_at);
+    if (!Number.isNaN(expires.getTime()) && now > expires) return false;
+  }
+  return true;
+}
+
 function isLiveVendorCheckIn(checkIn, now) {
   if (!checkIn || !['live', 'scheduled_live'].includes(checkIn.status)) return false;
   if (!isValidCoordinate(checkIn.checkin_latitude) || !isValidCoordinate(checkIn.checkin_longitude)) return false;
@@ -97,8 +107,9 @@ const vendorAccountFields = ['id', 'business_name', 'vendor_display_name', 'busi
 const vendorPinFields = ['id', 'vendor_account_id', 'pin_name', 'pin_logo_url', 'pin_icon_url', 'pin_icon_style', 'description', 'is_active', 'scheduled_date', 'scheduled_start_time', 'scheduled_end_time', 'recurring_schedule', 'scheduled_location_label', 'scheduled_lat', 'scheduled_lng', 'schedule_status'];
 const vendorCheckInFields = ['id', 'vendor_pin_id', 'vendor_account_id', 'checkin_latitude', 'checkin_longitude', 'checkin_display_address', 'checkin_start_time', 'checkin_end_time', 'pin_animation', 'status'];
 const joinRequestFields = ['id', 'listingId', 'saleListingId', 'requesterUserId', 'status', 'removed_by_eo', 'removed_by_listing_owner', 'participant_origin_snapshot'];
+const seasonalLocationFields = ['id', 'type', 'title', 'address', 'city', 'state', 'zip_code', 'latitude', 'longitude', 'custom_icon_url', 'teaser_until', 'start_date_time', 'end_date_time', 'expires_at', 'status'];
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const now = new Date();
@@ -117,7 +128,7 @@ Deno.serve(async (req) => {
       return Response.json({ listing: pick(listing, listingFields) });
     }
 
-    const [listingRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows, scheduleRows, leagueEventRows, leagueGameRows, joinRequestRows] = await Promise.all([
+    const [listingRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows, scheduleRows, leagueEventRows, leagueGameRows, joinRequestRows, seasonalLocationRows] = await Promise.all([
       base44.asServiceRole.entities.Listing.list('-created_date', 500),
       base44.asServiceRole.entities.ResidentialPromoCode.list('-updated_date', 100),
       base44.asServiceRole.entities.VendorEvent.list('startDateTime', 200),
@@ -128,9 +139,11 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.LeagueEventGame.list('display_order', 1000),
       base44.asServiceRole.entities.LeagueGame.list('sort_order', 1000),
       base44.asServiceRole.entities.JoinRequest.list('-created_date', 500),
+      base44.asServiceRole.entities.Location.list('-updated_date', 500),
     ]);
 
     const listings = listingRows.filter((listing) => isPublicListing(listing, now)).map((listing) => pick(listing, listingFields));
+    const seasonalLocations = seasonalLocationRows.filter((location) => isPublicSeasonalLocation(location, now)).map((location) => pick(location, seasonalLocationFields));
     const promoDiscoveryCodes = promoRows
       .filter((promo) => isActivePromo(promo))
       .map((promo) => ({ ...pick(promo, promoFields), status: 'active' }));
@@ -156,8 +169,8 @@ Deno.serve(async (req) => {
       .filter((request) => publicListingIds.has(request.listingId) && publicListingIds.has(request.saleListingId))
       .map((request) => pick(request, joinRequestFields));
 
-    return Response.json({ listings, promoDiscoveryCodes, vendorEvents, eventScheduleEntries, leagueEventLinks, leagueGames, vendorAccounts, vendorPins, vendorCheckIns, joinRequests });
+    return Response.json({ listings, seasonalLocations, promoDiscoveryCodes, vendorEvents, eventScheduleEntries, leagueEventLinks, leagueGames, vendorAccounts, vendorPins, vendorCheckIns, joinRequests });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

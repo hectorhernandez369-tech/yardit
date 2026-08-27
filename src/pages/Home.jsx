@@ -60,6 +60,7 @@ import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
 import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
+import HalloweenLocationMarkers from "@/components/map/HalloweenLocationMarkers";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
@@ -703,6 +704,14 @@ export default function HomePage() {
 
   const listings = isPublicHomeMode ? publicMapData.listings || [] : privateListings;
   const isLoading = isPublicHomeMode ? isLoadingPublicMapData : isLoadingPrivateListings;
+
+  const { data: privateSeasonalLocations = [] } = useQuery({
+    queryKey: ["seasonalLocations", "private"],
+    queryFn: () => base44.entities.Location.filter({ type: "halloween_candy", status: "active" }),
+    initialData: [],
+    enabled: !isPublicHomeMode,
+  });
+  const seasonalLocations = isPublicHomeMode ? publicMapData.seasonalLocations || [] : privateSeasonalLocations;
 
   useEffect(() => {
     if (isPublicHomeMode) return () => {};
@@ -1588,6 +1597,7 @@ export default function HomePage() {
             }
               
               {!showUpcomingWeekend && <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />}
+              {!showUpcomingWeekend && <HalloweenLocationMarkers locations={seasonalLocations} now={scheduleNow} />}
               {showUpcomingWeekend && (
                 <ComingSoonWeekendMapLayer
                   enabled={showUpcomingWeekend}
