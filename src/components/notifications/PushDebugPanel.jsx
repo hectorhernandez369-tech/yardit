@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Bug, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getOneSignalSubscriptionId } from "@/lib/pushNotifications";
+import { getOneSignalSubscriptionId, getRuntimePushConnection } from "@/lib/pushNotifications";
+import { isNativeYarditApp } from "@/lib/nativePushNotifications";
 
 const adminRoles = new Set(["admin", "master", "super_master", "developer"]);
 
@@ -24,6 +25,22 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
   const isAllowed = !!user?.isAdmin || adminRoles.has(user?.role);
 
   const refreshDebugInfo = async () => {
+    if (isNativeYarditApp()) {
+      const runtime = await getRuntimePushConnection();
+      setDebugInfo({
+        native: true,
+        platform: runtime.platform || "native",
+        notificationPermission: runtime.permissionGranted ? "Granted" : runtime.browserStatus === "blocked" ? "Blocked" : "Not granted",
+        oneSignalSubscriptionId: runtime.subscriptionId || storedSubscriptionId || "Not connected",
+        pushToken: runtime.pushToken || "Not registered",
+        optedIn: runtime.optedIn === true,
+        connected: runtime.connected === true,
+        registrationState: runtime.connected ? "Registered" : runtime.browserStatus || "Not registered",
+        lastPushError: runtime.error || window.__YARDIT_ONESIGNAL_INIT_ERROR__ || getLastPushError(),
+      });
+      return;
+    }
+
     const serviceWorkerSupported = typeof navigator !== "undefined" && "serviceWorker" in navigator;
     let activeServiceWorkerUrl = "Not active";
 
@@ -36,6 +53,7 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
     const oneSignalId = await getOneSignalSubscriptionId();
 
     setDebugInfo({
+      native: false,
       browserDevice: typeof navigator !== "undefined" ? navigator.userAgent : "Unavailable",
       secureContext: typeof window !== "undefined" && window.isSecureContext,
       serviceWorkerSupported,
@@ -53,7 +71,16 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
 
   if (!isAllowed) return null;
 
-  const rows = [
+  const rows = debugInfo?.native ? [
+    ["Platform", debugInfo.platform],
+    ["Notification permission", debugInfo.notificationPermission],
+    ["Registration state", debugInfo.registrationState],
+    ["OneSignal subscription id", debugInfo.oneSignalSubscriptionId],
+    ["Push token", debugInfo.pushToken],
+    ["Opted in", yesNo(debugInfo.optedIn)],
+    ["Connected", yesNo(debugInfo.connected)],
+    ["Native push error", debugInfo.lastPushError],
+  ] : [
     ["Browser/device", debugInfo?.browserDevice],
     ["Secure context", yesNo(debugInfo?.secureContext)],
     ["Service worker support", yesNo(debugInfo?.serviceWorkerSupported)],
