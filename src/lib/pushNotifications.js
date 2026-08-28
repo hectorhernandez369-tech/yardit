@@ -1,4 +1,4 @@
-import { enableNativePush, getNativePushConnection, getNativeSubscriptionId, isNativeYarditApp, logoutNativePushIdentity } from '@/lib/nativePushNotifications';
+import { enableNativePush, getNativePushConnection, getNativeSubscriptionId, isNativeYarditApp, isYarditAppShell, logoutNativePushIdentity } from '@/lib/nativePushNotifications';
 
 export const PUSH_RADIUS_OPTIONS = [1, 2, 5, 10, 25];
 
@@ -41,7 +41,7 @@ function logPushDebug(stage, extra = {}) {
 }
 
 function getPreflightFailureStatus() {
-  if (isNativeYarditApp()) return null;
+  if (isYarditAppShell()) return null;
   if (typeof window === "undefined") return "unsupported";
   if (isIosDevice() && !isStandaloneApp()) return "needs_install";
   if (!("Notification" in window) || !window.isSecureContext) return "unsupported";
@@ -157,7 +157,7 @@ async function waitForServiceWorkerReady() {
 }
 
 export function getBrowserPushStatus() {
-  if (isNativeYarditApp()) return "not_enabled";
+  if (isYarditAppShell()) return "not_enabled";
   const preflightFailure = getPreflightFailureStatus();
   if (preflightFailure) return preflightFailure;
   if (window.Notification.permission === "denied") return "blocked";
@@ -167,7 +167,7 @@ export function getBrowserPushStatus() {
 }
 
 export async function getRuntimePushConnection() {
-  if (isNativeYarditApp()) return getNativePushConnection();
+  if (isYarditAppShell()) return getNativePushConnection();
   const browserStatus = getBrowserPushStatus();
   if (browserStatus !== "permission_granted") {
     return { browserStatus, permissionGranted: false, subscriptionId: "", optedIn: false, connected: false };
@@ -202,6 +202,7 @@ export function pushStatusLabel(status) {
   if (status === "onesignal_not_ready") return "Push service loading";
   if (status === "registration_timeout") return "Registration timed out";
   if (status === "service_worker_not_ready") return "Service worker not ready";
+  if (status === "native_wrapper") return "Android app detected — native push bridge unavailable";
   if (status === "unsupported") return "Unsupported browser/device";
   return "Not enabled";
 }
@@ -217,7 +218,7 @@ async function waitForOneSignalSubscriptionId(OneSignal) {
 }
 
 export async function enableOneSignalPush({ userId } = {}) {
-  if (isNativeYarditApp()) return enableNativePush({ userId });
+  if (isYarditAppShell()) return enableNativePush({ userId });
   logPushDebug("enable_start");
   const preflightFailure = getPreflightFailureStatus();
   if (preflightFailure) {
@@ -232,8 +233,6 @@ export async function enableOneSignalPush({ userId } = {}) {
   }
 
   try {
-    // This call is intentionally executed directly from the user's button/toggle action.
-    // When browser permission is still undecided, it opens the native Allow/Block prompt.
     if (window.Notification.permission !== "granted") {
       const permissionRequest = await withTimeout(OneSignal.Notifications.requestPermission(), 12000, "timeout");
       logPushDebug("permission_result", { permissionResult: getPermissionResult(), permissionRequest });
@@ -258,7 +257,7 @@ export async function enableOneSignalPush({ userId } = {}) {
 }
 
 export async function getOneSignalSubscriptionId() {
-  if (isNativeYarditApp()) return getNativeSubscriptionId();
+  if (isYarditAppShell()) return getNativeSubscriptionId();
   if (typeof window === "undefined") return "";
   const OneSignal = window.__YARDIT_ONESIGNAL_INSTANCE__;
   if (OneSignal && window.__YARDIT_ONESIGNAL_READY__ === true) {
@@ -270,7 +269,7 @@ export async function getOneSignalSubscriptionId() {
 }
 
 export async function logoutPushIdentity() {
-  if (isNativeYarditApp()) {
+  if (isYarditAppShell()) {
     await logoutNativePushIdentity();
     return;
   }
