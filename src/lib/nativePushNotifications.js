@@ -25,20 +25,24 @@ function isDetectedPlayWrapper() {
   }
 }
 
-export function isCapacitorNativeYarditApp() {
+// Keep this strict: other Yardit systems use this to decide whether native
+// Capacitor APIs (such as NativeLogin) are actually available.
+export function isNativeYarditApp() {
   return Capacitor.isNativePlatform();
 }
 
-export function isNativeYarditApp() {
-  return isCapacitorNativeYarditApp() || isDetectedPlayWrapper();
+// Push diagnostics/routing also need to recognize the Google Play/Base44
+// Android wrapper, even when it does not expose a Capacitor native bridge.
+export function isYarditAppShell() {
+  return isNativeYarditApp() || isDetectedPlayWrapper();
 }
 
 export function isPlayYarditWrapper() {
-  return !isCapacitorNativeYarditApp() && isDetectedPlayWrapper();
+  return !isNativeYarditApp() && isDetectedPlayWrapper();
 }
 
 export function getNativePushPlatform() {
-  if (isCapacitorNativeYarditApp()) {
+  if (isNativeYarditApp()) {
     const platform = Capacitor.getPlatform();
     return platform === 'ios' ? 'ios' : platform === 'android' ? 'android' : 'web';
   }
@@ -64,7 +68,7 @@ function routeNativeNotification(deepLink) {
 }
 
 export async function initializeNativePush() {
-  if (!isCapacitorNativeYarditApp()) return false;
+  if (!isNativeYarditApp()) return false;
   if (initializationPromise) return initializationPromise;
 
   initializationPromise = (async () => {
@@ -105,7 +109,7 @@ export async function initializeNativePush() {
 }
 
 export async function bindNativePushIdentity(userId) {
-  if (!isCapacitorNativeYarditApp() || !userId) return false;
+  if (!isNativeYarditApp() || !userId) return false;
   const ready = await initializeNativePush();
   if (!ready) return false;
   await OneSignal.login(String(userId));
@@ -127,7 +131,7 @@ export async function getNativePushConnection() {
     };
   }
 
-  if (!isCapacitorNativeYarditApp()) {
+  if (!isNativeYarditApp()) {
     return { browserStatus: 'unsupported', permissionGranted: false, subscriptionId: '', pushToken: '', optedIn: false, connected: false, platform: 'web' };
   }
 
@@ -205,7 +209,7 @@ export async function enableNativePush({ userId } = {}) {
       error: 'Google Play wrapper detected, but this runtime does not expose the Capacitor OneSignal bridge.',
     };
   }
-  if (!isCapacitorNativeYarditApp()) return { status: 'unsupported', subscriptionId: '' };
+  if (!isNativeYarditApp()) return { status: 'unsupported', subscriptionId: '' };
   const ready = await initializeNativePush();
   if (!ready) return { status: 'onesignal_not_ready', subscriptionId: '' };
 
@@ -244,14 +248,14 @@ export async function enableNativePush({ userId } = {}) {
 }
 
 export async function getNativeSubscriptionId() {
-  if (!isCapacitorNativeYarditApp()) return '';
+  if (!isNativeYarditApp()) return '';
   const ready = await initializeNativePush();
   if (!ready) return '';
   return (await OneSignal.User.pushSubscription.getIdAsync()) || '';
 }
 
 export async function logoutNativePushIdentity() {
-  if (!isCapacitorNativeYarditApp()) return;
+  if (!isNativeYarditApp()) return;
   const ready = await initializeNativePush();
   if (!ready) return;
   await OneSignal.logout();
