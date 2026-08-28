@@ -1,7 +1,9 @@
+import { isNativeYarditApp } from '@/lib/nativePushNotifications';
+
 const ONESIGNAL_APP_ID = '44d72407-6c94-4258-95f7-fd22c3157040';
 
 export function initializeWebPush() {
-  if (typeof window === 'undefined' || window.__YARDIT_WEB_ONESIGNAL_BOOTSTRAPPED__) return;
+  if (isNativeYarditApp() || typeof window === 'undefined' || window.__YARDIT_WEB_ONESIGNAL_BOOTSTRAPPED__) return;
   window.__YARDIT_WEB_ONESIGNAL_BOOTSTRAPPED__ = true;
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.__YARDIT_ONESIGNAL_READY__ = false;

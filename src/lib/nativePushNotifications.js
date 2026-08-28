@@ -25,18 +25,12 @@ function isDetectedPlayWrapper() {
   }
 }
 
-// Keep this strict: other Yardit systems use this to decide whether native
-// Capacitor APIs (such as NativeLogin) are actually available.
+// This is the only source of truth for native capabilities and push routing.
 export function isNativeYarditApp() {
   return Capacitor.isNativePlatform();
 }
 
-// Push diagnostics/routing also need to recognize the Google Play/Base44
-// Android wrapper, even when it does not expose a Capacitor native bridge.
-export function isYarditAppShell() {
-  return isNativeYarditApp() || isDetectedPlayWrapper();
-}
-
+// Wrapper detection is diagnostic only. It must never select native APIs.
 export function isPlayYarditWrapper() {
   return !isNativeYarditApp() && isDetectedPlayWrapper();
 }
@@ -73,7 +67,7 @@ export async function initializeNativePush() {
 
   initializationPromise = (async () => {
     try {
-      await OneSignal.initialize(ONESIGNAL_APP_ID);
+      await OneSignal.initialize({ appId: ONESIGNAL_APP_ID });
 
       if (!listenersAttached) {
         listenersAttached = true;
@@ -117,27 +111,22 @@ export async function bindNativePushIdentity(userId) {
 }
 
 export async function getNativePushConnection() {
-  if (isPlayYarditWrapper()) {
-    return {
-      browserStatus: 'native_wrapper',
-      permissionGranted: false,
-      subscriptionId: '',
-      pushToken: '',
-      optedIn: false,
-      connected: false,
-      platform: 'android-wrapper',
-      wrapperDetected: true,
-      error: 'Google Play wrapper detected, but Capacitor native push bridge is unavailable in this runtime.',
-    };
-  }
-
   if (!isNativeYarditApp()) {
     return { browserStatus: 'unsupported', permissionGranted: false, subscriptionId: '', pushToken: '', optedIn: false, connected: false, platform: 'web' };
   }
 
   const ready = await initializeNativePush();
   if (!ready) {
-    return { browserStatus: 'onesignal_not_ready', permissionGranted: false, subscriptionId: '', pushToken: '', optedIn: false, connected: false, platform: Capacitor.getPlatform() };
+    return {
+      browserStatus: 'onesignal_not_ready',
+      permissionGranted: false,
+      subscriptionId: '',
+      pushToken: '',
+      optedIn: false,
+      connected: false,
+      platform: Capacitor.getPlatform(),
+      error: window.__YARDIT_ONESIGNAL_INIT_ERROR__ || 'Native OneSignal initialization failed',
+    };
   }
 
   try {
@@ -201,14 +190,6 @@ async function waitForNativeSubscription() {
 }
 
 export async function enableNativePush({ userId } = {}) {
-  if (isPlayYarditWrapper()) {
-    return {
-      status: 'native_wrapper',
-      subscriptionId: '',
-      platform: 'android-wrapper',
-      error: 'Google Play wrapper detected, but this runtime does not expose the Capacitor OneSignal bridge.',
-    };
-  }
   if (!isNativeYarditApp()) return { status: 'unsupported', subscriptionId: '' };
   const ready = await initializeNativePush();
   if (!ready) return { status: 'onesignal_not_ready', subscriptionId: '' };

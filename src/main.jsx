@@ -25,7 +25,7 @@ requestAnimationFrame(() => {
   document.getElementById('yardit-initial-splash')?.remove();
 });
 
-if ('serviceWorker' in navigator) {
+if (!isNativeYarditApp() && 'serviceWorker' in navigator) {
   const oneSignalEnabled = Boolean(window.OneSignalDeferred);
 
   if (import.meta.env.PROD && oneSignalEnabled) {

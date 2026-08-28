@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, getRuntimePushConnection, pushStatusLabel } from "@/lib/pushNotifications";
 import { hasVerifiedPrimaryAddress } from "@/lib/trustActions";
-import { getNativePushPlatform, isNativeYarditApp } from "@/lib/nativePushNotifications";
+import { enableNativePush, getNativePushPlatform, isNativeYarditApp } from "@/lib/nativePushNotifications";
 import PushCategoryRow from "./PushCategoryRow";
 import AlertsPushGroup from "./AlertsPushGroup";
 import VendorSubscriptionManager from "./VendorSubscriptionManager";
@@ -53,7 +53,7 @@ const getPushDeviceKey = () => {
 
 const pushErrorMessage = (status) => status === "needs_install" ? "Install Yardit to your Home Screen first, then open the installed app to enable push notifications." :
   status === "onesignal_not_ready" ? "The push service is still loading. Please wait a few seconds and try again." :
-  status === "registration_timeout" ? "Notifications were allowed, but browser registration did not finish. Refresh Yardit and try again." :
+  status === "registration_timeout" ? "Notifications were allowed, but device registration did not finish. Restart Yardit and try again." :
   status === "service_worker_not_ready" ? "Preparing notifications, please try again in a moment." :
   status === "blocked" ? "Notifications are blocked in your browser or device settings." :
   status === "unsupported" ? "Push notifications are not supported by this browser or device." :
@@ -173,7 +173,9 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
 
     setEnabling(true);
     try {
-      const result = await enableOneSignalPush({ userId: user.id });
+      const result = isNativeYarditApp()
+        ? await enableNativePush({ userId: user.id })
+        : await enableOneSignalPush({ userId: user.id });
       const subscriptionId = result.subscriptionId || await getOneSignalSubscriptionId();
       if (canStorePushStatus(result.status)) await savePushSubscription(result.status, subscriptionId, result);
 

@@ -1,4 +1,4 @@
-import { enableNativePush, getNativePushConnection, getNativeSubscriptionId, isNativeYarditApp, isYarditAppShell, logoutNativePushIdentity } from '@/lib/nativePushNotifications';
+import { enableNativePush, getNativePushConnection, getNativeSubscriptionId, isNativeYarditApp, logoutNativePushIdentity } from '@/lib/nativePushNotifications';
 
 export const PUSH_RADIUS_OPTIONS = [1, 2, 5, 10, 25];
 
@@ -41,7 +41,7 @@ function logPushDebug(stage, extra = {}) {
 }
 
 function getPreflightFailureStatus() {
-  if (isYarditAppShell()) return null;
+  if (isNativeYarditApp()) return null;
   if (typeof window === "undefined") return "unsupported";
   if (isIosDevice() && !isStandaloneApp()) return "needs_install";
   if (!("Notification" in window) || !window.isSecureContext) return "unsupported";
@@ -157,7 +157,7 @@ async function waitForServiceWorkerReady() {
 }
 
 export function getBrowserPushStatus() {
-  if (isYarditAppShell()) return "not_enabled";
+  if (isNativeYarditApp()) return "not_enabled";
   const preflightFailure = getPreflightFailureStatus();
   if (preflightFailure) return preflightFailure;
   if (window.Notification.permission === "denied") return "blocked";
@@ -167,7 +167,7 @@ export function getBrowserPushStatus() {
 }
 
 export async function getRuntimePushConnection() {
-  if (isYarditAppShell()) return getNativePushConnection();
+  if (isNativeYarditApp()) return getNativePushConnection();
   const browserStatus = getBrowserPushStatus();
   if (browserStatus !== "permission_granted") {
     return { browserStatus, permissionGranted: false, subscriptionId: "", optedIn: false, connected: false };
@@ -218,7 +218,7 @@ async function waitForOneSignalSubscriptionId(OneSignal) {
 }
 
 export async function enableOneSignalPush({ userId } = {}) {
-  if (isYarditAppShell()) return enableNativePush({ userId });
+  if (isNativeYarditApp()) return enableNativePush({ userId });
   logPushDebug("enable_start");
   const preflightFailure = getPreflightFailureStatus();
   if (preflightFailure) {
@@ -257,7 +257,7 @@ export async function enableOneSignalPush({ userId } = {}) {
 }
 
 export async function getOneSignalSubscriptionId() {
-  if (isYarditAppShell()) return getNativeSubscriptionId();
+  if (isNativeYarditApp()) return getNativeSubscriptionId();
   if (typeof window === "undefined") return "";
   const OneSignal = window.__YARDIT_ONESIGNAL_INSTANCE__;
   if (OneSignal && window.__YARDIT_ONESIGNAL_READY__ === true) {
@@ -269,7 +269,7 @@ export async function getOneSignalSubscriptionId() {
 }
 
 export async function logoutPushIdentity() {
-  if (isYarditAppShell()) {
+  if (isNativeYarditApp()) {
     await logoutNativePushIdentity();
     return;
   }

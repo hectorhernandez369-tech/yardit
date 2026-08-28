@@ -1,5 +1,6 @@
 import { base44 } from "@/api/base44Client";
-import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId } from "@/lib/pushNotifications";
+import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, getRuntimePushConnection } from "@/lib/pushNotifications";
+import { isNativeYarditApp } from "@/lib/nativePushNotifications";
 
 const DEFAULT_PREFS = {
   push_enabled: true,
@@ -70,7 +71,13 @@ export async function shouldShowPushPrompt(user) {
 }
 
 export async function syncGrantedPushSubscription(user) {
-  if (!user?.id || typeof window === "undefined" || !("Notification" in window) || window.Notification.permission !== "granted") {
+  if (!user?.id || typeof window === "undefined") {
+    return { status: "not_enabled", subscriptionId: "", synced: false };
+  }
+  if (isNativeYarditApp()) {
+    const runtime = await getRuntimePushConnection();
+    if (!runtime.permissionGranted) return { status: runtime.browserStatus, subscriptionId: runtime.subscriptionId || "", synced: false };
+  } else if (!("Notification" in window) || window.Notification.permission !== "granted") {
     return { status: "not_enabled", subscriptionId: "", synced: false };
   }
   const result = await enablePushPromptSubscription(user);
