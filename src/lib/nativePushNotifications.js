@@ -67,7 +67,7 @@ export async function initializeNativePush() {
 
   initializationPromise = (async () => {
     try {
-      await OneSignal.initialize({ appId: ONESIGNAL_APP_ID });
+      await OneSignal.initialize(ONESIGNAL_APP_ID);
 
       if (!listenersAttached) {
         listenersAttached = true;

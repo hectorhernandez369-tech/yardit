@@ -63,6 +63,23 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
+tasks.register('verifyYarditNativePushWiring') {
+    doLast {
+        if (project.findProject(':onesignal-capacitor-plugin') == null) {
+            throw new GradleException('OneSignal Capacitor plugin project is not linked')
+        }
+
+        def capacitorPlugins = file('src/main/assets/capacitor.plugins.json')
+        if (!capacitorPlugins.exists() || !capacitorPlugins.text.contains('OneSignalCapacitor')) {
+            throw new GradleException('OneSignalCapacitor is missing from the generated Capacitor plugin registry')
+        }
+    }
+}
+
+tasks.named('preBuild').configure {
+    dependsOn tasks.named('verifyYarditNativePushWiring')
+}
+
 try {
     def servicesJSON = file('google-services.json')
     if (servicesJSON.text) {

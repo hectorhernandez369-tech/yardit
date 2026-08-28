@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOneSignalSubscriptionId, getRuntimePushConnection } from "@/lib/pushNotifications";
 import { isNativeYarditApp, isPlayYarditWrapper } from "@/lib/nativePushNotifications";
+import { getCapacitorRuntimeDiagnostics } from "@/lib/capacitorRuntimeDiagnostics";
 
 const adminRoles = new Set(["admin", "master", "super_master", "developer"]);
 
@@ -25,10 +26,13 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
   const isAllowed = !!user?.isAdmin || adminRoles.has(user?.role);
 
   const refreshDebugInfo = async () => {
+    const capacitorDiagnostics = getCapacitorRuntimeDiagnostics();
+
     if (isNativeYarditApp()) {
       const runtime = await getRuntimePushConnection();
       setDebugInfo({
         native: true,
+        ...capacitorDiagnostics,
         platform: runtime.platform || "native",
         notificationPermission: runtime.permissionGranted ? "Granted" : runtime.browserStatus === "blocked" ? "Blocked" : "Not granted",
         oneSignalSubscriptionId: runtime.subscriptionId || storedSubscriptionId || "Not connected",
@@ -53,6 +57,7 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
 
     setDebugInfo({
       native: false,
+      ...capacitorDiagnostics,
       wrapperDetected: isPlayYarditWrapper(),
       browserDevice: typeof navigator !== "undefined" ? navigator.userAgent : "Unavailable",
       secureContext: typeof window !== "undefined" && window.isSecureContext,
@@ -71,7 +76,17 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
 
   if (!isAllowed) return null;
 
+  const capacitorRows = [
+    ["Capacitor.getPlatform()", debugInfo?.capacitorPlatform],
+    ["Capacitor.isNativePlatform()", yesNo(debugInfo?.capacitorNative)],
+    ["window.Capacitor exists", yesNo(debugInfo?.windowCapacitorExists)],
+    ["window.location.href", debugInfo?.locationHref],
+    ["document.referrer", debugInfo?.documentReferrer],
+    ["OneSignal native plugin available", yesNo(debugInfo?.oneSignalPluginAvailable)],
+  ];
+
   const rows = debugInfo?.native ? [
+    ...capacitorRows,
     ["Platform", debugInfo.platform],
     ["Android notification permission", debugInfo.notificationPermission],
     ["OneSignal subscription ID", debugInfo.oneSignalSubscriptionId],
@@ -80,6 +95,7 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
     ["Connected", yesNo(debugInfo.connected)],
     ...(debugInfo.lastPushError && debugInfo.lastPushError !== "None recorded" ? [["Native initialization error", debugInfo.lastPushError]] : []),
   ] : [
+    ...capacitorRows,
     ...(debugInfo?.wrapperDetected ? [["Runtime", "Android web wrapper — Capacitor bridge absent"]] : []),
     ["Browser/device", debugInfo?.browserDevice],
     ["Secure context", yesNo(debugInfo?.secureContext)],
