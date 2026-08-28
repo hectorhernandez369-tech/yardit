@@ -3,7 +3,7 @@ import { Bug, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOneSignalSubscriptionId, getRuntimePushConnection } from "@/lib/pushNotifications";
-import { isNativeYarditApp } from "@/lib/nativePushNotifications";
+import { isYarditAppShell } from "@/lib/nativePushNotifications";
 
 const adminRoles = new Set(["admin", "master", "super_master", "developer"]);
 
@@ -25,7 +25,7 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
   const isAllowed = !!user?.isAdmin || adminRoles.has(user?.role);
 
   const refreshDebugInfo = async () => {
-    if (isNativeYarditApp()) {
+    if (isYarditAppShell()) {
       const runtime = await getRuntimePushConnection();
       setDebugInfo({
         native: true,
