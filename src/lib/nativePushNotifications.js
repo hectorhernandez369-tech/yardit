@@ -2,24 +2,53 @@ import { Capacitor } from '@capacitor/core';
 import OneSignal from '@onesignal/capacitor-plugin';
 
 const ONESIGNAL_APP_ID = '44d72407-6c94-4258-95f7-fd22c3157040';
+const PLAY_WRAPPER_KEY = 'yardit_play_wrapper_detected_v1';
 let initializationPromise = null;
 let listenersAttached = false;
 
-export function isNativeYarditApp() {
+function isDetectedPlayWrapper() {
+  if (typeof window === 'undefined') return false;
+
+  const androidAppReferrer = typeof document !== 'undefined' && document.referrer?.startsWith('android-app://');
+  if (androidAppReferrer) {
+    try {
+      sessionStorage.setItem(PLAY_WRAPPER_KEY, 'true');
+      localStorage.setItem(PLAY_WRAPPER_KEY, 'true');
+    } catch {}
+    return true;
+  }
+
+  try {
+    return sessionStorage.getItem(PLAY_WRAPPER_KEY) === 'true' || localStorage.getItem(PLAY_WRAPPER_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function isCapacitorNativeYarditApp() {
   return Capacitor.isNativePlatform();
 }
 
+export function isNativeYarditApp() {
+  return isCapacitorNativeYarditApp() || isDetectedPlayWrapper();
+}
+
+export function isPlayYarditWrapper() {
+  return !isCapacitorNativeYarditApp() && isDetectedPlayWrapper();
+}
+
 export function getNativePushPlatform() {
-  if (!isNativeYarditApp()) return 'web';
-  const platform = Capacitor.getPlatform();
-  return platform === 'ios' ? 'ios' : platform === 'android' ? 'android' : 'web';
+  if (isCapacitorNativeYarditApp()) {
+    const platform = Capacitor.getPlatform();
+    return platform === 'ios' ? 'ios' : platform === 'android' ? 'android' : 'web';
+  }
+  return isDetectedPlayWrapper() ? 'android-wrapper' : 'web';
 }
 
 function emitNativePushChange(detail = {}) {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent('yardit:push-subscription-change', { detail }));
 }
-
 
 function routeNativeNotification(deepLink) {
   if (typeof window === 'undefined' || !deepLink) return;
@@ -35,7 +64,7 @@ function routeNativeNotification(deepLink) {
 }
 
 export async function initializeNativePush() {
-  if (!isNativeYarditApp()) return false;
+  if (!isCapacitorNativeYarditApp()) return false;
   if (initializationPromise) return initializationPromise;
 
   initializationPromise = (async () => {
@@ -76,7 +105,7 @@ export async function initializeNativePush() {
 }
 
 export async function bindNativePushIdentity(userId) {
-  if (!isNativeYarditApp() || !userId) return false;
+  if (!isCapacitorNativeYarditApp() || !userId) return false;
   const ready = await initializeNativePush();
   if (!ready) return false;
   await OneSignal.login(String(userId));
@@ -84,7 +113,21 @@ export async function bindNativePushIdentity(userId) {
 }
 
 export async function getNativePushConnection() {
-  if (!isNativeYarditApp()) {
+  if (isPlayYarditWrapper()) {
+    return {
+      browserStatus: 'native_wrapper',
+      permissionGranted: false,
+      subscriptionId: '',
+      pushToken: '',
+      optedIn: false,
+      connected: false,
+      platform: 'android-wrapper',
+      wrapperDetected: true,
+      error: 'Google Play wrapper detected, but Capacitor native push bridge is unavailable in this runtime.',
+    };
+  }
+
+  if (!isCapacitorNativeYarditApp()) {
     return { browserStatus: 'unsupported', permissionGranted: false, subscriptionId: '', pushToken: '', optedIn: false, connected: false, platform: 'web' };
   }
 
@@ -154,7 +197,15 @@ async function waitForNativeSubscription() {
 }
 
 export async function enableNativePush({ userId } = {}) {
-  if (!isNativeYarditApp()) return { status: 'unsupported', subscriptionId: '' };
+  if (isPlayYarditWrapper()) {
+    return {
+      status: 'native_wrapper',
+      subscriptionId: '',
+      platform: 'android-wrapper',
+      error: 'Google Play wrapper detected, but this runtime does not expose the Capacitor OneSignal bridge.',
+    };
+  }
+  if (!isCapacitorNativeYarditApp()) return { status: 'unsupported', subscriptionId: '' };
   const ready = await initializeNativePush();
   if (!ready) return { status: 'onesignal_not_ready', subscriptionId: '' };
 
@@ -163,8 +214,6 @@ export async function enableNativePush({ userId } = {}) {
 
     let permissionGranted = await OneSignal.Notifications.hasPermission();
     if (!permissionGranted) {
-      // Native mobile only: if permission was previously denied, OneSignal may offer
-      // the operating-system Settings screen instead of pretending it can reprompt.
       permissionGranted = await OneSignal.Notifications.requestPermission(true);
     }
 
@@ -195,15 +244,14 @@ export async function enableNativePush({ userId } = {}) {
 }
 
 export async function getNativeSubscriptionId() {
-  if (!isNativeYarditApp()) return '';
+  if (!isCapacitorNativeYarditApp()) return '';
   const ready = await initializeNativePush();
   if (!ready) return '';
   return (await OneSignal.User.pushSubscription.getIdAsync()) || '';
 }
 
-
 export async function logoutNativePushIdentity() {
-  if (!isNativeYarditApp()) return;
+  if (!isCapacitorNativeYarditApp()) return;
   const ready = await initializeNativePush();
   if (!ready) return;
   await OneSignal.logout();
