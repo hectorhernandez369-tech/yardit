@@ -992,10 +992,7 @@ export default function HomePage() {
   }, []);
 
   const handleMyLocation = () => {
-    if (locationError) {
-      toast.error("Location unavailable. Check your browser settings.");
-      return;
-    }
+    setLocationError(null);
     if (userLocation) {
       setMapCenter([userLocation.lat, userLocation.lng]);
       setMapZoom(14);
@@ -1003,34 +1000,38 @@ export default function HomePage() {
       return;
     }
     setIsLocating(true);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const newLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          };
-          setUserLocation(newLocation);
-          setMapCenter([newLocation.lat, newLocation.lng]);
-          setMapZoom(14);
-          setLocationError(null);
-          setIsLocating(false);
-          toast.success("Centered on your location");
-        },
-        (error) => {
-          setIsLocating(false);
-          if (error.code === error.PERMISSION_DENIED) {
-            setLocationError("Location permission is off. Enable it in settings to use My Location.");
-            toast.error("Location permission denied");
-          } else {
-            setLocationError("Unable to get location right now.");
-            toast.error("Unable to get location");
-          }
-        },
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
+    if (!navigator.geolocation) {
+      setIsLocating(false);
+      setLocationError("Location is not supported on this device.");
+      toast.error("Location is not supported on this device");
+      return;
     }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        };
+        setUserLocation(newLocation);
+        setMapCenter([newLocation.lat, newLocation.lng]);
+        setMapZoom(14);
+        setLocationError(null);
+        setIsLocating(false);
+        toast.success("Centered on your location");
+      },
+      (error) => {
+        setIsLocating(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError("Location permission is off. Allow it in device settings, then tap My Location to retry.");
+          toast.error("Location permission denied");
+        } else {
+          setLocationError("Unable to get location right now. Tap My Location to retry.");
+          toast.error("Unable to get location");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
   };
 
   const handleUserMoveMap = React.useCallback((center, isProgrammatic) => {

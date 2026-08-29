@@ -29,9 +29,9 @@ export default function MapZoomControl({ onMyLocation, isLocating, locationError
       </button>
       <button
         onClick={onMyLocation}
-        disabled={isLocating || !!locationError}
+        disabled={isLocating}
         className={btnBase}
-        title={locationError ? "Location unavailable" : "My Location"}
+        title={locationError ? "Retry My Location" : "My Location"}
       >
         {isLocating ? (
           <Loader2 className="w-4 h-4 animate-spin" />
