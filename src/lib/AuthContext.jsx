@@ -8,8 +8,9 @@ import { logUserActivity, logUserActivityOncePerSession } from './logUserActivit
 import { normalizeUser } from '@/lib/normalizeUser';
 import { recordAuthDebugEvent } from '@/lib/authDebug';
 import { EVENTS_EXPERIENCE, EXPERIENCE_STORAGE_KEY } from '@/lib/experience';
-import { bindNativePushIdentity, isNativeYarditApp, isPlayYarditWrapper } from '@/lib/nativePushNotifications';
+import { bindNativePushIdentity, isNativeYarditApp } from '@/lib/nativePushNotifications';
 import { logoutPushIdentity } from '@/lib/pushNotifications';
+import { getNativeLoginReturnUrl } from '@/lib/nativeAuthBridge';
 
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
@@ -385,28 +386,20 @@ export const AuthProvider = ({ children }) => {
 
   const navigateToLogin = (returnToUrl) => {
     const requestedReturnUrl = returnToUrl || window.location.href;
-
-    if (isNativeYarditApp()) {
-      saveAuthReturnTo(requestedReturnUrl);
-      clearGuestMode();
-      setIsGuest(false);
-      window.location.assign('/NativeLogin');
-      return;
-    }
+    const nativeApp = isNativeYarditApp();
+    const loginReturnUrl = nativeApp ? getNativeLoginReturnUrl() : requestedReturnUrl;
 
     console.log('AUTH_DEBUG navigateToLogin', {
       hasToken: !!appParams.token,
       currentUrl: window.location.href,
       authError,
-      isGuest
+      isGuest,
+      nativeApp,
     });
-
-    const playWrapper = isPlayYarditWrapper();
-    const loginReturnUrl = playWrapper ? `${window.location.origin}/?auth_callback=play` : requestedReturnUrl;
     recordAuthDebugEvent('redirect_to_login', {
-      playWrapper,
+      nativeApp,
       loginReturnUrl,
-      returnStrategy: playWrapper ? 'play_start_url' : 'requested_url',
+      returnStrategy: nativeApp ? 'native_deep_link_handoff' : 'requested_url',
       currentUrl: window.location.href,
     });
 
