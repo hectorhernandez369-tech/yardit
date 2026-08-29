@@ -6,8 +6,13 @@ import { initializeNativePush } from '@/lib/nativePushNotifications';
 import { isNativeYarditApp } from '@/lib/runtimePlatform';
 import { handoffHostedNativeAuthCallback, initializeNativeAuthBridge } from '@/lib/nativeAuthBridge';
 import { initializeWebPush } from '@/lib/webPushBootstrap';
+import { prepareDevelopmentRuntime } from '@/lib/devRuntimeCleanup';
 
-const handingOffNativeAuth = handoffHostedNativeAuthCallback();
+const shouldReloadAfterCleanup = await prepareDevelopmentRuntime();
+if (shouldReloadAfterCleanup) {
+  window.location.reload();
+} else {
+  const handingOffNativeAuth = handoffHostedNativeAuthCallback();
 
 if (isNativeYarditApp()) {
   void initializeNativeAuthBridge();
@@ -40,11 +45,6 @@ if (!isNativeYarditApp() && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js');
     });
-  } else if (!import.meta.env.PROD) {
-    // In dev mode, unregister any stale service workers to avoid caching issues
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((reg) => reg.unregister());
-    });
   }
 }
 
@@ -55,4 +55,5 @@ if (import.meta.hot) {
   import.meta.hot.on('vite:afterUpdate', () => {
     window.parent?.postMessage({ type: 'sandbox:afterUpdate' }, '*');
   });
+}
 }
