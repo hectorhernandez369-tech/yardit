@@ -2,7 +2,8 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from '@/App.jsx'
 import '@/index.css'
-import { isNativeYarditApp, initializeNativePush } from '@/lib/nativePushNotifications';
+import { initializeNativePush } from '@/lib/nativePushNotifications';
+import { isNativeYarditApp } from '@/lib/runtimePlatform';
 import { handoffHostedNativeAuthCallback, initializeNativeAuthBridge } from '@/lib/nativeAuthBridge';
 import { initializeWebPush } from '@/lib/webPushBootstrap';
 

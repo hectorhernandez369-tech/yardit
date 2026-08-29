@@ -3,7 +3,7 @@ import { Bug, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOneSignalSubscriptionId, getRuntimePushConnection } from "@/lib/pushNotifications";
-import { isNativeYarditApp, isPlayYarditWrapper } from "@/lib/nativePushNotifications";
+import { isNativeYarditApp } from "@/lib/runtimePlatform";
 import { getCapacitorRuntimeDiagnostics } from "@/lib/capacitorRuntimeDiagnostics";
 
 const adminRoles = new Set(["admin", "master", "super_master", "developer"]);
@@ -58,7 +58,6 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
     setDebugInfo({
       native: false,
       ...capacitorDiagnostics,
-      wrapperDetected: isPlayYarditWrapper(),
       browserDevice: typeof navigator !== "undefined" ? navigator.userAgent : "Unavailable",
       secureContext: typeof window !== "undefined" && window.isSecureContext,
       serviceWorkerSupported,
@@ -96,7 +95,6 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
     ...(debugInfo.lastPushError && debugInfo.lastPushError !== "None recorded" ? [["Native initialization error", debugInfo.lastPushError]] : []),
   ] : [
     ...capacitorRows,
-    ...(debugInfo?.wrapperDetected ? [["Runtime", "Android web wrapper — Capacitor bridge absent"]] : []),
     ["Browser/device", debugInfo?.browserDevice],
     ["Secure context", yesNo(debugInfo?.secureContext)],
     ["Service worker support", yesNo(debugInfo?.serviceWorkerSupported)],

@@ -1,6 +1,6 @@
 import { base44 } from "@/api/base44Client";
 import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, getRuntimePushConnection } from "@/lib/pushNotifications";
-import { isNativeYarditApp } from "@/lib/nativePushNotifications";
+import { isNativeYarditApp } from "@/lib/runtimePlatform";
 
 const DEFAULT_PREFS = {
   push_enabled: true,

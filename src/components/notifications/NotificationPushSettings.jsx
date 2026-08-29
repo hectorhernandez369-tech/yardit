@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, getRuntimePushConnection, pushStatusLabel } from "@/lib/pushNotifications";
 import { hasVerifiedPrimaryAddress } from "@/lib/trustActions";
-import { enableNativePush, getNativePushPlatform, isNativeYarditApp } from "@/lib/nativePushNotifications";
+import { enableNativePush } from "@/lib/nativePushNotifications";
+import { getYarditRuntimePlatform, isNativeYarditApp } from "@/lib/runtimePlatform";
 import PushCategoryRow from "./PushCategoryRow";
 import AlertsPushGroup from "./AlertsPushGroup";
 import VendorSubscriptionManager from "./VendorSubscriptionManager";
@@ -65,7 +66,7 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
   const [runtimeSubscriptionId, setRuntimeSubscriptionId] = useState("");
   const [runtimeConnected, setRuntimeConnected] = useState(false);
   const [runtimePushToken, setRuntimePushToken] = useState("");
-  const [runtimePlatform, setRuntimePlatform] = useState(isNativeYarditApp() ? getNativePushPlatform() : "web");
+  const [runtimePlatform, setRuntimePlatform] = useState(isNativeYarditApp() ? getYarditRuntimePlatform() : "web");
   const [enabling, setEnabling] = useState(false);
   const verifiedAddress = hasVerifiedPrimaryAddress(user);
 
@@ -75,7 +76,7 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     setRuntimeSubscriptionId(runtime.subscriptionId || "");
     setRuntimeConnected(runtime.connected === true);
     setRuntimePushToken(runtime.pushToken || "");
-    setRuntimePlatform(runtime.platform || (isNativeYarditApp() ? getNativePushPlatform() : "web"));
+    setRuntimePlatform(runtime.platform || (isNativeYarditApp() ? getYarditRuntimePlatform() : "web"));
     return runtime;
   };
 
@@ -88,7 +89,7 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
       setRuntimeSubscriptionId(runtime.subscriptionId || "");
       setRuntimeConnected(runtime.connected === true);
       setRuntimePushToken(runtime.pushToken || "");
-      setRuntimePlatform(runtime.platform || (isNativeYarditApp() ? getNativePushPlatform() : "web"));
+      setRuntimePlatform(runtime.platform || (isNativeYarditApp() ? getYarditRuntimePlatform() : "web"));
     };
     refresh();
     const handleReady = () => refresh();
@@ -131,7 +132,7 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
   const savePushSubscription = async (status, subscriptionId, runtime = {}) => {
     const existing = await base44.entities.PushSubscription.filter({ user_id: user.id });
     const deviceKey = getPushDeviceKey();
-    const platform = runtime.platform || runtimePlatform || (isNativeYarditApp() ? getNativePushPlatform() : "web");
+    const platform = runtime.platform || runtimePlatform || (isNativeYarditApp() ? getYarditRuntimePlatform() : "web");
     const pushToken = runtime.pushToken || runtimePushToken || "";
     const currentUserAgent = `${platform}:${navigator.userAgent}`;
     const matching = existing.find((row) => subscriptionId && row.onesignal_subscription_id === subscriptionId)

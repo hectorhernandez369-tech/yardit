@@ -1,47 +1,9 @@
-import { Capacitor } from '@capacitor/core';
 import OneSignal from '@onesignal/capacitor-plugin';
+import { getYarditRuntimePlatform, isNativeYarditApp } from '@/lib/runtimePlatform';
 
 const ONESIGNAL_APP_ID = '44d72407-6c94-4258-95f7-fd22c3157040';
-const PLAY_WRAPPER_KEY = 'yardit_play_wrapper_detected_v1';
 let initializationPromise = null;
 let listenersAttached = false;
-
-function isDetectedPlayWrapper() {
-  if (typeof window === 'undefined') return false;
-
-  const androidAppReferrer = typeof document !== 'undefined' && document.referrer?.startsWith('android-app://');
-  if (androidAppReferrer) {
-    try {
-      sessionStorage.setItem(PLAY_WRAPPER_KEY, 'true');
-      localStorage.setItem(PLAY_WRAPPER_KEY, 'true');
-    } catch {}
-    return true;
-  }
-
-  try {
-    return sessionStorage.getItem(PLAY_WRAPPER_KEY) === 'true' || localStorage.getItem(PLAY_WRAPPER_KEY) === 'true';
-  } catch {
-    return false;
-  }
-}
-
-// This is the only source of truth for native capabilities and push routing.
-export function isNativeYarditApp() {
-  return Capacitor.isNativePlatform();
-}
-
-// Wrapper detection is diagnostic only. It must never select native APIs.
-export function isPlayYarditWrapper() {
-  return !isNativeYarditApp() && isDetectedPlayWrapper();
-}
-
-export function getNativePushPlatform() {
-  if (isNativeYarditApp()) {
-    const platform = Capacitor.getPlatform();
-    return platform === 'ios' ? 'ios' : platform === 'android' ? 'android' : 'web';
-  }
-  return isDetectedPlayWrapper() ? 'android-wrapper' : 'web';
-}
 
 function emitNativePushChange(detail = {}) {
   if (typeof window === 'undefined') return;
@@ -124,7 +86,7 @@ export async function getNativePushConnection() {
       pushToken: '',
       optedIn: false,
       connected: false,
-      platform: Capacitor.getPlatform(),
+      platform: getYarditRuntimePlatform(),
       error: window.__YARDIT_ONESIGNAL_INIT_ERROR__ || 'Native OneSignal initialization failed',
     };
   }
@@ -153,7 +115,7 @@ export async function getNativePushConnection() {
       pushToken: pushToken || '',
       optedIn: optedIn === true,
       connected,
-      platform: Capacitor.getPlatform(),
+      platform: getYarditRuntimePlatform(),
     };
   } catch (error) {
     return {
@@ -163,7 +125,7 @@ export async function getNativePushConnection() {
       pushToken: '',
       optedIn: false,
       connected: false,
-      platform: Capacitor.getPlatform(),
+      platform: getYarditRuntimePlatform(),
       error: error?.message || String(error),
     };
   }
@@ -216,14 +178,14 @@ export async function enableNativePush({ userId } = {}) {
       subscriptionId: subscriptionId || '',
       pushToken: pushToken || '',
       optedIn,
-      platform: Capacitor.getPlatform(),
+      platform: getYarditRuntimePlatform(),
     };
   } catch (error) {
     return {
       status: 'not_enabled',
       subscriptionId: '',
       error: error?.message || String(error),
-      platform: Capacitor.getPlatform(),
+      platform: getYarditRuntimePlatform(),
     };
   }
 }

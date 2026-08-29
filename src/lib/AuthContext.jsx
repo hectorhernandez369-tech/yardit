@@ -8,7 +8,8 @@ import { logUserActivity, logUserActivityOncePerSession } from './logUserActivit
 import { normalizeUser } from '@/lib/normalizeUser';
 import { recordAuthDebugEvent } from '@/lib/authDebug';
 import { EVENTS_EXPERIENCE, EXPERIENCE_STORAGE_KEY } from '@/lib/experience';
-import { bindNativePushIdentity, isNativeYarditApp } from '@/lib/nativePushNotifications';
+import { bindNativePushIdentity } from '@/lib/nativePushNotifications';
+import { isNativeYarditApp } from '@/lib/runtimePlatform';
 import { logoutPushIdentity } from '@/lib/pushNotifications';
 import { getNativeLoginReturnUrl } from '@/lib/nativeAuthBridge';
 

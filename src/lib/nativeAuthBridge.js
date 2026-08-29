@@ -1,6 +1,6 @@
-import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { recordAuthDebugEvent } from '@/lib/authDebug';
+import { isNativeYarditApp } from '@/lib/runtimePlatform';
 
 const NATIVE_AUTH_SCHEME = 'yardit://auth-callback';
 const HOSTED_NATIVE_AUTH_FLAG = 'yardit_native_auth';
@@ -45,7 +45,7 @@ export function getNativeLoginReturnUrl() {
 }
 
 export function handoffHostedNativeAuthCallback() {
-  if (typeof window === 'undefined' || Capacitor.isNativePlatform()) return false;
+  if (typeof window === 'undefined' || isNativeYarditApp()) return false;
 
   const current = new URL(window.location.href);
   if (current.searchParams.get(HOSTED_NATIVE_AUTH_FLAG) !== '1') return false;
@@ -76,7 +76,7 @@ export function handoffHostedNativeAuthCallback() {
 }
 
 export async function initializeNativeAuthBridge() {
-  if (!Capacitor.isNativePlatform()) return false;
+  if (!isNativeYarditApp()) return false;
 
   await CapacitorApp.addListener('appUrlOpen', ({ url }) => {
     handleNativeAuthUrl(url);

@@ -1,4 +1,5 @@
-import { enableNativePush, getNativePushConnection, getNativeSubscriptionId, isNativeYarditApp, logoutNativePushIdentity } from '@/lib/nativePushNotifications';
+import { enableNativePush, getNativePushConnection, getNativeSubscriptionId, logoutNativePushIdentity } from '@/lib/nativePushNotifications';
+import { isNativeYarditApp } from '@/lib/runtimePlatform';
 
 export const PUSH_RADIUS_OPTIONS = [1, 2, 5, 10, 25];
 
@@ -202,7 +203,6 @@ export function pushStatusLabel(status) {
   if (status === "onesignal_not_ready") return "Push service loading";
   if (status === "registration_timeout") return "Registration timed out";
   if (status === "service_worker_not_ready") return "Service worker not ready";
-  if (status === "native_wrapper") return "Android app detected — native push bridge unavailable";
   if (status === "unsupported") return "Unsupported browser/device";
   return "Not enabled";
 }

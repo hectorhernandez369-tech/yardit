@@ -1,4 +1,4 @@
-import { isNativeYarditApp } from '@/lib/nativePushNotifications';
+import { isNativeYarditApp } from '@/lib/runtimePlatform';
 
 const ONESIGNAL_APP_ID = '44d72407-6c94-4258-95f7-fd22c3157040';
 
