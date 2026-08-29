@@ -2,7 +2,6 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { recordAuthDebugEvent } from '@/lib/authDebug';
 
-const BASE44_ACCESS_TOKEN_KEY = 'base44_access_token';
 const NATIVE_AUTH_SCHEME = 'yardit://auth-callback';
 const HOSTED_NATIVE_AUTH_FLAG = 'yardit_native_auth';
 
@@ -35,14 +34,9 @@ function handleNativeAuthUrl(url) {
     return false;
   }
 
-  try {
-    localStorage.setItem(BASE44_ACCESS_TOKEN_KEY, accessToken);
-  } catch (error) {
-    console.error('[Yardit Auth] Could not save native login token', error);
-    return false;
-  }
-
-  window.location.replace('/');
+  const appCallback = new URL('/', window.location.origin);
+  appCallback.searchParams.set('access_token', accessToken);
+  window.location.replace(appCallback.toString());
   return true;
 }
 
@@ -76,14 +70,7 @@ export function handoffHostedNativeAuthCallback() {
     hasHash: Boolean(window.location.hash),
   });
 
-  const callbackParams = new URLSearchParams();
-  callbackParams.set('access_token', accessToken);
-
-  for (const key of ['id_token', 'refresh_token', 'token_type', 'expires_in', 'scope', 'state']) {
-    const value = readParamFromUrl(window.location.href, key);
-    if (value) callbackParams.set(key, value);
-  }
-
+  const callbackParams = new URLSearchParams({ access_token: accessToken });
   window.location.replace(`${NATIVE_AUTH_SCHEME}?${callbackParams.toString()}`);
   return true;
 }

@@ -17,6 +17,11 @@ const toSnakeCase = (str) => {
 
 const getStorageKey = (paramName) => `base44_${toSnakeCase(paramName)}`;
 
+export const getStoredAccessToken = () => {
+	if (isNode) return null;
+	return storage.getItem(getStorageKey(OAUTH_TOKEN_PARAM));
+};
+
 const getHashParts = () => {
 	const rawHash = window.location.hash ? window.location.hash.slice(1) : "";
 	if (!rawHash) return { routePart: "", params: new URLSearchParams(), hasParams: false };
@@ -56,57 +61,6 @@ const cleanOAuthParamsFromUrl = () => {
 
 	const newUrl = `${window.location.pathname}${nextSearch}${nextHash}`;
 	window.history.replaceState({}, document.title, newUrl);
-};
-
-export const getStoredAccessToken = () => {
-	if (isNode) return null;
-	return storage.getItem(getStorageKey(OAUTH_TOKEN_PARAM));
-};
-
-export const captureAuthTokenFromCurrentUrl = () => {
-	if (isNode) return { token: null, captured: false };
-
-	const incomingToken = getIncomingUrlParam(OAUTH_TOKEN_PARAM);
-	const storedBeforeRead = getStoredAccessToken();
-
-	console.log("AUTH_DEBUG appParams.token:source", {
-		hasAccessTokenInUrl: !!incomingToken,
-		hasStoredToken: !!storedBeforeRead,
-		readsHashFragment: true,
-	});
-	recordAuthDebugEvent('oauth_token_check', {
-		hasAccessTokenInUrl: !!incomingToken,
-		hasStoredToken: !!storedBeforeRead,
-		readsHashFragment: true,
-	});
-
-	if (!incomingToken) return { token: storedBeforeRead, captured: false };
-
-	storage.setItem(getStorageKey(OAUTH_TOKEN_PARAM), incomingToken);
-	cleanOAuthParamsFromUrl();
-
-	console.log("AUTH_DEBUG appParams.token:captured", {
-		storedBase44AccessToken: !!storage.getItem(getStorageKey(OAUTH_TOKEN_PARAM)),
-	});
-	recordAuthDebugEvent('oauth_token_captured', {
-		storedBase44AccessToken: !!storage.getItem(getStorageKey(OAUTH_TOKEN_PARAM)),
-	});
-
-	return { token: incomingToken, captured: true };
-};
-
-export const waitForOAuthAccessToken = async ({ timeoutMs = 1600, intervalMs = 120 } = {}) => {
-	const firstCapture = captureAuthTokenFromCurrentUrl();
-	if (firstCapture.captured || firstCapture.token || timeoutMs <= 0) return firstCapture;
-
-	const startedAt = Date.now();
-	while (Date.now() - startedAt < timeoutMs) {
-		await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
-		const capture = captureAuthTokenFromCurrentUrl();
-		if (capture.captured || capture.token) return capture;
-	}
-
-	return { token: getStoredAccessToken(), captured: false };
 };
 
 const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl = false } = {}) => {
