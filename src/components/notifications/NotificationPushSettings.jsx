@@ -5,9 +5,8 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, getRuntimePushConnection, pushStatusLabel } from "@/lib/pushNotifications";
+import { canStorePushStatus, enablePushNotifications, getBrowserPushStatus, getOneSignalSubscriptionId, getRuntimePushConnection, pushStatusLabel } from "@/lib/pushNotifications";
 import { hasVerifiedPrimaryAddress } from "@/lib/trustActions";
-import { enableNativePush } from "@/lib/nativePushNotifications";
 import { getYarditRuntimePlatform, isNativeYarditApp } from "@/lib/runtimePlatform";
 import PushCategoryRow from "./PushCategoryRow";
 import AlertsPushGroup from "./AlertsPushGroup";
@@ -174,9 +173,7 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
 
     setEnabling(true);
     try {
-      const result = isNativeYarditApp()
-        ? await enableNativePush({ userId: user.id })
-        : await enableOneSignalPush({ userId: user.id });
+      const result = await enablePushNotifications({ userId: user.id });
       const subscriptionId = result.subscriptionId || await getOneSignalSubscriptionId();
       if (canStorePushStatus(result.status)) await savePushSubscription(result.status, subscriptionId, result);
 

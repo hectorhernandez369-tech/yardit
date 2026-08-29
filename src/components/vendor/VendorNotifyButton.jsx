@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, PUSH_RADIUS_OPTIONS } from "@/lib/pushNotifications";
+import { enablePushNotifications, getBrowserPushStatus, getOneSignalSubscriptionId, PUSH_RADIUS_OPTIONS } from "@/lib/pushNotifications";
 import { hasVerifiedPrimaryAddress } from "@/lib/trustActions";
 
 const recordTimestamp = (record) => {
@@ -43,7 +43,7 @@ export default function VendorNotifyButton({ account }) {
     const status = getBrowserPushStatus();
     let subscriptionId = await getOneSignalSubscriptionId();
     if (status !== "enabled" || !subscriptionId) {
-      const result = await enableOneSignalPush({ userId: user.id });
+      const result = await enablePushNotifications({ userId: user.id });
       if (result.status !== "enabled") {
         setBusy(false);
         const message = result.status === "needs_install" ? "Install Yardit to your Home Screen first, then open the installed app and try again." : result.status === "blocked" ? "Notifications are blocked in your browser or device settings." : result.status === "unsupported" ? "Push notifications are not supported by this browser or device." : "Push notifications are not enabled on this device.";

@@ -217,7 +217,7 @@ async function waitForOneSignalSubscriptionId(OneSignal) {
   return OneSignal.User?.PushSubscription?.id || "";
 }
 
-export async function enableOneSignalPush({ userId } = {}) {
+export async function enablePushNotifications({ userId } = {}) {
   if (isNativeYarditApp()) return enableNativePush({ userId });
   logPushDebug("enable_start");
   const preflightFailure = getPreflightFailureStatus();

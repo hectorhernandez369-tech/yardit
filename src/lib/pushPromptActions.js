@@ -1,5 +1,5 @@
 import { base44 } from "@/api/base44Client";
-import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, getRuntimePushConnection } from "@/lib/pushNotifications";
+import { canStorePushStatus, enablePushNotifications, getBrowserPushStatus, getOneSignalSubscriptionId, getRuntimePushConnection } from "@/lib/pushNotifications";
 import { isNativeYarditApp } from "@/lib/runtimePlatform";
 
 const DEFAULT_PREFS = {
@@ -85,7 +85,7 @@ export async function syncGrantedPushSubscription(user) {
 }
 
 export async function enablePushPromptSubscription(user) {
-  const result = await enableOneSignalPush({ userId: user.id });
+  const result = await enablePushNotifications({ userId: user.id });
   const subscriptionId = result.subscriptionId || await getOneSignalSubscriptionId();
 
   if (canStorePushStatus(result.status)) {
