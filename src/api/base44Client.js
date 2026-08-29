@@ -14,7 +14,6 @@ console.log('AUTH_DEBUG base44Client:init', {
 export const base44 = createClient({
   appId,
   serverUrl,
-  appBaseUrl: serverUrl,
   token,
   functionsVersion,
   requiresAuth: false
