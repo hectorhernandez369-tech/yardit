@@ -8,10 +8,13 @@ import { handoffHostedNativeAuthCallback, initializeNativeAuthBridge } from '@/l
 import { initializeWebPush } from '@/lib/webPushBootstrap';
 import { prepareDevelopmentRuntime } from '@/lib/devRuntimeCleanup';
 
-const shouldReloadAfterCleanup = await prepareDevelopmentRuntime();
-if (shouldReloadAfterCleanup) {
-  window.location.reload();
-} else {
+async function bootstrap() {
+  const shouldReloadAfterCleanup = await prepareDevelopmentRuntime();
+  if (shouldReloadAfterCleanup) {
+    window.location.reload();
+    return;
+  }
+
   const handingOffNativeAuth = handoffHostedNativeAuthCallback();
 
 if (isNativeYarditApp()) {
@@ -57,3 +60,5 @@ if (import.meta.hot) {
   });
 }
 }
+
+void bootstrap();

@@ -5,6 +5,7 @@ def yarditKeystorePassword = System.getenv('YARDIT_KEYSTORE_PASSWORD')
 def yarditKeyAlias = System.getenv('YARDIT_KEY_ALIAS')
 def yarditKeyPassword = System.getenv('YARDIT_KEY_PASSWORD')
 def yarditReleaseSigningReady = yarditKeystorePath && yarditKeystorePassword && yarditKeyAlias && yarditKeyPassword
+def yarditLauncherLogoUrl = 'https://media.base44.com/images/public/690f554506edf795e5d84121/e68545fc5_file_00000000f5dc71f5a5c8b2e79fd116b0.png'
 
 android {
     namespace "com.base690f554506edf795e5d84121.app"
@@ -63,6 +64,46 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
+tasks.register('generateYarditLauncherIcons') {
+    outputs.dir file('src/main/res')
+    outputs.upToDateWhen { false }
+    doLast {
+        System.setProperty('java.awt.headless', 'true')
+        def sourceImage = javax.imageio.ImageIO.read(new URL(yarditLauncherLogoUrl))
+        if (sourceImage == null) {
+            throw new GradleException('Unable to read the existing Yardit launcher logo source')
+        }
+
+        def densities = [
+            mdpi: [launcher: 48, adaptive: 108],
+            hdpi: [launcher: 72, adaptive: 162],
+            xhdpi: [launcher: 96, adaptive: 216],
+            xxhdpi: [launcher: 144, adaptive: 324],
+            xxxhdpi: [launcher: 192, adaptive: 432]
+        ]
+
+        densities.each { density, sizes ->
+            def outputDir = file("src/main/res/mipmap-${density}")
+            outputDir.mkdirs()
+            [
+                ic_launcher: sizes.launcher,
+                ic_launcher_round: sizes.launcher,
+                ic_launcher_foreground: sizes.adaptive,
+                ic_launcher_background: sizes.adaptive,
+                ic_launcher_monochrome: sizes.adaptive
+            ].each { resourceName, size ->
+                def outputImage = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+                def graphics = outputImage.createGraphics()
+                graphics.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+                graphics.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY)
+                graphics.drawImage(sourceImage, 0, 0, size, size, null)
+                graphics.dispose()
+                javax.imageio.ImageIO.write(outputImage, 'png', new File(outputDir, "${resourceName}.png"))
+            }
+        }
+    }
+}
+
 tasks.register('verifyYarditNativePushWiring') {
     doLast {
         if (project.findProject(':onesignal-capacitor-plugin') == null) {
@@ -77,6 +118,7 @@ tasks.register('verifyYarditNativePushWiring') {
 }
 
 tasks.named('preBuild').configure {
+    dependsOn tasks.named('generateYarditLauncherIcons')
     dependsOn tasks.named('verifyYarditNativePushWiring')
 }
 
