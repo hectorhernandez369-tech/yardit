@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
+import { recordAuthDebugEvent } from '@/lib/authDebug';
 
 const BASE44_ACCESS_TOKEN_KEY = 'base44_access_token';
 const NATIVE_AUTH_SCHEME = 'yardit://auth-callback';
@@ -26,6 +27,11 @@ function handleNativeAuthUrl(url) {
   const accessToken = readParamFromUrl(url, 'access_token');
   if (!accessToken) {
     console.warn('[Yardit Auth] Native callback opened without an access token');
+    recordAuthDebugEvent('native_auth_callback_missing_token', {
+      callbackSchemeMatched: true,
+      hasSearch: url.includes('?'),
+      hasHash: url.includes('#'),
+    });
     return false;
   }
 
@@ -51,7 +57,24 @@ export function handoffHostedNativeAuthCallback() {
   if (current.searchParams.get(HOSTED_NATIVE_AUTH_FLAG) !== '1') return false;
 
   const accessToken = readParamFromUrl(window.location.href, 'access_token');
-  if (!accessToken) return false;
+  if (!accessToken) {
+    console.warn('[Yardit Auth] Hosted native handoff opened without an access token', {
+      hasSearch: Boolean(window.location.search),
+      hasHash: Boolean(window.location.hash),
+    });
+    recordAuthDebugEvent('hosted_native_auth_handoff_missing_token', {
+      hasSearch: Boolean(window.location.search),
+      hasHash: Boolean(window.location.hash),
+      referrerOrigin: document.referrer ? new URL(document.referrer).origin : '',
+    });
+    return false;
+  }
+
+  console.info('[Yardit Auth] Hosted native handoff received an access token');
+  recordAuthDebugEvent('hosted_native_auth_handoff_token_received', {
+    hasSearch: Boolean(window.location.search),
+    hasHash: Boolean(window.location.hash),
+  });
 
   const callbackParams = new URLSearchParams();
   callbackParams.set('access_token', accessToken);
