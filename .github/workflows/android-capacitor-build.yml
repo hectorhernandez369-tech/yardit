@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'android/**'
       - 'src/**'
       - 'public/**'
       - 'scripts/configure-clean-android.mjs'
@@ -21,6 +22,9 @@ on:
         description: 'User-facing Yardit version name'
         required: true
         default: '1.0.5'
+
+permissions:
+  contents: write
 
 jobs:
   build-android:
@@ -47,18 +51,28 @@ jobs:
       - name: Build Yardit web bundle
         run: npm run build
 
-      - name: Generate fresh Capacitor Android shell
+      - name: Create stable Android shell if missing
+        shell: bash
         run: |
-          rm -rf android
-          npx cap add android
+          if [ ! -d android ]; then
+            echo "Creating Yardit's clean Android shell once."
+            npx cap add android
+            node scripts/configure-clean-android.mjs
+            npx cap sync android
 
-      - name: Apply Yardit Android configuration
-        run: node scripts/configure-clean-android.mjs
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add android
+            git commit -m "Create stable Yardit Android Capacitor shell"
+            git push
+          else
+            echo "Using committed stable Android shell."
+          fi
 
-      - name: Sync Yardit into Android
+      - name: Sync Yardit into stable Android shell
         run: npx cap sync android
 
-      - name: Verify clean Android identity and wiring
+      - name: Verify Android identity and wiring
         shell: bash
         run: |
           grep -q 'com.base690f554506edf795e5d84121.app' android/app/build.gradle
