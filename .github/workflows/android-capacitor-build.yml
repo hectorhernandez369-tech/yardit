@@ -4,9 +4,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'android/**'
       - 'src/**'
       - 'public/**'
+      - 'scripts/configure-clean-android.mjs'
       - 'capacitor.config.ts'
       - 'package.json'
       - 'package-lock.json'
@@ -16,11 +16,11 @@ on:
       version_code:
         description: 'Android version code (must increase for every Play upload)'
         required: true
-        default: '2'
+        default: '5'
       version_name:
         description: 'User-facing Yardit version name'
         required: true
-        default: '1.0.1'
+        default: '1.0.5'
 
 jobs:
   build-android:
@@ -28,36 +28,62 @@ jobs:
     steps:
       - name: Check out Yardit
         uses: actions/checkout@v4
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
+
       - name: Install dependencies
         run: npm ci
+
       - name: Build Yardit web bundle
         run: npm run build
-      - name: Sync Capacitor Android
+
+      - name: Generate fresh Capacitor Android shell
+        run: |
+          rm -rf android
+          npx cap add android
+
+      - name: Apply Yardit Android configuration
+        run: node scripts/configure-clean-android.mjs
+
+      - name: Sync Yardit into Android
         run: npx cap sync android
+
+      - name: Verify clean Android identity and wiring
+        shell: bash
+        run: |
+          grep -q 'com.base690f554506edf795e5d84121.app' android/app/build.gradle
+          grep -q 'android.permission.ACCESS_FINE_LOCATION' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.POST_NOTIFICATIONS' android/app/src/main/AndroidManifest.xml
+          grep -q 'yardit' android/app/src/main/AndroidManifest.xml
+          grep -q 'OneSignalCapacitor' android/app/src/main/assets/capacitor.plugins.json
+
       - name: Compile Android debug app
         working-directory: android
         run: ./gradlew assembleDebug
+
       - name: Upload Yardit test APK
         uses: actions/upload-artifact@v4
         with:
           name: yardit-capacitor-test-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
       - name: Prepare Yardit release signing
         if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: bash
         run: |
           echo "${{ secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/yardit-upload-key.jks"
+
       - name: Build signed Play Store AAB
         if: ${{ github.event_name == 'workflow_dispatch' }}
         working-directory: android
@@ -69,6 +95,7 @@ jobs:
           YARDIT_VERSION_CODE: ${{ inputs.version_code }}
           YARDIT_VERSION_NAME: ${{ inputs.version_name }}
         run: ./gradlew bundleRelease
+
       - name: Upload signed Yardit AAB
         if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v4
