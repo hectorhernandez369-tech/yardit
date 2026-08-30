@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOneSignalSubscriptionId, getRuntimePushConnection } from "@/lib/pushNotifications";
 import { isNativeYarditApp } from "@/lib/runtimePlatform";
-import { getCapacitorRuntimeDiagnostics } from "@/lib/capacitorRuntimeDiagnostics";
+import { getNativeHealthDiagnostics } from "@/lib/nativeHealthDiagnostics";
 
 const adminRoles = new Set(["admin", "master", "super_master", "developer"]);
 
@@ -15,24 +15,23 @@ function yesNo(value) {
 function getLastPushError() {
   try {
     return localStorage.getItem("yardit_last_push_error") || "None recorded";
-  } catch (error) {
+  } catch {
     return "Unavailable";
   }
 }
 
 export default function PushDebugPanel({ user, storedSubscriptionId }) {
   const [debugInfo, setDebugInfo] = useState(null);
-
   const isAllowed = !!user?.isAdmin || adminRoles.has(user?.role);
 
   const refreshDebugInfo = async () => {
-    const capacitorDiagnostics = getCapacitorRuntimeDiagnostics();
+    const health = await getNativeHealthDiagnostics();
 
     if (isNativeYarditApp()) {
       const runtime = await getRuntimePushConnection();
       setDebugInfo({
         native: true,
-        ...capacitorDiagnostics,
+        ...health,
         platform: runtime.platform || "native",
         notificationPermission: runtime.permissionGranted ? "Granted" : runtime.browserStatus === "blocked" ? "Blocked" : "Not granted",
         oneSignalSubscriptionId: runtime.subscriptionId || storedSubscriptionId || "Not connected",
@@ -46,7 +45,6 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
 
     const serviceWorkerSupported = typeof navigator !== "undefined" && "serviceWorker" in navigator;
     let activeServiceWorkerUrl = "Not active";
-
     if (serviceWorkerSupported) {
       const registrations = await navigator.serviceWorker.getRegistrations();
       const activeRegistration = registrations.find((registration) => registration.active?.scriptURL);
@@ -54,10 +52,9 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
     }
 
     const oneSignalId = await getOneSignalSubscriptionId();
-
     setDebugInfo({
       native: false,
-      ...capacitorDiagnostics,
+      ...health,
       browserDevice: typeof navigator !== "undefined" ? navigator.userAgent : "Unavailable",
       secureContext: typeof window !== "undefined" && window.isSecureContext,
       serviceWorkerSupported,
@@ -75,18 +72,28 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
 
   if (!isAllowed) return null;
 
-  const capacitorRows = [
+  const healthRows = [
+    ["Installed app name", debugInfo?.appName],
+    ["Installed package ID", debugInfo?.appId],
+    ["Installed version", debugInfo?.appVersion],
+    ["Installed build/code", debugInfo?.appBuild],
     ["Capacitor.getPlatform()", debugInfo?.capacitorPlatform],
     ["Capacitor.isNativePlatform()", yesNo(debugInfo?.capacitorNative)],
     ["window.Capacitor exists", yesNo(debugInfo?.windowCapacitorExists)],
+    ["OneSignal native plugin available", yesNo(debugInfo?.oneSignalPluginAvailable)],
+    ["Base44 app ID", debugInfo?.base44AppId],
+    ["Base44 server URL", debugInfo?.base44ServerUrl],
+    ["Saved auth token present", yesNo(debugInfo?.storedAuthTokenPresent)],
+    ["Native login return URL", debugInfo?.nativeLoginReturnUrl],
+    ["Geolocation available", yesNo(debugInfo?.geolocationSupported)],
+    ["Geolocation permission", debugInfo?.geolocationPermissionState],
     ["window.location.href", debugInfo?.locationHref],
     ["document.referrer", debugInfo?.documentReferrer],
-    ["OneSignal native plugin available", yesNo(debugInfo?.oneSignalPluginAvailable)],
   ];
 
   const rows = debugInfo?.native ? [
-    ...capacitorRows,
-    ["Platform", debugInfo.platform],
+    ...healthRows,
+    ["Push platform", debugInfo.platform],
     ["Android notification permission", debugInfo.notificationPermission],
     ["OneSignal subscription ID", debugInfo.oneSignalSubscriptionId],
     ["Push token", debugInfo.pushToken],
@@ -94,8 +101,8 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
     ["Connected", yesNo(debugInfo.connected)],
     ...(debugInfo.lastPushError && debugInfo.lastPushError !== "None recorded" ? [["Native initialization error", debugInfo.lastPushError]] : []),
   ] : [
-    ...capacitorRows,
-    ["Browser/device", debugInfo?.browserDevice],
+    ...healthRows,
+    ["Browser/device", debugInfo?.browserDevice || debugInfo?.userAgent],
     ["Secure context", yesNo(debugInfo?.secureContext)],
     ["Service worker support", yesNo(debugInfo?.serviceWorkerSupported)],
     ["Active service worker URL", debugInfo?.activeServiceWorkerUrl],
@@ -110,7 +117,7 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-base text-amber-900">
-            <Bug className="h-4 w-4" /> Temporary Push Debug
+            <Bug className="h-4 w-4" /> Temporary Native Health Debug
           </CardTitle>
           <Button variant="outline" size="sm" onClick={refreshDebugInfo} className="h-8 gap-2 border-amber-300 bg-white text-amber-900 hover:bg-amber-100">
             <RefreshCw className="h-3.5 w-3.5" /> Refresh
@@ -121,7 +128,7 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
         {rows.map(([label, value]) => (
           <div key={label} className="grid gap-1 rounded-lg bg-white/80 p-2 text-xs sm:grid-cols-[180px_1fr]">
             <span className="font-semibold text-amber-950">{label}</span>
-            <span className="break-words font-mono text-slate-700">{value || "Checking..."}</span>
+            <span className="break-words font-mono text-slate-700">{value ?? "Checking..."}</span>
           </div>
         ))}
       </CardContent>
