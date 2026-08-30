@@ -27,6 +27,7 @@ async function bootstrap() {
   ]);
 
   const handingOffNativeAuth = handoffHostedNativeAuthCallback();
+  if (handingOffNativeAuth) return;
 
   if (isNativeYarditApp()) {
     void initializeNativeAuthBridge();

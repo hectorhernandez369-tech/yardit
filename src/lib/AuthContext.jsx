@@ -11,7 +11,7 @@ import { EVENTS_EXPERIENCE, EXPERIENCE_STORAGE_KEY } from '@/lib/experience';
 import { bindNativePushIdentity } from '@/lib/nativePushNotifications';
 import { isNativeYarditApp } from '@/lib/runtimePlatform';
 import { logoutPushIdentity } from '@/lib/pushNotifications';
-import { getNativeLoginReturnUrl } from '@/lib/nativeAuthBridge';
+import { getNativeLoginReturnUrl, openNativeLogin } from '@/lib/nativeAuthBridge';
 
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
@@ -362,6 +362,12 @@ export const AuthProvider = ({ children }) => {
     clearGuestMode();
     setIsGuest(false);
     saveAuthReturnTo(requestedReturnUrl);
+
+    if (nativeApp) {
+      void openNativeLogin();
+      return;
+    }
+
     base44.auth.redirectToLogin(loginReturnUrl);
   };
 
