@@ -9,7 +9,6 @@ const YARDIT_BASE44_SERVER_URL = import.meta.env.VITE_BASE44_BACKEND_URL || 'htt
 
 const OAUTH_TOKEN_PARAM = "access_token";
 const OAUTH_CALLBACK_PARAMS = ["access_token", "id_token", "refresh_token", "token_type", "expires_in", "scope", "state", "authuser", "prompt"];
-const isHostedNativeAuthHandoff = !isNode && new URLSearchParams(window.location.search).get("yardit_native_auth") === "1";
 
 const toSnakeCase = (str) => {
 	return str.replace(/([A-Z])/g, '_$1').toLowerCase();
@@ -111,7 +110,7 @@ const getAppParams = () => {
 	return {
 		appId: getAppParamValue("app_id", { defaultValue: YARDIT_BASE44_APP_ID }),
 		serverUrl: getAppParamValue("server_url", { defaultValue: YARDIT_BASE44_SERVER_URL }),
-		token: getAppParamValue(OAUTH_TOKEN_PARAM, { removeFromUrl: !isHostedNativeAuthHandoff }),
+		token: getAppParamValue(OAUTH_TOKEN_PARAM, { removeFromUrl: true }),
 		fromUrl: getAppParamValue("from_url", { defaultValue: window.location.href }),
 		functionsVersion: getAppParamValue("functions_version"),
 	}

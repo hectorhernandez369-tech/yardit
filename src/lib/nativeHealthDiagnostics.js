@@ -1,6 +1,5 @@
 import { App as CapacitorApp } from '@capacitor/app';
 import { appParams, getStoredAccessToken } from '@/lib/app-params';
-import { getNativeLoginReturnUrl } from '@/lib/nativeAuthBridge';
 import { getCapacitorRuntimeDiagnostics } from '@/lib/capacitorRuntimeDiagnostics';
 import { isNativeYarditApp } from '@/lib/runtimePlatform';
 
@@ -67,7 +66,7 @@ export async function getNativeHealthDiagnostics() {
     base44AppId: appParams.appId || 'Missing',
     base44ServerUrl: appParams.serverUrl || 'Missing',
     storedAuthTokenPresent: !!getStoredAccessToken(),
-    nativeLoginReturnUrl: getNativeLoginReturnUrl(),
+    authFlow: 'Base44 SDK WebView',
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unavailable',
   };
 }

@@ -8,26 +8,8 @@ async function bootstrap() {
     return;
   }
 
-  const { handoffHostedNativeAuthCallback } = await import('@/lib/hostedNativeAuthHandoff');
-  if (handoffHostedNativeAuthCallback()) return;
-
-  if (window.location.pathname.toLowerCase() === '/native-auth-start') {
-    const [{ default: React }, { default: ReactDOM }, { default: NativeAuthStart }] = await Promise.all([
-      import('react'),
-      import('react-dom/client'),
-      import('@/pages/NativeAuthStart.jsx'),
-    ]);
-    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(NativeAuthStart));
-    document.getElementById('yardit-initial-splash')?.remove();
-    return;
-  }
-
   const { isNativeYarditApp } = await import('@/lib/runtimePlatform');
   const nativeApp = isNativeYarditApp();
-  if (nativeApp) {
-    const { initializeNativeAuthBridge } = await import('@/lib/nativeAuthBridge');
-    await initializeNativeAuthBridge();
-  }
 
   const [{ default: React }, { default: ReactDOM }, { default: App }] = await Promise.all([
     import('react'),

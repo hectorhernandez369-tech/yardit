@@ -16,4 +16,16 @@ if (/appParams\.(?:serverUrl|appBaseUrl)|VITE_BASE44_BACKEND_URL/.test(clientSou
   throw new Error('Auth guard: backend routing configuration must remain outside base44Client.js');
 }
 
+const forbiddenAuthPatterns = [
+  ['src/lib/AuthContext.jsx', /nativeAuthBridge|openNativeLogin|native_deep_link_handoff/],
+  ['src/main.jsx', /hostedNativeAuthHandoff|nativeAuthBridge|NativeAuthStart/],
+  ['src/App.jsx', /native-auth-start|NativeAuthStart/],
+  ['android/app/src/main/AndroidManifest.xml', /yardit[^\n]*auth-callback/],
+];
+
+for (const [filePath, pattern] of forbiddenAuthPatterns) {
+  const source = fs.readFileSync(filePath, 'utf8');
+  if (pattern.test(source)) throw new Error(`Auth guard: legacy native token handoff remains in ${filePath}`);
+}
+
 console.log('Auth architecture guard passed');

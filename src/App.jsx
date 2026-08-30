@@ -32,7 +32,6 @@ import Events from './pages/Events';
 import RewardRedeem from './pages/RewardRedeem';
 import PaymentAudit from './pages/PaymentAudit';
 import AuthDebug from './pages/AuthDebug';
-import NativeAuthStart from './pages/NativeAuthStart';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import CommunityGuidelines from './pages/CommunityGuidelines';
@@ -87,8 +86,6 @@ const AuthenticatedApp = () => {
       <Route path="/TermsOfService" element={<TermsOfService />} />
       <Route path="/CommunityGuidelines" element={<CommunityGuidelines />} />
       <Route path="/ComingSoon" element={<ComingSoon />} />
-      <Route path="/auth-callback" element={<YarditSplashScreen />} />
-      <Route path="/native-auth-start" element={<NativeAuthStart />} />
       <Route path="/auth-debug" element={<AuthDebug />} />
       <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
     </Routes>;
@@ -119,8 +116,6 @@ const AuthenticatedApp = () => {
     <Route path="/PrintableChecklist" element={<PrintableChecklist />} />
     <Route path="/LaunchChecklist" element={<LayoutWrapper currentPageName="LaunchChecklist"><LaunchChecklist /></LayoutWrapper>} />
     <Route path="/ComingSoon" element={<ComingSoon />} />
-    <Route path="/auth-callback" element={<YarditSplashScreen />} />
-    <Route path="/native-auth-start" element={<NativeAuthStart />} />
     <Route path="/auth-debug" element={<AuthDebug />} />
     <Route path="/assisted-listing" element={<AssistedListingApproval />} />
     <Route path="/LeagueEventMap" element={<LeagueEventMap />} />
