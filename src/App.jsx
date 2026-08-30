@@ -120,6 +120,7 @@ const AuthenticatedApp = () => {
     <Route path="/LaunchChecklist" element={<LayoutWrapper currentPageName="LaunchChecklist"><LaunchChecklist /></LayoutWrapper>} />
     <Route path="/ComingSoon" element={<ComingSoon />} />
     <Route path="/auth-callback" element={<YarditSplashScreen />} />
+    <Route path="/native-auth-start" element={<NativeAuthStart />} />
     <Route path="/auth-debug" element={<AuthDebug />} />
     <Route path="/assisted-listing" element={<AssistedListingApproval />} />
     <Route path="/LeagueEventMap" element={<LeagueEventMap />} />

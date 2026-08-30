@@ -8,31 +8,38 @@ async function bootstrap() {
     return;
   }
 
-  const [
-    { default: React },
-    { default: ReactDOM },
-    { default: App },
-    { initializeNativePush },
-    { isNativeYarditApp },
-    { handoffHostedNativeAuthCallback, initializeNativeAuthBridge },
-    { initializeWebPush },
-  ] = await Promise.all([
+  const { handoffHostedNativeAuthCallback } = await import('@/lib/hostedNativeAuthHandoff');
+  if (handoffHostedNativeAuthCallback()) return;
+
+  if (window.location.pathname.toLowerCase() === '/native-auth-start') {
+    const [{ default: React }, { default: ReactDOM }, { default: NativeAuthStart }] = await Promise.all([
+      import('react'),
+      import('react-dom/client'),
+      import('@/pages/NativeAuthStart.jsx'),
+    ]);
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(NativeAuthStart));
+    document.getElementById('yardit-initial-splash')?.remove();
+    return;
+  }
+
+  const { isNativeYarditApp } = await import('@/lib/runtimePlatform');
+  const nativeApp = isNativeYarditApp();
+  if (nativeApp) {
+    const { initializeNativeAuthBridge } = await import('@/lib/nativeAuthBridge');
+    await initializeNativeAuthBridge();
+  }
+
+  const [{ default: React }, { default: ReactDOM }, { default: App }] = await Promise.all([
     import('react'),
     import('react-dom/client'),
     import('@/App.jsx'),
-    import('@/lib/nativePushNotifications'),
-    import('@/lib/runtimePlatform'),
-    import('@/lib/nativeAuthBridge'),
-    import('@/lib/webPushBootstrap'),
   ]);
 
-  const handingOffNativeAuth = handoffHostedNativeAuthCallback();
-  if (handingOffNativeAuth) return;
-
-  if (isNativeYarditApp()) {
-    void initializeNativeAuthBridge();
+  if (nativeApp) {
+    const { initializeNativePush } = await import('@/lib/nativePushNotifications');
     void initializeNativePush();
-  } else if (!handingOffNativeAuth) {
+  } else {
+    const { initializeWebPush } = await import('@/lib/webPushBootstrap');
     initializeWebPush();
   }
 
@@ -42,7 +49,7 @@ async function bootstrap() {
     document.getElementById('yardit-initial-splash')?.remove();
   });
 
-  if (!isNativeYarditApp() && 'serviceWorker' in navigator) {
+  if (!nativeApp && 'serviceWorker' in navigator) {
     const oneSignalEnabled = Boolean(window.OneSignalDeferred);
 
     if (import.meta.env.PROD && oneSignalEnabled) {
@@ -53,19 +60,13 @@ async function bootstrap() {
         });
       });
     } else if (import.meta.env.PROD && !oneSignalEnabled) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js');
-      });
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
     }
   }
 
   if (import.meta.hot) {
-    import.meta.hot.on('vite:beforeUpdate', () => {
-      window.parent?.postMessage({ type: 'sandbox:beforeUpdate' }, '*');
-    });
-    import.meta.hot.on('vite:afterUpdate', () => {
-      window.parent?.postMessage({ type: 'sandbox:afterUpdate' }, '*');
-    });
+    import.meta.hot.on('vite:beforeUpdate', () => window.parent?.postMessage({ type: 'sandbox:beforeUpdate' }, '*'));
+    import.meta.hot.on('vite:afterUpdate', () => window.parent?.postMessage({ type: 'sandbox:afterUpdate' }, '*'));
   }
 }
 

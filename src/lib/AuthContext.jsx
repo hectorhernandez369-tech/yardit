@@ -11,7 +11,7 @@ import { EVENTS_EXPERIENCE, EXPERIENCE_STORAGE_KEY } from '@/lib/experience';
 import { bindNativePushIdentity } from '@/lib/nativePushNotifications';
 import { isNativeYarditApp } from '@/lib/runtimePlatform';
 import { logoutPushIdentity } from '@/lib/pushNotifications';
-import { getNativeLoginReturnUrl, openNativeLogin } from '@/lib/nativeAuthBridge';
+import { consumeNativeAuthError, openNativeLogin } from '@/lib/nativeAuthBridge';
 
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
    const [isGuest, setIsGuest] = useState(isGuestMode());
    const [isLoadingAuth, setIsLoadingAuth] = useState(true);
    const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
-   const [authError, setAuthError] = useState(null);
+   const [authError, setAuthError] = useState(() => consumeNativeAuthError());
    const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
   const checkUserAuth = async () => {
@@ -249,9 +249,14 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsGuest(false);
     };
+    const handleNativeAuthError = (event) => setAuthError(event.detail);
 
     window.addEventListener("yardit:user-updated", handleUserUpdated);
-    return () => window.removeEventListener("yardit:user-updated", handleUserUpdated);
+    window.addEventListener("yardit:native-auth-error", handleNativeAuthError);
+    return () => {
+      window.removeEventListener("yardit:user-updated", handleUserUpdated);
+      window.removeEventListener("yardit:native-auth-error", handleNativeAuthError);
+    };
   }, []);
 
   useEffect(() => {
@@ -343,7 +348,7 @@ export const AuthProvider = ({ children }) => {
   const navigateToLogin = (returnToUrl) => {
     const requestedReturnUrl = returnToUrl || window.location.href;
     const nativeApp = isNativeYarditApp();
-    const loginReturnUrl = nativeApp ? getNativeLoginReturnUrl() : requestedReturnUrl;
+    const loginReturnUrl = requestedReturnUrl;
 
     console.log('AUTH_DEBUG navigateToLogin', {
       hasToken: !!appParams.token,
@@ -364,7 +369,10 @@ export const AuthProvider = ({ children }) => {
     saveAuthReturnTo(requestedReturnUrl);
 
     if (nativeApp) {
-      void openNativeLogin();
+      void openNativeLogin().catch((error) => {
+        console.error('[Yardit Auth] Could not open the secure browser', error);
+        setAuthError({ type: 'native_browser_unavailable', message: 'Unable to open secure login. Please try again.' });
+      });
       return;
     }
 

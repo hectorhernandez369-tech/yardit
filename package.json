@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "guard:auth": "node scripts/verify-auth-architecture.mjs",
+    "build": "npm run guard:auth && vite build",
+    "android:sync": "npm run build && npx cap sync android",
     "lint": "eslint .",
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview"

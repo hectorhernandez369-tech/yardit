@@ -102,19 +102,28 @@ tasks.register('generateYarditLauncherIcons') {
     }
 }
 
-tasks.register('verifyYarditNativePushWiring') {
+tasks.register('verifyYarditNativePluginWiring') {
     doLast {
         if (project.findProject(':onesignal-capacitor-plugin') == null) {
             throw new GradleException('OneSignal Capacitor plugin project is not linked')
         }
+        if (project.findProject(':capacitor-browser') == null) {
+            throw new GradleException('@capacitor/browser is not linked; run npm run android:sync')
+        }
         def capacitorPlugins = file('src/main/assets/capacitor.plugins.json')
-        if (!capacitorPlugins.exists() || !capacitorPlugins.text.contains('OneSignalCapacitor')) {
+        if (!capacitorPlugins.exists()) {
+            throw new GradleException('Capacitor plugin registry is missing; run npm run android:sync')
+        }
+        if (!capacitorPlugins.text.contains('OneSignalCapacitor')) {
             throw new GradleException('OneSignalCapacitor is missing from the generated Capacitor plugin registry')
+        }
+        if (!capacitorPlugins.text.contains('BrowserPlugin')) {
+            throw new GradleException('@capacitor/browser is missing from the generated Capacitor plugin registry')
         }
     }
 }
 
 tasks.named('preBuild').configure {
     dependsOn tasks.named('generateYarditLauncherIcons')
-    dependsOn tasks.named('verifyYarditNativePushWiring')
+    dependsOn tasks.named('verifyYarditNativePluginWiring')
 }
