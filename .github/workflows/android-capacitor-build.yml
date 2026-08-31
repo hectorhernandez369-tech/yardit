@@ -17,11 +17,11 @@ on:
       version_code:
         description: 'Android version code (must increase for every Play upload)'
         required: true
-        default: '6'
+        default: '7'
       version_name:
         description: 'User-facing Yardit version name'
         required: true
-        default: '1.0.6'
+        default: '1.0.7'
 
 permissions:
   contents: write
@@ -78,7 +78,9 @@ jobs:
           grep -q 'com.base690f554506edf795e5d84121.app' android/app/build.gradle
           grep -q 'android.permission.ACCESS_FINE_LOCATION' android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.POST_NOTIFICATIONS' android/app/src/main/AndroidManifest.xml
+          grep -q 'android:allowBackup="false"' android/app/src/main/AndroidManifest.xml
           grep -q 'OneSignalCapacitor' android/app/src/main/assets/capacitor.plugins.json
+          test -f 'ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png'
 
       - name: Compile Android debug app
         working-directory: android
@@ -91,11 +93,22 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
-      - name: Prepare Yardit release signing
+      - name: Signing preflight
         if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.YARDIT_UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.YARDIT_UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.YARDIT_UPLOAD_KEY_PASSWORD }}
         run: |
-          echo "${{ secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/yardit-upload-key.jks"
+          test -n "$KEYSTORE_BASE64" || { echo 'Missing YARDIT_UPLOAD_KEYSTORE_BASE64'; exit 1; }
+          test -n "$KEYSTORE_PASSWORD" || { echo 'Missing YARDIT_UPLOAD_KEYSTORE_PASSWORD'; exit 1; }
+          test -n "$KEY_ALIAS" || { echo 'Missing YARDIT_UPLOAD_KEY_ALIAS'; exit 1; }
+          test -n "$KEY_PASSWORD" || { echo 'Missing YARDIT_UPLOAD_KEY_PASSWORD'; exit 1; }
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/yardit-upload-key.jks"
+          test -s "$RUNNER_TEMP/yardit-upload-key.jks" || { echo 'Decoded keystore is empty'; exit 1; }
+          keytool -list -keystore "$RUNNER_TEMP/yardit-upload-key.jks" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
 
       - name: Build signed Play Store AAB
         if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -108,6 +121,13 @@ jobs:
           YARDIT_VERSION_CODE: ${{ inputs.version_code }}
           YARDIT_VERSION_NAME: ${{ inputs.version_name }}
         run: ./gradlew bundleRelease
+
+      - name: Verify signed AAB
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          test -s android/app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab >/dev/null
 
       - name: Upload signed Yardit AAB
         if: ${{ github.event_name == 'workflow_dispatch' }}
