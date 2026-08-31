@@ -48,7 +48,6 @@ export default function ClusterGroup({ points, clusterRadius = 50, minPoints = 2
   const map = useMap();
   const layerRef = useRef(L.layerGroup());
 
-  // Attach layer group once
   useEffect(() => {
     layerRef.current.addTo(map);
     return () => {
@@ -56,39 +55,18 @@ export default function ClusterGroup({ points, clusterRadius = 50, minPoints = 2
     };
   }, [map]);
 
-  // Recompute clusters whenever zoom/points change
   useEffect(() => {
     const update = () => {
       layerRef.current.clearLayers();
-
       if (points.length === 0) return;
 
       const clusters = clusterPoints(points, map, clusterRadius);
-      const clusteredIds = new Set();
-      clusters.forEach(c => c.ids.forEach(id => clusteredIds.add(id)));
-
-      // Only render cluster circles (individual pins are handled by the parent)
       clusters.forEach(cluster => {
         if (cluster.count < minPoints) return;
         const style = getClusterStyle(cluster.count);
-        
         const icon = L.divIcon({
           className: "cluster-marker",
-          html: `<div style="
-            width:${style.radius * 2}px;
-            height:${style.radius * 2}px;
-            border-radius:50%;
-            background:${style.color};
-            border:2px solid #2C4F4E;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            color:white;
-            font-size:14px;
-            font-weight:bold;
-            cursor:pointer;
-            box-shadow:0 2px 6px rgba(0,0,0,0.3);
-          ">${formatCount(cluster.count)}</div>`,
+          html: `<div style="width:${style.radius * 2}px;height:${style.radius * 2}px;border-radius:50%;background:${style.color};border:2px solid #2C4F4E;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:bold;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${formatCount(cluster.count)}</div>`,
           iconSize: [style.radius * 2, style.radius * 2],
           iconAnchor: [style.radius, style.radius],
         });
@@ -111,12 +89,11 @@ export default function ClusterGroup({ points, clusterRadius = 50, minPoints = 2
     };
   }, [map, points, clusterRadius, minPoints]);
 
-  // Expose clustered IDs via a callback would be complex; instead we return null
-  // The parent checks visibility via the exported helper
   return null;
 }
 
-// Helper: given current zoom and a tier, should this location show as individual pin?
+// Halloween Spots are free, but intentionally use the same map reveal threshold
+// as Premium residential listings so every Halloween Spot behaves identically.
 export function shouldShowAsPin(zoom, listing) {
   if (listing?.listingType === "event") {
     const tier = listing?.event_tier || listing?.tier;
@@ -126,6 +103,10 @@ export function shouldShowAsPin(zoom, listing) {
     return zoom >= 14;
   }
 
+  if (listing?.listingType === "halloween_candy" || listing?.listingType === "halloween_spot") {
+    return zoom >= 11;
+  }
+
   const tier = listing?.tier;
   if (tier === "neighborhood_tier" || tier === "neighborhood_event") return zoom >= 12 && zoom < 18;
   if (tier === "premium") return zoom >= 11;
@@ -133,7 +114,6 @@ export function shouldShowAsPin(zoom, listing) {
   return zoom >= 15;
 }
 
-// Helper: given points that should NOT be individual pins, compute which are clustered
 export function getClusteredIds(points, map, radius = 50) {
   if (!map || points.length === 0) return new Set();
   const clusters = clusterPoints(points, map, radius);
