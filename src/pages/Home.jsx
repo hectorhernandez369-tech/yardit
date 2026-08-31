@@ -61,6 +61,7 @@ import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
 import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
+import { isHalloweenSpot, getHalloweenSpotIconUrl, getHalloweenSpotMapSize } from "@/lib/halloweenSpots";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 const LINDSAY_PORTERVILLE_CENTER = [36.135, -119.055];
@@ -165,10 +166,11 @@ const createIcon = (type, tier, isSelected, location) => {
   let stroke = "#4b5563";
   let size = 18;
 
-  if (type === "halloween_candy") {
-    fill = "#9333ea";
-    stroke = "#ffffff";
-    size = 25;
+  if (isHalloweenSpot({ ...location, listingType: type })) {
+    const halloweenSize = getHalloweenSpotMapSize(isSelected);
+    const iconUrl = getHalloweenSpotIconUrl({ ...location, listingType: type });
+    const key = `halloween_${iconUrl}_${isSelected ? "selected" : "default"}`;
+    return getCachedIcon(key, iconUrl, halloweenSize);
   } else if (type === "holiday_lights") {
     const isGlowing = location &&
     location.display_active &&
@@ -198,7 +200,7 @@ const createIcon = (type, tier, isSelected, location) => {
 
   const selectedSize = tier === "premium" ?
   31 :
-  tier === "featured" || tier === "map_pin" || type === "halloween_candy" || type === "holiday_lights" ?
+  tier === "featured" || tier === "map_pin" || type === "holiday_lights" ?
   28 :
   25;
   const finalSize = isSelected ? selectedSize : size;
