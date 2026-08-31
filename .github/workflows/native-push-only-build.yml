@@ -1,0 +1,128 @@
+name: Native Push Only Android Build
+
+on:
+  push:
+    branches: [native-push-only]
+    paths:
+      - 'src/lib/runtimePlatform.js'
+      - 'src/lib/nativePushNotifications.js'
+      - 'src/lib/nativeDevicePermissions.js'
+      - 'src/lib/pushRuntime.js'
+      - 'vite.config.js'
+      - 'capacitor.config.ts'
+      - 'scripts/configure-native-push-android.mjs'
+      - 'package.json'
+      - '.github/workflows/native-push-only-build.yml'
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'Android version code'
+        required: true
+        default: '8'
+      version_name:
+        description: 'Yardit version name'
+        required: true
+        default: '1.0.8'
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out push-only branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Protect Base44 authentication files
+        shell: bash
+        run: |
+          git fetch origin main
+          git diff --exit-code origin/main -- \
+            src/lib/AuthContext.jsx \
+            src/api/base44Client.js \
+            src/lib/app-params.js
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build unchanged Yardit web app
+        run: npm run build
+
+      - name: Create temporary Android shell
+        run: npx cap add android
+
+      - name: Configure push and permissions only
+        run: node scripts/configure-native-push-android.mjs
+
+      - name: Sync native plugins
+        run: npx cap sync android
+
+      - name: Verify native scope
+        shell: bash
+        run: |
+          grep -q 'android.permission.ACCESS_FINE_LOCATION' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.POST_NOTIFICATIONS' android/app/src/main/AndroidManifest.xml
+          grep -q 'OneSignalCapacitor' android/app/src/main/assets/capacitor.plugins.json
+          grep -q 'GeolocationPlugin' android/app/src/main/assets/capacitor.plugins.json
+          ! grep -q 'yardit.*auth-callback' android/app/src/main/AndroidManifest.xml
+
+      - name: Build test APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Upload test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: yardit-native-push-permissions-test-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Signing preflight
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.YARDIT_UPLOAD_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.YARDIT_UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.YARDIT_UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.YARDIT_UPLOAD_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$STORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/yardit-upload-key.jks"
+          keytool -list -keystore "$RUNNER_TEMP/yardit-upload-key.jks" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+
+      - name: Build signed AAB
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        working-directory: android
+        env:
+          YARDIT_KEYSTORE_PATH: ${{ runner.temp }}/yardit-upload-key.jks
+          YARDIT_KEYSTORE_PASSWORD: ${{ secrets.YARDIT_UPLOAD_KEYSTORE_PASSWORD }}
+          YARDIT_KEY_ALIAS: ${{ secrets.YARDIT_UPLOAD_KEY_ALIAS }}
+          YARDIT_KEY_PASSWORD: ${{ secrets.YARDIT_UPLOAD_KEY_PASSWORD }}
+          YARDIT_VERSION_CODE: ${{ inputs.version_code }}
+          YARDIT_VERSION_NAME: ${{ inputs.version_name }}
+        run: ./gradlew bundleRelease
+
+      - name: Upload signed AAB
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: yardit-native-push-permissions-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
