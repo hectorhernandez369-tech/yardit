@@ -293,6 +293,32 @@ button:focus-visible {
     box-shadow: 0 5px 14px rgba(244, 168, 73, 0.28);
   }
 
+  .yardit-mobile-nav-halloween-post {
+    position: relative;
+    overflow: visible;
+    color: #fff7e6;
+    border-color: #21152b;
+    background: linear-gradient(145deg, #f28c28 0%, #d9651f 58%, #4b255f 100%);
+    box-shadow: 0 5px 14px rgba(75, 37, 95, 0.38), inset 0 0 0 1px rgba(255, 226, 153, 0.38);
+    text-shadow: 0 1px 1px rgba(33, 21, 43, 0.8);
+  }
+
+  .yardit-mobile-nav-halloween-post::after {
+    content: "🎃";
+    position: absolute;
+    top: -0.55rem;
+    right: -0.35rem;
+    font-size: 1rem;
+    line-height: 1;
+    filter: drop-shadow(0 2px 2px rgba(33, 21, 43, 0.45));
+    transform: rotate(9deg);
+  }
+
+  .yardit-mobile-nav-halloween-post:hover {
+    color: #fff7e6;
+    background: linear-gradient(145deg, #f28c28 0%, #d9651f 58%, #4b255f 100%);
+  }
+
   .yardit-mobile-bottom-nav:not(.yardit-mobile-bottom-nav-guest) {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     align-items: center;
