@@ -5,7 +5,7 @@ def yarditKeystorePassword = System.getenv('YARDIT_KEYSTORE_PASSWORD')
 def yarditKeyAlias = System.getenv('YARDIT_KEY_ALIAS')
 def yarditKeyPassword = System.getenv('YARDIT_KEY_PASSWORD')
 def yarditReleaseSigningReady = yarditKeystorePath && yarditKeystorePassword && yarditKeyAlias && yarditKeyPassword
-def yarditLauncherLogoUrl = 'https://media.base44.com/images/public/690f554506edf795e5d84121/0f42669c8_file_00000000f5dc71f5a5c8b2e79fd116b0.png'
+def yarditLauncherLogoFile = file('../../ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png')
 
 android {
     namespace "com.base690f554506edf795e5d84121.app"
@@ -63,13 +63,17 @@ dependencies {
 apply from: 'capacitor.build.gradle'
 
 tasks.register('generateYarditLauncherIcons') {
+    inputs.file yarditLauncherLogoFile
     outputs.dir file('src/main/res')
     outputs.upToDateWhen { false }
     doLast {
+        if (!yarditLauncherLogoFile.exists()) {
+            throw new GradleException("Local Yardit launcher logo is missing: ${yarditLauncherLogoFile}")
+        }
         System.setProperty('java.awt.headless', 'true')
-        def sourceImage = javax.imageio.ImageIO.read(new URL(yarditLauncherLogoUrl))
+        def sourceImage = javax.imageio.ImageIO.read(yarditLauncherLogoFile)
         if (sourceImage == null) {
-            throw new GradleException('Unable to read the Yardit launcher logo source')
+            throw new GradleException('Unable to read the local Yardit launcher logo source')
         }
 
         def densities = [
