@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +35,7 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
       invited_at: now,
     });
     // Send invite notification to the invited user
-    const notif = await sendYarditNotification({
+    const notif = await base44.entities.Notification.create({
       user_email: form.authorized_email.trim().toLowerCase(),
       title: "Vendor Dashboard Invitation",
       message: `You've been invited to access ${account.business_name} on Yardit.`,

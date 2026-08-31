@@ -1,3 +1,4 @@
+import './App.css'
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -86,6 +87,7 @@ const AuthenticatedApp = () => {
       <Route path="/TermsOfService" element={<TermsOfService />} />
       <Route path="/CommunityGuidelines" element={<CommunityGuidelines />} />
       <Route path="/ComingSoon" element={<ComingSoon />} />
+      <Route path="/auth-callback" element={<YarditSplashScreen />} />
       <Route path="/auth-debug" element={<AuthDebug />} />
       <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
     </Routes>;
@@ -116,6 +118,7 @@ const AuthenticatedApp = () => {
     <Route path="/PrintableChecklist" element={<PrintableChecklist />} />
     <Route path="/LaunchChecklist" element={<LayoutWrapper currentPageName="LaunchChecklist"><LaunchChecklist /></LayoutWrapper>} />
     <Route path="/ComingSoon" element={<ComingSoon />} />
+    <Route path="/auth-callback" element={<YarditSplashScreen />} />
     <Route path="/auth-debug" element={<AuthDebug />} />
     <Route path="/assisted-listing" element={<AssistedListingApproval />} />
     <Route path="/LeagueEventMap" element={<LeagueEventMap />} />

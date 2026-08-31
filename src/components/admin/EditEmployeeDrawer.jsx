@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -166,7 +165,7 @@ export default function EditEmployeeDrawer({ open, onClose, admin, currentUserPr
         }
       }
 
-      await sendYarditNotification({
+      await base44.entities.Notification.create({
         user_id: admin.user_id,
         title: "Employee ID Updated",
         message: "Your Employee ID has been updated by an administrator.",

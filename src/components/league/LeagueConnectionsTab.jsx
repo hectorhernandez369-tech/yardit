@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -95,7 +94,7 @@ export default function LeagueConnectionsTab({ account, user, accounts = [], isO
       created_at: now,
     });
     if (league.owner_user_id) {
-      await sendYarditNotification({ user_id: league.owner_user_id, userId: league.owner_user_id, title: "New league join request", message: `${user.full_name || user.email} from ${account.business_name} is requesting to join ${league.business_name}. Verified email: ${user.email}`, type: "league_join_request", related_entity_type: "LeagueJoinRequest", deep_link: "/LeagueTeamDashboard?tab=leagues" }).catch(() => {});
+      await base44.entities.Notification.create({ user_id: league.owner_user_id, userId: league.owner_user_id, title: "New league join request", message: `${user.full_name || user.email} from ${account.business_name} is requesting to join ${league.business_name}. Verified email: ${user.email}`, type: "league_join_request", related_entity_type: "LeagueJoinRequest", deep_link: "/LeagueTeamDashboard?tab=leagues" }).catch(() => {});
     }
     setMessage("");
     toast.success("Join request sent.");
@@ -106,7 +105,7 @@ export default function LeagueConnectionsTab({ account, user, accounts = [], isO
     if (!inviteEmail.trim()) return toast.error("Enter an email to invite.");
     const now = new Date().toISOString();
     await base44.entities.LeagueMembership.create({ league_account_id: account.id, invited_email: inviteEmail.trim().toLowerCase(), membership_type: inviteType, role: inviteRole, status: "invited", permissions: ROLE_PRESETS[inviteRole] || ["view_full_schedule"], invited_by_user_id: user.id, invited_at: now });
-    await sendYarditNotification({ user_email: inviteEmail.trim().toLowerCase(), title: "League invite received", message: `${account.business_name} invited you to join their league workspace.`, type: "league_invite_received", related_entity_type: "LeagueMembership", deep_link: "/LeagueTeamDashboard?tab=leagues" }).catch(() => {});
+    await base44.entities.Notification.create({ user_email: inviteEmail.trim().toLowerCase(), title: "League invite received", message: `${account.business_name} invited you to join their league workspace.`, type: "league_invite_received", related_entity_type: "LeagueMembership", deep_link: "/LeagueTeamDashboard?tab=leagues" }).catch(() => {});
     setInviteEmail("");
     toast.success("League invitation created.");
     refreshAll();
@@ -116,10 +115,10 @@ export default function LeagueConnectionsTab({ account, user, accounts = [], isO
     await base44.entities.LeagueJoinRequest.update(request.id, { status, reviewed_by_user_id: user.id, reviewed_at: new Date().toISOString() });
     if (status === "approved") {
       await base44.entities.LeagueMembership.create({ league_account_id: account.id, member_account_id: request.requesting_account_id, member_user_id: request.requesting_user_id, invited_email: request.requesting_email, membership_type: "team_organization", role: "Read Only", status: "active", permissions: ["view_full_schedule"], invited_by_user_id: user.id, invited_at: request.created_at, accepted_at: new Date().toISOString() });
-      await sendYarditNotification({ user_id: request.requesting_user_id, userId: request.requesting_user_id, title: "Join request approved", message: `${account.business_name} approved your request. Your account has view-only access until teams and permissions are assigned.`, type: "league_join_approved", related_entity_type: "LeagueJoinRequest", related_entity_id: request.id, deep_link: "/LeagueTeamDashboard?tab=schedule" }).catch(() => {});
+      await base44.entities.Notification.create({ user_id: request.requesting_user_id, userId: request.requesting_user_id, title: "Join request approved", message: `${account.business_name} approved your request. Your account has view-only access until teams and permissions are assigned.`, type: "league_join_approved", related_entity_type: "LeagueJoinRequest", related_entity_id: request.id, deep_link: "/LeagueTeamDashboard?tab=schedule" }).catch(() => {});
       toast.success("Approved with view-only access. Assign teams before editing is allowed.");
     } else {
-      await sendYarditNotification({ user_id: request.requesting_user_id, userId: request.requesting_user_id, title: "Join request denied", message: `${account.business_name} denied your league join request.`, type: "league_join_denied", related_entity_type: "LeagueJoinRequest", related_entity_id: request.id }).catch(() => {});
+      await base44.entities.Notification.create({ user_id: request.requesting_user_id, userId: request.requesting_user_id, title: "Join request denied", message: `${account.business_name} denied your league join request.`, type: "league_join_denied", related_entity_type: "LeagueJoinRequest", related_entity_id: request.id }).catch(() => {});
       toast.success("Request denied.");
     }
     refreshAll();
@@ -132,7 +131,7 @@ export default function LeagueConnectionsTab({ account, user, accounts = [], isO
     if (existing.some((item) => item.team_account_id !== selectedRequest.requesting_account_id)) return toast.error("That team is already assigned to another organization. Remove the current assignment first.");
     await base44.entities.LeagueTeamAssignment.create({ league_account_id: account.id, team_account_id: selectedRequest.requesting_account_id, team_id: team.id, team_name: team.team_name, town_name: team.town_name, division: team.division, season: team.season, can_edit_assigned_games: assignEdit, can_submit_scores: assignScore, is_active: true });
     await base44.entities.LeagueMembership.create({ league_account_id: account.id, member_account_id: selectedRequest.requesting_account_id, member_user_id: selectedRequest.requesting_user_id, invited_email: selectedRequest.requesting_email, membership_type: "team_organization", role: "Team Manager", status: "active", permissions: assignScore ? ROLE_PRESETS["Team Manager"] : ["view_full_schedule"], invited_by_user_id: user.id, invited_at: selectedRequest.created_at, accepted_at: new Date().toISOString() });
-    await sendYarditNotification({ user_id: selectedRequest.requesting_user_id, userId: selectedRequest.requesting_user_id, title: "Team assignment completed", message: `${account.business_name} assigned ${team.team_name} to your league account.`, type: "league_team_assignment_completed", related_entity_type: "LeagueTeamAssignment", deep_link: "/LeagueTeamDashboard?tab=my_schedule" }).catch(() => {});
+    await base44.entities.Notification.create({ user_id: selectedRequest.requesting_user_id, userId: selectedRequest.requesting_user_id, title: "Team assignment completed", message: `${account.business_name} assigned ${team.team_name} to your league account.`, type: "league_team_assignment_completed", related_entity_type: "LeagueTeamAssignment", deep_link: "/LeagueTeamDashboard?tab=my_schedule" }).catch(() => {});
     setAssignRequestId("");
     setAssignTeamId("");
     toast.success("Team assignment completed.");

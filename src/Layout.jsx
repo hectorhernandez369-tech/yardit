@@ -33,7 +33,6 @@ import AccountSetupModal from "./components/profile/AccountSetupModal";
 import VerifiedAddressRequiredModal from "./components/profile/VerifiedAddressRequiredModal";
 import FloatingLaunchChecklist from "./components/checklist/FloatingLaunchChecklist";
 import PushSubscribePrompt from "./components/notifications/PushSubscribePrompt";
-import { syncGrantedPushSubscription } from "@/lib/pushPromptActions";
 import YarditSplashScreen from "@/components/install/YarditSplashScreen";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton, syncInstallRecord } from "@/lib/installPrompt";
 
@@ -392,9 +391,6 @@ export default function Layout({ children }) {
         });
 
         base44.functions.invoke("syncNeighborhoodCoHostInvite", {}).catch(() => {});
-        // Refresh the current device's OneSignal connection whenever a signed-in user opens Yardit.
-        // This repairs stale stored subscription IDs after browser/app updates without asking permission again.
-        syncGrantedPushSubscription(currentUser).catch((error) => console.warn("Push subscription refresh failed:", error));
 
         const startupPage = localStorage.getItem("yardit_startup_page");
         const isRoot = window.location.pathname === "/" || window.location.pathname === createPageUrl("Home");

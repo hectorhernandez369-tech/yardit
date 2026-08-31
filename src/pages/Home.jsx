@@ -60,7 +60,6 @@ import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
 import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
-import HalloweenLocationMarkers from "@/components/map/HalloweenLocationMarkers";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
@@ -705,14 +704,6 @@ export default function HomePage() {
   const listings = isPublicHomeMode ? publicMapData.listings || [] : privateListings;
   const isLoading = isPublicHomeMode ? isLoadingPublicMapData : isLoadingPrivateListings;
 
-  const { data: privateSeasonalLocations = [] } = useQuery({
-    queryKey: ["seasonalLocations", "private"],
-    queryFn: () => base44.entities.Location.filter({ type: "halloween_candy", status: "active" }),
-    initialData: [],
-    enabled: !isPublicHomeMode,
-  });
-  const seasonalLocations = isPublicHomeMode ? publicMapData.seasonalLocations || [] : privateSeasonalLocations;
-
   useEffect(() => {
     if (isPublicHomeMode) return () => {};
     const unsubscribe = base44.entities.Listing.subscribe(() => {
@@ -911,30 +902,15 @@ export default function HomePage() {
         if (category && String(category).trim()) values.add(String(category).trim());
       });
     });
-    seasonalLocations.forEach((location) => {
-      [location.title, location.address, location.city].forEach((value) => {
-        if (value && String(value).trim()) values.add(String(value).trim());
-      });
-    });
 
     return Array.from(values)
       .filter((value) => value.toLowerCase().includes(query))
       .slice(0, 8);
-  }, [listings, seasonalLocations, searchQuery]);
+  }, [listings, searchQuery]);
 
   const handleSearchSuggestionSelect = useCallback((suggestion) => {
     setSearchQuery(suggestion);
     setShowSearchSuggestions(false);
-
-    const seasonalMatch = seasonalLocations.find((location) =>
-      [location.title, location.address].some((value) => value?.toLowerCase().trim() === suggestion.toLowerCase().trim())
-    );
-    if (seasonalMatch) {
-      setView("map");
-      setMapCenter([seasonalMatch.latitude, seasonalMatch.longitude]);
-      setMapZoom(17);
-      return;
-    }
 
     const cityName = suggestion.split(",")[0].trim().toLowerCase();
     const fallbackCityNames = FALLBACK_CITY_SUGGESTIONS.map((city) => city.split(",")[0].trim().toLowerCase());
@@ -949,7 +925,7 @@ export default function HomePage() {
     const avgLng = validListings.reduce((sum, listing) => sum + listing.lng, 0) / validListings.length;
     setMapCenter([avgLat, avgLng]);
     setMapZoom(12);
-  }, [listings, seasonalLocations]);
+  }, [listings]);
 
   const handleListViewRefresh = useCallback(async () => {
     await Promise.all(isPublicHomeMode ? [
@@ -992,7 +968,10 @@ export default function HomePage() {
   }, []);
 
   const handleMyLocation = () => {
-    setLocationError(null);
+    if (locationError) {
+      toast.error("Location unavailable. Check your browser settings.");
+      return;
+    }
     if (userLocation) {
       setMapCenter([userLocation.lat, userLocation.lng]);
       setMapZoom(14);
@@ -1000,38 +979,34 @@ export default function HomePage() {
       return;
     }
     setIsLocating(true);
-    if (!navigator.geolocation) {
-      setIsLocating(false);
-      setLocationError("Location is not supported on this device.");
-      toast.error("Location is not supported on this device");
-      return;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          setUserLocation(newLocation);
+          setMapCenter([newLocation.lat, newLocation.lng]);
+          setMapZoom(14);
+          setLocationError(null);
+          setIsLocating(false);
+          toast.success("Centered on your location");
+        },
+        (error) => {
+          setIsLocating(false);
+          if (error.code === error.PERMISSION_DENIED) {
+            setLocationError("Location permission is off. Enable it in settings to use My Location.");
+            toast.error("Location permission denied");
+          } else {
+            setLocationError("Unable to get location right now.");
+            toast.error("Unable to get location");
+          }
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
     }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const newLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy
-        };
-        setUserLocation(newLocation);
-        setMapCenter([newLocation.lat, newLocation.lng]);
-        setMapZoom(14);
-        setLocationError(null);
-        setIsLocating(false);
-        toast.success("Centered on your location");
-      },
-      (error) => {
-        setIsLocating(false);
-        if (error.code === error.PERMISSION_DENIED) {
-          setLocationError("Location permission is off. Allow it in device settings, then tap My Location to retry.");
-          toast.error("Location permission denied");
-        } else {
-          setLocationError("Unable to get location right now. Tap My Location to retry.");
-          toast.error("Unable to get location");
-        }
-      },
-      { enableHighAccuracy: true, timeout: 5000 }
-    );
   };
 
   const handleUserMoveMap = React.useCallback((center, isProgrammatic) => {
@@ -1613,7 +1588,6 @@ export default function HomePage() {
             }
               
               {!showUpcomingWeekend && <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />}
-              {!showUpcomingWeekend && <HalloweenLocationMarkers locations={seasonalLocations} now={scheduleNow} />}
               {showUpcomingWeekend && (
                 <ComingSoonWeekendMapLayer
                   enabled={showUpcomingWeekend}

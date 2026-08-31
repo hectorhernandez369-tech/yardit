@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BadgeCheck, ChevronDown, ExternalLink, Facebook, Globe, Heart, Instagram, MapPin, MessageCircle, Music2, Send } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { sendYarditNotification } from "@/lib/yarditNotifications";
 import BusinessHero from "@/components/vendor/BusinessHero";
 import VendorNotifyButton from "@/components/vendor/VendorNotifyButton";
 import { format } from "date-fns";
@@ -72,7 +71,7 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
 
     const ownerIdentifier = account.owner_user_id;
     setSendingMessage(true);
-    await sendYarditNotification({
+    await base44.entities.Notification.create({
       userId: ownerIdentifier,
       user_id: ownerIdentifier,
       user_email: ownerIdentifier?.includes("@") ? ownerIdentifier : undefined,

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -117,7 +116,7 @@ export default function JoinNeighborhoodSale() {
           origin_sale_listing_id: sale.id,
         });
 
-        await sendYarditNotification({
+        await base44.entities.Notification.create({
           userId: user.id,
           user_id: user.id,
           title: "Join Request Sent",
@@ -177,7 +176,7 @@ export default function JoinNeighborhoodSale() {
         listingNumber: buildListingNumber(verifiedUser.state, verifiedUser.zip_code),
       });
 
-      await sendYarditNotification({
+      await base44.entities.Notification.create({
         userId: user.id,
         user_id: user.id,
         title: "Join Request Sent",

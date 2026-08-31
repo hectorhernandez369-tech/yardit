@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -147,7 +146,7 @@ export default function ReportModal({ listingId, onClose, neighborhoodRemovalCon
             payment_intent_status: "none",
           });
 
-          await sendYarditNotification({
+          await base44.entities.Notification.create({
             userId: neighborhoodRemovalContext.requesterUserId,
             user_id: neighborhoodRemovalContext.requesterUserId,
             title: "Removed from Neighborhood Sale",
@@ -166,7 +165,7 @@ export default function ReportModal({ listingId, onClose, neighborhoodRemovalCon
 
         // Reporter Confirmation Notification
         try {
-          const notif = await sendYarditNotification({
+          const notif = await base44.entities.Notification.create({
             user_id: user.id,
             userId: user.id,
             type: "report_received",

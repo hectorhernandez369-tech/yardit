@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -1091,7 +1090,7 @@ export default function CreateListingPage() {
           });
 
           const invitedUsers = [...new Set(inviteTargets.map((candidate) => candidate.ownerUserId).filter(Boolean))];
-          await Promise.all(invitedUsers.map((userId) => sendYarditNotification({
+          await Promise.all(invitedUsers.map((userId) => base44.entities.Notification.create({
             userId,
             user_id: userId,
             title: "Neighborhood Sale Invitation",

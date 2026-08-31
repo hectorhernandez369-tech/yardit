@@ -97,7 +97,7 @@ async function syncSale(base44, saleListingId) {
 }
 
 async function notify(base44, data) {
-  const notification = {
+  await base44.asServiceRole.entities.Notification.create({
     userId: data.userId,
     user_id: data.userId,
     title: data.title,
@@ -108,14 +108,7 @@ async function notify(base44, data) {
     metadata: data.metadata || {},
     read: false,
     is_read: false,
-    delivery_methods: ['push', 'bell'],
-    deep_link: data.deepLink || '/Notifications',
-    dedupe_key: data.dedupeKey || `${data.type}_${data.userId}_${data.relatedEntityId || 'general'}`,
-    registry_status: 'active',
-    registry_version: '2026-08-24',
-  };
-  const response = await base44.asServiceRole.functions.invoke('deliverNotificationPush', notification);
-  return response?.data || response || {};
+  });
 }
 
 Deno.serve(async (req) => {
@@ -198,7 +191,7 @@ Deno.serve(async (req) => {
         userId: requesterUserId,
         title: 'Join Request Approved',
         message: `Approved — you joined ${eventTitle}`,
-        type: 'join_request_accepted',
+        type: 'join_response_accept',
         relatedEntityId: requestId,
         metadata: { sale_listing_id: saleListingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle },
       });
@@ -223,7 +216,7 @@ Deno.serve(async (req) => {
         userId: requesterUserId,
         title: 'Join Request Denied',
         message: 'Denied — your yard sale was not included with this Neighborhood Sale. Any existing listing keeps its original tier and standalone visibility.',
-        type: 'join_request_denied',
+        type: 'join_response_deny',
         relatedEntityId: requestId,
         metadata: { sale_listing_id: saleListingId, requester_listing_id: requesterListingId, requester_user_id: requesterUserId, event_title: eventTitle },
       });

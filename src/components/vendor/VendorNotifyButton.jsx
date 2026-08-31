@@ -4,15 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { enablePushNotifications, getBrowserPushStatus, getOneSignalSubscriptionId, PUSH_RADIUS_OPTIONS } from "@/lib/pushNotifications";
+import { enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId, PUSH_RADIUS_OPTIONS } from "@/lib/pushNotifications";
 import { hasVerifiedPrimaryAddress } from "@/lib/trustActions";
-
-const recordTimestamp = (record) => {
-  const value = record?.updated_at || record?.updated_date || record?.created_at || record?.created_date;
-  const parsed = value ? new Date(value).getTime() : 0;
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-const newestRecord = (records = []) => [...records].sort((a, b) => recordTimestamp(b) - recordTimestamp(a))[0] || null;
 
 export default function VendorNotifyButton({ account }) {
   const queryClient = useQueryClient();
@@ -43,7 +36,7 @@ export default function VendorNotifyButton({ account }) {
     const status = getBrowserPushStatus();
     let subscriptionId = await getOneSignalSubscriptionId();
     if (status !== "enabled" || !subscriptionId) {
-      const result = await enablePushNotifications({ userId: user.id });
+      const result = await enableOneSignalPush({ userId: user.id });
       if (result.status !== "enabled") {
         setBusy(false);
         const message = result.status === "needs_install" ? "Install Yardit to your Home Screen first, then open the installed app and try again." : result.status === "blocked" ? "Notifications are blocked in your browser or device settings." : result.status === "unsupported" ? "Push notifications are not supported by this browser or device." : "Push notifications are not enabled on this device.";
@@ -54,11 +47,8 @@ export default function VendorNotifyButton({ account }) {
     }
     if (subscriptionId) {
       const existingPushRows = await base44.entities.PushSubscription.filter({ user_id: user.id });
-      const currentUserAgent = navigator.userAgent;
-      const matchingPushRow = existingPushRows.find((row) => row.onesignal_subscription_id === subscriptionId)
-        || existingPushRows.find((row) => row.user_agent === currentUserAgent);
-      const pushData = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: "enabled", is_active: true, user_agent: currentUserAgent, updated_at: new Date().toISOString() };
-      if (matchingPushRow) await base44.entities.PushSubscription.update(matchingPushRow.id, pushData);
+      const pushData = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: "enabled", is_active: true, user_agent: navigator.userAgent, updated_at: new Date().toISOString() };
+      if (existingPushRows[0]) await base44.entities.PushSubscription.update(existingPushRows[0].id, pushData);
       else await base44.entities.PushSubscription.create({ ...pushData, created_at: new Date().toISOString() });
     }
     await saveMutation.mutateAsync({ user_id: user.id, vendor_account_id: account.id, radius_miles: radius, subscription_enabled: true, created_at: subscription?.created_at || new Date().toISOString(), updated_at: new Date().toISOString() });

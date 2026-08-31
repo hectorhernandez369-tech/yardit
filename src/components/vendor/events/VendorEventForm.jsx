@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { sendYarditNotification } from "@/lib/yarditNotifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -186,7 +185,7 @@ export default function VendorEventForm({ account, user, event = null, approvedV
         is_primary_owner: false,
       });
 
-      await sendYarditNotification({
+      await base44.entities.Notification.create({
         userId: invite.organization_owner_user_id,
         user_id: invite.organization_owner_user_id,
         user_email: invite.organization_email,

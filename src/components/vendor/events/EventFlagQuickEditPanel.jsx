@@ -7,25 +7,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Save, X } from "lucide-react";
 import EventFlagIconPicker from "./EventFlagIconPicker";
 import FlagScheduleEditor from "./FlagScheduleEditor";
-import { getEventFlagIcon, getEventFlagIconAsset, getEventFlagIconLabel } from "@/lib/eventFlagIcons";
+import { getEventFlagIcon } from "@/lib/eventFlagIcons";
 
 export default function EventFlagQuickEditPanel({ draftSpot, setDraftSpot, originalSpot, eventDate, timeBetweenMinutes, onTimeBetweenChange, onSave, onCancel, isSaving }) {
   const [applyToAll, setApplyToAll] = useState(false);
-  const iconAsset = getEventFlagIconAsset(draftSpot.icon_key);
 
   return (
     <div className="mt-2 rounded-2xl border-2 border-[#5DADA5]/40 bg-[#F0FCFA] p-4 shadow-sm space-y-4">
       <div className="flex items-center gap-3">
-        <div className="text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#2C4F4E] bg-[#F4A849]">
-            {iconAsset ? (
-              <img src={iconAsset} alt="" className="h-10 w-10 object-contain" />
-            ) : (
-              <span className="text-xl">{getEventFlagIcon(draftSpot.icon_key)}</span>
-            )}
-          </span>
-          <span className="mt-1 block max-w-20 text-[10px] font-bold leading-tight text-[#2C4F4E]">{getEventFlagIconLabel(draftSpot.icon_key)}</span>
-        </div>
+        <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#2C4F4E] bg-[#F4A849] text-xl">
+          {getEventFlagIcon(draftSpot.icon_key)}
+        </span>
         <div>
           <h3 className="text-lg font-black text-[#2C4F4E]">Quick Edit</h3>
           <p className="text-xs text-slate-600">Changes are attached to this flag.</p>

@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
+import { appParams, captureAuthTokenFromCurrentUrl, waitForOAuthAccessToken } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { isGuestMode, setGuestMode, clearGuestMode } from './guestMode';
 import { clearTesterBypass } from '@/lib/comingSoonMode';
@@ -8,14 +8,44 @@ import { logUserActivity, logUserActivityOncePerSession } from './logUserActivit
 import { normalizeUser } from '@/lib/normalizeUser';
 import { recordAuthDebugEvent } from '@/lib/authDebug';
 import { EVENTS_EXPERIENCE, EXPERIENCE_STORAGE_KEY } from '@/lib/experience';
-import { bindNativePushIdentity } from '@/lib/nativePushNotifications';
-import { isNativeYarditApp } from '@/lib/runtimePlatform';
-import { logoutPushIdentity } from '@/lib/pushNotifications';
 
 const AuthContext = createContext();
 const AUTH_RETURN_TO_KEY = 'yardit_auth_return_to_v1';
 const AUTH_RETURN_TO_MAX_AGE_MS = 30 * 60 * 1000;
 const RETURNING_USER_KEY = 'yardit_returning_user_v1';
+const PLAY_WRAPPER_KEY = 'yardit_play_wrapper_detected_v1';
+const AUTH_CLIENT_INITIAL_TOKEN = appParams.token;
+
+const isPlayAppWrapper = () => {
+  if (typeof window === 'undefined') return false;
+
+  const androidAppReferrer = document.referrer?.startsWith('android-app://');
+  if (androidAppReferrer) {
+    try {
+      sessionStorage.setItem(PLAY_WRAPPER_KEY, 'true');
+      localStorage.setItem(PLAY_WRAPPER_KEY, 'true');
+    } catch {}
+    return true;
+  }
+
+  try {
+    return sessionStorage.getItem(PLAY_WRAPPER_KEY) === 'true' || localStorage.getItem(PLAY_WRAPPER_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const reloadForNewlyCapturedToken = (capture, source = 'unknown') => {
+  if (!capture?.token || capture.token === AUTH_CLIENT_INITIAL_TOKEN) return false;
+
+  console.log('AUTH_DEBUG tokenAvailableAfterClientInit -> reload', {
+    source,
+    storedBase44AccessToken: true,
+    capturedFromCallback: !!capture.captured,
+  });
+  window.location.replace(`${window.location.pathname}${window.location.search}${window.location.hash}`);
+  return true;
+};
 
 const saveAuthReturnTo = (url) => {
   try {
@@ -111,11 +141,6 @@ export const AuthProvider = ({ children }) => {
       setIsGuest(false);
       setUser(currentUser);
       setIsAuthenticated(true);
-      if (currentUser?.id && isNativeYarditApp()) {
-        void bindNativePushIdentity(currentUser.id).catch((error) => {
-          console.warn('[Yardit Push] Native OneSignal identity binding failed', error);
-        });
-      }
       setIsLoadingAuth(false);
       const restoredReturnTo = restoreAuthReturnTo();
       if (!restoredReturnTo && localStorage.getItem(EXPERIENCE_STORAGE_KEY) === EVENTS_EXPERIENCE && window.location.pathname === "/") {
@@ -156,6 +181,15 @@ export const AuthProvider = ({ children }) => {
       });
       setIsLoadingPublicSettings(true);
       setAuthError(null);
+
+      const oauthTokenCapture = await waitForOAuthAccessToken({
+        timeoutMs: AUTH_CLIENT_INITIAL_TOKEN ? 0 : 1600,
+        intervalMs: 120,
+      });
+
+      if (reloadForNewlyCapturedToken(oauthTokenCapture, 'checkAppState')) {
+        return;
+      }
 
       // First, check app public settings (with token if available)
       // This will tell us if auth is required, user not registered, etc.
@@ -243,15 +277,37 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    const checkForReturnedOAuthToken = () => {
+      const capture = captureAuthTokenFromCurrentUrl();
+      reloadForNewlyCapturedToken(capture, 'appResume');
+    };
+
+    const timers = [500, 1500, 3000, 5000].map((delay) => window.setTimeout(checkForReturnedOAuthToken, delay));
+    window.addEventListener('focus', checkForReturnedOAuthToken);
+    window.addEventListener('pageshow', checkForReturnedOAuthToken);
+    window.addEventListener('hashchange', checkForReturnedOAuthToken);
+    window.addEventListener('popstate', checkForReturnedOAuthToken);
+    document.addEventListener('visibilitychange', checkForReturnedOAuthToken);
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      window.removeEventListener('focus', checkForReturnedOAuthToken);
+      window.removeEventListener('pageshow', checkForReturnedOAuthToken);
+      window.removeEventListener('hashchange', checkForReturnedOAuthToken);
+      window.removeEventListener('popstate', checkForReturnedOAuthToken);
+      document.removeEventListener('visibilitychange', checkForReturnedOAuthToken);
+    };
+  }, []);
+
+  useEffect(() => {
     const handleUserUpdated = (event) => {
       setUser(normalizeUser(event.detail));
       setIsAuthenticated(true);
       setIsGuest(false);
     };
+
     window.addEventListener("yardit:user-updated", handleUserUpdated);
-    return () => {
-      window.removeEventListener("yardit:user-updated", handleUserUpdated);
-    };
+    return () => window.removeEventListener("yardit:user-updated", handleUserUpdated);
   }, []);
 
   useEffect(() => {
@@ -316,19 +372,16 @@ export const AuthProvider = ({ children }) => {
       finishLogout();
     };
 
-    const timeoutId = window.setTimeout(safeFinish, 1800);
+    const timeoutId = window.setTimeout(safeFinish, 400);
 
-    Promise.allSettled([
-      logUserActivity({
-        user_id: currentUser.id,
-        event_type: "logout",
-        event_label: "Logged Out",
-        target_type: "account",
-        target_id: currentUser.id,
-        source_page: window.location.pathname,
-      }),
-      logoutPushIdentity(),
-    ]).finally(() => {
+    logUserActivity({
+      user_id: currentUser.id,
+      event_type: "logout",
+      event_label: "Logged Out",
+      target_type: "account",
+      target_id: currentUser.id,
+      source_page: window.location.pathname,
+    }).finally(() => {
       window.clearTimeout(timeoutId);
       safeFinish();
     });
@@ -342,23 +395,26 @@ export const AuthProvider = ({ children }) => {
 
   const navigateToLogin = (returnToUrl) => {
     const requestedReturnUrl = returnToUrl || window.location.href;
-
     console.log('AUTH_DEBUG navigateToLogin', {
       hasToken: !!appParams.token,
       currentUrl: window.location.href,
       authError,
-      isGuest,
+      isGuest
     });
+
+    const playWrapper = isPlayAppWrapper();
+    const loginReturnUrl = playWrapper ? `${window.location.origin}/?auth_callback=play` : requestedReturnUrl;
     recordAuthDebugEvent('redirect_to_login', {
-      returnStrategy: 'sdk_webview',
-      loginReturnUrl: requestedReturnUrl,
+      playWrapper,
+      loginReturnUrl,
+      returnStrategy: playWrapper ? 'play_start_url' : 'requested_url',
       currentUrl: window.location.href,
     });
 
     clearGuestMode();
     setIsGuest(false);
     saveAuthReturnTo(requestedReturnUrl);
-    base44.auth.redirectToLogin(requestedReturnUrl);
+    base44.auth.redirectToLogin(loginReturnUrl);
   };
 
   return (

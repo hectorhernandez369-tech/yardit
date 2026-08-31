@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
         ? '1 Yardit listing is happening near you today.'
         : `${count} Yardit listings are happening near you today.`;
 
-      const notification = {
+      await base44.asServiceRole.entities.Notification.create({
         userId: pref.user_id,
         user_id: pref.user_id,
         type: 'nearby_listings_daily_digest',
@@ -120,9 +120,8 @@ Deno.serve(async (req) => {
         },
         read: true,
         is_read: true,
-      };
-      const delivery = await base44.asServiceRole.functions.invoke('deliverNotificationPush', notification);
-      if (delivery?.data?.success || delivery?.success) created++;
+      });
+      created++;
       summaries.push({ user_id: pref.user_id, count, radius });
     }
 

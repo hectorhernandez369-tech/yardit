@@ -1,6 +1,3 @@
-import { enableNativePush, getNativePushConnection, getNativeSubscriptionId, logoutNativePushIdentity } from '@/lib/nativePushNotifications';
-import { isNativeYarditApp } from '@/lib/runtimePlatform';
-
 export const PUSH_RADIUS_OPTIONS = [1, 2, 5, 10, 25];
 
 const VALID_STORED_PUSH_STATUSES = ["enabled", "not_enabled", "blocked", "unsupported"];
@@ -42,7 +39,6 @@ function logPushDebug(stage, extra = {}) {
 }
 
 function getPreflightFailureStatus() {
-  if (isNativeYarditApp()) return null;
   if (typeof window === "undefined") return "unsupported";
   if (isIosDevice() && !isStandaloneApp()) return "needs_install";
   if (!("Notification" in window) || !window.isSecureContext) return "unsupported";
@@ -158,36 +154,12 @@ async function waitForServiceWorkerReady() {
 }
 
 export function getBrowserPushStatus() {
-  if (isNativeYarditApp()) return "not_enabled";
   const preflightFailure = getPreflightFailureStatus();
   if (preflightFailure) return preflightFailure;
+  if (window.Notification.permission === "granted") return "enabled";
   if (window.Notification.permission === "denied") return "blocked";
-  if (window.Notification.permission === "granted") return "permission_granted";
   if (!window.OneSignalDeferred) return "onesignal_not_ready";
   return "not_enabled";
-}
-
-export async function getRuntimePushConnection() {
-  if (isNativeYarditApp()) return getNativePushConnection();
-  const browserStatus = getBrowserPushStatus();
-  if (browserStatus !== "permission_granted") {
-    return { browserStatus, permissionGranted: false, subscriptionId: "", optedIn: false, connected: false };
-  }
-
-  const OneSignal = window.__YARDIT_ONESIGNAL_INSTANCE__;
-  if (!OneSignal || window.__YARDIT_ONESIGNAL_READY__ !== true) {
-    return { browserStatus: "onesignal_not_ready", permissionGranted: true, subscriptionId: "", optedIn: false, connected: false };
-  }
-
-  const subscriptionId = OneSignal.User?.PushSubscription?.id || "";
-  const optedIn = OneSignal.User?.PushSubscription?.optedIn === true;
-  return {
-    browserStatus,
-    permissionGranted: true,
-    subscriptionId,
-    optedIn,
-    connected: !!subscriptionId && optedIn,
-  };
 }
 
 export function canStorePushStatus(status) {
@@ -195,8 +167,7 @@ export function canStorePushStatus(status) {
 }
 
 export function pushStatusLabel(status) {
-  if (status === "enabled") return "Connected";
-  if (status === "permission_granted") return "Allowed, checking connection";
+  if (status === "enabled") return "Enabled";
   if (status === "not_connected") return "Allowed, not connected";
   if (status === "blocked") return "Blocked by browser/device";
   if (status === "needs_install") return "Install app first";
@@ -217,8 +188,7 @@ async function waitForOneSignalSubscriptionId(OneSignal) {
   return OneSignal.User?.PushSubscription?.id || "";
 }
 
-export async function enablePushNotifications({ userId } = {}) {
-  if (isNativeYarditApp()) return enableNativePush({ userId });
+export async function enableOneSignalPush({ userId } = {}) {
   logPushDebug("enable_start");
   const preflightFailure = getPreflightFailureStatus();
   if (preflightFailure) {
@@ -226,55 +196,60 @@ export async function enablePushNotifications({ userId } = {}) {
     return { status: preflightFailure, subscriptionId: "" };
   }
 
-  const OneSignal = window.__YARDIT_ONESIGNAL_INSTANCE__;
-  if (!OneSignal || window.__YARDIT_ONESIGNAL_READY__ !== true) {
-    logPushDebug("onesignal_not_ready", { initError: window.__YARDIT_ONESIGNAL_INIT_ERROR__ || "" });
+  if (!window.OneSignalDeferred) {
+    logPushDebug("onesignal_not_ready");
     return { status: "onesignal_not_ready", subscriptionId: "" };
   }
 
-  try {
-    if (window.Notification.permission !== "granted") {
-      const permissionRequest = await withTimeout(OneSignal.Notifications.requestPermission(), 12000, "timeout");
-      logPushDebug("permission_result", { permissionResult: getPermissionResult(), permissionRequest });
-    }
+  return new Promise((resolve) => {
+    let resolved = false;
+    const finish = (result) => {
+      if (resolved) return;
+      resolved = true;
+      logPushDebug("enable_finish", result);
+      resolve(result);
+    };
 
-    if (window.Notification.permission !== "granted") {
-      return { status: window.Notification.permission === "denied" ? "blocked" : "not_enabled", subscriptionId: "" };
-    }
+    const oneSignalReadyTimeout = setTimeout(() => finish({ status: "onesignal_not_ready", subscriptionId: "" }), 15000);
 
-    const serviceWorkerReady = await waitForServiceWorkerReady();
-    if (!serviceWorkerReady) return { status: "service_worker_not_ready", subscriptionId: "" };
+    window.OneSignalDeferred.push(async (OneSignal) => {
+      clearTimeout(oneSignalReadyTimeout);
+      try {
+        const permissionRequest = window.Notification.permission === "granted"
+          ? "granted"
+          : await withTimeout(OneSignal.Notifications.requestPermission(), 12000, "timeout");
+        logPushDebug("permission_result", { permissionResult: getPermissionResult(), permissionRequest });
+        if (window.Notification.permission !== "granted") {
+          finish({ status: window.Notification.permission === "denied" ? "blocked" : "not_enabled", subscriptionId: "" });
+          return;
+        }
 
-    if (userId && OneSignal.login) await withTimeout(OneSignal.login(String(userId)), 12000, null);
-    await withTimeout(OneSignal.User.PushSubscription.optIn(), 12000, null);
-    const subscriptionId = await waitForOneSignalSubscriptionId(OneSignal);
-    const optedIn = OneSignal.User?.PushSubscription?.optedIn === true;
-    return { status: subscriptionId && optedIn ? "enabled" : "registration_timeout", subscriptionId, optedIn };
-  } catch (error) {
-    logPushDebug("enable_error", { error: error?.message || String(error) });
-    return { status: "not_enabled", subscriptionId: "", error: error?.message || String(error) };
-  }
+        const serviceWorkerReady = await waitForServiceWorkerReady();
+        if (!serviceWorkerReady) {
+          finish({ status: "service_worker_not_ready", subscriptionId: "" });
+          return;
+        }
+
+        await withTimeout(OneSignal.User.PushSubscription.optIn(), 12000, null);
+        if (userId && OneSignal.login) await withTimeout(OneSignal.login(String(userId)), 12000, null);
+        await withTimeout(OneSignal.User.PushSubscription.optIn(), 12000, null);
+        const subscriptionId = await waitForOneSignalSubscriptionId(OneSignal);
+        finish({ status: subscriptionId ? "enabled" : "registration_timeout", subscriptionId });
+      } catch (error) {
+        logPushDebug("enable_error", { error: error?.message || String(error) });
+        finish({ status: "not_enabled", subscriptionId: "" });
+      }
+    });
+  });
 }
 
 export async function getOneSignalSubscriptionId() {
-  if (isNativeYarditApp()) return getNativeSubscriptionId();
-  if (typeof window === "undefined") return "";
-  const OneSignal = window.__YARDIT_ONESIGNAL_INSTANCE__;
-  if (OneSignal && window.__YARDIT_ONESIGNAL_READY__ === true) {
-    const subscriptionId = OneSignal.User?.PushSubscription?.id || "";
-    logPushDebug("get_subscription_id", { subscriptionId });
-    return subscriptionId;
-  }
-  return "";
-}
-
-export async function logoutPushIdentity() {
-  if (isNativeYarditApp()) {
-    await logoutNativePushIdentity();
-    return;
-  }
-  if (typeof window === 'undefined') return;
-  const OneSignal = window.__YARDIT_ONESIGNAL_INSTANCE__;
-  if (!OneSignal || window.__YARDIT_ONESIGNAL_READY__ !== true || typeof OneSignal.logout !== 'function') return;
-  await withTimeout(OneSignal.logout(), 1500, null);
+  if (typeof window === "undefined" || !window.OneSignalDeferred) return "";
+  return new Promise((resolve) => {
+    window.OneSignalDeferred.push(async (OneSignal) => {
+      const subscriptionId = OneSignal.User?.PushSubscription?.id || "";
+      logPushDebug("get_subscription_id", { subscriptionId });
+      resolve(subscriptionId);
+    });
+  });
 }

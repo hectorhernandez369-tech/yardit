@@ -26,12 +26,16 @@ export default async function(req) {
       const results = [];
       for (const uid of userIds) {
         try {
-          const delivery = await base44.asServiceRole.integrations.Core.SendPushNotification({
+          const response = await base44.asServiceRole.functions.invoke('deliverNotificationPush', {
             user_id: uid,
             title,
-            content,
+            message: content,
+            type: 'vendor_event',
+            delivery_methods: ['push', 'bell'],
+            dedupe_key: `admin_test_push_${uid}_${Date.now()}`,
           });
-          results.push({ user_id: uid, status: 'sent', delivery });
+          const delivery = response?.data || response;
+          results.push({ user_id: uid, status: delivery?.success ? 'sent' : 'skipped', delivery });
         } catch (e) {
           results.push({ user_id: uid, status: 'error', error: e.message });
         }
@@ -40,12 +44,16 @@ export default async function(req) {
     }
 
     try {
-      const delivery = await base44.asServiceRole.integrations.Core.SendPushNotification({
+      const response = await base44.asServiceRole.functions.invoke('deliverNotificationPush', {
         user_id: user.id,
         title,
-        content,
+        message: content,
+        type: 'vendor_event',
+        delivery_methods: ['push', 'bell'],
+        dedupe_key: `admin_test_push_${user.id}_${Date.now()}`,
       });
-      return Response.json({ sent: true, user_id: user.id, delivery });
+      const delivery = response?.data || response;
+      return Response.json({ sent: delivery?.success === true, user_id: user.id, delivery });
     } catch (e) {
       return Response.json({ sent: false, user_id: user.id, error: e.message }, { status: 500 });
     }

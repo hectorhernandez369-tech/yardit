@@ -2,22 +2,14 @@ import { Circle, MapContainer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import VendorEventMapboxTileLayer from "./VendorEventMapboxTileLayer";
-import { getEventFlagIcon, getEventFlagIconAsset, getEventFlagIconLabel } from "@/lib/eventFlagIcons";
+import { getEventFlagIcon } from "@/lib/eventFlagIcons";
 
-const makePublicFlagIcon = (spot, isSelected = false) => {
-  const iconAsset = getEventFlagIconAsset(spot.icon_key);
-  const iconMarkup = iconAsset
-    ? `<img src="${iconAsset}" alt="" style="width:${isSelected ? 30 : 23}px;height:${isSelected ? 30 : 23}px;object-fit:contain;display:block;" />`
-    : `<span style="font-size:${isSelected ? 18 : 14}px;line-height:1;">${getEventFlagIcon(spot.icon_key)}</span>`;
-  const title = spot.title || spot.label || getEventFlagIconLabel(spot.icon_key) || "Flag";
-
-  return L.divIcon({
-    className: "public-vendor-event-flag-marker",
-    html: `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;transform:translate(-2px,-42px);"><div style="width:${isSelected ? 38 : 30}px;height:${isSelected ? 38 : 30}px;border-radius:9999px;background:#F4A849;border:${isSelected ? 3 : 2}px solid #2C4F4E;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.32);overflow:hidden;">${iconMarkup}</div><span style="white-space:nowrap;background:${isSelected ? "#FFF6E8" : "white"};border:1px solid #2C4F4E22;border-radius:9999px;padding:2px 8px;font-size:11px;font-weight:700;color:#2C4F4E;box-shadow:0 2px 6px rgba(0,0,0,.12);">${title}</span></div>`,
-    iconSize: [isSelected ? 38 : 30, isSelected ? 52 : 44],
-    iconAnchor: [isSelected ? 19 : 15, isSelected ? 52 : 44],
-  });
-};
+const makePublicFlagIcon = (spot, isSelected = false) => L.divIcon({
+  className: "public-vendor-event-flag-marker",
+  html: `<div style="display:flex;align-items:center;gap:4px;transform:translate(-2px,-28px);"><div style="width:${isSelected ? 34 : 26}px;height:${isSelected ? 34 : 26}px;border-radius:9999px;background:#F4A849;border:${isSelected ? 3 : 2}px solid #2C4F4E;display:flex;align-items:center;justify-content:center;font-size:${isSelected ? 18 : 14}px;box-shadow:0 3px 10px rgba(0,0,0,.32);">${getEventFlagIcon(spot.icon_key)}</div><span style="white-space:nowrap;background:${isSelected ? "#FFF6E8" : "white"};border:1px solid #2C4F4E22;border-radius:9999px;padding:2px 8px;font-size:12px;font-weight:700;color:#2C4F4E;box-shadow:0 2px 6px rgba(0,0,0,.12);">${spot.title || spot.label || "Flag"}</span></div>`,
+  iconSize: [isSelected ? 34 : 26, isSelected ? 34 : 26],
+  iconAnchor: [isSelected ? 17 : 13, isSelected ? 34 : 26],
+});
 
 export default function PublicVendorEventMap({ event, spots = [], scheduleEntries = [], selectedSpotId = "", onSelectSpot }) {
   const center = [event.latitude, event.longitude];
@@ -32,18 +24,11 @@ export default function PublicVendorEventMap({ event, spots = [], scheduleEntrie
           <Marker position={center} />
           {spots.map((spot) => {
             const isSelected = spot.id === selectedSpotId;
-            const iconAsset = getEventFlagIconAsset(spot.icon_key);
             return (
               <Marker key={spot.id} position={[spot.latitude, spot.longitude]} icon={makePublicFlagIcon(spot, isSelected)} zIndexOffset={isSelected ? 1000 : 0} eventHandlers={{ click: () => { if (onSelectSpot) onSelectSpot(spot); } }}>
                 <Popup>
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      {iconAsset ? <img src={iconAsset} alt="" className="h-8 w-8 object-contain" /> : <span className="text-xl">{getEventFlagIcon(spot.icon_key)}</span>}
-                      <div>
-                        <p className="font-bold">{spot.title || spot.label || "Flag"}</p>
-                        <p className="text-[11px] font-semibold text-slate-500">{getEventFlagIconLabel(spot.icon_key)}</p>
-                      </div>
-                    </div>
+                    <p className="font-bold">{getEventFlagIcon(spot.icon_key)} {spot.title || spot.label || "Flag"}</p>
                     {scheduleEntries.filter((entry) => entry.spot_id === spot.id || entry.field_name === spot.title).slice(0, 3).map((entry) => (
                       <p key={entry.id} className="text-xs">{new Date(entry.start_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} — {entry.title}</p>
                     ))}

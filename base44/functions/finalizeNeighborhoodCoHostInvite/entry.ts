@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       co_host_status: 'pending',
     });
 
-    const notification = {
+    await base44.asServiceRole.entities.Notification.create({
       userId: coHost.id,
       user_id: coHost.id,
       user_email: coHost.email || '',
@@ -68,13 +68,6 @@ Deno.serve(async (req) => {
       related_entity_id: inviteRecord.id,
       read: false,
       is_read: false,
-      recipient: 'requested co-host',
-      trigger: 'Organizer asks a verified address holder to co-host a Neighborhood Sale',
-      delivery_methods: ['push', 'bell'],
-      deep_link: '/Notifications',
-      dedupe_key: `co_host_invite_${inviteRecord.id}_${coHost.id}`,
-      registry_status: 'active',
-      registry_version: '2026-08-24',
       metadata: {
         invite_id: inviteRecord.id,
         sale_listing_id: listing.id,
@@ -83,8 +76,7 @@ Deno.serve(async (req) => {
         invite_type: 'co_host',
         invited_user_id: coHost.id,
       },
-    };
-    await base44.asServiceRole.functions.invoke('deliverNotificationPush', notification);
+    });
 
     return Response.json({ success: true, invite: inviteRecord });
   } catch (error) {

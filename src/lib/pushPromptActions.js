@@ -1,6 +1,5 @@
 import { base44 } from "@/api/base44Client";
-import { canStorePushStatus, enablePushNotifications, getBrowserPushStatus, getOneSignalSubscriptionId, getRuntimePushConnection } from "@/lib/pushNotifications";
-import { isNativeYarditApp } from "@/lib/runtimePlatform";
+import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId } from "@/lib/pushNotifications";
 
 const DEFAULT_PREFS = {
   push_enabled: true,
@@ -24,14 +23,6 @@ export const lastPushErrorKey = (userId) => `yardit_push_last_error_${userId}`;
 
 const canLogPushDecision = (user) => import.meta.env?.DEV || user?.isAdmin === true || ["admin", "master", "super_master", "supervisor"].includes(user?.role);
 
-const recordTimestamp = (record) => {
-  const value = record?.last_updated_at || record?.updated_at || record?.updated_date || record?.created_at || record?.created_date;
-  const parsed = value ? new Date(value).getTime() : 0;
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const newestRecord = (records = []) => [...records].sort((a, b) => recordTimestamp(b) - recordTimestamp(a))[0] || null;
-
 export function logPushPromptDecision(user, source, decision) {
   if (!canLogPushDecision(user)) return;
   console.info("[Yardit Push Prompt]", source, {
@@ -54,15 +45,12 @@ export async function evaluatePushPromptEligibility(user) {
   if (browserStatus === "onesignal_not_ready") return { show: false, reason: "onesignal_not_ready", browserStatus, retryable: true };
 
   const runtimeSubscriptionId = await getOneSignalSubscriptionId();
-  const preference = newestRecord(await base44.entities.NotificationPreference.filter({ user_id: user.id }));
-  const subscriptions = await base44.entities.PushSubscription.filter({ user_id: user.id });
-  const subscription = runtimeSubscriptionId
-    ? subscriptions.find((row) => row.onesignal_subscription_id === runtimeSubscriptionId)
-    : newestRecord(subscriptions);
+  const [preference] = await base44.entities.NotificationPreference.filter({ user_id: user.id });
+  const [subscription] = await base44.entities.PushSubscription.filter({ user_id: user.id });
   const alreadySubscribed = preference?.push_enabled === true && subscription?.permission_status === "enabled" && subscription?.is_active === true && subscription?.onesignal_subscription_id;
   if (alreadySubscribed) return { show: false, reason: "already_subscribed", browserStatus, subscriptionId: subscription.onesignal_subscription_id || runtimeSubscriptionId };
 
-  return { show: true, reason: browserStatus === "permission_granted" ? "eligible_permission_granted" : "eligible", browserStatus, subscriptionId: runtimeSubscriptionId };
+  return { show: true, reason: browserStatus === "enabled" ? "eligible_permission_granted" : "eligible", browserStatus, subscriptionId: runtimeSubscriptionId };
 }
 
 export async function shouldShowPushPrompt(user) {
@@ -71,13 +59,7 @@ export async function shouldShowPushPrompt(user) {
 }
 
 export async function syncGrantedPushSubscription(user) {
-  if (!user?.id || typeof window === "undefined") {
-    return { status: "not_enabled", subscriptionId: "", synced: false };
-  }
-  if (isNativeYarditApp()) {
-    const runtime = await getRuntimePushConnection();
-    if (!runtime.permissionGranted) return { status: runtime.browserStatus, subscriptionId: runtime.subscriptionId || "", synced: false };
-  } else if (!("Notification" in window) || window.Notification.permission !== "granted") {
+  if (!user?.id || typeof window === "undefined" || !("Notification" in window) || window.Notification.permission !== "granted") {
     return { status: "not_enabled", subscriptionId: "", synced: false };
   }
   const result = await enablePushPromptSubscription(user);
@@ -85,21 +67,18 @@ export async function syncGrantedPushSubscription(user) {
 }
 
 export async function enablePushPromptSubscription(user) {
-  const result = await enablePushNotifications({ userId: user.id });
+  const result = await enableOneSignalPush({ userId: user.id });
   const subscriptionId = result.subscriptionId || await getOneSignalSubscriptionId();
 
   if (canStorePushStatus(result.status)) {
-    const existingRows = await base44.entities.PushSubscription.filter({ user_id: user.id });
-    const currentUserAgent = navigator.userAgent;
-    const existingSubscription = existingRows.find((row) => subscriptionId && row.onesignal_subscription_id === subscriptionId)
-      || existingRows.find((row) => row.user_agent === currentUserAgent);
-    const data = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: result.status, is_active: result.status === "enabled", user_agent: currentUserAgent, updated_at: new Date().toISOString() };
+    const [existingSubscription] = await base44.entities.PushSubscription.filter({ user_id: user.id });
+    const data = { user_id: user.id, onesignal_subscription_id: subscriptionId, permission_status: result.status, is_active: result.status === "enabled", user_agent: navigator.userAgent, updated_at: new Date().toISOString() };
     if (existingSubscription) await base44.entities.PushSubscription.update(existingSubscription.id, data);
     else await base44.entities.PushSubscription.create({ ...data, created_at: new Date().toISOString() });
   }
 
   if (result.status === "enabled" && subscriptionId) {
-    const preference = newestRecord(await base44.entities.NotificationPreference.filter({ user_id: user.id }));
+    const [preference] = await base44.entities.NotificationPreference.filter({ user_id: user.id });
     const prefData = { ...DEFAULT_PREFS, ...(preference || {}), push_enabled: true, user_id: user.id, last_updated_at: new Date().toISOString() };
     if (preference) await base44.entities.NotificationPreference.update(preference.id, prefData);
     else await base44.entities.NotificationPreference.create(prefData);
