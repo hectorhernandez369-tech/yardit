@@ -1,9 +1,21 @@
 import base44 from "@base44/vite-plugin"
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: [
+      {
+        find: '@/lib/pushNotifications',
+        replacement: path.resolve(rootDir, 'src/lib/pushRuntime.js'),
+      },
+    ],
+  },
   plugins: [
     base44({
       // Support for legacy code that imports the base44 SDK with @/integrations, @/entities, etc.
