@@ -21,7 +21,11 @@ export default function EventFlagIconPicker({ value = "flag", onChange }) {
                 )}
                 title={icon.label}
               >
-                <span className="block text-xl leading-none">{icon.icon}</span>
+                {icon.image ? (
+                  <img src={icon.image} alt="" className="mx-auto block h-8 w-8 object-contain" />
+                ) : (
+                  <span className="block text-xl leading-none">{icon.icon}</span>
+                )}
                 <span className="mt-1 block truncate text-[10px] font-semibold text-[#2C4F4E]">{icon.label}</span>
               </button>
             ))}
