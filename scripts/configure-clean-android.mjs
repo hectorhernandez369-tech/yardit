@@ -12,7 +12,7 @@ if (!fs.existsSync(androidRoot)) {
 }
 
 const packageId = 'com.base690f554506edf795e5d84121.app';
-const yarditLauncherLogoUrl = 'https://media.base44.com/images/public/690f554506edf795e5d84121/0f42669c8_file_00000000f5dc71f5a5c8b2e79fd116b0.png';
+const localLauncherLogo = '../../ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png';
 
 const variablesPath = path.join(androidRoot, 'variables.gradle');
 let variables = fs.readFileSync(variablesPath, 'utf8');
@@ -25,7 +25,7 @@ const manifest = `<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -43,13 +43,6 @@ const manifest = `<?xml version="1.0" encoding="utf-8"?>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="yardit" android:host="auth-callback" />
             </intent-filter>
         </activity>
 
@@ -79,7 +72,7 @@ def yarditKeystorePassword = System.getenv('YARDIT_KEYSTORE_PASSWORD')
 def yarditKeyAlias = System.getenv('YARDIT_KEY_ALIAS')
 def yarditKeyPassword = System.getenv('YARDIT_KEY_PASSWORD')
 def yarditReleaseSigningReady = yarditKeystorePath && yarditKeystorePassword && yarditKeyAlias && yarditKeyPassword
-def yarditLauncherLogoUrl = '${yarditLauncherLogoUrl}'
+def yarditLauncherLogoFile = file('${localLauncherLogo}')
 
 android {
     namespace "${packageId}"
@@ -137,13 +130,17 @@ dependencies {
 apply from: 'capacitor.build.gradle'
 
 tasks.register('generateYarditLauncherIcons') {
+    inputs.file yarditLauncherLogoFile
     outputs.dir file('src/main/res')
     outputs.upToDateWhen { false }
     doLast {
+        if (!yarditLauncherLogoFile.exists()) {
+            throw new GradleException("Local Yardit launcher logo is missing: \${yarditLauncherLogoFile}")
+        }
         System.setProperty('java.awt.headless', 'true')
-        def sourceImage = javax.imageio.ImageIO.read(new URL(yarditLauncherLogoUrl))
+        def sourceImage = javax.imageio.ImageIO.read(yarditLauncherLogoFile)
         if (sourceImage == null) {
-            throw new GradleException('Unable to read the Yardit launcher logo source')
+            throw new GradleException('Unable to read the local Yardit launcher logo source')
         }
 
         def densities = [
@@ -210,9 +207,10 @@ fs.writeFileSync(path.join(adaptiveDir, 'ic_launcher_round.xml'), adaptiveIcon);
 console.log('Configured clean Yardit Android shell:', {
   packageId,
   targetSdk: 36,
-  deepLink: 'yardit://auth-callback',
+  backupsEnabled: false,
+  authDeepLink: false,
   locationPermissions: true,
   notificationPermission: true,
   oneSignalGate: true,
-  launcherSource: 'existing Yardit artwork',
+  launcherSource: 'local repository asset',
 });
