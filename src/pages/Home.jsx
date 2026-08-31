@@ -726,8 +726,36 @@ export default function HomePage() {
     enabled: !isPublicHomeMode
   });
 
-  const listings = isPublicHomeMode ? publicMapData.listings || [] : privateListings;
-  const isLoading = isPublicHomeMode ? isLoadingPublicMapData : isLoadingPrivateListings;
+  const { data: halloweenLocations = [], isLoading: isLoadingHalloweenLocations } = useQuery({
+    queryKey: ["halloweenLocations"],
+    queryFn: () => base44.entities.Location.filter({ type: "halloween_candy", status: "active" }, "-created_date"),
+    initialData: []
+  });
+
+  const halloweenMapListings = useMemo(() => halloweenLocations.map((location) => ({
+    ...location,
+    id: location.id,
+    listingType: "halloween_candy",
+    title: location.display_title || location.title || "Halloween Spot",
+    addressText: location.address || [location.street_address, location.city, location.state, location.zip_code].filter(Boolean).join(", "),
+    city: location.city || "",
+    state: location.state || "",
+    zip: location.zip_code || "",
+    lat: Number(location.latitude),
+    lng: Number(location.longitude),
+    tier: "free",
+    category: "Halloween",
+    categories: ["Halloween"],
+    startDateTime: location.start_date_time,
+    endDateTime: location.end_date_time || location.expires_at,
+    photoUrls: location.photos || [],
+    halloweenSpotSource: "Location",
+    halloweenTeaser: Boolean(location.teaser_until || location.display_title?.toLowerCase().includes("coming")),
+  })).filter((listing) => Number.isFinite(listing.lat) && Number.isFinite(listing.lng)), [halloweenLocations]);
+
+  const baseListings = isPublicHomeMode ? publicMapData.listings || [] : privateListings;
+  const listings = [...baseListings, ...halloweenMapListings];
+  const isLoading = (isPublicHomeMode ? isLoadingPublicMapData : isLoadingPrivateListings) || isLoadingHalloweenLocations;
 
   useEffect(() => {
     if (isPublicHomeMode) return () => {};
