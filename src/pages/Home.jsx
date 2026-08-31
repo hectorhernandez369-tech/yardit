@@ -1096,6 +1096,14 @@ export default function HomePage() {
       ]);
       if (!matchesCategory) return null;
 
+      // Halloween Location records use their own seasonal visibility. A teaser
+      // (for example "Coming Oct 1") must be visible before its live date.
+      if (isHalloweenSpot(listing) && listing.halloweenSpotSource === "Location") {
+        const expiresAt = listing.endDateTime ? new Date(listing.endDateTime) : null;
+        if (expiresAt && expiresAt < now) return null;
+        return { ...listing, mapState: "active" };
+      }
+
       const mapState = getListingMapVisibilityState(listing, user, visibilityContext);
       if (debugForceOn) debugListingVisibility(listing, user, visibilityContext);
       if (mapState === "hidden") return null;
