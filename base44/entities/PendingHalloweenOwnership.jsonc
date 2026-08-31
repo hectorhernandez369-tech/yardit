@@ -1,0 +1,74 @@
+{
+  "name": "PendingHalloweenOwnership",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Normalized email reserved to claim the Halloween Spot"
+    },
+    "location_id": {
+      "type": "string",
+      "description": "Location record to transfer when the matching user registers"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "claimed"
+      ],
+      "default": "pending"
+    },
+    "claimed_user_id": {
+      "type": "string",
+      "description": "User ID after the reservation is claimed"
+    },
+    "claimed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "note": {
+      "type": "string",
+      "description": "Private admin note"
+    }
+  },
+  "required": [
+    "email",
+    "location_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

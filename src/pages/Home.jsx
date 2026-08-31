@@ -663,6 +663,29 @@ export default function HomePage() {
       try {
         const currentUser = await base44.auth.me();
         setUser(currentUser);
+
+        // Claim any Halloween Spot that was privately reserved for this email
+        // before the owner created a Yardit account.
+        const normalizedEmail = String(currentUser?.email || "").trim().toLowerCase();
+        if (normalizedEmail) {
+          const reservations = await base44.entities.PendingHalloweenOwnership.filter({
+            email: normalizedEmail,
+            status: "pending",
+          });
+
+          for (const reservation of reservations || []) {
+            if (!reservation?.location_id) continue;
+            await base44.entities.Location.update(reservation.location_id, {
+              owner_user_id: currentUser.id,
+              ownership_claimed_at: new Date().toISOString(),
+            });
+            await base44.entities.PendingHalloweenOwnership.update(reservation.id, {
+              status: "claimed",
+              claimed_user_id: currentUser.id,
+              claimed_at: new Date().toISOString(),
+            });
+          }
+        }
       } catch (error) {
         console.error("Error fetching user:", error);
       }
