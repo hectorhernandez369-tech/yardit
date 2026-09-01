@@ -36,15 +36,15 @@ const LOCKED_PREVIEW = {
 };
 
 const HALLOWEEN_ICON_OPTIONS = [
-  { value: "halloween_decorations", label: "Halloween Decorations", image: "/assets/halloween/halloween-decorations.svg" },
-  { value: "haunted", label: "Haunted House", image: "/assets/halloween/haunted-house.svg" },
-  { value: "trick_or_treat", label: "Trick-or-Treat", image: "/assets/halloween/trick-or-treat.svg" },
-  { value: "trunk_or_treat", label: "Trunk-or-Treat", image: "/assets/halloween/trunk-or-treat.svg" },
-  { value: "scary_yard", label: "Scary Yard", image: "/assets/halloween/scary-yard.svg" },
-  { value: "kid_friendly", label: "Kid Friendly", image: "/assets/halloween/kid-friendly.svg" },
-  { value: "light_show", label: "Light Show", image: "/assets/halloween/light-show.svg" },
-  { value: "must_see", label: "Must See", image: "/assets/halloween/must-see.svg" },
-  { value: "no_candy_here", label: "No Candy Here", image: "/assets/halloween/no-candy-here.svg" },
+  { value: "halloween_decorations", label: "Halloween Decorations", description: "A decorated home or yard with pumpkins, props, inflatables, lights, or general Halloween decor.", image: "/assets/halloween/halloween-decorations.svg" },
+  { value: "haunted", label: "Haunted House", description: "A scary or immersive stop with walkthroughs, actors, jump scares, or heavier horror themes.", image: "/assets/halloween/haunted-house.svg" },
+  { value: "trick_or_treat", label: "Trick-or-Treat", description: "A home or stop actively handing out candy to trick-or-treaters.", image: "/assets/halloween/trick-or-treat.svg" },
+  { value: "trunk_or_treat", label: "Trunk-or-Treat", description: "An organized candy stop at a church, school, business, parking lot, or decorated vehicle event.", image: "/assets/halloween/trunk-or-treat.svg" },
+  { value: "scary_yard", label: "Scary Yard", description: "An outdoor setup focused on graveyards, monsters, animatronics, or spooky yard scenes.", image: "/assets/halloween/scary-yard.svg" },
+  { value: "kid_friendly", label: "Kid Friendly", description: "A fun Halloween stop designed for younger children with little or no intense scares.", image: "/assets/halloween/kid-friendly.svg" },
+  { value: "light_show", label: "Light Show", description: "A Halloween display centered on synchronized lights, projections, music, or animated lighting effects.", image: "/assets/halloween/light-show.svg" },
+  { value: "must_see", label: "Must See", description: "A standout Halloween display that is especially impressive or worth making a special trip to see.", image: "/assets/halloween/must-see.svg" },
+  { value: "no_candy_here", label: "No Candy Here", description: "A decorated Halloween location worth visiting, but this home is not handing out candy.", image: "/assets/halloween/no-candy-here.svg" },
 ];
 
 const LISTING_TYPES = [
@@ -248,7 +248,12 @@ export default function StepOne({ formData, setFormData }) {
               <SelectGroup>
                 <SelectLabel>Halloween Icons</SelectLabel>
                 {HALLOWEEN_ICON_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="py-1">
+                      <div className="text-sm font-semibold">{option.label}</div>
+                      <div className="max-w-[280px] whitespace-normal text-[11px] leading-snug text-slate-500">{option.description}</div>
+                    </div>
+                  </SelectItem>
                 ))}
               </SelectGroup>
             </SelectContent>
@@ -261,7 +266,8 @@ export default function StepOne({ formData, setFormData }) {
                 <img src={selectedIcon.image} alt="" className="h-12 w-12 object-contain" />
                 <div>
                   <p className="text-sm font-bold text-purple-950">{selectedIcon.label}</p>
-                  <p className="text-xs text-slate-500">This is the icon shoppers will see after the spot activates.</p>
+                  <p className="text-xs leading-snug text-slate-600">{selectedIcon.description}</p>
+                  <p className="mt-1 text-[11px] text-slate-400">This is the icon shoppers will see after the spot activates.</p>
                 </div>
               </div>
             ) : null;
