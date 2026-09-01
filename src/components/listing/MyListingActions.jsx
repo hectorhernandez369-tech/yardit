@@ -24,7 +24,8 @@ export default function MyListingActions({
   className = "",
 }) {
   const isOwner = getListingOwnerId(listing) === user?.id;
-  const canEditListing = isOwner || listing?._residential_access_role === "household_cohost";
+  const isHalloween = listing?.listingType === "halloween_spot";
+  const canEditListing = !isHalloween && (isOwner || listing?._residential_access_role === "household_cohost");
   const canBuyEventAddOns = isOwner && listing?.listingType === "event" && !isEffectivelyPastListing(listing);
 
   return (
@@ -34,10 +35,12 @@ export default function MyListingActions({
         View on Map
       </Button>
 
-      <Button size="sm" variant="outline" onClick={onViewDetails} className="gap-1.5 border-slate-200 text-slate-600 hover:bg-slate-50 text-xs rounded-xl">
-        <ExternalLink className="w-3 h-3" />
-        View Details
-      </Button>
+      {onViewDetails && (
+        <Button size="sm" variant="outline" onClick={onViewDetails} className="gap-1.5 border-slate-200 text-slate-600 hover:bg-slate-50 text-xs rounded-xl">
+          <ExternalLink className="w-3 h-3" />
+          View Details
+        </Button>
+      )}
 
       {canEditListing && (
         <Button size="sm" variant="outline" onClick={() => onEdit(listing)} className="border-[#006168]/40 text-[#006168] hover:bg-[#e6f3f4] text-xs rounded-xl">
@@ -45,13 +48,13 @@ export default function MyListingActions({
         </Button>
       )}
 
-      {isOwner && (
+      {isOwner && !isHalloween && (
         <Button size="sm" variant="outline" onClick={() => onRelist(listing)} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-xs rounded-xl">
           Relist
         </Button>
       )}
 
-      {isOwner && canSelfServeUpgrade(listing) && listing.listingType !== "neighborhood_sale" && (
+      {isOwner && !isHalloween && canSelfServeUpgrade(listing) && listing.listingType !== "neighborhood_sale" && (
         <Button size="sm" onClick={() => onUpgrade(listing)} className="bg-amber-500 hover:bg-amber-600 text-white text-xs rounded-xl shadow-sm">
           Upgrade
         </Button>
