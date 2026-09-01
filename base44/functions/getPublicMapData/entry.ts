@@ -97,6 +97,14 @@ const vendorAccountFields = ['id', 'business_name', 'vendor_display_name', 'busi
 const vendorPinFields = ['id', 'vendor_account_id', 'pin_name', 'pin_logo_url', 'pin_icon_url', 'pin_icon_style', 'description', 'is_active', 'scheduled_date', 'scheduled_start_time', 'scheduled_end_time', 'recurring_schedule', 'scheduled_location_label', 'scheduled_lat', 'scheduled_lng', 'schedule_status'];
 const vendorCheckInFields = ['id', 'vendor_pin_id', 'vendor_account_id', 'checkin_latitude', 'checkin_longitude', 'checkin_display_address', 'checkin_start_time', 'checkin_end_time', 'pin_animation', 'status'];
 const joinRequestFields = ['id', 'listingId', 'saleListingId', 'requesterUserId', 'status', 'removed_by_eo', 'removed_by_listing_owner', 'participant_origin_snapshot'];
+const halloweenLocationFields = [
+  'id', 'type', 'tier', 'title', 'display_title', 'street_address', 'city', 'state', 'zip_code', 'address',
+  'latitude', 'longitude', 'description', 'start_date_time', 'end_date_time', 'viewing_start_time', 'viewing_end_time',
+  'status', 'expires_at', 'photos', 'halloween_icon_key', 'halloween_spot_type', 'halloween_tags', 'halloween_featured_badge',
+  'halloween_start_date', 'halloween_end_date', 'halloween_start_time', 'halloween_end_time', 'full_icon_activation_time',
+  'custom_icon_url', 'teaser_until', 'halloween_candy_available', 'halloween_walkthrough', 'halloween_lights', 'halloween_sound',
+  'halloween_jump_scares', 'halloween_suggested_age'
+];
 
 Deno.serve(async (req) => {
   try {
@@ -117,8 +125,9 @@ Deno.serve(async (req) => {
       return Response.json({ listing: pick(listing, listingFields) });
     }
 
-    const [listingRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows, scheduleRows, leagueEventRows, leagueGameRows, joinRequestRows] = await Promise.all([
+    const [listingRows, halloweenRows, promoRows, vendorEventRows, vendorAccountRows, vendorPinRows, vendorCheckInRows, scheduleRows, leagueEventRows, leagueGameRows, joinRequestRows] = await Promise.all([
       base44.asServiceRole.entities.Listing.list('-created_date', 500),
+      base44.asServiceRole.entities.Location.filter({ type: 'halloween_candy', status: 'active' }, '-created_date', 500),
       base44.asServiceRole.entities.ResidentialPromoCode.list('-updated_date', 100),
       base44.asServiceRole.entities.VendorEvent.list('startDateTime', 200),
       base44.asServiceRole.entities.VendorAccount.list('-updated_date', 300),
@@ -131,6 +140,7 @@ Deno.serve(async (req) => {
     ]);
 
     const listings = listingRows.filter((listing) => isPublicListing(listing, now)).map((listing) => pick(listing, listingFields));
+    const halloweenLocations = halloweenRows.map((location) => pick(location, halloweenLocationFields));
     const promoDiscoveryCodes = promoRows
       .filter((promo) => isActivePromo(promo))
       .map((promo) => ({ ...pick(promo, promoFields), status: 'active' }));
@@ -156,7 +166,7 @@ Deno.serve(async (req) => {
       .filter((request) => publicListingIds.has(request.listingId) && publicListingIds.has(request.saleListingId))
       .map((request) => pick(request, joinRequestFields));
 
-    return Response.json({ listings, promoDiscoveryCodes, vendorEvents, eventScheduleEntries, leagueEventLinks, leagueGames, vendorAccounts, vendorPins, vendorCheckIns, joinRequests });
+    return Response.json({ listings, halloweenLocations, promoDiscoveryCodes, vendorEvents, eventScheduleEntries, leagueEventLinks, leagueGames, vendorAccounts, vendorPins, vendorCheckIns, joinRequests });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
