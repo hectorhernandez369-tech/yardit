@@ -568,7 +568,8 @@ export default function CreateListingPage() {
   // Neighborhood Sale discovery is shown during residential tier selection.
 
   const isEventFlow = formData.listingType === "event";
-  const paymentStepNumber = isEventFlow ? 5 : 4;
+  const isHalloweenFlow = formData.listingType === "halloween_spot";
+  const paymentStepNumber = isEventFlow ? 5 : isHalloweenFlow ? 3 : 4;
   const entryStepNumber = isEventFlow ? 4 : 3;
 
   // Compute reserved dates for residential listings only (drives calendar blocking)
@@ -1836,6 +1837,50 @@ export default function CreateListingPage() {
       }
     }
 
+    if (formData.listingType === "halloween_spot") {
+      if (!formData.title?.trim()) {
+        toast.error("Please name your Halloween Spot");
+        return;
+      }
+      if (typeof formData.lat !== "number" || typeof formData.lng !== "number") {
+        toast.error("Please confirm the Halloween Spot location");
+        setStep(2);
+        return;
+      }
+
+      const now = new Date();
+      const seasonEnd = new Date(now.getFullYear(), 10, 1, 0, 0, 0);
+      const created = await base44.entities.Location.create({
+        type: "halloween_candy",
+        tier: "free",
+        title: formData.title.trim(),
+        display_title: formData.title.trim(),
+        street_address: formData.addressText || "",
+        city: formData.city || "",
+        state: formData.state || "",
+        zip_code: formData.zip || "",
+        address: [formData.addressText, formData.city, formData.state, formData.zip].filter(Boolean).join(", "),
+        latitude: formData.lat,
+        longitude: formData.lng,
+        description: formData.description || "",
+        start_date_time: now.toISOString(),
+        end_date_time: seasonEnd.toISOString(),
+        expires_at: seasonEnd.toISOString(),
+        status: "active",
+        payment_status: "free",
+        halloween_icon_key: formData.halloween_icon_key || "halloween_decorations",
+        full_icon_activation_time: formData.full_icon_activation_time || "15:00",
+        viewing_start_time: formData.full_icon_activation_time || "15:00",
+        owner_user_id: user?.id || "",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
+      queryClient.invalidateQueries({ queryKey: ["publicMapData"] });
+      toast.success("Halloween Spot posted! 🎃");
+      navigate(createPageUrl("Home"));
+      return;
+    }
+
     if (formData.listingType === "event") {
       const safeEventData = normalizeResidentialEventSingleDay(formData);
       setFormData(safeEventData);
@@ -2118,8 +2163,9 @@ export default function CreateListingPage() {
 
   const residentialStepLabels = ["Sale Details", "Your Location", "Tier & Schedule", isAdminCreate ? "Assign User" : "Payment"];
   const eventStepLabels = ["Event Info", "Location", "Date & Time", "Add-Ons", isAdminCreate ? "Assign User" : "Payment"];
-  const stepLabels = isEventFlow ? eventStepLabels : residentialStepLabels;
-  const totalSteps = isEventFlow ? 5 : 4;
+  const halloweenStepLabels = ["Halloween Spot", "Location", "Publish"];
+  const stepLabels = isEventFlow ? eventStepLabels : isHalloweenFlow ? halloweenStepLabels : residentialStepLabels;
+  const totalSteps = isEventFlow ? 5 : isHalloweenFlow ? 3 : 4;
 
   const stepMeta = {
     yard_sale:      { 1: "Tell buyers what you're selling", 2: "Confirm your sale address",      3: "Pick your visibility & schedule", 4: "Complete your listing" },
@@ -2298,6 +2344,8 @@ export default function CreateListingPage() {
                       ? "Continue to Assign User"
                       : formData.listingType === "event"
                       ? "Continue to Payment →"
+                      : formData.listingType === "halloween_spot"
+                      ? "Publish Halloween Spot 🎃"
                       : formData.listingType === "neighborhood_sale"
                       ? "Continue to Payment Setup →"
                       : ["featured", "premium"].includes(formData.tier)
