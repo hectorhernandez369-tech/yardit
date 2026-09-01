@@ -1906,7 +1906,7 @@ export default function CreateListingPage() {
         return;
       }
 
-      const requestedActivation = formData.full_icon_activation_time || "15:00";
+      const requestedActivation = formData.halloween_start_time || "15:00";
       const fullIconActivationTime = minutesFromTime(requestedActivation) < minutesFromTime("15:00") ? "15:00" : requestedActivation;
       await base44.entities.Location.create({
         type: "halloween_candy",
