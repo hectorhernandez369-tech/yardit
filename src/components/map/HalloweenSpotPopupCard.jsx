@@ -46,6 +46,10 @@ export default function HalloweenSpotPopupCard({ listing }) {
 
       {listing.description && <p className="px-3 pb-2 text-[11px] leading-relaxed text-slate-200 line-clamp-3">{listing.description}</p>}
 
+      {(listing.photoUrls || listing.photos || []).length > 0 && <div className="mx-3 mb-2 grid grid-cols-3 gap-1.5 overflow-hidden rounded-xl">
+        {(listing.photoUrls || listing.photos || []).slice(0, 3).map((url, index) => <img key={`${url}-${index}`} src={url} alt="Halloween Spot" className="h-16 w-full rounded-lg border border-white/10 object-cover" />)}
+      </div>}
+
       <div className="mx-3 mb-2 space-y-1.5 rounded-xl border border-white/10 bg-white/5 p-2 text-[10px] text-slate-200">
         <div className="flex gap-2"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-300" /><span className="break-words">{address || "Address unavailable"}</span></div>
         <div className="flex gap-2"><CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0 text-purple-300" /><span>{formatDateRange(listing)}</span></div>
