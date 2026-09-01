@@ -57,7 +57,7 @@ const REPORT_REASONS = [
 
 const ALL_REASONS = REPORT_REASONS.flatMap((g) => g.items);
 
-export default function ReportModal({ listingId, onClose, neighborhoodRemovalContext = null }) {
+export default function ReportModal({ listingId, targetType = "listing", onClose, neighborhoodRemovalContext = null }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [selectedCode, setSelectedCode] = useState("");
@@ -129,6 +129,8 @@ export default function ReportModal({ listingId, onClose, neighborhoodRemovalCon
           ...data,
           photo_urls: photo_urls.length > 0 ? photo_urls : undefined,
           listingId,
+          target_type: targetType,
+          ...(targetType === "location" ? { location_id: listingId } : {}),
           reporterUserId: user.id,
         });
 
@@ -191,12 +193,21 @@ export default function ReportModal({ listingId, onClose, neighborhoodRemovalCon
 
         // Secondary step only — should not fail the whole report
         try {
-          const listings = await base44.entities.Listing.filter({ id: listingId });
-          if (listings?.[0]) {
-            await base44.entities.Listing.update(listingId, {
-              reportCount: (listings[0].reportCount || 0) + 1,
-              lastReportedAt: new Date().toISOString(),
-            });
+          if (targetType === "location") {
+            const locations = await base44.entities.Location.filter({ id: listingId });
+            if (locations?.[0]) {
+              await base44.entities.Location.update(listingId, {
+                safety_warning: locations[0].safety_warning || false,
+              });
+            }
+          } else {
+            const listings = await base44.entities.Listing.filter({ id: listingId });
+            if (listings?.[0]) {
+              await base44.entities.Listing.update(listingId, {
+                reportCount: (listings[0].reportCount || 0) + 1,
+                lastReportedAt: new Date().toISOString(),
+              });
+            }
           }
         } catch (err) {
           console.error(
@@ -266,7 +277,7 @@ export default function ReportModal({ listingId, onClose, neighborhoodRemovalCon
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="z-[9999] max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Report Listing</DialogTitle>
+          <DialogTitle>{targetType === "location" ? "Report Halloween Spot" : "Report Listing"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
