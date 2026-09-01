@@ -218,6 +218,10 @@ export default function CreateListingPage() {
     event_icon: "calendar",
     event_photos: [],
     halloween_icon_key: "halloween_decorations",
+    halloween_start_date: "",
+    halloween_end_date: "",
+    halloween_start_time: "",
+    halloween_end_time: "",
     full_icon_activation_time: "15:00",
     display_address: "",
     geocoded_address: "",
@@ -1847,9 +1851,22 @@ export default function CreateListingPage() {
         setStep(2);
         return;
       }
+      if (!formData.halloween_start_date || !formData.halloween_start_time || !formData.halloween_end_time) {
+        toast.error("Please add a start date and viewing times");
+        return;
+      }
+      if (formData.halloween_end_date && formData.halloween_end_date < formData.halloween_start_date) {
+        toast.error("Halloween Spot end date cannot be before the start date");
+        return;
+      }
+      if (minutesFromTime(formData.halloween_start_time) >= minutesFromTime(formData.halloween_end_time)) {
+        toast.error("Halloween Spot start time must be before the end time");
+        return;
+      }
 
-      const now = new Date();
-      const seasonEnd = new Date(now.getFullYear(), 10, 1, 0, 0, 0);
+      const endDate = formData.halloween_end_date || formData.halloween_start_date;
+      const startDateTime = new Date(`${formData.halloween_start_date}T${formData.halloween_start_time}:00`).toISOString();
+      const endDateTime = new Date(`${endDate}T${formData.halloween_end_time}:00`).toISOString();
       await base44.entities.Location.create({
         type: "halloween_candy",
         tier: "free",
@@ -1863,14 +1880,19 @@ export default function CreateListingPage() {
         latitude: formData.lat,
         longitude: formData.lng,
         description: formData.description || "",
-        start_date_time: now.toISOString(),
-        end_date_time: seasonEnd.toISOString(),
-        expires_at: seasonEnd.toISOString(),
+        start_date_time: startDateTime,
+        end_date_time: endDateTime,
+        expires_at: endDateTime,
         status: "active",
         payment_status: "free",
         halloween_icon_key: formData.halloween_icon_key || "halloween_decorations",
+        halloween_start_date: formData.halloween_start_date,
+        halloween_end_date: endDate,
+        halloween_start_time: formData.halloween_start_time,
+        halloween_end_time: formData.halloween_end_time,
         full_icon_activation_time: formData.full_icon_activation_time || "15:00",
-        viewing_start_time: formData.full_icon_activation_time || "15:00",
+        viewing_start_time: formData.halloween_start_time,
+        viewing_end_time: formData.halloween_end_time,
         owner_user_id: user?.id || "",
       });
 
