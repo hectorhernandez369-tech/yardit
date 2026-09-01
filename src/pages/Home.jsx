@@ -467,7 +467,7 @@ export default function HomePage() {
   const [mapCenter, setMapCenter] = useState(getSavedLocation);
   const [mapZoom, setMapZoom] = useState(getSavedZoom);
   const [showControls, setShowControls] = useState(false);
-  const [quickMapFilters, setQuickMapFilters] = useState({ yardSales: true, neighborhoodSales: true, events: true, vendors: true });
+  const [quickMapFilters, setQuickMapFilters] = useState({ yardSales: true, neighborhoodSales: true, events: true, vendors: true, halloween: true });
   const controlsPanelRef = useRef(null);
   const controlsBtnRef = useRef(null);
   const mapAreaRef = useRef(null);
@@ -1195,6 +1195,7 @@ export default function HomePage() {
       if (!quickMapFilters.events && listing.listingType === "event") return;
       if (!quickMapFilters.neighborhoodSales && listing.listingType === "neighborhood_sale") return;
       if (!quickMapFilters.yardSales && listing.listingType === "yard_sale") return;
+      if (!quickMapFilters.halloween && isHalloweenSpot(listing)) return;
 
       const isPreview = listing.mapState === "preview";
       const isDailyPreview = listing.mapState === "daily_preview";
@@ -1322,6 +1323,7 @@ export default function HomePage() {
       if (!quickMapFilters.events && listing.listingType === "event") return false;
       if (!quickMapFilters.neighborhoodSales && listing.listingType === "neighborhood_sale") return false;
       if (!quickMapFilters.yardSales && listing.listingType === "yard_sale") return false;
+      if (!quickMapFilters.halloween && isHalloweenSpot(listing)) return false;
       return typeof listing.lat === "number" && typeof listing.lng === "number";
     });
   }, [eligibleListings, filter, quickMapFilters]);
