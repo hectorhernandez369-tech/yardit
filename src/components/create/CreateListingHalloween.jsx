@@ -3,7 +3,8 @@ import StepOne from "./StepOne";
 import StepTwo from "./StepTwo";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Clock3, Candy, Baby, Footprints, Lightbulb, Volume2, AlertTriangle } from "lucide-react";
+import { CalendarDays, Clock3, Candy, Baby, Footprints, Lightbulb, Volume2, AlertTriangle, Images } from "lucide-react";
+import EventPhotoUpload from "./event/EventPhotoUpload";
 
 export default function CreateListingHalloween({ step, formData, setFormData, setGeocodeRef, user, onAddressSelected }) {
   const candyPrimary = ["trick_or_treat", "trunk_or_treat"].includes(formData.halloween_spot_type || formData.halloween_icon_key);
@@ -85,6 +86,12 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
             <Label className="text-sm font-semibold text-slate-800">Suggested age <span className="font-normal text-slate-400">(optional)</span></Label>
             <Input value={formData.halloween_suggested_age || ""} onChange={(e) => setFormData((prev) => ({ ...prev, halloween_suggested_age: e.target.value }))} placeholder="e.g., All ages, 8+, Teens & adults" className="bg-white" />
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2">
+          <Label className="flex items-center gap-1.5 text-sm font-semibold text-slate-800"><Images className="h-4 w-4 text-purple-700" /> Photos <span className="font-normal text-slate-400">(optional, up to 3)</span></Label>
+          <p className="text-xs text-slate-500">Show visitors what makes your display worth the stop.</p>
+          <EventPhotoUpload value={formData.photoUrls || []} maxPhotos={3} onChange={(photos) => setFormData((prev) => ({ ...prev, photoUrls: photos }))} />
         </div>
 
         <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-900">
