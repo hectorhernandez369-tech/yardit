@@ -49,7 +49,7 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
             <Input
               type="time"
               value={formData.halloween_start_time || ""}
-              onChange={(e) => setFormData((prev) => ({ ...prev, halloween_start_time: e.target.value, full_icon_activation_time: e.target.value || prev.full_icon_activation_time || "15:00" }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, halloween_start_time: e.target.value }))}
               className="bg-white"
             />
           </div>
@@ -87,15 +87,8 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-sm font-semibold text-slate-800">Full icon appears after</Label>
-          <Input
-            type="time"
-            value={formData.full_icon_activation_time || "15:00"}
-            onChange={(e) => setFormData((prev) => ({ ...prev, full_icon_activation_time: e.target.value }))}
-            className="max-w-[180px] bg-white"
-          />
-          <p className="text-xs text-slate-500">Default is 3:00 PM. Before this time, Yardit shows the small pumpkin marker.</p>
+        <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-900">
+          <strong>Map behavior:</strong> Yardit automatically uses the small pumpkin before 3 PM and outside your viewing hours. Your full Halloween icon appears only while the spot is open, never earlier than 3 PM.
         </div>
 
         <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-4 text-sm text-purple-950">
