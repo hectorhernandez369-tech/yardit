@@ -28,6 +28,6 @@ export function getHalloweenSpotIconUrl(listing, now = new Date()) {
 
 export function getHalloweenSpotMapSize(listing, isSelected = false, now = new Date()) {
   const isFullIcon = isHalloweenFullIconActive(listing, now);
-  if (!isFullIcon) return isSelected ? 22 : 18;
-  return isSelected ? 38 : 34;
+  if (!isFullIcon) return isSelected ? 32 : 28;
+  return isSelected ? 54 : 48;
 }
