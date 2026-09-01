@@ -88,6 +88,16 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
           </div>
         </div>
 
+        {candyPrimary && (formData.halloween_spot_type || formData.halloween_icon_key) === "trunk_or_treat" && <div className="rounded-2xl border border-orange-200 bg-orange-50/70 p-4 space-y-3">
+          <div><h3 className="text-sm font-black text-orange-950">Trunk-or-Treat Details</h3><p className="text-xs text-orange-900/70">Optional details that help families plan the stop.</p></div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5"><Label className="text-sm font-semibold text-slate-800">Host / organization</Label><Input value={formData.halloween_host_name || ""} onChange={(e) => setFormData((prev) => ({ ...prev, halloween_host_name: e.target.value }))} placeholder="e.g., Lindsay Community Church" className="bg-white" /></div>
+            <div className="space-y-1.5"><Label className="text-sm font-semibold text-slate-800">Admission</Label><Input value={formData.halloween_admission || ""} onChange={(e) => setFormData((prev) => ({ ...prev, halloween_admission: e.target.value }))} placeholder="e.g., Free" className="bg-white" /></div>
+          </div>
+          <div className="space-y-1.5"><Label className="text-sm font-semibold text-slate-800">Parking notes</Label><Input value={formData.halloween_parking_notes || ""} onChange={(e) => setFormData((prev) => ({ ...prev, halloween_parking_notes: e.target.value }))} placeholder="Where should families park?" className="bg-white" /></div>
+          <div className="space-y-1.5"><Label className="text-sm font-semibold text-slate-800">Activities</Label><Input value={formData.halloween_activities || ""} onChange={(e) => setFormData((prev) => ({ ...prev, halloween_activities: e.target.value }))} placeholder="e.g., costume contest, games, food vendors" className="bg-white" /></div>
+        </div>}
+
         <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2">
           <Label className="flex items-center gap-1.5 text-sm font-semibold text-slate-800"><Images className="h-4 w-4 text-purple-700" /> Photos <span className="font-normal text-slate-400">(optional, up to 3)</span></Label>
           <p className="text-xs text-slate-500">Show visitors what makes your display worth the stop.</p>
