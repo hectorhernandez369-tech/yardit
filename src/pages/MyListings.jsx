@@ -106,12 +106,17 @@ export default function MyListingsPage() {
     queryKey: ["myListings", user?.id],
     queryFn: async () => {
       const owned = await base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date");
-      const ownedHalloweenLocations = await base44.entities.Location.filter({ type: "halloween_candy", owner_user_id: user.id }, "-created_date").catch(() => []);
+      const allHalloweenLocations = await base44.entities.Location.filter({ type: "halloween_candy" }, "-created_date").catch(() => []);
+      const ownedHalloweenLocations = (allHalloweenLocations || []).filter((spot) =>
+        spot.owner_user_id === user.id ||
+        spot.created_by_id === user.id ||
+        String(spot.created_by || "").toLowerCase() === String(user.email || "").toLowerCase()
+      );
       const halloweenListings = (ownedHalloweenLocations || []).map((spot) => ({
         ...spot,
         _sourceEntity: "Location",
         listingType: "halloween_spot",
-        ownerUserId: spot.owner_user_id,
+        ownerUserId: spot.owner_user_id || spot.created_by_id || user.id,
         title: spot.display_title || spot.title || "Halloween Spot",
         addressText: spot.address || [spot.street_address, spot.city, spot.state, spot.zip_code].filter(Boolean).join(", "),
         zip: spot.zip_code || "",
