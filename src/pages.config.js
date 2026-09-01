@@ -53,6 +53,7 @@ import ContactSupport from './pages/ContactSupport';
 import CreateListing from './pages/CreateListing';
 import FAQ from './pages/FAQ';
 import Home from './pages/Home';
+import HalloweenAdmin from './pages/HalloweenAdmin';
 import JoinNeighborhoodSale from './pages/JoinNeighborhoodSale';
 import Leaderboard from './pages/Leaderboard';
 import ListingDetail from './pages/ListingDetail';
@@ -76,6 +77,7 @@ export const PAGES = {
     "CreateListing": CreateListing,
     "FAQ": FAQ,
     "Home": Home,
+    "HalloweenAdmin": HalloweenAdmin,
     "JoinNeighborhoodSale": JoinNeighborhoodSale,
     "Leaderboard": Leaderboard,
     "ListingDetail": ListingDetail,
