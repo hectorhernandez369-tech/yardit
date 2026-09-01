@@ -418,7 +418,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [view, setView] = useState("map");
-  const [reportListingId, setReportListingId] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [hiddenListingsForMarquee, setHiddenListingsForMarquee] = useState(null);
   const queryClient = useQueryClient();
@@ -1781,7 +1781,7 @@ export default function HomePage() {
                             variant="outline"
                             onClick={(e) => {
                               e.stopPropagation();
-                              guardAction(() => setReportListingId(listing.id));
+                              guardAction(() => setReportTarget({ id: listing.id, type: isHalloweenSpot(listing) ? "location" : "listing" }));
                             }}
                             className="h-5 text-[10px] px-1.5 py-0 text-red-600 border-red-300 hover:bg-red-50">
                             
@@ -2182,10 +2182,11 @@ export default function HomePage() {
       }
 
       {/* Report Modal */}
-      {reportListingId &&
+      {reportTarget &&
       <ReportModal
-        listingId={reportListingId}
-        onClose={() => setReportListingId(null)} />
+        listingId={reportTarget.id}
+        targetType={reportTarget.type}
+        onClose={() => setReportTarget(null)} />
 
       }
 
