@@ -112,6 +112,19 @@ Deno.serve(async (req) => {
     const now = new Date();
     const body = await req.json().catch(() => ({}));
     const listingId = typeof body?.listingId === 'string' ? body.listingId : '';
+    const halloweenLocationId = typeof body?.halloweenLocationId === 'string' ? body.halloweenLocationId : '';
+
+    if (halloweenLocationId) {
+      if (!/^[a-f0-9]{24}$/i.test(halloweenLocationId)) {
+        return Response.json({ halloweenLocation: null });
+      }
+      const matches = await base44.asServiceRole.entities.Location.filter({ id: halloweenLocationId, type: 'halloween_candy' }, '-created_date', 1);
+      const location = matches[0] || null;
+      if (!location || location.status !== 'active') {
+        return Response.json({ halloweenLocation: null });
+      }
+      return Response.json({ halloweenLocation: pick(location, halloweenLocationFields) });
+    }
 
     if (listingId) {
       if (!/^[a-f0-9]{24}$/i.test(listingId)) {
