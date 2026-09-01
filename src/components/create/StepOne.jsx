@@ -37,11 +37,11 @@ const LOCKED_PREVIEW = {
 
 const HALLOWEEN_ICON_OPTIONS = [
   { value: "halloween_decorations", label: "Halloween Decorations", description: "A decorated home or yard with pumpkins, props, inflatables, lights, or general Halloween decor.", image: "/assets/halloween/halloween-decorations-diecut.svg" },
-  { value: "haunted", label: "Haunted House", description: "A scary or immersive stop with walkthroughs, actors, jump scares, or heavier horror themes.", image: "/assets/halloween/haunted-house.svg" },
-  { value: "trick_or_treat", label: "Trick-or-Treat", description: "A home or stop actively handing out candy to trick-or-treaters.", image: "/assets/halloween/trick-or-treat.svg" },
+  { value: "haunted", label: "Haunted House", description: "A scary or immersive stop with walkthroughs, actors, jump scares, or heavier horror themes.", image: "/assets/halloween/haunted-house-diecut.svg" },
+  { value: "trick_or_treat", label: "Trick-or-Treat", description: "A home or stop actively handing out candy to trick-or-treaters.", image: "/assets/halloween/trick-or-treat-diecut.svg" },
   { value: "trunk_or_treat", label: "Trunk-or-Treat", description: "An organized candy stop at a church, school, business, parking lot, or decorated vehicle event.", image: "/assets/halloween/trunk-or-treat-diecut.svg" },
-  { value: "scary_yard", label: "Scary Yard", description: "An outdoor setup focused on graveyards, monsters, animatronics, or spooky yard scenes.", image: "/assets/halloween/scary-yard.svg" },
-  { value: "light_show", label: "Light Show", description: "A Halloween display centered on synchronized lights, projections, music, or animated lighting effects.", image: "/assets/halloween/light-show.svg" },
+  { value: "scary_yard", label: "Scary Yard", description: "An outdoor setup focused on graveyards, monsters, animatronics, or spooky yard scenes.", image: "/assets/halloween/scary-yard-diecut.svg" },
+  { value: "light_show", label: "Light Show", description: "A Halloween display centered on synchronized lights, projections, music, or animated lighting effects.", image: "/assets/halloween/light-show-diecut.svg" },
 ];
 
 const LISTING_TYPES = [
