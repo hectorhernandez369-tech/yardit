@@ -81,10 +81,10 @@ const LISTING_TYPES = [
     value: "halloween_spot",
     icon: Ghost,
     title: "Halloween",
-    subtitle: "Add a spooky house, display, or Halloween stop",
-    accent: "border-purple-200 bg-purple-50/40",
-    activeAccent: "border-purple-500 bg-purple-50 ring-2 ring-purple-500/20",
-    iconColor: "text-purple-700",
+    subtitle: "Show off your spooky house, candy stop, or Halloween display",
+    accent: "border-orange-300 bg-gradient-to-r from-purple-950 via-purple-900 to-slate-950 text-white shadow-[0_0_18px_rgba(249,115,22,0.22)]",
+    activeAccent: "border-orange-400 bg-gradient-to-r from-purple-950 via-purple-900 to-slate-950 ring-2 ring-orange-400/40 shadow-[0_0_28px_rgba(249,115,22,0.42)] -translate-y-0.5",
+    iconColor: "text-orange-300",
   },
 ];
 
@@ -146,6 +146,7 @@ export default function StepOne({ formData, setFormData }) {
           {LISTING_TYPES.map(({ value, icon: Icon, title, subtitle, accent, activeAccent, iconColor }) => {
             const isLocked = LOCKED_LISTING_TYPES.includes(value);
             const isSelected = formData.listingType === value && !isLocked;
+            const isHalloweenOption = value === "halloween_spot";
             const isExpanded = expandedLocked === value;
             const preview = LOCKED_PREVIEW[value];
 
@@ -208,19 +209,23 @@ export default function StepOne({ formData, setFormData }) {
               <div
                 key={value}
                 className={`relative rounded-xl border transition-all duration-150 ${
-                  isSelected ? `${activeAccent} cursor-pointer` : `${accent} hover:border-slate-300 cursor-pointer`
+                  isSelected ? `${activeAccent} cursor-pointer` : `${accent} ${isHalloweenOption ? "hover:border-orange-400 hover:shadow-[0_0_24px_rgba(249,115,22,0.32)]" : "hover:border-slate-300"} cursor-pointer`
                 }`}
                 onClick={() => handleListingTypeSelect(value)}
               >
                 <label htmlFor={value} className="flex items-start gap-4 p-4 cursor-pointer">
                   <RadioGroupItem value={value} id={value} className="mt-0.5 shrink-0" />
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? "bg-white shadow-sm" : "bg-white/60"}`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isHalloweenOption ? "bg-orange-500/15 ring-1 ring-orange-300/40 shadow-inner" : isSelected ? "bg-white shadow-sm" : "bg-white/60"}`}>
                     <Icon className={`w-4 h-4 ${iconColor}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-slate-800 text-sm">{title}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">{subtitle}</div>
+                    <div className={`flex items-center gap-2 font-semibold text-sm ${isHalloweenOption ? "text-white" : "text-slate-800"}`}>
+                      <span>{title}</span>
+                      {isHalloweenOption && <span className="inline-flex items-center rounded-full border border-orange-300/60 bg-orange-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-orange-200">Seasonal</span>}
+                    </div>
+                    <div className={`text-xs mt-0.5 ${isHalloweenOption ? "text-purple-100/85" : "text-slate-500"}`}>{subtitle}</div>
                   </div>
+                  {isHalloweenOption && <div className="pointer-events-none absolute right-3 top-2 text-sm opacity-70">🎃</div>}
                 </label>
               </div>
             );
