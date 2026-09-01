@@ -1768,6 +1768,7 @@ export default function HomePage() {
                           </div>}
 
                           <div className={`flex items-center gap-1 border-t px-1 py-1 flex-shrink-0 flex-wrap justify-center ${isHalloweenSpot(listing) ? "border-orange-400/30 bg-purple-950/90" : "border-gray-200 bg-white/40"}`}>
+                            {isHalloweenSpot(listing) && <Button size="sm" onClick={(e) => { e.stopPropagation(); navigate(createPageUrl("HalloweenSpotDetail") + `?id=${listing.id}`); }} className="h-6 text-[10px] px-2 py-0 bg-orange-600 hover:bg-orange-500 text-white">View Details</Button>}
                             {!isHalloweenSpot(listing) && <Button
                           size="sm"
                           onClick={(e) => {
