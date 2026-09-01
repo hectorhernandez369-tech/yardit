@@ -569,7 +569,7 @@ export default function CreateListingPage() {
 
   const isEventFlow = formData.listingType === "event";
   const isHalloweenFlow = formData.listingType === "halloween_spot";
-  const paymentStepNumber = isEventFlow ? 5 : isHalloweenFlow ? 3 : 4;
+  const paymentStepNumber = isEventFlow ? 5 : 4;
   const entryStepNumber = isEventFlow ? 4 : 3;
 
   // Compute reserved dates for residential listings only (drives calendar blocking)
@@ -1850,7 +1850,7 @@ export default function CreateListingPage() {
 
       const now = new Date();
       const seasonEnd = new Date(now.getFullYear(), 10, 1, 0, 0, 0);
-      const created = await base44.entities.Location.create({
+      await base44.entities.Location.create({
         type: "halloween_candy",
         tier: "free",
         title: formData.title.trim(),
