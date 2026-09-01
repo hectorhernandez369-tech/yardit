@@ -1921,6 +1921,7 @@ export default function CreateListingPage() {
         latitude: formData.lat,
         longitude: formData.lng,
         description: formData.description || "",
+        photos: (formData.photoUrls || []).slice(0, 3),
         start_date_time: startDateTime,
         end_date_time: endDateTime,
         expires_at: endDateTime,
