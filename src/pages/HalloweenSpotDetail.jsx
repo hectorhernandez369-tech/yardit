@@ -67,7 +67,17 @@ export default function HalloweenSpotDetail() {
       if (!spotId) { setLoading(false); return; }
       try {
         const response = await base44.functions.invoke("getPublicMapData", { halloweenLocationId: spotId });
-        setSpot(response?.data?.halloweenLocation || null);
+        let loadedSpot = response?.data?.halloweenLocation || null;
+        if (!loadedSpot) {
+          try {
+            const me = await base44.auth.me();
+            const owned = await base44.entities.Location.filter({ id: spotId, type: "halloween_candy" });
+            const candidate = owned?.[0] || null;
+            const isOwner = candidate && (candidate.owner_user_id === me.id || candidate.created_by_id === me.id || String(candidate.created_by || "").toLowerCase() === String(me.email || "").toLowerCase());
+            if (isOwner) loadedSpot = candidate;
+          } catch {}
+        }
+        setSpot(loadedSpot);
       } catch (error) {
         console.error(error);
         setSpot(null);
