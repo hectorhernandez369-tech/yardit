@@ -39,6 +39,8 @@ export function getHalloweenSpotIconUrl(listing, now = new Date()) {
   return HALLOWEEN_ICON_ASSETS[key] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
 }
 
-export function getHalloweenSpotMapSize(isSelected = false) {
-  return isSelected ? 31 : 28;
+export function getHalloweenSpotMapSize(listing, isSelected = false, now = new Date()) {
+  const isFullIcon = isHalloweenFullIconActive(listing, now);
+  if (!isFullIcon) return isSelected ? 22 : 18;
+  return isSelected ? 38 : 34;
 }
