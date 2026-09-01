@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Home, Users, Calendar, Lock, ChevronDown, ChevronUp, Sparkles, MapPin, Star, Megaphone } from "lucide-react";
+import { X, Home, Users, Calendar, Lock, ChevronDown, ChevronUp, Sparkles, MapPin, Star, Megaphone, Ghost } from "lucide-react";
 import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 import { RESIDENTIAL_CATEGORY_GROUPS } from "@/lib/residentialCategories";
@@ -34,6 +34,18 @@ const LOCKED_PREVIEW = {
     teaser: "Events launch after Founding Hunt Weekend. Be first to list when we go live.",
   },
 };
+
+const HALLOWEEN_ICON_OPTIONS = [
+  { value: "halloween_decorations", label: "Halloween Decorations", image: "/assets/halloween/halloween-decorations.svg" },
+  { value: "haunted", label: "Haunted House", image: "/assets/halloween/haunted-house.svg" },
+  { value: "trick_or_treat", label: "Trick-or-Treat", image: "/assets/halloween/trick-or-treat.svg" },
+  { value: "trunk_or_treat", label: "Trunk-or-Treat", image: "/assets/halloween/trunk-or-treat.svg" },
+  { value: "scary_yard", label: "Scary Yard", image: "/assets/halloween/scary-yard.svg" },
+  { value: "kid_friendly", label: "Kid Friendly", image: "/assets/halloween/kid-friendly.svg" },
+  { value: "light_show", label: "Light Show", image: "/assets/halloween/light-show.svg" },
+  { value: "must_see", label: "Must See", image: "/assets/halloween/must-see.svg" },
+  { value: "no_candy_here", label: "No Candy Here", image: "/assets/halloween/no-candy-here.svg" },
+];
 
 const LISTING_TYPES = [
   {
@@ -64,6 +76,15 @@ const LISTING_TYPES = [
     activeAccent: "border-[#006168] bg-[#e6f3f4] ring-2 ring-[#006168]/15",
     iconColor: "text-[#006168]",
     comingSoonMessage: "Events will launch after Founding Hunt Weekend.",
+  },
+  {
+    value: "halloween_spot",
+    icon: Ghost,
+    title: "Halloween",
+    subtitle: "Add a spooky house, display, or Halloween stop",
+    accent: "border-purple-200 bg-purple-50/40",
+    activeAccent: "border-purple-500 bg-purple-50 ring-2 ring-purple-500/20",
+    iconColor: "text-purple-700",
   },
 ];
 
@@ -98,6 +119,13 @@ export default function StepOne({ formData, setFormData }) {
       ...(value === "event" ? {
         tier: "basic",
         event_tier: "basic",
+      } : {}),
+      ...(value === "halloween_spot" ? {
+        tier: "free",
+        category: "Halloween",
+        categories: ["Halloween"],
+        halloween_icon_key: prev.halloween_icon_key || "halloween_decorations",
+        full_icon_activation_time: prev.full_icon_activation_time || "15:00",
       } : {}),
     }));
 
@@ -198,6 +226,42 @@ export default function StepOne({ formData, setFormData }) {
           })}
         </RadioGroup>
       </div>
+
+      {listingType === "halloween_spot" && (
+        <div className="space-y-2 rounded-xl border border-purple-200 bg-purple-50/60 p-4">
+          <Label className="text-sm font-semibold text-purple-950">Halloween Spot Type</Label>
+          <p className="text-xs text-purple-800/70">Choose the map icon that best describes this Halloween stop.</p>
+          <Select
+            value={formData.halloween_icon_key || "halloween_decorations"}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, halloween_icon_key: value }))}
+          >
+            <SelectTrigger className="bg-white border-purple-300">
+              <SelectValue placeholder="Choose a Halloween icon" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Halloween Icons</SelectLabel>
+                {HALLOWEEN_ICON_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+
+          {(() => {
+            const selectedIcon = HALLOWEEN_ICON_OPTIONS.find((option) => option.value === (formData.halloween_icon_key || "halloween_decorations"));
+            return selectedIcon ? (
+              <div className="mt-3 flex items-center gap-3 rounded-lg border border-purple-200 bg-white p-3">
+                <img src={selectedIcon.image} alt="" className="h-12 w-12 object-contain" />
+                <div>
+                  <p className="text-sm font-bold text-purple-950">{selectedIcon.label}</p>
+                  <p className="text-xs text-slate-500">This is the icon shoppers will see after the spot activates.</p>
+                </div>
+              </div>
+            ) : null;
+          })()}
+        </div>
+      )}
 
       {/* Title — skipped for Neighborhood Sale */}
       {!isNeighborhood && (
