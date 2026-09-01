@@ -106,6 +106,28 @@ export default function MyListingsPage() {
     queryKey: ["myListings", user?.id],
     queryFn: async () => {
       const owned = await base44.entities.Listing.filter({ ownerUserId: user.id }, "-created_date");
+      const ownedHalloweenLocations = await base44.entities.Location.filter({ type: "halloween_candy", owner_user_id: user.id }, "-created_date").catch(() => []);
+      const halloweenListings = (ownedHalloweenLocations || []).map((spot) => ({
+        ...spot,
+        _sourceEntity: "Location",
+        listingType: "halloween_spot",
+        ownerUserId: spot.owner_user_id,
+        title: spot.display_title || spot.title || "Halloween Spot",
+        addressText: spot.address || [spot.street_address, spot.city, spot.state, spot.zip_code].filter(Boolean).join(", "),
+        zip: spot.zip_code || "",
+        lat: Number(spot.latitude),
+        lng: Number(spot.longitude),
+        tier: "free",
+        category: "Halloween",
+        categories: ["Halloween"],
+        startDateTime: spot.start_date_time || "",
+        endDateTime: spot.end_date_time || spot.expires_at || "",
+        selectedRangeStartDate: spot.halloween_start_date || spot.start_date_time?.slice?.(0, 10) || "",
+        selectedRangeEndDate: spot.halloween_end_date || spot.end_date_time?.slice?.(0, 10) || "",
+        openTime: spot.halloween_start_time || spot.viewing_start_time || "",
+        closeTime: spot.halloween_end_time || spot.viewing_end_time || "",
+        photoUrls: spot.photos || [],
+      }));
       const coHosted = await base44.entities.Listing.filter({ co_host_user_id: user.id }, "-created_date");
       const householdRequests = await base44.entities.ResidentialListingAccessRequest.filter({ requester_user_id: user.id, status: "approved" }, "-updated_date").catch(() => []);
       const householdListings = (await Promise.all((householdRequests || []).map(async (request) => {
@@ -113,7 +135,7 @@ export default function MyListingsPage() {
         const listing = matches?.[0];
         return listing ? { ...listing, _residential_access_role: "household_cohost", _residential_access_request_id: request.id } : null;
       }))).filter(Boolean);
-      const merged = [...owned, ...coHosted.filter((listing) => listing.co_host_status === "accepted"), ...householdListings];
+      const merged = [...owned, ...halloweenListings, ...coHosted.filter((listing) => listing.co_host_status === "accepted"), ...householdListings];
       const seen = new Set();
       return merged.filter((listing) => {
         if (seen.has(listing.id)) return false;
@@ -269,8 +291,12 @@ export default function MyListingsPage() {
 
   const isPastListing = (listing) => {
     const status = listing?.status || "";
+    if (listing?.listingType === "halloween_spot") {
+      const end = listing.endDateTime ? new Date(listing.endDateTime) : null;
+      return ["completed","inactive","suspended","deleted"].includes(status) || (end && !Number.isNaN(end.getTime()) && new Date() > end);
+    }
     return ["expired","completed","closed","cancelled","canceled","removed","denied","rejected","suspended","hidden","deleted"].includes(status);
-  };
+  }; 
 
   const isActiveListing = (listing) => {
     if (isPastListing(listing)) return false;
@@ -281,6 +307,14 @@ export default function MyListingsPage() {
       return deriveNeighborhoodEventState(parentSale, new Date()) === "active" && isWithinParticipationWindow(listing, parentSale, new Date());
     }
 
+    if (listing?.listingType === "halloween_spot") {
+      const now = new Date();
+      const start = listing.startDateTime ? new Date(listing.startDateTime) : null;
+      const end = listing.endDateTime ? new Date(listing.endDateTime) : null;
+      const hasStarted = !start || Number.isNaN(start.getTime()) || now >= start;
+      const hasNotEnded = !end || Number.isNaN(end.getTime()) || now <= end;
+      return listing.status === "active" && hasStarted && hasNotEnded;
+    }
     if (listing?.listingType === "yard_sale") {
       const now = new Date();
       const start = listing.startDateTime ? new Date(listing.startDateTime) : null;
@@ -297,8 +331,9 @@ export default function MyListingsPage() {
   const isPendingListing = (listing) => !isEffectivelyPastListing(listing) && !isActiveListing(listing);
 
   const canCancelListingDirectly = (listing) => {
+    if (listing?.listingType === "halloween_spot") return listing.status === "active";
     return ["active","activated_locked","payment_pending","scheduled","ready_for_payment","payment_pending_adjustment","under_review","collecting_participants"].includes(listing?.status);
-  };
+  }; 
 
   const normalizedListings = useMemo(() => {
     return listings.map((listing) => ({ ...listing, displayStatus: getListingDisplayStatus(listing) }));
@@ -520,6 +555,7 @@ export default function MyListingsPage() {
       });
       toast.success("Co-host invite sent");
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
       await queryClient.invalidateQueries({ queryKey: ["coHostInvites", editingListing.id] });
       await refreshEditingListing(editingListing.id);
@@ -718,7 +754,9 @@ export default function MyListingsPage() {
     if (!ok) return;
 
     try {
-      if (listing.listingType === "neighborhood_sale") {
+      if (listing.listingType === "halloween_spot" && listing._sourceEntity === "Location") {
+        await base44.entities.Location.update(listing.id, { status: "inactive" });
+      } else if (listing.listingType === "neighborhood_sale") {
         await base44.functions.invoke("cancelNeighborhoodSale", { saleListingId: listing.id, reason: isActive ? "owner_cancelled_active" : "owner_cancelled_before_activation", finalState: "canceled", deleteSale: false });
       } else {
         await base44.entities.Listing.update(listing.id, { status: "cancelled", statusReason: isActive ? "Canceled by owner" : "Canceled by owner before activation" });
@@ -733,6 +771,7 @@ export default function MyListingsPage() {
       }
       toast.success("Listing canceled");
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
     } catch (e) {
       toast.error("Could not cancel listing");
@@ -743,7 +782,9 @@ export default function MyListingsPage() {
     const ok = window.confirm("Delete this listing? This cannot be undone.");
     if (!ok) return;
     try {
-      if (listing.listingType !== "neighborhood_sale") await base44.entities.Listing.delete(listing.id);
+      if (listing.listingType === "halloween_spot" && listing._sourceEntity === "Location") {
+        await base44.entities.Location.delete(listing.id);
+      } else if (listing.listingType !== "neighborhood_sale") await base44.entities.Listing.delete(listing.id);
       try {
         const requesterReqs = await base44.entities.JoinRequest.filter({ listingId: listing.id });
         for (const req of requesterReqs) await base44.entities.JoinRequest.update(req.id, { removed_by_listing_owner: true, removed_at: new Date().toISOString(), removal_reason: "listing_deleted", status: "canceled" });
@@ -754,6 +795,7 @@ export default function MyListingsPage() {
       } catch (err) { console.error("Cleanup error", err); }
       toast.success("Listing deleted");
       await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
     } catch (e) {
       toast.error("Could not delete listing");
