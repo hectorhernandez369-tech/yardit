@@ -97,15 +97,17 @@ Deno.serve(async (req) => {
         .map(normalizeReportRecord)
         .filter((report) => report && report.resolved !== true);
 
-      const latestUnqueuedByListing = new Map();
+      const latestUnqueuedByTarget = new Map();
       unresolvedReports.forEach((report) => {
-        const listingId = report?.listingId || report?.listing_id;
-        if (listingId && !latestUnqueuedByListing.has(listingId)) {
-          latestUnqueuedByListing.set(listingId, report);
+        const targetId = report?.location_id || report?.listingId || report?.listing_id;
+        const targetType = report?.target_type === 'location' || report?.location_id ? 'location' : 'listing';
+        const key = targetId ? `${targetType}:${targetId}` : '';
+        if (key && !latestUnqueuedByTarget.has(key)) {
+          latestUnqueuedByTarget.set(key, report);
         }
       });
 
-      reportsToProcess = [...latestUnqueuedByListing.values()];
+      reportsToProcess = [...latestUnqueuedByTarget.values()];
     }
 
     const results = [];
