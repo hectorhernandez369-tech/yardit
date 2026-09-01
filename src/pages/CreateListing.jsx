@@ -13,6 +13,7 @@ import FormScrollHelper from "../components/create/FormScrollHelper";
 import CreateListingResidential from "../components/create/CreateListingResidential";
 import CreateListingNeighborhood from "../components/create/CreateListingNeighborhood";
 import CreateListingEvent from "../components/create/CreateListingEvent";
+import CreateListingHalloween from "../components/create/CreateListingHalloween";
 import ConfirmHomeAddressModal from "../components/create/ConfirmHomeAddressModal";
 import ResidentialListingConflictDialog from "@/components/create/ResidentialListingConflictDialog";
 import { clearStaleTrustProgress, hasVerifiedPrimaryAddress } from "@/lib/trustActions";
@@ -216,6 +217,8 @@ export default function CreateListingPage() {
     event_category: "",
     event_icon: "calendar",
     event_photos: [],
+    halloween_icon_key: "halloween_decorations",
+    full_icon_activation_time: "15:00",
     display_address: "",
     geocoded_address: "",
     location_source: "search",
@@ -2122,6 +2125,7 @@ export default function CreateListingPage() {
     yard_sale:      { 1: "Tell buyers what you're selling", 2: "Confirm your sale address",      3: "Pick your visibility & schedule", 4: "Complete your listing" },
     neighborhood_sale: { 1: "Set up your event",            2: "Choose the sale area",            3: "Dates & details",                 4: "Payment setup" },
     event:          { 1: "Describe your event",             2: "Set the location",                3: "Add dates & times",               4: "Choose add-ons", 5: "Review & pay" },
+    halloween_spot: { 1: "Choose your Halloween Spot",      2: "Confirm the spooky location",     3: "Review & publish" },
   };
   const currentMeta = stepMeta[formData.listingType]?.[step] || "";
 
@@ -2131,7 +2135,7 @@ export default function CreateListingPage() {
 
         <div className="mb-8 text-center">
           <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
-            {isAdminCreate ? "Create Listing (Admin)" : formData.listingType === "event" ? "Create an Event" : formData.listingType === "neighborhood_sale" ? "Set Up a Neighborhood Sale" : "Post Your Yard Sale"}
+            {isAdminCreate ? "Create Listing (Admin)" : formData.listingType === "event" ? "Create an Event" : formData.listingType === "neighborhood_sale" ? "Set Up a Neighborhood Sale" : formData.listingType === "halloween_spot" ? "Post a Halloween Spot" : "Post Your Yard Sale"}
           </h1>
           {currentMeta && <p className="text-slate-400 text-sm mt-1.5">{currentMeta}</p>}
         </div>
@@ -2188,6 +2192,21 @@ export default function CreateListingPage() {
                 setPaymentError={setPaymentError}
                 setStep={setStep}
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
+              />
+            )}
+            {formData.listingType === "halloween_spot" && (
+              <CreateListingHalloween
+                step={step}
+                formData={formData}
+                setFormData={setFormData}
+                setGeocodeRef={setGeocodeRef}
+                user={user}
+                onAddressSelected={(selectedAddress) => {
+                  if (!isAdminDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
+                    setPendingHomeAddress(buildResolvedListingLocation(selectedAddress));
+                    setShowHomeAddressConfirm(true);
+                  }
+                }}
               />
             )}
             {formData.listingType === "neighborhood_sale" && (
