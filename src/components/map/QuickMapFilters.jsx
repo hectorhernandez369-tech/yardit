@@ -1,5 +1,5 @@
 import React from "react";
-import { Tags, Calendar, Store, Users, ChevronLeft } from "lucide-react";
+import { Tags, Calendar, Store, Users, ChevronLeft, Ghost } from "lucide-react";
 
 const FILTERS = [
   {
@@ -29,6 +29,13 @@ const FILTERS = [
     icon: Store,
     activeColor: "bg-violet-500",
     activeDot: "bg-violet-400",
+  },
+  {
+    key: "halloween",
+    label: "Halloween",
+    icon: Ghost,
+    activeColor: "bg-orange-500",
+    activeDot: "bg-orange-400",
   },
 ];
 
