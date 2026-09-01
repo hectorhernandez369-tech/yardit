@@ -139,6 +139,19 @@ function hasPastSelectedDates(data) {
 }
 
 function hasListingDraftContent(data) {
+  if (data?.listingType === "halloween_spot") {
+    return Boolean(
+      data.title ||
+      data.description ||
+      data.addressText ||
+      data.halloween_start_date ||
+      data.halloween_start_time ||
+      data.halloween_spot_type ||
+      data.photoUrls?.length ||
+      data.halloween_tags?.length
+    );
+  }
+
   if (data?.listingType === "event") {
     return Boolean(
       data.event_name ||
@@ -657,7 +670,7 @@ export default function CreateListingPage() {
     if (!user?.id || isAdminCreate || !sourceFormData?.listingType) return null;
 
     const listingType = sourceFormData.listingType;
-    const title = sourceFormData.event_name || sourceFormData.title || (listingType === "event" ? "Event draft" : listingType === "neighborhood_sale" ? "Neighborhood Sale draft" : "Yard Sale draft");
+    const title = sourceFormData.event_name || sourceFormData.title || (listingType === "event" ? "Event draft" : listingType === "neighborhood_sale" ? "Neighborhood Sale draft" : listingType === "halloween_spot" ? "Halloween Spot draft" : "Yard Sale draft");
     const safeSourceFormData = normalizeResidentialEventSingleDay(sourceFormData);
     const draftData = {
       owner_user_id: user.id,
