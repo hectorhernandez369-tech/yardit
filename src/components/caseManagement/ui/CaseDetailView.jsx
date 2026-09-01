@@ -32,8 +32,23 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
     setCaseData(c);
 
     if (c?.listing_id) {
-      const listings = await base44.entities.Listing.filter({ id: c.listing_id });
-      const foundListing = listings[0] || null;
+      let foundListing = null;
+      if (c.target_type === "location") {
+        const locations = await base44.entities.Location.filter({ id: c.listing_id });
+        const location = locations[0] || null;
+        foundListing = location ? {
+          ...location,
+          listingType: "halloween_spot",
+          listingNumber: location.id,
+          addressText: location.address || location.street_address || "",
+          zip: location.zip_code || "",
+          ownerUserId: location.owner_user_id || "",
+          photoUrls: location.photos || [],
+        } : null;
+      } else {
+        const listings = await base44.entities.Listing.filter({ id: c.listing_id });
+        foundListing = listings[0] || null;
+      }
       setListing(foundListing);
 
       const allReports = await base44.entities.Report.filter({ listingId: c.listing_id });
