@@ -238,7 +238,15 @@ export default function StepOne({ formData, setFormData }) {
           <p className="text-xs text-purple-800/70">Choose the map icon that best describes this Halloween stop.</p>
           <Select
             value={formData.halloween_spot_type || formData.halloween_icon_key || "halloween_decorations"}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, halloween_spot_type: value, halloween_icon_key: value }))}
+            onValueChange={(value) => setFormData(prev => ({
+              ...prev,
+              halloween_spot_type: value,
+              halloween_icon_key: value,
+              halloween_tags: ["trick_or_treat", "trunk_or_treat"].includes(value)
+                ? (prev.halloween_tags || []).filter((tag) => tag !== "no_candy_here")
+                : (prev.halloween_tags || []),
+              halloween_candy_available: ["trick_or_treat", "trunk_or_treat"].includes(value) ? true : prev.halloween_candy_available,
+            }))}
           >
             <SelectTrigger className="bg-white border-purple-300">
               <SelectValue placeholder="Choose a Halloween icon" />
