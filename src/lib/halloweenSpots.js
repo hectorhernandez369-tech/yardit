@@ -57,8 +57,12 @@ export function isHalloweenSpotVisible(listing, now = new Date()) {
 
 export function isHalloweenFullIconActive(listing, now = new Date()) {
   if (!isHalloweenSpotVisible(listing, now)) return false;
-  const requested = listing?.halloween_activation_time || listing?.full_icon_activation_time || listing?.viewing_start_time || HALLOWEEN_DEFAULT_ACTIVATION_TIME;
+  const requested = listing?.halloween_activation_time || listing?.full_icon_activation_time || listing?.halloween_start_time || listing?.viewing_start_time || HALLOWEEN_DEFAULT_ACTIVATION_TIME;
   const safeActivationMinutes = Math.max(minutesFromTimeString(requested), minutesFromTimeString(HALLOWEEN_DEFAULT_ACTIVATION_TIME));
+  const endTime = listing?.halloween_end_time || listing?.viewing_end_time || "";
+  const endMinutes = endTime ? minutesFromTimeString(endTime, endTime) : null;
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  return currentMinutes >= safeActivationMinutes;
+  if (currentMinutes < safeActivationMinutes) return false;
+  if (Number.isFinite(endMinutes) && currentMinutes > endMinutes) return false;
+  return true;
 }
