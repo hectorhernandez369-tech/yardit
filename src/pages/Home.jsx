@@ -61,7 +61,7 @@ import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
 import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
-import { isHalloweenSpot } from "@/lib/halloweenSpots";
+import { isHalloweenSpot, isHalloweenSpotVisible } from "@/lib/halloweenSpots";
 import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize } from "@/lib/halloweenMapIcons";
 import HalloweenSpotPopupCard from "@/components/map/HalloweenSpotPopupCard";
 
@@ -1099,11 +1099,10 @@ export default function HomePage() {
       ]);
       if (!matchesCategory) return null;
 
-      // Halloween Location records use their own seasonal visibility. A teaser
-      // (for example "Coming Oct 1") must be visible before its live date.
+      // Halloween Location records use their own seasonal visibility.
+      // Normal spots appear only during their selected date range; admin teasers may appear early.
       if (isHalloweenSpot(listing) && listing.halloweenSpotSource === "Location") {
-        const expiresAt = listing.endDateTime ? new Date(listing.endDateTime) : null;
-        if (expiresAt && expiresAt < now) return null;
+        if (!isHalloweenSpotVisible(listing, now)) return null;
         return { ...listing, mapState: "active" };
       }
 
