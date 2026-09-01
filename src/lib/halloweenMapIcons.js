@@ -3,10 +3,10 @@ import { isHalloweenFullIconActive } from "@/lib/halloweenSpots";
 export const HALLOWEEN_DAYTIME_ICON = "/assets/halloween/daytime-pumpkin.svg";
 
 export const HALLOWEEN_ICON_ASSETS = {
-  halloween_decorations: "/assets/halloween/halloween-decorations.svg",
+  halloween_decorations: "/assets/halloween/halloween-decorations-diecut.svg",
   haunted: "/assets/halloween/haunted-house.svg",
   trick_or_treat: "/assets/halloween/trick-or-treat.svg",
-  trunk_or_treat: "/assets/halloween/trunk-or-treat.svg",
+  trunk_or_treat: "/assets/halloween/trunk-or-treat-diecut.svg",
   scary_yard: "/assets/halloween/scary-yard.svg",
   kid_friendly: "/assets/halloween/kid-friendly.svg",
   light_show: "/assets/halloween/light-show.svg",
