@@ -151,7 +151,7 @@ export default function MyListingCard({
             canCancelListingDirectly={canCancelListingDirectly}
             isPaidListing={isPaidListing}
             onViewMap={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}&ownerPreview=1`)}
-            onViewDetails={isHalloween ? null : () => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+            onViewDetails={isHalloween ? () => navigate(createPageUrl("HalloweenSpotDetail") + `?id=${listing.id}`) : () => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
             onEdit={onEdit}
             onRelist={onRelist}
             onUpgrade={onUpgrade}
