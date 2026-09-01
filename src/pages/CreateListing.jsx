@@ -1216,6 +1216,22 @@ export default function CreateListingPage() {
     }
 
     if (step === 2) {
+      if (formData.listingType === "halloween_spot") {
+        if (profileIncomplete && !isAdminCreate) {
+          toast.error("Complete your profile to start posting.");
+          navigate(createPageUrl("Profile"));
+          return;
+        }
+        if (!formData.addressText || !formData.city || !formData.state || !formData.zip || typeof formData.lat !== "number" || typeof formData.lng !== "number") {
+          toast.error("Please choose and confirm the real Halloween Spot location.");
+          return;
+        }
+        setFormData((prev) => buildResolvedListingLocation(prev));
+        setStep(3);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
       if (formData.listingType === "event") {
         if (!isLocationReadyForSubmission(formData)) {
           toast.error("Please choose a valid event location");
