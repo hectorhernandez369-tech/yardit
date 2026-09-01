@@ -729,11 +729,14 @@ export default function HomePage() {
     enabled: !isPublicHomeMode
   });
 
-  const { data: halloweenLocations = [], isLoading: isLoadingHalloweenLocations } = useQuery({
-    queryKey: ["halloweenLocations"],
+  const { data: privateHalloweenLocations = [], isLoading: isLoadingHalloweenLocations } = useQuery({
+    queryKey: ["halloweenLocations", "private"],
     queryFn: () => base44.entities.Location.filter({ type: "halloween_candy", status: "active" }, "-created_date"),
-    initialData: []
+    initialData: [],
+    enabled: !isPublicHomeMode
   });
+
+  const halloweenLocations = isPublicHomeMode ? (publicMapData.halloweenLocations || []) : privateHalloweenLocations;
 
   const halloweenMapListings = useMemo(() => halloweenLocations.map((location) => ({
     ...location,
