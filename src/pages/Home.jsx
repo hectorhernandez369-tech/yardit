@@ -1764,7 +1764,7 @@ export default function HomePage() {
                           </div>}
 
                           <div className={`flex items-center gap-1 border-t px-1 py-1 flex-shrink-0 flex-wrap justify-center ${isHalloweenSpot(listing) ? "border-orange-400/30 bg-purple-950/90" : "border-gray-200 bg-white/40"}`}>
-                            <Button
+                            {!isHalloweenSpot(listing) && <Button
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1773,7 +1773,7 @@ export default function HomePage() {
                           className="h-5 text-[10px] px-1.5 py-0 bg-amber-600 hover:bg-amber-700">
                           
                               {listing.is_vendor_event ? "Public View" : "View Listing"}
-                            </Button>
+                            </Button>}
                             <SaveListingButton listing={listing} iconOnly size="sm" className="h-5 w-5 p-0 border-slate-200" />
                             {!isPreviewState &&
                         <>
