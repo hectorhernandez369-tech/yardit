@@ -28,11 +28,26 @@ export default function InQueueTab({ user, allAdminUsers, searchResults, onOpenC
 
     const listingIds = [...new Set(allCases.map(c => c.listing_id).filter(Boolean))];
     if (listingIds.length > 0) {
-      const listingResults = await Promise.all(
-        listingIds.map(id => base44.entities.Listing.filter({ id }))
-      );
       const map = {};
-      listingResults.flat().forEach(l => { map[l.id] = l; });
+      await Promise.all(allCases.filter((c) => c.listing_id).map(async (c) => {
+        if (map[c.listing_id]) return;
+        if (c.target_type === "location") {
+          const locations = await base44.entities.Location.filter({ id: c.listing_id });
+          const location = locations[0];
+          if (location) {
+            map[c.listing_id] = {
+              ...location,
+              listingType: "halloween_spot",
+              addressText: location.address || location.street_address || "",
+              zip: location.zip_code || "",
+              ownerUserId: location.owner_user_id || "",
+            };
+          }
+        } else {
+          const results = await base44.entities.Listing.filter({ id: c.listing_id });
+          if (results[0]) map[c.listing_id] = results[0];
+        }
+      }));
       setListings(map);
     }
 
