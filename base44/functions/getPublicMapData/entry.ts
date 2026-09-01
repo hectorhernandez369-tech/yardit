@@ -42,6 +42,23 @@ function isPublicListing(listing, now) {
   return true;
 }
 
+function localYmd(date) {
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function isPublicHalloweenLocation(location, now) {
+  if (!location || location.type !== 'halloween_candy' || location.status !== 'active') return false;
+  const teaserUntil = location.teaser_until ? new Date(location.teaser_until) : null;
+  if (teaserUntil && !Number.isNaN(teaserUntil.getTime()) && now <= teaserUntil) return true;
+  const today = localYmd(now);
+  const start = location.halloween_start_date || location.start_date_time?.slice?.(0, 10) || '';
+  const end = location.halloween_end_date || location.end_date_time?.slice?.(0, 10) || location.expires_at?.slice?.(0, 10) || '';
+  if (start && today < start) return false;
+  if (end && today > end) return false;
+  return true;
+}
+
 function isActivePromo(promo) {
   if (!promo?.promo_door_enabled || promo?.status !== 'active') return false;
   const hasDoorPosition = isValidCoordinate(promo.promo_door_lat) && isValidCoordinate(promo.promo_door_lng);
@@ -120,7 +137,7 @@ Deno.serve(async (req) => {
       }
       const matches = await base44.asServiceRole.entities.Location.filter({ id: halloweenLocationId, type: 'halloween_candy' }, '-created_date', 1);
       const location = matches[0] || null;
-      if (!location || location.status !== 'active') {
+      if (!isPublicHalloweenLocation(location, now)) {
         return Response.json({ halloweenLocation: null });
       }
       return Response.json({ halloweenLocation: pick(location, halloweenLocationFields) });
@@ -153,7 +170,7 @@ Deno.serve(async (req) => {
     ]);
 
     const listings = listingRows.filter((listing) => isPublicListing(listing, now)).map((listing) => pick(listing, listingFields));
-    const halloweenLocations = halloweenRows.map((location) => pick(location, halloweenLocationFields));
+    const halloweenLocations = halloweenRows.filter((location) => isPublicHalloweenLocation(location, now)).map((location) => pick(location, halloweenLocationFields));
     const promoDiscoveryCodes = promoRows
       .filter((promo) => isActivePromo(promo))
       .map((promo) => ({ ...pick(promo, promoFields), status: 'active' }));
