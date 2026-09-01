@@ -69,8 +69,11 @@ export default function MyListingCard({
   const isYardSale = listing.listingType === "yard_sale";
   const isNeighborhood = listing.listingType === "neighborhood_sale";
   const isEvent = listing.listingType === "event";
+  const isHalloween = listing.listingType === "halloween_spot";
 
-  const accentBar = isEvent
+  const accentBar = isHalloween
+    ? "border-l-orange-500"
+    : isEvent
     ? "border-l-[#006168]"
     : isNeighborhood
     ? "border-l-emerald-500"
@@ -105,7 +108,7 @@ export default function MyListingCard({
               {/* Type + State Badges */}
               <div className="flex gap-1.5 flex-wrap">
                 <PillBadge className="bg-slate-50 text-slate-500 border-slate-200">
-                  {isEvent ? "Event" : isNeighborhood ? "Neighborhood Sale" : "Yard Sale"}
+                  {isHalloween ? "Halloween Spot" : isEvent ? "Event" : isNeighborhood ? "Neighborhood Sale" : "Yard Sale"}
                 </PillBadge>
 
                 {isNeighborhood && (
@@ -148,7 +151,7 @@ export default function MyListingCard({
             canCancelListingDirectly={canCancelListingDirectly}
             isPaidListing={isPaidListing}
             onViewMap={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}&ownerPreview=1`)}
-            onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+            onViewDetails={isHalloween ? null : () => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
             onEdit={onEdit}
             onRelist={onRelist}
             onUpgrade={onUpgrade}
@@ -211,7 +214,7 @@ export default function MyListingCard({
           canCancelListingDirectly={canCancelListingDirectly}
           isPaidListing={isPaidListing}
           onViewMap={() => navigate(createPageUrl("Home") + `?listingId=${listing.id}&ownerPreview=1`)}
-          onViewDetails={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
+          onViewDetails={isHalloween ? null : () => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}`)}
           onEdit={onEdit}
           onRelist={onRelist}
           onUpgrade={onUpgrade}
