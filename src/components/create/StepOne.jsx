@@ -100,6 +100,7 @@ export default function StepOne({ formData, setFormData }) {
   const navigate = useNavigate();
   const listingType = formData?.listingType || "yard_sale";
   const isNeighborhood = listingType === "neighborhood_sale";
+  const isHalloween = listingType === "halloween_spot";
   const descriptionLimit = getResidentialDescriptionLimit(listingType);
   const [expandedLocked, setExpandedLocked] = useState(null);
 
@@ -267,14 +268,14 @@ export default function StepOne({ formData, setFormData }) {
       {!isNeighborhood && (
         <div className="space-y-1.5">
           <Label htmlFor="title" className="text-sm font-semibold text-slate-700">
-            Sale Title *
+            {isHalloween ? "Halloween Spot Title *" : "Sale Title *"}
           </Label>
           <p className="text-xs text-slate-500">
-            A clear title helps shoppers find your sale faster
+            {isHalloween ? "Give your spooky stop a short, recognizable name" : "A clear title helps shoppers find your sale faster"}
           </p>
           <Input
             id="title"
-            placeholder="e.g., Multi-Family Yard Sale — Great Deals!"
+            placeholder={isHalloween ? "e.g., Haunted Ramblewood House" : "e.g., Multi-Family Yard Sale — Great Deals!"}
             value={formData.title}
             onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
             required
@@ -287,7 +288,7 @@ export default function StepOne({ formData, setFormData }) {
       {!isNeighborhood && (
         <>
           {/* Categories */}
-          <div className="space-y-2">
+          {!isHalloween && <div className="space-y-2">
             <Label className="text-sm font-semibold text-slate-900">
               Categories <span className="text-slate-500 font-normal">(up to 10) *</span>
             </Label>
@@ -373,17 +374,17 @@ export default function StepOne({ formData, setFormData }) {
                 </SelectContent>
               </Select>
             )}
-          </div>
+          </div>}
 
           {/* Description */}
           <div className="space-y-1.5">
             <Label htmlFor="description" className="text-sm font-semibold text-slate-900">Description</Label>
             <p className="text-xs text-slate-500">
-              Use keywords buyers search for — furniture, baby clothes, tools, Pokémon cards, etc.
+              {isHalloween ? "Tell visitors what to expect — decorations, walkthrough, lights, scares, candy, or anything helpful." : "Use keywords buyers search for — furniture, baby clothes, tools, Pokémon cards, etc."}
             </p>
             <Textarea
               id="description"
-              placeholder="What are you selling? Be specific — buyers search by item type, brand, and condition."
+              placeholder={isHalloween ? "Describe your Halloween display or attraction." : "What are you selling? Be specific — buyers search by item type, brand, and condition."}
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: limitText(e.target.value, descriptionLimit) }))}
               maxLength={descriptionLimit || undefined}
