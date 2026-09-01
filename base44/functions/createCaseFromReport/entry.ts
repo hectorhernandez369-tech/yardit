@@ -1,10 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-function buildAccountNumber(listing) {
-  if (listing?.listingNumber) return listing.listingNumber;
-  const st = (listing?.state || 'XX').toUpperCase().slice(0, 2);
-  const zp = String(listing?.zip || '0000').slice(-4).padStart(4, '0');
-  const idSuffix = String(listing?.id || '00000').slice(-5).toLowerCase();
+function buildAccountNumber(target) {
+  if (target?.listingNumber) return target.listingNumber;
+  const st = (target?.state || 'XX').toUpperCase().slice(0, 2);
+  const zp = String(target?.zip || target?.zip_code || '0000').slice(-4).padStart(4, '0');
+  const idSuffix = String(target?.id || '00000').slice(-5).toLowerCase();
   return `${st}${zp}-${idSuffix}`;
 }
 
@@ -15,32 +15,36 @@ function normalizeReportRecord(report) {
 
 async function ensureCaseForReport(base44, rawReport) {
   const report = normalizeReportRecord(rawReport);
-  const listingId = report?.listingId || report?.listing_id;
+  const targetId = report?.location_id || report?.listingId || report?.listing_id;
+  const targetType = report?.target_type === 'location' || report?.location_id ? 'location' : 'listing';
 
-  if (!listingId) {
-    return { created: false, skipped: 'missing_listing_id' };
+  if (!targetId) {
+    return { created: false, skipped: 'missing_target_id' };
   }
 
-  const existingCases = await base44.asServiceRole.entities.Case.filter({ listing_id: listingId });
+  const existingCases = await base44.asServiceRole.entities.Case.filter({ listing_id: targetId });
   const activeCase = existingCases.find((item) => item.status !== 'closed');
 
   if (activeCase) {
-    return { created: false, skipped: 'active_case_exists', caseId: activeCase.id, listingId };
+    return { created: false, skipped: 'active_case_exists', caseId: activeCase.id, targetId, targetType };
   }
 
-  const listings = await base44.asServiceRole.entities.Listing.filter({ id: listingId });
-  const listing = listings[0];
+  const targets = targetType === 'location'
+    ? await base44.asServiceRole.entities.Location.filter({ id: targetId })
+    : await base44.asServiceRole.entities.Listing.filter({ id: targetId });
+  const target = targets[0];
 
-  if (!listing) {
-    return { created: false, skipped: 'listing_not_found', listingId };
+  if (!target) {
+    return { created: false, skipped: 'target_not_found', targetId, targetType };
   }
 
   const reasonCode = String(report?.reason_code || '');
   const safetyFlag = reasonCode.startsWith('SAFETY_');
 
   const createdCase = await base44.asServiceRole.entities.Case.create({
-    listing_id: listingId,
-    account_number: buildAccountNumber(listing),
+    listing_id: targetId,
+    target_type: targetType,
+    account_number: buildAccountNumber(target),
     status: 'in_queue',
     case_priority: safetyFlag ? 'high' : 'medium',
     safety_flag: safetyFlag,
@@ -57,10 +61,10 @@ async function ensureCaseForReport(base44, rawReport) {
     related_entity_type: 'case',
     related_entity_id: createdCase.id,
     deep_link: `/AdminLite?section=case_management&openCaseId=${createdCase.id}`,
-    metadata: { listing_id: listingId, report_id: report.id || '', safety_flag: safetyFlag },
+    metadata: { target_id: targetId, target_type: targetType, listing_id: targetId, report_id: report.id || '', safety_flag: safetyFlag },
   });
 
-  return { created: true, caseId: createdCase.id, listingId };
+  return { created: true, caseId: createdCase.id, targetId, targetType };
 }
 
 Deno.serve(async (req) => {
