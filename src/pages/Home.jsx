@@ -61,7 +61,8 @@ import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
 import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
-import { isHalloweenSpot, getHalloweenSpotIconUrl, getHalloweenSpotMapSize } from "@/lib/halloweenSpots";
+import { isHalloweenSpot } from "@/lib/halloweenSpots";
+import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize } from "@/lib/halloweenMapIcons";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 const LINDSAY_PORTERVILLE_CENTER = [36.135, -119.055];
