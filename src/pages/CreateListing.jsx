@@ -1867,6 +1867,8 @@ export default function CreateListingPage() {
       const endDate = formData.halloween_end_date || formData.halloween_start_date;
       const startDateTime = new Date(`${formData.halloween_start_date}T${formData.halloween_start_time}:00`).toISOString();
       const endDateTime = new Date(`${endDate}T${formData.halloween_end_time}:00`).toISOString();
+      const requestedActivation = formData.full_icon_activation_time || "15:00";
+      const fullIconActivationTime = minutesFromTime(requestedActivation) < minutesFromTime("15:00") ? "15:00" : requestedActivation;
       await base44.entities.Location.create({
         type: "halloween_candy",
         tier: "free",
@@ -1890,7 +1892,7 @@ export default function CreateListingPage() {
         halloween_end_date: endDate,
         halloween_start_time: formData.halloween_start_time,
         halloween_end_time: formData.halloween_end_time,
-        full_icon_activation_time: formData.full_icon_activation_time || "15:00",
+        full_icon_activation_time: fullIconActivationTime,
         viewing_start_time: formData.halloween_start_time,
         viewing_end_time: formData.halloween_end_time,
         owner_user_id: user?.id || "",
