@@ -1876,6 +1876,20 @@ export default function CreateListingPage() {
       const endDate = formData.halloween_end_date || formData.halloween_start_date;
       const startDateTime = new Date(`${formData.halloween_start_date}T${formData.halloween_start_time}:00`).toISOString();
       const endDateTime = new Date(`${endDate}T${formData.halloween_end_time}:00`).toISOString();
+
+      const existingHalloweenSpots = await base44.entities.Location.filter({ type: "halloween_candy", status: "active" });
+      const duplicateSpot = (existingHalloweenSpots || []).find((spot) => {
+        if (typeof spot.latitude !== "number" || typeof spot.longitude !== "number") return false;
+        if (getDistanceFeet(formData.lat, formData.lng, spot.latitude, spot.longitude) > 50) return false;
+        const existingStart = spot.halloween_start_date || spot.start_date_time?.slice?.(0, 10) || "";
+        const existingEnd = spot.halloween_end_date || spot.end_date_time?.slice?.(0, 10) || existingStart;
+        return existingStart && existingEnd && existingStart <= endDate && existingEnd >= formData.halloween_start_date;
+      });
+      if (duplicateSpot) {
+        toast.error("There is already an active Halloween Spot at or very near this property for those dates.");
+        return;
+      }
+
       const requestedActivation = formData.full_icon_activation_time || "15:00";
       const fullIconActivationTime = minutesFromTime(requestedActivation) < minutesFromTime("15:00") ? "15:00" : requestedActivation;
       await base44.entities.Location.create({
@@ -1900,7 +1914,11 @@ export default function CreateListingPage() {
         halloween_spot_type: formData.halloween_spot_type || formData.halloween_icon_key || "halloween_decorations",
         halloween_tags: formData.halloween_tags || [],
         halloween_featured_badge: "none",
-        halloween_candy_available: formData.halloween_tags?.includes("no_candy_here") ? false : formData.halloween_candy_available === true,
+        halloween_candy_available: ["trick_or_treat", "trunk_or_treat"].includes(formData.halloween_spot_type || formData.halloween_icon_key)
+          ? true
+          : formData.halloween_tags?.includes("no_candy_here")
+          ? false
+          : formData.halloween_candy_available === true,
         halloween_walkthrough: formData.halloween_walkthrough === true,
         halloween_lights: formData.halloween_lights === true,
         halloween_sound: formData.halloween_sound === true,
