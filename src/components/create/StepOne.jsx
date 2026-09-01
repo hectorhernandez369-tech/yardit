@@ -41,10 +41,7 @@ const HALLOWEEN_ICON_OPTIONS = [
   { value: "trick_or_treat", label: "Trick-or-Treat", description: "A home or stop actively handing out candy to trick-or-treaters.", image: "/assets/halloween/trick-or-treat.svg" },
   { value: "trunk_or_treat", label: "Trunk-or-Treat", description: "An organized candy stop at a church, school, business, parking lot, or decorated vehicle event.", image: "/assets/halloween/trunk-or-treat.svg" },
   { value: "scary_yard", label: "Scary Yard", description: "An outdoor setup focused on graveyards, monsters, animatronics, or spooky yard scenes.", image: "/assets/halloween/scary-yard.svg" },
-  { value: "kid_friendly", label: "Kid Friendly", description: "A fun Halloween stop designed for younger children with little or no intense scares.", image: "/assets/halloween/kid-friendly.svg" },
   { value: "light_show", label: "Light Show", description: "A Halloween display centered on synchronized lights, projections, music, or animated lighting effects.", image: "/assets/halloween/light-show.svg" },
-  { value: "must_see", label: "Must See", description: "A standout Halloween display that is especially impressive or worth making a special trip to see.", image: "/assets/halloween/must-see.svg" },
-  { value: "no_candy_here", label: "No Candy Here", description: "A decorated Halloween location worth visiting, but this home is not handing out candy.", image: "/assets/halloween/no-candy-here.svg" },
 ];
 
 const LISTING_TYPES = [
@@ -125,7 +122,9 @@ export default function StepOne({ formData, setFormData }) {
         tier: "free",
         category: "Halloween",
         categories: ["Halloween"],
-        halloween_icon_key: prev.halloween_icon_key || "halloween_decorations",
+        halloween_icon_key: prev.halloween_spot_type || prev.halloween_icon_key || "halloween_decorations",
+        halloween_spot_type: prev.halloween_spot_type || prev.halloween_icon_key || "halloween_decorations",
+        halloween_tags: prev.halloween_tags || [],
         full_icon_activation_time: prev.full_icon_activation_time || "15:00",
       } : {}),
     }));
@@ -238,8 +237,8 @@ export default function StepOne({ formData, setFormData }) {
           <Label className="text-sm font-semibold text-purple-950">Halloween Spot Type</Label>
           <p className="text-xs text-purple-800/70">Choose the map icon that best describes this Halloween stop.</p>
           <Select
-            value={formData.halloween_icon_key || "halloween_decorations"}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, halloween_icon_key: value }))}
+            value={formData.halloween_spot_type || formData.halloween_icon_key || "halloween_decorations"}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, halloween_spot_type: value, halloween_icon_key: value }))}
           >
             <SelectTrigger className="bg-white border-purple-300">
               <SelectValue placeholder="Choose a Halloween icon" />
@@ -260,7 +259,7 @@ export default function StepOne({ formData, setFormData }) {
           </Select>
 
           {(() => {
-            const selectedIcon = HALLOWEEN_ICON_OPTIONS.find((option) => option.value === (formData.halloween_icon_key || "halloween_decorations"));
+            const selectedIcon = HALLOWEEN_ICON_OPTIONS.find((option) => option.value === (formData.halloween_spot_type || formData.halloween_icon_key || "halloween_decorations"));
             return selectedIcon ? (
               <div className="mt-3 flex items-center gap-3 rounded-lg border border-purple-200 bg-white p-3">
                 <img src={selectedIcon.image} alt="" className="h-12 w-12 object-contain" />
