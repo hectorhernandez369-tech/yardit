@@ -1700,7 +1700,7 @@ export default function HomePage() {
                   <Popup maxWidth={318} minWidth={202} autoPan={false} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className="leaflet-popup-transparent">
                          <div className={`flex w-[66vw] max-w-[235px] flex-col rounded-xl overflow-hidden backdrop-blur-md shadow-lg opacity-100 sm:w-auto sm:max-w-[299px] ${isHalloweenSpot(listing) ? "border border-orange-400/60 bg-slate-950" : "border border-white/40 bg-white"}`} style={{ maxHeight: "60vh" }}>
                           {isHalloweenSpot(listing) && <HalloweenSpotPopupCard listing={listing} />}
-                          <div className="px-1 py-1.5 sm:p-1.5 overflow-y-auto flex-1 min-h-0 space-y-1.5">
+                          {!isHalloweenSpot(listing) && <div className="px-1 py-1.5 sm:p-1.5 overflow-y-auto flex-1 min-h-0 space-y-1.5">
                             <div className="flex items-center gap-1 flex-wrap">
                               <Badge className={`text-[9px] px-1.5 py-0 h-4 min-h-0 ${listing.listingType === "neighborhood_sale" ? "bg-blue-600" : listing.listingType === "event" ? "bg-slate-900" : "bg-orange-500"}`}>
                                 {getListingTypeBadgeLabel(listing)}
@@ -1761,9 +1761,9 @@ export default function HomePage() {
                           }
                               </>
                         }
-                          </div>
+                          </div>}
 
-                          <div className="flex items-center gap-1 border-t border-gray-200 bg-white/40 px-1 py-1 flex-shrink-0 flex-wrap justify-center">
+                          <div className={`flex items-center gap-1 border-t px-1 py-1 flex-shrink-0 flex-wrap justify-center ${isHalloweenSpot(listing) ? "border-orange-400/30 bg-purple-950/90" : "border-gray-200 bg-white/40"}`}>
                             <Button
                           size="sm"
                           onClick={(e) => {
