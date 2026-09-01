@@ -336,8 +336,13 @@ export default function MyListingsPage() {
   }; 
 
   const normalizedListings = useMemo(() => {
-    return listings.map((listing) => ({ ...listing, displayStatus: getListingDisplayStatus(listing) }));
-  }, [listings]);
+    return listings.map((listing) => ({
+      ...listing,
+      displayStatus: listing.listingType === "halloween_spot"
+        ? (isPastListing(listing) ? "expired" : isActiveListing(listing) ? "active" : "upcoming")
+        : getListingDisplayStatus(listing),
+    }));
+  }, [listings, participantParentSaleById, user]);
 
   const isEffectivelyPastListing = (listing) => isPastListing(listing) || listing?.displayStatus === "expired";
 
