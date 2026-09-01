@@ -157,6 +157,16 @@ export default function HalloweenSpotDetail() {
                 </div>
               </div>
 
+              {(spot.halloween_host_name || spot.halloween_admission || spot.halloween_parking_notes || spot.halloween_activities) && <div className="rounded-2xl border border-orange-300/20 bg-orange-500/5 p-4">
+                <h2 className="text-sm font-black uppercase tracking-widest text-orange-200">Event Info</h2>
+                <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                  {spot.halloween_host_name && <Info label="Host / Organization" value={spot.halloween_host_name} />}
+                  {spot.halloween_admission && <Info label="Admission" value={spot.halloween_admission} />}
+                  {spot.halloween_parking_notes && <Info label="Parking" value={spot.halloween_parking_notes} wide />}
+                  {spot.halloween_activities && <Info label="Activities" value={spot.halloween_activities} wide />}
+                </div>
+              </div>}
+
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <h2 className="text-sm font-black uppercase tracking-widest text-purple-200">What to Expect</h2>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -194,4 +204,8 @@ export default function HalloweenSpotDetail() {
 function Feature({ icon: Icon, label, tone }) {
   const classes = tone === "red" ? "border-red-300/30 bg-red-500/15 text-red-100" : tone === "yellow" ? "border-yellow-300/30 bg-yellow-500/15 text-yellow-100" : tone === "orange" ? "border-orange-300/30 bg-orange-500/15 text-orange-100" : "border-purple-300/30 bg-purple-500/15 text-purple-100";
   return <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${classes}`}><Icon className="h-3.5 w-3.5" />{label}</span>;
+}
+
+function Info({ label, value, wide = false }) {
+  return <div className={`rounded-xl border border-white/10 bg-black/15 p-3 ${wide ? "sm:col-span-2" : ""}`}><p className="text-[10px] font-black uppercase tracking-widest text-orange-200">{label}</p><p className="mt-1 text-sm text-slate-200">{value}</p></div>;
 }
