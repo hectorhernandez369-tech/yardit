@@ -17,7 +17,11 @@ export const HALLOWEEN_ICON_ASSETS = {
 
 export function getHalloweenSpotIconUrl(listing, now = new Date()) {
   if (!isHalloweenFullIconActive(listing, now)) return HALLOWEEN_DAYTIME_ICON;
-  if (listing?.custom_icon_url) return listing.custom_icon_url;
+
+  const teaserUntil = listing?.teaser_until ? new Date(listing.teaser_until) : null;
+  const teaserExpired = teaserUntil && !Number.isNaN(teaserUntil.getTime()) && now > teaserUntil;
+  if (listing?.custom_icon_url && !teaserExpired) return listing.custom_icon_url;
+
   const key = listing?.halloween_spot_type || listing?.halloween_icon_key || listing?.icon_key || listing?.seasonal_icon_key || "halloween_decorations";
   return HALLOWEEN_ICON_ASSETS[key] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
 }
