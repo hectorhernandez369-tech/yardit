@@ -11,7 +11,7 @@ export default function MapZoomControl({ onMyLocation, isLocating, locationError
   return (
     <div
       className="absolute top-3 z-[400] flex flex-col shadow-md rounded-lg overflow-hidden border-2 border-[#2C4F4E]"
-      style={{ left: 12, right: "auto", pointerEvents: "auto" }}
+      style={{ left: "auto", right: 12, pointerEvents: "auto" }}
     >
       <button
         onClick={() => map.zoomIn()}
