@@ -1884,6 +1884,10 @@ export default function CreateListingPage() {
     }
 
     if (formData.listingType === "halloween_spot") {
+      const halloweenSpotType = formData.halloween_spot_type || formData.halloween_icon_key || "halloween_decorations";
+      const trickOrTreatDate = `${new Date().getFullYear()}-10-31`;
+      const effectiveHalloweenStartDate = halloweenSpotType === "trick_or_treat" ? trickOrTreatDate : formData.halloween_start_date;
+      const effectiveHalloweenEndDate = halloweenSpotType === "trick_or_treat" ? trickOrTreatDate : (formData.halloween_end_date || effectiveHalloweenStartDate);
       if (!formData.title?.trim()) {
         toast.error("Please name your Halloween Spot");
         return;
@@ -1893,11 +1897,11 @@ export default function CreateListingPage() {
         setStep(2);
         return;
       }
-      if (!formData.halloween_start_date || !formData.halloween_start_time || !formData.halloween_end_time) {
+      if (!effectiveHalloweenStartDate || !formData.halloween_start_time || !formData.halloween_end_time) {
         toast.error("Please add a start date and viewing times");
         return;
       }
-      if (formData.halloween_end_date && formData.halloween_end_date < formData.halloween_start_date) {
+      if (effectiveHalloweenEndDate && effectiveHalloweenEndDate < effectiveHalloweenStartDate) {
         toast.error("Halloween Spot end date cannot be before the start date");
         return;
       }
@@ -1906,8 +1910,8 @@ export default function CreateListingPage() {
         return;
       }
 
-      const endDate = formData.halloween_end_date || formData.halloween_start_date;
-      const startDateTime = new Date(`${formData.halloween_start_date}T${formData.halloween_start_time}:00`).toISOString();
+      const endDate = effectiveHalloweenEndDate;
+      const startDateTime = new Date(`${effectiveHalloweenStartDate}T${formData.halloween_start_time}:00`).toISOString();
       const endDateTime = new Date(`${endDate}T${formData.halloween_end_time}:00`).toISOString();
 
       const existingHalloweenSpots = await base44.entities.Location.filter({ type: "halloween_candy", status: "active" });
@@ -1916,7 +1920,7 @@ export default function CreateListingPage() {
         if (getDistanceFeet(formData.lat, formData.lng, spot.latitude, spot.longitude) > 50) return false;
         const existingStart = spot.halloween_start_date || spot.start_date_time?.slice?.(0, 10) || "";
         const existingEnd = spot.halloween_end_date || spot.end_date_time?.slice?.(0, 10) || existingStart;
-        return existingStart && existingEnd && existingStart <= endDate && existingEnd >= formData.halloween_start_date;
+        return existingStart && existingEnd && existingStart <= endDate && existingEnd >= effectiveHalloweenStartDate;
       });
       if (duplicateSpot) {
         toast.error("There is already an active Halloween Spot at or very near this property for those dates.");
@@ -1944,11 +1948,11 @@ export default function CreateListingPage() {
         expires_at: endDateTime,
         status: "active",
         payment_status: "free",
-        halloween_icon_key: formData.halloween_spot_type || formData.halloween_icon_key || "halloween_decorations",
-        halloween_spot_type: formData.halloween_spot_type || formData.halloween_icon_key || "halloween_decorations",
+        halloween_icon_key: halloweenSpotType,
+        halloween_spot_type: halloweenSpotType,
         halloween_tags: formData.halloween_tags || [],
         halloween_featured_badge: "none",
-        halloween_candy_available: ["trick_or_treat", "trunk_or_treat"].includes(formData.halloween_spot_type || formData.halloween_icon_key)
+        halloween_candy_available: ["trick_or_treat", "trunk_or_treat"].includes(halloweenSpotType)
           ? true
           : formData.halloween_tags?.includes("no_candy_here")
           ? false
@@ -1962,7 +1966,7 @@ export default function CreateListingPage() {
         halloween_admission: formData.halloween_admission || "",
         halloween_parking_notes: formData.halloween_parking_notes || "",
         halloween_activities: formData.halloween_activities || "",
-        halloween_start_date: formData.halloween_start_date,
+        halloween_start_date: effectiveHalloweenStartDate,
         halloween_end_date: endDate,
         halloween_start_time: formData.halloween_start_time,
         halloween_end_time: formData.halloween_end_time,
