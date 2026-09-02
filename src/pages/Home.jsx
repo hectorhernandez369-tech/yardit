@@ -144,7 +144,7 @@ function getChestIcon(size, count = 0, isSelected = false, faded = false) {
 }
 
 // Custom marker icons based on tier
-const createIcon = (type, tier, isSelected, location) => {
+const createIcon = (type, tier, isSelected, location, zoom = 13) => {
   const preAct = isPreActivated(location);
   const isPreviewState = location?.mapState === "preview" || location?.mapState === "daily_preview" || location?.ownerUpcomingPreview === true;
   const opacity = isPreviewState ? 0.35 : preAct ? 0.6 : 1.0;
@@ -170,9 +170,9 @@ const createIcon = (type, tier, isSelected, location) => {
 
   if (isHalloweenSpot({ ...location, listingType: type })) {
     const halloweenListing = { ...location, listingType: type };
-    const halloweenSize = getHalloweenSpotMapSize(halloweenListing, isSelected);
+    const halloweenSize = getHalloweenSpotMapSize(halloweenListing, isSelected, new Date(), zoom);
     const iconUrl = getHalloweenSpotIconUrl(halloweenListing);
-    const key = `halloween_${iconUrl}_${isSelected ? "selected" : "default"}`;
+    const key = `halloween_${iconUrl}_${halloweenSize}_${isSelected ? "selected" : "default"}`;
     return getCachedIcon(key, iconUrl, halloweenSize, true);
   } else if (type === "holiday_lights") {
     const isGlowing = location &&
@@ -1686,7 +1686,7 @@ export default function HomePage() {
                   ref={(ref) => {if (ref) markerRefsMap.current[listing.id] = ref;}}
                   position={[listing.lat, listing.lng]}
                   zIndexOffset={isFireworksEvent ? 10000 : 0}
-                  icon={listing.listingType === "event" ? getEventMarkerIcon({ ...listing, ownerUpcomingPreview: isPreviewState }, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, listing)}
+                  icon={listing.listingType === "event" ? getEventMarkerIcon({ ...listing, ownerUpcomingPreview: isPreviewState }, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, listing, currentZoom)}
                   eventHandlers={{
                     click: () => {handlePinClick(listing);},
                     popupopen: () => setSelectedListingId(listing.id),
