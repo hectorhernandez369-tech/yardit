@@ -1929,6 +1929,9 @@ export default function CreateListingPage() {
 
       const requestedActivation = formData.halloween_start_time || "15:00";
       const fullIconActivationTime = minutesFromTime(requestedActivation) < minutesFromTime("15:00") ? "15:00" : requestedActivation;
+      const halloweenTags = ["trick_or_treat", "trunk_or_treat"].includes(halloweenSpotType)
+        ? (formData.halloween_tags || []).filter((tag) => tag !== "no_candy_here")
+        : (formData.halloween_tags || []);
       await base44.entities.Location.create({
         type: "halloween_candy",
         tier: "free",
@@ -1950,11 +1953,11 @@ export default function CreateListingPage() {
         payment_status: "free",
         halloween_icon_key: halloweenSpotType,
         halloween_spot_type: halloweenSpotType,
-        halloween_tags: formData.halloween_tags || [],
+        halloween_tags: halloweenTags,
         halloween_featured_badge: "none",
         halloween_candy_available: ["trick_or_treat", "trunk_or_treat"].includes(halloweenSpotType)
           ? true
-          : formData.halloween_tags?.includes("no_candy_here")
+          : halloweenTags.includes("no_candy_here")
           ? false
           : formData.halloween_candy_available === true,
         halloween_walkthrough: formData.halloween_walkthrough === true,
