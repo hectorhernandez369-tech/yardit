@@ -62,7 +62,7 @@ import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
 import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 import { isHalloweenSpot, isHalloweenSpotVisible } from "@/lib/halloweenSpots";
-import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize } from "@/lib/halloweenMapIcons";
+import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize, getHalloweenCollisionSizes } from "@/lib/halloweenMapIcons";
 import HalloweenSpotPopupCard from "@/components/map/HalloweenSpotPopupCard";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
@@ -144,7 +144,7 @@ function getChestIcon(size, count = 0, isSelected = false, faded = false) {
 }
 
 // Custom marker icons based on tier
-const createIcon = (type, tier, isSelected, location, zoom = 13) => {
+const createIcon = (type, tier, isSelected, location, zoom = 13, halloweenSizeOverride = null) => {
   const preAct = isPreActivated(location);
   const isPreviewState = location?.mapState === "preview" || location?.mapState === "daily_preview" || location?.ownerUpcomingPreview === true;
   const opacity = isPreviewState ? 0.35 : preAct ? 0.6 : 1.0;
@@ -170,7 +170,7 @@ const createIcon = (type, tier, isSelected, location, zoom = 13) => {
 
   if (isHalloweenSpot({ ...location, listingType: type })) {
     const halloweenListing = { ...location, listingType: type };
-    const halloweenSize = getHalloweenSpotMapSize(halloweenListing, isSelected, new Date(), zoom);
+    const halloweenSize = halloweenSizeOverride ?? getHalloweenSpotMapSize(halloweenListing, isSelected, new Date(), zoom);
     const iconUrl = getHalloweenSpotIconUrl(halloweenListing);
     const key = `halloween_${iconUrl}_${halloweenSize}_${isSelected ? "selected" : "default"}`;
     return getCachedIcon(key, iconUrl, halloweenSize, true);
@@ -1277,6 +1277,11 @@ export default function HomePage() {
     return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
   }, [eligibleListings, currentZoom, isShowingAllListings, filter, quickMapFilters]);
 
+  const halloweenCollisionSizes = useMemo(
+    () => getHalloweenCollisionSizes(visiblePins, currentZoom, selectedListingId),
+    [visiblePins, currentZoom, selectedListingId]
+  );
+
   // NO ZOOM-BASED STATE RESET - persist marquee state across zoom levels
 
   const neighborhoodParticipantPins = useMemo(() => {
@@ -1686,7 +1691,7 @@ export default function HomePage() {
                   ref={(ref) => {if (ref) markerRefsMap.current[listing.id] = ref;}}
                   position={[listing.lat, listing.lng]}
                   zIndexOffset={isFireworksEvent ? 10000 : 0}
-                  icon={listing.listingType === "event" ? getEventMarkerIcon({ ...listing, ownerUpcomingPreview: isPreviewState }, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, listing, currentZoom)}
+                  icon={listing.listingType === "event" ? getEventMarkerIcon({ ...listing, ownerUpcomingPreview: isPreviewState }, isMapSelected, false) : createIcon(listing.listingType, listing.tier, isMapSelected, listing, currentZoom, halloweenCollisionSizes[listing.id])}
                   eventHandlers={{
                     click: () => {handlePinClick(listing);},
                     popupopen: () => setSelectedListingId(listing.id),
