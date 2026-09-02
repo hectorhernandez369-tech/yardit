@@ -39,7 +39,10 @@ export default function HalloweenSpotPopupCard({ listing }) {
             <div className="inline-flex rounded-full border border-orange-300/40 bg-orange-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-orange-200">Halloween Spot</div>
             <h3 className="mt-1 truncate text-base font-black text-white">{listing.title || "Halloween Spot"}</h3>
             <p className="text-[11px] font-semibold text-purple-200">{getHalloweenSpotTypeLabel(listing)}</p>
-            {listing.halloween_featured_badge === "must_see" && <div className="mt-1 inline-flex items-center gap-1 rounded-full border border-yellow-300/50 bg-yellow-400/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-yellow-200"><Star className="h-3 w-3" /> Yardit Must See</div>}
+            <div className="mt-1 flex flex-wrap gap-1">
+              {listing.halloween_featured_badge === "must_see" && <div className="inline-flex items-center gap-1 rounded-full border border-yellow-300/50 bg-yellow-400/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-yellow-200"><Star className="h-3 w-3" /> Yardit Must See</div>}
+              {listing.halloween_candy_available && !(listing.halloween_tags || []).includes("no_candy_here") && <div className="inline-flex items-center gap-1 rounded-full border border-pink-300/60 bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-pink-100"><Candy className="h-3 w-3" /> Candy Here</div>}
+            </div>
           </div>
         </div>
       </div>
