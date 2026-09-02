@@ -70,6 +70,8 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
     }
 
     const tags = candyPrimary ? (draft.halloween_tags || []).filter((tag) => tag !== "no_candy_here") : (draft.halloween_tags || []);
+    const startDateTime = new Date(`${effectiveStartDate}T${draft.halloween_start_time}:00`).toISOString();
+    const endDateTime = new Date(`${effectiveEndDate}T${draft.halloween_end_time}:00`).toISOString();
     setSaving(true);
     try {
       await base44.entities.Location.update(spot.id, {
@@ -87,6 +89,9 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
         halloween_suggested_age: draft.halloween_suggested_age || "",
         halloween_start_date: effectiveStartDate,
         halloween_end_date: effectiveEndDate,
+        start_date_time: startDateTime,
+        end_date_time: endDateTime,
+        expires_at: endDateTime,
         halloween_start_time: draft.halloween_start_time,
         halloween_end_time: draft.halloween_end_time,
         viewing_start_time: draft.halloween_start_time,
