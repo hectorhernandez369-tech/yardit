@@ -249,21 +249,15 @@ export default function StepOne({ formData, setFormData }) {
               halloween_candy_available: ["trick_or_treat", "trunk_or_treat"].includes(value) ? true : prev.halloween_candy_available,
             }))}
           >
-            <SelectTrigger className="bg-white border-purple-300">
-              <SelectValue placeholder="Choose a Halloween icon" />
+            <SelectTrigger className="h-12 bg-white border-purple-300 px-4 text-left">
+              <SelectValue placeholder="Choose a Halloween Spot Type" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>Halloween Icons</SelectLabel>
+                <SelectLabel>Halloween Spot Types</SelectLabel>
                 {HALLOWEEN_ICON_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center gap-2 py-1">
-                      <img src={option.image} alt="" className="h-9 w-9 shrink-0 object-contain" />
-                      <div>
-                        <div className="text-sm font-semibold">{option.label}</div>
-                        <div className="max-w-[240px] whitespace-normal text-[11px] leading-snug text-slate-500">{option.description}</div>
-                      </div>
-                    </div>
+                  <SelectItem key={option.value} value={option.value} className="py-2.5">
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -273,12 +267,15 @@ export default function StepOne({ formData, setFormData }) {
           {(() => {
             const selectedIcon = HALLOWEEN_ICON_OPTIONS.find((option) => option.value === (formData.halloween_spot_type || formData.halloween_icon_key || "halloween_decorations"));
             return selectedIcon ? (
-              <div className="mt-3 flex items-center gap-3 rounded-lg border border-purple-200 bg-white p-3">
-                <img src={selectedIcon.image} alt="" className="h-12 w-12 object-contain" />
-                <div>
-                  <p className="text-sm font-bold text-purple-950">{selectedIcon.label}</p>
-                  <p className="text-xs leading-snug text-slate-600">{selectedIcon.description}</p>
-                  <p className="mt-1 text-[11px] text-slate-400">Preview artwork; the map uses a visibility-optimized pin.</p>
+              <div className="mt-3 rounded-xl border border-purple-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-purple-100 bg-purple-50/40 p-2">
+                    <img src={selectedIcon.image} alt="" className="max-h-full max-w-full object-contain" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base font-bold text-purple-950">{selectedIcon.label}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-600">{selectedIcon.description}</p>
+                  </div>
                 </div>
               </div>
             ) : null;
