@@ -41,7 +41,9 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
   if (!draft) return null;
 
   const type = draft.halloween_spot_type || "halloween_decorations";
+  const isTrickOrTreat = type === "trick_or_treat";
   const candyPrimary = ["trick_or_treat", "trunk_or_treat"].includes(type);
+  const trickOrTreatDate = `${new Date().getFullYear()}-10-31`;
   const hasTag = (tag) => (draft.halloween_tags || []).includes(tag);
   const toggleTag = (tag) => setDraft((prev) => ({
     ...prev,
