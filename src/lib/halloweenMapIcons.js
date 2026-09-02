@@ -3,16 +3,16 @@ import { isHalloweenFullIconActive } from "@/lib/halloweenSpots";
 export const HALLOWEEN_DAYTIME_ICON = "/assets/halloween/daytime-pumpkin.svg";
 
 export const HALLOWEEN_ICON_ASSETS = {
-  halloween_decorations: "/assets/halloween/halloween-decorations.svg",
-  haunted: "/assets/halloween/haunted-house.svg",
-  trick_or_treat: "/assets/halloween/trick-or-treat.svg",
-  trunk_or_treat: "/assets/halloween/trunk-or-treat.svg",
-  scary_yard: "/assets/halloween/scary-yard.svg",
-  kid_friendly: "/assets/halloween/kid-friendly.svg",
-  light_show: "/assets/halloween/light-show.svg",
-  must_see: "/assets/halloween/must-see.svg",
-  no_candy_here: "/assets/halloween/no-candy-here.svg",
-  coming_oct_1: "/assets/halloween/coming-oct-1.svg",
+  halloween_decorations: "/assets/halloween/halloween-decorations-diecut.svg",
+  haunted: "/assets/halloween/haunted-house-diecut.svg",
+  trick_or_treat: "/assets/halloween/trick-or-treat-diecut.svg",
+  trunk_or_treat: "/assets/halloween/trunk-or-treat-diecut.svg",
+  scary_yard: "/assets/halloween/scary-yard-diecut.svg",
+  kid_friendly: "/assets/halloween/kid-friendly-diecut.svg",
+  light_show: "/assets/halloween/light-show-diecut.svg",
+  must_see: "/assets/halloween/must-see-diecut.svg",
+  no_candy_here: "/assets/halloween/no-candy-here-diecut.svg",
+  coming_oct_1: "/assets/halloween/coming-oct-1-diecut.svg",
 };
 
 export function getHalloweenSpotIconUrl(listing, now = new Date()) {
