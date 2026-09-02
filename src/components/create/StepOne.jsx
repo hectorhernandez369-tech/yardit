@@ -10,7 +10,7 @@ import { X, Home, Users, Calendar, Lock, ChevronDown, ChevronUp, Sparkles, MapPi
 import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 import { RESIDENTIAL_CATEGORY_GROUPS } from "@/lib/residentialCategories";
-import { HALLOWEEN_PREVIEW_ICON_ASSETS } from "@/lib/halloweenMapIcons";
+import { HALLOWEEN_ICON_ASSETS } from "@/lib/halloweenMapIcons";
 
 // LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
 const LOCKED_LISTING_TYPES = [];
@@ -37,12 +37,12 @@ const LOCKED_PREVIEW = {
 };
 
 const HALLOWEEN_ICON_OPTIONS = [
-  { value: "halloween_decorations", label: "Halloween Decorations", description: "A decorated home or yard with pumpkins, props, inflatables, lights, or general Halloween decor.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.halloween_decorations },
-  { value: "haunted", label: "Haunted House", description: "A scary or immersive stop with walkthroughs, actors, jump scares, or heavier horror themes.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.haunted },
-  { value: "trick_or_treat", label: "Trick-or-Treat", description: "A home or stop actively handing out candy to trick-or-treaters.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.trick_or_treat },
-  { value: "trunk_or_treat", label: "Trunk-or-Treat", description: "An organized candy stop at a church, school, business, parking lot, or decorated vehicle event.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.trunk_or_treat },
-  { value: "scary_yard", label: "Scary Yard", description: "An outdoor setup focused on graveyards, monsters, animatronics, or spooky yard scenes.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.scary_yard },
-  { value: "light_show", label: "Light Show", description: "A Halloween display centered on synchronized lights, projections, music, or animated lighting effects.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.light_show },
+  { value: "halloween_decorations", label: "Halloween Decorations", description: "A decorated home or yard with pumpkins, props, inflatables, lights, or general Halloween decor.", image: HALLOWEEN_ICON_ASSETS.halloween_decorations },
+  { value: "haunted", label: "Haunted House", description: "A scary or immersive stop with walkthroughs, actors, jump scares, or heavier horror themes.", image: HALLOWEEN_ICON_ASSETS.haunted },
+  { value: "trick_or_treat", label: "Trick-or-Treat", description: "A home or stop actively handing out candy to trick-or-treaters.", image: HALLOWEEN_ICON_ASSETS.trick_or_treat },
+  { value: "trunk_or_treat", label: "Trunk-or-Treat", description: "An organized candy stop at a church, school, business, parking lot, or decorated vehicle event.", image: HALLOWEEN_ICON_ASSETS.trunk_or_treat },
+  { value: "scary_yard", label: "Scary Yard", description: "An outdoor setup focused on graveyards, monsters, animatronics, or spooky yard scenes.", image: HALLOWEEN_ICON_ASSETS.scary_yard },
+  { value: "light_show", label: "Light Show", description: "A Halloween display centered on synchronized lights, projections, music, or animated lighting effects.", image: HALLOWEEN_ICON_ASSETS.light_show },
 ];
 
 const LISTING_TYPES = [
