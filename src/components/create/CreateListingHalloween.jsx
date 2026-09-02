@@ -7,7 +7,10 @@ import { CalendarDays, Clock3, Candy, Baby, Footprints, Lightbulb, Volume2, Aler
 import EventPhotoUpload from "./event/EventPhotoUpload";
 
 export default function CreateListingHalloween({ step, formData, setFormData, setGeocodeRef, user, onAddressSelected }) {
-  const candyPrimary = ["trick_or_treat", "trunk_or_treat"].includes(formData.halloween_spot_type || formData.halloween_icon_key);
+  const spotType = formData.halloween_spot_type || formData.halloween_icon_key;
+  const isTrickOrTreat = spotType === "trick_or_treat";
+  const candyPrimary = ["trick_or_treat", "trunk_or_treat"].includes(spotType);
+  const trickOrTreatDate = `${new Date().getFullYear()}-10-31`;
 
   if (step === 1) {
     return <StepOne formData={formData} setFormData={setFormData} />;
