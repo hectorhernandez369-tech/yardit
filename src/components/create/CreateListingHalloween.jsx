@@ -33,19 +33,22 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
             <Label className="flex items-center gap-1.5 text-sm font-semibold text-slate-800"><CalendarDays className="h-4 w-4 text-purple-700" /> Start date</Label>
             <Input
               type="date"
-              value={formData.halloween_start_date || ""}
-              onChange={(e) => setFormData((prev) => ({ ...prev, halloween_start_date: e.target.value }))}
-              className="bg-white"
+              value={isTrickOrTreat ? trickOrTreatDate : (formData.halloween_start_date || "")}
+              onChange={(e) => !isTrickOrTreat && setFormData((prev) => ({ ...prev, halloween_start_date: e.target.value }))}
+              disabled={isTrickOrTreat}
+              className={isTrickOrTreat ? "bg-purple-50 text-purple-950 disabled:opacity-100" : "bg-white"}
             />
+            {isTrickOrTreat && <p className="text-[11px] font-medium text-purple-700">Trick-or-Treat is locked to Halloween — October 31.</p>}
           </div>
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5 text-sm font-semibold text-slate-800"><CalendarDays className="h-4 w-4 text-purple-700" /> End date</Label>
             <Input
               type="date"
-              value={formData.halloween_end_date || ""}
-              onChange={(e) => setFormData((prev) => ({ ...prev, halloween_end_date: e.target.value }))}
+              value={isTrickOrTreat ? trickOrTreatDate : (formData.halloween_end_date || "")}
+              onChange={(e) => !isTrickOrTreat && setFormData((prev) => ({ ...prev, halloween_end_date: e.target.value }))}
               min={formData.halloween_start_date || undefined}
-              className="bg-white"
+              disabled={isTrickOrTreat}
+              className={isTrickOrTreat ? "bg-purple-50 text-purple-950 disabled:opacity-100" : "bg-white"}
             />
           </div>
           <div className="space-y-1.5">
