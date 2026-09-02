@@ -146,6 +146,7 @@ export default function HalloweenSpotDetail() {
                 <div className="flex flex-wrap gap-2">
                   <Badge className="border border-orange-300/40 bg-orange-500/15 text-orange-100">Halloween Spot</Badge>
                   {spot.halloween_featured_badge === "must_see" && <Badge className="bg-yellow-500 text-black"><Star className="mr-1 h-3 w-3" />Yardit Must See</Badge>}
+                  {spot.halloween_candy_available && !tags.includes("no_candy_here") && <Badge className="border border-pink-300/60 bg-pink-500/20 text-pink-100"><Candy className="mr-1 h-3 w-3" />Candy Here</Badge>}
                 </div>
                 <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">{listing.title}</h1>
                 <p className="mt-1 text-sm font-bold text-purple-200">{getHalloweenSpotTypeLabel(spot)}</p>
