@@ -239,15 +239,22 @@ export default function StepOne({ formData, setFormData }) {
           <p className="text-xs text-purple-800/70">Choose the map icon that best describes this Halloween stop.</p>
           <Select
             value={formData.halloween_spot_type || formData.halloween_icon_key || "halloween_decorations"}
-            onValueChange={(value) => setFormData(prev => ({
-              ...prev,
-              halloween_spot_type: value,
-              halloween_icon_key: value,
-              halloween_tags: ["trick_or_treat", "trunk_or_treat"].includes(value)
-                ? (prev.halloween_tags || []).filter((tag) => tag !== "no_candy_here")
-                : (prev.halloween_tags || []),
-              halloween_candy_available: ["trick_or_treat", "trunk_or_treat"].includes(value) ? true : prev.halloween_candy_available,
-            }))}
+            onValueChange={(value) => setFormData(prev => {
+              const trickOrTreatDate = `${new Date().getFullYear()}-10-31`;
+              return {
+                ...prev,
+                halloween_spot_type: value,
+                halloween_icon_key: value,
+                halloween_tags: ["trick_or_treat", "trunk_or_treat"].includes(value)
+                  ? (prev.halloween_tags || []).filter((tag) => tag !== "no_candy_here")
+                  : (prev.halloween_tags || []),
+                halloween_candy_available: value === "trick_or_treat" || value === "trunk_or_treat" ? true : prev.halloween_candy_available,
+                ...(value === "trick_or_treat" ? {
+                  halloween_start_date: trickOrTreatDate,
+                  halloween_end_date: trickOrTreatDate,
+                } : {}),
+              };
+            })}
           >
             <SelectTrigger className="h-12 bg-white border-purple-300 px-4 text-left">
               <SelectValue placeholder="Choose a Halloween Spot Type" />
