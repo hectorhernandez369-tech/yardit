@@ -1,6 +1,6 @@
 import React from "react";
 import { AlertTriangle, Baby, CalendarDays, Candy, Clock3, Footprints, Lightbulb, MapPin, Star, Volume2 } from "lucide-react";
-import { HALLOWEEN_PREVIEW_ICON_ASSETS } from "@/lib/halloweenMapIcons";
+import { HALLOWEEN_ICON_ASSETS } from "@/lib/halloweenMapIcons";
 import { getHalloweenSpotTypeLabel } from "@/lib/halloweenSpots";
 
 function formatDateRange(listing) {
@@ -22,7 +22,7 @@ function formatTime(value) {
 }
 
 export default function HalloweenSpotPopupCard({ listing }) {
-  const fullIcon = HALLOWEEN_PREVIEW_ICON_ASSETS[listing.halloween_spot_type || listing.halloween_icon_key || listing.icon_key || "halloween_decorations"] || HALLOWEEN_PREVIEW_ICON_ASSETS.halloween_decorations;
+  const fullIcon = HALLOWEEN_ICON_ASSETS[listing.halloween_spot_type || listing.halloween_icon_key || listing.icon_key || "halloween_decorations"] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
   const startTime = listing.halloween_start_time || listing.viewing_start_time || "";
   const endTime = listing.halloween_end_time || listing.viewing_end_time || "";
   const address = listing.display_address || listing.address_text || listing.addressText || listing.address || [listing.city, listing.state, listing.zip].filter(Boolean).join(", ");
