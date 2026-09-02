@@ -25,7 +25,7 @@ export default function MyListingActions({
 }) {
   const isOwner = getListingOwnerId(listing) === user?.id;
   const isHalloween = listing?.listingType === "halloween_spot";
-  const canEditListing = !isHalloween && (isOwner || listing?._residential_access_role === "household_cohost");
+  const canEditListing = isOwner || listing?._residential_access_role === "household_cohost";
   const canBuyEventAddOns = isOwner && listing?.listingType === "event" && !isEffectivelyPastListing(listing);
 
   return (
