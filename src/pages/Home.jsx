@@ -98,10 +98,10 @@ function buildPinSvg(fill, stroke, strokeWidth, size, opacity = 1) {
 
 // Pin icon cache
 const iconCache = {};
-function getCachedIcon(key, url, size) {
+function getCachedIcon(key, url, size, square = false) {
   if (!iconCache[key]) {
     const w = size;
-    const h = Math.round(size * 1.33);
+    const h = square ? size : Math.round(size * 1.33);
     iconCache[key] = new L.Icon({
       iconUrl: url,
       iconSize: [w, h],
@@ -173,7 +173,7 @@ const createIcon = (type, tier, isSelected, location) => {
     const halloweenSize = getHalloweenSpotMapSize(halloweenListing, isSelected);
     const iconUrl = getHalloweenSpotIconUrl(halloweenListing);
     const key = `halloween_${iconUrl}_${isSelected ? "selected" : "default"}`;
-    return getCachedIcon(key, iconUrl, halloweenSize);
+    return getCachedIcon(key, iconUrl, halloweenSize, true);
   } else if (type === "holiday_lights") {
     const isGlowing = location &&
     location.display_active &&
