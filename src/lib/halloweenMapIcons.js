@@ -20,7 +20,7 @@ export function getHalloweenSpotIconUrl(listing, now = new Date()) {
 
   const teaserUntil = listing?.teaser_until ? new Date(listing.teaser_until) : null;
   const teaserExpired = teaserUntil && !Number.isNaN(teaserUntil.getTime()) && now > teaserUntil;
-  if (listing?.custom_icon_url && !teaserExpired) return listing.custom_icon_url;
+  if (listing?.custom_icon_url && (listing?.halloween_demo_force_live === true || !teaserExpired)) return listing.custom_icon_url;
 
   const key = listing?.halloween_spot_type || listing?.halloween_icon_key || listing?.icon_key || listing?.seasonal_icon_key || "halloween_decorations";
   return HALLOWEEN_ICON_ASSETS[key] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
