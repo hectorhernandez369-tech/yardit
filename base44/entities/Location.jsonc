@@ -156,6 +156,121 @@
       "type": "number",
       "default": 0,
       "description": "Number of times map pin was clicked"
+    },
+    "owner_user_id": {
+      "type": "string",
+      "description": "Registered Yardit user ID that owns this seasonal location"
+    },
+    "ownership_claimed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "halloween_icon_key": {
+      "type": "string",
+      "enum": [
+        "halloween_decorations",
+        "haunted",
+        "trick_or_treat",
+        "trunk_or_treat",
+        "scary_yard",
+        "light_show",
+        "kid_friendly",
+        "no_candy_here",
+        "must_see",
+        "coming_oct_1"
+      ]
+    },
+    "halloween_spot_type": {
+      "type": "string",
+      "enum": [
+        "halloween_decorations",
+        "haunted",
+        "trick_or_treat",
+        "trunk_or_treat",
+        "scary_yard",
+        "light_show"
+      ]
+    },
+    "halloween_tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "kid_friendly",
+          "no_candy_here"
+        ]
+      }
+    },
+    "halloween_featured_badge": {
+      "type": "string",
+      "enum": [
+        "none",
+        "must_see"
+      ],
+      "default": "none"
+    },
+    "halloween_start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "halloween_end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "halloween_start_time": {
+      "type": "string"
+    },
+    "halloween_end_time": {
+      "type": "string"
+    },
+    "full_icon_activation_time": {
+      "type": "string"
+    },
+    "custom_icon_url": {
+      "type": "string"
+    },
+    "teaser_until": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "halloween_candy_available": {
+      "type": "boolean",
+      "default": false
+    },
+    "halloween_walkthrough": {
+      "type": "boolean",
+      "default": false
+    },
+    "halloween_lights": {
+      "type": "boolean",
+      "default": false
+    },
+    "halloween_sound": {
+      "type": "boolean",
+      "default": false
+    },
+    "halloween_jump_scares": {
+      "type": "boolean",
+      "default": false
+    },
+    "halloween_suggested_age": {
+      "type": "string"
+    },
+    "halloween_host_name": {
+      "type": "string",
+      "description": "Optional host or organization name for larger Halloween attractions/events"
+    },
+    "halloween_admission": {
+      "type": "string",
+      "description": "Optional admission/cost text"
+    },
+    "halloween_parking_notes": {
+      "type": "string",
+      "description": "Optional parking instructions"
+    },
+    "halloween_activities": {
+      "type": "string",
+      "description": "Optional activities, contests, games, food, vendors, or special attractions"
     }
   },
   "required": [
