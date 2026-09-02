@@ -11,7 +11,7 @@ import ReportModal from "@/components/ReportModal";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
-import { HALLOWEEN_ICON_ASSETS } from "@/lib/halloweenMapIcons";
+import { HALLOWEEN_PREVIEW_ICON_ASSETS } from "@/lib/halloweenMapIcons";
 import { getHalloweenSpotTypeLabel } from "@/lib/halloweenSpots";
 
 function formatDate(value) {
@@ -91,7 +91,7 @@ export default function HalloweenSpotDetail() {
   const listing = useMemo(() => toListingShape(spot), [spot]);
   const isHuntStop = listing ? huntStops.some((stop) => stop.id === listing.id) : false;
   const iconKey = spot?.halloween_spot_type || spot?.halloween_icon_key || "halloween_decorations";
-  const iconUrl = spot?.custom_icon_url || HALLOWEEN_ICON_ASSETS[iconKey] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
+  const iconUrl = HALLOWEEN_PREVIEW_ICON_ASSETS[iconKey] || HALLOWEEN_PREVIEW_ICON_ASSETS.halloween_decorations;
   const startDate = spot?.halloween_start_date || spot?.start_date_time;
   const endDate = spot?.halloween_end_date || spot?.end_date_time;
   const startTime = spot?.halloween_start_time || spot?.viewing_start_time;

@@ -14,7 +14,7 @@ import { AlertTriangle, ArrowLeft, CalendarDays, Candy, CheckCircle2, Clock3, Ex
 import { toast } from "sonner";
 import { getAdminSession } from "@/components/admin/AdminLoginModal";
 import AdminLoginModal from "@/components/admin/AdminLoginModal";
-import { HALLOWEEN_ICON_ASSETS } from "@/lib/halloweenMapIcons";
+import { HALLOWEEN_PREVIEW_ICON_ASSETS } from "@/lib/halloweenMapIcons";
 import { getHalloweenSpotTypeLabel } from "@/lib/halloweenSpots";
 
 const SPOT_TYPES = [
@@ -223,7 +223,7 @@ export default function HalloweenAdmin() {
             <div className="max-h-[70vh] divide-y divide-white/10 overflow-y-auto">
               {loading ? <div className="p-8 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div> : filtered.length === 0 ? <div className="p-8 text-center text-purple-200">No Halloween Spots match these filters.</div> : filtered.map((spot) => {
                 const iconKey = spot.halloween_spot_type || spot.halloween_icon_key || "halloween_decorations";
-                const iconUrl = spot.custom_icon_url || HALLOWEEN_ICON_ASSETS[iconKey] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
+                const iconUrl = HALLOWEEN_PREVIEW_ICON_ASSETS[iconKey] || HALLOWEEN_PREVIEW_ICON_ASSETS.halloween_decorations;
                 const pendingClaim = reservations.some((r) => r.location_id === spot.id && r.status === "pending");
                 const reportCount = reports.filter((r) => r.location_id === spot.id || (r.target_type === "location" && r.listingId === spot.id)).length;
                 return <button key={spot.id} type="button" onClick={() => setSelectedId(spot.id)} className={`flex w-full items-center gap-3 p-3 text-left transition hover:bg-white/5 ${selectedId === spot.id ? "bg-orange-500/10 ring-1 ring-inset ring-orange-400/40" : ""}`}>
@@ -251,7 +251,7 @@ function SpotEditor({ spot, reservation, reportCount, saving, onPatch, onToggleM
   useEffect(() => setDraft({ ...spot, halloween_tags: spot.halloween_tags || [] }), [spot]);
   const candyPrimary = ["trick_or_treat", "trunk_or_treat"].includes(draft.halloween_spot_type || draft.halloween_icon_key);
   const iconKey = draft.halloween_spot_type || draft.halloween_icon_key || "halloween_decorations";
-  const iconUrl = draft.custom_icon_url || HALLOWEEN_ICON_ASSETS[iconKey] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
+  const iconUrl = HALLOWEEN_PREVIEW_ICON_ASSETS[iconKey] || HALLOWEEN_PREVIEW_ICON_ASSETS.halloween_decorations;
 
   const toggleTag = (tag) => setDraft((prev) => ({ ...prev, halloween_tags: (prev.halloween_tags || []).includes(tag) ? prev.halloween_tags.filter((item) => item !== tag) : [...(prev.halloween_tags || []), tag] }));
   const save = () => {

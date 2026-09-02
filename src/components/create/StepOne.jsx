@@ -10,6 +10,7 @@ import { X, Home, Users, Calendar, Lock, ChevronDown, ChevronUp, Sparkles, MapPi
 import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 import { RESIDENTIAL_CATEGORY_GROUPS } from "@/lib/residentialCategories";
+import { HALLOWEEN_PREVIEW_ICON_ASSETS } from "@/lib/halloweenMapIcons";
 
 // LAUNCH CONFIG: Temporarily lock non-residential listing types for Founding Seller Access
 const LOCKED_LISTING_TYPES = [];
@@ -36,12 +37,12 @@ const LOCKED_PREVIEW = {
 };
 
 const HALLOWEEN_ICON_OPTIONS = [
-  { value: "halloween_decorations", label: "Halloween Decorations", description: "A decorated home or yard with pumpkins, props, inflatables, lights, or general Halloween decor.", image: "/assets/halloween/halloween-decorations-diecut.svg" },
-  { value: "haunted", label: "Haunted House", description: "A scary or immersive stop with walkthroughs, actors, jump scares, or heavier horror themes.", image: "/assets/halloween/haunted-house-diecut.svg" },
-  { value: "trick_or_treat", label: "Trick-or-Treat", description: "A home or stop actively handing out candy to trick-or-treaters.", image: "/assets/halloween/trick-or-treat-diecut.svg" },
-  { value: "trunk_or_treat", label: "Trunk-or-Treat", description: "An organized candy stop at a church, school, business, parking lot, or decorated vehicle event.", image: "/assets/halloween/trunk-or-treat-diecut.svg" },
-  { value: "scary_yard", label: "Scary Yard", description: "An outdoor setup focused on graveyards, monsters, animatronics, or spooky yard scenes.", image: "/assets/halloween/scary-yard-diecut.svg" },
-  { value: "light_show", label: "Light Show", description: "A Halloween display centered on synchronized lights, projections, music, or animated lighting effects.", image: "/assets/halloween/light-show-diecut.svg" },
+  { value: "halloween_decorations", label: "Halloween Decorations", description: "A decorated home or yard with pumpkins, props, inflatables, lights, or general Halloween decor.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.halloween_decorations },
+  { value: "haunted", label: "Haunted House", description: "A scary or immersive stop with walkthroughs, actors, jump scares, or heavier horror themes.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.haunted },
+  { value: "trick_or_treat", label: "Trick-or-Treat", description: "A home or stop actively handing out candy to trick-or-treaters.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.trick_or_treat },
+  { value: "trunk_or_treat", label: "Trunk-or-Treat", description: "An organized candy stop at a church, school, business, parking lot, or decorated vehicle event.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.trunk_or_treat },
+  { value: "scary_yard", label: "Scary Yard", description: "An outdoor setup focused on graveyards, monsters, animatronics, or spooky yard scenes.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.scary_yard },
+  { value: "light_show", label: "Light Show", description: "A Halloween display centered on synchronized lights, projections, music, or animated lighting effects.", image: HALLOWEEN_PREVIEW_ICON_ASSETS.light_show },
 ];
 
 const LISTING_TYPES = [
@@ -256,9 +257,12 @@ export default function StepOne({ formData, setFormData }) {
                 <SelectLabel>Halloween Icons</SelectLabel>
                 {HALLOWEEN_ICON_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    <div className="py-1">
-                      <div className="text-sm font-semibold">{option.label}</div>
-                      <div className="max-w-[280px] whitespace-normal text-[11px] leading-snug text-slate-500">{option.description}</div>
+                    <div className="flex items-center gap-2 py-1">
+                      <img src={option.image} alt="" className="h-9 w-9 shrink-0 object-contain" />
+                      <div>
+                        <div className="text-sm font-semibold">{option.label}</div>
+                        <div className="max-w-[240px] whitespace-normal text-[11px] leading-snug text-slate-500">{option.description}</div>
+                      </div>
                     </div>
                   </SelectItem>
                 ))}
@@ -274,7 +278,7 @@ export default function StepOne({ formData, setFormData }) {
                 <div>
                   <p className="text-sm font-bold text-purple-950">{selectedIcon.label}</p>
                   <p className="text-xs leading-snug text-slate-600">{selectedIcon.description}</p>
-                  <p className="mt-1 text-[11px] text-slate-400">This is the icon shoppers will see after the spot activates.</p>
+                  <p className="mt-1 text-[11px] text-slate-400">Preview artwork; the map uses a visibility-optimized pin.</p>
                 </div>
               </div>
             ) : null;
