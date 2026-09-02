@@ -11,6 +11,7 @@ import { Map } from "lucide-react";
 import { format } from "date-fns";
 
 import EditListingDialog from "@/components/listing/EditListingDialog";
+import HalloweenOwnerEditDialog from "@/components/listing/HalloweenOwnerEditDialog";
 import { toast } from "sonner";
 import { getListingDisplayStatus } from "@/components/listing/listingDisplay";
 import { normalizeNeighborhoodJoinStatus, deriveNeighborhoodEventState, isWithinParticipationWindow } from "@/lib/neighborhoodSaleState";
@@ -44,6 +45,7 @@ export default function MyListingsPage() {
 
   // Edit modal state — passed to EditListingDialog
   const [editingListing, setEditingListing] = useState(null);
+  const [editingHalloweenSpot, setEditingHalloweenSpot] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editCategories, setEditCategories] = useState([]);
@@ -448,6 +450,10 @@ export default function MyListingsPage() {
   };
 
   const openEditDescription = async (listing) => {
+    if (listing?.listingType === "halloween_spot" && listing?._sourceEntity === "Location") {
+      setEditingHalloweenSpot(listing);
+      return;
+    }
     setIconPickerOpen(false);
     const latestListing = await refreshEditingListing(listing.id);
     setEditTitle(latestListing?.title || latestListing?.event_name || "");
@@ -919,6 +925,17 @@ export default function MyListingsPage() {
       </div>
 
       <YardSaleGuideModal open={showGuideModal} onOpenChange={setShowGuideModal} />
+      <HalloweenOwnerEditDialog
+        open={!!editingHalloweenSpot}
+        spot={editingHalloweenSpot}
+        user={user}
+        onClose={() => setEditingHalloweenSpot(null)}
+        onSaved={async () => {
+          await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+          await queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
+          await queryClient.invalidateQueries({ queryKey: ["publicMapData"] });
+        }}
+      />
 
       {/* Edit modal — extracted to EditListingDialog.jsx */}
       <EditListingDialog
