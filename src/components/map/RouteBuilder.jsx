@@ -75,7 +75,7 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
         {/* Ship Watermark */}
         <div 
           className="absolute inset-0 pointer-events-none bg-center bg-no-repeat bg-contain z-0" 
-          style={{ opacity: 0.15, backgroundImage: 'url("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/35a6d7a95_file_0000000064207230a0f42d2fdbc76271.png")' }}
+          style={{ opacity: 0.15, backgroundImage: 'url("/assets/hunt/yardit-treasure-map.png")' }}
         />
         <div className="relative z-10">
           <CardContent className="p-4 text-center">
@@ -170,7 +170,7 @@ export default function RouteBuilder({ selectedLocations, onRemoveLocation, onCl
       {/* Ship Watermark */}
       <div 
         className="absolute inset-0 pointer-events-none bg-center bg-no-repeat bg-contain z-0" 
-        style={{ opacity: 0.08, backgroundImage: 'url("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690f554506edf795e5d84121/35a6d7a95_file_0000000064207230a0f42d2fdbc76271.png")' }}
+        style={{ opacity: 0.08, backgroundImage: 'url("/assets/hunt/yardit-treasure-map.png")' }}
       />
       
       {/* Content wrapper with z-index to stay above watermark */}
