@@ -54,8 +54,10 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
 
   const save = async () => {
     if (!draft.title?.trim()) return toast.error("Add a Halloween Spot title.");
-    if (!draft.halloween_start_date || !draft.halloween_end_date) return toast.error("Choose the start and end dates.");
-    if (draft.halloween_end_date < draft.halloween_start_date) return toast.error("End date must be after the start date.");
+    const effectiveStartDate = isTrickOrTreat ? trickOrTreatDate : draft.halloween_start_date;
+    const effectiveEndDate = isTrickOrTreat ? trickOrTreatDate : draft.halloween_end_date;
+    if (!effectiveStartDate || !effectiveEndDate) return toast.error("Choose the start and end dates.");
+    if (effectiveEndDate < effectiveStartDate) return toast.error("End date must be after the start date.");
     if (!draft.halloween_start_time || !draft.halloween_end_time) return toast.error("Choose the start and end times.");
     if (draft.halloween_end_time <= draft.halloween_start_time) return toast.error("End time must be after the start time.");
 
@@ -83,8 +85,8 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
         halloween_sound: draft.halloween_sound === true,
         halloween_jump_scares: draft.halloween_jump_scares === true,
         halloween_suggested_age: draft.halloween_suggested_age || "",
-        halloween_start_date: draft.halloween_start_date,
-        halloween_end_date: draft.halloween_end_date,
+        halloween_start_date: effectiveStartDate,
+        halloween_end_date: effectiveEndDate,
         halloween_start_time: draft.halloween_start_time,
         halloween_end_time: draft.halloween_end_time,
         viewing_start_time: draft.halloween_start_time,
