@@ -2,6 +2,8 @@ import { isHalloweenFullIconActive } from "@/lib/halloweenSpots";
 
 export const HALLOWEEN_DAYTIME_ICON = "/assets/halloween/daytime-pumpkin.svg";
 
+const SPONSORED_HALLOWEEN_LOCATION_IDS = new Set(["6a905d6300f9f756bb52f257"]);
+
 export const HALLOWEEN_ICON_ASSETS = {
   halloween_decorations: "/assets/halloween/halloween-decorations-diecut.svg",
   haunted: "/assets/halloween/haunted-house-diecut.svg",
@@ -30,7 +32,8 @@ export function getHalloweenSpotMapSize(listing, isSelected = false, now = new D
   const isFullIcon = isHalloweenFullIconActive(listing, now);
   const baseSize = isFullIcon ? (isSelected ? 38 : 34) : (isSelected ? 22 : 18);
   const zoomGrowth = Math.max(0, Math.min(4, Number(zoom) - 13));
-  return baseSize + zoomGrowth * (isFullIcon ? 5 : 3);
+  const sponsoredBoost = SPONSORED_HALLOWEEN_LOCATION_IDS.has(String(listing?.id)) ? 12 : 0;
+  return baseSize + zoomGrowth * (isFullIcon ? 5 : 3) + sponsoredBoost;
 }
 
 function projectToMapPixels(lat, lng, zoom) {
