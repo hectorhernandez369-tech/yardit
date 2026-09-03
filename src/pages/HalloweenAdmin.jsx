@@ -155,7 +155,7 @@ export default function HalloweenAdmin() {
 
   const toggleSuspended = async (spot) => {
     const next = spot.status === "suspended" ? "active" : "suspended";
-    await patchSpot(spot.id, { status: next }, next === "suspended" ? "Halloween Spot suspended" : "Halloween Spot restored");
+    await patchSpot(spot.id, { status: next }, next === "suspended" ? "Halloween Spot removed from map" : "Halloween Spot restored to map");
   };
 
   const saveReservation = async () => {
@@ -282,7 +282,7 @@ function SpotEditor({ spot, reservation, reportCount, saving, onPatch, onToggleM
   return <div className="space-y-4">
     <div className="flex items-start gap-3"><div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-orange-300/30 bg-black/20"><img src={iconUrl} alt="" className="h-16 w-16 object-contain" /></div><div className="min-w-0"><div className="flex flex-wrap gap-1.5">{spot.halloween_featured_badge === "must_see" && <Badge className="bg-yellow-500 text-black"><Star className="mr-1 h-3 w-3" />Yardit Must See</Badge>}<Badge className={spot.status === "suspended" ? "bg-red-600" : "bg-green-600"}>{spot.status || "active"}</Badge>{reportCount > 0 && <Badge className="bg-orange-600">{reportCount} report{reportCount === 1 ? "" : "s"}</Badge>}</div><p className="mt-2 break-all font-mono text-[10px] text-slate-400">{spot.id}</p><p className="mt-1 text-xs text-purple-200">{displayAddress(spot)}</p></div></div>
 
-    <div className="grid grid-cols-2 gap-2"><Button onClick={onToggleMustSee} disabled={saving} className={spot.halloween_featured_badge === "must_see" ? "bg-yellow-500 text-black hover:bg-yellow-400" : "bg-purple-800 hover:bg-purple-700"}><Star className="mr-1 h-4 w-4" />{spot.halloween_featured_badge === "must_see" ? "Remove Must See" : "Award Must See"}</Button><Button onClick={onToggleSuspended} disabled={saving} variant="outline" className={spot.status === "suspended" ? "border-green-400/40 bg-green-500/10 text-green-100" : "border-red-400/40 bg-red-500/10 text-red-100"}>{spot.status === "suspended" ? <CheckCircle2 className="mr-1 h-4 w-4" /> : <XCircle className="mr-1 h-4 w-4" />}{spot.status === "suspended" ? "Restore" : "Suspend"}</Button></div>
+    <div className="grid grid-cols-2 gap-2"><Button onClick={onToggleMustSee} disabled={saving} className={spot.halloween_featured_badge === "must_see" ? "bg-yellow-500 text-black hover:bg-yellow-400" : "bg-purple-800 hover:bg-purple-700"}><Star className="mr-1 h-4 w-4" />{spot.halloween_featured_badge === "must_see" ? "Remove Must See" : "Award Must See"}</Button><Button onClick={onToggleSuspended} disabled={saving} variant="outline" className={spot.status === "suspended" ? "border-green-400/40 bg-green-500/10 text-green-100" : "border-red-400/40 bg-red-500/10 text-red-100"}>{spot.status === "suspended" ? <CheckCircle2 className="mr-1 h-4 w-4" /> : <XCircle className="mr-1 h-4 w-4" />}{spot.status === "suspended" ? "Restore to Map" : "Remove from Map"}</Button></div>
 
     <div className="space-y-2"><Label className="text-purple-100">Title</Label><Input value={draft.title || ""} onChange={(e) => setDraft((prev) => ({ ...prev, title: e.target.value }))} className="border-white/10 bg-black/20 text-white" /><Label className="text-purple-100">Description</Label><Textarea value={draft.description || ""} onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))} rows={3} className="border-white/10 bg-black/20 text-white" /></div>
 
