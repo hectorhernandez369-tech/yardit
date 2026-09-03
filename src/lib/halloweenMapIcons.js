@@ -32,8 +32,8 @@ export function getHalloweenSpotMapSize(listing, isSelected = false, now = new D
   const isFullIcon = isHalloweenFullIconActive(listing, now);
   const baseSize = isFullIcon ? (isSelected ? 38 : 34) : (isSelected ? 22 : 18);
   const zoomGrowth = Math.max(0, Math.min(4, Number(zoom) - 13));
-  const sponsoredBoost = SPONSORED_HALLOWEEN_LOCATION_IDS.has(String(listing?.id)) ? 12 : 0;
-  return baseSize + zoomGrowth * (isFullIcon ? 5 : 3) + sponsoredBoost;
+  const size = baseSize + zoomGrowth * (isFullIcon ? 5 : 3);
+  return SPONSORED_HALLOWEEN_LOCATION_IDS.has(String(listing?.id)) ? size * 1.5 : size;
 }
 
 function projectToMapPixels(lat, lng, zoom) {
