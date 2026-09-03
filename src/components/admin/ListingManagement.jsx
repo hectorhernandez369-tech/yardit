@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Calendar, MapPin, Plus, QrCode, AlertTriangle, Star } from "lucide-react";
+import { Search, Calendar, MapPin, Plus, QrCode, AlertTriangle, Star, Ghost } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import PromotionModal from "./promotions/PromotionModal";
@@ -72,6 +72,12 @@ export default function ListingManagement({ mode, adminUser }) {
     initialData: [],
   });
 
+  const { data: halloweenLocations } = useQuery({
+    queryKey: ["adminHalloweenLocations"],
+    queryFn: () => base44.entities.Location.filter({ type: "halloween_candy" }, "-created_date"),
+    initialData: [],
+  });
+
   const { data: users } = useQuery({
     queryKey: ["listingOwners"],
     queryFn: () => base44.entities.User.list(),
@@ -99,8 +105,12 @@ export default function ListingManagement({ mode, adminUser }) {
   }, [users]);
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, ownerUserId, status, reason, title, listingType, startDateTime, endDateTime, event_state }) => {
-      await base44.entities.Listing.update(id, { status, statusReason: reason });
+    mutationFn: async ({ id, ownerUserId, status, reason, title, listingType, startDateTime, endDateTime, event_state, sourceEntity }) => {
+      if (sourceEntity === "Location") {
+        await base44.entities.Location.update(id, { status, statusReason: reason });
+      } else {
+        await base44.entities.Listing.update(id, { status, statusReason: reason });
+      }
       
       if (listingType === "neighborhood_sale") {
         await base44.functions.invoke("syncNeighborhoodDeadlineJobs", {
@@ -133,7 +143,7 @@ export default function ListingManagement({ mode, adminUser }) {
         type: notifType,
         title: notifTitle,
         message,
-        related_entity_type: "listing",
+        related_entity_type: sourceEntity === "Location" ? "location" : "listing",
         related_entity_id: id,
         is_read: false,
         read: false,
@@ -151,14 +161,34 @@ export default function ListingManagement({ mode, adminUser }) {
     onSuccess: () => {
       toast.success("Listing status updated");
       queryClient.invalidateQueries({ queryKey: ["allListings"] });
+      queryClient.invalidateQueries({ queryKey: ["adminHalloweenLocations"] });
+      queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
+      queryClient.invalidateQueries({ queryKey: ["publicMapData"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 
-  const normalizedListings = listings.map((listing) => ({
-    ...listing,
-    displayStatus: getListingDisplayStatus(listing),
-  }));
+  const normalizedListings = [
+    ...listings.map((listing) => ({
+      ...listing,
+      displayStatus: getListingDisplayStatus(listing),
+      _sourceEntity: "Listing",
+    })),
+    ...halloweenLocations.map((spot) => ({
+      ...spot,
+      _sourceEntity: "Location",
+      listingType: "halloween_spot",
+      ownerUserId: spot.owner_user_id || spot.created_by_id || null,
+      title: spot.title || spot.display_title || "Halloween Spot",
+      display_address: spot.address || [spot.street_address, spot.city, spot.state, spot.zip_code].filter(Boolean).join(", "),
+      addressText: spot.address || [spot.street_address, spot.city, spot.state, spot.zip_code].filter(Boolean).join(", "),
+      startDateTime: spot.start_date_time || spot.halloween_start_date,
+      endDateTime: spot.end_date_time || spot.halloween_end_date,
+      tier: "halloween",
+      displayStatus: spot.status || "active",
+      _isHalloween: true,
+    })),
+  ]; 
 
   const filteredListings = normalizedListings.filter((listing) => {
     // Mode filtering: residential excludes vendor listing types
@@ -221,7 +251,13 @@ export default function ListingManagement({ mode, adminUser }) {
                       <Badge className={statusColors[listing.displayStatus] || "bg-gray-500"}>
                         {formatListingStatusLabel(listing.displayStatus)}
                       </Badge>
-                      <Badge variant="outline">{formatListingTierLabel(listing.tier)}</Badge>
+                      {listing._isHalloween ? (
+                        <Badge className="gap-1 border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-50">
+                          <Ghost className="h-3 w-3" /> Halloween
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">{formatListingTierLabel(listing.tier)}</Badge>
+                      )}
                     </div>
 
                     <div className="space-y-1.5 text-sm text-slate-600">
@@ -250,7 +286,7 @@ export default function ListingManagement({ mode, adminUser }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => navigate(createPageUrl("ListingDetail") + `?id=${listing.id}&from=admin-lite-listings`)}
+                      onClick={() => navigate(listing._isHalloween ? createPageUrl("HalloweenSpotDetail") + `?id=${listing.id}` : createPageUrl("ListingDetail") + `?id=${listing.id}&from=admin-lite-listings`)}
                     >
                       View More Details
                     </Button>
@@ -269,13 +305,15 @@ export default function ListingManagement({ mode, adminUser }) {
                         <AlertTriangle className="w-3.5 h-3.5" /> QR Missing
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      className="bg-purple-600 hover:bg-purple-700 text-white"
-                      onClick={() => setPromoListing(listing)}
-                    >
-                      PROMOTIONAL
-                    </Button>
+                    {!listing._isHalloween && (
+                      <Button
+                        size="sm"
+                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                        onClick={() => setPromoListing(listing)}
+                      >
+                        PROMOTIONAL
+                      </Button>
+                    )}
                     <Select
                       value={listing.status}
                       onValueChange={(value) =>
@@ -288,7 +326,8 @@ export default function ListingManagement({ mode, adminUser }) {
                           listingType: listing.listingType,
                           startDateTime: listing.startDateTime,
                           endDateTime: listing.endDateTime,
-                          event_state: listing.event_state
+                          event_state: listing.event_state,
+                          sourceEntity: listing._sourceEntity
                         })
                       }
                     >
