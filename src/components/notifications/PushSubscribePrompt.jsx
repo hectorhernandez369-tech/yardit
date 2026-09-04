@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Bell, Loader2 } from "lucide-react";
+import { Bell, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { afterSetupPromptKey, declinedPromptKey, enablePushPromptSubscription, evaluatePushPromptEligibility, lastPushErrorKey, logPushPromptDecision, syncGrantedPushSubscription } from "@/lib/pushPromptActions";
+import { isPlayStoreWebWrapper } from "@/lib/webPushHandoff";
 
 const sessionPromptKey = (userId) => `yardit_push_prompt_session_${userId}`;
 const openingCountKey = (userId) => `yardit_push_prompt_opening_count_${userId}`;
@@ -21,6 +22,7 @@ export default function PushSubscribePrompt({ user }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const playWrapper = isPlayStoreWebWrapper();
 
   useEffect(() => {
     if (!user?.id) return undefined;
@@ -51,16 +53,11 @@ export default function PushSubscribePrompt({ user }) {
       requestPrompt("account_setup_complete");
     } else if (sessionStorage.getItem(sessionPromptKey(user.id)) !== "true") {
       sessionStorage.setItem(sessionPromptKey(user.id), "true");
-
       const previousCount = Number.parseInt(localStorage.getItem(openingCountKey(user.id)) || "0", 10);
       const openingCount = Number.isFinite(previousCount) ? previousCount + 1 : 1;
       localStorage.setItem(openingCountKey(user.id), String(openingCount));
-
-      if (openingCount % 2 === 1) {
-        timers.push(setTimeout(() => requestPrompt("every_other_opening"), 1200));
-      } else {
-        logPushPromptDecision(user, "every_other_opening_skipped", { openingCount });
-      }
+      if (openingCount % 2 === 1) timers.push(setTimeout(() => requestPrompt("every_other_opening"), 1200));
+      else logPushPromptDecision(user, "every_other_opening_skipped", { openingCount });
     }
 
     const handleAccountSetupComplete = (event) => {
@@ -86,6 +83,7 @@ export default function PushSubscribePrompt({ user }) {
     try {
       const result = await enablePushPromptSubscription(user);
       if (result.status === "enabled" && result.subscriptionId) setOpen(false);
+      else if (result.status === "web_handoff") setOpen(false);
       else setError(errorText(result.status));
     } catch (err) {
       localStorage.setItem(lastPushErrorKey(user.id), err?.message || "subscription_failed");
@@ -102,11 +100,19 @@ export default function PushSubscribePrompt({ user }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-black text-[#2C4F4E]"><Bell className="h-5 w-5 text-[#F4A849]" /> Enable Yardit alerts?</DialogTitle>
         </DialogHeader>
-        <p className="text-sm leading-6 text-slate-700">Get timely listing updates, account alerts, and important Yardit notices on this device.</p>
+        <p className="text-sm leading-6 text-slate-700">
+          {playWrapper
+            ? "Yardit will open the web notification setup in your browser so you can allow alerts there. After you finish, return to Yardit."
+            : "Get timely listing updates, account alerts, and important Yardit notices on this device."}
+        </p>
         {error && <p className="rounded-2xl bg-white/70 p-3 text-sm font-semibold text-[#2C4F4E]">{error}</p>}
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button variant="outline" onClick={handleDecline} disabled={busy} className="border-[#2C4F4E]/30">No thanks</Button>
-          <Button onClick={handleSubscribe} disabled={busy} className="bg-[#F4A849] font-black text-[#2C4F4E] hover:bg-[#E39635]">{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Subscribe</Button>
+          <Button onClick={handleSubscribe} disabled={busy} className="bg-[#F4A849] font-black text-[#2C4F4E] hover:bg-[#E39635]">
+            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {playWrapper && !busy && <ExternalLink className="mr-2 h-4 w-4" />}
+            {playWrapper ? "Open Web Setup" : "Subscribe"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
