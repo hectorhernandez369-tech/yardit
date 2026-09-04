@@ -1,5 +1,7 @@
+import { base44 } from "@/api/base44Client";
+
 const PLAY_WRAPPER_KEY = "yardit_play_wrapper_detected_v1";
-const WEB_PUSH_SETUP_URL = "https://yardit.app/Notifications?tab=settings&pushSetup=1";
+const WEB_PUSH_SETUP_URL = "https://yardit.app/PushSetup";
 
 function rememberWrapper() {
   try {
@@ -10,16 +12,13 @@ function rememberWrapper() {
 
 export function isPlayStoreWebWrapper() {
   if (typeof window === "undefined" || typeof navigator === "undefined") return false;
-
   const androidReferrer = document.referrer?.startsWith("android-app://");
   const userAgent = navigator.userAgent || "";
   const androidWebView = /Android/i.test(userAgent) && (/;\s*wv\)/i.test(userAgent) || /\bwv\b/i.test(userAgent));
-
   if (androidReferrer || androidWebView) {
     rememberWrapper();
     return true;
   }
-
   try {
     return sessionStorage.getItem(PLAY_WRAPPER_KEY) === "true" || localStorage.getItem(PLAY_WRAPPER_KEY) === "true";
   } catch {
@@ -27,29 +26,27 @@ export function isPlayStoreWebWrapper() {
   }
 }
 
-export function getWebPushSetupUrl() {
-  return WEB_PUSH_SETUP_URL;
+export function getWebPushSetupUrl(token) {
+  return `${WEB_PUSH_SETUP_URL}?token=${encodeURIComponent(token)}`;
 }
 
-export function openWebPushSetup() {
+export async function openWebPushSetup() {
   if (typeof window === "undefined") return false;
-
-  const url = getWebPushSetupUrl();
+  const browserWindow = window.open("about:blank", "_blank");
   try {
-    const link = document.createElement("a");
-    link.href = url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer external";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    const response = await base44.functions.invoke("pushSetupHandoff", { action: "create" });
+    const token = response?.data?.token;
+    if (!token) throw new Error("Push setup link could not be created");
+    const url = getWebPushSetupUrl(token);
+    if (browserWindow) {
+      browserWindow.opener = null;
+      browserWindow.location.replace(url);
+    } else {
+      window.location.assign(url);
+    }
     return true;
   } catch {
-    try {
-      window.open(url, "_blank", "noopener,noreferrer");
-      return true;
-    } catch {
-      return false;
-    }
+    browserWindow?.close();
+    return false;
   }
 }

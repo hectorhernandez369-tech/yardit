@@ -37,6 +37,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import CommunityGuidelines from './pages/CommunityGuidelines';
 import InstallYardit from './pages/InstallYardit';
+import PushSetup from './pages/PushSetup';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import YarditSplashScreen from '@/components/install/YarditSplashScreen';
@@ -80,6 +81,7 @@ const AuthenticatedApp = () => {
       {AdminPage && <Route path="/AdminLite" element={<LayoutWrapper currentPageName="AdminLite"><AdminPage /></LayoutWrapper>} />}
       <Route path="/install" element={<InstallYardit />} />
       <Route path="/InstallYardit" element={<InstallYardit />} />
+      <Route path="/PushSetup" element={<PushSetup />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/community-guidelines" element={<CommunityGuidelines />} />
@@ -98,6 +100,7 @@ const AuthenticatedApp = () => {
     {Object.entries(Pages).map(([path, Page]) => <Route key={path} path={`/${path}`} element={<LayoutWrapper currentPageName={path}><Page /></LayoutWrapper>} />)}
     <Route path="/install" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
     <Route path="/InstallYardit" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
+    <Route path="/PushSetup" element={<PushSetup />} />
     <Route path="/VendorDashboard" element={<YarditEventsShell><VendorDashboard /></YarditEventsShell>} />
     <Route path="/VendorSignup" element={<YarditEventsShell><VendorSignupGate><VendorSignup /></VendorSignupGate></YarditEventsShell>} />
     <Route path="/VendorSetup" element={<YarditEventsShell><VendorSignupGate><VendorSetup /></VendorSignupGate></YarditEventsShell>} />

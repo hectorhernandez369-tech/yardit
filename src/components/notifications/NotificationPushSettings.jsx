@@ -97,7 +97,9 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
     }
 
     if (playWrapper) {
-      const opened = openWebPushSetup();
+      setEnabling(true);
+      const opened = await openWebPushSetup();
+      setEnabling(false);
       if (opened) toast.message("Allow notifications in the browser to finish setup.");
       else toast.error("Could not open Yardit in your browser.");
       return false;

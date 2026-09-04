@@ -74,7 +74,7 @@ export async function syncGrantedPushSubscription(user) {
 
 export async function enablePushPromptSubscription(user) {
   if (isPlayStoreWebWrapper()) {
-    const opened = openWebPushSetup();
+    const opened = await openWebPushSetup();
     return { status: opened ? "web_handoff" : "unsupported", subscriptionId: "" };
   }
 
