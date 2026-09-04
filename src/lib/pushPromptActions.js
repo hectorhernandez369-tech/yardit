@@ -1,5 +1,6 @@
 import { base44 } from "@/api/base44Client";
 import { canStorePushStatus, enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId } from "@/lib/pushNotifications";
+import { isPlayStoreWebWrapper, openWebPushSetup } from "@/lib/webPushHandoff";
 
 const DEFAULT_PREFS = {
   push_enabled: true,
@@ -40,16 +41,20 @@ export async function evaluatePushPromptEligibility(user) {
   if (!user?.id) return { show: false, reason: "missing_user" };
   if (localStorage.getItem(declinedPromptKey(user.id)) === "true") return { show: false, reason: "declined_flag" };
 
+  const [preference] = await base44.entities.NotificationPreference.filter({ user_id: user.id });
+  const [subscription] = await base44.entities.PushSubscription.filter({ user_id: user.id });
+  const alreadySubscribed = preference?.push_enabled === true && subscription?.permission_status === "enabled" && subscription?.is_active === true && subscription?.onesignal_subscription_id;
+  if (alreadySubscribed) return { show: false, reason: "already_subscribed", subscriptionId: subscription.onesignal_subscription_id };
+
+  if (isPlayStoreWebWrapper()) {
+    return { show: true, reason: "play_wrapper_web_handoff", browserStatus: "web_handoff" };
+  }
+
   const browserStatus = getBrowserPushStatus();
   if (["blocked", "unsupported", "needs_install", "service_worker_not_ready"].includes(browserStatus)) return { show: false, reason: browserStatus, browserStatus };
   if (browserStatus === "onesignal_not_ready") return { show: false, reason: "onesignal_not_ready", browserStatus, retryable: true };
 
   const runtimeSubscriptionId = await getOneSignalSubscriptionId();
-  const [preference] = await base44.entities.NotificationPreference.filter({ user_id: user.id });
-  const [subscription] = await base44.entities.PushSubscription.filter({ user_id: user.id });
-  const alreadySubscribed = preference?.push_enabled === true && subscription?.permission_status === "enabled" && subscription?.is_active === true && subscription?.onesignal_subscription_id;
-  if (alreadySubscribed) return { show: false, reason: "already_subscribed", browserStatus, subscriptionId: subscription.onesignal_subscription_id || runtimeSubscriptionId };
-
   return { show: true, reason: browserStatus === "enabled" ? "eligible_permission_granted" : "eligible", browserStatus, subscriptionId: runtimeSubscriptionId };
 }
 
@@ -59,6 +64,7 @@ export async function shouldShowPushPrompt(user) {
 }
 
 export async function syncGrantedPushSubscription(user) {
+  if (isPlayStoreWebWrapper()) return { status: "web_handoff", subscriptionId: "", synced: false };
   if (!user?.id || typeof window === "undefined" || !("Notification" in window) || window.Notification.permission !== "granted") {
     return { status: "not_enabled", subscriptionId: "", synced: false };
   }
@@ -67,6 +73,11 @@ export async function syncGrantedPushSubscription(user) {
 }
 
 export async function enablePushPromptSubscription(user) {
+  if (isPlayStoreWebWrapper()) {
+    const opened = openWebPushSetup();
+    return { status: opened ? "web_handoff" : "unsupported", subscriptionId: "" };
+  }
+
   const result = await enableOneSignalPush({ userId: user.id });
   const subscriptionId = result.subscriptionId || await getOneSignalSubscriptionId();
 
