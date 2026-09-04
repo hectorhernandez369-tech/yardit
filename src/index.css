@@ -446,6 +446,21 @@ button:focus-visible {
   }
 }
 
+/* Keep all touch/mobile app screens below the device status bar. */
+@media (hover: none) and (pointer: coarse) {
+  .yardit-app-shell,
+  .yardit-events-shell {
+    padding-top: var(--yardit-safe-area-top);
+  }
+
+  .yardit-app-shell .sticky.top-0,
+  .yardit-app-shell .fixed.top-0,
+  .yardit-events-shell .sticky.top-0,
+  .yardit-events-shell .fixed.top-0 {
+    top: var(--yardit-safe-area-top) !important;
+  }
+}
+
 @keyframes yardit-promo-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.08); }
