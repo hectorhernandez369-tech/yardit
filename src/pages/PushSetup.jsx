@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { enableOneSignalPush, getOneSignalSubscriptionId } from "@/lib/pushNotifications";
+import { savePushSubscription } from "@/lib/savePushSubscription";
 import PushSetupCard from "@/components/notifications/PushSetupCard";
 
 export default function PushSetup() {
@@ -11,12 +12,15 @@ export default function PushSetup() {
   useEffect(() => {
     if (!token) { setStatus("invalid"); return; }
     base44.functions.invoke("pushSetupHandoff", { action: "validate", token })
-      .then((response) => setStatus(response?.data?.valid ? (Notification.permission === "denied" ? "blocked" : "ready") : "invalid"))
+      .then((response) => {
+        const blocked = typeof Notification !== "undefined" && Notification.permission === "denied";
+        setStatus(response?.data?.valid ? (blocked ? "blocked" : "ready") : "invalid");
+      })
       .catch(() => setStatus("invalid"));
   }, [token]);
 
   const enableNotifications = async () => {
-    if (Notification.permission === "denied") { setStatus("blocked"); return; }
+    if (typeof Notification !== "undefined" && Notification.permission === "denied") { setStatus("blocked"); return; }
     setBusy(true);
     const result = await enableOneSignalPush();
     const subscriptionId = result.subscriptionId || await getOneSignalSubscriptionId();
@@ -26,8 +30,8 @@ export default function PushSetup() {
       return;
     }
     try {
-      const response = await base44.functions.invoke("pushSetupHandoff", { action: "complete", token, subscriptionId, userAgent: navigator.userAgent });
-      setStatus(response?.data?.success ? "enabled" : "invalid");
+      const saved = await savePushSubscription({ subscriptionId, token });
+      setStatus(saved ? "enabled" : "invalid");
     } catch {
       setStatus("invalid");
     }

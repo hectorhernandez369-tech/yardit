@@ -14,26 +14,13 @@ requestAnimationFrame(() => {
   document.getElementById('yardit-initial-splash')?.remove();
 });
 
-if ('serviceWorker' in navigator) {
-  const oneSignalEnabled = Boolean(window.OneSignalDeferred);
-
-  if (import.meta.env.PROD && oneSignalEnabled) {
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((reg) => {
-        const activeScript = reg.active?.scriptURL || reg.waiting?.scriptURL || reg.installing?.scriptURL || '';
-        if (activeScript.endsWith('/sw.js')) reg.unregister();
-      });
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
+      const script = registration.active?.scriptURL || registration.waiting?.scriptURL || registration.installing?.scriptURL || '';
+      if (script.endsWith('/sw.js')) registration.unregister();
     });
-  } else if (import.meta.env.PROD && !oneSignalEnabled) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js');
-    });
-  } else if (!import.meta.env.PROD) {
-    // In dev mode, unregister any stale service workers to avoid caching issues
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((reg) => reg.unregister());
-    });
-  }
+  });
 }
 
 if (import.meta.hot) {

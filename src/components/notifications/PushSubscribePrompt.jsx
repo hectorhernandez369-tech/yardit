@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Bell, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { afterSetupPromptKey, declinedPromptKey, enablePushPromptSubscription, evaluatePushPromptEligibility, lastPushErrorKey, logPushPromptDecision, syncGrantedPushSubscription } from "@/lib/pushPromptActions";
+import { afterSetupPromptKey, declinedPromptKey, enablePushPromptSubscription, evaluatePushPromptEligibility, lastPushErrorKey, logPushPromptDecision } from "@/lib/pushPromptActions";
 import { isPlayStoreWebWrapper } from "@/lib/webPushHandoff";
 
 const sessionPromptKey = (userId) => `yardit_push_prompt_session_${userId}`;
@@ -10,7 +10,7 @@ const openingCountKey = (userId) => `yardit_push_prompt_opening_count_${userId}`
 
 const errorText = (status) => {
   if (status === "needs_install") return "Install Yardit to your Home Screen first, then open the installed app to enable push notifications.";
-  if (status === "blocked") return "Notifications are blocked in your browser or device settings.";
+  if (status === "blocked") return "Notifications were previously blocked. Open this browser’s site settings, allow notifications for Yardit, then return and try again.";
   if (status === "unsupported") return "Push notifications are not supported by this browser or device.";
   if (status === "onesignal_not_ready") return "The push service is still loading. Please wait a moment and try again.";
   if (status === "service_worker_not_ready") return "Preparing notifications, please try again in a moment.";
@@ -44,10 +44,6 @@ export default function PushSubscribePrompt({ user }) {
         sessionStorage.removeItem(afterSetupPromptKey(user.id));
       }
     };
-
-    syncGrantedPushSubscription(user).then((result) => {
-      if (active) logPushPromptDecision(user, "subscription_sync", result);
-    }).catch(() => {});
 
     if (sessionStorage.getItem(afterSetupPromptKey(user.id)) === "true") {
       requestPrompt("account_setup_complete");
@@ -111,7 +107,7 @@ export default function PushSubscribePrompt({ user }) {
           <Button onClick={handleSubscribe} disabled={busy} className="bg-[#F4A849] font-black text-[#2C4F4E] hover:bg-[#E39635]">
             {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {playWrapper && !busy && <ExternalLink className="mr-2 h-4 w-4" />}
-            {playWrapper ? "Open Web Setup" : "Subscribe"}
+            Enable Notifications
           </Button>
         </div>
       </DialogContent>

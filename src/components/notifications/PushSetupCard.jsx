@@ -19,7 +19,7 @@ export default function PushSetupCard({ status, busy, onEnable }) {
     </> : <>
       <Bell className="mx-auto mb-3 h-10 w-10 text-[#2C4F4E]" />
       <h1 className="text-2xl font-black text-[#2C4F4E]">Enable Yardit Notifications</h1>
-      <p className="mt-3 text-sm leading-6 text-slate-600">Tap below, then choose Allow when your browser asks.</p>
+      <p className="mt-3 text-sm leading-6 text-slate-600">Tap Enable Notifications, then choose Allow when your browser asks.</p>
       {blocked && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-900">Notifications are blocked. Allow Yardit notifications in this browser’s site settings, then try again.</p>}
       {status === "error" && <p className="mt-4 text-sm font-semibold text-red-700">Notifications could not be enabled. Please try again.</p>}
       <Button onClick={onEnable} disabled={busy || status === "validating" || blocked} className="mt-6 w-full bg-[#F4A849] py-6 text-base font-black text-[#2C4F4E] hover:bg-[#E39635]">
