@@ -33,13 +33,25 @@ export async function findValidPushSetupHandoff(base44, token) {
   return handoff;
 }
 
+function isAndroidWebViewUserAgent(userAgent = '') {
+  const ua = String(userAgent || '').toLowerCase();
+  return /;\s*wv\)/i.test(userAgent) || ua.includes(' version/4.0 chrome/') && ua.includes('; wv)');
+}
+
 export async function savePushSubscriptionForUser(base44, userId, subscriptionId, userAgent) {
   const now = new Date().toISOString();
+
+  if (isAndroidWebViewUserAgent(userAgent)) {
+    throw new Error('Push setup must be completed in the external browser, not inside the Play Store wrapper.');
+  }
+
   const [userSubscriptions, matchingSubscriptions] = await Promise.all([
     base44.asServiceRole.entities.PushSubscription.filter({ user_id: userId }),
     base44.asServiceRole.entities.PushSubscription.filter({ onesignal_subscription_id: subscriptionId }),
   ]);
-  const target = matchingSubscriptions.find((item) => item.user_id === userId) || userSubscriptions[0] || matchingSubscriptions[0];
+
+  const exactUserMatch = matchingSubscriptions.find((item) => item.user_id === userId);
+  const target = exactUserMatch || matchingSubscriptions[0] || null;
   const subscriptionData = {
     user_id: userId,
     onesignal_subscription_id: subscriptionId,
