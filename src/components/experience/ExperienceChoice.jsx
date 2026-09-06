@@ -1,9 +1,13 @@
 import React from "react";
-import { CalendarDays, Home, Store } from "lucide-react";
+import { CalendarDays, Download, Home, Store } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { EVENTS_EXPERIENCE_AVAILABLE, RESIDENTIAL_EXPERIENCE, setPendingExperience, YARDIT_EVENTS_LOGO_URL, YARDIT_LOGO_URL } from "@/lib/experience";
 
 export default function ExperienceChoice({ onChoose, compact = false }) {
+  const navigate = useNavigate();
+
   const choose = (experience) => {
     setPendingExperience(experience);
     onChoose?.(experience);
@@ -31,6 +35,18 @@ export default function ExperienceChoice({ onChoose, compact = false }) {
               <p className="text-sm text-slate-500">Manage vendors, events, leagues, teams, schedules, and organizer dashboards in a separate events workspace.</p>
               <span className="mt-5 flex w-full items-center justify-center gap-2 rounded-md bg-slate-400 px-4 py-2 text-center text-sm font-semibold text-white"><Store className="h-4 w-4" /> Coming Soon</span>
             </div>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-[#5DADA5]/30 bg-[#5DADA5]/10 p-4 text-center">
+            <p className="text-sm font-semibold text-[#2C4F4E]">Want Yardit on your phone?</p>
+            <p className="mt-1 text-xs text-slate-600">Install directly from yardit.app on Android or iPhone.</p>
+            <Button
+              type="button"
+              className="mt-3 w-full bg-[#2C4F4E] font-bold text-white hover:bg-[#244240] sm:w-auto"
+              onClick={() => navigate("/InstallYardit")}
+            >
+              <Download className="mr-2 h-4 w-4" /> Install Yardit
+            </Button>
           </div>
         </CardContent>
       </Card>
