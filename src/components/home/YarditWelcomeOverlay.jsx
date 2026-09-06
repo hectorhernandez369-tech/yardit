@@ -83,21 +83,17 @@ export default function YarditWelcomeOverlay() {
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[11px] font-semibold text-slate-500 sm:mt-4 sm:text-xs">
-            <Link to="/privacy" className="hover:text-[#2C4F4E] hover:underline">Privacy Policy</Link>
-            <span aria-hidden="true">•</span>
-            <Link to="/terms" className="hover:text-[#2C4F4E] hover:underline">Terms of Service</Link>
-            <span aria-hidden="true">•</span>
-            <button
-              type="button"
-              onClick={dismissForPageView}
-              className="font-semibold underline-offset-4 hover:text-[#2C4F4E] hover:underline focus:outline-none focus:ring-2 focus:ring-[#5DADA5] focus:ring-offset-2"
-            >
-              Maybe Later
-            </button>
-          </div>
+          <Button
+            asChild
+            className="mt-3 h-11 w-full rounded-xl bg-[#F4A849] text-sm font-black text-[#2C4F4E] shadow-md shadow-[#F4A849]/20 hover:bg-[#E89A35] sm:h-12 sm:text-base"
+          >
+            <Link to="/InstallYardit" onClick={dismissForPageView}>
+              <Download className="h-4 w-4" />
+              Install Yardit
+            </Link>
+          </Button>
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <Button
               type="button"
               onClick={handleContinue}
@@ -116,16 +112,19 @@ export default function YarditWelcomeOverlay() {
             </Button>
           </div>
 
-          <Button
-            asChild
-            variant="outline"
-            className="mt-2 h-10 w-full rounded-xl border-[#F4A849]/60 bg-[#F4A849]/10 text-sm font-black text-[#2C4F4E] hover:bg-[#F4A849]/20 sm:h-11 sm:text-base"
-          >
-            <Link to="/InstallYardit" onClick={dismissForPageView}>
-              <Download className="h-4 w-4" />
-              Install Yardit
-            </Link>
-          </Button>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[11px] font-semibold text-slate-500 sm:mt-4 sm:text-xs">
+            <Link to="/privacy" className="hover:text-[#2C4F4E] hover:underline">Privacy Policy</Link>
+            <span aria-hidden="true">•</span>
+            <Link to="/terms" className="hover:text-[#2C4F4E] hover:underline">Terms of Service</Link>
+            <span aria-hidden="true">•</span>
+            <button
+              type="button"
+              onClick={dismissForPageView}
+              className="font-semibold underline-offset-4 hover:text-[#2C4F4E] hover:underline focus:outline-none focus:ring-2 focus:ring-[#5DADA5] focus:ring-offset-2"
+            >
+              Maybe Later
+            </button>
+          </div>
 
           <div className="pointer-events-none absolute right-0 top-0 h-20 w-20 rounded-full bg-[#F4A849]/15 blur-2xl" />
           <div className="pointer-events-none absolute bottom-0 left-0 h-20 w-20 rounded-full bg-[#5DADA5]/15 blur-2xl" />
