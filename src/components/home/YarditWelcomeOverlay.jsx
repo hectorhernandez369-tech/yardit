@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Link } from "react-router-dom";
-import { CheckCircle2, MapPin, ShieldCheck, Sparkles } from "lucide-react";
+import { CheckCircle2, Download, MapPin, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -115,6 +115,17 @@ export default function YarditWelcomeOverlay() {
               Explore as Guest
             </Button>
           </div>
+
+          <Button
+            asChild
+            variant="outline"
+            className="mt-2 h-10 w-full rounded-xl border-[#F4A849]/60 bg-[#F4A849]/10 text-sm font-black text-[#2C4F4E] hover:bg-[#F4A849]/20 sm:h-11 sm:text-base"
+          >
+            <Link to="/InstallYardit" onClick={dismissForPageView}>
+              <Download className="h-4 w-4" />
+              Install Yardit
+            </Link>
+          </Button>
 
           <div className="pointer-events-none absolute right-0 top-0 h-20 w-20 rounded-full bg-[#F4A849]/15 blur-2xl" />
           <div className="pointer-events-none absolute bottom-0 left-0 h-20 w-20 rounded-full bg-[#5DADA5]/15 blur-2xl" />
