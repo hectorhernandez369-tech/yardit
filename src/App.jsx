@@ -38,6 +38,7 @@ import TermsOfService from './pages/TermsOfService';
 import CommunityGuidelines from './pages/CommunityGuidelines';
 import InstallYardit from './pages/InstallYardit';
 import PushSetup from './pages/PushSetup';
+import CreateListingEntry from './pages/CreateListingEntry';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import YarditSplashScreen from '@/components/install/YarditSplashScreen';
@@ -97,7 +98,8 @@ const AuthenticatedApp = () => {
 
   return <Routes>
     <Route path="/" element={<LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>} />
-    {Object.entries(Pages).map(([path, Page]) => <Route key={path} path={`/${path}`} element={<LayoutWrapper currentPageName={path}><Page /></LayoutWrapper>} />)}
+    <Route path="/CreateListing" element={<LayoutWrapper currentPageName="CreateListing"><CreateListingEntry /></LayoutWrapper>} />
+    {Object.entries(Pages).filter(([path]) => path !== "CreateListing").map(([path, Page]) => <Route key={path} path={`/${path}`} element={<LayoutWrapper currentPageName={path}><Page /></LayoutWrapper>} />)}
     <Route path="/install" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
     <Route path="/InstallYardit" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
     <Route path="/PushSetup" element={<PushSetup />} />
