@@ -1,0 +1,38 @@
+{
+  "name": "Link payment transactions to listings",
+  "description": "Automatically links Stripe PaymentTransaction records to paid listings when a listing has a Stripe checkout session or pending checkout session.",
+  "trigger": {
+    "condition": "${ ((.trigger.data.stripe_checkout_session_id != null and .trigger.data.stripe_checkout_session_id != \"\" and .trigger.data.stripe_checkout_session_id != [] and .trigger.data.stripe_checkout_session_id != {}) or (.trigger.data.pending_checkout_session_id != null and .trigger.data.pending_checkout_session_id != \"\" and .trigger.data.pending_checkout_session_id != [] and .trigger.data.pending_checkout_session_id != {})) }",
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create",
+        "update"
+      ],
+      "entity_name": "Listing"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "link_payment_transactions_to_listings",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "linkPaymentTransactionsForListing",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "linkPaymentTransactionsForListing"
+  }
+}
