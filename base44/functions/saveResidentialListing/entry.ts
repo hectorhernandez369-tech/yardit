@@ -161,7 +161,7 @@ async function canManageListing(base44, user, listing) {
   return requests.length > 0;
 }
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -185,6 +185,15 @@ Deno.serve(async (req) => {
       const ownerUserId = data.ownerUserId || user.id;
       if (ownerUserId !== user.id && !['admin', 'master', 'supervisor', 'super_master'].includes(user.role)) {
         return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      if (data.pending_checkout_session_id) {
+        const [pendingMatches, paidMatches] = await Promise.all([
+          base44.asServiceRole.entities.Listing.filter({ pending_checkout_session_id: data.pending_checkout_session_id }),
+          base44.asServiceRole.entities.Listing.filter({ stripe_checkout_session_id: data.pending_checkout_session_id }),
+        ]);
+        const existing = [...(pendingMatches || []), ...(paidMatches || [])].find((listing) => listing.ownerUserId === ownerUserId);
+        if (existing) return Response.json({ ok: true, listing: existing, reused: true });
       }
 
       const conflict = await findResidentialConflict(base44, data, user);
@@ -222,4 +231,4 @@ Deno.serve(async (req) => {
     console.error('saveResidentialListing error:', error?.message || error);
     return Response.json({ error: error?.message || 'Could not save listing' }, { status: 500 });
   }
-});
+}
