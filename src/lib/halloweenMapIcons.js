@@ -2,7 +2,10 @@ import { isHalloweenFullIconActive } from "@/lib/halloweenSpots";
 
 export const HALLOWEEN_DAYTIME_ICON = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M29 12c0-5 3-8 8-9-1 4 0 7 3 10" fill="none" stroke="#3f6212" stroke-width="5" stroke-linecap="round"/><path d="M32 12c15 0 25 9 25 23S47 57 32 57 7 49 7 35s10-23 25-23Z" fill="#f97316" stroke="#7c2d12" stroke-width="3"/><path d="M21 27l7 6H16l5-6Zm22 0 5 6H36l7-6ZM19 42c8 6 18 6 26 0l-5-2-4 4-4-4-4 4-4-4-5 2Z" fill="#2b1725"/><path d="M12 35c0-9 5-17 12-20M52 35c0-9-5-17-12-20" fill="none" stroke="#ea580c" stroke-width="3" stroke-linecap="round"/></svg>`)}`;
 
-const SPONSORED_HALLOWEEN_LOCATION_IDS = new Set(["6a905d6300f9f756bb52f257"]);
+const SPONSORED_HALLOWEEN_LOCATION_IDS = new Set([
+  "6a905d6300f9f756bb52f257",
+  "6a9f4b77bf56f8c88ee389d1",
+]);
 
 export const HALLOWEEN_ICON_ASSETS = {
   halloween_decorations: "/assets/halloween/halloween-decorations-diecut.svg",
