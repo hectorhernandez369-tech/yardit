@@ -63,6 +63,7 @@ import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 import { isHalloweenSpot, isHalloweenSpotVisible } from "@/lib/halloweenSpots";
 import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize, getHalloweenCollisionSizes } from "@/lib/halloweenMapIcons";
+import { getHolidayYardSaleOpacity, isYardSaleHolidayFaded } from "@/lib/holidayMapPriority";
 import HalloweenSpotPopupCard from "@/components/map/HalloweenSpotPopupCard";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
@@ -147,7 +148,8 @@ function getChestIcon(size, count = 0, isSelected = false, faded = false) {
 const createIcon = (type, tier, isSelected, location, zoom = 13, halloweenSizeOverride = null) => {
   const preAct = isPreActivated(location);
   const isPreviewState = location?.mapState === "preview" || location?.mapState === "daily_preview" || location?.ownerUpcomingPreview === true;
-  const opacity = isPreviewState ? 0.35 : preAct ? 0.6 : 1.0;
+  const normalOpacity = isPreviewState ? 0.35 : preAct ? 0.6 : 1.0;
+  const opacity = isYardSaleHolidayFaded({ ...location, listingType: type }) ? getHolidayYardSaleOpacity() : normalOpacity;
   const isOwnerPendingPreview = type === "neighborhood_sale" && (location?.ownerPreviewPending === true || isPreviewState);
 
   if (type === "event") {
