@@ -31,6 +31,7 @@ function isDinubaComingOctOne(listing) {
 }
 
 export function getHalloweenSpotIconUrl(listing, now = new Date()) {
+  if (isDinubaComingOctOne(listing)) return HALLOWEEN_ICON_ASSETS.coming_oct_1;
   const comingOctOneTeaser = isComingOctOne(listing) && isHalloweenTeaser(listing, now);
   if (!isHalloweenFullIconActive(listing, now) || comingOctOneTeaser) return HALLOWEEN_DAYTIME_ICON;
   if (isComingOctOne(listing)) return HALLOWEEN_ICON_ASSETS.coming_oct_1;
@@ -44,7 +45,7 @@ export function getHalloweenSpotIconUrl(listing, now = new Date()) {
 }
 
 export function getHalloweenSpotMapSize(listing, isSelected = false, now = new Date(), zoom = 13) {
-  const isFullIcon = isHalloweenFullIconActive(listing, now) && !(isComingOctOne(listing) && isHalloweenTeaser(listing, now));
+  const isFullIcon = isDinubaComingOctOne(listing) || (isHalloweenFullIconActive(listing, now) && !(isComingOctOne(listing) && isHalloweenTeaser(listing, now)));
   const baseSize = isFullIcon ? (isSelected ? 38 : 34) : (isSelected ? 22 : 18);
   const zoomGrowth = Math.max(0, Math.min(4, Number(zoom) - 13));
   const size = baseSize + zoomGrowth * (isFullIcon ? 5 : 3);
