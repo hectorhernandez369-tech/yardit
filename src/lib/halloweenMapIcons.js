@@ -1,10 +1,12 @@
-import { isHalloweenFullIconActive } from "@/lib/halloweenSpots";
+import { isHalloweenFullIconActive, isHalloweenTeaser } from "@/lib/halloweenSpots";
+import { COMING_OCT_ONE_ICON } from "@/lib/comingOctOneIcon";
 
 export const HALLOWEEN_DAYTIME_ICON = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M29 12c0-5 3-8 8-9-1 4 0 7 3 10" fill="none" stroke="#3f6212" stroke-width="5" stroke-linecap="round"/><path d="M32 12c15 0 25 9 25 23S47 57 32 57 7 49 7 35s10-23 25-23Z" fill="#f97316" stroke="#7c2d12" stroke-width="3"/><path d="M21 27l7 6H16l5-6Zm22 0 5 6H36l7-6ZM19 42c8 6 18 6 26 0l-5-2-4 4-4-4-4 4-4-4-5 2Z" fill="#2b1725"/><path d="M12 35c0-9 5-17 12-20M52 35c0-9-5-17-12-20" fill="none" stroke="#ea580c" stroke-width="3" stroke-linecap="round"/></svg>`)}`;
 
+const DINUBA_COMING_OCT_ONE_ID = "6a9f4b77bf56f8c88ee389d1";
 const SPONSORED_HALLOWEEN_LOCATION_IDS = new Set([
   "6a905d6300f9f756bb52f257",
-  "6a9f4b77bf56f8c88ee389d1",
+  DINUBA_COMING_OCT_ONE_ID,
 ]);
 
 export const HALLOWEEN_ICON_ASSETS = {
@@ -17,11 +19,21 @@ export const HALLOWEEN_ICON_ASSETS = {
   light_show: "/assets/halloween/light-show-diecut.svg",
   must_see: "/assets/halloween/must-see-diecut.svg",
   no_candy_here: "/assets/halloween/no-candy-here-diecut.svg",
-  coming_oct_1: "/assets/halloween/coming-oct-1-diecut.svg",
+  coming_oct_1: COMING_OCT_ONE_ICON,
 };
 
+function isComingOctOne(listing) {
+  return listing?.halloween_icon_key === "coming_oct_1" || listing?.icon_key === "coming_oct_1" || listing?.seasonal_icon_key === "coming_oct_1";
+}
+
+function isDinubaComingOctOne(listing) {
+  return String(listing?.id) === DINUBA_COMING_OCT_ONE_ID && isComingOctOne(listing);
+}
+
 export function getHalloweenSpotIconUrl(listing, now = new Date()) {
-  if (!isHalloweenFullIconActive(listing, now)) return HALLOWEEN_DAYTIME_ICON;
+  const comingOctOneTeaser = isComingOctOne(listing) && isHalloweenTeaser(listing, now);
+  if (!isHalloweenFullIconActive(listing, now) || comingOctOneTeaser) return HALLOWEEN_DAYTIME_ICON;
+  if (isComingOctOne(listing)) return HALLOWEEN_ICON_ASSETS.coming_oct_1;
 
   const teaserUntil = listing?.teaser_until ? new Date(listing.teaser_until) : null;
   const teaserExpired = teaserUntil && !Number.isNaN(teaserUntil.getTime()) && now > teaserUntil;
@@ -32,11 +44,13 @@ export function getHalloweenSpotIconUrl(listing, now = new Date()) {
 }
 
 export function getHalloweenSpotMapSize(listing, isSelected = false, now = new Date(), zoom = 13) {
-  const isFullIcon = isHalloweenFullIconActive(listing, now);
+  const isFullIcon = isHalloweenFullIconActive(listing, now) && !(isComingOctOne(listing) && isHalloweenTeaser(listing, now));
   const baseSize = isFullIcon ? (isSelected ? 38 : 34) : (isSelected ? 22 : 18);
   const zoomGrowth = Math.max(0, Math.min(4, Number(zoom) - 13));
   const size = baseSize + zoomGrowth * (isFullIcon ? 5 : 3);
-  return SPONSORED_HALLOWEEN_LOCATION_IDS.has(String(listing?.id)) ? size * 1.5 : size;
+  if (!SPONSORED_HALLOWEEN_LOCATION_IDS.has(String(listing?.id))) return size;
+  if (isDinubaComingOctOne(listing)) return Math.round(size * 0.75) * 2;
+  return size * 1.5;
 }
 
 function projectToMapPixels(lat, lng, zoom) {
@@ -55,6 +69,10 @@ export function getHalloweenCollisionSizes(listings, zoom, selectedId) {
   candidates.forEach((listing) => {
     if (listing?.listingType !== "halloween_candy" && listing?.type !== "halloween_candy") return;
     const desiredSize = getHalloweenSpotMapSize(listing, listing.id === selectedId, new Date(), zoom);
+    if (isDinubaComingOctOne(listing)) {
+      sizes[listing.id] = desiredSize;
+      return;
+    }
     const point = projectToMapPixels(listing.lat, listing.lng, zoom);
     let fittedSize = desiredSize;
 
