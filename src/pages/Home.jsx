@@ -776,11 +776,17 @@ export default function HomePage() {
 
   useEffect(() => {
     if (isPublicHomeMode) return () => {};
-    const unsubscribe = base44.entities.Listing.subscribe(() => {
+    const unsubscribeListings = base44.entities.Listing.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ["listings", "private"] });
     });
+    const unsubscribeHalloween = base44.entities.Location.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ["halloweenLocations", "private"] });
+    });
 
-    return unsubscribe;
+    return () => {
+      unsubscribeListings();
+      unsubscribeHalloween();
+    };
   }, [queryClient, isPublicHomeMode]);
 
   // Map movement on city search
