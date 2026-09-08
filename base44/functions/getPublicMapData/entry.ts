@@ -59,6 +59,13 @@ function isPublicHalloweenLocation(location, now) {
   return true;
 }
 
+function canSeeAdDemo(record, currentUser) {
+  const isAdDemo = record?.is_demo_listing === true || String(record?.title || record?.display_title || '').startsWith('AD DEMO —');
+  if (!isAdDemo) return true;
+  const ownerId = record?.ownerUserId || record?.owner_user_id;
+  return !!currentUser?.id && String(ownerId) === String(currentUser.id);
+}
+
 function isActivePromo(promo) {
   if (!promo?.promo_door_enabled || promo?.status !== 'active') return false;
   const hasDoorPosition = isValidCoordinate(promo.promo_door_lat) && isValidCoordinate(promo.promo_door_lng);
@@ -123,9 +130,10 @@ const halloweenLocationFields = [
   'halloween_jump_scares', 'halloween_suggested_age', 'halloween_host_name', 'halloween_admission', 'halloween_parking_notes', 'halloween_activities'
 ];
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
+    const currentUser = await base44.auth.me().catch(() => null);
     const now = new Date();
     const body = await req.json().catch(() => ({}));
     const listingId = typeof body?.listingId === 'string' ? body.listingId : '';
@@ -137,7 +145,7 @@ Deno.serve(async (req) => {
       }
       const matches = await base44.asServiceRole.entities.Location.filter({ id: halloweenLocationId, type: 'halloween_candy' }, '-created_date', 1);
       const location = matches[0] || null;
-      if (!isPublicHalloweenLocation(location, now)) {
+      if (!isPublicHalloweenLocation(location, now) || !canSeeAdDemo(location, currentUser)) {
         return Response.json({ halloweenLocation: null });
       }
       return Response.json({ halloweenLocation: pick(location, halloweenLocationFields) });
@@ -149,7 +157,7 @@ Deno.serve(async (req) => {
       }
       const matches = await base44.asServiceRole.entities.Listing.filter({ id: listingId }, '-created_date', 1);
       const listing = matches[0] || null;
-      if (!isPublicListing(listing, now)) {
+      if (!isPublicListing(listing, now) || !canSeeAdDemo(listing, currentUser)) {
         return Response.json({ listing: null });
       }
       return Response.json({ listing: pick(listing, listingFields) });
@@ -169,8 +177,8 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.JoinRequest.list('-created_date', 500),
     ]);
 
-    const listings = listingRows.filter((listing) => isPublicListing(listing, now)).map((listing) => pick(listing, listingFields));
-    const halloweenLocations = halloweenRows.filter((location) => isPublicHalloweenLocation(location, now)).map((location) => pick(location, halloweenLocationFields));
+    const listings = listingRows.filter((listing) => isPublicListing(listing, now) && canSeeAdDemo(listing, currentUser)).map((listing) => pick(listing, listingFields));
+    const halloweenLocations = halloweenRows.filter((location) => isPublicHalloweenLocation(location, now) && canSeeAdDemo(location, currentUser)).map((location) => pick(location, halloweenLocationFields));
     const promoDiscoveryCodes = promoRows
       .filter((promo) => isActivePromo(promo))
       .map((promo) => ({ ...pick(promo, promoFields), status: 'active' }));
@@ -200,4 +208,4 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}

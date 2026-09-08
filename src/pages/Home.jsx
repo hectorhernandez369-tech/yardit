@@ -74,6 +74,13 @@ function isLegacySanFranciscoCenter(value) {
   return Array.isArray(value) && Math.abs(Number(value[0]) - 37.7749) < 0.25 && Math.abs(Number(value[1]) + 122.4194) < 0.25;
 }
 
+function canCurrentUserSeeAdDemo(item, currentUser) {
+  const isAdDemo = item?.is_demo_listing === true || String(item?.title || item?.display_title || "").startsWith("AD DEMO —");
+  if (!isAdDemo) return true;
+  const ownerId = item?.ownerUserId || item?.owner_user_id;
+  return !!currentUser?.id && String(ownerId) === String(currentUser.id);
+}
+
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -738,7 +745,8 @@ export default function HomePage() {
     enabled: !isPublicHomeMode
   });
 
-  const halloweenLocations = isPublicHomeMode ? (publicMapData.halloweenLocations || []) : privateHalloweenLocations;
+  const halloweenLocations = (isPublicHomeMode ? (publicMapData.halloweenLocations || []) : privateHalloweenLocations)
+    .filter((item) => canCurrentUserSeeAdDemo(item, user));
 
   const halloweenMapListings = useMemo(() => halloweenLocations.map((location) => ({
     ...location,
@@ -761,7 +769,8 @@ export default function HomePage() {
     halloweenTeaser: Boolean(location.teaser_until || location.display_title?.toLowerCase().includes("coming")),
   })).filter((listing) => Number.isFinite(listing.lat) && Number.isFinite(listing.lng)), [halloweenLocations]);
 
-  const baseListings = isPublicHomeMode ? publicMapData.listings || [] : privateListings;
+  const baseListings = (isPublicHomeMode ? publicMapData.listings || [] : privateListings)
+    .filter((item) => canCurrentUserSeeAdDemo(item, user));
   const listings = [...baseListings, ...halloweenMapListings];
   const isLoading = (isPublicHomeMode ? isLoadingPublicMapData : isLoadingPrivateListings) || isLoadingHalloweenLocations;
 
