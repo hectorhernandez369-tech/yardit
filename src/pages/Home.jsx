@@ -1286,8 +1286,10 @@ export default function HomePage() {
     });
 
     const halloweenGroups = getHalloweenNeighborhoodGroups(halloweenPoints);
-    const halloweenClusters = halloweenGroups.filter((group) => group.count >= 2);
-    halloweenGroups.filter((group) => group.count === 1).forEach((group) => pins.push(group.members[0].listing));
+    // Halloween uses a neighborhood-density view below zoom 18.
+    // Only meaningful 3+ home pockets are shown as clusters; isolated 1–2 homes
+    // stay hidden until zoom 18 so the map helps families pick dense neighborhoods.
+    const halloweenClusters = halloweenGroups.filter((group) => group.count >= 3);
 
     let fallback = false;
     if (!isShowingAllListings && pins.length === 0 && eligibleListings.some((listing) => listing.mapState === "active") && currentZoom >= 11) {
