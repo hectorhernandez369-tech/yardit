@@ -1,5 +1,6 @@
 const HALLOWEEN_CLUSTER_RADIUS_METERS = 137.16;
 export const HALLOWEEN_INDIVIDUAL_PIN_ZOOM = 18;
+export const HALLOWEEN_CLUSTER_MIN_HOMES = 3;
 
 export function shouldShowHalloweenHomes(zoom) {
   return Number(zoom) >= HALLOWEEN_INDIVIDUAL_PIN_ZOOM;
