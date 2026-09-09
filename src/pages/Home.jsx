@@ -180,7 +180,7 @@ const createIcon = (type, tier, isSelected, location, zoom = 13, halloweenSizeOv
   if (isHalloweenSpot({ ...location, listingType: type })) {
     const halloweenListing = { ...location, listingType: type };
     const halloweenSize = halloweenSizeOverride ?? getHalloweenSpotMapSize(halloweenListing, isSelected, new Date(), zoom);
-    const iconUrl = getHalloweenSpotIconUrl(halloweenListing);
+    const iconUrl = getHalloweenSpotIconUrl(halloweenListing, new Date(), isSelected);
     const key = `halloween_${iconUrl}_${halloweenSize}_${isSelected ? "selected" : "default"}`;
     return getCachedIcon(key, iconUrl, halloweenSize, true);
   } else if (type === "holiday_lights") {

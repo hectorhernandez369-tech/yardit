@@ -1,8 +1,8 @@
 import { isHalloweenFullIconActive, isHalloweenTeaser } from "@/lib/halloweenSpots";
 import { COMING_OCT_ONE_ICON } from "@/lib/comingOctOneIcon";
-import { HALLOWEEN_AD_DEMO_ICONS } from "@/lib/halloweenAdDemoIcons";
+import { HALLOWEEN_AD_DEMO_ICONS, HALLOWEEN_SELECTED_ICON_ASSETS } from "@/lib/halloweenAdDemoIcons";
 
-export const HALLOWEEN_DAYTIME_ICON = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M29 12c0-5 3-8 8-9-1 4 0 7 3 10" fill="none" stroke="#3f6212" stroke-width="5" stroke-linecap="round"/><path d="M32 12c15 0 25 9 25 23S47 57 32 57 7 49 7 35s10-23 25-23Z" fill="#f97316" stroke="#7c2d12" stroke-width="3"/><path d="M21 27l7 6H16l5-6Zm22 0 5 6H36l7-6ZM19 42c8 6 18 6 26 0l-5-2-4 4-4-4-4 4-4-4-5 2Z" fill="#2b1725"/><path d="M12 35c0-9 5-17 12-20M52 35c0-9-5-17-12-20" fill="none" stroke="#ea580c" stroke-width="3" stroke-linecap="round"/></svg>`)}`;
+export const HALLOWEEN_DAYTIME_ICON = HALLOWEEN_AD_DEMO_ICONS.halloween_decorations;
 
 const DINUBA_COMING_OCT_ONE_ID = "6a9f4b77bf56f8c88ee389d1";
 const SPONSORED_HALLOWEEN_LOCATION_IDS = new Set([
@@ -27,14 +27,15 @@ function isAdDemoHalloween(listing) {
   return String(listing?.title || listing?.display_title || "").startsWith("AD DEMO —");
 }
 
-export function getHalloweenSpotIconUrl(listing, now = new Date()) {
+export function getHalloweenSpotIconUrl(listing, now = new Date(), isSelected = false) {
   if (isDinubaComingOctOne(listing)) return HALLOWEEN_ICON_ASSETS.coming_oct_1;
+  const iconAssets = isSelected ? HALLOWEEN_SELECTED_ICON_ASSETS : HALLOWEEN_ICON_ASSETS;
   if (isAdDemoHalloween(listing)) {
     const demoKey = listing?.halloween_icon_key || listing?.halloween_spot_type || "halloween_decorations";
-    return HALLOWEEN_ICON_ASSETS[demoKey] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
+    return iconAssets[demoKey] || iconAssets.halloween_decorations;
   }
   const comingOctOneTeaser = isComingOctOne(listing) && isHalloweenTeaser(listing, now);
-  if (!isHalloweenFullIconActive(listing, now) || comingOctOneTeaser) return HALLOWEEN_DAYTIME_ICON;
+  if (!isHalloweenFullIconActive(listing, now) || comingOctOneTeaser) return isSelected ? HALLOWEEN_SELECTED_ICON_ASSETS.halloween_decorations : HALLOWEEN_DAYTIME_ICON;
   if (isComingOctOne(listing)) return HALLOWEEN_ICON_ASSETS.coming_oct_1;
 
   const teaserUntil = listing?.teaser_until ? new Date(listing.teaser_until) : null;
@@ -42,7 +43,7 @@ export function getHalloweenSpotIconUrl(listing, now = new Date()) {
   if (listing?.custom_icon_url && (listing?.halloween_demo_force_live === true || !teaserExpired)) return listing.custom_icon_url;
 
   const key = listing?.halloween_spot_type || listing?.halloween_icon_key || listing?.icon_key || listing?.seasonal_icon_key || "halloween_decorations";
-  return HALLOWEEN_ICON_ASSETS[key] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
+  return iconAssets[key] || iconAssets.halloween_decorations;
 }
 
 export function getHalloweenSpotMapSize(listing, isSelected = false, now = new Date(), zoom = 13) {
