@@ -92,8 +92,6 @@ export default function ClusterGroup({ points, clusterRadius = 50, minPoints = 2
   return null;
 }
 
-// Halloween Spots are free, but intentionally use the same map reveal threshold
-// as Premium residential listings so every Halloween Spot behaves identically.
 export function shouldShowAsPin(zoom, listing) {
   if (listing?.listingType === "event") {
     const tier = listing?.event_tier || listing?.tier;
@@ -101,10 +99,6 @@ export function shouldShowAsPin(zoom, listing) {
     if (tier === "premium") return zoom >= 12;
     if (tier === "featured") return zoom >= 13;
     return zoom >= 14;
-  }
-
-  if (listing?.listingType === "halloween_candy" || listing?.listingType === "halloween_spot") {
-    return zoom >= 11;
   }
 
   const tier = listing?.tier;

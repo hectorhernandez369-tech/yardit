@@ -65,6 +65,8 @@ import { isHalloweenSpot, isHalloweenSpotVisible } from "@/lib/halloweenSpots";
 import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize, getHalloweenCollisionSizes } from "@/lib/halloweenMapIcons";
 import { getHolidayYardSaleOpacity, isYardSaleHolidayFaded } from "@/lib/holidayMapPriority";
 import HalloweenSpotPopupCard from "@/components/map/HalloweenSpotPopupCard";
+import HalloweenClusterGroup from "@/components/map/HalloweenClusterGroup";
+import { getHalloweenNeighborhoodGroups, shouldShowHalloweenHomes } from "@/lib/halloweenClustering";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 const LINDSAY_PORTERVILLE_CENTER = [36.135, -119.055];
@@ -1207,9 +1209,10 @@ export default function HomePage() {
     return { average: avgRating.toFixed(1), count: reviews.length };
   };
 
-  const { visiblePins, clusterPts, fallbackActive } = useMemo(() => {
+  const { visiblePins, clusterPts, halloweenClusterPts, fallbackActive } = useMemo(() => {
     const pins = [];
     const cPoints = [];
+    const halloweenPoints = [];
     eligibleListings.forEach((listing) => {
       if (filter !== "all" && listing.listingType !== filter) return;
       if (!quickMapFilters.events && listing.listingType === "event") return;
@@ -1226,6 +1229,12 @@ export default function HomePage() {
 
       if (isFireworksEvent) {
         pins.push(listing);
+        return;
+      }
+
+      if (isHalloweenSpot(listing)) {
+        if (shouldShowHalloweenHomes(currentZoom)) pins.push(listing);
+        else halloweenPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id, listing });
         return;
       }
 
@@ -1276,6 +1285,10 @@ export default function HomePage() {
       }
     });
 
+    const halloweenGroups = getHalloweenNeighborhoodGroups(halloweenPoints);
+    const halloweenClusters = halloweenGroups.filter((group) => group.count >= 2);
+    halloweenGroups.filter((group) => group.count === 1).forEach((group) => pins.push(group.members[0].listing));
+
     let fallback = false;
     if (!isShowingAllListings && pins.length === 0 && eligibleListings.some((listing) => listing.mapState === "active") && currentZoom >= 11) {
       fallback = true;
@@ -1291,7 +1304,7 @@ export default function HomePage() {
       });
     }
 
-    return { visiblePins: pins, clusterPts: cPoints, fallbackActive: fallback };
+    return { visiblePins: pins, clusterPts: cPoints, halloweenClusterPts: halloweenClusters, fallbackActive: fallback };
   }, [eligibleListings, currentZoom, isShowingAllListings, filter, quickMapFilters]);
 
   const halloweenCollisionSizes = useMemo(
@@ -1678,6 +1691,7 @@ export default function HomePage() {
             }
               
               {!showUpcomingWeekend && <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />}
+              {!showUpcomingWeekend && !shouldShowHalloweenHomes(currentZoom) && <HalloweenClusterGroup clusters={halloweenClusterPts} />}
               {showUpcomingWeekend && (
                 <ComingSoonWeekendMapLayer
                   enabled={showUpcomingWeekend}
