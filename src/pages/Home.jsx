@@ -66,7 +66,6 @@ import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize, getHalloweenCollision
 import { getHolidayYardSaleOpacity, isYardSaleHolidayFaded } from "@/lib/holidayMapPriority";
 import HalloweenSpotPopupCard from "@/components/map/HalloweenSpotPopupCard";
 import HalloweenClusterGroup from "@/components/map/HalloweenClusterGroup";
-import { getHalloweenNeighborhoodGroups, shouldShowHalloweenHomes } from "@/lib/halloweenClustering";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 const LINDSAY_PORTERVILLE_CENTER = [36.135, -119.055];
@@ -518,6 +517,7 @@ export default function HomePage() {
   const showListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
+  const [halloweenClusteredIds, setHalloweenClusteredIds] = useState(() => new Set());
   const [scheduleNow, setScheduleNow] = useState(() => new Date());
   const markerRefsMap = useRef({});
   const hasCenteredOnUser = useRef(false);
@@ -1240,8 +1240,8 @@ export default function HomePage() {
       }
 
       if (isHalloweenSpot(listing)) {
-        if (shouldShowHalloweenHomes(currentZoom)) pins.push(listing);
-        else halloweenPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id, listing });
+        pins.push(listing);
+        halloweenPoints.push({ lat: listing.lat, lng: listing.lng, id: listing.id, listing });
         return;
       }
 
@@ -1292,15 +1292,6 @@ export default function HomePage() {
       }
     });
 
-    const halloweenGroups = getHalloweenNeighborhoodGroups(halloweenPoints, currentZoom);
-    // Halloween uses hierarchical zoom-based clustering below zoom 18.
-    // Any 2+ nearby icons become a cluster at the current zoom. A true singleton
-    // stays visible normally until a farther zoom absorbs it into a larger cluster.
-    const halloweenClusters = halloweenGroups.filter((group) => group.count >= 2);
-    halloweenGroups
-      .filter((group) => group.count === 1)
-      .forEach((group) => pins.push(group.members[0].listing));
-
     let fallback = false;
     if (!isShowingAllListings && pins.length === 0 && eligibleListings.some((listing) => listing.mapState === "active") && currentZoom >= 11) {
       fallback = true;
@@ -1316,13 +1307,17 @@ export default function HomePage() {
       });
     }
 
-    return { visiblePins: pins, clusterPts: cPoints, halloweenClusterPts: halloweenClusters, fallbackActive: fallback };
+    return { visiblePins: pins, clusterPts: cPoints, halloweenClusterPts: halloweenPoints, fallbackActive: fallback };
   }, [eligibleListings, currentZoom, isShowingAllListings, filter, quickMapFilters]);
 
   const halloweenCollisionSizes = useMemo(
     () => getHalloweenCollisionSizes(visiblePins, currentZoom, selectedListingId),
     [visiblePins, currentZoom, selectedListingId]
   );
+
+  const handleHalloweenClusteredIdsChange = useCallback((ids) => {
+    setHalloweenClusteredIds(ids);
+  }, []);
 
   // NO ZOOM-BASED STATE RESET - persist marquee state across zoom levels
 
@@ -1703,7 +1698,7 @@ export default function HomePage() {
             }
               
               {!showUpcomingWeekend && <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />}
-              {!showUpcomingWeekend && !shouldShowHalloweenHomes(currentZoom) && <HalloweenClusterGroup clusters={halloweenClusterPts} />}
+              {!showUpcomingWeekend && <HalloweenClusterGroup points={halloweenClusterPts} clusterRadius={55} onClusteredIdsChange={handleHalloweenClusteredIdsChange} />}
               {showUpcomingWeekend && (
                 <ComingSoonWeekendMapLayer
                   enabled={showUpcomingWeekend}
@@ -1715,6 +1710,7 @@ export default function HomePage() {
 
               {!showUpcomingWeekend && visiblePins.map((listing) => {
               if (!isShowingAllListings && hiddenByMarqueeIds.has(listing.id)) return null;
+              if (isHalloweenSpot(listing) && halloweenClusteredIds.has(listing.id)) return null;
 
               const isMarquee = isMarqueeListing(listing);
               if (isMarquee && currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM && openMarqueeIds[listing.id] !== false) return null;
