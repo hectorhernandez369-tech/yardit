@@ -1294,12 +1294,12 @@ export default function HomePage() {
 
     const halloweenGroups = getHalloweenNeighborhoodGroups(halloweenPoints, currentZoom);
     // Halloween uses hierarchical zoom-based clustering below zoom 18.
-    // Groups of 3+ become clusters; groups of 1-2 remain visible as normal pins
-    // until they are actually absorbed into a cluster at a farther zoom level.
-    const halloweenClusters = halloweenGroups.filter((group) => group.count >= 3);
+    // Any 2+ nearby icons become a cluster at the current zoom. A true singleton
+    // stays visible normally until a farther zoom absorbs it into a larger cluster.
+    const halloweenClusters = halloweenGroups.filter((group) => group.count >= 2);
     halloweenGroups
-      .filter((group) => group.count < 3)
-      .forEach((group) => group.members.forEach((member) => pins.push(member.listing)));
+      .filter((group) => group.count === 1)
+      .forEach((group) => pins.push(group.members[0].listing));
 
     let fallback = false;
     if (!isShowingAllListings && pins.length === 0 && eligibleListings.some((listing) => listing.mapState === "active") && currentZoom >= 11) {
