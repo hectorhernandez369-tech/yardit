@@ -21,7 +21,7 @@ export default function HalloweenClusterGroup({ clusters }) {
         iconAnchor: [21, 21],
       });
       const marker = L.marker([cluster.lat, cluster.lng], { icon, interactive: true });
-      marker.on("click", () => map.flyTo([cluster.lat, cluster.lng], 17, { duration: 0.5 }));
+      marker.on("click", () => map.flyTo([cluster.lat, cluster.lng], 18, { duration: 0.5 }));
       layerRef.current.addLayer(marker);
     });
   }, [clusters, map]);
