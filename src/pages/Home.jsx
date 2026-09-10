@@ -79,6 +79,13 @@ function isLegacySanFranciscoCenter(value) {
 function canCurrentUserSeeAdDemo(item, currentUser) {
   const isAdDemo = item?.is_demo_listing === true || String(item?.title || item?.display_title || "").startsWith("AD DEMO —");
   if (!isAdDemo) return true;
+
+  // Halloween demo spots can be intentionally force-shown for seasonal map testing.
+  // This exception is Halloween-only and does not change normal Yardit demo visibility.
+  if ((item?.type === "halloween_candy" || item?.listingType === "halloween_candy") && item?.halloween_demo_force_live === true) {
+    return true;
+  }
+
   const ownerId = item?.ownerUserId || item?.owner_user_id;
   return !!currentUser?.id && String(ownerId) === String(currentUser.id);
 }
