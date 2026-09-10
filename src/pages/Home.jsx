@@ -1698,7 +1698,7 @@ export default function HomePage() {
             }
               
               {!showUpcomingWeekend && <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />}
-              {!showUpcomingWeekend && <HalloweenClusterGroup points={halloweenClusterPts} clusterRadius={55} onClusteredIdsChange={handleHalloweenClusteredIdsChange} />}
+              {!showUpcomingWeekend && <HalloweenClusterGroup points={halloweenClusterPts} clusterRadius={40} onClusteredIdsChange={handleHalloweenClusteredIdsChange} />}
               {showUpcomingWeekend && (
                 <ComingSoonWeekendMapLayer
                   enabled={showUpcomingWeekend}

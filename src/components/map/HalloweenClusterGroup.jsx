@@ -10,7 +10,7 @@ const clusterIcon = (count) => L.divIcon({
   iconAnchor: [21, 21],
 });
 
-export default function HalloweenClusterGroup({ points, clusterRadius = 55, onClusteredIdsChange }) {
+export default function HalloweenClusterGroup({ points, clusterRadius = 40, onClusteredIdsChange }) {
   const map = useMap();
   const layerRef = useRef(L.layerGroup());
 
