@@ -2160,9 +2160,8 @@ export default function HomePage() {
             })}
             </MapContainer>
 
-            {/* Debug Overlay temporarily hidden for screen recording */}
+            {/* Debug Overlay */}
             <div
-            hidden
             onClick={() => {setDebugPinned(true);clearTimeout(debugTimerRef.current);}}
             className="transition-opacity duration-300"
             style={{ opacity: debugVisible ? 1 : 0, pointerEvents: debugVisible ? "auto" : "none" }}>
@@ -2200,7 +2199,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {false && !debugVisible &&
+            {!debugVisible &&
           <button
             onClick={() => {setDebugVisible(true);setDebugPinned(true);}}
             className="absolute bottom-4 left-4 z-[1001] px-2 py-1 rounded bg-black/50 text-green-400 text-[10px] font-mono hover:bg-black/70 transition-colors">
@@ -2209,7 +2208,7 @@ export default function HomePage() {
               </button>
           }
 
-            {false && demoOn &&
+            {demoOn &&
           <MapTierDebugBox
             zoom={currentZoom}
             showListingsActive={isShowingAllListings} />
