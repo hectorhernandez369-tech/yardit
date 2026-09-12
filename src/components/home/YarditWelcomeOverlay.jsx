@@ -99,7 +99,7 @@ export default function YarditWelcomeOverlay() {
               onClick={handleContinue}
               className="h-10 rounded-xl bg-[#2C4F4E] text-sm font-black text-white shadow-md shadow-[#2C4F4E]/20 hover:bg-[#244140] sm:h-11 sm:text-base"
             >
-              Continue
+              Log In
             </Button>
             <Button
               type="button"
