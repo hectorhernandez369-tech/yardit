@@ -145,29 +145,29 @@ export function enforcePhotoLimit(tier, photoUrls = []) {
 /**
  * getTierZoomInfo(tier)
  * Returns labels and zoom thresholds for map visibility.
- * Premium: zoom 9+ (City View)
- * Featured: zoom 11+ (Neighborhood View)
- * Free: zoom 13+ (Street/Neighborhood View)
+ * Premium: zoom 11+ (City View)
+ * Featured: zoom 13+ (Neighborhood View)
+ * Free: zoom 15+ (Street/Neighborhood View)
  */
 export function getTierZoomInfo(tier) {
   const tiers = {
     premium: {
       label: "Premium",
-      minZoom: 9,
+      minZoom: 11,
       zoomLabel: "City View",
-      description: "Visible from zoom level 9+ (City View)"
+      description: "Visible from zoom level 11+ (City View)"
     },
     featured: {
       label: "Featured",
-      minZoom: 11,
+      minZoom: 13,
       zoomLabel: "Neighborhood View",
-      description: "Visible from zoom level 11+ (Neighborhood View)"
+      description: "Visible from zoom level 13+ (Neighborhood View)"
     },
     free: {
       label: "Free",
-      minZoom: 13,
+      minZoom: 15,
       zoomLabel: "Street/Neighborhood View",
-      description: "Visible from zoom level 13+ (Street/Neighborhood View)"
+      description: "Visible from zoom level 15+ (Street/Neighborhood View)"
     }
   };
 
