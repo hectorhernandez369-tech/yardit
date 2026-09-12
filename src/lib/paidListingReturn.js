@@ -84,6 +84,6 @@ export function buildPaidListingPayload(source, user, sessionId) {
     activeDates: activeDates(data.selectedRangeStartDate, data.selectedRangeEndDate),
     earlyVisibilityDays: data.tier === "premium" ? Math.max(0, Math.min(3, Number(data.earlyVisibilityDays || 0))) : 0,
     earlyVisibilityDates: data.tier === "premium" ? (data.earlyVisibilityDates || []) : [],
-    status: "pending_payment",
+    status: "payment_pending",
   };
 }
