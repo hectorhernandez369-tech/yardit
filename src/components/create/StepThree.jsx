@@ -124,7 +124,7 @@ export default function StepThree({
 
   const tierDetails = {
     free: [
-      "List view only",
+      "Visible on the map at close neighborhood/street view",
       `Runs ${freeTierDateRange}`,
       "No date picker — free listings follow the locked weekend schedule",
     ],
