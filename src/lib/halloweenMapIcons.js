@@ -11,7 +11,7 @@ export function isAshevilleDecorationSpot(listing) {
 }
 
 export function getHalloweenSpotMapOpacity(listing, now = new Date()) {
-  return isAshevilleDecorationSpot(listing) && !isHalloweenFullIconActive(listing, now) ? 0.35 : 1;
+  return isAshevilleDecorationSpot(listing) && !isHalloweenFullIconActive(listing, now) ? 0.55 : 1;
 }
 
 const DINUBA_COMING_OCT_ONE_ID = "6a9f4b77bf56f8c88ee389d1";
@@ -62,6 +62,7 @@ export function getHalloweenSpotMapSize(listing, isSelected = false, now = new D
   const baseSize = isFullIcon ? (isSelected ? 38 : 34) : (isSelected ? 22 : 18);
   const zoomGrowth = Math.max(0, Math.min(4, Number(zoom) - 13));
   const size = baseSize + zoomGrowth * (isFullIcon ? 5 : 3);
+  if (isAshevilleDecorationSpot(listing)) return Math.round(size * 1.15);
   if (!SPONSORED_HALLOWEEN_LOCATION_IDS.has(String(listing?.id))) return size;
   if (isDinubaComingOctOne(listing)) return Math.round(size * 0.75) * 2;
   return size * 1.5;
