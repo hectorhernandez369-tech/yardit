@@ -156,6 +156,11 @@ export default function VisualEditAgent() {
 	const handleElementClick = (e) => {
 		if (!isVisualEditModeRef.current) return;
 
+		// App controls must remain interactive while preview visual editing is enabled.
+		// The capture listener otherwise cancels the event before React/Radix receives it.
+		const interactiveElement = e.target.closest('button, a, input, select, textarea, [role="button"], [role="menuitem"], [role="tab"], [contenteditable="true"]');
+		if (interactiveElement) return;
+
 		// Close dropdowns when clicking anywhere in iframe if a dropdown is open
 		if (isDropdownOpenRef.current) {
 			e.preventDefault();
