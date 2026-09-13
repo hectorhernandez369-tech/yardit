@@ -44,21 +44,14 @@ import YarditSplashScreen from '@/components/install/YarditSplashScreen';
 import YarditEventsShell from '@/components/events/YarditEventsShell';
 import VendorSignupGate from '@/components/vendor/VendorSignupGate';
 import { getPreferredExperience } from '@/lib/experience';
-import RouterDiagnostic from '@/components/debug/RouterDiagnostic';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
-  <Layout currentPageName={currentPageName}>
-    <RouterDiagnostic renderedPageName={currentPageName} />
-    {children}
-  </Layout>
-  : <>
-    <RouterDiagnostic renderedPageName={currentPageName} />
-    {children}
-  </>;
+  <Layout currentPageName={currentPageName}>{children}</Layout>
+  : <>{children}</>;
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isGuest, isAuthenticated } = useAuth();
