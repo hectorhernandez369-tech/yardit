@@ -75,27 +75,27 @@ export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccoun
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="top" sideOffset={12} className="z-[3001] w-52 rounded-xl shadow-xl border border-gray-200 bg-white/95 backdrop-blur-md p-1.5">
           <div className="px-2 py-0.5 text-[10px] text-gray-400 uppercase">Account</div>
-          <DropdownMenuItem onSelect={() => navigate(createPageUrl("MyListings"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+          <DropdownMenuItem onSelect={() => window.location.assign(createPageUrl("MyListings"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
             <MapIcon className="w-3.5 h-3.5 text-[#5DADA5]" /> My Listings
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => navigate(createPageUrl("Profile"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+          <DropdownMenuItem onSelect={() => window.location.assign(createPageUrl("Profile"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
             <User className="w-3.5 h-3.5 text-[#5DADA5]" /> My Profile
           </DropdownMenuItem>
           {hasVendorAccount && (
-            <DropdownMenuItem onSelect={() => navigate("/VendorDashboard")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+            <DropdownMenuItem onSelect={() => window.location.assign("/VendorDashboard")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
               <Store className="w-3.5 h-3.5 text-[#5DADA5]" /> Vendor Tools
             </DropdownMenuItem>
           )}
           {hasAdminProfile && (
-            <DropdownMenuItem onSelect={() => navigate(createPageUrl("AdminLite"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+            <DropdownMenuItem onSelect={() => window.location.assign(createPageUrl("AdminLite"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
               <Shield className="w-3.5 h-3.5 text-[#F4A849]" /> Admin Login
             </DropdownMenuItem>
           )}
           <div className="h-px bg-gray-100 my-0.5" />
-          <DropdownMenuItem onSelect={() => navigate(createPageUrl("StartupGuide"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+          <DropdownMenuItem onSelect={() => window.location.assign(createPageUrl("StartupGuide"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
             <HelpCircle className="w-3.5 h-3.5 text-[#5DADA5]" /> Help
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => navigate(createPageUrl("Settings"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+          <DropdownMenuItem onSelect={() => window.location.assign(createPageUrl("Settings"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
             <Settings className="w-3.5 h-3.5 text-gray-500" /> Settings
           </DropdownMenuItem>
           <div className="h-px bg-gray-100 my-0.5" />
