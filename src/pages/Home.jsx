@@ -62,7 +62,7 @@ import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
 import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 import { isHalloweenSpot, isHalloweenSpotVisible } from "@/lib/halloweenSpots";
-import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize, getHalloweenCollisionSizes } from "@/lib/halloweenMapIcons";
+import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize, getHalloweenCollisionSizes, getHalloweenSpotMapOpacity } from "@/lib/halloweenMapIcons";
 import { getHolidayYardSaleOpacity, isYardSaleHolidayFaded } from "@/lib/holidayMapPriority";
 import HalloweenSpotPopupCard from "@/components/map/HalloweenSpotPopupCard";
 import HalloweenClusterGroup from "@/components/map/HalloweenClusterGroup";
@@ -114,7 +114,7 @@ function buildPinSvg(fill, stroke, strokeWidth, size, opacity = 1) {
 
 // Pin icon cache
 const iconCache = {};
-function getCachedIcon(key, url, size, square = false) {
+function getCachedIcon(key, url, size, square = false, className = "") {
   if (!iconCache[key]) {
     const w = size;
     const h = square ? size : Math.round(size * 1.33);
@@ -122,7 +122,8 @@ function getCachedIcon(key, url, size, square = false) {
       iconUrl: url,
       iconSize: [w, h],
       iconAnchor: [w / 2, h],
-      popupAnchor: [0, -h]
+      popupAnchor: [0, -h],
+      className
     });
   }
   return iconCache[key];
@@ -187,10 +188,12 @@ const createIcon = (type, tier, isSelected, location, zoom = 13, halloweenSizeOv
 
   if (isHalloweenSpot({ ...location, listingType: type })) {
     const halloweenListing = { ...location, listingType: type };
-    const halloweenSize = halloweenSizeOverride ?? getHalloweenSpotMapSize(halloweenListing, isSelected, new Date(), zoom);
-    const iconUrl = getHalloweenSpotIconUrl(halloweenListing, new Date(), isSelected);
-    const key = `halloween_${iconUrl}_${halloweenSize}_${isSelected ? "selected" : "default"}`;
-    return getCachedIcon(key, iconUrl, halloweenSize, true);
+    const halloweenNow = new Date();
+    const halloweenSize = halloweenSizeOverride ?? getHalloweenSpotMapSize(halloweenListing, isSelected, halloweenNow, zoom);
+    const iconUrl = getHalloweenSpotIconUrl(halloweenListing, halloweenNow, isSelected);
+    const iconOpacity = getHalloweenSpotMapOpacity(halloweenListing, halloweenNow);
+    const key = `halloween_${iconUrl}_${halloweenSize}_${iconOpacity}_${isSelected ? "selected" : "default"}`;
+    return getCachedIcon(key, iconUrl, halloweenSize, true, iconOpacity < 1 ? "yardit-halloween-ghost" : "");
   } else if (type === "holiday_lights") {
     const isGlowing = location &&
     location.display_active &&

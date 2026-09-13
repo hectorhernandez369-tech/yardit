@@ -4,6 +4,16 @@ import { HALLOWEEN_AD_DEMO_ICONS, HALLOWEEN_SELECTED_ICON_ASSETS } from "@/lib/h
 
 export const HALLOWEEN_DAYTIME_ICON = HALLOWEEN_AD_DEMO_ICONS.halloween_decorations;
 
+const ASHEVILLE_DECORATION_ADDRESS = "874 asheville st";
+export function isAshevilleDecorationSpot(listing) {
+  const address = String(listing?.street_address || listing?.address || listing?.addressText || "").toLowerCase();
+  return address.includes(ASHEVILLE_DECORATION_ADDRESS);
+}
+
+export function getHalloweenSpotMapOpacity(listing, now = new Date()) {
+  return isAshevilleDecorationSpot(listing) && !isHalloweenFullIconActive(listing, now) ? 0.35 : 1;
+}
+
 const DINUBA_COMING_OCT_ONE_ID = "6a9f4b77bf56f8c88ee389d1";
 const SPONSORED_HALLOWEEN_LOCATION_IDS = new Set([
   "6a905d6300f9f756bb52f257",
@@ -29,6 +39,7 @@ function isAdDemoHalloween(listing) {
 
 export function getHalloweenSpotIconUrl(listing, now = new Date(), isSelected = false) {
   if (isDinubaComingOctOne(listing)) return HALLOWEEN_ICON_ASSETS.coming_oct_1;
+  if (isAshevilleDecorationSpot(listing) && listing?.custom_icon_url) return listing.custom_icon_url;
   const iconAssets = isSelected ? HALLOWEEN_SELECTED_ICON_ASSETS : HALLOWEEN_ICON_ASSETS;
   if (isAdDemoHalloween(listing)) {
     const demoKey = listing?.halloween_icon_key || listing?.halloween_spot_type || "halloween_decorations";
@@ -47,7 +58,7 @@ export function getHalloweenSpotIconUrl(listing, now = new Date(), isSelected = 
 }
 
 export function getHalloweenSpotMapSize(listing, isSelected = false, now = new Date(), zoom = 13) {
-  const isFullIcon = isDinubaComingOctOne(listing) || isAdDemoHalloween(listing) || (isHalloweenFullIconActive(listing, now) && !(isComingOctOne(listing) && isHalloweenTeaser(listing, now)));
+  const isFullIcon = isDinubaComingOctOne(listing) || isAdDemoHalloween(listing) || isAshevilleDecorationSpot(listing) || (isHalloweenFullIconActive(listing, now) && !(isComingOctOne(listing) && isHalloweenTeaser(listing, now)));
   const baseSize = isFullIcon ? (isSelected ? 38 : 34) : (isSelected ? 22 : 18);
   const zoomGrowth = Math.max(0, Math.min(4, Number(zoom) - 13));
   const size = baseSize + zoomGrowth * (isFullIcon ? 5 : 3);

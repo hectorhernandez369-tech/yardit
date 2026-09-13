@@ -525,3 +525,7 @@ button:focus-visible {
 .leaflet-tooltip.yardit-area-label::before {
   display: none !important;
 }
+
+.yardit-halloween-ghost {
+  opacity: 0.35 !important;
+}
