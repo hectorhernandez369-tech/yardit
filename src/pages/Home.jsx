@@ -503,6 +503,8 @@ export default function HomePage() {
   const [previewListingsOnMap] = useState(getPreviewListingsOnMapPreference);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
+  const [locationPermissionState, setLocationPermissionState] = useState("unknown");
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [focusListingId, setFocusListingId] = useState(null);
   const [activeFocusListing, setActiveFocusListing] = useState(null);
@@ -1021,6 +1023,36 @@ export default function HomePage() {
     ]);
   }, [queryClient, isPublicHomeMode]);
 
+  // Keep browser location permission state visible to Yardit so a logged-in user
+  // is reminded whenever location is disabled. Location is core to nearby sales,
+  // distance, map centering, and Hunt routing.
+  useEffect(() => {
+    if (!user || typeof navigator === "undefined" || !navigator.permissions?.query) return;
+    let permissionStatus;
+    let cancelled = false;
+
+    navigator.permissions.query({ name: "geolocation" }).then((status) => {
+      if (cancelled) return;
+      permissionStatus = status;
+      const syncPermission = () => {
+        setLocationPermissionState(status.state);
+        if (status.state === "denied") {
+          setLocationError("Location permission is off. Enable it to get the full Yardit experience.");
+          setShowLocationPrompt(true);
+        }
+      };
+      syncPermission();
+      status.addEventListener?.("change", syncPermission);
+    }).catch(() => null);
+
+    return () => {
+      cancelled = true;
+      if (permissionStatus?.removeEventListener) {
+        permissionStatus.removeEventListener("change", () => {});
+      }
+    };
+  }, [user]);
+
   // Live location tracking
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -1033,6 +1065,8 @@ export default function HomePage() {
         };
         setUserLocation(newLoc);
         setLocationError(null);
+        setLocationPermissionState("granted");
+        setShowLocationPrompt(false);
         if (!hasCenteredOnUser.current && !userHasMovedMap.current) {
           setMapCenter([newLoc.lat, newLoc.lng]);
           setMapZoom(14);
@@ -1042,7 +1076,9 @@ export default function HomePage() {
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
-          setLocationError("Location permission is off. Enable it in settings to use My Location.");
+          setLocationPermissionState("denied");
+          setLocationError("Location permission is off. Enable it to get the full Yardit experience.");
+          setShowLocationPrompt(true);
         } else {
           setLocationError("Unable to get location right now.");
         }
@@ -1053,10 +1089,6 @@ export default function HomePage() {
   }, []);
 
   const handleMyLocation = () => {
-    if (locationError) {
-      toast.error("Location unavailable. Check your browser settings.");
-      return;
-    }
     if (userLocation) {
       setMapCenter([userLocation.lat, userLocation.lng]);
       setMapZoom(14);
@@ -1076,14 +1108,18 @@ export default function HomePage() {
           setMapCenter([newLocation.lat, newLocation.lng]);
           setMapZoom(14);
           setLocationError(null);
+          setLocationPermissionState("granted");
+          setShowLocationPrompt(false);
           setIsLocating(false);
           toast.success("Centered on your location");
         },
         (error) => {
           setIsLocating(false);
           if (error.code === error.PERMISSION_DENIED) {
-            setLocationError("Location permission is off. Enable it in settings to use My Location.");
-            toast.error("Location permission denied");
+            setLocationPermissionState("denied");
+            setLocationError("Location permission is off. Enable it to get the full Yardit experience.");
+            setShowLocationPrompt(true);
+            toast.error("Location is blocked in your browser. Allow it for yardit.app, then try again.");
           } else {
             setLocationError("Unable to get location right now.");
             toast.error("Unable to get location");
@@ -2216,11 +2252,25 @@ export default function HomePage() {
           }
 
 
-            {locationError &&
+            {locationError && user &&
           <div className="absolute bottom-24 left-4 right-4 z-[1000] sm:left-auto sm:right-4 sm:w-80">
-                <Card className="bg-orange-50 border-orange-200">
+                <Card className="bg-orange-50 border-orange-200 shadow-lg">
                   <CardContent className="p-3">
-                    <p className="text-sm text-orange-800">{locationError}</p>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-700" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-orange-900">Location is off</p>
+                        <p className="mt-0.5 text-xs text-orange-800">{locationError}</p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => setShowLocationPrompt(true)}
+                          className="mt-2 h-8 bg-[#2C4F4E] text-xs font-bold text-white hover:bg-[#244140]"
+                        >
+                          Enable Location
+                        </Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -2230,6 +2280,49 @@ export default function HomePage() {
           </div>
         </div>
       }
+
+      <Dialog open={showLocationPrompt && !!user && !userLocation} onOpenChange={setShowLocationPrompt}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#2C4F4E]">
+              <MapPin className="h-5 w-5 text-[#F4A849]" />
+              Turn On Location
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm leading-6 text-slate-700">
+              Yardit uses your location to show nearby sales, calculate distance, center the map around you, and build your Hunt route.
+            </p>
+            {locationPermissionState === "denied" && (
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-3 text-xs leading-5 text-orange-900">
+                Your browser currently has location blocked for Yardit. Choose <strong>Enable Location</strong>. If your browser does not ask again, open the site permissions for <strong>yardit.app</strong>, allow Location, then return here and try again.
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Button
+                type="button"
+                onClick={handleMyLocation}
+                disabled={isLocating}
+                className="h-11 bg-[#2C4F4E] font-black text-white hover:bg-[#244140]"
+              >
+                {isLocating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Crosshair className="mr-2 h-4 w-4" />}
+                Enable Location
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowLocationPrompt(false)}
+                className="h-10 font-bold text-slate-600"
+              >
+                Not Now
+              </Button>
+            </div>
+            <p className="text-center text-[11px] leading-4 text-slate-500">
+              You can keep using Yardit without location, but nearby results and location-based features may be less accurate.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Report Modal */}
       {reportTarget &&
