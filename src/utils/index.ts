@@ -1,5 +1,5 @@
 export function createPageUrl(pageName: string) {
-    return '/' + pageName.toLowerCase().replace(/ /g, '-');
+    return '/' + pageName.replace(/ /g, '-');
 }
 
 const CURRENT_ROUTE_KEY = '__yardit_current_route';
