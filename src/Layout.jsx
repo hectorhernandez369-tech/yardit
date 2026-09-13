@@ -153,7 +153,7 @@ function LayoutContent({ children, user, setUser }) {
 
   const handlePostSaleClick = () => {
     guardAction(() => {
-      navigate(createPageUrl("CreateListing"));
+      window.location.assign(createPageUrl("CreateListing"));
     }, { returnTo: `${window.location.origin}${createPageUrl("CreateListing")}` });
   };
 
@@ -221,7 +221,7 @@ function LayoutContent({ children, user, setUser }) {
                 <Button
                   variant={location.pathname === "/VendorDashboard" || location.pathname === "/LeagueTeamDashboard" ? "secondary" : "ghost"}
                   size="sm"
-                  onClick={() => navigate("/VendorDashboard")}
+                  onClick={() => window.location.assign("/VendorDashboard")}
                   className={`gap-2 ${location.pathname === "/VendorDashboard" || location.pathname === "/LeagueTeamDashboard" ? "bg-white/20 text-white hover:bg-white/30" : "text-white hover:bg-white/10"}`}
                 >
                   <Store className="w-4 h-4" />
@@ -232,7 +232,7 @@ function LayoutContent({ children, user, setUser }) {
               {!isAuthenticated && (
                 <Button
                   size="sm"
-                  onClick={() => navigate("/AccountOptions")}
+                  onClick={() => window.location.assign("/AccountOptions")}
                   className="gap-2 bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] shadow-md font-semibold"
                 >
                   <User className="w-4 h-4" />
@@ -307,7 +307,7 @@ function LayoutContent({ children, user, setUser }) {
         hasVendorAccount={hasVendorAccount}
         hasAdminProfile={hasAdminProfile}
         showVendorHomeButton={hasVendorAccount && startupPage === "vendor"}
-        navigateToLogin={() => navigate("/AccountOptions")}
+        navigateToLogin={() => window.location.assign("/AccountOptions")}
         onPostSale={handlePostSaleClick}
         onLogout={handleLogout}
       />
@@ -319,7 +319,7 @@ function LayoutContent({ children, user, setUser }) {
         onOpenChange={setShowAddressRequiredModal}
         onAddNow={() => {
           setShowAddressRequiredModal(false);
-          navigate(createPageUrl("Profile"));
+          window.location.assign(createPageUrl("Profile"));
         }}
       />
 
