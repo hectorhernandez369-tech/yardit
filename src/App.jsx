@@ -4,7 +4,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { base44 } from "@/api/base44Client";
 import { isComingSoonModeEnabled, getTesterBypass, shouldBypassComingSoonForCurrentUrl } from '@/lib/comingSoonMode';
 import PageNotFound from './lib/PageNotFound';
@@ -54,6 +54,8 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
+  const location = useLocation();
+  const routeKey = `${location.pathname}${location.search}`;
   const { isLoadingAuth, isLoadingPublicSettings, authError, isGuest, isAuthenticated } = useAuth();
 
   const { data: publicAppSettings = [], isLoading: isLoadingAppSettings } = useQuery({
@@ -77,7 +79,7 @@ const AuthenticatedApp = () => {
   if (isLoadingAppSettings) return <YarditSplashScreen experience={getPreferredExperience()} />;
 
   if (isComingSoonMode) {
-    return <Routes>
+    return <Routes location={location} key={routeKey}>
       {AdminPage && <Route path="/AdminLite" element={<LayoutWrapper currentPageName="AdminLite"><AdminPage /></LayoutWrapper>} />}
       <Route path="/install" element={<InstallYardit />} />
       <Route path="/InstallYardit" element={<InstallYardit />} />
@@ -95,7 +97,7 @@ const AuthenticatedApp = () => {
     </Routes>;
   }
 
-  return <Routes>
+  return <Routes location={location} key={routeKey}>
     <Route path="/" element={<LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>} />
     <Route path="/CreateListing" element={<LayoutWrapper currentPageName="CreateListing"><CreateListingEntry /></LayoutWrapper>} />
     {Object.entries(Pages).filter(([path]) => path !== "CreateListing").map(([path, Page]) => <Route key={path} path={`/${path}`} element={<LayoutWrapper currentPageName={path}><Page /></LayoutWrapper>} />)}
