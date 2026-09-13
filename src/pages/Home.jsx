@@ -517,7 +517,6 @@ export default function HomePage() {
   const showListingsTimerRef = useRef(null);
   const hasHandledInitialFocus = useRef(false);
   const [currentZoom, setCurrentZoom] = useState(13);
-  const [halloweenClusteredIds, setHalloweenClusteredIds] = useState(() => new Set());
   const [scheduleNow, setScheduleNow] = useState(() => new Date());
   const markerRefsMap = useRef({});
   const hasCenteredOnUser = useRef(false);
@@ -1315,10 +1314,6 @@ export default function HomePage() {
     [visiblePins, currentZoom, selectedListingId]
   );
 
-  const handleHalloweenClusteredIdsChange = useCallback((ids) => {
-    setHalloweenClusteredIds(ids);
-  }, []);
-
   // NO ZOOM-BASED STATE RESET - persist marquee state across zoom levels
 
   const neighborhoodParticipantPins = useMemo(() => {
@@ -1698,7 +1693,7 @@ export default function HomePage() {
             }
               
               {!showUpcomingWeekend && <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />}
-              {/* TEMP NAV TEST: HalloweenClusterGroup disabled to isolate Home route failures. */}
+              {!showUpcomingWeekend && <HalloweenClusterGroup points={halloweenClusterPts} clusterRadius={40} markerRefsMap={markerRefsMap} />}
               {showUpcomingWeekend && (
                 <ComingSoonWeekendMapLayer
                   enabled={showUpcomingWeekend}
@@ -1710,7 +1705,6 @@ export default function HomePage() {
 
               {!showUpcomingWeekend && visiblePins.map((listing) => {
               if (!isShowingAllListings && hiddenByMarqueeIds.has(listing.id)) return null;
-              // TEMP NAV TEST: do not hide Halloween pins based on cluster state while clustering is disabled.
 
               const isMarquee = isMarqueeListing(listing);
               if (isMarquee && currentZoom >= MARQUEE_COLLAPSED_MIN_ZOOM && openMarqueeIds[listing.id] !== false) return null;

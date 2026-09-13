@@ -10,40 +10,51 @@ const clusterIcon = (count) => L.divIcon({
   iconAnchor: [21, 21],
 });
 
-export default function HalloweenClusterGroup({ points, clusterRadius = 40, onClusteredIdsChange }) {
+export default function HalloweenClusterGroup({ points, clusterRadius = 40, markerRefsMap }) {
   const map = useMap();
   const layerRef = useRef(L.layerGroup());
+  const pointsRef = useRef(points);
+  const radiusRef = useRef(clusterRadius);
+  const updateRef = useRef(() => {});
+  pointsRef.current = points;
+  radiusRef.current = clusterRadius;
 
   useEffect(() => {
-    layerRef.current.addTo(map);
-    return () => layerRef.current.remove();
-  }, [map]);
-
-  useEffect(() => {
+    let active = true;
+    const layer = layerRef.current;
+    const setMarkerVisibility = (hiddenIds) => {
+      pointsRef.current.forEach(({ id }) => {
+        const element = markerRefsMap?.current?.[id]?.getElement?.();
+        if (element) element.style.display = hiddenIds.has(id) ? "none" : "";
+      });
+    };
     const update = () => {
-      layerRef.current.clearLayers();
-      const clusters = clusterHalloweenPoints(points, map, clusterRadius);
-      onClusteredIdsChange(new Set(clusters.flatMap(({ members }) => members.map(({ id }) => id))));
+      if (!active) return;
+      layer.clearLayers();
+      const clusters = clusterHalloweenPoints(pointsRef.current, map, radiusRef.current);
+      setMarkerVisibility(new Set(clusters.flatMap(({ members }) => members.map(({ id }) => id))));
       clusters.forEach((cluster) => {
         const marker = L.marker([cluster.lat, cluster.lng], { icon: clusterIcon(cluster.count), interactive: true });
-        marker.on("click", () => map.flyTo(
-          [cluster.lat, cluster.lng],
-          Math.min(map.getZoom() + 2, map.getMaxZoom()),
-          { duration: 0.5 }
-        ));
-        layerRef.current.addLayer(marker);
+        marker.on("click", () => map.flyTo([cluster.lat, cluster.lng], Math.min(map.getZoom() + 2, map.getMaxZoom()), { duration: 0.5 }));
+        layer.addLayer(marker);
       });
     };
 
+    updateRef.current = update;
+    layer.addTo(map);
     update();
     map.on("zoomend", update);
     map.on("moveend", update);
     return () => {
+      active = false;
       map.off("zoomend", update);
       map.off("moveend", update);
-      onClusteredIdsChange(new Set());
+      setMarkerVisibility(new Set());
+      layer.clearLayers();
+      layer.remove();
     };
-  }, [clusterRadius, map, onClusteredIdsChange, points]);
+  }, [map, markerRefsMap]);
 
+  useEffect(() => updateRef.current(), [points, clusterRadius]);
   return null;
 }
