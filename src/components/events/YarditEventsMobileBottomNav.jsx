@@ -19,7 +19,7 @@ export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague,
   if (!isAuthenticated) {
     return (
       <nav className="yardit-mobile-bottom-nav yardit-events-mobile-bottom-nav yardit-mobile-bottom-nav-guest" aria-label="Yardit Events mobile navigation">
-        <button onClick={() => window.location.assign("/")} className="yardit-mobile-nav-item">
+        <button onClick={() => navigate("/")} className="yardit-mobile-nav-item">
           <Home className="w-5 h-5" />
           <span>Map</span>
         </button>
@@ -42,12 +42,12 @@ export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague,
         <span>Alerts</span>
       </div>
 
-      <button onClick={() => window.location.assign("/VendorEventDashboard")} className="yardit-mobile-nav-item yardit-mobile-nav-primary">
+      <button onClick={() => navigate("/VendorEventDashboard")} className="yardit-mobile-nav-item yardit-mobile-nav-primary">
         <Plus className="w-5 h-5" />
         <span>Event</span>
       </button>
 
-      <button onClick={() => window.location.assign("/")} className={`yardit-mobile-nav-item yardit-mobile-nav-map ${isMapActive ? "is-active" : ""}`}>
+      <button onClick={() => navigate("/")} className={`yardit-mobile-nav-item yardit-mobile-nav-map ${isMapActive ? "is-active" : ""}`}>
         <Home className="w-5 h-5" />
         <span>Map</span>
       </button>
@@ -61,23 +61,23 @@ export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague,
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="top" sideOffset={12} className="z-[3001] w-52 rounded-xl border border-[#F4A849]/30 bg-slate-950/95 p-1.5 text-white shadow-xl backdrop-blur-md">
           <div className="px-2 py-0.5 text-[10px] uppercase text-[#F4A849]">Yardit Events</div>
-          <DropdownMenuItem onSelect={() => window.location.assign(dashboardPath)} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+          <DropdownMenuItem onSelect={() => navigate(dashboardPath)} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
             <CalendarDays className="w-3.5 h-3.5 text-[#F4A849]" /> Dashboard
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => window.location.assign("/")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+          <DropdownMenuItem onSelect={() => navigate("/")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
             <MapIcon className="w-3.5 h-3.5 text-cyan-300" /> Shared Map
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => window.location.assign("/Profile")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+          <DropdownMenuItem onSelect={() => navigate("/Profile")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
             <User className="w-3.5 h-3.5 text-cyan-300" /> My Profile
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => window.location.assign("/Settings")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+          <DropdownMenuItem onSelect={() => navigate("/Settings")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
             <Settings className="w-3.5 h-3.5 text-cyan-300" /> Settings
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => window.location.assign("/StartupGuide")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+          <DropdownMenuItem onSelect={() => navigate("/StartupGuide")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
             <HelpCircle className="w-3.5 h-3.5 text-cyan-300" /> Help
           </DropdownMenuItem>
           {hasAdminProfile && (
-            <DropdownMenuItem onSelect={() => window.location.assign("/AdminLite")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+            <DropdownMenuItem onSelect={() => navigate("/AdminLite")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
               <Shield className="w-3.5 h-3.5 text-[#F4A849]" /> Admin Login
             </DropdownMenuItem>
           )}
