@@ -526,6 +526,11 @@ button:focus-visible {
   display: none !important;
 }
 
-.yardit-halloween-ghost {
-  opacity: 0.35 !important;
+@keyframes yardit-halloween-promo-blink {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.35; }
+}
+
+.yardit-halloween-promo-off {
+  animation: yardit-halloween-promo-blink 1.2s ease-in-out infinite;
 }

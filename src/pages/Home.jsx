@@ -193,7 +193,7 @@ const createIcon = (type, tier, isSelected, location, zoom = 13, halloweenSizeOv
     const iconUrl = getHalloweenSpotIconUrl(halloweenListing, halloweenNow, isSelected);
     const iconOpacity = getHalloweenSpotMapOpacity(halloweenListing, halloweenNow);
     const key = `halloween_${iconUrl}_${halloweenSize}_${iconOpacity}_${isSelected ? "selected" : "default"}`;
-    return getCachedIcon(key, iconUrl, halloweenSize, true, iconOpacity < 1 ? "yardit-halloween-ghost" : "");
+    return getCachedIcon(key, iconUrl, halloweenSize, true, iconOpacity < 1 ? "yardit-halloween-promo-off" : "");
   } else if (type === "holiday_lights") {
     const isGlowing = location &&
     location.display_active &&

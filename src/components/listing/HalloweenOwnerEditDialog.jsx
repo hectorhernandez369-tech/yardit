@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import EventPhotoUpload from "@/components/create/event/EventPhotoUpload";
+import { isAshevilleDecorationSpot } from "@/lib/halloweenMapIcons";
 
 const SPOT_TYPES = [
   { value: "halloween_decorations", label: "Halloween Decorations" },
@@ -145,7 +146,7 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
 
           {type === "trunk_or_treat" && <div className="space-y-3 rounded-xl border border-orange-200 bg-orange-50/60 p-4"><div className="grid gap-3 sm:grid-cols-2"><div className="space-y-1.5"><Label>Host / organization</Label><Input value={draft.halloween_host_name || ""} onChange={(e) => setDraft((p) => ({ ...p, halloween_host_name: e.target.value }))} /></div><div className="space-y-1.5"><Label>Admission</Label><Input value={draft.halloween_admission || ""} onChange={(e) => setDraft((p) => ({ ...p, halloween_admission: e.target.value }))} placeholder="Free" /></div></div><div className="space-y-1.5"><Label>Parking notes</Label><Input value={draft.halloween_parking_notes || ""} onChange={(e) => setDraft((p) => ({ ...p, halloween_parking_notes: e.target.value }))} /></div><div className="space-y-1.5"><Label>Activities</Label><Input value={draft.halloween_activities || ""} onChange={(e) => setDraft((p) => ({ ...p, halloween_activities: e.target.value }))} placeholder="Games, costume contest, food vendors..." /></div></div>}
 
-          <div className="space-y-1.5"><Label>Photos (up to 3)</Label><EventPhotoUpload value={draft.photos || []} maxPhotos={3} onChange={(photos) => setDraft((p) => ({ ...p, photos }))} /></div>
+          <div className="space-y-1.5"><Label>Photos (up to {isAshevilleDecorationSpot(spot) ? 10 : 3})</Label><EventPhotoUpload value={draft.photos || []} maxPhotos={isAshevilleDecorationSpot(spot) ? 10 : 3} onChange={(photos) => setDraft((p) => ({ ...p, photos }))} /></div>
 
           <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button><Button onClick={save} disabled={saving} className="bg-purple-800 hover:bg-purple-700">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Changes</Button></div>
         </div>

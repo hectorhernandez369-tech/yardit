@@ -155,7 +155,7 @@ export default function HalloweenSpotDetail() {
             </div>
           </div>
 
-          {photos.length > 0 && <div className="grid gap-2 border-y border-white/10 bg-black/20 p-3 sm:grid-cols-3 sm:p-4">{photos.slice(0, 3).map((url, index) => <img key={`${url}-${index}`} src={url} alt={`${listing.title} photo ${index + 1}`} className="h-52 w-full rounded-2xl border border-white/10 object-cover" />)}</div>}
+          {photos.length > 0 && <div className="grid gap-2 border-y border-white/10 bg-black/20 p-3 sm:grid-cols-3 sm:p-4">{(isAshevilleDecorationSpot(spot) ? photos : photos.slice(0, 3)).map((url, index) => <img key={`${url}-${index}`} src={url} alt={`${listing.title} photo ${index + 1}`} className="h-52 w-full rounded-2xl border border-white/10 object-cover" />)}</div>}
 
           <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-4">
