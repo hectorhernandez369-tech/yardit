@@ -11,10 +11,12 @@ export default function HalloweenLikeButton({ listingId, className = "" }) {
   const queryClient = useQueryClient();
   const queryKey = ["halloweenLikes", listingId];
   const { guardAction, showModal, setShowModal, modalProps } = useGuestGuard();
-  const { data = { count: 0, liked: false } } = useQuery({
+  const { data } = useQuery({
     queryKey,
     queryFn: async () => (await base44.functions.invoke("halloweenLikes", { action: "get", halloween_listing_id: listingId })).data,
     enabled: !!listingId,
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
   });
   const mutation = useMutation({
     mutationFn: async (liked) => (await base44.functions.invoke("halloweenLikes", { action: "toggle", halloween_listing_id: listingId, liked })).data,
@@ -31,13 +33,17 @@ export default function HalloweenLikeButton({ listingId, className = "" }) {
     onSuccess: (result) => queryClient.setQueryData(queryKey, result),
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
+  const isKnown = !!data;
+  const isLiked = data?.liked === true;
   const toggle = (event) => {
     event.stopPropagation();
-    guardAction(() => mutation.mutate(!data.liked), { modal: { title: "Log In to Like This Halloween Spot", description: "Create a free Yardit account or log in to like this Halloween location." } });
+    if (!isKnown) return;
+    guardAction(() => mutation.mutate(!isLiked), { modal: { title: "Log In to Like This Halloween Spot", description: "Create a free Yardit account or log in to like this Halloween location." } });
   };
   return <>
-    <Button type="button" variant="outline" size="sm" aria-label={data.liked ? "Unlike Halloween spot" : "Like Halloween spot"} aria-pressed={data.liked} disabled={mutation.isPending} onClick={toggle} className={`gap-1 ${data.liked ? "text-red-500" : "text-slate-300"} ${className}`}>
-      <Heart className={`h-3.5 w-3.5 ${data.liked ? "fill-current" : ""}`} /><span>{data.count}</span>
+    <Button type="button" variant="outline" size="sm" aria-label={!isKnown ? "Loading Halloween likes" : isLiked ? "Unlike Halloween spot" : "Like Halloween spot"} aria-pressed={isKnown ? isLiked : undefined} disabled={!isKnown || mutation.isPending} onClick={toggle} className={`gap-1 ${className}`}>
+      <Heart className={`h-3.5 w-3.5 ${isLiked ? "fill-red-500 stroke-red-500 text-red-500" : "fill-none stroke-slate-300 text-slate-300"}`} />
+      {isKnown ? <span className={isLiked ? "text-red-500" : "text-slate-300"}>{data.count}</span> : <span className="min-w-2 animate-pulse text-slate-400">—</span>}
     </Button>
     <GuestAuthModal open={showModal} onClose={setShowModal} {...modalProps} />
   </>;
