@@ -5,6 +5,13 @@ import { HALLOWEEN_AD_DEMO_ICONS, HALLOWEEN_SELECTED_ICON_ASSETS } from "@/lib/h
 export const HALLOWEEN_DAYTIME_ICON = HALLOWEEN_AD_DEMO_ICONS.halloween_decorations;
 
 const ASHEVILLE_DECORATION_ADDRESS = "874 asheville st";
+const SPECIAL_HALLOWEEN_LISTING_NUMBER = "CA3247-59de3";
+
+export function isSpecialHalloweenIcon(listing) {
+  const listingNumber = listing?.halloween_listing_number || listing?.listingNumber || listing?.listing_number || listing?.id;
+  return String(listingNumber || "").toLowerCase() === SPECIAL_HALLOWEEN_LISTING_NUMBER.toLowerCase();
+}
+
 export function isAshevilleDecorationSpot(listing) {
   const address = String(listing?.street_address || listing?.address || listing?.addressText || "").toLowerCase();
   return address.includes(ASHEVILLE_DECORATION_ADDRESS);
@@ -62,6 +69,7 @@ export function getHalloweenSpotMapSize(listing, isSelected = false, now = new D
   const baseSize = isFullIcon ? (isSelected ? 38 : 34) : (isSelected ? 22 : 18);
   const zoomGrowth = Math.max(0, Math.min(4, Number(zoom) - 13));
   const size = baseSize + zoomGrowth * (isFullIcon ? 5 : 3);
+  if (isSpecialHalloweenIcon(listing)) return Math.round(size * 1.5);
   if (isAshevilleDecorationSpot(listing)) return Math.round(size * 1.5);
   if (!SPONSORED_HALLOWEEN_LOCATION_IDS.has(String(listing?.id))) return size;
   if (isDinubaComingOctOne(listing)) return Math.round(size * 0.75) * 2;
@@ -84,7 +92,7 @@ export function getHalloweenCollisionSizes(listings, zoom, selectedId) {
   candidates.forEach((listing) => {
     if (listing?.listingType !== "halloween_candy" && listing?.type !== "halloween_candy") return;
     const desiredSize = getHalloweenSpotMapSize(listing, listing.id === selectedId, new Date(), zoom);
-    if (isDinubaComingOctOne(listing)) {
+    if (isDinubaComingOctOne(listing) || isSpecialHalloweenIcon(listing)) {
       sizes[listing.id] = desiredSize;
       return;
     }

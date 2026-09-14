@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 import { clusterHalloweenPoints } from "@/lib/halloweenPixelClustering";
+import { isSpecialHalloweenIcon } from "@/lib/halloweenMapIcons";
 
 const clusterIcon = (count) => L.divIcon({
   className: "halloween-neighborhood-cluster",
@@ -31,7 +32,8 @@ export default function HalloweenClusterGroup({ points, clusterRadius = 40, mark
     const update = () => {
       if (!active) return;
       layer.clearLayers();
-      const clusters = clusterHalloweenPoints(pointsRef.current, map, radiusRef.current);
+      const clusterablePoints = pointsRef.current.filter(({ listing }) => !isSpecialHalloweenIcon(listing));
+      const clusters = clusterHalloweenPoints(clusterablePoints, map, radiusRef.current);
       setMarkerVisibility(new Set(clusters.flatMap(({ members }) => members.map(({ id }) => id))));
       clusters.forEach((cluster) => {
         const marker = L.marker([cluster.lat, cluster.lng], { icon: clusterIcon(cluster.count), interactive: true });
