@@ -11,6 +11,7 @@ import ReportModal from "@/components/ReportModal";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
+import HalloweenLikeButton from "@/components/halloween/HalloweenLikeButton";
 import { HALLOWEEN_ICON_ASSETS, isAshevilleDecorationSpot } from "@/lib/halloweenMapIcons";
 import { getHalloweenSpotTypeLabel } from "@/lib/halloweenSpots";
 
@@ -147,6 +148,7 @@ export default function HalloweenSpotDetail() {
                   <Badge className="border border-orange-300/40 bg-orange-500/15 text-orange-100">Halloween Spot</Badge>
                   {spot.halloween_featured_badge === "must_see" && <Badge className="bg-yellow-500 text-black"><Star className="mr-1 h-3 w-3" />Yardit Must See</Badge>}
                   {spot.halloween_candy_available && !tags.includes("no_candy_here") && <Badge className="border border-pink-300/60 bg-pink-500/20 text-pink-100"><Candy className="mr-1 h-3 w-3" />Candy Here</Badge>}
+                  <HalloweenLikeButton listingId={spot.id} className="h-7 border-white/20 bg-white/5 px-2 text-xs hover:bg-white/10" />
                 </div>
                 <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">{listing.title}</h1>
                 <p className="mt-1 text-sm font-bold text-purple-200">{getHalloweenSpotTypeLabel(spot)}</p>
