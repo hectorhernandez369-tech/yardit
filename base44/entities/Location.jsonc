@@ -31,6 +31,10 @@
       "type": "string",
       "description": "Title for holiday light displays"
     },
+    "halloween_listing_number": {
+      "type": "string",
+      "description": "Public Halloween listing number, e.g. HW-CA3247-a1b2c"
+    },
     "street_address": {
       "type": "string",
       "description": "Street number and name (e.g., 123 Main St)"
