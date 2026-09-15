@@ -122,8 +122,8 @@ function getCachedIcon(key, url, size, square = false, className = "") {
     iconCache[key] = new L.Icon({
       iconUrl: url,
       iconSize: [w, h],
-      iconAnchor: [w / 2, h],
-      popupAnchor: [0, -h],
+      iconAnchor: square ? [w / 2, h / 2] : [w / 2, h],
+      popupAnchor: square ? [0, -h / 2] : [0, -h],
       className
     });
   }
