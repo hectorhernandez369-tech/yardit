@@ -505,14 +505,21 @@ button:focus-visible {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18) !important;
 }
 
-/* Halloween popups need room for their rounded header and card shadow. */
+/* Compact Halloween popup: one card, with a smooth entrance and no spacer layer. */
+@keyframes yardit-halloween-popup-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .leaflet-popup.yardit-halloween-popup .leaflet-popup-content {
-  margin-top: 16px !important;
+  margin-top: 10px !important;
   overflow: visible !important;
 }
 
 .leaflet-popup.yardit-halloween-popup .leaflet-popup-content-wrapper {
   overflow: visible !important;
+  animation: yardit-halloween-popup-in 180ms ease-out both;
+  transform-origin: bottom center;
 }
 
 .leaflet-popup.yardit-halloween-popup .leaflet-popup-close-button {
@@ -523,10 +530,6 @@ button:focus-visible {
   background: rgba(15, 23, 42, 0.88) !important;
   color: #fff7ed !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
-}
-
-.leaflet-popup.yardit-halloween-popup .leaflet-popup-content > div {
-  padding-top: 28px;
 }
 
 .leaflet-tooltip.yardit-area-label {

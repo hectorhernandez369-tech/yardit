@@ -30,16 +30,16 @@ export default function HalloweenSpotPopupCard({ listing }) {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-orange-400/60 bg-gradient-to-b from-purple-950 via-slate-950 to-black text-white shadow-[0_10px_30px_rgba(88,28,135,0.45)]">
-      <div className="relative px-3 pt-3 pb-2">
-        <div className="pointer-events-none absolute right-3 top-2 text-xl opacity-70">🎃</div>
-        <div className="flex items-center gap-3">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-orange-300/50 bg-orange-500/10 shadow-[0_0_18px_rgba(249,115,22,0.28)]">
-            <img src={fullIcon} alt="" className="h-14 w-14 object-contain" />
+      <div className="relative px-2.5 pb-1.5 pt-2 pr-9">
+        <div className="pointer-events-none absolute right-9 top-1.5 text-base opacity-70">🎃</div>
+        <div className="flex items-center gap-2">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-orange-300/50 bg-orange-500/10 shadow-[0_0_14px_rgba(249,115,22,0.25)]">
+            <img src={fullIcon} alt="" className="h-10 w-10 object-contain" />
           </div>
           <div className="min-w-0">
             <div className="inline-flex rounded-full border border-orange-300/40 bg-orange-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-orange-200">Halloween Spot</div>
-            <h3 className="mt-1 truncate text-base font-black text-white">{listing.title || "Halloween Spot"}</h3>
-            <p className="text-[11px] font-semibold text-purple-200">{getHalloweenSpotTypeLabel(listing)}</p>
+            <h3 className="mt-0.5 truncate text-sm font-black text-white">{listing.title || "Halloween Spot"}</h3>
+            <p className="text-[10px] font-semibold text-purple-200">{getHalloweenSpotTypeLabel(listing)}</p>
             <div className="mt-1 flex flex-wrap gap-1">
               {listing.halloween_featured_badge === "must_see" && <div className="inline-flex items-center gap-1 rounded-full border border-yellow-300/50 bg-yellow-400/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-yellow-200"><Star className="h-3 w-3" /> Yardit Must See</div>}
               {listing.halloween_candy_available && !(listing.halloween_tags || []).includes("no_candy_here") && <div className="inline-flex items-center gap-1 rounded-full border border-pink-300/60 bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-pink-100"><Candy className="h-3 w-3" /> Candy Here</div>}
@@ -48,16 +48,15 @@ export default function HalloweenSpotPopupCard({ listing }) {
         </div>
       </div>
 
-      {listing.description && <p className="px-3 pb-2 text-[11px] leading-relaxed text-slate-200 line-clamp-3">{listing.description}</p>}
+      {listing.description && <p className="px-2.5 pb-1.5 text-[10px] leading-relaxed text-slate-200 line-clamp-2">{listing.description}</p>}
 
-
-      <div className="mx-3 mb-2 space-y-1.5 rounded-xl border border-white/10 bg-white/5 p-2 text-[10px] text-slate-200">
+      <div className="mx-2.5 mb-1.5 space-y-1 rounded-lg border border-white/10 bg-white/5 p-1.5 text-[9px] text-slate-200">
         <div className="flex gap-2"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-300" /><span className="break-words">{address || "Address unavailable"}</span></div>
         <div className="flex gap-2"><CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0 text-purple-300" /><span>{formatDateRange(listing)}</span></div>
         <div className="flex gap-2"><Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-300" /><span>{startTime || endTime ? `${formatTime(startTime) || "Start time TBD"}${endTime ? ` – ${formatTime(endTime)}` : ""}` : "Hours not listed"}</span></div>
       </div>
 
-      <div className="mx-3 mb-3 flex flex-wrap gap-1.5">
+      <div className="mx-2.5 mb-2 flex flex-wrap gap-1">
         {(listing.halloween_tags || []).includes("kid_friendly") && <span className="inline-flex items-center gap-1 rounded-full border border-purple-300/30 bg-purple-500/15 px-2 py-1 text-[9px] font-bold text-purple-100"><Baby className="h-3 w-3" /> Kid Friendly</span>}
         {(listing.halloween_tags || []).includes("no_candy_here") && <span className="inline-flex items-center gap-1 rounded-full border border-orange-300/30 bg-orange-500/15 px-2 py-1 text-[9px] font-bold text-orange-100"><Candy className="h-3 w-3" /> No Candy Here</span>}
         {listing.halloween_candy_available && !(listing.halloween_tags || []).includes("no_candy_here") && <span className="inline-flex items-center gap-1 rounded-full border border-orange-300/30 bg-orange-500/15 px-2 py-1 text-[9px] font-bold text-orange-100"><Candy className="h-3 w-3" /> Candy Available</span>}
