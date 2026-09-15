@@ -1743,7 +1743,7 @@ export default function HomePage() {
 
                   }
                     {!isMarquee &&
-                  <Popup maxWidth={isHalloweenSpot(listing) ? 280 : 318} minWidth={isHalloweenSpot(listing) ? 190 : 202} autoPan={isHalloweenSpot(listing)} keepInView={isHalloweenSpot(listing)} autoPanPaddingTopLeft={isHalloweenSpot(listing) ? [18, 24] : [10, 10]} autoPanPaddingBottomRight={[18, 18]} className={isHalloweenSpot(listing) ? "leaflet-popup-transparent yardit-halloween-popup" : "leaflet-popup-transparent"}>
+                  <Popup maxWidth={isHalloweenSpot(listing) ? 280 : 318} minWidth={isHalloweenSpot(listing) ? 190 : 202} autoPanPaddingTopLeft={[10, 10]} autoPanPaddingBottomRight={[10, 10]} className={isHalloweenSpot(listing) ? "leaflet-popup-transparent yardit-halloween-popup" : "leaflet-popup-transparent"}>
                          <div className={`flex w-[66vw] flex-col rounded-xl backdrop-blur-md shadow-lg opacity-100 sm:w-auto ${isHalloweenSpot(listing) ? "max-w-[218px] overflow-visible border border-orange-400/60 bg-slate-950 sm:max-w-[260px]" : "max-w-[235px] overflow-hidden border border-white/40 bg-white sm:max-w-[299px]"}`} style={{ maxHeight: isHalloweenSpot(listing) ? "54vh" : "60vh" }}>
                           {isHalloweenSpot(listing) && <HalloweenSpotPopupCard listing={listing} />}
                           {!isHalloweenSpot(listing) && <div className="px-1 py-1.5 sm:p-1.5 overflow-y-auto flex-1 min-h-0 space-y-1.5">
