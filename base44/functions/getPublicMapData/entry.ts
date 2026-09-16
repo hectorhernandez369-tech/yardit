@@ -62,6 +62,8 @@ function isPublicHalloweenLocation(location, now) {
 function canSeeAdDemo(record, currentUser) {
   const isAdDemo = record?.is_demo_listing === true || String(record?.title || record?.display_title || '').startsWith('AD DEMO —');
   if (!isAdDemo) return true;
+  const isHalloweenDemo = record?.type === 'halloween_candy' || record?.listingType === 'halloween_candy';
+  if (isHalloweenDemo && record?.halloween_demo_force_live === true) return true;
   const ownerId = record?.ownerUserId || record?.owner_user_id;
   return !!currentUser?.id && String(ownerId) === String(currentUser.id);
 }
@@ -126,7 +128,7 @@ const halloweenLocationFields = [
   'latitude', 'longitude', 'description', 'start_date_time', 'end_date_time', 'viewing_start_time', 'viewing_end_time',
   'status', 'expires_at', 'photos', 'halloween_icon_key', 'halloween_spot_type', 'halloween_tags', 'halloween_featured_badge',
   'halloween_start_date', 'halloween_end_date', 'halloween_start_time', 'halloween_end_time', 'full_icon_activation_time',
-  'custom_icon_url', 'teaser_until', 'halloween_candy_available', 'halloween_walkthrough', 'halloween_lights', 'halloween_sound',
+  'custom_icon_url', 'teaser_until', 'halloween_demo_force_live', 'halloween_candy_available', 'halloween_walkthrough', 'halloween_lights', 'halloween_sound',
   'halloween_jump_scares', 'halloween_suggested_age', 'halloween_host_name', 'halloween_admission', 'halloween_parking_notes', 'halloween_activities'
 ];
 
