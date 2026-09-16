@@ -168,7 +168,7 @@ const GUIDE_SECTIONS = [
     role: "seller",
     title: "Create a Neighborhood Sale",
     description:
-      "Organize multiple nearby homes under one larger public event.",
+      "Organize nearby homes into one shared residential event.",
     icon: Users,
     estimatedTime: "About 10 minutes",
     steps: [
@@ -178,24 +178,154 @@ const GUIDE_SECTIONS = [
           "Start the posting flow and select Neighborhood Sale instead of a standard yard sale.",
       },
       {
+        title: "Schedule it early enough",
+        text:
+          "Neighborhood Sales must be scheduled at least 7 days in advance.",
+      },
+      {
         title: "Add the event information",
         text:
-          "Enter the neighborhood sale name, description, dates, times, address, and organizer details.",
+          "Enter the sale name, description, dates, times, and organizer location details.",
       },
       {
         title: "Invite nearby homes",
         text:
-          "Share the neighborhood sale or approve eligible nearby homes that request to participate.",
+          "Invite or approve qualifying homes in the Neighborhood Sale area. The current event area is built around a 500-foot radius.",
       },
       {
-        title: "Monitor participation",
+        title: "Reach the minimum",
         text:
-          "Review participating homes and make sure the minimum activation requirements are met before the cutoff.",
+          "The sale needs at least 5 approved homes and can include up to 25 homes.",
       },
       {
-        title: "Review the public page",
+        title: "Review commitment and payment",
         text:
-          "Confirm that buyers can see the neighborhood event and its participating homes correctly.",
+          "Once qualified, the current organizer price is a flat $49.99. Participation normally locks about 24 hours before the event begins.",
+      },
+    ],
+  },
+  {
+    id: "choose-yard-sale-tier",
+    role: "seller",
+    title: "Choose a Yard Sale Tier",
+    description:
+      "Compare Free, Featured, and Premium before you publish.",
+    icon: Star,
+    estimatedTime: "About 1 minute",
+    steps: [
+      {
+        title: "Choose Free for a simple weekend sale",
+        text:
+          "Free costs $0, runs on Yardit’s Friday 5:00 AM through Sunday 10:00 PM weekend schedule, allows up to 3 photos, and appears as an individual pin from zoom 15+.",
+      },
+      {
+        title: "Choose Featured for more control",
+        text:
+          "Featured costs $4.99, supports 1 to 3 consecutive days, allows up to 10 photos, and appears from zoom 13+.",
+      },
+      {
+        title: "Choose Premium for the strongest visibility",
+        text:
+          "Premium costs $7.99, supports 1 to 5 consecutive days, allows up to 25 photos, appears from zoom 11+, and can include up to 3 days of Coming Soon visibility.",
+      },
+    ],
+  },
+  {
+    id: "manage-yard-sale",
+    role: "seller",
+    title: "Manage Your Yard Sale",
+    description:
+      "Edit, relist, upgrade, cancel, or review billing from My Listings.",
+    icon: ListChecks,
+    estimatedTime: "About 2 minutes",
+    steps: [
+      {
+        title: "Open My Listings",
+        text:
+          "Use the Active, Pending, Drafts, Past, or Billing tabs to find what you need.",
+      },
+      {
+        title: "Choose the available action",
+        text:
+          "Depending on the listing, you may see Edit, Relist, Upgrade, Cancel, View Billing, or Need Help.",
+      },
+      {
+        title: "Use support for paid or locked issues",
+        text:
+          "Paid or locked listings may require support instead of direct cancellation. Refund eligibility is handled through the normal support process.",
+      },
+    ],
+  },
+  {
+    id: "resume-listing-draft",
+    role: "seller",
+    title: "Resume a Listing Draft",
+    description:
+      "Continue an unfinished residential listing.",
+    icon: ListChecks,
+    estimatedTime: "Less than 1 minute",
+    steps: [
+      {
+        title: "Open My Listings",
+        text:
+          "Go to My Listings and choose Drafts.",
+      },
+      {
+        title: "Resume or delete",
+        text:
+          "Tap Resume to continue where you left off, or delete the draft if you no longer need it.",
+      },
+    ],
+  },
+  {
+    id: "upgrade-yard-sale",
+    role: "seller",
+    title: "Upgrade a Yard Sale",
+    description:
+      "Move an eligible listing to a higher visibility tier.",
+    icon: Star,
+    estimatedTime: "About 2 minutes",
+    steps: [
+      {
+        title: "Open My Listings",
+        text:
+          "Find the listing you want to upgrade and tap Upgrade when that action is available.",
+      },
+      {
+        title: "Choose the higher tier",
+        text:
+          "Free to Featured is $4.99, Free to Premium is $7.99, and Featured to Premium is $3.00.",
+      },
+      {
+        title: "Review and pay",
+        text:
+          "Confirm the upgrade and complete checkout. If you are charged but the listing does not update, do not pay again; use Billing Support.",
+      },
+    ],
+  },
+  {
+    id: "listings-near-me",
+    role: "buyer",
+    title: "Turn On Listings Near Me",
+    description:
+      "Receive nearby residential listing alerts using your verified address.",
+    icon: MapPin,
+    estimatedTime: "About 2 minutes",
+    steps: [
+      {
+        title: "Verify your address",
+        text:
+          "Listings Near Me requires a verified residential address.",
+      },
+      {
+        title: "Open Notification Settings",
+        text:
+          "Enable notifications and turn on Listings Near Me.",
+      },
+      {
+        title: "Choose a radius",
+        text:
+          "Select 1, 2, 5, 10, or 25 miles.",
       },
     ],
   },
