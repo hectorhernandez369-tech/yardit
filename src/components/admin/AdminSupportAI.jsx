@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +50,7 @@ async function upsertTriage(record) {
 }
 
 export default function AdminSupportAI({ user }) {
+  const navigate = useNavigate();
   const [triage, setTriage] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -247,6 +249,28 @@ export default function AdminSupportAI({ user }) {
     }
   };
 
+  const handleOpenTriageCase = async (item) => {
+    if (item.source_type !== "report") return;
+    try {
+      const reports = await base44.entities.Report.filter({ id: item.source_id });
+      const report = reports?.[0];
+      if (!report?.listingId) {
+        toast.error("This report is not linked to a case yet.");
+        return;
+      }
+      const cases = await base44.entities.Case.filter({ listing_id: report.listingId });
+      const matchingCase = [...(cases || [])].sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0))[0];
+      if (!matchingCase) {
+        toast.error("A case has not been created for this report yet.");
+        return;
+      }
+      navigate(`/AdminLite?section=case_management&openCaseId=${matchingCase.id}`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not open the linked case.");
+    }
+  };
+
   const sortedTriage = useMemo(() => [...triage].sort((a, b) => {
     const priorityDiff = priorityRank(b.priority) - priorityRank(a.priority);
     if (priorityDiff) return priorityDiff;
@@ -270,6 +294,11 @@ export default function AdminSupportAI({ user }) {
       <p className="mt-2 text-sm font-semibold text-slate-900">{item.summary || "No summary"}</p>
       {item.safety_reason ? <p className="mt-1 text-xs text-slate-600"><strong>Safety:</strong> {item.safety_reason}</p> : null}
       <p className="mt-1 text-xs text-slate-600"><strong>Astra recommendation:</strong> {item.suggested_action || "Review"}</p>
+      {item.source_type === "report" ? (
+        <Button type="button" size="sm" className="mt-3" onClick={() => handleOpenTriageCase(item)}>
+          Open Case
+        </Button>
+      ) : null}
       {item.suggested_reply ? (
         <div className="mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
           <div><strong>Draft reply:</strong> {item.suggested_reply}</div>
