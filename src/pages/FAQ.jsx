@@ -1086,6 +1086,68 @@ export default function FAQPage() {
       });
   };
 
+  const normalizeAskYarditAction = (rawAction) => {
+    if (!rawAction) return null;
+    const url = String(rawAction.url || "").trim();
+    if (!RESIDENTIAL_HELP_ALLOWED_ACTIONS.has(url)) return null;
+    return {
+      url,
+      label: String(rawAction.label || RESIDENTIAL_HELP_ALLOWED_ACTIONS.get(url)).trim() || RESIDENTIAL_HELP_ALLOWED_ACTIONS.get(url),
+    };
+  };
+
+  const handleAskYardit = async (event) => {
+    event?.preventDefault?.();
+    const question = askYarditInput.trim();
+    if (!question || askYarditLoading) return;
+
+    const history = askYarditMessages
+      .slice(-6)
+      .map((message) => `${message.role === "user" ? "Customer" : "Yardit"}: ${message.text}`)
+      .join("\n");
+
+    setAskYarditMessages((current) => [...current, { role: "user", text: question }]);
+    setAskYarditInput("");
+    setAskYarditError("");
+    setAskYarditLoading(true);
+
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are Ask Yardit, the customer-support assistant for the RESIDENTIAL side of Yardit only.\n\n${RESIDENTIAL_HELP_KNOWLEDGE}\n\nConversation so far:\n${history || "No prior messages."}\n\nCustomer question: ${question}\n\nReturn JSON only with this shape:\n{\"answer\":\"short plain-English answer\",\"action\":{\"label\":\"button label\",\"url\":\"one allowed route\"}}\n\nIf no button is useful, set action to null. Keep the answer concise and helpful. Never claim you checked the customer's account or listing.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            answer: { type: "string" },
+            action: {
+              anyOf: [
+                {
+                  type: "object",
+                  properties: {
+                    label: { type: "string" },
+                    url: { type: "string" },
+                  },
+                  required: ["label", "url"],
+                },
+                { type: "null" },
+              ],
+            },
+          },
+          required: ["answer", "action"],
+        },
+      });
+
+      const payload = result?.data && typeof result.data === "object" ? result.data : result;
+      const answer = String(payload?.answer || "I couldn't answer that clearly. Try Contact Support for help.").trim();
+      const action = normalizeAskYarditAction(payload?.action);
+      setAskYarditMessages((current) => [...current, { role: "assistant", text: answer, action }]);
+    } catch (error) {
+      console.error("Ask Yardit error", error);
+      setAskYarditError("Ask Yardit couldn't answer right now. You can still search the Help Center or contact support.");
+    } finally {
+      setAskYarditLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-cyan-50 px-4 py-6 md:px-8 md:py-10">
       <div className="mx-auto max-w-6xl space-y-8">
