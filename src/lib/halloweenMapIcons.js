@@ -72,7 +72,7 @@ export function getHalloweenSpotMapSize(listing, isSelected = false, now = new D
   if (isSpecialHalloweenIcon(listing)) return Math.round(size * 1.5);
   if (isAshevilleDecorationSpot(listing)) return Math.round(size * 1.5);
   if (!SPONSORED_HALLOWEEN_LOCATION_IDS.has(String(listing?.id))) return size;
-  if (isDinubaComingOctOne(listing)) return Math.round(size * 0.75) * 2;
+  if (isDinubaComingOctOne(listing)) return Math.round(size * 2);
   return size * 1.5;
 }
 
