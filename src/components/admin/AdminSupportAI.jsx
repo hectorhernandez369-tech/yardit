@@ -49,6 +49,54 @@ async function upsertTriage(record) {
   return base44.entities.SupportAITriage.create(record);
 }
 
+async function syncAstraReviewToCase(report, triageRow) {
+  if (!report?.listingId || !triageRow?.id) return;
+
+  const cases = await base44.entities.Case.filter({ listing_id: report.listingId });
+  const linkedCase = [...(cases || [])]
+    .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0))[0];
+  if (!linkedCase) return;
+
+  const marker = `ASTRA_TRIAGE:${triageRow.id}`;
+  const [existingActions, existingComments] = await Promise.all([
+    base44.entities.AdminAction.filter({ case_id: linkedCase.id }),
+    base44.entities.CaseComment.filter({ case_id: linkedCase.id }),
+  ]);
+
+  const hasReviewAction = (existingActions || []).some((action) =>
+    action.action_type === "astra_review" && String(action.comment || "").includes(marker)
+  );
+  const hasReviewComment = (existingComments || []).some((comment) =>
+    comment.admin_id === "astra" && String(comment.comment_text || "").includes(marker)
+  );
+
+  if (!hasReviewAction) {
+    await base44.entities.AdminAction.create({
+      case_id: linkedCase.id,
+      listing_id: report.listingId,
+      admin_id: "astra",
+      action_type: "astra_review",
+      old_value: "",
+      new_value: JSON.stringify({
+        priority: triageRow.priority,
+        safety_flag: triageRow.safety_flag,
+        category: triageRow.category,
+      }),
+      comment: `Reviewed by Astra. ${marker}`,
+      page: "Astra",
+    });
+  }
+
+  if (!hasReviewComment) {
+    await base44.entities.CaseComment.create({
+      case_id: linkedCase.id,
+      admin_id: "astra",
+      comment_type: "system_note",
+      comment_text: `${marker}\nAstra review:\nSummary: ${triageRow.summary || "No summary available."}\nRecommendation: ${triageRow.suggested_action || "Human review recommended."}${triageRow.safety_reason ? `\nSafety concern: ${triageRow.safety_reason}` : ""}\n\nAI recommendation only — final action requires human review.`,
+    });
+  }
+}
+
 export default function AdminSupportAI({ user }) {
   const navigate = useNavigate();
   const [triage, setTriage] = useState([]);
@@ -167,6 +215,8 @@ export default function AdminSupportAI({ user }) {
       last_scanned_at: now,
       created_at: now,
     });
+
+    await syncAstraReviewToCase(report, row);
 
     const alreadyAlerted = Boolean(row.email_alert_sent);
     if (finalPriority === "critical" && alertEmail.trim() && !alreadyAlerted) {
