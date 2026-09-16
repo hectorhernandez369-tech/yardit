@@ -310,7 +310,7 @@ export const NOTIFICATION_REGISTRY = {
     status: "active",
     title: "Urgent Yardit safety report",
     message: "A high-priority safety report requires prompt human review.",
-    deep_link: "/AdminLite?section=triage",
+    deep_link: "/AdminLite?section=astra",
   },
   admin_case: {
     recipient: "admin inbox",
