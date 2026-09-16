@@ -102,6 +102,7 @@ export default function AdminSupportAI({ user }) {
   const [triage, setTriage] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [testingPush, setTestingPush] = useState(false);
   const [sendingReplyId, setSendingReplyId] = useState("");
   const [alertEmail, setAlertEmail] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
@@ -139,6 +140,25 @@ export default function AdminSupportAI({ user }) {
       toast.error("Could not save support email settings");
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleTestAdminPush = async () => {
+    setTestingPush(true);
+    try {
+      const response = await base44.functions.invoke("sendAdminSafetyPush", {
+        title: "Yardit Astra Test",
+        message: "Admin-only web push is working. Tap to open Astra.",
+        url: `${window.location.origin}/AdminLite?section=astra`,
+      });
+      const data = response?.data || {};
+      if (data.success === false) throw new Error(Array.isArray(data.error) ? data.error.join(", ") : data.error || "Push test failed");
+      toast.success(`Admin push sent to ${data.recipients || 0} subscribed admin device(s)`);
+    } catch (error) {
+      console.error(error);
+      toast.error(error?.message || "Admin push test failed");
+    } finally {
+      setTestingPush(false);
     }
   };
 
@@ -397,7 +417,8 @@ export default function AdminSupportAI({ user }) {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button variant="outline" onClick={handleSaveSettings} disabled={savingSettings}>{savingSettings ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save Email Settings</Button>
-            <p className="text-xs text-slate-500">Critical alerts use Yardit’s current Base44 email sender. A connected mailbox can be added later for branded two-way support email.</p>
+            <Button type="button" variant="outline" onClick={handleTestAdminPush} disabled={testingPush}>{testingPush ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Test Admin Push</Button>
+            <p className="text-xs text-slate-500">Critical alerts use Yardit’s current Base44 email sender. Test Admin Push sends only to active admins with an enabled web/PWA push subscription.</p>
           </div>
         </CardContent>
       </Card>
