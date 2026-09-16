@@ -1252,6 +1252,88 @@ export default function FAQPage() {
           </div>
         </section>
 
+        <section className="rounded-[2rem] border border-cyan-100 bg-white p-5 shadow-sm md:p-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-xl">
+              <div className="flex items-center gap-2 text-[#2C4F4E]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#5DADA5]/15">
+                  <Bot className="h-5 w-5 text-[#006168]" />
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[#5DADA5]">Ask Yardit</p>
+                  <h2 className="text-xl font-black text-slate-900">Ask a residential Yardit question</h2>
+                </div>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Ask about yard-sale listings, tiers, Neighborhood Sales, Hunt, billing, notifications, Halloween Spots, or common residential troubleshooting.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(createPageUrl("ContactSupport") + "?area=residential")}
+              className="shrink-0 rounded-full border-[#5DADA5]/40 text-[#2C4F4E] hover:bg-cyan-50"
+            >
+              Contact Residential Support
+            </Button>
+          </div>
+
+          {askYarditMessages.length > 0 && (
+            <div className="mt-5 max-h-[420px] space-y-3 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-3 md:p-4">
+              {askYarditMessages.map((message, index) => (
+                <div key={`${message.role}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${message.role === "user" ? "bg-[#2C4F4E] text-white" : "border border-cyan-100 bg-white text-slate-700"}`}>
+                    <p>{message.text}</p>
+                    {message.role === "assistant" && message.action && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => navigate(message.action.url)}
+                        className="mt-3 rounded-full bg-[#F4A849] font-bold text-[#2C4F4E] hover:bg-[#E39635]"
+                      >
+                        {message.action.label}
+                        <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {askYarditLoading && (
+                <div className="flex justify-start">
+                  <div className="flex items-center gap-2 rounded-2xl border border-cyan-100 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Yardit is checking the residential help guide…
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {askYarditError && (
+            <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">{askYarditError}</p>
+          )}
+
+          <form onSubmit={handleAskYardit} className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <Input
+              value={askYarditInput}
+              onChange={(event) => setAskYarditInput(event.target.value)}
+              placeholder="Example: Why can’t I see my Free listing?"
+              disabled={askYarditLoading}
+              className="h-12 flex-1 rounded-xl border-slate-200 bg-white"
+            />
+            <Button
+              type="submit"
+              disabled={!askYarditInput.trim() || askYarditLoading}
+              className="h-12 rounded-xl bg-[#006168] px-6 font-bold text-white hover:bg-[#004f55]"
+            >
+              {askYarditLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              Ask Yardit
+            </Button>
+          </form>
+          <p className="mt-2 text-xs text-slate-500">Ask Yardit currently answers general residential questions. It does not yet look inside your personal account or listing.</p>
+        </section>
+
         {(searchQuery ||
           selectedRole !== "all") && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
