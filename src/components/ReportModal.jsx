@@ -180,7 +180,7 @@ export default function ReportModal({ listingId, targetType = "listing", onClose
               created_at: now,
             });
 
-            // Push + Admin Inbox alert for active supervisors and masters.
+            // Push + Admin Inbox alert for all active administrators.
             // The notification registry marks admin_safety_priority as push-enabled.
             const adminProfiles = await base44.entities.AdminProfile.list();
             const safetyAdmins = (adminProfiles || []).filter((profile) => profile.is_active === true);
