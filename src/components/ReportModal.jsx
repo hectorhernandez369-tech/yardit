@@ -185,13 +185,13 @@ export default function ReportModal({ listingId, targetType = "listing", onClose
             const adminProfiles = await base44.entities.AdminProfile.list();
             const safetyAdmins = (adminProfiles || []).filter((profile) => profile.is_active === true);
 
-            await Promise.all(safetyAdmins.flatMap((profile) => {
-              const title = safetyPriority === "critical"
-                ? "Critical Yardit safety report"
-                : "High-priority Yardit safety report";
-              const message = `${data.reason_label || reasonCode}: prompt human review is required.`;
-              const deepLink = "/AdminLite?section=triage";
+            const title = safetyPriority === "critical"
+              ? "Critical Yardit safety report"
+              : "High-priority Yardit safety report";
+            const message = `${data.reason_label || reasonCode}: prompt human review is required.`;
+            const deepLink = "/AdminLite?section=astra";
 
+            await Promise.all(safetyAdmins.flatMap((profile) => {
               return [
                 base44.entities.Notification.create({
                   user_id: profile.user_id,
@@ -232,6 +232,21 @@ export default function ReportModal({ listingId, targetType = "listing", onClose
                 }),
               ];
             }));
+
+            // Real targeted web/PWA push through OneSignal using only active admin subscriptions.
+            // This is separate from the database notification record above.
+            try {
+              const pushResponse = await base44.functions.invoke("sendAdminSafetyPush", {
+                title,
+                message,
+                url: `${window.location.origin}${deepLink}`,
+              });
+              if (pushResponse?.data?.success === false) {
+                console.error("Admin safety push sender reported failure:", pushResponse.data);
+              }
+            } catch (pushError) {
+              console.error("Admin safety push delivery failed:", pushError);
+            }
           }
         } catch (safetyAlertError) {
           console.error("Safety alert triage failed after report creation:", safetyAlertError);
