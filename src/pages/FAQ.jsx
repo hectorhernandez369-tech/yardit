@@ -330,6 +330,42 @@ const GUIDE_SECTIONS = [
     ],
   },
   {
+    id: "post-halloween-spot",
+    role: "seller",
+    title: "Post a Halloween Spot",
+    description:
+      "Add a seasonal residential Halloween location to the Yardit map.",
+    icon: MapPin,
+    estimatedTime: "About 3 minutes",
+    steps: [
+      {
+        title: "Start a new listing",
+        text:
+          "Tap Post and choose the Halloween Spot option.",
+      },
+      {
+        title: "Choose the spot type",
+        text:
+          "Choose Halloween Decorations, Haunted House, Trick-or-Treat, Trunk-or-Treat, Scary Yard, or Light Show.",
+      },
+      {
+        title: "Add visit details",
+        text:
+          "Add the title, description, dates, viewing times, photos, and visitor notes that apply.",
+      },
+      {
+        title: "Review the visibility timing",
+        text:
+          "The full themed icon will not activate before 3:00 PM, even if an earlier viewing time is entered.",
+      },
+      {
+        title: "Publish",
+        text:
+          "Review the location and details, then publish the spot.",
+      },
+    ],
+  },
+  {
     id: "create-vendor-event",
     role: "organizer",
     title: "Create a Vendor Event",
@@ -779,6 +815,34 @@ const FAQ_SECTIONS = [
         q: "How do guests view one field?",
         a:
           "Guests tap the field marker or field card on the public event page. Yardit then scrolls to and filters the schedule for that field.",
+      },
+    ],
+  },
+  {
+    id: "halloween",
+    role: "all",
+    title: "Halloween Spots",
+    icon: MapPin,
+    questions: [
+      {
+        q: "What kinds of Halloween Spots can I post?",
+        a:
+          "Current residential Halloween types include Halloween Decorations, Haunted House, Trick-or-Treat, Trunk-or-Treat, Scary Yard, and Light Show.",
+      },
+      {
+        q: "Why do I see a small Halloween marker instead of the full icon?",
+        a:
+          "The full themed Halloween icon does not activate before 3:00 PM. A host can choose a later viewing start time, and the full icon can also stop after the listed end time.",
+      },
+      {
+        q: "Can shoppers save or like a Halloween Spot?",
+        a:
+          "Yes. Halloween Spots support likes and can also be saved, shared, reported, and added to Hunt where Hunt is available.",
+      },
+      {
+        q: "Can I edit my Halloween Spot?",
+        a:
+          "Yes. Owners can edit supported Halloween details such as title, description, type, dates, times, visitor notes, and photos from My Listings.",
       },
     ],
   },
