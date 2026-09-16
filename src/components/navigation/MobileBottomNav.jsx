@@ -92,7 +92,7 @@ export default function MobileBottomNav({ user, isAuthenticated, hasVendorAccoun
             </DropdownMenuItem>
           )}
           <div className="h-px bg-gray-100 my-0.5" />
-          <DropdownMenuItem onSelect={() => navigate(createPageUrl("StartupGuide"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
+          <DropdownMenuItem onSelect={() => navigate(createPageUrl("FAQ"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
             <HelpCircle className="w-3.5 h-3.5 text-[#5DADA5]" /> Help
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => navigate(createPageUrl("Settings"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition">
