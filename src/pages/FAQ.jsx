@@ -700,9 +700,9 @@ const FAQ_SECTIONS = [
         q: "Why does my paid listing say Need Help instead of Cancel?",
         a:
           "Paid active listings may require support instead of direct cancellation. Refund eligibility is handled through the normal support/payment process and is not automatically guaranteed.",
-      }],"dry_run":false}
+      },
       {
-        q: "My schedule will not import. What should I check?",
+        q: "My schedule will not import. What should I check?"
         a:
           "Use an .xlsx or .csv file. Confirm the file includes recognizable Field, Activity, Date, and Start Time values. Review every warning in the import preview before confirming.",
       },
