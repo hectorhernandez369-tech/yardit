@@ -5,6 +5,8 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { base44 } from "@/api/base44Client";
+import { RESIDENTIAL_HELP_KNOWLEDGE, RESIDENTIAL_HELP_ALLOWED_ACTIONS } from "@/lib/residentialHelpKnowledge";
 
 import {
   Accordion,
@@ -45,6 +47,9 @@ import {
   Upload,
   Users,
   X,
+  Bot,
+  Send,
+  Loader2,
 } from "lucide-react";
 
 const ROLE_FILTERS = [
@@ -959,6 +964,11 @@ export default function FAQPage() {
 
   const [openGuideId, setOpenGuideId] =
     useState("");
+
+  const [askYarditInput, setAskYarditInput] = useState("");
+  const [askYarditMessages, setAskYarditMessages] = useState([]);
+  const [askYarditLoading, setAskYarditLoading] = useState(false);
+  const [askYarditError, setAskYarditError] = useState("");
 
   const activeHash =
     typeof window !== "undefined"
