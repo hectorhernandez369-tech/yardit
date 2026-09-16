@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Bot, Loader2, Mail, RefreshCw, ShieldAlert } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertTriangle, Bot, Loader2, Mail, RefreshCw, ShieldAlert, LifeBuoy } from "lucide-react";
 import { toast } from "sonner";
 
 const CRITICAL_SAFETY_CODES = new Set(["SAFETY_WEAPONS", "SAFETY_THREAT"]);
@@ -254,6 +255,40 @@ export default function AdminSupportAI({ user }) {
 
   const criticalCount = sortedTriage.filter((item) => item.priority === "critical" && item.status === "new").length;
   const safetyCount = sortedTriage.filter((item) => item.safety_flag && item.status === "new").length;
+  const safetyTriageItems = sortedTriage.filter((item) => item.source_type === "report" || item.safety_flag);
+  const supportReviewItems = sortedTriage.filter((item) => item.source_type === "support_ticket");
+
+  const renderTriageCard = (item) => (
+    <div key={item.id} className={`rounded-xl border p-4 ${item.priority === "critical" ? "border-red-300 bg-red-50" : item.priority === "high" ? "border-orange-200 bg-orange-50" : "border-slate-200 bg-white"}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        {item.priority === "critical" ? <ShieldAlert className="h-4 w-4 text-red-700" /> : item.safety_flag ? <AlertTriangle className="h-4 w-4 text-orange-700" /> : <Bot className="h-4 w-4 text-[#5DADA5]" />}
+        <Badge variant="outline" className="uppercase">{item.priority}</Badge>
+        <Badge variant="outline">{item.source_type === "report" ? "Safety Report" : "Support Ticket"}</Badge>
+        {item.source_number ? <span className="text-xs text-slate-500">{item.source_number}</span> : null}
+        {item.email_alert_sent ? <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Email alert sent</Badge> : null}
+      </div>
+      <p className="mt-2 text-sm font-semibold text-slate-900">{item.summary || "No summary"}</p>
+      {item.safety_reason ? <p className="mt-1 text-xs text-slate-600"><strong>Safety:</strong> {item.safety_reason}</p> : null}
+      <p className="mt-1 text-xs text-slate-600"><strong>Astra recommendation:</strong> {item.suggested_action || "Review"}</p>
+      {item.suggested_reply ? (
+        <div className="mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+          <div><strong>Draft reply:</strong> {item.suggested_reply}</div>
+          {item.source_type === "support_ticket" ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => handleSendDraftReply(item)}
+              disabled={sendingReplyId === item.id}
+            >
+              {sendingReplyId === item.id ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Mail className="mr-2 h-3.5 w-3.5" />}
+              Review & Send Draft
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
 
   return (
     <div className="space-y-5">
@@ -288,42 +323,46 @@ export default function AdminSupportAI({ user }) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Priority Queue</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {sortedTriage.length === 0 ? <p className="text-sm text-slate-500">No AI triage yet. Run Scan Now.</p> : sortedTriage.slice(0, 30).map((item) => (
-            <div key={item.id} className={`rounded-xl border p-4 ${item.priority === "critical" ? "border-red-300 bg-red-50" : item.priority === "high" ? "border-orange-200 bg-orange-50" : "border-slate-200 bg-white"}`}>
-              <div className="flex flex-wrap items-center gap-2">
-                {item.priority === "critical" ? <ShieldAlert className="h-4 w-4 text-red-700" /> : item.safety_flag ? <AlertTriangle className="h-4 w-4 text-orange-700" /> : <Bot className="h-4 w-4 text-[#5DADA5]" />}
-                <Badge variant="outline" className="uppercase">{item.priority}</Badge>
-                <Badge variant="outline">{item.source_type === "report" ? "Report" : "Support Ticket"}</Badge>
-                {item.source_number ? <span className="text-xs text-slate-500">{item.source_number}</span> : null}
-                {item.email_alert_sent ? <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Email alert sent</Badge> : null}
-              </div>
-              <p className="mt-2 text-sm font-semibold text-slate-900">{item.summary || "No summary"}</p>
-              {item.safety_reason ? <p className="mt-1 text-xs text-slate-600"><strong>Safety:</strong> {item.safety_reason}</p> : null}
-              <p className="mt-1 text-xs text-slate-600"><strong>Suggested action:</strong> {item.suggested_action || "Review"}</p>
-              {item.suggested_reply ? (
-                <div className="mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-                  <div><strong>Draft reply:</strong> {item.suggested_reply}</div>
-                  {item.source_type === "support_ticket" ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleSendDraftReply(item)}
-                      disabled={sendingReplyId === item.id}
-                    >
-                      {sendingReplyId === item.id ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Mail className="mr-2 h-3.5 w-3.5" />}
-                      Review & Send Draft
-                    </Button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="triage" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 md:w-[520px]">
+          <TabsTrigger value="triage" className="gap-2">
+            <ShieldAlert className="h-4 w-4" />
+            Triage ({safetyTriageItems.length})
+          </TabsTrigger>
+          <TabsTrigger value="support" className="gap-2">
+            <LifeBuoy className="h-4 w-4" />
+            Support Reviews ({supportReviewItems.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="triage">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Triage — Priority & Safety</CardTitle>
+              <p className="text-sm text-slate-500">Astra sends safety reports and priority issues here first for human review.</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {safetyTriageItems.length === 0
+                ? <p className="text-sm text-slate-500">No safety/priority triage yet.</p>
+                : safetyTriageItems.slice(0, 30).map(renderTriageCard)}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="support">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Support Tickets — Astra Reviews & Recommendations</CardTitle>
+              <p className="text-sm text-slate-500">Review Astra’s ticket summaries, recommended next steps, and draft customer replies.</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {supportReviewItems.length === 0
+                ? <p className="text-sm text-slate-500">No support-ticket reviews yet.</p>
+                : supportReviewItems.slice(0, 30).map(renderTriageCard)}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
