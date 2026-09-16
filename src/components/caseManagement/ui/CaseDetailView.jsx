@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, AlertTriangle, Flag, UserCircle } from "lucide-react";
+import { Loader2, ArrowLeft, AlertTriangle, Flag, UserCircle, Bot } from "lucide-react";
 import { isSupervisor, logAdminEvent } from "../index";
 import CaseListingInfo from "./CaseListingInfo";
 import CaseReportInfo from "./CaseReportInfo";
@@ -18,6 +18,7 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
   const [reports, setReports] = useState([]);
   const [comments, setComments] = useState([]);
   const [actions, setActions] = useState([]);
+  const [astraReviews, setAstraReviews] = useState([]);
   const [reporterUser, setReporterUser] = useState(null);
   const [reportUsers, setReportUsers] = useState({});
   const [ownerUser, setOwnerUser] = useState(null);
@@ -54,6 +55,15 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
       const allReports = await base44.entities.Report.filter({ listingId: c.listing_id });
       const sortedReports = [...allReports].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
       setReports(sortedReports);
+
+      const triageRows = [];
+      for (const report of sortedReports) {
+        try {
+          const rows = await base44.entities.SupportAITriage.filter({ source_type: "report", source_id: report.id });
+          if (rows?.length) triageRows.push(...rows);
+        } catch {}
+      }
+      setAstraReviews(triageRows.sort((a, b) => new Date(b.last_scanned_at || b.created_date || 0) - new Date(a.last_scanned_at || a.created_date || 0)));
 
       const reporterIds = [...new Set(sortedReports.map((report) => report.reporterUserId).filter(Boolean))];
       const reporterMap = {};
@@ -130,6 +140,29 @@ export default function CaseDetailView({ caseId, user, allAdminUsers, onClose, o
           </div>
 
           <div className="space-y-6">
+            {astraReviews.length > 0 && (
+              <div className="rounded-2xl border-2 border-indigo-200 bg-indigo-50 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Bot className="w-5 h-5 text-indigo-700" />
+                  <h3 className="font-bold text-indigo-950">Astra Review</h3>
+                </div>
+                <div className="space-y-3">
+                  {astraReviews.map((review) => (
+                    <div key={review.id} className="rounded-xl border border-indigo-100 bg-white p-3 text-sm">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <Badge variant="outline" className="uppercase">{review.priority || "normal"}</Badge>
+                        {review.safety_flag ? <Badge className="bg-red-600 text-white">Safety</Badge> : null}
+                      </div>
+                      <p><strong>Summary:</strong> {review.summary || "No summary"}</p>
+                      {review.safety_reason ? <p className="mt-1"><strong>Safety concern:</strong> {review.safety_reason}</p> : null}
+                      <p className="mt-1"><strong>Astra recommendation:</strong> {review.suggested_action || "Review case"}</p>
+                      <p className="mt-2 text-xs text-slate-500">AI recommendation only — final decision remains with the reviewing admin.</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {caseData.status === "open" && (
               <CaseDispositionPanel caseData={caseData} user={user} allAdminUsers={allAdminUsers} isAssigned={isAssigned} onRefresh={() => { loadAll(); onRefresh(); }} />
             )}
