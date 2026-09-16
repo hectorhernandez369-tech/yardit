@@ -12,6 +12,7 @@ import { COMMUNITY_GUIDELINES_VERSION, PRIVACY_VERSION, TERMS_VERSION, hasConfir
 import { createPageUrl } from "@/utils";
 import SetupAddressVerification from "@/components/profile/SetupAddressVerification";
 import { afterSetupPromptKey } from "@/lib/pushPromptActions";
+import { getNameValidationError, getPhoneValidationError } from "@/lib/profileValidation";
 
 export default function AccountSetupModal({ user, setUser }) {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ export default function AccountSetupModal({ user, setUser }) {
       setFormData({
         first_name: user.first_name || "",
         last_name: user.last_name || "",
-        phone: user.phone || "",
+        phone: user.phone || user.phone_number || "",
         terms_accepted: user.terms_accepted === true && user.terms_version === TERMS_VERSION,
         privacy_accepted: user.privacy_accepted === true && user.privacy_version === PRIVACY_VERSION,
         community_guidelines_accepted: user.community_guidelines_accepted === true && user.community_guidelines_version === COMMUNITY_GUIDELINES_VERSION,
@@ -80,9 +81,13 @@ export default function AccountSetupModal({ user, setUser }) {
     }, 250);
   };
 
+  const firstNameError = getNameValidationError(formData.first_name, "First name");
+  const lastNameError = getNameValidationError(formData.last_name, "Last name");
+  const phoneError = getPhoneValidationError(formData.phone);
   const requirementsMet = Boolean(
-    formData.first_name.trim() &&
-    formData.last_name.trim() &&
+    !firstNameError &&
+    !lastNameError &&
+    !phoneError &&
     formData.terms_accepted &&
     formData.privacy_accepted &&
     formData.community_guidelines_accepted &&
@@ -109,10 +114,8 @@ export default function AccountSetupModal({ user, setUser }) {
       ...formData.address_payload,
     };
 
-    if (includePhone && formData.phone.trim()) {
-      payload.phone = formData.phone.trim();
-      payload.phone_number = formData.phone.trim();
-    }
+    payload.phone = formData.phone.trim();
+    payload.phone_number = formData.phone.trim();
 
     const updatedUser = await base44.auth.updateMe(payload);
     setUser?.(updatedUser);
@@ -160,6 +163,7 @@ export default function AccountSetupModal({ user, setUser }) {
                   placeholder="First name"
                   className="h-11 border-slate-200 bg-slate-50/70 focus-visible:ring-[#2C4F4E]"
                 />
+                {formData.first_name && firstNameError ? <p className="text-xs text-red-600">{firstNameError}</p> : null}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="setup_last_name">Last Name *</Label>
@@ -170,6 +174,7 @@ export default function AccountSetupModal({ user, setUser }) {
                   placeholder="Last name"
                   className="h-11 border-slate-200 bg-slate-50/70 focus-visible:ring-[#2C4F4E]"
                 />
+                {formData.last_name && lastNameError ? <p className="text-xs text-red-600">{lastNameError}</p> : null}
               </div>
             </div>
 
@@ -184,7 +189,7 @@ export default function AccountSetupModal({ user, setUser }) {
             />
 
             <div className="space-y-1.5">
-              <Label htmlFor="setup_phone">Phone Number <span className="font-normal text-slate-500">(optional)</span></Label>
+              <Label htmlFor="setup_phone">Phone Number *</Label>
               <Input
                 id="setup_phone"
                 type="tel"
@@ -193,6 +198,7 @@ export default function AccountSetupModal({ user, setUser }) {
                 placeholder="(555) 123-4567"
                 className="bg-white"
               />
+              {formData.phone && phoneError ? <p className="text-xs text-red-600">{phoneError}</p> : null}
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 space-y-3 shadow-inner shadow-slate-200/40">

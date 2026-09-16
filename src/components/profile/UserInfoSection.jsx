@@ -11,6 +11,7 @@ import AddressFields from "@/components/shared/AddressFields";
 import { toast } from "sonner";
 import { computedAddressVerified } from "@/lib/trustActions";
 import { buildVerifiedAddressUpdate, normalizeUser } from "@/lib/normalizeUser";
+import { getNameValidationError, getPhoneValidationError } from "@/lib/profileValidation";
 
 export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }) {
   const normalizedUser = normalizeUser(user);
@@ -121,6 +122,13 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
 
   const handleSave = async () => {
     const { street_address, city, state, zip_code } = formData;
+    const nameError = getNameValidationError(formData.first_name, "First name") || getNameValidationError(formData.last_name, "Last name");
+    const phoneError = getPhoneValidationError(formData.phone);
+
+    if (nameError || phoneError) {
+      toast.error(nameError || phoneError);
+      return;
+    }
     
     if (!street_address || !city || !state || !zip_code) {
       toast.error("A complete address (street, city, state, zip) is required to finish account setup.");
@@ -135,6 +143,7 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
 
     let currentData = {
       ...formData,
+      phone_number: formData.phone.trim(),
       address: [formData.street_address, formData.city, formData.state, formData.zip_code].filter(Boolean).join(", "),
     };
 
@@ -208,7 +217,7 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
         <div className="space-y-6">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="first_name">First Name</Label>
+              <Label htmlFor="first_name">First Name *</Label>
               {isEditing ? (
                 <Input
                   id="first_name"
@@ -221,7 +230,7 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="last_name">Last Name</Label>
+              <Label htmlFor="last_name">Last Name *</Label>
               {isEditing ? (
                 <Input
                   id="last_name"
@@ -263,7 +272,7 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
 
           {/* Phone */}
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
+            <Label htmlFor="phone">Phone Number *</Label>
             {isEditing ? (
               <Input
                 id="phone"
