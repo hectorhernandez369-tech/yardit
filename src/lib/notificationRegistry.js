@@ -304,7 +304,7 @@ export const NOTIFICATION_REGISTRY = {
     deep_link: "/AdminLite?section=case_management",
   },
   admin_safety_priority: {
-    recipient: "active supervisor and master administrators",
+    recipient: "all active administrators",
     trigger: "High or critical safety report is submitted",
     delivery_methods: [DELIVERY.PUSH, DELIVERY.ADMIN_INBOX],
     status: "active",
