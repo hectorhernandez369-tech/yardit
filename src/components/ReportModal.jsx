@@ -233,20 +233,10 @@ export default function ReportModal({ listingId, targetType = "listing", onClose
               ];
             }));
 
-            // Real targeted web/PWA push through OneSignal using only active admin subscriptions.
-            // This is separate from the database notification record above.
-            try {
-              const pushResponse = await base44.functions.invoke("sendAdminSafetyPush", {
-                title,
-                message,
-                url: `${window.location.origin}${deepLink}`,
-              });
-              if (pushResponse?.data?.success === false) {
-                console.error("Admin safety push sender reported failure:", pushResponse.data);
-              }
-            } catch (pushError) {
-              console.error("Admin safety push delivery failed:", pushError);
-            }
+            // Real web/PWA push is delivered by Yardit's existing Notification-create workflow.
+            // Each admin Notification above has delivery_methods including "push", so the
+            // established deliverNotificationPush backend handles OneSignal targeting,
+            // preferences, dedupe, and delivery logging without a second push path.
           }
         } catch (safetyAlertError) {
           console.error("Safety alert triage failed after report creation:", safetyAlertError);
