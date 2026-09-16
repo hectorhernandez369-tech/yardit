@@ -5,9 +5,9 @@ GENERAL
 Yardit helps residents find nearby yard sales, save listings, build a Hunt route, post residential yard sales, create/join Neighborhood Sales, manage residential alerts, and post/discover Halloween Spots.
 
 MAP / DISCOVERY
-- Premium yard-sale pins can appear from zoom 11+.
-- Featured yard-sale pins can appear from zoom 13+.
-- Free yard-sale pins can appear from zoom 15+.
+- Premium yard-sale pins can appear from a wider neighborhood view.
+- Featured yard-sale pins can appear from neighborhood view.
+- Free yard-sale pins appear from a closer street view.
 - Coming Soon means the listing is being advertised before the active sale period. It does not mean the seller is open.
 
 SAVED LISTINGS
@@ -35,20 +35,20 @@ FREE YARD SALE
 - Created during the current weekend window: can activate immediately through Sunday 10:00 PM.
 - Created outside the weekend window: schedules for next Friday 5:00 AM.
 - Up to 3 photos.
-- Individual pin visibility from zoom 15+.
+- Individual pin visibility from a close street view.
 
 FEATURED YARD SALE
 - Price: $4.99.
 - 1 to 3 consecutive days.
 - Up to 10 photos.
-- Individual pin visibility from zoom 13+.
+- Individual pin visibility from neighborhood view.
 
 PREMIUM YARD SALE
 - Price: $7.99.
 - 1 to 5 consecutive days.
 - Up to 25 photos.
 - 0 to 3 days of early Coming Soon visibility.
-- Individual pin visibility from zoom 11+.
+- Individual pin visibility from a wider neighborhood view.
 
 SALE HOURS
 - Seller-selected opening cannot be earlier than 5:00 AM.
