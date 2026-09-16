@@ -303,6 +303,15 @@ export const NOTIFICATION_REGISTRY = {
     message: "A report requires administrator review.",
     deep_link: "/AdminLite?section=case_management",
   },
+  admin_safety_priority: {
+    recipient: "active supervisor and master administrators",
+    trigger: "High or critical safety report is submitted",
+    delivery_methods: [DELIVERY.PUSH, DELIVERY.ADMIN_INBOX],
+    status: "active",
+    title: "Urgent Yardit safety report",
+    message: "A high-priority safety report requires prompt human review.",
+    deep_link: "/AdminLite?section=triage",
+  },
   admin_case: {
     recipient: "admin inbox",
     trigger: "Case assignment, escalation, submission, or review action",

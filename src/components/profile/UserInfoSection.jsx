@@ -34,6 +34,16 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
     address_confirmation_status: normalizedUser.address_confirmation_status || "unconfirmed",
   });
 
+  const profileValuesValid = Boolean(
+    !getNameValidationError(formData.first_name, "First name") &&
+    !getNameValidationError(formData.last_name, "Last name") &&
+    !getPhoneValidationError(formData.phone) &&
+    formData.street_address?.trim() &&
+    formData.city?.trim() &&
+    formData.state?.trim() &&
+    formData.zip_code?.trim()
+  );
+
   useEffect(() => {
     if (addressEditSignal > 0) {
       setIsEditing(true);
@@ -202,7 +212,7 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
               <Button
                 size="sm"
                 onClick={handleSave}
-                disabled={updateUserMutation.isPending}
+                disabled={updateUserMutation.isPending || isConfirmingAddress || !profileValuesValid}
                 className="gap-2"
               >
                 <Save className="w-4 h-4" />
