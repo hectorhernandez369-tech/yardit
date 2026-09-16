@@ -35,7 +35,7 @@ export default function UserAccountMenuContent({
       )}
       <div className="h-px bg-gray-100 my-0.5" />
       <div className="px-2 py-0.5 text-[10px] text-gray-400 uppercase">Preferences</div>
-      <DropdownMenuItem onSelect={() => navigate(createPageUrl("StartupGuide"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition"><HelpCircle className="w-3.5 h-3.5 text-[#5DADA5]" /> Help</DropdownMenuItem>
+      <DropdownMenuItem onSelect={() => navigate(createPageUrl("FAQ"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition"><HelpCircle className="w-3.5 h-3.5 text-[#5DADA5]" /> Help</DropdownMenuItem>
       <DropdownMenuItem onSelect={() => navigate(createPageUrl("Settings"))} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-[#f0fdfa] transition"><Settings className="w-3.5 h-3.5 text-gray-500" /> Settings</DropdownMenuItem>
       <div className="h-px bg-gray-100 my-0.5" />
       <DropdownMenuItem onSelect={onLogout} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 transition mt-1"><LogOut className="w-3.5 h-3.5" /> Logout</DropdownMenuItem>
