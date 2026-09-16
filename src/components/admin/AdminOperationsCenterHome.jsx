@@ -21,16 +21,16 @@ export default function AdminOperationsCenterHome({ counts = {}, onNavigate }) {
 
   return (
     <div className="mt-4 space-y-5">
-      <div className="rounded-3xl bg-gradient-to-r from-[#2C4F4E] to-[#5DADA5] p-5 text-white shadow-lg">
+      <div className="rounded-xl bg-gradient-to-r from-[#2C4F4E] to-[#5DADA5] p-4 text-white shadow-lg md:rounded-3xl md:p-5">
         <p className="text-sm uppercase tracking-[0.25em] text-white/60">Operations Center</p>
         <h1 className="mt-1 text-2xl font-black">Admin Dashboard</h1>
         <p className="mt-2 max-w-3xl text-sm text-white/75">Platform overview, quick statistics, recent operational signals, and shortcuts to the most common admin work areas.</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {statCards.map((card) => (
-          <Card key={card.key} className={`border ${card.tone}`}>
-            <CardContent className="p-4">
+          <Card key={card.key} className={`border max-sm:last:col-span-2 ${card.tone}`}>
+            <CardContent className="p-3 md:p-4">
               <p className="text-2xl font-black">{counts?.[card.key] || 0}</p>
               <p className="text-sm font-bold">{card.label}</p>
               <p className="text-xs opacity-75">{card.helper}</p>
@@ -51,7 +51,7 @@ export default function AdminOperationsCenterHome({ counts = {}, onNavigate }) {
                 <p className="text-sm text-slate-600">Safety items belong at the top of Case Management, followed by reports and support work.</p>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-col gap-2 md:flex-row md:flex-wrap [&>button]:min-h-11 md:[&>button]:min-h-0">
               <Button onClick={() => onNavigate?.("case_management")} className="bg-orange-600 hover:bg-orange-700">Go to Case Management</Button>
               <Button onClick={() => onNavigate?.("inbox")} variant="outline">Review Alerts</Button>
             </div>
