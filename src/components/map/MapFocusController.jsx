@@ -32,9 +32,12 @@ export default function MapFocusController({ focusData, markerRefsMap, onFocusCo
     
     if (isNaN(targetZoom)) targetZoom = 13;
 
-    // Center slightly above the listing so the popup has room above the pin
+    // Place the pin lower in the map so the full popup clears the map toolbar.
     const mapHeight = map.getSize()?.y || 0;
-    const verticalOffset = Math.min(130, Math.max(70, mapHeight * 0.18));
+    const isHalloweenListing = listing.listingType === "halloween_candy" || listing.type === "halloween_candy";
+    const verticalOffset = isHalloweenListing
+      ? Math.min(180, Math.max(140, mapHeight * 0.3))
+      : Math.min(130, Math.max(70, mapHeight * 0.18));
     const targetPoint = map.project([lat, lng], targetZoom).subtract([0, verticalOffset]);
     const targetCenter = map.unproject(targetPoint, targetZoom);
 
