@@ -46,7 +46,7 @@ export default function CaseCommentsTimeline({ comments, user, caseData, allAdmi
           return (
             <div key={c.id} className="border rounded-lg p-3 space-y-1">
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <span className="text-sm font-medium break-all">{admin?.full_name || admin?.email || c.admin_id}</span>
+                <span className="text-sm font-medium break-all">{c.admin_id === "astra" ? "Astra" : (admin?.full_name || admin?.email || c.admin_id)}</span>
                 <Badge className={typeColors[c.comment_type] || "bg-gray-100"}>{c.comment_type}</Badge>
                 <span className="text-xs text-gray-400 sm:ml-auto">{formatYarditDateTime(c.created_at || c.created_date)}</span>
               </div>
