@@ -183,9 +183,7 @@ export default function ReportModal({ listingId, targetType = "listing", onClose
             // Push + Admin Inbox alert for active supervisors and masters.
             // The notification registry marks admin_safety_priority as push-enabled.
             const adminProfiles = await base44.entities.AdminProfile.list();
-            const safetyAdmins = (adminProfiles || []).filter((profile) =>
-              profile.is_active === true && ["supervisor", "master"].includes(profile.role_label)
-            );
+            const safetyAdmins = (adminProfiles || []).filter((profile) => profile.is_active === true);
 
             await Promise.all(safetyAdmins.flatMap((profile) => {
               const title = safetyPriority === "critical"
