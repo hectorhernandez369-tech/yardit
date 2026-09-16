@@ -73,7 +73,7 @@ export default function YarditEventsMobileBottomNav({ isAuthenticated, isLeague,
           <DropdownMenuItem onSelect={() => navigate("/Settings")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
             <Settings className="w-3.5 h-3.5 text-cyan-300" /> Settings
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => navigate("/StartupGuide")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
+          <DropdownMenuItem onSelect={() => navigate("/FAQ")} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 transition">
             <HelpCircle className="w-3.5 h-3.5 text-cyan-300" /> Help
           </DropdownMenuItem>
           {hasAdminProfile && (
