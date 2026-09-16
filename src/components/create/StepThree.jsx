@@ -124,18 +124,18 @@ export default function StepThree({
 
   const tierDetails = {
     free: [
-      "Visible on the map at close neighborhood/street view",
+      "Visible on the map from a close street view",
       `Runs ${freeTierDateRange}`,
       "No date picker — free listings follow the locked weekend schedule",
     ],
     featured: [
-      "Strong visibility on map",
+      "Visible from neighborhood view",
       "Larger pin size / highlighted color",
       "Active for 1–3 days (user-selected)",
       "Higher placement in results",
     ],
     premium: [
-      "Highest residential tier",
+      "Visible from a wider neighborhood view",
       "Largest highlighted pin",
       "Active for 1–5 consecutive days",
       "Includes pre-activation advertising",
