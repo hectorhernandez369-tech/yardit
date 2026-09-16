@@ -277,7 +277,7 @@ export default function AdminLitePage() {
               { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, active: "bg-[#2C4F4E] text-white" },
               { key: "inbox", label: "Admin Inbox", icon: Inbox, active: "bg-slate-700 text-white" },
               { key: "case_management", label: "Case Management", icon: FolderOpen, active: "bg-orange-600 text-white" },
-              { key: "customer_service", label: "Customer Service", icon: Bot, active: "bg-indigo-600 text-white" },
+              { key: "triage", label: "Triage", icon: Bot, active: "bg-indigo-600 text-white" },
               { key: "operations", label: "Operations", icon: BriefcaseBusiness, active: "bg-[#5DADA5] text-white" },
               { key: "settings", label: "Settings", icon: Settings, active: "bg-slate-700 text-white" },
             ].map((section) => {
@@ -325,8 +325,8 @@ export default function AdminLitePage() {
           <AdminInboxPanel user={user} />
         )}
 
-        {/* ── CUSTOMER SERVICE SECTION ── */}
-        {primarySection === "customer_service" && (
+        {/* ── ASTRA TRIAGE SECTION ── */}
+        {primarySection === "triage" && (
           <AdminSupportAI user={user} />
         )}
 
