@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, Shield, LogOut, LayoutDashboard, BriefcaseBusiness, Settings, FolderOpen, Inbox, Bot } from "lucide-react";
+import { Search, Loader2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logAdminEvent, searchCases } from "../components/caseManagement";
@@ -23,6 +23,9 @@ import InQueueTab from "../components/caseManagement/ui/InQueueTab";
 import AdminInboxPanel from "../components/admin/AdminInboxPanel";
 import AdminOperationsCenterHome from "../components/admin/AdminOperationsCenterHome";
 import AdminSupportAI from "../components/admin/AdminSupportAI";
+import AdminWorkspaceShell from "@/components/admin/AdminWorkspaceShell";
+import adminNavigation from "@/components/admin/adminNavigation";
+import { hasCapability } from "@/components/admin/adminCapabilities";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -57,6 +60,8 @@ export default function AdminLitePage() {
   const [primarySection, setPrimarySection] = useState(initialSection);
   const [caseManagementTab, setCaseManagementTab] = useState("queue");
   const [caseWorkFilter, setCaseWorkFilter] = useState("all");
+  const [operationsTab, setOperationsTab] = useState("listings");
+  const [settingsTab, setSettingsTab] = useState(null);
 
   // Case management state
   const [caseTab, setCaseTab] = useState("queue");
@@ -163,8 +168,11 @@ export default function AdminLitePage() {
       logAdminEvent({ adminId: user.id, caseId: openCaseId, eventType: "viewed_case", page: "AdminHub" });
     }
     const section = params.get("section");
-    if (params.get("liteTab")) setPrimarySection("operations");
-    else if (section) setPrimarySection(normalizeAdminSection(section));
+    if (params.get("liteTab")) {
+      setPrimarySection("operations");
+      const tab = params.get("liteTab");
+      if (["listings", "users", "vendors", "assisted", "promos", "payments", "jth"].includes(tab)) setOperationsTab(tab);
+    } else if (section) setPrimarySection(normalizeAdminSection(section));
   }, [location.search, user]);
 
   const handleCaseTabChange = useCallback((tab) => {
@@ -259,62 +267,27 @@ export default function AdminLitePage() {
   const showReportQueue = ["all", "safety", "reports"].includes(caseWorkFilter);
   const showSupportQueue = ["all", "support", "vendor", "residential", "events", "billing", "technical"].includes(caseWorkFilter);
 
-  // ── Main 3-tab dashboard ─────────────────────────────────────────────────
+  const activeSettingsTab = settingsTab || (hasCapability(user, "admins.manage") ? "admin-management" : hasCapability(user, "logs.view") ? "logs" : "settings");
+  const activeTab = primarySection === "operations" ? operationsTab : primarySection === "settings" ? activeSettingsTab : primarySection === "case_management" ? caseManagementTab : "";
+  const selectWorkspaceItem = (item) => {
+    setPrimarySection(item.section);
+    if (item.section === "operations") setOperationsTab(item.tab);
+    if (item.section === "settings") setSettingsTab(item.tab);
+    if (item.section === "case_management") setCaseManagementTab(item.tab);
+  };
+
   return (
-    <div className="min-h-[calc(100vh-140px)] pt-0 px-3 sm:px-4 md:px-8 pb-8 overflow-x-hidden w-full max-w-full">
-      <div className="max-w-7xl mx-auto w-full overflow-x-hidden">
-
-        {/* ── Primary Section Header ── */}
-        <div className="flex flex-wrap items-center gap-2 pt-4 pb-3 border-b border-slate-200 mb-4 w-full">
-          {/* Role badge */}
-          <span className="flex items-center gap-1.5 text-sm font-semibold text-[#2C4F4E] mr-2">
-            🛡️ Admin – {roleLabel}
-          </span>
-
-          {/* Primary operations center tabs — full width on mobile */}
-          <div className="flex flex-nowrap items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 w-full max-w-full overflow-x-auto touch-pan-x [scrollbar-width:thin] sm:w-auto">
-            {[
-              { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, active: "bg-[#2C4F4E] text-white" },
-              { key: "inbox", label: "Admin Inbox", icon: Inbox, active: "bg-slate-700 text-white" },
-              { key: "case_management", label: "Case Management", icon: FolderOpen, active: "bg-orange-600 text-white" },
-              { key: "astra", label: "Astra", icon: Bot, active: "bg-indigo-600 text-white" },
-              { key: "operations", label: "Operations", icon: BriefcaseBusiness, active: "bg-[#5DADA5] text-white" },
-              { key: "settings", label: "Settings", icon: Settings, active: "bg-slate-700 text-white" },
-            ].map((section) => {
-              const Icon = section.icon;
-              return (
-                <button
-                  key={section.key}
-                  onClick={() => setPrimarySection(section.key)}
-                  className={`flex shrink-0 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                    primarySection === section.key
-                      ? `${section.active} shadow-sm`
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
-                  <span>{section.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Logout */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              clearAdminSession();
-              toast.success("Admin Mode exited");
-              navigate(createPageUrl("Home"));
-            }}
-            className="text-red-600 border-red-200 hover:bg-red-50 h-8 gap-1.5 shrink-0"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Exit Admin</span>
-          </Button>
-        </div>
-
+    <AdminWorkspaceShell
+      groups={adminNavigation(user, counts)}
+      activeKey={`${primarySection}:${activeTab}`}
+      roleLabel={roleLabel}
+      onSelect={selectWorkspaceItem}
+      onExit={() => {
+        clearAdminSession();
+        toast.success("Admin Mode exited");
+        navigate(createPageUrl("Home"));
+      }}
+    >
         {/* ── DASHBOARD SECTION ── */}
         {primarySection === "dashboard" && (
           <AdminOperationsCenterHome counts={counts} onNavigate={setPrimarySection} />
@@ -332,12 +305,12 @@ export default function AdminLitePage() {
 
         {/* ── OPERATIONS SECTION ── */}
         {primarySection === "operations" && (
-          <AdminLiteDashboard user={user} />
+          <AdminLiteDashboard user={user} selectedTab={operationsTab} onTabChange={setOperationsTab} />
         )}
 
         {/* ── SETTINGS SECTION ── */}
         {primarySection === "settings" && (
-          <AdminInternalTab user={user} adminSession={adminSession} />
+          <AdminInternalTab user={user} adminSession={adminSession} selectedTab={activeSettingsTab} onTabChange={setSettingsTab} />
         )}
 
         {/* ── CASE MANAGEMENT SECTION ── */}
@@ -369,15 +342,6 @@ export default function AdminLitePage() {
             )}
 
             <Tabs value={caseManagementTab} onValueChange={setCaseManagementTab}>
-              <TabsList className="flex flex-nowrap gap-1 h-auto w-full max-w-full overflow-x-auto touch-pan-x p-1 [scrollbar-width:thin]">
-                <TabsTrigger value="queue" className="shrink-0 whitespace-nowrap">
-                  Queue {counts?.in_queue !== undefined ? `(${counts.in_queue})` : ""}
-                </TabsTrigger>
-                <TabsTrigger value="my_cases" className="shrink-0 whitespace-nowrap">
-                  My Cases
-                </TabsTrigger>
-              </TabsList>
-
               <TabsContent value="queue">
                 <div className="my-4 flex flex-wrap gap-2">
                   {caseQuickFilters.map((filter) => {
@@ -438,7 +402,6 @@ export default function AdminLitePage() {
           </div>
         )}
 
-      </div>
-    </div>
+    </AdminWorkspaceShell>
   );
 }

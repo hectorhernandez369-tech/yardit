@@ -3,13 +3,13 @@ import { hasCapability } from "@/components/admin/adminCapabilities";
 
 const item = (section, tab, label, icon) => ({ section, tab, label, icon, key: `${section}:${tab || ""}` });
 
-export default function adminNavigation(user) {
+export default function adminNavigation(user, counts = {}) {
   const isMaster = user?.role === "master" || user?.role_label === "master";
   return [
     { label: "Overview", items: [item("dashboard", null, "Dashboard", LayoutDashboard)] },
     { label: "Support & Safety", items: [
       item("inbox", null, "Admin Inbox", Inbox),
-      item("case_management", "queue", "Case & Support Queue", FolderOpen),
+      { ...item("case_management", "queue", "Case & Support Queue", FolderOpen), count: counts.in_queue ?? 0 },
       item("case_management", "my_cases", "My Cases", BriefcaseBusiness),
       item("astra", null, "Astra Customer Service", Bot),
     ] },
