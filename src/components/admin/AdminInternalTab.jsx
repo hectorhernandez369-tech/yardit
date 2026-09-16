@@ -1,5 +1,5 @@
 import React from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import CreateAdminTab from "./CreateAdminTab";
 import AdminLogsTab from "./AdminLogsTab";
 import EmployeeUsersTab from "./EmployeeUsersTab";
@@ -9,27 +9,14 @@ import SystemSettings from "./SystemSettings";
 import ResourcesTrainingPanel from "./ResourcesTrainingPanel";
 import { hasCapability } from "./adminCapabilities";
 
-export default function AdminInternalTab({ user, adminSession }) {
+export default function AdminInternalTab({ user, adminSession, selectedTab, onTabChange }) {
   const canManageAdmins = hasCapability(user, "admins.manage");
   const canViewLogs = hasCapability(user, "logs.view");
   const isMaster = user?.role === "master" || user?.role_label === "master";
 
   return (
-    <div className="mt-4">
-      <div className="rounded-xl bg-gradient-to-r from-slate-700 to-slate-500 p-4 text-white mb-4">
-        <h2 className="text-lg font-bold">Settings</h2>
-        <p className="text-sm text-white/75 mt-0.5">Admin management, permissions, audit logs, resources, system configuration, and system health.</p>
-      </div>
-
-      <Tabs defaultValue={canManageAdmins ? "admin-management" : canViewLogs ? "logs" : "settings"}>
-        <TabsList className="flex flex-nowrap gap-1 h-auto w-full overflow-x-auto touch-pan-x p-1 [scrollbar-width:thin]">
-          {canManageAdmins && <TabsTrigger value="admin-management" className="whitespace-nowrap">Admin Management & Permissions</TabsTrigger>}
-          {canViewLogs && <TabsTrigger value="logs" className="whitespace-nowrap">Audit Logs</TabsTrigger>}
-          <TabsTrigger value="resources" className="whitespace-nowrap">Resources / Training</TabsTrigger>
-          {isMaster && <TabsTrigger value="system-config" className="whitespace-nowrap">System Configuration</TabsTrigger>}
-          {isMaster && <TabsTrigger value="system-health" className="whitespace-nowrap">System Health</TabsTrigger>}
-          <TabsTrigger value="settings" className="whitespace-nowrap">My Admin Settings</TabsTrigger>
-        </TabsList>
+    <div>
+      <Tabs value={selectedTab} onValueChange={onTabChange} defaultValue={canManageAdmins ? "admin-management" : canViewLogs ? "logs" : "settings"}>
 
         {canManageAdmins && (
           <TabsContent value="admin-management">
