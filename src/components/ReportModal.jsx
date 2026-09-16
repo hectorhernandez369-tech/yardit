@@ -134,6 +134,56 @@ export default function ReportModal({ listingId, targetType = "listing", onClose
           reporterUserId: user.id,
         });
 
+        // Immediate internal safety escalation. This never blocks the customer's report submission.
+        // AI can enrich the triage later, but high-risk safety codes are prioritized deterministically first.
+        try {
+          const criticalSafetyCodes = new Set(["SAFETY_WEAPONS", "SAFETY_THREAT"]);
+          const highSafetyCodes = new Set(["SAFETY_DRUGS", "SAFETY_STOLEN_GOODS", "SAFETY_HARASSMENT_HATE"]);
+          const reasonCode = String(data.reason_code || "");
+          const safetyPriority = criticalSafetyCodes.has(reasonCode)
+            ? "critical"
+            : highSafetyCodes.has(reasonCode) || reasonCode.startsWith("SAFETY_")
+              ? "high"
+              : null;
+
+          if (safetyPriority) {
+            const now = new Date().toISOString();
+            let emailAlertSent = false;
+            const settings = await base44.entities.AppSetting.filter({ key: "support_safety_alert_email" });
+            const alertEmail = settings?.[0]?.value?.trim();
+
+            if (alertEmail) {
+              await base44.integrations.Core.SendEmail({
+                to: alertEmail,
+                subject: `[Yardit Safety] ${safetyPriority === "critical" ? "CRITICAL" : "High priority"} report received`,
+                body: `A ${safetyPriority} Yardit safety report was just submitted.\n\nReason: ${data.reason_label || reasonCode}\nDetails: ${data.details || data.other_details || "No additional details provided."}\nListing/Location ID: ${listingId}\nReport ID: ${report.id}\n\nOpen Yardit Admin > Customer Service or Case Management > Safety for review.\n\nNo enforcement action was taken automatically.`,
+              });
+              emailAlertSent = true;
+            }
+
+            await base44.entities.SupportAITriage.create({
+              source_type: "report",
+              source_id: report.id,
+              source_number: report.id,
+              priority: safetyPriority,
+              safety_flag: true,
+              safety_reason: data.reason_label || reasonCode,
+              category: reasonCode || "safety_report",
+              summary: data.details || data.other_details || data.reason_label || "Safety report received",
+              suggested_action: "Open the report for prompt human review.",
+              suggested_reply: "",
+              requires_human: true,
+              status: "new",
+              email_alert_sent: emailAlertSent,
+              email_alert_sent_at: emailAlertSent ? now : undefined,
+              last_scanned_at: now,
+              created_at: now,
+            });
+          }
+        } catch (safetyAlertError) {
+          console.error("Safety alert triage failed after report creation:", safetyAlertError);
+        }
+
         if (data.performRemoval && neighborhoodRemovalContext) {
           await base44.entities.JoinRequest.update(neighborhoodRemovalContext.joinRequestId, {
             status: "denied",
