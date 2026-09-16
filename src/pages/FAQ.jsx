@@ -936,7 +936,7 @@ const FAQ_SECTIONS = [
       {
         q: "How do I contact support?",
         a:
-          "Use Contact Support to submit a request. Logged-in users can use My Support Tickets to follow replies and case updates.",
+          "Use Contact Support and choose Residential / Yard Sale Issue, Billing, or Something Isn't Working. Email and a description are required, and the current support form allows up to 3 photo attachments. Logged-in users can use My Support Tickets to follow replies and case updates.",
       },
     ],
   },
