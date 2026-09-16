@@ -386,7 +386,7 @@ const FAQ_SECTIONS = [
       {
         q: "Do I need an account to use Yardit?",
         a:
-          "You can browse many public listings without an account. A free account is required to post, save listings, build a Hunt, submit participation requests, manage notifications, contact support from your account, or access seller and vendor tools.",
+          "You can browse public residential listings as a guest. A free account is required to post a sale, permanently save listings, manage your listings, and use account features. Guests can preview up to 2 Hunt stops before Yardit asks them to create an account.",
       },
       {
         q: "Can I install Yardit like an app?",
@@ -419,7 +419,17 @@ const FAQ_SECTIONS = [
       {
         q: "What is the Hunt?",
         a:
-          "The Hunt is Yardit’s route-planning feature. Add sales you want to visit, organize the stops, and use the route tools to plan your shopping trip.",
+          "The Hunt is Yardit’s route-planning feature. Add sales you want to visit, organize or optimize the stops, and map your route. Guests can preview up to 2 Hunt stops. When using the route builder, check-in becomes available when you are about 50 feet from a stop.",
+      },
+      {
+        q: "Why can’t I see a Free listing on the map?",
+        a:
+          "Free listings require a closer map view than paid tiers. Premium pins can appear from zoom 11+, Featured from 13+, and Free from 15+. Zoom farther into the neighborhood before assuming the listing is missing.",
+      },
+      {
+        q: "Can I save a sale for later?",
+        a:
+          "Yes. Sign in and tap Save on the listing. Saved listings stay available from your saved area, and active saved listings can be added to your Hunt.",
       },
     ],
   },
@@ -442,12 +452,22 @@ const FAQ_SECTIONS = [
       {
         q: "Can I edit or end my listing?",
         a:
-          "Yes. Open My Listings and select the listing you own. Available actions depend on its status and can include editing details, changing photos or hours, upgrading visibility, viewing billing information, or ending the listing.",
+          "Open My Listings and select the listing you own. Depending on its status and payment state, available actions can include Edit, Relist, Upgrade, Cancel, View Billing, or Need Help. Paid or locked listings may require support instead of direct cancellation.",
       },
       {
-        q: "Why can I only have one active residential sale?",
+        q: "Where did my unfinished listing go?",
         a:
-          "The active residential listing limit helps prevent duplicates and spam and keeps the map fair. After the current sale ends or expires, another sale can be created.",
+          "Open My Listings and choose Drafts. You can Resume an unfinished draft or permanently delete it.",
+      },
+      {
+        q: "What does Relist do?",
+        a:
+          "Relist starts a new posting flow using information from an older listing as a starting point. Yardit still applies current date, tier, address, and payment rules before the new listing is published.",
+      },
+      {
+        q: "Why won’t Yardit let me choose a sale date?",
+        a:
+          "Another active, scheduled, under-review, payment-pending, or Coming Soon yard sale at the same verified residential address may already reserve that date. Non-overlapping future dates can still be used.",
       },
     ],
   },
@@ -458,14 +478,19 @@ const FAQ_SECTIONS = [
     icon: Star,
     questions: [
       {
-        q: "What is the difference between listing tiers?",
+        q: "What is the difference between Free, Featured, and Premium?",
         a:
-          "Free provides basic visibility. Featured and Premium provide stronger placement or scheduling benefits. Marquee is intended for eligible high-visibility event promotion. The exact benefits and price are shown before checkout.",
+          "Free is $0, uses Yardit’s Friday 5:00 AM through Sunday 10:00 PM weekend schedule, allows up to 3 photos, and appears as an individual pin from zoom 15+. Featured is $4.99, allows 1–3 consecutive days and up to 10 photos, and appears from zoom 13+. Premium is $7.99, allows 1–5 consecutive days and up to 25 photos, appears from zoom 11+, and can include up to 3 days of Coming Soon visibility.",
       },
       {
         q: "What is Early Visibility?",
         a:
-          "Early Visibility lets an eligible listing appear before it opens so buyers can plan ahead. The listing still shows its actual opening date and time.",
+          "Premium can appear as Coming Soon for up to 3 days before the sale begins. Early visibility helps shoppers plan ahead, but it does not mean the sale is open early.",
+      },
+      {
+        q: "How much does it cost to upgrade?",
+        a:
+          "Yardit charges the difference between residential tiers. Free to Featured is $4.99, Free to Premium is $7.99, and Featured to Premium is $3.00.",
       },
       {
         q: "How do promo codes work?",
@@ -475,7 +500,12 @@ const FAQ_SECTIONS = [
       {
         q: "Where can I see payment history?",
         a:
-          "Open the listing or account management area connected to the purchase. Available billing and upgrade history is shown there.",
+          "Open My Listings and choose Billing. Residential listing payments and upgrades can appear there with payment status, amount paid, refund status, and related listing information.",
+      },
+      {
+        q: "I was charged but my listing did not update. What should I do?",
+        a:
+          "Do not immediately pay again. Check My Listings and Billing first. If the charge and listing status do not match, contact Billing Support so the payment and listing can be compared.",
       },
     ],
   },
@@ -499,12 +529,32 @@ const FAQ_SECTIONS = [
         id: "neighborhood-sale-pricing",
         q: "What is Neighborhood Sale pricing?",
         a:
-          "The organizer’s final cost is calculated from the current base price and participating-home charge shown during setup. Participants are not charged. Review the final amount before activation because current pricing or promotional offers may change.",
+          "The current organizer price is a flat $49.99 once the sale qualifies. Approved participants do not pay a separate Neighborhood Sale participation fee.",
       },
       {
-        q: "Can the organizer participate without selling?",
+        q: "How many homes are required?",
         a:
-          "Yes. The organizer can manage the event without listing their own home as a participating sale when the event setup allows it.",
+          "A Neighborhood Sale needs at least 5 approved homes and supports up to 25. The organizer’s home can count when participating.",
+      },
+      {
+        q: "How early do I need to create a Neighborhood Sale?",
+        a:
+          "Neighborhood Sales must be scheduled at least 7 days in advance. Participation normally locks about 24 hours before the event begins.",
+      },
+      {
+        q: "How close do participating homes need to be?",
+        a:
+          "The current Neighborhood Sale area is built around a 500-foot radius. A joining home must qualify for the event area and have sale dates that overlap the Neighborhood Sale.",
+      },
+      {
+        q: "What happens if we do not reach 5 homes?",
+        a:
+          "The organizer’s saved fallback choice controls the result. The Neighborhood Sale can cancel, or a connected organizer-owned Yard Sale can fall back to Premium for $7.99.",
+      },
+      {
+        q: "What happens after the Neighborhood Sale reaches 5 homes?",
+        a:
+          "The event becomes committed. Current customer-facing logic uses the $49.99 flat event charge, normally at the 24-hour lock. Canceling a committed event can trigger the charge earlier.",
       },
     ],
   },
@@ -616,7 +666,12 @@ const FAQ_SECTIONS = [
       {
         q: "Can I control push notifications?",
         a:
-          "Yes. Open Alert Preferences and choose which supported push notification categories you want. Disabling push notifications does not remove messages from the in-app bell.",
+          "Yes. Open Notification Settings and choose which supported push categories you want. Disabling push notifications does not remove messages from the in-app bell/history.",
+      },
+      {
+        q: "Can Yardit notify me about listings near my home?",
+        a:
+          "Yes. Listings Near Me uses your verified residential address. You can choose a 1, 2, 5, 10, or 25 mile radius.",
       },
       {
         q: "Do nearby alerts reveal my exact location?",
@@ -634,8 +689,18 @@ const FAQ_SECTIONS = [
       {
         q: "My listing will not publish. What should I check?",
         a:
-          "Confirm that all required fields are complete, the address is verified when required, dates and times are valid, required photos or payment steps are complete, and no duplicate active listing rule is blocking the post.",
+          "Confirm all required fields are complete, your residential address is verified, the selected dates do not conflict with another reserved listing at the same address, your hours are valid, and any required payment step finished successfully.",
       },
+      {
+        q: "My paid listing or upgrade looks wrong after checkout. What should I do?",
+        a:
+          "Check My Listings and Billing first. If Yardit shows a successful charge but the listing or tier did not update, do not pay again. Contact Billing Support with the listing and payment details.",
+      },
+      {
+        q: "Why does my paid listing say Need Help instead of Cancel?",
+        a:
+          "Paid active listings may require support instead of direct cancellation. Refund eligibility is handled through the normal support/payment process and is not automatically guaranteed.",
+      }],"dry_run":false}
       {
         q: "My schedule will not import. What should I check?",
         a:
