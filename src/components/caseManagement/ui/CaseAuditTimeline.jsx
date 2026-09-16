@@ -16,6 +16,7 @@ const FRIENDLY_LABELS = {
   change_priority: "Priority Updated",
   admin_comment: "Admin Comment",
   supervisor_comment: "Supervisor Comment",
+  astra_review: "Reviewed by Astra",
 };
 
 const ACTION_COLORS = {
@@ -30,6 +31,7 @@ const ACTION_COLORS = {
   reassign: "bg-indigo-100 text-indigo-800",
   admin_comment: "bg-gray-100 text-gray-700",
   supervisor_comment: "bg-purple-100 text-purple-700",
+  astra_review: "bg-indigo-100 text-indigo-800",
 };
 
 const DIFF_KEYS = ["status", "assigned_admin_id", "originating_admin_id", "case_priority", "disposition"];
@@ -138,7 +140,7 @@ export default function CaseAuditTimeline({ actions, allAdminUsers }) {
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
                         <User className="w-3 h-3" />
-                        {admin?.full_name || admin?.email || a.admin_id}
+                        {a.admin_id === "astra" ? "Astra" : (admin?.full_name || admin?.email || a.admin_id)}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
