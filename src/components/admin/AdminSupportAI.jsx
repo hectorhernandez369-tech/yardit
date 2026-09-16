@@ -51,6 +51,7 @@ export default function AdminSupportAI({ user }) {
   const [triage, setTriage] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [sendingReplyId, setSendingReplyId] = useState("");
   const [alertEmail, setAlertEmail] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
 
@@ -204,6 +205,47 @@ export default function AdminSupportAI({ user }) {
     }
   };
 
+  const handleSendDraftReply = async (item) => {
+    if (item.source_type !== "support_ticket" || !item.suggested_reply) return;
+    setSendingReplyId(item.id);
+    try {
+      const tickets = await base44.entities.SupportTicket.filter({ id: item.source_id });
+      const ticket = tickets?.[0];
+      if (!ticket?.email) throw new Error("Ticket email not found");
+
+      await base44.integrations.Core.SendEmail({
+        to: ticket.email,
+        subject: `Yardit Support — ${ticket.ticket_number || "Your support request"}`,
+        body: item.suggested_reply,
+      });
+
+      await base44.entities.TicketAction.create({
+        ticket_id: ticket.id,
+        admin_id: user?.id,
+        action: "AI draft reply emailed",
+        details: `Reply sent to ${ticket.email}`,
+      });
+
+      await base44.entities.SupportTicketComment.create({
+        ticket_id: ticket.id,
+        admin_id: user?.id,
+        admin_name: user?.full_name || user?.email || "Admin",
+        admin_email: user?.email || "",
+        comment_text: `Email sent to customer:\n${item.suggested_reply}`,
+        comment_type: "admin_note",
+      });
+
+      await base44.entities.SupportAITriage.update(item.id, { status: "actioned" });
+      await load();
+      toast.success(`Reply sent to ${ticket.email}`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not send customer reply");
+    } finally {
+      setSendingReplyId("");
+    }
+  };
+
   const sortedTriage = useMemo(() => [...triage].sort((a, b) => {
     const priorityDiff = priorityRank(b.priority) - priorityRank(a.priority);
     if (priorityDiff) return priorityDiff;
@@ -261,7 +303,23 @@ export default function AdminSupportAI({ user }) {
               <p className="mt-2 text-sm font-semibold text-slate-900">{item.summary || "No summary"}</p>
               {item.safety_reason ? <p className="mt-1 text-xs text-slate-600"><strong>Safety:</strong> {item.safety_reason}</p> : null}
               <p className="mt-1 text-xs text-slate-600"><strong>Suggested action:</strong> {item.suggested_action || "Review"}</p>
-              {item.suggested_reply ? <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700"><strong>Draft reply:</strong> {item.suggested_reply}</div> : null}
+              {item.suggested_reply ? (
+                <div className="mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                  <div><strong>Draft reply:</strong> {item.suggested_reply}</div>
+                  {item.source_type === "support_ticket" ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSendDraftReply(item)}
+                      disabled={sendingReplyId === item.id}
+                    >
+                      {sendingReplyId === item.id ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Mail className="mr-2 h-3.5 w-3.5" />}
+                      Review & Send Draft
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ))}
         </CardContent>
