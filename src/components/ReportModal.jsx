@@ -179,6 +179,61 @@ export default function ReportModal({ listingId, targetType = "listing", onClose
               last_scanned_at: now,
               created_at: now,
             });
+
+            // Push + Admin Inbox alert for active supervisors and masters.
+            // The notification registry marks admin_safety_priority as push-enabled.
+            const adminProfiles = await base44.entities.AdminProfile.list();
+            const safetyAdmins = (adminProfiles || []).filter((profile) =>
+              profile.is_active === true && ["supervisor", "master"].includes(profile.role_label)
+            );
+
+            await Promise.all(safetyAdmins.flatMap((profile) => {
+              const title = safetyPriority === "critical"
+                ? "Critical Yardit safety report"
+                : "High-priority Yardit safety report";
+              const message = `${data.reason_label || reasonCode}: prompt human review is required.`;
+              const deepLink = "/AdminLite?section=triage";
+
+              return [
+                base44.entities.Notification.create({
+                  user_id: profile.user_id,
+                  userId: profile.user_id,
+                  user_email: profile.email,
+                  title,
+                  message,
+                  type: "admin_safety_priority",
+                  related_entity_type: "report",
+                  related_entity_id: report.id,
+                  recipient: "critical administrators",
+                  trigger: "high_or_critical_safety_report",
+                  delivery_methods: ["push", "admin_inbox"],
+                  deep_link: deepLink,
+                  dedupe_key: `admin_safety_priority:${report.id}:${profile.user_id}`,
+                  registry_status: "active",
+                  registry_version: "2026-06-24",
+                  read: false,
+                  is_read: false,
+                }),
+                base44.entities.AdminInboxItem.create({
+                  recipient_admin_id: profile.user_id,
+                  recipient_role: profile.role_label,
+                  type: "admin_safety_priority",
+                  category: "reports",
+                  title,
+                  message,
+                  priority: safetyPriority === "critical" ? "critical" : "high",
+                  status: "unread",
+                  related_entity_type: "report",
+                  related_entity_id: report.id,
+                  deep_link: deepLink,
+                  metadata: {
+                    reason_code: reasonCode,
+                    listing_id: listingId,
+                    triage_priority: safetyPriority,
+                  },
+                }),
+              ];
+            }));
           }
         } catch (safetyAlertError) {
           console.error("Safety alert triage failed after report creation:", safetyAlertError);
