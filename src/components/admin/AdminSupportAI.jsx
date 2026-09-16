@@ -146,14 +146,11 @@ export default function AdminSupportAI({ user }) {
   const handleTestAdminPush = async () => {
     setTestingPush(true);
     try {
-      const response = await base44.functions.invoke("sendAdminSafetyPush", {
-        title: "Yardit Astra Test",
-        message: "Admin-only web push is working. Tap to open Astra.",
-        url: `${window.location.origin}/AdminLite?section=astra`,
-      });
+      const response = await base44.functions.invoke("sendAdminTestPush", { target: "all" });
       const data = response?.data || {};
-      if (data.success === false) throw new Error(Array.isArray(data.error) ? data.error.join(", ") : data.error || "Push test failed");
-      toast.success(`Admin push sent to ${data.recipients || 0} subscribed admin device(s)`);
+      if (data.error) throw new Error(data.error);
+      const sent = Array.isArray(data.results) ? data.results.filter((item) => item.status === "sent").length : 0;
+      toast.success(`Admin push test completed: ${sent} sent across ${data.recipients || 0} active admin account(s)`);
     } catch (error) {
       console.error(error);
       toast.error(error?.message || "Admin push test failed");
