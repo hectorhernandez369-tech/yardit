@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, Shield, LogOut, LayoutDashboard, BriefcaseBusiness, Settings, FolderOpen, Inbox } from "lucide-react";
+import { Search, Loader2, Shield, LogOut, LayoutDashboard, BriefcaseBusiness, Settings, FolderOpen, Inbox, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logAdminEvent, searchCases } from "../components/caseManagement";
@@ -22,6 +22,7 @@ import SupportTicketQueue from "../components/admin/SupportTicketQueue";
 import InQueueTab from "../components/caseManagement/ui/InQueueTab";
 import AdminInboxPanel from "../components/admin/AdminInboxPanel";
 import AdminOperationsCenterHome from "../components/admin/AdminOperationsCenterHome";
+import AdminSupportAI from "../components/admin/AdminSupportAI";
 
 const relId = (v) => (v && typeof v === "object" ? v.id : v);
 
@@ -276,6 +277,7 @@ export default function AdminLitePage() {
               { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, active: "bg-[#2C4F4E] text-white" },
               { key: "inbox", label: "Admin Inbox", icon: Inbox, active: "bg-slate-700 text-white" },
               { key: "case_management", label: "Case Management", icon: FolderOpen, active: "bg-orange-600 text-white" },
+              { key: "customer_service", label: "Customer Service", icon: Bot, active: "bg-indigo-600 text-white" },
               { key: "operations", label: "Operations", icon: BriefcaseBusiness, active: "bg-[#5DADA5] text-white" },
               { key: "settings", label: "Settings", icon: Settings, active: "bg-slate-700 text-white" },
             ].map((section) => {
@@ -321,6 +323,11 @@ export default function AdminLitePage() {
         {/* ── ADMIN INBOX SECTION ── */}
         {primarySection === "inbox" && (
           <AdminInboxPanel user={user} />
+        )}
+
+        {/* ── CUSTOMER SERVICE SECTION ── */}
+        {primarySection === "customer_service" && (
+          <AdminSupportAI user={user} />
         )}
 
         {/* ── OPERATIONS SECTION ── */}
