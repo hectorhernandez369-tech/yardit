@@ -221,17 +221,17 @@ const GUIDE_SECTIONS = [
       {
         title: "Choose Free for a simple weekend sale",
         text:
-          "Free costs $0, runs on Yardit’s Friday 5:00 AM through Sunday 10:00 PM weekend schedule, allows up to 3 photos, and appears as an individual pin from zoom 15+.",
+          "Free costs $0, runs on Yardit’s Friday 5:00 AM through Sunday 10:00 PM weekend schedule, allows up to 3 photos, and appears from a close street view.",
       },
       {
         title: "Choose Featured for more control",
         text:
-          "Featured costs $4.99, supports 1 to 3 consecutive days, allows up to 10 photos, and appears from zoom 13+.",
+          "Featured costs $4.99, supports 1 to 3 consecutive days, allows up to 10 photos, and appears from neighborhood view.",
       },
       {
         title: "Choose Premium for the strongest visibility",
         text:
-          "Premium costs $7.99, supports 1 to 5 consecutive days, allows up to 25 photos, appears from zoom 11+, and can include up to 3 days of Coming Soon visibility.",
+          "Premium costs $7.99, supports 1 to 5 consecutive days, allows up to 25 photos, appears from a wider neighborhood view, and can include up to 3 days of Coming Soon visibility.",
       },
     ],
   },
@@ -595,7 +595,7 @@ const FAQ_SECTIONS = [
       {
         q: "Why can’t I see a Free listing on the map?",
         a:
-          "Free listings require a closer map view than paid tiers. Premium pins can appear from zoom 11+, Featured from 13+, and Free from 15+. Zoom farther into the neighborhood before assuming the listing is missing.",
+          "Free listings require a closer map view than paid tiers. Premium can appear from a wider neighborhood view, Featured from neighborhood view, and Free from a close street view. Zoom farther into the area before assuming the listing is missing.",
       },
       {
         q: "Can I save a sale for later?",
@@ -651,7 +651,7 @@ const FAQ_SECTIONS = [
       {
         q: "What is the difference between Free, Featured, and Premium?",
         a:
-          "Free is $0, uses Yardit’s Friday 5:00 AM through Sunday 10:00 PM weekend schedule, allows up to 3 photos, and appears as an individual pin from zoom 15+. Featured is $4.99, allows 1–3 consecutive days and up to 10 photos, and appears from zoom 13+. Premium is $7.99, allows 1–5 consecutive days and up to 25 photos, appears from zoom 11+, and can include up to 3 days of Coming Soon visibility.",
+          "Free is $0, uses Yardit’s Friday 5:00 AM through Sunday 10:00 PM weekend schedule, allows up to 3 photos, and appears from a close street view. Featured is $4.99, allows 1–3 consecutive days and up to 10 photos, and appears from neighborhood view. Premium is $7.99, allows 1–5 consecutive days and up to 25 photos, appears from a wider neighborhood view, and can include up to 3 days of Coming Soon visibility.",
       },
       {
         q: "What is Early Visibility?",
