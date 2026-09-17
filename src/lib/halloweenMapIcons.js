@@ -67,7 +67,7 @@ export function getHalloweenSpotMapSize(listing, isSelected = false, now = new D
   const isFullIcon = isDinubaComingOctOne(listing) || isAdDemoHalloween(listing) || isAshevilleDecorationSpot(listing) || (isHalloweenFullIconActive(listing, now) && !(isComingOctOne(listing) && isHalloweenTeaser(listing, now)));
   const baseSize = isFullIcon ? (isSelected ? 38 : 34) : (isSelected ? 22 : 18);
   const zoomGrowth = Math.max(0, Math.min(4, Number(zoom) - 13));
-  const size = baseSize + zoomGrowth * (isFullIcon ? 5 : 3);
+  const size = (baseSize + zoomGrowth * (isFullIcon ? 5 : 3)) * (isFullIcon ? 1 : 0.75);
   if (isSpecialHalloweenIcon(listing)) return Math.round(size * 1.5);
   if (isAshevilleDecorationSpot(listing)) return Math.round(size * 1.5);
   if (!SPONSORED_HALLOWEEN_LOCATION_IDS.has(String(listing?.id))) return size;
