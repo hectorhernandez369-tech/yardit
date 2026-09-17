@@ -25,7 +25,7 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
       <div className="space-y-5">
         <div>
           <h2 className="text-xl font-bold text-purple-950">Halloween Spot Details</h2>
-          <p className="text-sm text-slate-500">Your Halloween Spot is free. Full artwork appears after the activation time; daytime uses the small pumpkin marker.</p>
+          <p className="text-sm text-slate-500">Your Halloween Spot is free. Full artwork appears after the activation time; daytime uses the small icon marker.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -111,7 +111,7 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
         </div>
 
         <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-900">
-          <strong>Map behavior:</strong> Yardit automatically uses the small pumpkin before 3 PM and outside your viewing hours. Your full Halloween icon appears only while the spot is open, never earlier than 3 PM.
+          <strong>Map behavior:</strong> Yardit automatically uses the small icon before 3 PM and outside your viewing hours. Your full Halloween icon appears only while the spot is open, never earlier than 3 PM.
         </div>
 
         <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-4 text-sm text-purple-950">
