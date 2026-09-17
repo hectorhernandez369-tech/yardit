@@ -49,8 +49,12 @@ export function isHalloweenSpotVisible(listing, now = new Date()) {
   const today = localYmd(now);
   const startDate = listing?.halloween_start_date || (listing?.startDateTime ? String(listing.startDateTime).slice(0, 10) : "");
   const endDate = listing?.halloween_end_date || (listing?.endDateTime ? String(listing.endDateTime).slice(0, 10) : "");
+  const seasonYear = String(startDate || endDate).slice(0, 4);
+  const currentYear = String(now.getFullYear());
+  const planningStart = `${currentYear}-09-01`;
 
-  if (startDate && today < startDate) return false;
+  if (seasonYear && seasonYear !== currentYear) return false;
+  if (today < planningStart) return false;
   if (endDate && today > endDate) return false;
   return true;
 }
@@ -58,6 +62,9 @@ export function isHalloweenSpotVisible(listing, now = new Date()) {
 export function isHalloweenFullIconActive(listing, now = new Date()) {
   if (!isHalloweenSpotVisible(listing, now)) return false;
   if (listing?.halloween_demo_force_live === true) return true;
+  const today = localYmd(now);
+  const startDate = listing?.halloween_start_date || (listing?.startDateTime ? String(listing.startDateTime).slice(0, 10) : "");
+  if (startDate && today < startDate) return false;
   const requested = listing?.halloween_activation_time || listing?.full_icon_activation_time || listing?.halloween_start_time || listing?.viewing_start_time || HALLOWEEN_DEFAULT_ACTIVATION_TIME;
   const safeActivationMinutes = Math.max(minutesFromTimeString(requested), minutesFromTimeString(HALLOWEEN_DEFAULT_ACTIVATION_TIME));
   const endTime = listing?.halloween_end_time || listing?.viewing_end_time || "";

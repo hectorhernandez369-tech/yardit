@@ -55,7 +55,7 @@ import { isLiveVendorCheckIn } from "@/lib/vendorTiers";
 import { getVendorPinActiveSchedule } from "@/lib/vendorPinSchedule";
 import { isPublishedVendorEvent, toVendorEventListing } from "@/lib/vendorEvents";
 import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map/vendorMarkerIcons";
-import QuickMapFilters from "@/components/map/QuickMapFilters";
+import MapFilterChips from "@/components/map/MapFilterChips";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
@@ -1661,7 +1661,7 @@ export default function HomePage() {
             zoomControl={false}>
             
               <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => {mapRef.current = map;}} />
-              <QuickMapFilters value={quickMapFilters} onChange={setQuickMapFilters} />
+              <MapFilterChips value={quickMapFilters} onChange={setQuickMapFilters} />
               <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
               <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
               <HuntMapLayers />
