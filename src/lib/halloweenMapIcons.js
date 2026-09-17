@@ -52,8 +52,7 @@ export function getHalloweenSpotIconUrl(listing, now = new Date(), isSelected = 
     const demoKey = listing?.halloween_icon_key || listing?.halloween_spot_type || "halloween_decorations";
     return iconAssets[demoKey] || iconAssets.halloween_decorations;
   }
-  const comingOctOneTeaser = isComingOctOne(listing) && isHalloweenTeaser(listing, now);
-  if (!isHalloweenFullIconActive(listing, now) || comingOctOneTeaser) return isSelected ? HALLOWEEN_SELECTED_ICON_ASSETS.halloween_decorations : HALLOWEEN_DAYTIME_ICON;
+  // Keep each spot recognizable while the size helper handles inactive hours.
   if (isComingOctOne(listing)) return HALLOWEEN_ICON_ASSETS.coming_oct_1;
 
   const teaserUntil = listing?.teaser_until ? new Date(listing.teaser_until) : null;
