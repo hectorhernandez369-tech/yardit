@@ -62,8 +62,6 @@ function isPublicHalloweenLocation(location, now) {
 function canSeeAdDemo(record, currentUser) {
   const isAdDemo = record?.is_demo_listing === true || String(record?.title || record?.display_title || '').startsWith('AD DEMO —');
   if (!isAdDemo) return true;
-  const isHalloweenDemo = record?.type === 'halloween_candy' || record?.listingType === 'halloween_candy';
-  if (isHalloweenDemo && record?.halloween_demo_force_live === true) return true;
   const ownerId = record?.ownerUserId || record?.owner_user_id;
   return !!currentUser?.id && String(ownerId) === String(currentUser.id);
 }

@@ -275,11 +275,66 @@
     "halloween_activities": {
       "type": "string",
       "description": "Optional activities, contests, games, food, vendors, or special attractions"
+    },
+    "is_demo_listing": {
+      "type": "boolean",
+      "default": false,
+      "description": "Private demo visible only to its assigned owner"
     }
   },
   "required": [
     "type",
     "latitude",
     "longitude"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.is_demo_listing": {
+            "$ne": true
+          }
+        },
+        {
+          "data.owner_user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.is_demo_listing": {
+            "$ne": true
+          }
+        },
+        {
+          "data.owner_user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.is_demo_listing": {
+            "$ne": true
+          }
+        },
+        {
+          "data.owner_user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.is_demo_listing": {
+            "$ne": true
+          }
+        },
+        {
+          "data.owner_user_id": "{{user.id}}"
+        }
+      ]
+    }
+  }
 }

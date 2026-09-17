@@ -627,51 +627,110 @@
     "endDateTime"
   ],
   "rls": {
-    "create": {},
-    "read": {
+    "create": {
       "$or": [
         {
-          "data.status": {
-            "$in": [
-              "active",
-              "scheduled",
-              "coming_soon",
-              "activated",
-              "activated_locked"
-            ]
+          "data.is_demo_listing": {
+            "$ne": true
           }
         },
         {
           "data.ownerUserId": "{{user.id}}"
+        }
+      ]
+    },
+    "read": {
+      "$and": [
+        {
+          "$or": [
+            {
+              "data.is_demo_listing": {
+                "$ne": true
+              }
+            },
+            {
+              "data.ownerUserId": "{{user.id}}"
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "data.status": {
+                "$in": [
+                  "active",
+                  "scheduled",
+                  "coming_soon",
+                  "activated",
+                  "activated_locked"
+                ]
+              }
+            },
+            {
+              "data.ownerUserId": "{{user.id}}"
+            },
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            }
+          ]
         }
       ]
     },
     "update": {
-      "$or": [
+      "$and": [
         {
-          "data.ownerUserId": "{{user.id}}"
+          "$or": [
+            {
+              "data.is_demo_listing": {
+                "$ne": true
+              }
+            },
+            {
+              "data.ownerUserId": "{{user.id}}"
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "data.ownerUserId": "{{user.id}}"
+            },
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            }
+          ]
         }
       ]
     },
     "delete": {
-      "$or": [
+      "$and": [
         {
-          "data.ownerUserId": "{{user.id}}"
+          "$or": [
+            {
+              "data.is_demo_listing": {
+                "$ne": true
+              }
+            },
+            {
+              "data.ownerUserId": "{{user.id}}"
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "data.ownerUserId": "{{user.id}}"
+            },
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            }
+          ]
         }
       ]
     }
