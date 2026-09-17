@@ -18,7 +18,7 @@ export function isAshevilleDecorationSpot(listing) {
 }
 
 export function getHalloweenSpotMapOpacity(listing, now = new Date()) {
-  return isAshevilleDecorationSpot(listing) && !isHalloweenFullIconActive(listing, now) ? 0.9 : 1;
+  return isHalloweenFullIconActive(listing, now) ? 1 : 0.35;
 }
 
 const DINUBA_COMING_OCT_ONE_ID = "6a9f4b77bf56f8c88ee389d1";
