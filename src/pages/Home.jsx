@@ -55,7 +55,8 @@ import { isLiveVendorCheckIn } from "@/lib/vendorTiers";
 import { getVendorPinActiveSchedule } from "@/lib/vendorPinSchedule";
 import { isPublishedVendorEvent, toVendorEventListing } from "@/lib/vendorEvents";
 import { getVendorMarkerIcon, shouldShowVendorPinAtZoom } from "@/components/map/vendorMarkerIcons";
-import MapFilterChips from "@/components/map/MapFilterChips";
+import QuickMapFilters from "@/components/map/QuickMapFilters";
+import HalloweenMapFilterPill from "@/components/map/HalloweenMapFilterPill";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
@@ -1661,7 +1662,11 @@ export default function HomePage() {
             zoomControl={false}>
             
               <MapController center={mapCenter} zoom={mapZoom} onUserMove={handleUserMoveMap} onZoomChange={handleZoomChange} onMapReady={(map) => {mapRef.current = map;}} />
-              <MapFilterChips value={quickMapFilters} onChange={setQuickMapFilters} />
+              <QuickMapFilters value={quickMapFilters} onChange={setQuickMapFilters} />
+              <HalloweenMapFilterPill
+                enabled={quickMapFilters.halloween}
+                onToggle={(halloween) => setQuickMapFilters((current) => ({ ...current, halloween }))}
+              />
               <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
               <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
               <HuntMapLayers />
