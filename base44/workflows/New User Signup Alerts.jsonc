@@ -1,0 +1,44 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "new_user_signup_alerts",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "scan_and_alert": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendNewUserSummary"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Scan new users & email summary",
+            "description": "Twice-daily digest"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Twice daily (12 PM & 12 AM) scan for new users and email the admin a single summary digest.",
+  "name": "New User Signup Alerts",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 0,12 * * *",
+      "one_time_date": null,
+      "timezone": "America/Los_Angeles",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}
