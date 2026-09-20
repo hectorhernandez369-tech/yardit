@@ -1873,6 +1873,96 @@ export default function CreateListingPage() {
     executeSubmit(undefined, setupFormData);
   };
 
+  const submitAssistedPost = async () => {
+    if (!canUseAssistedPost || !isAssistedPost) return false;
+    if (!assistedPermissionConfirmed) {
+      toast.error("Confirm that the homeowner gave permission for this assisted post.");
+      return true;
+    }
+    if (!formData.addressText || !formData.city || !formData.state || !formData.zip || typeof formData.lat !== "number" || typeof formData.lng !== "number") {
+      toast.error("Confirm the exact property address before creating the assisted post.");
+      setStep(2);
+      return true;
+    }
+
+    setIsStartingPayment(true);
+    try {
+      if (formData.listingType === "halloween_spot") {
+        const type = formData.halloween_spot_type || formData.halloween_icon_key || "halloween_decorations";
+        const halloween = `${new Date().getFullYear()}-10-31`;
+        const startDate = type === "trick_or_treat" ? halloween : formData.halloween_start_date;
+        const endDate = type === "trick_or_treat" ? halloween : (formData.halloween_end_date || startDate);
+        if (!startDate || !endDate || !formData.halloween_start_time || !formData.halloween_end_time) {
+          toast.error("Add the Halloween dates and viewing times first.");
+          return true;
+        }
+        const tags = ["trick_or_treat", "trunk_or_treat"].includes(type)
+          ? (formData.halloween_tags || []).filter((tag) => tag !== "no_candy_here")
+          : (formData.halloween_tags || []);
+        const activation = minutesFromTime(formData.halloween_start_time) < minutesFromTime("15:00") ? "15:00" : formData.halloween_start_time;
+
+        const response = await base44.functions.invoke("createAssistedHalloweenSpot", {
+          addressText: formData.addressText, city: formData.city, state: getStateAbbreviation(formData.state || ""), zip: formData.zip,
+          lat: formData.lat, lng: formData.lng, title: formData.title, description: formData.description || "", photoUrls: formData.photoUrls || [],
+          halloween_spot_type: type, halloween_tags: tags,
+          halloween_candy_available: ["trick_or_treat", "trunk_or_treat"].includes(type) ? true : tags.includes("no_candy_here") ? false : formData.halloween_candy_available === true,
+          halloween_walkthrough: formData.halloween_walkthrough === true, halloween_lights: formData.halloween_lights === true,
+          halloween_sound: formData.halloween_sound === true, halloween_jump_scares: formData.halloween_jump_scares === true,
+          halloween_suggested_age: formData.halloween_suggested_age || "", halloween_host_name: formData.halloween_host_name || "",
+          halloween_admission: formData.halloween_admission || "", halloween_parking_notes: formData.halloween_parking_notes || "",
+          halloween_activities: formData.halloween_activities || "", halloween_start_date: startDate, halloween_end_date: endDate,
+          halloween_start_time: formData.halloween_start_time, halloween_end_time: formData.halloween_end_time,
+          full_icon_activation_time: activation, location_source: formData.location_source || "address_search",
+          ownerPermissionConfirmed: true, appBaseUrl: window.location.origin,
+        });
+        setAssistedCreated({ ...response.data, kind: "halloween", saleAddress: response.data.saleFormattedAddress, title: formData.title });
+        toast.success("Assisted Halloween Spot created! 🎃");
+        return true;
+      }
+
+      if (formData.listingType === "yard_sale") {
+        const tz = formData.timeZoneId || "America/Los_Angeles";
+        let startDate = formData.selectedRangeStartDate || "";
+        let endDate = formData.selectedRangeEndDate || "";
+        let startDateTime = "";
+        let endDateTime = "";
+        if (formData.tier === "free") {
+          const freeWindow = computeFreeWindow(new Date(), tz);
+          startDate = freeWindow.startYMD;
+          endDate = freeWindow.endYMD;
+          startDateTime = freeWindow.effectiveStart.toISOString();
+          endDateTime = freeWindow.effectiveEnd.toISOString();
+        } else {
+          if (!startDate || !endDate) {
+            toast.error("Choose the sale dates before creating the assisted listing.");
+            return true;
+          }
+          startDateTime = zonedDateTimeToUtcDate(startDate, "05:00:00", tz).toISOString();
+          endDateTime = zonedDateTimeToUtcDate(endDate, "22:00:00", tz).toISOString();
+        }
+
+        const response = await base44.functions.invoke("createAssistedListing", {
+          listingType: "yard_sale", tier: formData.tier || "free",
+          addressText: formData.addressText, city: formData.city, state: getStateAbbreviation(formData.state || ""), zip: formData.zip,
+          lat: formData.lat, lng: formData.lng, location_source: formData.location_source || "address_search",
+          saleFormattedAddress: [formData.addressText, formData.city, getStateAbbreviation(formData.state || ""), formData.zip].filter(Boolean).join(", "),
+          timeZoneId: tz, title: formData.title, description: formData.description || "", photoUrls: formData.photoUrls || [],
+          startDateTime, endDateTime, selectedRangeStartDate: startDate, selectedRangeEndDate: endDate,
+          sellerPermissionConfirmed: true, appBaseUrl: window.location.origin,
+        });
+        setAssistedCreated({ ...response.data, kind: "yard_sale", saleAddress: response.data.saleFormattedAddress, title: formData.title });
+        toast.success("Assisted Yard Sale created!");
+        return true;
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.error || error?.message || "Could not create assisted post.");
+      return true;
+    } finally {
+      setIsStartingPayment(false);
+    }
+    return false;
+  };
+
   const handleSubmit = async ({ userInitiated = false } = {}) => {
     const descriptionLimitError = getResidentialDescriptionLimitError(formData);
     if (descriptionLimitError) {
