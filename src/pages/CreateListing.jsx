@@ -591,6 +591,26 @@ export default function CreateListingPage() {
   const profileIncomplete = user?.email_verified === false;
   const regularAddressIncomplete = !formData.addressText || !formData.city || !formData.state || !formData.zip;
 
+  const { data: quickAssistAdminProfile = null } = useQuery({
+    queryKey: ["quickAssistAdminProfile", user?.id, user?.email],
+    queryFn: async () => {
+      const [byUserId, byEmail] = await Promise.all([
+        base44.entities.AdminProfile.filter({ user_id: user.id }).catch(() => []),
+        base44.entities.AdminProfile.filter({ email: String(user.email || "").toLowerCase() }).catch(() => []),
+      ]);
+      return [...byUserId, ...byEmail].find((profile) => profile?.is_active === true) || null;
+    },
+    enabled: !!user?.id,
+    initialData: null,
+  });
+  const canUseAssistedPost = !!quickAssistAdminProfile && ["yard_sale", "halloween_spot"].includes(formData.listingType) && !isAdminCreate;
+
+  useEffect(() => {
+    if (canUseAssistedPost) return;
+    setIsAssistedPost(false);
+    setAssistedPermissionConfirmed(false);
+  }, [canUseAssistedPost]);
+
   // Pull all user listings (used for “1 active listing” rule)
   const { data: userListings } = useQuery({
     queryKey: ["userListings", user?.id],
