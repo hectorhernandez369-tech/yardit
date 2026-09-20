@@ -107,6 +107,7 @@ const AuthenticatedApp = () => {
     <Route path="/install" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
     <Route path="/InstallYardit" element={<LayoutWrapper currentPageName="InstallYardit"><InstallYardit /></LayoutWrapper>} />
     <Route path="/PushSetup" element={<PushSetup />} />
+    <Route path="/MapboxTest" element={<LayoutWrapper currentPageName="MapboxTest"><MapboxTest /></LayoutWrapper>} />
     <Route path="/VendorDashboard" element={<YarditEventsShell><VendorDashboard /></YarditEventsShell>} />
     <Route path="/VendorSignup" element={<YarditEventsShell><VendorSignupGate><VendorSignup /></VendorSignupGate></YarditEventsShell>} />
     <Route path="/VendorSetup" element={<YarditEventsShell><VendorSignupGate><VendorSetup /></VendorSignupGate></YarditEventsShell>} />
