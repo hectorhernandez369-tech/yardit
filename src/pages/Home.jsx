@@ -499,6 +499,7 @@ export default function HomePage() {
   const huntButtonPositionRef = useRef({ x: 0, y: 112 });
   const [huntButtonPosition, setHuntButtonPosition] = useState({ x: 0, y: 112 });
   const [user, setUser] = useState(null);
+  const [canUseMapboxTest, setCanUseMapboxTest] = useState(false);
   const [previewListingsOnMap] = useState(getPreviewListingsOnMapPreference);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
@@ -682,6 +683,17 @@ export default function HomePage() {
       try {
         const currentUser = await base44.auth.me();
         setUser(currentUser);
+
+        // Private Mapbox comparison access for active Yardit admins only.
+        try {
+          const [adminByUser, adminByEmail] = await Promise.all([
+            base44.entities.AdminProfile.filter({ user_id: currentUser.id }).catch(() => []),
+            currentUser?.email ? base44.entities.AdminProfile.filter({ email: String(currentUser.email).toLowerCase() }).catch(() => []) : Promise.resolve([]),
+          ]);
+          setCanUseMapboxTest([...(adminByUser || []), ...(adminByEmail || [])].some((profile) => profile?.is_active === true));
+        } catch {
+          setCanUseMapboxTest(false);
+        }
 
         // Claim any Halloween Spot that was privately reserved for this email
         // before the owner created a Yardit account.
@@ -1482,6 +1494,14 @@ export default function HomePage() {
     <div className="yardit-home-shell h-[100dvh] sm:h-[calc(100vh-140px)] flex flex-col w-full min-w-0">
       {/* Sticky Top Bar */}
       <div className="relative bg-white border-b border-slate-200 z-[1200] flex-shrink-0 flex flex-col w-full">
+        {canUseMapboxTest && (
+          <div className="px-3 pt-2 pb-0 flex justify-center">
+            <div className="inline-flex rounded-lg bg-slate-100 p-1 border border-slate-200">
+              <Button size="sm" className="h-7 px-4 bg-[#2C4F4E] hover:bg-[#2C4F4E] text-white">Main</Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/MapboxTest")} className="h-7 px-4 text-slate-600">Mapbox</Button>
+            </div>
+          </div>
+        )}
         <div className="px-3 pt-2 pb-1 sm:hidden">
           <div className="relative w-full max-w-md mx-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
