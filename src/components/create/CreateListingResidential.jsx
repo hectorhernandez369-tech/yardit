@@ -24,13 +24,14 @@ export default function CreateListingResidential({
   residentialTierPrices,
   onAddressSelected,
   onResidentialConflictInteraction,
+  isAssistedPost = false,
 }) {
   if (step === 1) {
     return <StepOne formData={formData} setFormData={setFormData} />;
   }
 
   if (step === 2) {
-    return <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} onAddressSelected={onAddressSelected} />;
+    return <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} onAddressSelected={onAddressSelected} canEditAddressOverride={isAssistedPost} />;
   }
 
   if (step === 3) {
