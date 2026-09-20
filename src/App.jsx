@@ -92,6 +92,8 @@ const AuthenticatedApp = () => {
       <Route path="/ComingSoon" element={<ComingSoon />} />
       <Route path="/auth-callback" element={<YarditSplashScreen />} />
       <Route path="/auth-debug" element={<AuthDebug />} />
+      <Route path="/assisted-halloween" element={<AssistedHalloweenApproval />} />
+      <Route path="/assisted-listing" element={<AssistedListingApproval />} />
       <Route path="*" element={<Navigate to="/ComingSoon" replace />} />
     </Routes>;
   }
