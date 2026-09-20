@@ -1,0 +1,107 @@
+{
+  "name": "AssistedHalloweenSpot",
+  "type": "object",
+  "properties": {
+    "location_id": {
+      "type": "string",
+      "description": "Location entity ID for the Halloween Spot"
+    },
+    "assisted_status": {
+      "type": "string",
+      "enum": [
+        "pending_owner_approval",
+        "assisted_active_unclaimed",
+        "claimed_active",
+        "assisted_declined",
+        "assisted_expired"
+      ],
+      "default": "pending_owner_approval"
+    },
+    "assisted_qr_token": {
+      "type": "string"
+    },
+    "approval_url": {
+      "type": "string"
+    },
+    "qr_image_url": {
+      "type": "string"
+    },
+    "assisted_qr_created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "assisted_qr_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "owner_approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "owner_declined_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "claimed_by_user_id": {
+      "type": "string"
+    },
+    "claimed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "admin_creator_id": {
+      "type": "string"
+    },
+    "admin_creator_email": {
+      "type": "string"
+    },
+    "property_address": {
+      "type": "string"
+    },
+    "property_city": {
+      "type": "string"
+    },
+    "property_state": {
+      "type": "string"
+    },
+    "property_zip": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "location_source": {
+      "type": "string"
+    },
+    "qr_scan_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "location_id",
+    "assisted_status",
+    "assisted_qr_token",
+    "assisted_qr_expires_at",
+    "admin_creator_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

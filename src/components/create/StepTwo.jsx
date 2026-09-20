@@ -182,7 +182,7 @@ function MapPickerModal({ isOpen, onClose, onConfirm, initialLat, initialLng }) 
   );
 }
 
-export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onAddressSelected }) {
+export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onAddressSelected, canEditAddressOverride = false }) {
   const { isDemoMode } = useAppMode();
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -434,7 +434,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onA
       setDebugInfo({ lastQueryString: usedQuery, lastResponseCount: data?.length ?? 0, lastErrorMessage: "" });
 
       if (data.length > 0) {
-        if (!userHasConfirmedAddress) {
+        if (!userHasConfirmedAddress || canEditAddressOverride) {
           confirmedAddressKeyRef.current = "";
           addressConfirmedRef.current = false;
           setAddressConfirmed(false);
@@ -678,7 +678,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onA
   };
 
   useEffect(() => {
-    if (isNeighborhood || !user || didPrefillProfileRef.current) return;
+    if (isNeighborhood || canEditAddressOverride || !user || didPrefillProfileRef.current) return;
 
     didPrefillProfileRef.current = true;
     setFormData((prev) => ({
@@ -724,7 +724,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onA
         })
         .catch(() => {});
     }
-  }, [ensureUserProfileTimeZone, isNeighborhood, setFormData, user]);
+  }, [ensureUserProfileTimeZone, isNeighborhood, canEditAddressOverride, setFormData, user]);
 
   return (
     <div className="space-y-6">
@@ -985,7 +985,7 @@ export default function StepTwo({ formData, setFormData, onGeocodeRef, user, onA
           addressSuggestions={addressSuggestions}
           addressSelectionMessage={addressSelectionMessage}
           addressConfirmed={addressConfirmed}
-          canEditAddress={isDemoMode || !userHasConfirmedAddress}
+          canEditAddress={isDemoMode || canEditAddressOverride || !userHasConfirmedAddress}
           onSelectSuggestion={(suggestion) => {
             let city = formData.city, state = formData.state, zip = formData.zip;
             suggestion.context?.forEach((c) => {
