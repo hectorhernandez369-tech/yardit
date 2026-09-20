@@ -2496,7 +2496,17 @@ export default function CreateListingPage() {
           <FormScrollHelper containerRef={formContainerRef} />
 
           <div className="p-6 md:p-8">
-            {formData.listingType === "event" && (
+            {assistedCreated && (
+              <AssistedListingQRPanel
+                created={assistedCreated}
+                onCreateAnother={() => {
+                  setAssistedCreated(null);
+                  setAssistedPermissionConfirmed(false);
+                  setStep(1);
+                }}
+              />
+            )}
+            {!assistedCreated && formData.listingType === "event" && (
               <CreateListingEvent
                 step={step}
                 formData={formData}
@@ -2512,22 +2522,23 @@ export default function CreateListingPage() {
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
               />
             )}
-            {formData.listingType === "halloween_spot" && (
+            {!assistedCreated && formData.listingType === "halloween_spot" && (
               <CreateListingHalloween
                 step={step}
                 formData={formData}
                 setFormData={setFormData}
                 setGeocodeRef={setGeocodeRef}
                 user={user}
+                isAssistedPost={isAssistedPost}
                 onAddressSelected={(selectedAddress) => {
-                  if (!isAdminDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
+                  if (!isAssistedPost && !isAdminDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
                     setPendingHomeAddress(buildResolvedListingLocation(selectedAddress));
                     setShowHomeAddressConfirm(true);
                   }
                 }}
               />
             )}
-            {formData.listingType === "neighborhood_sale" && (
+            {!assistedCreated && formData.listingType === "neighborhood_sale" && (
               <CreateListingNeighborhood
                 step={step}
                 formData={formData}
@@ -2545,7 +2556,7 @@ export default function CreateListingPage() {
                 handleNeighborhoodSetupSubmit={handleNeighborhoodSetupSubmit}
               />
             )}
-            {formData.listingType === "yard_sale" && (
+            {!assistedCreated && formData.listingType === "yard_sale" && (
               <CreateListingResidential
                 step={step}
                 formData={formData}
@@ -2564,16 +2575,17 @@ export default function CreateListingPage() {
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
                 residentialTierPrices={RESIDENTIAL_TIER_PRICES}
                 onAddressSelected={(selectedAddress) => {
-                  if (!isAdminDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
+                  if (!isAssistedPost && !isAdminDemoMode && !isAdminCreate && !userHasVerifiedPrimaryAddress) {
                     setPendingHomeAddress(buildResolvedListingLocation(selectedAddress));
                     setShowHomeAddressConfirm(true);
                   }
                 }}
                 onResidentialConflictInteraction={markResidentialConflictInteraction}
+                isAssistedPost={isAssistedPost}
               />
             )}
 
-            {(step !== paymentStepNumber || isAdminCreate) && (
+            {!assistedCreated && (step !== paymentStepNumber || isAdminCreate) && (
               <div className="flex gap-3 mt-8 pt-6 border-t border-slate-100">
                 {step > 1 && (
                   <Button
@@ -2587,7 +2599,7 @@ export default function CreateListingPage() {
                 {(isAdminCreate ? step < paymentStepNumber : step < entryStepNumber) ? (
                   <Button
                     onClick={isAdminCreate && step === entryStepNumber ? () => setStep(paymentStepNumber) : handleNext}
-                    disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && regularAddressIncomplete && !userHasVerifiedPrimaryAddress}
+                    disabled={step === 2 && formData.listingType !== "neighborhood_sale" && formData.listingType !== "event" && (isAssistedPost ? regularAddressIncomplete : regularAddressIncomplete && !userHasVerifiedPrimaryAddress)}
                     className="flex-1 bg-[#006168] hover:bg-[#004d52] text-white rounded-xl h-11 font-semibold shadow-sm"
                   >
                     Continue →
@@ -2614,6 +2626,8 @@ export default function CreateListingPage() {
                       ? "Create Listing (Admin)"
                       : isAdminCreate && step === entryStepNumber
                       ? "Continue to Assign User"
+                      : isAssistedPost
+                      ? formData.listingType === "halloween_spot" ? "Create Assisted Halloween Spot 🎃" : "Create Assisted Yard Sale"
                       : formData.listingType === "event"
                       ? "Continue to Payment →"
                       : formData.listingType === "halloween_spot"
