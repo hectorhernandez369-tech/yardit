@@ -21,6 +21,7 @@ import { normalizeUser } from "@/lib/normalizeUser";
 import { useAppMode } from "../components/shared/DemoMode";
 import DemoPaymentSkipDialog from "@/components/shared/DemoPaymentSkipDialog";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
+import AssistedListingQRPanel from "@/components/admin/assisted/AssistedListingQRPanel";
 import {
   getNeighborhoodCreationLeadTimeError,
   normalizeNeighborhoodJoinStatus,
@@ -191,6 +192,9 @@ export default function CreateListingPage() {
   const [hasUserInteractedWithDates, setHasUserInteractedWithDates] = useState(false);
   const [hasAttemptedContinue, setHasAttemptedContinue] = useState(false);
   const [residentialConflict, setResidentialConflict] = useState(null);
+  const [isAssistedPost, setIsAssistedPost] = useState(false);
+  const [assistedPermissionConfirmed, setAssistedPermissionConfirmed] = useState(false);
+  const [assistedCreated, setAssistedCreated] = useState(null);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
