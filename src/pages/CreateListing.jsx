@@ -1360,7 +1360,7 @@ export default function CreateListingPage() {
         return;
       }
 
-      if (!isAdminDemoMode && !isAdminCreate) {
+      if (!isAdminDemoMode && !isAdminCreate && !isAssistedPost) {
         if (profileIncomplete) {
           toast.error("Complete your profile to start posting.");
           navigate(createPageUrl("Profile"));
@@ -1507,7 +1507,7 @@ export default function CreateListingPage() {
       };
     }
 
-    if (payload.listingType === "yard_sale" && !isAdminDemoMode && !isAdminCreate) {
+    if (payload.listingType === "yard_sale" && !isAdminDemoMode && !isAdminCreate && !isAssistedPost) {
       const profileLat = user.primary_latitude ?? user.address_lat;
       const profileLng = user.primary_longitude ?? user.address_lng;
       if (!userHasVerifiedPrimaryAddress || typeof profileLat !== "number" || typeof profileLng !== "number") {
@@ -1883,7 +1883,7 @@ export default function CreateListingPage() {
     const canShowResidentialConflictToast = userInitiated || hasUserInteractedWithDates || hasAttemptedContinue;
     if (userInitiated) setHasAttemptedContinue(true);
 
-    if (!isAdminCreate && !isAdminDemoMode && formData.listingType === "yard_sale" &&
+    if (!isAdminCreate && !isAdminDemoMode && !isAssistedPost && formData.listingType === "yard_sale" &&
         (!userHasVerifiedPrimaryAddress || typeof (user?.primary_latitude ?? user?.address_lat) !== "number" || typeof (user?.primary_longitude ?? user?.address_lng) !== "number")) {
       toast.error("Please confirm your home address before publishing.");
       setStep(2);
@@ -1896,7 +1896,7 @@ export default function CreateListingPage() {
       return;
     }
 
-    if (!isAdminCreate && formData.listingType === "yard_sale" &&
+    if (!isAdminCreate && !isAssistedPost && formData.listingType === "yard_sale" &&
         formData.selectedRangeStartDate && formData.selectedRangeEndDate) {
       const conflict = await checkDateConflictLive(formData.selectedRangeStartDate, formData.selectedRangeEndDate, formData.listingType, formData);
       if (conflict) {
