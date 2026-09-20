@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { CalendarDays, Clock3, Candy, Baby, Footprints, Lightbulb, Volume2, AlertTriangle, Images } from "lucide-react";
 import EventPhotoUpload from "./event/EventPhotoUpload";
 
-export default function CreateListingHalloween({ step, formData, setFormData, setGeocodeRef, user, onAddressSelected }) {
+export default function CreateListingHalloween({ step, formData, setFormData, setGeocodeRef, user, onAddressSelected, isAssistedPost = false }) {
   const spotType = formData.halloween_spot_type || formData.halloween_icon_key;
   const isTrickOrTreat = spotType === "trick_or_treat";
   const candyPrimary = ["trick_or_treat", "trunk_or_treat"].includes(spotType);
@@ -17,7 +17,7 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
   }
 
   if (step === 2) {
-    return <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} onAddressSelected={onAddressSelected} />;
+    return <StepTwo formData={formData} setFormData={setFormData} onGeocodeRef={setGeocodeRef} user={user} onAddressSelected={onAddressSelected} canEditAddressOverride={isAssistedPost} />;
   }
 
   if (step === 3) {
