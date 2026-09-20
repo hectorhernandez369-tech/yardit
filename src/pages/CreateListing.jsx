@@ -2436,6 +2436,54 @@ export default function CreateListingPage() {
           </div>
         </div>
 
+        {canUseAssistedPost && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isAssistedPost}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setIsAssistedPost(checked);
+                  setAssistedPermissionConfirmed(false);
+                  setAssistedCreated(null);
+                  if (checked) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      addressText: "",
+                      city: "",
+                      state: "",
+                      zip: "",
+                      lat: null,
+                      lng: null,
+                      geocoded_address: "",
+                      selected_geocode_confirmed: false,
+                      location_source: "address_search",
+                      locationMethod: "assisted_admin",
+                    }));
+                  }
+                }}
+                className="mt-1 h-4 w-4"
+              />
+              <div>
+                <p className="font-bold text-amber-950">Assisted Post</p>
+                <p className="text-xs text-amber-800 mt-1">Post on behalf of the homeowner and give them a QR/link to take over the listing.</p>
+              </div>
+            </label>
+            {isAssistedPost && (
+              <label className="mt-3 flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={assistedPermissionConfirmed}
+                  onChange={(e) => setAssistedPermissionConfirmed(e.target.checked)}
+                  className="mt-1 h-4 w-4"
+                />
+                <span className="text-xs text-slate-700"><strong>Owner permission confirmed.</strong> The homeowner gave permission for Yardit to create this post for their property.</span>
+              </label>
+            )}
+          </div>
+        )}
+
         {formData.listingType === "yard_sale" && (
           <div className="mb-6 flex justify-center">
             <button type="button" onClick={() => setShowGuideModal(true)} className="text-xs text-[#006168] font-medium hover:text-[#004d52] underline underline-offset-2 transition-colors">
