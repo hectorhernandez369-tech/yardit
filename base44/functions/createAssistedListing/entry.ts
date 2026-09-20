@@ -42,8 +42,11 @@ Deno.serve(async (req) => {
     const isSuperMasterBase44 = user.role === 'super_master';
     let adminProfile = null;
 
-    const adminProfiles = await base44.asServiceRole.entities.AdminProfile.filter({ email: user.email });
-    adminProfile = adminProfiles[0] || null;
+    const [adminProfilesByUserId, adminProfilesByEmail] = await Promise.all([
+      base44.asServiceRole.entities.AdminProfile.filter({ user_id: user.id }).catch(() => []),
+      base44.asServiceRole.entities.AdminProfile.filter({ email: String(user.email || '').toLowerCase() }).catch(() => []),
+    ]);
+    adminProfile = [...adminProfilesByUserId, ...adminProfilesByEmail].find((profile) => profile?.is_active === true) || null;
 
     if (!isSuperMasterBase44) {
       if (!adminProfile) {
