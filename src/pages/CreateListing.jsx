@@ -1970,6 +1970,11 @@ export default function CreateListingPage() {
       return;
     }
 
+    if (isAssistedPost) {
+      const handled = await submitAssistedPost();
+      if (handled) return;
+    }
+
     const canShowResidentialConflictToast = userInitiated || hasUserInteractedWithDates || hasAttemptedContinue;
     if (userInitiated) setHasAttemptedContinue(true);
 
