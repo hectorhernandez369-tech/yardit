@@ -69,15 +69,15 @@ Deno.serve(async (req) => {
         }, { status: 403 });
       }
 
-      const allowedRoles = ['master', 'super_master'];
+      const allowedRoles = ['basic', 'supervisor', 'master', 'super_master'];
       if (!allowedRoles.includes(adminProfile.role_label)) {
         return Response.json({
-          error: `Access denied: Your admin role "${adminProfile.role_label}" does not have permission to create assisted listings. Required role: master.`,
+          error: `Access denied: Your admin role "${adminProfile.role_label}" does not have permission to create assisted listings.`,
           debug: {
             base44_role: user.role,
             admin_profile_role: adminProfile.role_label,
             admin_profile_active: adminProfile.is_active,
-            required_role: 'master or super_master',
+            required_role: 'active Yardit administrator',
           }
         }, { status: 403 });
       }
