@@ -39,6 +39,7 @@ import CommunityGuidelines from './pages/CommunityGuidelines';
 import InstallYardit from './pages/InstallYardit';
 import PushSetup from './pages/PushSetup';
 import CreateListingEntry from './pages/CreateListingEntry';
+import MapboxTest from './pages/MapboxTest';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import YarditSplashScreen from '@/components/install/YarditSplashScreen';
@@ -83,6 +84,7 @@ const AuthenticatedApp = () => {
       <Route path="/install" element={<InstallYardit />} />
       <Route path="/InstallYardit" element={<InstallYardit />} />
       <Route path="/PushSetup" element={<PushSetup />} />
+    <Route path="/MapboxTest" element={<LayoutWrapper currentPageName="MapboxTest"><MapboxTest /></LayoutWrapper>} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/community-guidelines" element={<CommunityGuidelines />} />
