@@ -29,6 +29,16 @@ Deno.serve(async (req) => {
     }
 
     const { title, message, url, deep_link, dry_run } = await req.json();
+
+    const [lockRows, pushRows] = await Promise.all([
+      base44.asServiceRole.entities.AppSetting.filter({ key: 'cost_emergency_lock' }),
+      base44.asServiceRole.entities.AppSetting.filter({ key: 'cost_push_enabled' }),
+    ]);
+    const emergencyLock = String(lockRows?.[0]?.value || 'false').toLowerCase() === 'true';
+    const pushEnabled = String(pushRows?.[0]?.value ?? 'true').toLowerCase() !== 'false';
+    if (!dry_run && (emergencyLock || !pushEnabled)) {
+      return Response.json({ success: false, skipped: true, error: emergencyLock ? 'Emergency cost lock active' : 'External push disabled by cost protection' });
+    }
     const cleanTitle = String(title || 'Yardit is launching soon!').trim().slice(0, 80);
     const cleanMessage = String(message || 'Get ready to discover yard sales, local vendors, and neighborhood events near you.').trim().slice(0, 180);
     const notificationPath = String(deep_link || '/Notifications').trim() || '/Notifications';
