@@ -740,6 +740,24 @@ export default function HomePage() {
   const { isDemoMode: demoOn } = useAppMode();
   const isPublicHomeMode = !user?.id;
 
+  const { data: costProtectionSettings = [] } = useQuery({
+    queryKey: ["homeCostProtectionSettings"],
+    queryFn: async () => {
+      const response = await base44.functions.invoke("getPublicAppSettings", {});
+      return response?.data?.settings || [];
+    },
+    initialData: [],
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+  });
+
+  const costSettingValue = React.useCallback((key, fallback) => {
+    return costProtectionSettings.find((item) => item.key === key)?.value ?? fallback;
+  }, [costProtectionSettings]);
+
+  const emergencyCostLock = String(costSettingValue("cost_emergency_lock", "false")).toLowerCase() === "true";
+  const mapboxCostEnabled = String(costSettingValue("cost_mapbox_enabled", "true")).toLowerCase() !== "false";
+
   const { data: publicMapData = {}, isLoading: isLoadingPublicMapData } = useQuery({
     queryKey: ["publicMapData"],
     queryFn: async () => {
@@ -1690,13 +1708,23 @@ export default function HomePage() {
               <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
               <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
               <HuntMapLayers />
-              <TileLayer
-              attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA"
-              tileSize={512}
-              zoomOffset={-1}
-              maxZoom={22}
-              maxNativeZoom={22} />
+              {!emergencyCostLock && mapboxCostEnabled && (
+                <TileLayer
+                  attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWkifQ.EGhIAG9BvEK50uwlPNfmhA"
+                  tileSize={512}
+                  zoomOffset={-1}
+                  maxZoom={22}
+                  maxNativeZoom={22}
+                />
+              )}
+              {(emergencyCostLock || !mapboxCostEnabled) && (
+                <div className="leaflet-top leaflet-left pointer-events-none">
+                  <div className="leaflet-control m-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 shadow">
+                    Cost Protection is active. Paid map tiles are temporarily paused.
+                  </div>
+                </div>
+              )}
             
               
               {/* User Location Dot */}
