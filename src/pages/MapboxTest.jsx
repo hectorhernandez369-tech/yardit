@@ -416,20 +416,21 @@ export default function MapboxTest() {
         setZoom(savedZoom);
 
         let mapReady = false;
+        let lastMapError = "";
         const loadTimeout = window.setTimeout(() => {
           if (!mapReady && !cancelled) {
-            setError("Mapbox did not finish loading. This is usually caused by a token/style permission problem or blocked Mapbox web resources.");
+            setError(lastMapError ? `Mapbox did not finish loading: ${lastMapError}` : "Mapbox did not finish loading. This is usually caused by a token/style permission problem or blocked Mapbox web resources.");
             setStatus("error");
           }
         }, 12000);
 
+        // Mapbox GL fires non-fatal `error` events during normal startup (e.g. a
+        // missing glyph range 404s). These must NOT flip the page into the error
+        // overlay — only a real failure (thrown init error or the 12s timeout
+        // above) should. We keep the last message for the timeout to surface.
         map.on("error", (event) => {
-          const message = event?.error?.message || event?.message || "Unknown Mapbox error";
+          lastMapError = event?.error?.message || event?.message || "Unknown Mapbox error";
           console.error("Mapbox GL error:", event?.error || event);
-          if (!mapReady && !cancelled) {
-            setError(message);
-            setStatus("error");
-          }
         });
 
         map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
