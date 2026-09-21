@@ -394,7 +394,16 @@ export default function MapboxTest() {
         setStatus("loading-map");
 
         const mapboxgl = await loadMapboxGl();
-        if (cancelled || !mapNodeRef.current) return;
+        if (cancelled) return;
+
+        // The map container is only rendered once status leaves "checking".
+        // If Mapbox GL was already cached, the await above resolves in a
+        // microtask before React has committed the re-render, leaving the
+        // ref null. Wait one frame so the container is painted first.
+        if (!mapNodeRef.current) {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          if (cancelled || !mapNodeRef.current) return;
+        }
         mapboxRef.current = mapboxgl;
         mapboxgl.accessToken = MAPBOX_TOKEN;
 
