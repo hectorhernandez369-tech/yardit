@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Info, Loader2, ShieldAlert, Map as MapIcon, BellRing, Mail, UploadCloud, PlugZap } from "lucide-react";
+import { Info, Loader2, ShieldAlert, Map as MapIcon, BellRing, Mail, UploadCloud, PlugZap, BarChart3, RefreshCw } from "lucide-react";
 
 export default function SystemSettings() {
   const queryClient = useQueryClient();
@@ -121,6 +121,89 @@ export default function SystemSettings() {
     });
   }, [warningPercent, throttlePercent, hardStopPercent]);
 
+  const usageServices = React.useMemo(() => ([
+    {
+      key: "mapbox_gl",
+      label: "Mapbox GL Web Loads",
+      unit: "map loads",
+      defaultLimit: 50000,
+      protectedSetting: "cost_mapbox_enabled",
+      source: "Mapbox Statistics",
+      note: "New Mapbox GL map. A load is counted when the Mapbox map initializes.",
+    },
+    {
+      key: "mapbox_raster",
+      label: "Current Mapbox Tile Map",
+      unit: "tile requests",
+      defaultLimit: 10000,
+      protectedSetting: "cost_mapbox_enabled",
+      source: "Mapbox Statistics",
+      note: "Current Main map uses Leaflet with Mapbox raster tiles. Panning and zooming can request more tiles.",
+    },
+    {
+      key: "onesignal_mobile",
+      label: "OneSignal Mobile Push",
+      unit: "monthly active users",
+      defaultLimit: 1000,
+      protectedSetting: "cost_push_enabled",
+      source: "OneSignal Dashboard",
+      note: "Free-plan mobile push allowance. Provider MAU is authoritative.",
+    },
+    {
+      key: "onesignal_web",
+      label: "OneSignal Web Push",
+      unit: "subscribers per send",
+      defaultLimit: 10000,
+      protectedSetting: "cost_push_enabled",
+      source: "OneSignal Dashboard",
+      note: "Free web-push sending limit is based on subscribers reached by a send.",
+    },
+    {
+      key: "base44",
+      label: "Base44 Integration Credits",
+      unit: "credits",
+      defaultLimit: 0,
+      protectedSetting: null,
+      source: "Base44 Dashboard",
+      note: "Enter the credit allowance for your current Base44 plan. Core Yardit infrastructure should not be hard-stopped from inside Yardit.",
+    },
+    {
+      key: "bolt",
+      label: "Bolt Hosting Requests",
+      unit: "web requests",
+      defaultLimit: 0,
+      protectedSetting: null,
+      source: "Bolt Dashboard",
+      note: "Enter the hosting-request allowance for your current Bolt plan.",
+    },
+  ]), []);
+
+  const [usageDrafts, setUsageDrafts] = React.useState({});
+
+  React.useEffect(() => {
+    const next = {};
+    for (const service of usageServices) {
+      const used = settingNumber(`cost_usage_${service.key}`, 0);
+      const configuredLimit = settingNumber(`cost_limit_${service.key}`, service.defaultLimit);
+      next[service.key] = {
+        used: String(used || 0),
+        limit: String(configuredLimit || service.defaultLimit || ""),
+      };
+    }
+    setUsageDrafts(next);
+  }, [settings, usageServices, settingNumber]);
+
+  const getUsageStatus = React.useCallback((used, limit) => {
+    const safeUsed = Math.max(0, Number(used) || 0);
+    const safeLimit = Math.max(0, Number(limit) || 0);
+    if (!safeLimit) return { percent: 0, label: "Set limit", tone: "slate", action: "Enter your plan limit" };
+    const percent = Math.max(0, (safeUsed / safeLimit) * 100);
+    if (percent >= hardStopPercent) return { percent, label: "HARD STOP", tone: "red", action: "Shut off protected service now" };
+    if (percent >= throttlePercent) return { percent, label: "THROTTLE", tone: "orange", action: "Reduce optional usage" };
+    if (percent >= warningPercent) return { percent, label: "WARNING", tone: "amber", action: "Watch closely" };
+    return { percent, label: "HEALTHY", tone: "green", action: "No action needed" };
+  }, [warningPercent, throttlePercent, hardStopPercent]);
+
   React.useEffect(() => {
     setAllowlistDraft(vendorAllowlistSetting?.value || "");
   }, [vendorAllowlistSetting?.value]);
@@ -183,6 +266,23 @@ export default function SystemSettings() {
       toast.success("Cost thresholds saved");
     } catch (error) {
       toast.error(error?.message || "Unable to save thresholds");
+    }
+  };
+
+  const saveUsageMeter = async (serviceKey) => {
+    const draft = usageDrafts[serviceKey] || {};
+    const used = Math.max(0, Number(draft.used) || 0);
+    const limit = Math.max(0, Number(draft.limit) || 0);
+    try {
+      await Promise.all([
+        upsertSetting(`cost_usage_${serviceKey}`, used),
+        upsertSetting(`cost_limit_${serviceKey}`, limit),
+        upsertSetting(`cost_usage_updated_${serviceKey}`, new Date().toISOString()),
+      ]);
+      queryClient.invalidateQueries({ queryKey: ["appSettings"] });
+      toast.success("Usage meter updated");
+    } catch (error) {
+      toast.error(error?.message || "Unable to update usage meter");
     }
   };
 
@@ -264,6 +364,122 @@ export default function SystemSettings() {
                 onCheckedChange={(checked) => costSettingMutation.mutate({ key: "cost_emergency_lock", value: checked })}
                 disabled={costSettingMutation.isPending}
               />
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-[#2C4F4E]" />
+                    <p className="font-bold text-slate-900">Usage vs Limit</p>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Update the provider-reported usage here. Yardit calculates remaining headroom and tells you when to warn, throttle, or shut off.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {usageServices.map((service) => {
+                  const draft = usageDrafts[service.key] || { used: "0", limit: String(service.defaultLimit || "") };
+                  const used = Math.max(0, Number(draft.used) || 0);
+                  const limit = Math.max(0, Number(draft.limit) || 0);
+                  const status = getUsageStatus(used, limit);
+                  const remaining = limit > 0 ? Math.max(0, limit - used) : null;
+                  const barPercent = Math.min(100, status.percent);
+                  const updatedRaw = findSetting(`cost_usage_updated_${service.key}`)?.value;
+                  const updatedLabel = updatedRaw ? new Date(updatedRaw).toLocaleString() : "Not updated yet";
+                  const toneClasses = {
+                    green: { bar: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+                    amber: { bar: "bg-amber-500", badge: "bg-amber-100 text-amber-900 border-amber-200" },
+                    orange: { bar: "bg-orange-500", badge: "bg-orange-100 text-orange-900 border-orange-200" },
+                    red: { bar: "bg-red-600", badge: "bg-red-100 text-red-900 border-red-200" },
+                    slate: { bar: "bg-slate-300", badge: "bg-slate-100 text-slate-700 border-slate-200" },
+                  }[status.tone];
+
+                  return (
+                    <div key={service.key} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-900">{service.label}</p>
+                          <p className="text-[11px] text-slate-500">{service.source} • {service.unit}</p>
+                        </div>
+                        <span className={`rounded-full border px-2 py-1 text-[10px] font-bold ${toneClasses.badge}`}>
+                          {status.label}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-200">
+                        <div className={`h-full rounded-full transition-all ${toneClasses.bar}`} style={{ width: `${barPercent}%` }} />
+                      </div>
+
+                      <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-slate-400">Used</p>
+                          <p className="text-sm font-bold text-slate-800">{used.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-slate-400">Limit</p>
+                          <p className="text-sm font-bold text-slate-800">{limit ? limit.toLocaleString() : "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-slate-400">Remaining</p>
+                          <p className="text-sm font-bold text-slate-800">{remaining === null ? "—" : remaining.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                        <span className="font-semibold text-slate-700">{limit ? `${status.percent.toFixed(1)}% used` : "Limit not set"}</span>
+                        <span className={status.tone === "red" ? "font-bold text-red-700" : status.tone === "orange" ? "font-semibold text-orange-700" : status.tone === "amber" ? "font-semibold text-amber-700" : "text-slate-500"}>
+                          {status.action}
+                        </span>
+                      </div>
+
+                      <p className="mt-2 text-[11px] leading-relaxed text-slate-500">{service.note}</p>
+
+                      <div className="mt-3 grid grid-cols-[1fr_1fr_auto] gap-2">
+                        <label className="text-[10px] font-medium text-slate-500">
+                          Current usage
+                          <input
+                            type="number"
+                            min="0"
+                            value={draft.used}
+                            onChange={(e) => setUsageDrafts((prev) => ({ ...prev, [service.key]: { ...draft, used: e.target.value } }))}
+                            className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900"
+                          />
+                        </label>
+                        <label className="text-[10px] font-medium text-slate-500">
+                          Plan/free limit
+                          <input
+                            type="number"
+                            min="0"
+                            value={draft.limit}
+                            onChange={(e) => setUsageDrafts((prev) => ({ ...prev, [service.key]: { ...draft, limit: e.target.value } }))}
+                            className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900"
+                          />
+                        </label>
+                        <Button size="sm" variant="outline" className="self-end h-8 px-2" onClick={() => saveUsageMeter(service.key)}>
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          <span className="sr-only">Update {service.label}</span>
+                        </Button>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400">
+                        <span>Last updated: {updatedLabel}</span>
+                        {service.protectedSetting && status.percent >= hardStopPercent && (
+                          <button
+                            type="button"
+                            onClick={() => costSettingMutation.mutate({ key: service.protectedSetting, value: false })}
+                            className="rounded-md bg-red-600 px-2 py-1 font-bold text-white hover:bg-red-700"
+                          >
+                            Shut Off Now
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
