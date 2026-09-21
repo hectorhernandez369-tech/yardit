@@ -345,17 +345,6 @@ export default function MapboxTest() {
 
     const init = async () => {
       try {
-        const currentUser = user;
-        const [byUser, byEmail] = await Promise.all([
-          base44.entities.AdminProfile.filter({ user_id: currentUser.id }).catch(() => []),
-          currentUser.email ? base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }).catch(() => []) : Promise.resolve([]),
-        ]);
-        const adminProfile = [...(byUser || []), ...(byEmail || [])].find((profile) => profile?.is_active === true);
-        if (!adminProfile) {
-          if (!cancelled) setStatus("denied");
-          return;
-        }
-
         const settingsResponse = await base44.functions.invoke("getPublicAppSettings", {});
         const publicSettings = settingsResponse?.data?.settings || [];
         const getSetting = (key, fallback) => publicSettings.find((item) => item.key === key)?.value ?? fallback;
@@ -669,20 +658,9 @@ export default function MapboxTest() {
       <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3 px-6 text-center">
         <ShieldAlert className="h-8 w-8 text-muted-foreground" />
         <h1 className="font-bold text-lg">Sign in to open the Mapbox test</h1>
-        <p className="text-sm text-muted-foreground">This private map requires an active Yardit admin account.</p>
+        <p className="text-sm text-muted-foreground">Sign in with your Yardit account to continue.</p>
         <Button onClick={() => navigateToLogin(window.location.href)}>Sign In</Button>
         <Button variant="outline" onClick={() => navigate("/")}>Return to Yardit</Button>
-      </div>
-    );
-  }
-
-  if (status === "denied") {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <ShieldAlert className="h-8 w-8 text-amber-600" />
-        <h1 className="font-bold text-lg">Private Mapbox Test</h1>
-        <p className="text-sm text-slate-600">This test map is available only to active Yardit admins.</p>
-        <Button onClick={() => navigate("/")}>Return to Yardit</Button>
       </div>
     );
   }
