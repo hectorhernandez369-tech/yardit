@@ -374,6 +374,19 @@ export default function MapboxTest() {
           return;
         }
 
+        const settingsResponse = await base44.functions.invoke("getPublicAppSettings", {});
+        const publicSettings = settingsResponse?.data?.settings || [];
+        const getSetting = (key, fallback) => publicSettings.find((item) => item.key === key)?.value ?? fallback;
+        const emergencyLock = String(getSetting("cost_emergency_lock", "false")).toLowerCase() === "true";
+        const mapboxEnabled = String(getSetting("cost_mapbox_enabled", "true")).toLowerCase() !== "false";
+        if (emergencyLock || !mapboxEnabled) {
+          if (!cancelled) {
+            setError(emergencyLock ? "Emergency Cost Lock is active. Mapbox is intentionally disabled." : "Mapbox is disabled by Yardit Cost Protection.");
+            setStatus("error");
+          }
+          return;
+        }
+
         const response = await base44.functions.invoke("getPublicMapData", {});
         const data = response?.data || {};
         if (cancelled) return;
