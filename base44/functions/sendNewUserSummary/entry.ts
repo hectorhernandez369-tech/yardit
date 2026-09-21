@@ -36,6 +36,13 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const now = new Date();
 
+    const [lockRows, emailRows] = await Promise.all([
+      base44.asServiceRole.entities.AppSetting.filter({ key: 'cost_emergency_lock' }),
+      base44.asServiceRole.entities.AppSetting.filter({ key: 'cost_email_enabled' }),
+    ]);
+    const emergencyLock = String(lockRows?.[0]?.value || 'false').toLowerCase() === 'true';
+    const emailEnabled = String(emailRows?.[0]?.value ?? 'true').toLowerCase() !== 'false';
+
     const lastRunIso = await getSetting(base44, SETTING_LAST_RUN);
     const scanStart = lastRunIso
       ? new Date(lastRunIso)
@@ -102,6 +109,18 @@ Deno.serve(async (req) => {
       </table>
       <p style="margin-top:16px;font-size:12px;color:#888;">You receive this digest twice daily (12 PM &amp; 12 AM). To send it to a specific address, set the "new_user_alert_recipient_email" app setting.</p>
     </div>`;
+
+    if (emergencyLock || !emailEnabled) {
+      return Response.json({
+        success: true,
+        sent: false,
+        skipped: true,
+        reason: emergencyLock ? 'Emergency cost lock active' : 'Outbound email disabled by cost protection',
+        new_user_count: count,
+        recipient,
+        scan_start: scanStart.toISOString(),
+      });
+    }
 
     await base44.asServiceRole.integrations.Core.SendEmail({ to: recipient, subject, html });
 
