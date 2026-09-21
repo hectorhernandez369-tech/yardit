@@ -553,7 +553,15 @@ export default function MapboxTest() {
           }
         });
 
-        map.on("style.load", install);
+        map.on("style.load", () => {
+          if (!mapReady) {
+            mapReady = true;
+            window.clearTimeout(loadTimeout);
+            map.resize();
+            setStatus("ready");
+          }
+          install();
+        });
 
         map.on("click", "yardit-clusters", (event) => {
           const feature = map.queryRenderedFeatures(event.point, { layers: ["yardit-clusters"] })[0];
