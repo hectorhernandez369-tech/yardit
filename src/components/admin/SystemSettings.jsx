@@ -6,11 +6,31 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Info, Loader2 } from "lucide-react";
+import { Info, Loader2, ShieldAlert, Map as MapIcon, BellRing, Mail, UploadCloud, PlugZap } from "lucide-react";
 
 export default function SystemSettings() {
   const queryClient = useQueryClient();
   const [showDemoModeInfo, setShowDemoModeInfo] = React.useState(false);
+
+  const findSetting = React.useCallback((key) => settings?.find((item) => item.key === key), [settings]);
+  const settingBool = React.useCallback((key, fallback = true) => {
+    const setting = settings?.find((item) => item.key === key);
+    if (!setting) return fallback;
+    return String(setting.value).toLowerCase() === "true";
+  }, [settings]);
+  const settingNumber = React.useCallback((key, fallback) => {
+    const value = Number(settings?.find((item) => item.key === key)?.value);
+    return Number.isFinite(value) ? value : fallback;
+  }, [settings]);
+
+  const upsertSetting = React.useCallback(async (key, value) => {
+    const existing = settings?.find((item) => item.key === key);
+    if (existing) {
+      await base44.entities.AppSetting.update(existing.id, { value: String(value) });
+    } else {
+      await base44.entities.AppSetting.create({ key, value: String(value) });
+    }
+  }, [settings]);
 
   const { data: currentUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ["currentUserForSystemSettings"],
@@ -78,6 +98,29 @@ export default function SystemSettings() {
   const isPublicSignupEnabled = String(vendorSignupSetting?.value || "").toLowerCase() === "true";
   const [allowlistDraft, setAllowlistDraft] = React.useState("");
 
+  const emergencyCostLock = settingBool("cost_emergency_lock", false);
+  const mapboxEnabled = settingBool("cost_mapbox_enabled", true);
+  const pushEnabled = settingBool("cost_push_enabled", true);
+  const emailEnabled = settingBool("cost_email_enabled", true);
+  const uploadsEnabled = settingBool("cost_uploads_enabled", true);
+  const externalApisEnabled = settingBool("cost_external_apis_enabled", true);
+  const warningPercent = settingNumber("cost_warning_percent", 75);
+  const throttlePercent = settingNumber("cost_throttle_percent", 90);
+  const hardStopPercent = settingNumber("cost_hard_stop_percent", 100);
+  const [costDraft, setCostDraft] = React.useState({
+    warning: String(warningPercent),
+    throttle: String(throttlePercent),
+    hardStop: String(hardStopPercent),
+  });
+
+  React.useEffect(() => {
+    setCostDraft({
+      warning: String(warningPercent),
+      throttle: String(throttlePercent),
+      hardStop: String(hardStopPercent),
+    });
+  }, [warningPercent, throttlePercent, hardStopPercent]);
+
   React.useEffect(() => {
     setAllowlistDraft(vendorAllowlistSetting?.value || "");
   }, [vendorAllowlistSetting?.value]);
@@ -112,6 +155,36 @@ export default function SystemSettings() {
       toast.success("Vendor beta allowlist updated");
     },
   });
+
+  const costSettingMutation = useMutation({
+    mutationFn: async ({ key, value }) => upsertSetting(key, value),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appSettings"] });
+      queryClient.invalidateQueries({ queryKey: ["publicAppSettings"] });
+      queryClient.invalidateQueries({ queryKey: ["publicMapData"] });
+      toast.success("Cost safeguard updated");
+    },
+    onError: (error) => toast.error(error?.message || "Unable to update safeguard"),
+  });
+
+  const saveCostThresholds = async () => {
+    const warning = Math.max(1, Math.min(95, Number(costDraft.warning) || 75));
+    const throttle = Math.max(warning + 1, Math.min(99, Number(costDraft.throttle) || 90));
+    const hardStop = Math.max(throttle + 1, Math.min(100, Number(costDraft.hardStop) || 100));
+    try {
+      await Promise.all([
+        upsertSetting("cost_warning_percent", warning),
+        upsertSetting("cost_throttle_percent", throttle),
+        upsertSetting("cost_hard_stop_percent", hardStop),
+      ]);
+      queryClient.invalidateQueries({ queryKey: ["appSettings"] });
+      queryClient.invalidateQueries({ queryKey: ["publicAppSettings"] });
+      queryClient.invalidateQueries({ queryKey: ["publicMapData"] });
+      toast.success("Cost thresholds saved");
+    } catch (error) {
+      toast.error(error?.message || "Unable to save thresholds");
+    }
+  };
 
   if (isLoading || isLoadingUser || isLoadingAdminProfile) return <div className="p-4"><Loader2 className="w-6 h-6 animate-spin" /></div>;
   if (!canManageDemoMode) return null;
@@ -167,6 +240,78 @@ export default function SystemSettings() {
               <Button size="sm" disabled={saveAllowlistMutation.isPending} onClick={() => saveAllowlistMutation.mutate(allowlistDraft)}>
                 {saveAllowlistMutation.isPending ? "Saving..." : "Save Allowlist"}
               </Button>
+            </div>
+          </div>
+
+          <div className="space-y-4 p-4 rounded-lg border-2 border-amber-300 bg-amber-50/70">
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="w-6 h-6 text-amber-700 mt-0.5" />
+              <div>
+                <p className="font-bold text-amber-950">Yardit Cost Protection</p>
+                <p className="text-sm text-amber-800">
+                  Master circuit breakers for services that can create variable charges or burn paid usage. Stripe payments stay available because its fees only occur when Yardit collects money.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-red-300 bg-red-50 p-3">
+              <div>
+                <p className="font-semibold text-red-900">Emergency Cost Lock</p>
+                <p className="text-xs text-red-700">Immediately disables protected optional paid/external services while keeping Yardit's core database and account access online.</p>
+              </div>
+              <Switch
+                checked={emergencyCostLock}
+                onCheckedChange={(checked) => costSettingMutation.mutate({ key: "cost_emergency_lock", value: checked })}
+                disabled={costSettingMutation.isPending}
+              />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                ["cost_mapbox_enabled", mapboxEnabled, "Mapbox", "Stops paid Mapbox map requests.", MapIcon],
+                ["cost_push_enabled", pushEnabled, "Push / OneSignal", "Stops external push delivery; Yardit bell history can remain.", BellRing],
+                ["cost_email_enabled", emailEnabled, "Outbound Email", "Stops Base44/external email sends.", Mail],
+                ["cost_uploads_enabled", uploadsEnabled, "File Uploads", "Master policy switch for user-uploaded media.", UploadCloud],
+                ["cost_external_apis_enabled", externalApisEnabled, "Other External APIs", "Default kill switch for future paid integrations.", PlugZap],
+              ].map(([key, checked, label, description, Icon]) => (
+                <div key={key} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3">
+                  <div className="flex items-start gap-2">
+                    <Icon className="w-4 h-4 text-[#2C4F4E] mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold">{label}</p>
+                      <p className="text-xs text-slate-500">{description}</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={checked}
+                    onCheckedChange={(value) => costSettingMutation.mutate({ key, value })}
+                    disabled={costSettingMutation.isPending || emergencyCostLock}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-white p-3">
+              <p className="text-sm font-semibold text-slate-900">Protection Thresholds</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Yardit policy: warn first, throttle optional usage next, then hard-stop protected optional services. Provider billing alerts and quotas are a second independent layer.
+              </p>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <label className="text-xs text-slate-600">Warning %
+                  <input type="number" min="1" max="95" value={costDraft.warning} onChange={(e) => setCostDraft((p) => ({ ...p, warning: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm" />
+                </label>
+                <label className="text-xs text-slate-600">Throttle %
+                  <input type="number" min="2" max="99" value={costDraft.throttle} onChange={(e) => setCostDraft((p) => ({ ...p, throttle: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm" />
+                </label>
+                <label className="text-xs text-slate-600">Hard Stop %
+                  <input type="number" min="3" max="100" value={costDraft.hardStop} onChange={(e) => setCostDraft((p) => ({ ...p, hardStop: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm" />
+                </label>
+              </div>
+              <Button size="sm" className="mt-3" onClick={saveCostThresholds}>Save Thresholds</Button>
+            </div>
+
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
+              <strong>Current policy:</strong> warn at {warningPercent}%, throttle at {throttlePercent}%, hard stop at {hardStopPercent}%.
             </div>
           </div>
 
