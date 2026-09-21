@@ -11,40 +11,13 @@ import { isLiveVendorCheckIn } from "@/lib/vendorTiers";
 import { getVendorPinActiveSchedule } from "@/lib/vendorPinSchedule";
 import { shouldShowVendorPinAtZoom } from "@/components/map/vendorMarkerIcons";
 import { isPublishedVendorEvent, toVendorEventListing } from "@/lib/vendorEvents";
+import { useAuth } from "@/lib/AuthContext";
+import loadMapboxGl from "@/components/map/loadMapboxGl";
 
 const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
 const DEFAULT_CENTER = [-119.055, 36.135];
 const STREET_STYLE = "mapbox://styles/mapbox/streets-v12";
 const SATELLITE_STYLE = "mapbox://styles/mapbox/satellite-streets-v12";
-
-function loadMapboxGl() {
-  return new Promise((resolve, reject) => {
-    if (window.mapboxgl) return resolve(window.mapboxgl);
-
-    if (!document.querySelector('link[data-yardit-mapbox-gl="true"]')) {
-      const css = document.createElement("link");
-      css.rel = "stylesheet";
-      css.href = "https://api.mapbox.com/mapbox-gl-js/v3.30.0/mapbox-gl.css";
-      css.dataset.yarditMapboxGl = "true";
-      document.head.appendChild(css);
-    }
-
-    const existing = document.querySelector('script[data-yardit-mapbox-gl="true"]');
-    if (existing) {
-      existing.addEventListener("load", () => resolve(window.mapboxgl), { once: true });
-      existing.addEventListener("error", reject, { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://api.mapbox.com/mapbox-gl-js/v3.30.0/mapbox-gl.js";
-    script.async = true;
-    script.dataset.yarditMapboxGl = "true";
-    script.onload = () => resolve(window.mapboxgl);
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-}
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -162,11 +135,11 @@ function installMainLayers(map, data) {
   }
 
   if (!map.getLayer("yardit-pins")) {
-    const visibleExpression = [
-      "case",
-      [">=", ["zoom"], ["to-number", ["get", "minZoom"]]], 1,
-      0
-    ];
+    // Mapbox only permits zoom at the input of a top-level step/interpolate.
+    const visibleExpression = ["step", ["zoom"], 0];
+    [11, 12, 13, 14, 15].forEach((level) => {
+      visibleExpression.push(level, ["case", ["<=", ["to-number", ["get", "minZoom"]], level], 1, 0]);
+    });
     map.addLayer({
       id: "yardit-pins",
       type: "circle",
@@ -267,6 +240,8 @@ function makeVendorElement(pin, account) {
 
 export default function MapboxTest() {
   const navigate = useNavigate();
+  const { user, isLoadingAuth, navigateToLogin } = useAuth();
+  const [mapAllowed, setMapAllowed] = useState(false);
   const mapNodeRef = useRef(null);
   const mapRef = useRef(null);
   const mapboxRef = useRef(null);
@@ -359,11 +334,18 @@ export default function MapboxTest() {
   }, [normalized, filteredMain, filters.halloween, filters.vendors]);
 
   useEffect(() => {
+    if (isLoadingAuth) return;
     let cancelled = false;
+    setMapAllowed(false);
+    if (!user?.id) {
+      setStatus("sign-in");
+      return;
+    }
+    setStatus("checking");
 
     const init = async () => {
       try {
-        const currentUser = await base44.auth.me();
+        const currentUser = user;
         const [byUser, byEmail] = await Promise.all([
           base44.entities.AdminProfile.filter({ user_id: currentUser.id }).catch(() => []),
           currentUser.email ? base44.entities.AdminProfile.filter({ email: currentUser.email.toLowerCase() }).catch(() => []) : Promise.resolve([]),
@@ -392,18 +374,30 @@ export default function MapboxTest() {
         if (cancelled) return;
         setRawData(data);
         setStatus("loading-map");
+        setMapAllowed(true);
+      } catch (err) {
+        if (!cancelled) {
+          const needsLogin = [401, 403].includes(err?.status || err?.response?.status);
+          setError(err?.message || "Unable to prepare the Mapbox map.");
+          setStatus(needsLogin ? "sign-in" : "error");
+        }
+      }
+    };
+    init();
+    return () => { cancelled = true; };
+  }, [user?.id, user?.email, isLoadingAuth]);
 
+  useEffect(() => {
+    if (!mapAllowed || !mapNodeRef.current) return;
+    // Effects run after React commits the map container; no frame guessing.
+    let cancelled = false;
+    let loadTimeout;
+    const data = rawData;
+    const init = async () => {
+      try {
         const mapboxgl = await loadMapboxGl();
         if (cancelled) return;
-
-        // The map container is only rendered once status leaves "checking".
-        // If Mapbox GL was already cached, the await above resolves in a
-        // microtask before React has committed the re-render, leaving the
-        // ref null. Wait one frame so the container is painted first.
-        if (!mapNodeRef.current) {
-          await new Promise((resolve) => requestAnimationFrame(resolve));
-          if (cancelled || !mapNodeRef.current) return;
-        }
+        if (!mapboxgl.supported()) throw new Error("This browser cannot start WebGL. Enable hardware acceleration or open Yardit in a WebGL-enabled browser.");
         mapboxRef.current = mapboxgl;
         mapboxgl.accessToken = MAPBOX_TOKEN;
 
@@ -420,8 +414,9 @@ export default function MapboxTest() {
 
         const savedZoom = (() => {
           try {
-            const value = Number(sessionStorage.getItem("yardit_last_map_zoom"));
-            if (Number.isFinite(value)) return value;
+            const stored = sessionStorage.getItem("yardit_last_map_zoom");
+            const value = stored === null ? NaN : Number(stored);
+            if (Number.isFinite(value) && value >= 0 && value <= 22) return value;
           } catch {}
           return 12;
         })();
@@ -439,7 +434,7 @@ export default function MapboxTest() {
 
         let mapReady = false;
         let lastMapError = "";
-        const loadTimeout = window.setTimeout(() => {
+        loadTimeout = window.setTimeout(() => {
           if (!mapReady && !cancelled) {
             setError(lastMapError ? `Mapbox did not finish loading: ${lastMapError}` : "Mapbox did not finish loading. This is usually caused by a token/style permission problem or blocked Mapbox web resources.");
             setStatus("error");
@@ -611,13 +606,16 @@ export default function MapboxTest() {
 
     return () => {
       cancelled = true;
+      window.clearTimeout(loadTimeout);
       halloweenMarkersRef.current.forEach(({ marker }) => marker?.remove?.());
       vendorMarkersRef.current.forEach(({ marker }) => marker?.remove?.());
       userMarkerRef.current?.remove?.();
       mapRef.current?.remove?.();
       mapRef.current = null;
+      halloweenMarkersRef.current = [];
+      vendorMarkersRef.current = [];
     };
-  }, []);
+  }, [mapAllowed, rawData]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -664,6 +662,18 @@ export default function MapboxTest() {
 
   if (status === "checking") {
     return <div className="min-h-[70vh] flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#5DADA5]" /></div>;
+  }
+
+  if (status === "sign-in") {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <ShieldAlert className="h-8 w-8 text-muted-foreground" />
+        <h1 className="font-bold text-lg">Sign in to open the Mapbox test</h1>
+        <p className="text-sm text-muted-foreground">This private map requires an active Yardit admin account.</p>
+        <Button onClick={() => navigateToLogin(window.location.href)}>Sign In</Button>
+        <Button variant="outline" onClick={() => navigate("/")}>Return to Yardit</Button>
+      </div>
+    );
   }
 
   if (status === "denied") {
@@ -742,6 +752,7 @@ export default function MapboxTest() {
               <div className="max-w-sm px-5 text-center">
                 <p className="font-semibold text-red-700">Mapbox map could not load.</p>
                 <p className="mt-1 text-sm text-slate-600">{error}</p>
+                <Button className="mt-3" onClick={() => window.location.reload()}>Retry Map</Button>
               </div>
             )}
           </div>
