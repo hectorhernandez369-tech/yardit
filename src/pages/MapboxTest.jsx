@@ -24,7 +24,7 @@ function loadMapboxGl() {
     if (!document.querySelector('link[data-yardit-mapbox-gl="true"]')) {
       const css = document.createElement("link");
       css.rel = "stylesheet";
-      css.href = "https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.css";
+      css.href = "https://api.mapbox.com/mapbox-gl-js/v3.30.0/mapbox-gl.css";
       css.dataset.yarditMapboxGl = "true";
       document.head.appendChild(css);
     }
@@ -37,7 +37,7 @@ function loadMapboxGl() {
     }
 
     const script = document.createElement("script");
-    script.src = "https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.js";
+    script.src = "https://api.mapbox.com/mapbox-gl-js/v3.30.0/mapbox-gl.js";
     script.async = true;
     script.dataset.yarditMapboxGl = "true";
     script.onload = () => resolve(window.mapboxgl);
@@ -405,6 +405,7 @@ export default function MapboxTest() {
         })();
 
         const map = new mapboxgl.Map({
+          accessToken: MAPBOX_TOKEN,
           container: mapNodeRef.current,
           style: STREET_STYLE,
           center: savedCenter,
@@ -413,6 +414,23 @@ export default function MapboxTest() {
         });
         mapRef.current = map;
         setZoom(savedZoom);
+
+        let mapReady = false;
+        const loadTimeout = window.setTimeout(() => {
+          if (!mapReady && !cancelled) {
+            setError("Mapbox did not finish loading. This is usually caused by a token/style permission problem or blocked Mapbox web resources.");
+            setStatus("error");
+          }
+        }, 12000);
+
+        map.on("error", (event) => {
+          const message = event?.error?.message || event?.message || "Unknown Mapbox error";
+          console.error("Mapbox GL error:", event?.error || event);
+          if (!mapReady && !cancelled) {
+            setError(message);
+            setStatus("error");
+          }
+        });
 
         map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
 
@@ -433,6 +451,8 @@ export default function MapboxTest() {
         };
 
         map.on("load", () => {
+          mapReady = true;
+          window.clearTimeout(loadTimeout);
           install();
 
           const halloweenItems = (data.halloweenLocations || []).map((item) => normalizeListing({
