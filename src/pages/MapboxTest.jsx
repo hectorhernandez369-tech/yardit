@@ -341,6 +341,10 @@ export default function MapboxTest() {
       setStatus("sign-in");
       return;
     }
+    if (user.email?.trim().toLowerCase() !== "hectorhernandez369@gmail.com") {
+      setStatus("denied");
+      return;
+    }
     setStatus("checking");
 
     const init = async () => {
@@ -661,6 +665,17 @@ export default function MapboxTest() {
         <p className="text-sm text-muted-foreground">Sign in with your Yardit account to continue.</p>
         <Button onClick={() => navigateToLogin(window.location.href)}>Sign In</Button>
         <Button variant="outline" onClick={() => navigate("/")}>Return to Yardit</Button>
+      </div>
+    );
+  }
+
+  if (status === "denied") {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <ShieldAlert className="h-8 w-8 text-amber-600" />
+        <h1 className="font-bold text-lg">Developer Mapbox Test</h1>
+        <p className="text-sm text-slate-600">This map is restricted to the Yardit developer account.</p>
+        <Button onClick={() => navigate("/")}>Return to Yardit</Button>
       </div>
     );
   }
