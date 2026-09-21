@@ -385,6 +385,7 @@ export default function MapboxTest() {
     // Effects run after React commits the map container; no frame guessing.
     let cancelled = false;
     let loadTimeout;
+    let resizeObserver;
     const data = rawData;
     const init = async () => {
       try {
@@ -446,9 +447,18 @@ export default function MapboxTest() {
         map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
 
         const install = () => {
-          installMainLayers(map, mainGeoJsonRef.current);
-          installHalloweenClusterLayers(map, halloweenGeoJsonRef.current);
+          if (!map.isStyleLoaded()) return;
+          try {
+            installMainLayers(map, mainGeoJsonRef.current);
+            installHalloweenClusterLayers(map, halloweenGeoJsonRef.current);
+          } catch (overlayError) {
+            lastMapError = overlayError?.message || "Yardit map overlays could not load";
+            console.error("Mapbox overlay install failed:", overlayError);
+          }
         };
+
+        resizeObserver = new ResizeObserver(() => map.resize());
+        resizeObserver.observe(mapNodeRef.current);
 
         const refreshSpecialMarkerVisibility = () => {
           const z = map.getZoom();
@@ -464,9 +474,12 @@ export default function MapboxTest() {
         map.on("load", () => {
           mapReady = true;
           window.clearTimeout(loadTimeout);
+          map.resize();
+          setStatus("ready");
           install();
 
-          const halloweenItems = (data.halloweenLocations || []).map((item) => normalizeListing({
+          try {
+            const halloweenItems = (data.halloweenLocations || []).map((item) => normalizeListing({
             ...item,
             title: item.display_title || item.title || "Halloween Spot",
             listingType: "halloween_candy",
@@ -534,8 +547,10 @@ export default function MapboxTest() {
             return { marker, account: item.account };
           });
 
-          refreshSpecialMarkerVisibility();
-          setStatus("ready");
+            refreshSpecialMarkerVisibility();
+          } catch (markerError) {
+            console.error("Mapbox optional marker setup failed:", markerError);
+          }
         });
 
         map.on("style.load", install);
@@ -600,6 +615,7 @@ export default function MapboxTest() {
     return () => {
       cancelled = true;
       window.clearTimeout(loadTimeout);
+      resizeObserver?.disconnect();
       halloweenMarkersRef.current.forEach(({ marker }) => marker?.remove?.());
       vendorMarkersRef.current.forEach(({ marker }) => marker?.remove?.());
       userMarkerRef.current?.remove?.();
