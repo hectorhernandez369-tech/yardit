@@ -759,8 +759,8 @@ export default function MapboxTest() {
         Mapbox GL build • {stats.listings} listings • {stats.halloween} Halloween • {stats.vendors} vendors
       </div>
 
-      <div className="relative flex-1 min-h-0">
-        <div ref={mapNodeRef} className="absolute inset-0" />
+      <div className="relative isolate flex-1 min-h-[360px] overflow-hidden bg-slate-100">
+        <div ref={mapNodeRef} className="absolute inset-0 z-0 h-full w-full" />
         {(status === "loading-map" || status === "error") && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/85">
             {status === "loading-map" ? (
