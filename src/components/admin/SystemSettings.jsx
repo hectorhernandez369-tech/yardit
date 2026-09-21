@@ -167,15 +167,6 @@ export default function SystemSettings() {
       source: "Base44 Dashboard",
       note: "Enter the credit allowance for your current Base44 plan. Core Yardit infrastructure should not be hard-stopped from inside Yardit.",
     },
-    {
-      key: "bolt",
-      label: "Bolt Hosting Requests",
-      unit: "web requests",
-      defaultLimit: 0,
-      protectedSetting: null,
-      source: "Bolt Dashboard",
-      note: "Enter the hosting-request allowance for your current Bolt plan.",
-    },
   ]), []);
 
   const [usageDrafts, setUsageDrafts] = React.useState({});
