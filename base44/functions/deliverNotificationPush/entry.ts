@@ -133,6 +133,17 @@ async function sendOneSignal(subscriptionId, title, message, url) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+
+    const [lockRows, pushRows] = await Promise.all([
+      base44.asServiceRole.entities.AppSetting.filter({ key: 'cost_emergency_lock' }),
+      base44.asServiceRole.entities.AppSetting.filter({ key: 'cost_push_enabled' }),
+    ]);
+    const emergencyLock = String(lockRows?.[0]?.value || 'false').toLowerCase() === 'true';
+    const pushEnabled = String(pushRows?.[0]?.value ?? 'true').toLowerCase() !== 'false';
+    if (emergencyLock || !pushEnabled) {
+      return Response.json({ skipped: true, reason: emergencyLock ? 'Emergency cost lock active' : 'External push disabled by cost protection' });
+    }
+
     const payload = await req.json();
     const notification = payload.data || payload.notification || payload;
     const userId = notification.user_id || notification.userId;
