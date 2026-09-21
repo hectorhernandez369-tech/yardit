@@ -12,26 +12,6 @@ export default function SystemSettings() {
   const queryClient = useQueryClient();
   const [showDemoModeInfo, setShowDemoModeInfo] = React.useState(false);
 
-  const findSetting = React.useCallback((key) => settings?.find((item) => item.key === key), [settings]);
-  const settingBool = React.useCallback((key, fallback = true) => {
-    const setting = settings?.find((item) => item.key === key);
-    if (!setting) return fallback;
-    return String(setting.value).toLowerCase() === "true";
-  }, [settings]);
-  const settingNumber = React.useCallback((key, fallback) => {
-    const value = Number(settings?.find((item) => item.key === key)?.value);
-    return Number.isFinite(value) ? value : fallback;
-  }, [settings]);
-
-  const upsertSetting = React.useCallback(async (key, value) => {
-    const existing = settings?.find((item) => item.key === key);
-    if (existing) {
-      await base44.entities.AppSetting.update(existing.id, { value: String(value) });
-    } else {
-      await base44.entities.AppSetting.create({ key, value: String(value) });
-    }
-  }, [settings]);
-
   const { data: currentUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ["currentUserForSystemSettings"],
     queryFn: () => base44.auth.me(),
@@ -52,6 +32,26 @@ export default function SystemSettings() {
     queryKey: ["appSettings"],
     queryFn: () => base44.entities.AppSetting.list(),
   });
+
+  const findSetting = React.useCallback((key) => settings?.find((item) => item.key === key), [settings]);
+  const settingBool = React.useCallback((key, fallback = true) => {
+    const setting = settings?.find((item) => item.key === key);
+    if (!setting) return fallback;
+    return String(setting.value).toLowerCase() === "true";
+  }, [settings]);
+  const settingNumber = React.useCallback((key, fallback) => {
+    const value = Number(settings?.find((item) => item.key === key)?.value);
+    return Number.isFinite(value) ? value : fallback;
+  }, [settings]);
+
+  const upsertSetting = React.useCallback(async (key, value) => {
+    const existing = settings?.find((item) => item.key === key);
+    if (existing) {
+      await base44.entities.AppSetting.update(existing.id, { value: String(value) });
+    } else {
+      await base44.entities.AppSetting.create({ key, value: String(value) });
+    }
+  }, [settings]);
 
   const appModeSetting = settings?.find(s => s.key === "app_mode");
   const isDemo = appModeSetting?.value === "demo";
