@@ -241,6 +241,27 @@
       "type": "boolean",
       "default": false
     },
+    "halloween_candy_schedule_mode": {
+      "type": "string",
+      "enum": [
+        "",
+        "halloween_only",
+        "custom"
+      ],
+      "default": ""
+    },
+    "halloween_candy_start_date": {
+      "type": "string"
+    },
+    "halloween_candy_end_date": {
+      "type": "string"
+    },
+    "halloween_candy_start_time": {
+      "type": "string"
+    },
+    "halloween_candy_end_time": {
+      "type": "string"
+    },
     "halloween_walkthrough": {
       "type": "boolean",
       "default": false
