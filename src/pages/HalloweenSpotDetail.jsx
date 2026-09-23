@@ -13,7 +13,7 @@ import { useGuestGuard } from "@/hooks/useGuestGuard";
 import GuestAuthModal from "@/components/guest/GuestAuthModal";
 import HalloweenLikeButton from "@/components/halloween/HalloweenLikeButton";
 import { HALLOWEEN_ICON_ASSETS, isAshevilleDecorationSpot } from "@/lib/halloweenMapIcons";
-import { getHalloweenSpotTypeLabel, isHalloweenCandyActive } from "@/lib/halloweenSpots";
+import { getHalloweenSpotTypeLabel, getHalloweenCandyBadgeLabel, hasHalloweenCandy } from "@/lib/halloweenSpots";
 
 function formatDate(value) {
   if (!value) return "";
@@ -99,7 +99,8 @@ export default function HalloweenSpotDetail() {
   const endTime = spot?.halloween_end_time || spot?.viewing_end_time;
   const tags = spot?.halloween_tags || [];
   const photos = spot?.photos || [];
-  const candyActive = isHalloweenCandyActive(spot);
+  const candyBadgeLabel = getHalloweenCandyBadgeLabel(spot);
+  const hasCandy = hasHalloweenCandy(spot);
   const address = listing?.addressText || "";
 
   const handleDirections = () => {
@@ -148,7 +149,7 @@ export default function HalloweenSpotDetail() {
                 <div className="flex flex-wrap gap-2">
                   <Badge className="border border-orange-300/40 bg-orange-500/15 text-orange-100">Halloween Spot</Badge>
                   {spot.halloween_featured_badge === "must_see" && <Badge className="bg-yellow-500 text-black"><Star className="mr-1 h-3 w-3" />Yardit Must See</Badge>}
-                  {candyActive && <Badge className="border border-pink-300/60 bg-pink-500/20 text-pink-100"><Candy className="mr-1 h-3 w-3" />Candy Here</Badge>}
+                  {hasCandy && <Badge className="border border-pink-300/60 bg-pink-500/20 text-pink-100"><Candy className="mr-1 h-3 w-3" />{candyBadgeLabel}</Badge>}
                   <HalloweenLikeButton listingId={spot.id} className="h-7 border-white/20 bg-white/5 px-2 text-xs hover:bg-white/10" />
                 </div>
                 <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">{listing.title}</h1>
@@ -186,7 +187,7 @@ export default function HalloweenSpotDetail() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {tags.includes("kid_friendly") && <Feature icon={Baby} label="Kid Friendly" tone="purple" />}
                   {tags.includes("no_candy_here") && <Feature icon={Candy} label="No Candy Here" tone="orange" />}
-                  {candyActive && <Feature icon={Candy} label="Candy Here Now" tone="orange" />}
+                  {hasCandy && <Feature icon={Candy} label={candyBadgeLabel} tone="orange" />}
                   {spot.halloween_walkthrough && <Feature icon={Footprints} label="Walk-through" tone="purple" />}
                   {spot.halloween_lights && <Feature icon={Lightbulb} label="Lights" tone="yellow" />}
                   {spot.halloween_sound && <Feature icon={Volume2} label="Sound / Music" tone="purple" />}
