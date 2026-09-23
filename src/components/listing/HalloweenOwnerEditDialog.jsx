@@ -28,7 +28,10 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!spot) return;
+    if (!spot) {
+      setDraft(null);
+      return;
+    }
     setDraft({
       ...spot,
       halloween_spot_type: spot.halloween_spot_type || spot.halloween_icon_key || "halloween_decorations",
@@ -41,7 +44,7 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
     });
   }, [spot]);
 
-  if (!draft) return null;
+  if (!open || !spot || !draft || draft.id !== spot.id) return null;
 
   const type = draft.halloween_spot_type || "halloween_decorations";
   const isTrickOrTreat = type === "trick_or_treat";
