@@ -10,15 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import EventPhotoUpload from "@/components/create/event/EventPhotoUpload";
-import { isAshevilleDecorationSpot } from "@/lib/halloweenMapIcons";
+import HalloweenCandySchedule from "@/components/listing/HalloweenCandySchedule";
+import HalloweenEditLocation from "@/components/listing/HalloweenEditLocation";
+import { HALLOWEEN_ICON_ASSETS, isAshevilleDecorationSpot } from "@/lib/halloweenMapIcons";
 
 const SPOT_TYPES = [
-  { value: "halloween_decorations", label: "Halloween Decorations" },
-  { value: "haunted", label: "Haunted House" },
-  { value: "trick_or_treat", label: "Trick-or-Treat" },
-  { value: "trunk_or_treat", label: "Trunk-or-Treat" },
-  { value: "scary_yard", label: "Scary Yard" },
-  { value: "light_show", label: "Light Show" },
+  { value: "halloween_decorations", label: "Halloween Decorations", description: "A decorated home or yard with pumpkins, props, inflatables, lights, or general Halloween decor." },
+  { value: "haunted", label: "Haunted House", description: "A scary or immersive stop with walkthroughs, actors, jump scares, or heavier horror themes." },
+  { value: "trick_or_treat", label: "Trick-or-Treat", description: "A home or stop actively handing out candy to trick-or-treaters." },
+  { value: "trunk_or_treat", label: "Trunk-or-Treat", description: "An organized candy stop at a church, school, business, parking lot, or decorated vehicle event." },
+  { value: "scary_yard", label: "Scary Yard", description: "An outdoor setup focused on graveyards, monsters, animatronics, or spooky yard scenes." },
+  { value: "light_show", label: "Light Show", description: "A Halloween display centered on synchronized lights, projections, music, or animated lighting effects." },
 ];
 
 export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, onSaved }) {
@@ -45,6 +47,7 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
   const isTrickOrTreat = type === "trick_or_treat";
   const candyPrimary = ["trick_or_treat", "trunk_or_treat"].includes(type);
   const trickOrTreatDate = `${new Date().getFullYear()}-10-31`;
+  const candyAvailable = candyPrimary || (!draft.halloween_tags?.includes("no_candy_here") && draft.halloween_candy_available === true);
   const hasTag = (tag) => (draft.halloween_tags || []).includes(tag);
   const toggleTag = (tag) => setDraft((prev) => ({
     ...prev,
@@ -61,6 +64,8 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
     if (effectiveEndDate < effectiveStartDate) return toast.error("End date must be after the start date.");
     if (!draft.halloween_start_time || !draft.halloween_end_time) return toast.error("Choose the start and end times.");
     if (draft.halloween_end_time <= draft.halloween_start_time) return toast.error("End time must be after the start time.");
+    if (draft.locationPending) return toast.error("Select a matching address before saving.");
+    if (candyAvailable && draft.halloween_candy_schedule_mode === "custom" && (!draft.halloween_candy_start_date || !draft.halloween_candy_end_date || !draft.halloween_candy_start_time || !draft.halloween_candy_end_time || draft.halloween_candy_end_date < draft.halloween_candy_start_date || draft.halloween_candy_end_time <= draft.halloween_candy_start_time)) return toast.error("Complete the candy dates and times in order.");
 
     const ownerId = spot.owner_user_id || spot.ownerUserId || spot.created_by_id;
     const ownerEmail = String(spot.created_by || "").toLowerCase();
@@ -82,7 +87,21 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
         halloween_spot_type: type,
         halloween_icon_key: type,
         halloween_tags: tags,
-        halloween_candy_available: candyPrimary ? true : tags.includes("no_candy_here") ? false : draft.halloween_candy_available === true,
+        halloween_candy_available: candyAvailable,
+        halloween_candy_schedule_mode: candyAvailable ? draft.halloween_candy_schedule_mode || "" : "",
+        halloween_candy_start_date: candyAvailable ? draft.halloween_candy_start_date || "" : "",
+        halloween_candy_end_date: candyAvailable ? draft.halloween_candy_end_date || "" : "",
+        halloween_candy_start_time: candyAvailable ? draft.halloween_candy_start_time || "" : "",
+        halloween_candy_end_time: candyAvailable ? draft.halloween_candy_end_time || "" : "",
+        ...(draft.locationChanged ? {
+          street_address: draft.street_address,
+          city: draft.city,
+          state: draft.state,
+          zip_code: draft.zip_code,
+          address: [draft.street_address, draft.city, draft.state, draft.zip_code].join(", "),
+          latitude: Number(draft.latitude),
+          longitude: Number(draft.longitude),
+        } : {}),
         halloween_walkthrough: draft.halloween_walkthrough === true,
         halloween_lights: draft.halloween_lights === true,
         halloween_sound: draft.halloween_sound === true,
@@ -124,6 +143,8 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
           <div className="space-y-1.5"><Label>Description</Label><Textarea rows={4} value={draft.description || ""} onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value }))} /></div>
 
           <div className="space-y-1.5"><Label>Halloween Spot Type</Label><Select value={type} onValueChange={(value) => setDraft((p) => ({ ...p, halloween_spot_type: value, halloween_icon_key: value, halloween_tags: ["trick_or_treat", "trunk_or_treat"].includes(value) ? (p.halloween_tags || []).filter((tag) => tag !== "no_candy_here") : (p.halloween_tags || []), halloween_candy_available: ["trick_or_treat", "trunk_or_treat"].includes(value) ? true : p.halloween_candy_available, ...(value === "trick_or_treat" ? { halloween_start_date: trickOrTreatDate, halloween_end_date: trickOrTreatDate } : {}) }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{SPOT_TYPES.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent></Select></div>
+          <div className="flex items-center gap-3 rounded-xl border border-purple-200 bg-purple-50 p-3"><img src={HALLOWEEN_ICON_ASSETS[type]} alt="" className="h-16 w-16 shrink-0 object-contain" /><div><p className="text-sm font-semibold text-purple-950">{SPOT_TYPES.find(item => item.value === type)?.label}</p><p className="text-xs text-slate-600">{SPOT_TYPES.find(item => item.value === type)?.description}</p></div></div>
+          <HalloweenEditLocation key={spot.id} draft={draft} setDraft={setDraft} />
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label>Start date</Label><Input type="date" value={isTrickOrTreat ? trickOrTreatDate : (draft.halloween_start_date || "")} onChange={(e) => !isTrickOrTreat && setDraft((p) => ({ ...p, halloween_start_date: e.target.value }))} disabled={isTrickOrTreat} className={isTrickOrTreat ? "bg-purple-50 disabled:opacity-100" : ""} />{isTrickOrTreat && <p className="text-[11px] font-medium text-purple-700">Locked to October 31.</p>}</div>
@@ -141,6 +162,8 @@ export default function HalloweenOwnerEditDialog({ open, spot, user, onClose, on
             <Toggle label="Sound / Music" checked={draft.halloween_sound === true} onChange={(value) => setDraft((p) => ({ ...p, halloween_sound: value }))} />
             <Toggle label="Jump Scares" checked={draft.halloween_jump_scares === true} onChange={(value) => setDraft((p) => ({ ...p, halloween_jump_scares: value }))} />
           </div>
+
+          {candyAvailable && <HalloweenCandySchedule draft={draft} setDraft={setDraft} halloweenDate={trickOrTreatDate} />}
 
           <div className="space-y-1.5"><Label>Suggested age (optional)</Label><Input value={draft.halloween_suggested_age || ""} onChange={(e) => setDraft((p) => ({ ...p, halloween_suggested_age: e.target.value }))} placeholder="All ages, 8+, Teens & adults" /></div>
 
