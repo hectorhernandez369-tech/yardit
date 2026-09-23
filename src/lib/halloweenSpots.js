@@ -74,3 +74,27 @@ export function isHalloweenFullIconActive(listing, now = new Date()) {
   if (Number.isFinite(endMinutes) && currentMinutes > endMinutes) return false;
   return true;
 }
+
+export function isHalloweenCandyActive(listing, now = new Date()) {
+  if (!listing?.halloween_candy_available || (listing?.halloween_tags || []).includes("no_candy_here")) return false;
+
+  const mode = listing?.halloween_candy_schedule_mode || "";
+  const startTime = listing?.halloween_candy_start_time || "";
+  const endTime = listing?.halloween_candy_end_time || "";
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  if (mode === "halloween_only") {
+    const halloweenDate = listing?.halloween_candy_start_date || listing?.halloween_candy_end_date || `${now.getFullYear()}-10-31`;
+    if (localYmd(now) !== halloweenDate) return false;
+  } else if (mode === "custom") {
+    const today = localYmd(now);
+    const startDate = listing?.halloween_candy_start_date || "";
+    const endDate = listing?.halloween_candy_end_date || startDate;
+    if (startDate && today < startDate) return false;
+    if (endDate && today > endDate) return false;
+  }
+
+  if (startTime && currentMinutes < minutesFromTimeString(startTime, startTime)) return false;
+  if (endTime && currentMinutes > minutesFromTimeString(endTime, endTime)) return false;
+  return true;
+}
