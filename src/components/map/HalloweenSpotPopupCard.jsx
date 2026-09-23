@@ -1,7 +1,7 @@
 import React from "react";
 import { AlertTriangle, Baby, CalendarDays, Candy, Clock3, Footprints, Lightbulb, MapPin, Star, Volume2 } from "lucide-react";
 import { HALLOWEEN_ICON_ASSETS, isAshevilleDecorationSpot } from "@/lib/halloweenMapIcons";
-import { getHalloweenSpotTypeLabel, isHalloweenCandyActive } from "@/lib/halloweenSpots";
+import { getHalloweenSpotTypeLabel, getHalloweenCandyBadgeLabel, hasHalloweenCandy } from "@/lib/halloweenSpots";
 
 function formatDateRange(listing) {
   const start = listing.halloween_start_date || listing.selectedRangeStartDate || (listing.startDateTime ? String(listing.startDateTime).slice(0, 10) : "");
@@ -27,7 +27,8 @@ export default function HalloweenSpotPopupCard({ listing }) {
   const startTime = listing.halloween_start_time || listing.viewing_start_time || "";
   const endTime = listing.halloween_end_time || listing.viewing_end_time || "";
   const address = listing.display_address || listing.address_text || listing.addressText || listing.address || [listing.city, listing.state, listing.zip].filter(Boolean).join(", ");
-  const candyActive = isHalloweenCandyActive(listing);
+  const candyBadgeLabel = getHalloweenCandyBadgeLabel(listing);
+  const hasCandy = hasHalloweenCandy(listing);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-orange-400/60 bg-gradient-to-b from-purple-950 via-slate-950 to-black text-white shadow-[0_10px_30px_rgba(88,28,135,0.45)]">
@@ -43,7 +44,7 @@ export default function HalloweenSpotPopupCard({ listing }) {
             <p className="text-[10px] font-semibold text-purple-200">{getHalloweenSpotTypeLabel(listing)}</p>
             <div className="mt-1 flex flex-wrap gap-1">
               {listing.halloween_featured_badge === "must_see" && <div className="inline-flex items-center gap-1 rounded-full border border-yellow-300/50 bg-yellow-400/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-yellow-200"><Star className="h-3 w-3" /> Yardit Must See</div>}
-              {candyActive && <div className="inline-flex items-center gap-1 rounded-full border border-pink-300/60 bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-pink-100"><Candy className="h-3 w-3" /> Candy Here</div>}
+              {hasCandy && <div className="inline-flex items-center gap-1 rounded-full border border-pink-300/60 bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-pink-100"><Candy className="h-3 w-3" /> {candyBadgeLabel}</div>}
             </div>
           </div>
         </div>
@@ -60,7 +61,7 @@ export default function HalloweenSpotPopupCard({ listing }) {
       <div className="mx-2.5 mb-2 flex flex-wrap gap-1">
         {(listing.halloween_tags || []).includes("kid_friendly") && <span className="inline-flex items-center gap-1 rounded-full border border-purple-300/30 bg-purple-500/15 px-2 py-1 text-[9px] font-bold text-purple-100"><Baby className="h-3 w-3" /> Kid Friendly</span>}
         {(listing.halloween_tags || []).includes("no_candy_here") && <span className="inline-flex items-center gap-1 rounded-full border border-orange-300/30 bg-orange-500/15 px-2 py-1 text-[9px] font-bold text-orange-100"><Candy className="h-3 w-3" /> No Candy Here</span>}
-        {candyActive && <span className="inline-flex items-center gap-1 rounded-full border border-orange-300/30 bg-orange-500/15 px-2 py-1 text-[9px] font-bold text-orange-100"><Candy className="h-3 w-3" /> Candy Here Now</span>}
+        {hasCandy && <span className="inline-flex items-center gap-1 rounded-full border border-orange-300/30 bg-orange-500/15 px-2 py-1 text-[9px] font-bold text-orange-100"><Candy className="h-3 w-3" /> {candyBadgeLabel}</span>}
         {listing.halloween_walkthrough && <span className="inline-flex items-center gap-1 rounded-full border border-purple-300/30 bg-purple-500/15 px-2 py-1 text-[9px] font-bold text-purple-100"><Footprints className="h-3 w-3" /> Walk-through</span>}
         {listing.halloween_lights && <span className="inline-flex items-center gap-1 rounded-full border border-yellow-300/30 bg-yellow-500/15 px-2 py-1 text-[9px] font-bold text-yellow-100"><Lightbulb className="h-3 w-3" /> Lights</span>}
         {listing.halloween_sound && <span className="inline-flex items-center gap-1 rounded-full border border-purple-300/30 bg-purple-500/15 px-2 py-1 text-[9px] font-bold text-purple-100"><Volume2 className="h-3 w-3" /> Sound / Music</span>}
