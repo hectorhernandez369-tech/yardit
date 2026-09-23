@@ -54,7 +54,7 @@ export default function YarditWelcomeOverlay() {
               Find sales. Host events. Discover hidden treasures in your community.
             </p>
             <DialogPrimitive.Description id="yardit-welcome-description" className="mt-2 text-xs leading-5 text-slate-700 sm:text-sm">
-              Whether you're holding a yard sale, organizing a neighborhood sale, hosting a residential event, or searching for great local deals, Yardit makes it easy to connect with your community.
+              Whether you're holding a yard sale, organizing a neighborhood sale, hosting a community event, or searching for great local deals, Yardit makes it easy to connect with your community.
             </DialogPrimitive.Description>
           </div>
 
@@ -63,7 +63,7 @@ export default function YarditWelcomeOverlay() {
               {[
                 "Create Yard Sales",
                 "Join Neighborhood Sales",
-                "Host Residential Events",
+                "Host Community Events",
                 "Discover Local Sales",
                 "Save Favorites and Receive Notifications",
               ].map((feature) => (

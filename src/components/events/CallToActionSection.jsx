@@ -38,7 +38,7 @@ export default function CallToActionSection() {
           <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
             {publicEnabled
               ? "Join Yardit Events and connect with local event organizers, vendor opportunities, markets, pop-ups, food truck nights, tournaments, and upcoming community events."
-              : "Yardit is launching Residential Yard Sales, Neighborhood Sales, and local Residential Events first. Vendor Accounts and Vendor Events will open in a future release."}
+              : "Yardit is launching Residential Yard Sales, Neighborhood Sales, and Community Events first. Vendor Accounts and Vendor Events will open in a future release."}
           </p>
 
           <motion.div

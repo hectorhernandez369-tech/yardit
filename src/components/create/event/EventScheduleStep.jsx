@@ -49,7 +49,7 @@ export default function EventScheduleStep({ formData, setFormData }) {
       <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
         <div>
           <h4 className="text-sm font-semibold text-slate-800">Event Schedule *</h4>
-          <p className="text-xs text-slate-400 mt-0.5">Residential Events are limited to one calendar day.</p>
+          <p className="text-xs text-slate-400 mt-0.5">Community Events are limited to one calendar day.</p>
         </div>
 
         <div className="space-y-1.5">
@@ -88,7 +88,7 @@ export default function EventScheduleStep({ formData, setFormData }) {
       </div>
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Residential Events are limited to one day. Need multiple days? Create a Vendor Event or use Event Organizer tools.
+        Community Events are limited to one day. Need multiple days? Create a Vendor Event or use Event Organizer tools.
       </div>
 
       {validation.errors.length > 0 && (

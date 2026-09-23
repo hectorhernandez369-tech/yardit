@@ -7,6 +7,8 @@ import EventAddOnCard from "./EventAddOnCard";
 import EventPhotoUpload from "./EventPhotoUpload";
 import MarqueeSlotsEditor from "./MarqueeSlotsEditor";
 import EventIconManager from "@/components/events/EventIconManager";
+import EventMapAddOnPreview from "@/components/create/event/EventMapAddOnPreview";
+import { eventAddOnCopy } from "@/components/create/event/eventAddOnCopy";
 import { shiftDate } from "@/lib/eventSchedule";
 import {
   RESIDENTIAL_EVENT_ADD_ONS,
@@ -68,7 +70,7 @@ export default function EventAddOnsStep({ formData, setFormData }) {
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-green-900">Your Residential Event Package Includes ($9.99)</h3>
+        <h3 className="text-sm font-semibold text-green-900">Your Community Event Package Includes ($9.99)</h3>
         <ul className="space-y-1.5 text-xs text-green-800">
           {[
             "Event detail page",
@@ -89,7 +91,7 @@ export default function EventAddOnsStep({ formData, setFormData }) {
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="bg-gradient-to-r from-[#e6f3f4] to-[#f0fdfa] border-b border-[#b3d9db] p-5">
-          <h3 className="text-base font-semibold text-[#006168]">STAND OUT WITH THESE AD ONS</h3>
+          <h3 className="text-base font-semibold text-[#006168]">STAND OUT WITH THESE ADD-ONS</h3>
           <p className="text-sm text-[#2C4F4E] leading-relaxed mt-2">
             Your event is ready to publish. The options below can help more people discover your event, increase visibility, and make your event stand out from other local listings.
           </p>
@@ -98,13 +100,8 @@ export default function EventAddOnsStep({ formData, setFormData }) {
           <EventAddOnCard
            id="premium_visibility"
            title="Be Seen By More People"
-           price={RESIDENTIAL_EVENT_ADD_ONS.premium_visibility.price}
-           description={
-             <>
-               <p>Help more people discover your event.</p>
-               <p>Your Residential Event is already visible in your local area. This upgrade increases visibility and helps your event appear to more users searching beyond your immediate neighborhood.</p>
-             </>
-           }
+           previewData={formData} price={RESIDENTIAL_EVENT_ADD_ONS.premium_visibility.price}
+
           selected={!!addOns.premium_visibility}
           onToggle={(checked) => updateAddOns({ premium_visibility: checked })}
         />
@@ -112,14 +109,8 @@ export default function EventAddOnsStep({ formData, setFormData }) {
         <EventAddOnCard
           id="animation"
           title="Animation"
-          price={RESIDENTIAL_EVENT_ADD_ONS.animation.price}
-          description={
-            <>
-              <p>Make your event stand out on the map.</p>
-              <p><span className="font-semibold text-slate-800">Choose:</span> Pulse or Bounce</p>
-              <p><span className="font-semibold text-slate-800">Useful for:</span> Fundraisers, community events, and church events.</p>
-            </>
-          }
+          previewData={formData} price={RESIDENTIAL_EVENT_ADD_ONS.animation.price}
+
           selected={!!addOns.animation}
           onToggle={(checked) => setFormData((prev) => ({ ...prev, event_animation: checked ? (prev.event_animation || "pulse") : "", event_add_ons: { ...(prev.event_add_ons || {}), animation: checked } }))}
         >
@@ -135,14 +126,8 @@ export default function EventAddOnsStep({ formData, setFormData }) {
         <EventAddOnCard
           id="flyer_upload"
           title="Flyer Upload"
-          price={RESIDENTIAL_EVENT_ADD_ONS.flyer_upload.price}
-          description={
-            <>
-              <p>Upload a large promotional flyer.</p>
-              <p>The flyer becomes your main event image, event detail header image, and social sharing image.</p>
-              <p><span className="font-semibold text-slate-800">Recommended for:</span> Church events, school events, and fundraisers.</p>
-            </>
-          }
+          previewData={formData} price={RESIDENTIAL_EVENT_ADD_ONS.flyer_upload.price}
+
           selected={!!addOns.flyer_upload}
           onToggle={(checked) => updateAddOns({ flyer_upload: checked })}
         >
@@ -168,14 +153,8 @@ export default function EventAddOnsStep({ formData, setFormData }) {
         <EventAddOnCard
           id="photo_gallery"
           title="Photo Gallery"
-          price={RESIDENTIAL_EVENT_ADD_ONS.photo_gallery.price}
-          description={
-            <>
-              <p>Add up to 10 gallery photos.</p>
-              <p>Gallery photos appear separately from your flyer and help visitors learn more about your event.</p>
-              <p><span className="font-semibold text-slate-800">Maximum:</span> 10 photos</p>
-            </>
-          }
+          previewData={formData} price={RESIDENTIAL_EVENT_ADD_ONS.photo_gallery.price}
+
           selected={!!addOns.photo_gallery}
           onToggle={(checked) => setFormData((prev) => ({ ...prev, event_photo_gallery_count: checked ? (prev.event_photo_gallery_count || 1) : 0, event_photos: checked ? prev.event_photos || [] : [], photoUrls: checked ? prev.event_photos || [] : [], event_add_ons: { ...(prev.event_add_ons || {}), photo_gallery: checked } }))}
         >
@@ -199,13 +178,8 @@ export default function EventAddOnsStep({ formData, setFormData }) {
         <EventAddOnCard
           id="custom_icon"
           title="Custom Icon"
-          price={RESIDENTIAL_EVENT_ADD_ONS.custom_icon.price}
-          description={
-            <>
-              <p>Replace the standard category icon with your own approved icon.</p>
-              <p>Must meet existing icon upload requirements.</p>
-            </>
-          }
+          previewData={formData} price={RESIDENTIAL_EVENT_ADD_ONS.custom_icon.price}
+
           selected={!!addOns.custom_icon}
           onToggle={(checked) => updateAddOns({ custom_icon: checked })}
         >
@@ -221,14 +195,8 @@ export default function EventAddOnsStep({ formData, setFormData }) {
         <EventAddOnCard
           id="marquee"
           title="Marquee"
-          price={RESIDENTIAL_EVENT_ADD_ONS.marquee.price}
-          description={
-            <>
-              <p>Give your event maximum visibility.</p>
-              <p>Marquee events receive the large event-board presentation currently used by marquee events.</p>
-              <p><span className="font-semibold text-slate-800">Best for:</span> Large fundraisers, community-wide events, and holiday events.</p>
-            </>
-          }
+          previewData={formData} price={RESIDENTIAL_EVENT_ADD_ONS.marquee.price}
+
           selected={!!addOns.marquee}
           onToggle={(checked) => updateAddOns({ marquee: checked })}
         >
@@ -245,7 +213,9 @@ export default function EventAddOnsStep({ formData, setFormData }) {
         <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
         <div>
           <h4 className="font-semibold text-slate-800">Coming Soon Packages</h4>
-          <p className="text-sm text-slate-500">Optional promotion packages. Individual day pricing is no longer used.</p>
+          <p className="text-sm text-muted-foreground">{eventAddOnCopy.coming_soon.summary}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{eventAddOnCopy.coming_soon.details}</p>
+          <div className="mt-3"><EventMapAddOnPreview kind="coming_soon" data={formData} /><p className="mt-2 text-[10px] text-muted-foreground">Illustrative preview • select a package below to update the timeline</p></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {Object.values(RESIDENTIAL_EVENT_COMING_SOON_PACKAGES).map((pkg) => {

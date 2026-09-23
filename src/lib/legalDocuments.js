@@ -20,7 +20,7 @@ export const legalDocuments = {
         "Yardit uses listing, event, vendor, payment, notification, support, and report information to operate the platform, manage visibility, apply promo eligibility, review safety concerns, resolve disputes, and support users."
       ]},
       { title: "Public Information", body: [
-        "When users publish listings, Residential Events, Neighborhood Sales, Vendor Events, vendor profiles, vendor check-ins, or related content, some information may become publicly visible in Yardit map, list, event, vendor, and detail views.",
+        "When users publish listings, Community Events, Neighborhood Sales, Vendor Events, vendor profiles, vendor check-ins, or related content, some information may become publicly visible in Yardit map, list, event, vendor, and detail views.",
         "Public information may include listing titles, descriptions, categories, photos, display locations, event details, schedules, vendor business details, vendor profile content, check-in information, Neighborhood Sale participation details, and other content submitted for public display.",
         "Information intentionally published by users may remain publicly visible while the listing, event, Neighborhood Sale, vendor profile, or other content is active. Once content expires, is removed, or is unpublished, it will no longer appear publicly, although certain records may still be retained for operational, support, fraud prevention, legal, or audit purposes as described elsewhere in this Privacy Policy.",
         "Users should not include personal information, private details, sensitive photos, or other content they do not want made public."
@@ -80,7 +80,7 @@ export const legalDocuments = {
   },
   terms: {
     title: "Terms of Service",
-    subtitle: "Rules for using Yardit listings, maps, payments, Neighborhood Sales, Residential Events, Vendor tools, notifications, support, and safety systems.",
+    subtitle: "Rules for using Yardit listings, maps, payments, Neighborhood Sales, Community Events, Vendor tools, notifications, support, and safety systems.",
     effectiveDate: "June 28, 2026",
     intro: "These Terms explain the rules for using Yardit and the responsibilities that apply to accounts, listings, events, vendor tools, payments, notifications, support, and safety workflows.",
     sections: [
@@ -88,7 +88,7 @@ export const legalDocuments = {
         "By creating or using a Yardit account, users agree to these Terms and acknowledge the Privacy Policy. Yardit stores acceptance status, policy version, and acceptance timestamp during account setup."
       ]},
       { title: "Yardit’s role", body: [
-        "Yardit is a discovery and marketplace platform for residential yard sales, Neighborhood Sales, Residential Events, Vendor Events, vendor check-ins, and related local activity.",
+        "Yardit is a discovery and marketplace platform for residential yard sales, Neighborhood Sales, Community Events, Vendor Events, vendor check-ins, and related local activity.",
         "Yardit does not own, inspect, sell, deliver, or guarantee user-listed items, sale attendance, buyer behavior, vendor participation, event results, or user-to-user transactions."
       ]},
       { title: "User accounts and responsibilities", body: [
@@ -110,8 +110,8 @@ export const legalDocuments = {
       { title: "Date conflicts", body: [
         "Yardit may block overlapping residential listings at the same verified address. Dates may be checked before checkout and again around payment confirmation."
       ]},
-      { title: "Residential Events", body: [
-        "Residential Events are local event listings separate from Vendor Events. Event organizers are responsible for accurate event details, dates, location, descriptions, images, and legal compliance.",
+      { title: "Community Events", body: [
+        "Community Events are local event listings separate from Vendor Events. Event organizers are responsible for accurate event details, dates, location, descriptions, images, and legal compliance.",
         "Paid event tiers and add-ons improve display or promotion but do not guarantee attendance, revenue, traffic, or vendor participation."
       ]},
       { title: "Neighborhood Sales", body: [
@@ -134,7 +134,7 @@ export const legalDocuments = {
       { title: "Refund Policy", body: [
         "Residential Listings: Paid residential listing purchases and paid residential listing upgrades require users to acknowledge that the purchase is non-refundable once payment is submitted. Refund requests can be reviewed through support but are not automatic.",
         "Featured and Premium upgrades: Upgrade amounts are calculated as the difference between the current tier and the target tier where applicable. Failed or unconfirmed upgrade payments do not activate the upgraded tier. Paid upgrades follow the same non-refundable acknowledgement behavior when required.",
-        "Residential Events: Event purchases and event upgrades are processed through Stripe and activate after confirmed payment.",
+        "Community Events: Event purchases and event upgrades are processed through Stripe and activate after confirmed payment.",
         "Neighborhood Sales: Organizer-paid Neighborhood Sales may close, detach or remove participants, trigger rescue flows, and update payment or cancellation status when canceled or failed. If a Neighborhood Sale has been committed and applicable cancellation conditions apply, Yardit may charge the organizer's saved payment method if the charge has not already been collected. Canceling or failing to complete a Neighborhood Sale does not automatically guarantee a refund.",
         "Vendor purchases and subscriptions: Vendor subscriptions are processed through Stripe. Failed invoices can place subscriptions into past-due, inactive, or canceled states.",
         "Vendor Event promotion upgrades: Promotion upgrades activate only after Stripe confirms payment.",
@@ -216,7 +216,7 @@ export const legalDocuments = {
         "When practical, meet in safe public locations, be cautious when visiting unfamiliar locations, and report suspicious activity through Yardit."
       ]},
       { title: "Our Goal", body: [
-        "Yardit exists to help communities discover local yard sales, neighborhood sales, residential events, and local vendors in a safe, honest, respectful environment. These Guidelines help protect users and the communities they are part of."
+        "Yardit exists to help communities discover local yard sales, neighborhood sales, community events, and local vendors in a safe, honest, respectful environment. These Guidelines help protect users and the communities they are part of."
       ]}
     ]
   }

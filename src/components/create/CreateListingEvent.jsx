@@ -48,7 +48,7 @@ export default function CreateListingEvent({
         tier="event"
         amount={eventPriceBreakdown.total}
         listing={formData}
-        purchaseName="Residential Event"
+        purchaseName="Community Event"
         priceBreakdown={eventPriceBreakdown}
         summaryItems={[
           { label: "Base Price", value: "$9.99" },

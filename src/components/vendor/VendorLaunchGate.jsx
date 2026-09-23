@@ -14,7 +14,7 @@ export default function VendorLaunchGate() {
           </div>
           <h2 className="text-2xl font-bold text-[#2C4F4E]">Vendor Accounts Are Coming Soon</h2>
           <p className="text-sm text-slate-600">
-            Yardit is currently launching Residential Yard Sales, Neighborhood Sales, and local Residential Events.
+            Yardit is currently launching Residential Yard Sales, Neighborhood Sales, and Community Events.
             Vendor Accounts and Vendor Events will open in a future release.
           </p>
           <p className="text-xs text-slate-500">
