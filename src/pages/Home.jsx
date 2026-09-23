@@ -336,26 +336,7 @@ function formatListingGoLive(listing) {
   return formatListingScheduleText(listing);
 }
 
-const HUNT_BUTTON_STORAGE_KEY = "yardit_hunt_button_position_v1";
-const HUNT_BUTTON_SIZE = 70;
-const HUNT_BUTTON_MARGIN = 16;
-
-function clampHuntButtonPosition(position, containerRect) {
-  const maxX = Math.max(HUNT_BUTTON_MARGIN, containerRect.width - HUNT_BUTTON_SIZE - HUNT_BUTTON_MARGIN);
-  const maxY = Math.max(HUNT_BUTTON_MARGIN, containerRect.height - HUNT_BUTTON_SIZE - HUNT_BUTTON_MARGIN);
-
-  return {
-    x: Math.min(Math.max(position.x, HUNT_BUTTON_MARGIN), maxX),
-    y: Math.min(Math.max(position.y, HUNT_BUTTON_MARGIN), maxY)
-  };
-}
-
-function getDefaultHuntButtonPosition(containerRect) {
-  return clampHuntButtonPosition({
-    x: containerRect.width - HUNT_BUTTON_SIZE - HUNT_BUTTON_MARGIN,
-    y: 112
-  }, containerRect);
-}
+import { HUNT_BUTTON_STORAGE_KEY, clampHuntButtonPosition, getDefaultHuntButtonPosition } from "@/components/hunt/huntButtonPosition";
 
 function levenshteinDistance(a, b) {
   if (!a) return b ? b.length : 0;
@@ -555,6 +536,7 @@ export default function HomePage() {
     const updatePositionFromBounds = () => {
       if (!mapAreaRef.current) return;
       const rect = mapAreaRef.current.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
       const savedRaw = localStorage.getItem(HUNT_BUTTON_STORAGE_KEY);
       const saved = savedRaw ? JSON.parse(savedRaw) : null;
       const nextPosition = saved ? clampHuntButtonPosition(saved, rect) : getDefaultHuntButtonPosition(rect);
@@ -566,9 +548,16 @@ export default function HomePage() {
     };
 
     updatePositionFromBounds();
+    const observer = new ResizeObserver(updatePositionFromBounds);
+    if (mapAreaRef.current) observer.observe(mapAreaRef.current);
     window.addEventListener("resize", updatePositionFromBounds);
-    return () => window.removeEventListener("resize", updatePositionFromBounds);
-  }, [saveHuntButtonPosition]);
+    window.visualViewport?.addEventListener("resize", updatePositionFromBounds);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updatePositionFromBounds);
+      window.visualViewport?.removeEventListener("resize", updatePositionFromBounds);
+    };
+  }, [saveHuntButtonPosition, view]);
 
   useEffect(() => {
     const handlePointerMove = (event) => {
@@ -1634,6 +1623,9 @@ export default function HomePage() {
           {/* Route Builder FAB */}
           <button
           ref={controlsBtnRef}
+          type="button"
+          aria-label={showControls ? "Close Hunt map" : "Open Hunt map"}
+          aria-expanded={showControls}
           onPointerDown={handleHuntButtonPointerDown}
           onClick={handleHuntButtonClick}
           className="absolute z-[1002] flex items-center justify-center active:scale-95 transition-all duration-200 bg-transparent outline-none shadow-none"
