@@ -75,8 +75,12 @@ export function isHalloweenFullIconActive(listing, now = new Date()) {
   return true;
 }
 
+export function hasHalloweenCandy(listing) {
+  return listing?.halloween_candy_available === true && !(listing?.halloween_tags || []).includes("no_candy_here");
+}
+
 export function isHalloweenCandyActive(listing, now = new Date()) {
-  if (!listing?.halloween_candy_available || (listing?.halloween_tags || []).includes("no_candy_here")) return false;
+  if (!hasHalloweenCandy(listing)) return false;
 
   const mode = listing?.halloween_candy_schedule_mode || "";
   const startTime = listing?.halloween_candy_start_time || "";
@@ -97,4 +101,12 @@ export function isHalloweenCandyActive(listing, now = new Date()) {
   if (startTime && currentMinutes < minutesFromTimeString(startTime, startTime)) return false;
   if (endTime && currentMinutes > minutesFromTimeString(endTime, endTime)) return false;
   return true;
+}
+
+export function getHalloweenCandyBadgeLabel(listing, now = new Date()) {
+  if (!hasHalloweenCandy(listing)) return "";
+  if (isHalloweenCandyActive(listing, now)) return "Candy Here Now";
+  if (listing?.halloween_candy_schedule_mode === "halloween_only") return "Candy on Halloween";
+  if (listing?.halloween_candy_schedule_mode === "custom") return "Candy Scheduled";
+  return "Candy Available";
 }
