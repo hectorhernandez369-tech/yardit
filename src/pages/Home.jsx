@@ -62,7 +62,7 @@ import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
 import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
-import { isHalloweenSpot, isHalloweenSpotVisible, isHalloweenCandyActive } from "@/lib/halloweenSpots";
+import { isHalloweenSpot, isHalloweenSpotVisible, hasHalloweenCandy } from "@/lib/halloweenSpots";
 import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize, getHalloweenCollisionSizes, getHalloweenSpotMapOpacity } from "@/lib/halloweenMapIcons";
 import { getHolidayYardSaleOpacity, isYardSaleHolidayFaded } from "@/lib/holidayMapPriority";
 import HalloweenSpotPopupCard from "@/components/map/HalloweenSpotPopupCard";
@@ -204,9 +204,9 @@ const createIcon = (type, tier, isSelected, location, zoom = 13, halloweenSizeOv
     const halloweenSize = halloweenSizeOverride ?? getHalloweenSpotMapSize(halloweenListing, isSelected, halloweenNow, zoom);
     const iconUrl = getHalloweenSpotIconUrl(halloweenListing, halloweenNow, isSelected);
     const iconOpacity = getHalloweenSpotMapOpacity(halloweenListing, halloweenNow);
-    const candyActive = isHalloweenCandyActive(halloweenListing, halloweenNow);
+    const hasCandy = hasHalloweenCandy(halloweenListing);
     const key = `halloween_${iconUrl}_${halloweenSize}_${iconOpacity}_${isSelected ? "selected" : "default"}`;
-    return getHalloweenIconWithCandyBadge(key, iconUrl, halloweenSize, iconOpacity, candyActive);
+    return getHalloweenIconWithCandyBadge(key, iconUrl, halloweenSize, iconOpacity, hasCandy);
   } else if (type === "holiday_lights") {
     const isGlowing = location &&
     location.display_active &&
