@@ -6,16 +6,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { Heart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { getVendorTierConfig } from "@/lib/vendorTiers";
 
 export default function VendorUpdatesPanel({ account, updates, onRefresh }) {
   const [text, setText] = useState("");
+  const tier = getVendorTierConfig(account?.vendor_tier);
+  const monthlyLimit = tier.postUpdateLimitPerMonth;
+  const now = new Date();
+  const usedThisMonth = updates.filter((item) => {
+    const d = new Date(item.created_date);
+    return !Number.isNaN(d.getTime()) && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+  const canPost = monthlyLimit === null || usedThisMonth < monthlyLimit;
 
   const addUpdate = async () => {
-    if (!text.trim()) return;
-    await base44.entities.VendorUpdate.create({ vendor_account_id: account.id, text: text.trim(), likes: 0, liked_by: [] });
-    setText("");
-    toast.success("Update posted");
-    onRefresh();
+    if (!text.trim() || !canPost) return;
+    try {
+      const response = await base44.functions.invoke("createVendorUpdate", { vendor_account_id: account.id, text: text.trim() });
+      if (response?.data?.error) throw new Error(response.data.error);
+      setText("");
+      toast.success("Update posted");
+      onRefresh();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || error?.message || "Could not post update");
+    }
   };
 
   const deleteUpdate = async (update) => {
@@ -47,7 +61,10 @@ export default function VendorUpdatesPanel({ account, updates, onRefresh }) {
       </CardHeader>
       <CardContent className="space-y-2 sm:space-y-4 p-3 pt-0 sm:p-6 sm:pt-0">
         <Textarea placeholder="Share a short update with customers..." value={text} onChange={(e) => setText(e.target.value)} className="min-h-16 sm:min-h-24" />
-        <Button onClick={addUpdate} className="w-full sm:w-auto bg-[#5DADA5] hover:bg-[#4A9B93] text-white">Post Update</Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-slate-500">{monthlyLimit === null ? "Unlimited updates" : `${usedThisMonth}/${monthlyLimit} updates used this month`}</p>
+          <Button onClick={addUpdate} disabled={!canPost || monthlyLimit === 0} className="w-full sm:w-auto bg-[#5DADA5] hover:bg-[#4A9B93] text-white">Post Update</Button>
+        </div>
         <div className="space-y-3">
           {updates.length === 0 ? (
             <p className="rounded-xl sm:rounded-2xl bg-[#F3E6CF]/70 p-3 sm:p-5 text-xs sm:text-sm text-slate-600">No updates yet. Post news, specials, or where customers can find you next.</p>
