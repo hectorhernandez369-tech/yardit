@@ -302,7 +302,7 @@ export default function ListingDetailPage() {
   useEffect(() => {
     if (listing) {
       const shareTitle = listing.event_name || listing.title;
-      const listingUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing.id}`;
+      const listingUrl = `${window.location.origin}/functions/socialSharePreview?type=listing&id=${encodeURIComponent(listing.id)}`;
       
       const listingImages = (() => {
         const basePhotos = listing?.listingType === "event"
@@ -404,7 +404,7 @@ export default function ListingDetailPage() {
     return (listing?.marquee_flyer_url ? [listing.marquee_flyer_url] : []).concat(basePhotos).filter(Boolean);
   })();
   const mainImage = listing.event_flyer_url || listingImages[selectedImageIndex] || listingImages[0];
-  const listingUrl = `${window.location.origin}${createPageUrl("ListingDetail")}?id=${listing.id}`;
+  const listingUrl = `${window.location.origin}/functions/socialSharePreview?type=listing&id=${encodeURIComponent(listing.id)}`;
   const shareTitle = listing.event_name || listing.title;
   return (
     <div className="min-h-[calc(100vh-140px)] bg-slate-50">
