@@ -34,36 +34,37 @@ function calcDiscount(promo, basePrice) {
 
 const UNLOCK_FEATURES = {
   starter: [
-    "1 Single Event per month included",
-    "Business profile on vendor map",
-    "Vendor check-ins Friday–Sunday",
-    "1 included vendor user",
-    "Like button on profile",
+    "Any-day unlimited check-ins",
+    "1 active vendor pin",
+    "4 public customer updates per month",
+    "Standard local map visibility (zoom 15+)",
+    "Searchable by event organizers",
+    "Event creation available separately as an add-on",
   ],
   pro: [
-    "3 Single Events OR 1 Multi-Field Event per month",
-    "Logo pin on the live map",
-    "Unlimited check-ins any day of the week",
+    "2 active vendor pins",
     "2 included vendor users",
-    "Higher map visibility priority",
-    "Visible across your neighborhood",
+    "Logo pins on the live map",
+    "12 public customer updates per month",
+    "Scheduled future locations",
+    "Notify followers when you go live",
+    "Deals & specials",
+    "Basic vendor analytics",
+    "Higher organizer-search placement",
+    "Neighborhood-wide map visibility (zoom 13+)",
   ],
   growth: [
-    "8 Single Events OR 3 Multi-Field Events per month",
-    "Animated map pin",
-    "2 included truck/location pins",
+    "3 active vendor pins",
     "3 included vendor users",
-    "Premium city-wide visibility",
-    "Extra users & pins available as add-ons",
-  ],
-  event_organizer: [
-    "20 Single Events OR 8 Multi-Field Events per month",
-    "Event Dashboard with full management tools",
-    "Multi-user collaboration (up to 10 users)",
-    "Event collaborator & co-organizer invitations",
-    "5 included truck/location pins",
-    "Animated logo pins & highest map visibility",
-    "Built for recurring organized public events",
+    "Unlimited public customer updates",
+    "Animated logo pins",
+    "Scheduled future locations",
+    "Notify followers when you go live",
+    "Deals & specials",
+    "Advanced vendor analytics",
+    "Featured vendor placement",
+    "Highest organizer-search placement",
+    "City and nearby-area map visibility (zoom 11+)",
   ],
 };
 
@@ -89,7 +90,7 @@ export default function VendorTierReviewPanel({
   const tier = VENDOR_TIERS[targetTierKey];
   const currentTier = VENDOR_TIERS[currentTierKey] || VENDOR_TIERS.free;
   const priceNum = Number(String(tier?.price || "0").replace(/[^0-9.]/g, "")) || 0;
-  const isOrganizer = targetTierKey === "event_organizer";
+  const isOrganizer = false;
 
   const addOnUsersCost = extraUsers * 5;
   const addOnPinsCost = extraPins * 10;
