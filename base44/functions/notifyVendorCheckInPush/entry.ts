@@ -27,11 +27,15 @@ Deno.serve(async (req) => {
     if (!checkIn?.id || !isPublicCheckIn(checkIn)) return Response.json({ skipped: true });
     const vendorRows = await base44.asServiceRole.entities.VendorAccount.filter({ id: checkIn.vendor_account_id });
     const vendor = vendorRows[0] || {};
+    const tier = String(vendor.vendor_tier || 'free');
+    const followerAlertsEnabled = tier === 'pro' || tier === 'growth';
     const users = await base44.asServiceRole.entities.User.list();
     let created = 0;
 
     const globalPrefs = await base44.asServiceRole.entities.NotificationPreference.filter({ vendor_near_me_push_enabled: true });
-    const vendorSubs = await base44.asServiceRole.entities.VendorNotificationSubscription.filter({ vendor_account_id: checkIn.vendor_account_id, subscription_enabled: true });
+    const vendorSubs = followerAlertsEnabled
+      ? await base44.asServiceRole.entities.VendorNotificationSubscription.filter({ vendor_account_id: checkIn.vendor_account_id, subscription_enabled: true })
+      : [];
     const targets = [...vendorSubs.map((s) => ({ user_id: s.user_id, radius: s.radius_miles || 2, mode: 'vendor_subscription', sub: s })), ...globalPrefs.map((p) => ({ user_id: p.user_id, radius: p.vendor_near_me_radius_miles || 2, mode: 'vendor_checkin' }))];
     const seenUsers = new Set();
 
