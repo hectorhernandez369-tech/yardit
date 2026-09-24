@@ -110,14 +110,16 @@ export default function HalloweenSpotDetail() {
   };
 
   const handleShare = async () => {
-    const url = window.location.href;
+    const url = `${window.location.origin}/functions/socialSharePreview?type=halloween&id=${encodeURIComponent(spotId)}`;
     const title = listing?.title || "Halloween Spot on Yardit";
-    const text = spot?.description || `Check out this ${getHalloweenSpotTypeLabel(spot)} on Yardit.`;
+    const text = ["Hey, check out my haunted spot on Yardit!", spot?.description || `Check out this ${getHalloweenSpotTypeLabel(spot)}.`, url]
+      .filter(Boolean)
+      .join("\n\n");
     try {
-      if (navigator.share) await navigator.share({ title, text, url });
+      if (navigator.share) await navigator.share({ title, text });
       else {
-        await navigator.clipboard.writeText(url);
-        toast.success("Link copied");
+        await navigator.clipboard.writeText(text);
+        toast.success("Share text copied");
       }
     } catch (error) {
       if (error?.name !== "AbortError") toast.error("Could not share this spot");
