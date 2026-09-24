@@ -20,7 +20,6 @@ const TIER_TAGLINES = {
   starter: "Simple/basic vendor tools",
   pro: "Most popular for active vendors",
   growth: "Premium business growth",
-  event_organizer: "Built for recurring events",
 };
 
 export default function VendorBillingTab({ account, onRefresh }) {
@@ -99,6 +98,8 @@ export default function VendorBillingTab({ account, onRefresh }) {
       vendor_account_id: account.id,
       target_tier: tierKey,
       return_url: `${window.location.origin}/VendorDashboard?tab=tier`,
+      extra_users_count: reviewAddOns.extraUsers || 0,
+      extra_pins_count: reviewAddOns.extraPins || 0,
     });
     const { checkoutUrl, sessionId } = response?.data || {};
     if (!checkoutUrl) throw new Error("Vendor subscription checkout could not start.");
@@ -212,7 +213,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 px-1">Choose a Plan</p>
         {VENDOR_TIER_ORDER.map((key) => {
           const tier = VENDOR_TIERS[key];
-          const isOrganizer = key === "event_organizer";
+          const isOrganizer = false;
           const isPopular = key === "pro";
           const isCurrent = account?.vendor_tier === key;
           const isSelected = selectedTier === key;
@@ -262,7 +263,7 @@ export default function VendorBillingTab({ account, onRefresh }) {
               {/* Expanded content */}
               {isExpanded && (
                 <CardContent className="px-4 pb-4 pt-0 text-sm text-slate-700 space-y-3 border-t border-slate-100">
-                  <TierFeatureSummary tier={tier} compact={key !== "event_organizer"} />
+                  <TierFeatureSummary tier={tier} compact />
                   {key !== "free" && key !== "starter" && (
                     <p className="text-xs text-slate-500">Extra users: {tier.extraUserPrice} each · Extra pins: {tier.extraPinPrice} each</p>
                   )}
