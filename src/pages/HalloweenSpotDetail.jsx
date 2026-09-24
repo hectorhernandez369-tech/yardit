@@ -110,7 +110,7 @@ export default function HalloweenSpotDetail() {
   };
 
   const handleShare = async () => {
-    const url = window.location.href;
+    const url = `${window.location.origin}/functions/socialSharePreview?type=halloween&id=${encodeURIComponent(spotId)}`;
     const title = listing?.title || "Halloween Spot on Yardit";
     const text = spot?.description || `Check out this ${getHalloweenSpotTypeLabel(spot)} on Yardit.`;
     try {
