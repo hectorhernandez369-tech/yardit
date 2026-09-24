@@ -268,10 +268,11 @@ export default function VendorEventDetail() {
 
   const shareEvent = async () => {
     const url = `${window.location.origin}/functions/socialSharePreview?type=vendor_event&id=${encodeURIComponent(eventId)}`;
-    if (navigator.share) await navigator.share({ title: event.title, text: event.description, url });
+    const text = ["Hey, check out my event on Yardit!", event.description, url].filter(Boolean).join("\n\n");
+    if (navigator.share) await navigator.share({ title: event.title, text });
     else {
-      await navigator.clipboard.writeText(url);
-      toast.success("Event link copied");
+      await navigator.clipboard.writeText(text);
+      toast.success("Share text copied");
     }
   };
 
