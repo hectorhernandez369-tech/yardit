@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { TIER_CONFIG } from "@/lib/tierConfig";
 import { getVendorUsageLimitStatus } from "@/lib/vendorUsage";
+import { getVendorAccountCapabilities } from "@/lib/getVendorAccountCapabilities";
 import TruckLogoEditor from "./TruckLogoEditor";
 import VendorPinScheduleDrawer from "./VendorPinScheduleDrawer";
 
@@ -49,6 +50,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   const hasVendorAccount = !!vendorAccount?.id;
   const vendorTier = vendorAccount?.vendor_tier || "free";
   const tierConfig = TIER_CONFIG[vendorTier] || TIER_CONFIG.free;
+  const vendorCapabilities = getVendorAccountCapabilities(vendorAccount);
   const pinUsageStatus = getVendorUsageLimitStatus({ account: vendorAccount, pins: [] });
   const max_pins = pinUsageStatus.allowed.pins;
 
@@ -262,7 +264,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
                 {canManagePins && (
                   <div className="flex gap-0.5 shrink-0">
                     <Button size="icon" variant="ghost" onClick={() => setSelectedPinHistory(pin)} className="h-8 w-8"><History className="w-3.5 h-3.5" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => setSchedulingPin(pin)} title="Schedule" className="h-8 w-8"><CalendarClock className="w-3.5 h-3.5" /></Button>
+                    {vendorCapabilities.scheduledLocations && <Button size="icon" variant="ghost" onClick={() => setSchedulingPin(pin)} title="Schedule" className="h-8 w-8"><CalendarClock className="w-3.5 h-3.5" /></Button>}
                     <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(pin)} className="h-8 w-8"><Edit2 className="w-3.5 h-3.5" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => handleDeletePin(pin.id)} className="h-8 w-8"><Trash2 className="w-3.5 h-3.5" /></Button>
                   </div>
