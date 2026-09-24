@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calculateMiles } from "@/lib/vendorEvents";
+import { getVendorTierConfig } from "@/lib/vendorTiers";
 
 import { ChevronDown, Mail, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -70,7 +71,14 @@ export default function InviteVendorsModal({ open, onOpenChange, event, organize
       .filter((vendor) => category === "all" || vendor.business_category === category)
       .filter((vendor) => !city || normalizeSearchText(vendor.business_city || vendor.location).includes(normalizeSearchText(city)))
       .filter((vendor) => vendorMatchesSearch(vendor, query))
-      .sort((a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity));
+      .sort((a, b) => {
+        const aBoost = Number(getVendorTierConfig(a.vendor_tier).organizerSearchBoost || 0);
+        const bBoost = Number(getVendorTierConfig(b.vendor_tier).organizerSearchBoost || 0);
+        const distanceDelta = (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity);
+        if (Math.abs(distanceDelta) > 10) return distanceDelta;
+        if (aBoost !== bBoost) return bBoost - aBoost;
+        return distanceDelta;
+      });
   }, [vendors, event, query, radius, onlyActive, onlyVerified, category, city]);
 
   const toggleVendor = (id) => {
