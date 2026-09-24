@@ -6,8 +6,9 @@ import VendorUpdatesPanel from "@/components/vendor/my-page/VendorUpdatesPanel";
 import VendorPublicPreview from "@/components/vendor/my-page/VendorPublicPreview";
 import VendorPhotoGallery from "@/components/vendor/my-page/VendorPhotoGallery";
 import VendorDetailsForm from "@/components/vendor/my-page/VendorDetailsForm";
+import VendorDealsPanel from "@/components/vendor/my-page/VendorDealsPanel";
 
-export default function VendorBusinessPage({ account, pins, checkIns, updates, onRefresh }) {
+export default function VendorBusinessPage({ account, pins, checkIns, updates, deals = [], onRefresh }) {
   const [previewMode, setPreviewMode] = useState(false);
   const detailsFormRef = useRef(null);
 
@@ -24,7 +25,7 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
           </div>
         </div>
         <div className="mx-auto max-w-7xl p-3 pb-32 sm:p-5 sm:pb-28 lg:p-6 lg:pb-28">
-          <VendorPublicPreview account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={onRefresh} />
+          <VendorPublicPreview account={account} pins={pins} checkIns={checkIns} updates={updates} deals={deals} onRefresh={onRefresh} />
         </div>
       </div>
     );
@@ -69,6 +70,7 @@ export default function VendorBusinessPage({ account, pins, checkIns, updates, o
         <VendorActivePinPreview pins={pins} checkIns={checkIns} />
         <VendorPhotoGallery account={account} onRefresh={onRefresh} />
         <VendorUpdatesPanel account={account} updates={updates} onRefresh={onRefresh} />
+        <VendorDealsPanel account={account} deals={deals} onRefresh={onRefresh} />
         <VendorDetailsForm account={account} onRefresh={onRefresh} />
       </div>
     </div>
