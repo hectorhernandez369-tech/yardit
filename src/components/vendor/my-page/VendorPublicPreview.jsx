@@ -39,7 +39,7 @@ function getPublicLikeId() {
   return likeId;
 }
 
-export default function VendorPublicPreview({ account, pins, checkIns, updates, onRefresh }) {
+export default function VendorPublicPreview({ account, pins, checkIns, updates, deals = [], onRefresh }) {
   const [likingIds, setLikingIds] = useState([]);
   const [messageForm, setMessageForm] = useState({ name: "", contact: "", message: "" });
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -125,8 +125,23 @@ export default function VendorPublicPreview({ account, pins, checkIns, updates, 
           ))}
         </div>
 
-        <VendorNotifyButton account={account} />
+        {tier.notifyFollowersWhenLive && <VendorNotifyButton account={account} />}
 
+
+        {deals.some((deal) => deal.status === "active" && (!deal.ends_at || new Date(deal.ends_at) >= new Date())) && (
+          <section>
+            <h3 className="mb-3 text-xl font-black text-[#2C4F4E]">Deals & Specials</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {deals.filter((deal) => deal.status === "active" && (!deal.ends_at || new Date(deal.ends_at) >= new Date())).map((deal) => (
+                <div key={deal.id} className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4">
+                  <p className="text-lg font-black text-[#2C4F4E]">{deal.title}</p>
+                  {deal.description && <p className="mt-1 text-sm text-slate-700">{deal.description}</p>}
+                  {deal.promo_code && <p className="mt-2 inline-block rounded-full bg-white px-3 py-1 text-xs font-bold text-[#2C4F4E]">Code: {deal.promo_code}</p>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section>
           <h3 className="font-bold text-[#2C4F4E] mb-3">Active Location</h3>
