@@ -29,54 +29,21 @@ export function getVendorMonthlyEventUsage(events = [], accountId, monthDate = n
 }
 
 export function getVendorEventPermission({ account, events = [], eventType = "single", startDateTime, excludeEventId = null }) {
-  const tier = getVendorTierConfig(account?.vendor_tier);
-  const status = getVendorUsageLimitStatus({
-    account,
-    events,
-    monthDate: startDateTime ? new Date(startDateTime) : new Date(),
-    excludeEventId,
-  });
-  const bucket = getVendorEventBucket(eventType);
-
-  if (bucket === "single") {
-    const limit = status.allowed.singleEvents;
-    const allowed = status.canCreateSingleEvent;
-    return {
-      allowed,
-      usage: {
-        single: status.used.singleEvents,
-        multifield: status.used.multiFieldEvents,
-        multi_spot: status.used.multiSpotEvents,
-        multi_location: status.used.multiLocationEvents,
-      },
-      limit,
-      bucket,
-      reason: allowed ? "" : `${tier.label} includes ${limit} Single Event${limit === 1 ? "" : "s"} per month. Upgrade or wait until next month to create another Single Event.`,
-      overagePrice: VENDOR_EVENT_OVERAGE_PRICES.single,
-    };
-  }
-
-  const limit = status.allowed.multiFieldEvents;
-  const typeLimit = eventType === "multi_location" ? status.allowed.multiLocationEvents : status.allowed.multiSpotEvents;
-  const typeUsage = eventType === "multi_location" ? status.used.multiLocationEvents : status.used.multiSpotEvents;
-  const allowed = eventType === "multi_location" ? status.canCreateMultiLocationEvent : status.canCreateMultiSpotEvent;
+  const credits = {
+    single: Math.max(0, Number(account?.single_event_credits || 0)),
+    multi_spot: Math.max(0, Number(account?.multi_spot_event_credits || 0)),
+    multi_location: Math.max(0, Number(account?.multi_location_event_credits || 0)),
+  };
+  const available = credits[eventType] || 0;
   return {
-    allowed,
-    usage: {
-      single: status.used.singleEvents,
-      multifield: status.used.multiFieldEvents,
-      multi_spot: status.used.multiSpotEvents,
-      multi_location: status.used.multiLocationEvents,
-    },
-    limit,
-    typeLimit,
-    bucket,
-    reason: allowed ? "" : limit === 0
-      ? `${tier.label} does not include Multi-Spot or Multi-Location Events. Upgrade to Pro or higher.`
-      : typeUsage >= typeLimit
-        ? `${tier.label} includes ${typeLimit} ${formatVendorEventType(eventType)}${typeLimit === 1 ? "" : "s"} per month. Upgrade or wait until next month to create another one.`
-        : `${tier.label} includes ${limit} Multi-Field Event${limit === 1 ? "" : "s"} per month. Upgrade or wait until next month to create another Multi-Field Event.`,
+    allowed: available > 0,
+    usage: getVendorMonthlyEventUsage(events, account?.id, startDateTime ? new Date(startDateTime) : new Date(), excludeEventId),
+    limit: available,
+    typeLimit: available,
+    bucket: getVendorEventBucket(eventType),
+    reason: available > 0 ? "" : "Vendor subscriptions do not include event creation. Purchase an Event Add-on to create this event.",
     overagePrice: VENDOR_EVENT_OVERAGE_PRICES[eventType],
+    eventCredits: credits,
   };
 }
 
@@ -177,35 +144,17 @@ export function isPublishedVendorEvent(event, now = new Date()) {
   return ["active", "coming_soon"].includes(visStatus);
 }
 
-export function getVendorTierDowngradeIssues({ account, events = [], targetTierKey, activePins = [], activeUsers = [] }) {
+export function getVendorTierDowngradeIssues({ account, targetTierKey, activePins = [], activeUsers = [] }) {
   const targetAccount = { ...account, vendor_tier: targetTierKey, extra_pins_count: 0, extra_users_count: 0 };
   const tier = getVendorTierConfig(targetTierKey);
-  const snapshot = getVendorUsageSnapshot({ account: targetAccount, events, pins: activePins, users: activeUsers });
+  const snapshot = getVendorUsageSnapshot({ account: targetAccount, events: [], pins: activePins, users: activeUsers });
   const issues = [];
 
   if (snapshot.used.pins > snapshot.allowed.pins) {
     issues.push(`${tier.label} includes ${snapshot.allowed.pins} active pin${snapshot.allowed.pins === 1 ? "" : "s"}.`);
   }
-
   if (snapshot.used.users > snapshot.allowed.users) {
     issues.push(`${tier.label} includes ${snapshot.allowed.users} authorized user${snapshot.allowed.users === 1 ? "" : "s"}.`);
   }
-
-  if (snapshot.used.singleEvents > snapshot.allowed.singleEvents) {
-    issues.push(`${tier.label} includes ${snapshot.allowed.singleEvents} Single Event${snapshot.allowed.singleEvents === 1 ? "" : "s"} per month.`);
-  }
-
-  if (snapshot.used.multiSpotEvents > snapshot.allowed.multiSpotEvents) {
-    issues.push(`${tier.label} includes ${snapshot.allowed.multiSpotEvents} Multi-Spot Event${snapshot.allowed.multiSpotEvents === 1 ? "" : "s"} per month.`);
-  }
-
-  if (snapshot.used.multiLocationEvents > snapshot.allowed.multiLocationEvents) {
-    issues.push(`${tier.label} includes ${snapshot.allowed.multiLocationEvents} Multi-Location Event${snapshot.allowed.multiLocationEvents === 1 ? "" : "s"} per month.`);
-  }
-
-  if (snapshot.used.multiFieldEvents > snapshot.allowed.multiFieldEvents) {
-    issues.push(`${tier.label} includes ${snapshot.allowed.multiFieldEvents} total Multi-Field Event${snapshot.allowed.multiFieldEvents === 1 ? "" : "s"} per month.`);
-  }
-
   return { allowed: issues.length === 0, issues };
 }
