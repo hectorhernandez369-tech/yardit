@@ -7,11 +7,12 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 });
 
 const VENDOR_TIERS = {
-  starter: { label: 'Starter', amount: 999 },
-  pro: { label: 'Pro', amount: 1999 },
+  starter: { label: 'Starter', amount: 1299 },
+  pro: { label: 'Pro', amount: 2499 },
   growth: { label: 'Growth', amount: 4999 },
-  event_organizer: { label: 'Event Organizer', amount: 9999 },
 };
+const EXTRA_USER_AMOUNT = 500;
+const EXTRA_PIN_AMOUNT = 1000;
 const nowIso = () => new Date().toISOString();
 const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
 
@@ -100,6 +101,8 @@ Deno.serve(async (req) => {
     const cancelUrl = `${returnUrl}${separator}vendorSubscription=cancel`;
     const isUpgrade = account.vendor_tier && account.vendor_tier !== 'free' && account.vendor_tier !== targetTier;
     const transactionType = isUpgrade ? 'vendor_tier_upgrade' : 'vendor_subscription';
+    const extraUsersCount = Math.max(0, Number(body?.extra_users_count || 0));
+    const extraPinsCount = Math.max(0, Number(body?.extra_pins_count || 0));
     const metadata = {
       base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
       purpose: transactionType,
@@ -108,21 +111,33 @@ Deno.serve(async (req) => {
       current_tier: account.vendor_tier || 'free',
       target_tier: targetTier,
       owner_user_id: user.id,
+      extra_users_count: String(extraUsersCount),
+      extra_pins_count: String(extraPinsCount),
     };
+
+    const lineItems = [{
+      price_data: {
+        currency: 'usd',
+        recurring: { interval: 'month' },
+        product_data: { name: `Yardit Vendor ${tierConfig.label}` },
+        unit_amount: tierConfig.amount,
+      },
+      quantity: 1,
+    }];
+    if (extraUsersCount > 0) lineItems.push({
+      price_data: { currency: 'usd', recurring: { interval: 'month' }, product_data: { name: 'Yardit Extra Vendor User' }, unit_amount: EXTRA_USER_AMOUNT },
+      quantity: extraUsersCount,
+    });
+    if (extraPinsCount > 0) lineItems.push({
+      price_data: { currency: 'usd', recurring: { interval: 'month' }, product_data: { name: 'Yardit Extra Vendor Pin' }, unit_amount: EXTRA_PIN_AMOUNT },
+      quantity: extraPinsCount,
+    });
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
       payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: 'usd',
-          recurring: { interval: 'month' },
-          product_data: { name: `Yardit Vendor ${tierConfig.label}` },
-          unit_amount: tierConfig.amount,
-        },
-        quantity: 1,
-      }],
+      line_items: lineItems,
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata,
@@ -142,7 +157,7 @@ Deno.serve(async (req) => {
       yardit_record_type: 'VendorAccount',
       yardit_record_id: vendorAccountId,
       status: 'received',
-      amount_cents: tierConfig.amount,
+      amount_cents: tierConfig.amount + (extraUsersCount * EXTRA_USER_AMOUNT) + (extraPinsCount * EXTRA_PIN_AMOUNT),
       currency: 'usd',
       stripe_checkout_session_id: session.id,
       stripe_customer_id: customerId,

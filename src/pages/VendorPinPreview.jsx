@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { safeBack } from "@/utils";
+import { getVendorAccountCapabilities } from "@/lib/getVendorAccountCapabilities";
 
 const MAX_DISTANCE_METERS = 106.68;
 const TIME_SLOTS = [
@@ -106,7 +107,6 @@ export default function VendorPinPreview() {
   const [iconStyle, setIconStyle] = useState("default");
   const [animationEnabled, setAnimationEnabled] = useState(false);
   const [selectedAnimation, setSelectedAnimation] = useState("pulse");
-  const [upgradingGrowth, setUpgradingGrowth] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -228,9 +228,10 @@ export default function VendorPinPreview() {
   const endTime = useMemo(() => endDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }), [endDate]);
 
   const distanceFeet = gpsLocation && pinLocation ? Math.round(getDistanceMeters(gpsLocation, pinLocation) * 3.28084) : 0;
-  const isGrowthPlan = account?.vendor_tier === "growth";
-  const previewAnimation = isGrowthPlan && animationEnabled ? selectedAnimation : "none";
-  const canUseTruckLogoIcon = !!(pin?.pin_logo_url || pin?.pin_icon_url || account?.business_logo);
+  const capabilities = getVendorAccountCapabilities(account);
+  const isGrowthPlan = capabilities.animation;
+  const previewAnimation = capabilities.animation && animationEnabled ? selectedAnimation : "none";
+  const canUseTruckLogoIcon = capabilities.logoPin && !!(pin?.pin_logo_url || pin?.pin_icon_url || account?.business_logo);
   const previewPin = useMemo(() => ({ ...pin, pin_icon_style: iconStyle }), [pin, iconStyle]);
   const previewIcon = useMemo(() => createPreviewIcon({ pin: previewPin, account, animation: previewAnimation }), [previewPin, account, previewAnimation]);
 
@@ -239,15 +240,6 @@ export default function VendorPinPreview() {
     const clamped = clampToRadius(gpsLocation, next);
     setPinLocation(clamped);
     updatePinWithGeocode(clamped);
-  };
-
-  const upgradeToGrowth = async () => {
-    if (!account?.id) return;
-    setUpgradingGrowth(true);
-    await base44.entities.VendorAccount.update(account.id, { vendor_tier: "growth" });
-    setAccount({ ...account, vendor_tier: "growth" });
-    toast.success("Upgraded to Growth");
-    setUpgradingGrowth(false);
   };
 
   const startCheckIn = async () => {
@@ -270,17 +262,25 @@ export default function VendorPinPreview() {
       status: "live",
     };
 
-    if (pin.pin_icon_style !== iconStyle) {
-      await base44.entities.VendorPin.update(pin.id, { pin_icon_style: iconStyle });
+    try {
+      const response = await base44.functions.invoke("saveVendorCheckIn", {
+        existing_checkin_id: liveExisting ? latestCheckIn.id : null,
+        pin_icon_style: iconStyle,
+        checkin: payload,
+      });
+      if (response?.data?.error) throw new Error(response.data.error);
+      const saved = response?.data?.checkIn;
+      const savedId = saved?.id || (liveExisting ? latestCheckIn.id : null);
+      if (savedId) {
+        await base44.functions.invoke("syncPublicMapRecord", { recordType: "vendor_pin_checkin", recordId: savedId });
+        await base44.functions.invoke("notifyVendorCheckInPush", { checkIn: { ...payload, id: savedId } }).catch(() => {});
+      }
+      toast.success(liveExisting ? "Pin updated" : "Pin location is live");
+      navigate("/VendorDashboard");
+    } catch (error) {
+      toast.error(error?.response?.data?.error || error?.message || "Could not go live");
+      setSaving(false);
     }
-
-    const saved = liveExisting
-      ? await base44.entities.VendorPinCheckIn.update(latestCheckIn.id, payload)
-      : await base44.entities.VendorPinCheckIn.create(payload);
-
-    await base44.functions.invoke("syncPublicMapRecord", { recordType: "vendor_pin_checkin", recordId: liveExisting ? latestCheckIn.id : saved.id });
-    toast.success(liveExisting ? "Pin updated" : "Pin location is live");
-    navigate("/VendorDashboard");
   };
 
   if (loading) {
@@ -351,7 +351,7 @@ export default function VendorPinPreview() {
                 </div>
                 <Switch checked={iconStyle === "truck_logo"} disabled={!canUseTruckLogoIcon} onCheckedChange={(checked) => setIconStyle(checked ? "truck_logo" : "default")} />
               </div>
-              {!canUseTruckLogoIcon && <p className="text-xs text-muted-foreground">Upload a truck logo first to use this option.</p>}
+              {!capabilities.logoPin ? <p className="text-xs text-muted-foreground">Logo pins require Pro or Growth.</p> : !canUseTruckLogoIcon && <p className="text-xs text-muted-foreground">Upload a truck logo first to use this option.</p>}
             </div>
             <div className={`rounded-2xl border p-4 space-y-3 ${!isGrowthPlan ? "bg-slate-100 opacity-70" : ""}`}>
               <div className="flex items-center justify-between gap-3">
@@ -362,9 +362,7 @@ export default function VendorPinPreview() {
                 <Switch checked={animationEnabled} disabled={!isGrowthPlan} onCheckedChange={setAnimationEnabled} />
               </div>
               {!isGrowthPlan ? (
-                <Button type="button" onClick={upgradeToGrowth} disabled={upgradingGrowth} className="w-full rounded-xl bg-[#F4A849] hover:bg-[#E39635] text-[#2C4F4E]">
-                  {upgradingGrowth ? "Upgrading..." : "Upgrade to Growth"}
-                </Button>
+                <p className="text-xs text-slate-600">Animated pins require the Growth plan. Upgrade from Plan & Billing.</p>
               ) : animationEnabled && (
                 <div className="grid grid-cols-2 gap-2">
                   <Button type="button" variant={selectedAnimation === "pulse" ? "default" : "outline"} onClick={() => setSelectedAnimation("pulse")} className="rounded-xl">Pulsing icon</Button>

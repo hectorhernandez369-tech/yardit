@@ -1,10 +1,12 @@
+import { getVendorTierConfig } from "@/lib/vendorTiers";
 import L from "leaflet";
 
 const cache = {};
 
 export function getVendorMarkerIcon({ pin, account, checkIn, selected = false }) {
   const tier = account?.vendor_tier || "free";
-  const image = tier !== "free" && pin?.pin_icon_style === "truck_logo" ? (pin?.pin_logo_url || pin?.pin_icon_url || account?.business_logo) : null;
+  const tierConfig = getVendorTierConfig(tier);
+  const image = tierConfig.logoPin && pin?.pin_icon_style === "truck_logo" ? (pin?.pin_logo_url || pin?.pin_icon_url || account?.business_logo) : null;
   const size = selected ? 38 : 32;
   const animation = tier === "growth" ? checkIn?.pin_animation : "none";
   const animationCss = animation === "bounce" ? "animation:vendorBounce 1.2s ease-in-out infinite;" : animation === "pulse" ? "animation:vendorPulse 1.6s ease-in-out infinite;" : "";
@@ -28,9 +30,5 @@ export function getVendorMarkerIcon({ pin, account, checkIn, selected = false })
 }
 
 export function shouldShowVendorPinAtZoom(account, zoom) {
-  const tier = account?.vendor_tier || "free";
-  if (tier === "growth") return zoom >= 11;
-  if (tier === "pro") return zoom >= 13;
-  if (tier === "starter") return zoom >= 15;
-  return zoom >= 16;
+  return zoom >= getVendorTierConfig(account?.vendor_tier || "free").mapZoom;
 }

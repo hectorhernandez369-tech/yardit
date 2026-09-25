@@ -9,7 +9,7 @@ const tiers = VENDOR_TIER_ORDER.filter((tier) => tier !== "free").map((id) => ({
 
 export default function TierSelector({ currentTier, onSelect, isSaving }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       {tiers.map((tier) => {
         const active = currentTier === tier.id;
         return (
@@ -18,10 +18,10 @@ export default function TierSelector({ currentTier, onSelect, isSaving }) {
               <div className="flex items-center justify-between gap-2">
                 <h3 className="font-bold text-lg">{tier.label}</h3>
                 {tier.id === "pro" && <Badge className="bg-[#F4A849] text-[#2C4F4E]">Most Popular</Badge>}
-                {tier.id === "event_organizer" && <Badge className="bg-blue-600 text-white">Organizer</Badge>}
+                
               </div>
               <p className="text-2xl font-bold text-[#2C4F4E]">{tier.price.replace("/month", "/mo")}</p>
-              <p className="text-sm text-muted-foreground">{tier.id === "event_organizer" ? "Built for recurring events" : tier.eventAccessLabel}</p>
+              <p className="text-sm text-muted-foreground">{tier.eventAccessLabel}</p>
               <TierFeatureSummary tier={tier} compact />
               <Button disabled={isSaving || active} onClick={() => onSelect(tier.id)} className="w-full rounded-xl">
                 {active ? "Current Tier" : "Choose Tier"}

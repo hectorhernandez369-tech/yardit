@@ -61,19 +61,26 @@ export default function VendorPinScheduleDrawer({ open, onOpenChange, pin, user,
       return;
     }
     setSaving(true);
-    await base44.entities.VendorPin.update(pin.id, {
-      scheduled_date: form.scheduled_date || null,
-      scheduled_start_time: form.scheduled_start_time || null,
-      scheduled_end_time: form.scheduled_end_time || null,
-      recurring_schedule: normalizeRecurringSchedule(form.recurring_schedule),
-      scheduled_location_label: form.scheduled_location_label,
-      scheduled_lat: form.scheduled_lat ? Number(form.scheduled_lat) : null,
-      scheduled_lng: form.scheduled_lng ? Number(form.scheduled_lng) : null,
-      schedule_status: form.schedule_status,
-      schedule_notes: form.schedule_notes,
-      scheduled_by_user_id: user?.id || "",
-      scheduled_by_name: user?.full_name || user?.email || "",
+    const response = await base44.functions.invoke("saveVendorPinSchedule", {
+      action: "save",
+      pin_id: pin.id,
+      schedule: {
+        scheduled_date: form.scheduled_date || null,
+        scheduled_start_time: form.scheduled_start_time || null,
+        scheduled_end_time: form.scheduled_end_time || null,
+        recurring_schedule: normalizeRecurringSchedule(form.recurring_schedule),
+        scheduled_location_label: form.scheduled_location_label,
+        scheduled_lat: form.scheduled_lat || null,
+        scheduled_lng: form.scheduled_lng || null,
+        schedule_status: form.schedule_status,
+        schedule_notes: form.schedule_notes,
+      },
     });
+    if (response?.data?.error) {
+      setSaving(false);
+      toast.error(response.data.error);
+      return;
+    }
     setSaving(false);
     toast.success("Schedule saved.");
     onSaved?.();
@@ -82,19 +89,7 @@ export default function VendorPinScheduleDrawer({ open, onOpenChange, pin, user,
 
   const handleClear = async () => {
     setSaving(true);
-    await base44.entities.VendorPin.update(pin.id, {
-      scheduled_date: null,
-      scheduled_start_time: null,
-      scheduled_end_time: null,
-      recurring_schedule: [],
-      scheduled_location_label: null,
-      scheduled_lat: null,
-      scheduled_lng: null,
-      schedule_status: "draft",
-      schedule_notes: null,
-      scheduled_by_user_id: null,
-      scheduled_by_name: null,
-    });
+    await base44.functions.invoke("saveVendorPinSchedule", { action: "clear", pin_id: pin.id });
     setSaving(false);
     toast.success("Schedule cleared.");
     onSaved?.();

@@ -38,6 +38,13 @@ export default function VendorPublicPage() {
     initialData: [],
   });
 
+  const { data: deals = [] } = useQuery({
+    queryKey: ["publicVendorDeals", account?.id],
+    queryFn: () => base44.entities.VendorDeal.filter({ vendor_account_id: account.id, status: "active" }, "-created_date"),
+    enabled: !!account?.id,
+    initialData: [],
+  });
+
   const { data: updates = [], refetch: refetchUpdates } = useQuery({
     queryKey: ["publicVendorUpdates", account?.id],
     queryFn: () => base44.entities.VendorUpdate.filter({ vendor_account_id: account.id }, "-created_date"),
@@ -63,7 +70,7 @@ export default function VendorPublicPage() {
       <Button variant="ghost" onClick={() => safeBack(navigate, "/VendorDashboard")} className="mb-3 gap-2 text-[#2C4F4E]">
         <ArrowLeft className="h-4 w-4" /> Back
       </Button>
-      <VendorPublicPreview account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refetchUpdates} />
+      <VendorPublicPreview account={account} pins={pins} checkIns={checkIns} updates={updates} deals={deals} onRefresh={refetchUpdates} />
     </div>
   );
 }
