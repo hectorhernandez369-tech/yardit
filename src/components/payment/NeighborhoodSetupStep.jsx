@@ -5,7 +5,7 @@ import { AlertCircle, CreditCard } from "lucide-react";
 import NeighborhoodFallbackChoice from "./NeighborhoodFallbackChoice";
 import { FALLBACK_ACTION_PREMIUM } from "@/lib/neighborhoodFallback";
 
-export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBack, onSetup, formData, setFormData, user }) {
+export default function NeighborhoodSetupStep({ isProcessing, errorMessage, retryPayment = false, onBack, onSetup, formData, setFormData, user }) {
   const [nonRefundAcknowledged, setNonRefundAcknowledged] = useState(false);
   const nonRefundDisclosure = "I understand Neighborhood Sale charges are non-refundable once Yardit charges my saved payment method after the event commitment/lock rules are met.";
 
@@ -71,7 +71,7 @@ export default function NeighborhoodSetupStep({ isProcessing, errorMessage, onBa
           disabled={isProcessing || !nonRefundAcknowledged || !fallbackReady}
           className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
         >
-          {isProcessing ? "Starting Setup..." : "Add Payment Method"}
+          {isProcessing ? "Opening Stripe..." : retryPayment ? "Retry Payment" : "Add Payment Method"}
         </Button>
       </div>
     </div>
