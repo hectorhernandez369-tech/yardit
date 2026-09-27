@@ -185,6 +185,7 @@ export default function CreateListingPage() {
   const [geocodeRef, setGeocodeRef] = useState(null);
   const [isStartingPayment, setIsStartingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [paymentRetryReady, setPaymentRetryReady] = useState(false);
   const [demoPaymentRequest, setDemoPaymentRequest] = useState(null);
   const handledCheckoutSessionRef = useRef(null);
   const handledNeighborhoodSetupSessionRef = useRef(null);
@@ -842,6 +843,7 @@ export default function CreateListingPage() {
 
     try {
       setPaymentError("");
+      setPaymentRetryReady(false);
       setIsStartingPayment(true);
       const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
       const earlyVisibilityFields = buildPromoEarlyVisibilityFields(promoResult);
@@ -900,6 +902,14 @@ export default function CreateListingPage() {
       const sessionId = response?.data?.sessionId;
       console.log("Stripe checkout URL/session returned", { checkoutUrl, sessionId });
 
+      if (sessionId) {
+        localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({
+          formData: checkoutFormData,
+          session_id: sessionId,
+          checkout_started_at: new Date().toISOString(),
+        }));
+      }
+
       if (!checkoutUrl) {
         throw new Error("Payment checkout could not start.");
       }
@@ -945,6 +955,7 @@ export default function CreateListingPage() {
 
     try {
       setPaymentError("");
+      setPaymentRetryReady(false);
       setIsStartingPayment(true);
       const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
       localStorage.setItem(NEIGHBORHOOD_SETUP_KEY, JSON.stringify({ formData: { ...sourceFormData, ...nonRefundFields } }));
@@ -960,6 +971,14 @@ export default function CreateListingPage() {
       });
 
       const checkoutUrl = response?.data?.checkoutUrl;
+      const setupSessionId = response?.data?.sessionId || response?.data?.session_id || "";
+      if (setupSessionId) {
+        localStorage.setItem(NEIGHBORHOOD_SETUP_KEY, JSON.stringify({
+          formData: { ...sourceFormData, ...nonRefundFields },
+          session_id: setupSessionId,
+          checkout_started_at: new Date().toISOString(),
+        }));
+      }
       if (!checkoutUrl) {
         throw new Error("Payment method setup could not start.");
       }
@@ -2220,7 +2239,10 @@ export default function CreateListingPage() {
       if (!stored?.formData) return;
 
       recoveringPaidCheckoutRef.current = true;
-      base44.functions.invoke("residentialStripeCheckout", { action: "recover_paid_checkout" }).then(async (response) => {
+      base44.functions.invoke("residentialStripeCheckout", {
+        action: "recover_paid_checkout",
+        session_id: stored.session_id || "",
+      }).then(async (response) => {
         if (response?.data?.stripe_paid && response?.data?.session_id) {
           if (stored.formData?.listingType === "yard_sale" && stored.formData?.selectedRangeStartDate) {
             const conflict = await checkDateConflictLive(stored.formData.selectedRangeStartDate, stored.formData.selectedRangeEndDate);
@@ -2231,6 +2253,7 @@ export default function CreateListingPage() {
               return;
             }
           }
+          setPaymentRetryReady(false);
           toast.success("Payment found — creating your listing now.");
           executeSubmit("paid_success_pending_link", normalizeResidentialEventSingleDay({
             ...stored.formData,
@@ -2238,9 +2261,21 @@ export default function CreateListingPage() {
             payment_intent_status: "hold_requested",
           }));
         } else {
+          const restoredFormData = normalizeResidentialEventSingleDay(stored.formData);
+          setFormData(restoredFormData);
+          setStep(restoredFormData?.listingType === "event" ? 5 : 4);
+          setIsStartingPayment(false);
+          setPaymentRetryReady(true);
+          setPaymentError("Checkout was not completed. Tap Retry Payment to open a new secure Stripe checkout.");
           recoveringPaidCheckoutRef.current = false;
         }
       }).catch(() => {
+        const restoredFormData = normalizeResidentialEventSingleDay(stored.formData);
+        setFormData(restoredFormData);
+        setStep(restoredFormData?.listingType === "event" ? 5 : 4);
+        setIsStartingPayment(false);
+        setPaymentRetryReady(true);
+        setPaymentError("Checkout was interrupted. Tap Retry Payment to reopen Stripe.");
         recoveringPaidCheckoutRef.current = false;
       });
     } catch {
@@ -2337,14 +2372,14 @@ export default function CreateListingPage() {
 
       if (paymentState === "cancel") {
         console.log("Return from Stripe cancel");
-        const draftStep = stored.formData?.listingType === "event" ? 5 : 4;
-        saveBackedOutDraft(stored.formData, draftStep).finally(() => {
-          localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
-          setIsStartingPayment(false);
-          setPaymentError("Payment was canceled. Your draft was saved.");
-          toast.error("Payment was canceled. Your draft was saved in My Listings.");
-          navigate(createPageUrl("MyListings") + "?tab=drafts");
-        });
+        const restoredFormData = normalizeResidentialEventSingleDay(stored.formData);
+        const draftStep = restoredFormData?.listingType === "event" ? 5 : 4;
+        setFormData(restoredFormData);
+        setStep(draftStep);
+        setIsStartingPayment(false);
+        setPaymentRetryReady(true);
+        setPaymentError("Payment was canceled. Tap Retry Payment to reopen Stripe. Your draft is still saved.");
+        saveBackedOutDraft(restoredFormData, draftStep).catch(() => {});
         return;
       }
 
@@ -2369,6 +2404,7 @@ export default function CreateListingPage() {
               }
             }
             setPaymentError("");
+            setPaymentRetryReady(false);
             toast.success(response?.data?.paid ? "Payment successful." : "Payment received — creating your listing now.");
             executeSubmit("paid_success_pending_link", normalizeResidentialEventSingleDay({
               ...stored.formData,
@@ -2391,6 +2427,58 @@ export default function CreateListingPage() {
       localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
     }
   }, [location.search, user?.id]);
+
+  useEffect(() => {
+    const handlePageShow = async () => {
+      setIsStartingPayment(false);
+
+      const rawPaid = localStorage.getItem(PAID_LISTING_CHECKOUT_KEY);
+      if (rawPaid) {
+        try {
+          const stored = JSON.parse(rawPaid);
+          if (stored?.formData) {
+            const restoredFormData = normalizeResidentialEventSingleDay(stored.formData);
+            const currentParams = new URLSearchParams(window.location.search);
+            if (!currentParams.get("payment")) {
+              if (stored.session_id) {
+                try {
+                  const response = await base44.functions.invoke("residentialStripeCheckout", {
+                    action: "recover_paid_checkout",
+                    session_id: stored.session_id,
+                  });
+                  if (response?.data?.stripe_paid && response?.data?.session_id) {
+                    window.location.replace(`${createPageUrl("CreateListing")}?payment=success&session_id=${encodeURIComponent(response.data.session_id)}`);
+                    return;
+                  }
+                } catch {}
+              }
+              setFormData(restoredFormData);
+              setStep(restoredFormData?.listingType === "event" ? 5 : 4);
+              setPaymentRetryReady(true);
+              setPaymentError("Checkout was not completed. Tap Retry Payment to reopen Stripe.");
+            }
+          }
+        } catch {}
+      }
+
+      const rawSetup = localStorage.getItem(NEIGHBORHOOD_SETUP_KEY);
+      if (rawSetup) {
+        try {
+          const stored = JSON.parse(rawSetup);
+          const currentParams = new URLSearchParams(window.location.search);
+          if (stored?.formData && !currentParams.get("neighborhoodSetup")) {
+            setFormData(stored.formData);
+            setStep(4);
+            setPaymentRetryReady(true);
+            setPaymentError("Stripe payment setup was not completed. Tap Retry Payment to reopen Stripe.");
+          }
+        } catch {}
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
 
   if (!user) {
     return <div className="p-8 text-center">Loading...</div>;
@@ -2528,6 +2616,7 @@ export default function CreateListingPage() {
                 isAdminDemoMode={isAdminDemoMode}
                 isStartingPayment={isStartingPayment}
                 paymentError={paymentError}
+                paymentRetryReady={paymentRetryReady}
                 setPaymentError={setPaymentError}
                 setStep={setStep}
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
@@ -2562,6 +2651,7 @@ export default function CreateListingPage() {
                 setSelectedUserForAdmin={setSelectedUserForAdmin}
                 isStartingPayment={isStartingPayment}
                 paymentError={paymentError}
+                paymentRetryReady={paymentRetryReady}
                 setPaymentError={setPaymentError}
                 setStep={setStep}
                 handleNeighborhoodSetupSubmit={handleNeighborhoodSetupSubmit}
