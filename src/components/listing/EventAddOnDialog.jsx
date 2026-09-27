@@ -93,8 +93,7 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
 
     try {
       setIsStartingPayment(true);
-      localStorage.setItem(CHECKOUT_KEY, JSON.stringify({ listingId: listing.id, targetTier: listing.event_tier || listing.tier || "event", purchaseType: "event_add_on" }));
-      const response = await base44.functions.invoke("createListingUpgradeCheckout", {
+      const checkoutRequest = {
         action: "create",
         listing_id: listing.id,
         target_tier: listing.event_tier || listing.tier || "event",
@@ -105,8 +104,12 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
         customer_email: user?.email,
         amount_cents: amountDue,
         return_url: `${window.location.origin}/CreateListingUpgradeReturn`,
-      });
+      };
+      localStorage.setItem(CHECKOUT_KEY, JSON.stringify({ listingId: listing.id, targetTier: listing.event_tier || listing.tier || "event", purchaseType: "event_add_on", checkoutRequest }));
+      const response = await base44.functions.invoke("createListingUpgradeCheckout", checkoutRequest);
       const checkoutUrl = response?.data?.checkoutUrl;
+      const sessionId = response?.data?.sessionId || "";
+      localStorage.setItem(CHECKOUT_KEY, JSON.stringify({ listingId: listing.id, targetTier: listing.event_tier || listing.tier || "event", purchaseType: "event_add_on", checkoutRequest, sessionId }));
       if (!checkoutUrl) throw new Error("Add-on checkout could not start.");
       window.location.assign(checkoutUrl);
     } catch (error) {
