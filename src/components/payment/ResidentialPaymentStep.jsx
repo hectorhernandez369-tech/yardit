@@ -10,6 +10,7 @@ export default function ResidentialPaymentStep({
   isDemoMode,
   isProcessing,
   errorMessage,
+  retryPayment = false,
   onBack,
   onPay,
   user,
@@ -31,7 +32,9 @@ export default function ResidentialPaymentStep({
   const finalAmount = promoResult ? promoResult.finalAmount : amount;
   const continueLabel = finalAmount === 0
     ? "Complete — Free with Promo"
-    : "Continue to Stripe";
+    : retryPayment
+      ? "Retry Payment"
+      : "Continue to Stripe";
 
   // Build promoResult in dollar terms for display
   const promoResultForDisplay = promoResult ? {
