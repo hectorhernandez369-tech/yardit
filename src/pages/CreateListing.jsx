@@ -2671,6 +2671,7 @@ export default function CreateListingPage() {
                 isAdminDemoMode={isAdminDemoMode}
                 isStartingPayment={isStartingPayment}
                 paymentError={paymentError}
+                paymentRetryReady={paymentRetryReady}
                 setPaymentError={setPaymentError}
                 setStep={setStep}
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
