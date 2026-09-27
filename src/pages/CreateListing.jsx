@@ -2302,13 +2302,12 @@ export default function CreateListingPage() {
       window.history.replaceState({}, "", createPageUrl("CreateListing"));
 
       if (setupState === "cancel") {
-        saveBackedOutDraft(stored.formData, 4).finally(() => {
-          localStorage.removeItem(NEIGHBORHOOD_SETUP_KEY);
-          setIsStartingPayment(false);
-          setPaymentError("Payment method setup was canceled. Your draft was saved.");
-          toast.error("Payment method setup was canceled. Your draft was saved in My Listings.");
-          navigate(createPageUrl("MyListings") + "?tab=drafts");
-        });
+        setFormData(stored.formData);
+        setStep(4);
+        setIsStartingPayment(false);
+        setPaymentRetryReady(true);
+        setPaymentError("Payment setup was canceled. Tap Retry Payment to reopen Stripe. Your draft is still saved.");
+        saveBackedOutDraft(stored.formData, 4).catch(() => {});
         return;
       }
 
