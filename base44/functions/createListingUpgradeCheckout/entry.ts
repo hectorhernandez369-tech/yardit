@@ -266,7 +266,6 @@ Deno.serve(async (req) => {
         payment_intent_status: 'hold_requested',
       }
       : {
-        status: 'payment_pending_adjustment',
         pending_upgrade_tier: targetTier,
         pending_upgrade_checkout_session_id: session.id,
         payment_intent_status: 'hold_requested',
