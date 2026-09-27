@@ -847,7 +847,12 @@ export default function CreateListingPage() {
       setIsStartingPayment(true);
       const nonRefundFields = buildNonRefundFields(nonRefundAcknowledgement);
       const earlyVisibilityFields = buildPromoEarlyVisibilityFields(promoResult);
-      const checkoutFormData = normalizeResidentialEventSingleDay({ ...formData, ...nonRefundFields, ...earlyVisibilityFields });
+      const checkoutFormData = normalizeResidentialEventSingleDay({
+        ...formData,
+        ...nonRefundFields,
+        ...earlyVisibilityFields,
+        discovery_promo_code: promoResult?.promoCode?.code || formData.discovery_promo_code || "",
+      });
       setFormData(checkoutFormData);
       localStorage.setItem(PAID_LISTING_CHECKOUT_KEY, JSON.stringify({ formData: checkoutFormData }));
 
