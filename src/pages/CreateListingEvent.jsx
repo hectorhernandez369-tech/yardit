@@ -19,6 +19,7 @@ export default function CreateListingEvent({
   isGlobalDemoMode,
   isStartingPayment,
   paymentError,
+  paymentRetryReady,
   setPaymentError,
   createListingPending,
   handleNext,
@@ -59,6 +60,7 @@ export default function CreateListingEvent({
             isDemoMode={isGlobalDemoMode}
             isProcessing={isStartingPayment}
             errorMessage={paymentError}
+            retryPayment={paymentRetryReady}
             onBack={() => {
               setPaymentError("");
               setStep(4);
