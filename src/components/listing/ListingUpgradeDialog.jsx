@@ -83,13 +83,8 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
 
     try {
       setIsStartingPayment(true);
-      localStorage.setItem(UPGRADE_CHECKOUT_KEY, JSON.stringify({
-        listingId: listing.id,
-        targetTier: selectedTier,
-      }));
-
       const returnUrl = `${window.location.origin}/CreateListingUpgradeReturn`;
-      const response = await base44.functions.invoke("createListingUpgradeCheckout", {
+      const checkoutRequest = {
         action: "create",
         listing_id: listing.id,
         target_tier: selectedTier,
@@ -102,9 +97,24 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
         non_refund_acknowledged_at: nonRefundAcknowledgement?.acknowledged_at || "",
         non_refund_acknowledged_by_user_id: user?.id || "",
         non_refund_disclosure_text: nonRefundAcknowledgement?.disclosure_text || "",
-      });
+      };
+      localStorage.setItem(UPGRADE_CHECKOUT_KEY, JSON.stringify({
+        listingId: listing.id,
+        targetTier: selectedTier,
+        purchaseType: "listing_upgrade",
+        checkoutRequest,
+      }));
 
+      const response = await base44.functions.invoke("createListingUpgradeCheckout", checkoutRequest);
       const checkoutUrl = response?.data?.checkoutUrl;
+      const sessionId = response?.data?.sessionId || "";
+      localStorage.setItem(UPGRADE_CHECKOUT_KEY, JSON.stringify({
+        listingId: listing.id,
+        targetTier: selectedTier,
+        purchaseType: "listing_upgrade",
+        checkoutRequest,
+        sessionId,
+      }));
       if (!checkoutUrl) {
         throw new Error("Upgrade checkout could not start.");
       }
