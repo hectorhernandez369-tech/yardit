@@ -17,6 +17,7 @@ export default function CreateListingNeighborhood({
   setSelectedUserForAdmin,
   isStartingPayment,
   paymentError,
+  paymentRetryReady,
   setPaymentError,
   setStep,
   handleNeighborhoodSetupSubmit,
@@ -42,6 +43,7 @@ export default function CreateListingNeighborhood({
       <NeighborhoodSetupStep
         isProcessing={isStartingPayment}
         errorMessage={paymentError}
+        retryPayment={paymentRetryReady}
         onBack={() => {
           setPaymentError("");
           setStep(3);

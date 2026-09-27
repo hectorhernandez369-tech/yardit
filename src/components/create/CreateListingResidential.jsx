@@ -18,6 +18,7 @@ export default function CreateListingResidential({
   isAdminDemoMode,
   isStartingPayment,
   paymentError,
+  paymentRetryReady,
   setPaymentError,
   setStep,
   handlePaymentStepSubmit,
@@ -58,6 +59,7 @@ export default function CreateListingResidential({
         isDemoMode={isAdminDemoMode}
         isProcessing={isStartingPayment}
         errorMessage={paymentError}
+        retryPayment={paymentRetryReady}
         user={user}
         onBack={() => {
           setPaymentError("");
