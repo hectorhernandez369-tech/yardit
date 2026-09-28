@@ -11,6 +11,7 @@ export default function CreateListingEvent({
   step,
   formData,
   setFormData,
+  user,
   isAdminCreate,
   selectedUserForAdmin,
   setSelectedUserForAdmin,
@@ -36,7 +37,7 @@ export default function CreateListingEvent({
   }
 
   if (step === 4) {
-    return <EventAddOnsStep formData={formData} setFormData={setFormData} />;
+    return <EventAddOnsStep formData={formData} setFormData={setFormData} user={user} />;
   }
 
   if (step === 5) {
