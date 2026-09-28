@@ -199,6 +199,44 @@ Deno.serve(async (req) => {
       throw error;
     }
 
+    const usersByStreet = await base44.asServiceRole.entities.User.filter({
+      street_address: addressText,
+      city,
+      state,
+      zip_code: zip,
+    }).catch(() => []);
+
+    const matchingUsers = (usersByStreet || []).filter((candidate) => {
+      const coords = verifiedUserCoordinates(candidate);
+      return !!coords;
+    });
+
+    for (const matchingUser of matchingUsers) {
+      const dedupeKey = `halloween_assisted_approval_${assisted.id}_${matchingUser.id}`;
+      await base44.asServiceRole.functions.invoke('deliverNotificationPush', {
+        data: {
+          user_id: matchingUser.id,
+          userId: matchingUser.id,
+          title: 'Your spooky house was added to Yardit 🎃',
+          message: 'Review and approve your free Halloween icon.',
+          type: 'halloween_assisted_approval',
+          related_entity_type: 'AssistedHalloweenSpot',
+          related_entity_id: assisted.id,
+          delivery_methods: ['push', 'bell'],
+          deep_link: approvalUrl,
+          dedupe_key: dedupeKey,
+          registry_status: 'active',
+          registry_version: '2026-09-28',
+          metadata: {
+            dedupe_key: dedupeKey,
+            url: approvalUrl,
+            location_id: location.id,
+            assisted_halloween_spot_id: assisted.id,
+          },
+        },
+      }).catch(() => {});
+    }
+
     await base44.asServiceRole.entities.AdminAuditLog.create({
       user_id: user.id,
       admin_employee_id: adminProfile?.employee_id || user.email || user.id,
@@ -219,6 +257,7 @@ Deno.serve(async (req) => {
       expiresAt: expiresAt.toISOString(),
       saleFormattedAddress: fullAddress,
       title: location.title,
+      matchedExistingUsers: matchingUsers.length,
     });
   } catch (error) {
     console.error('createAssistedHalloweenSpot error:', error?.message || error);
