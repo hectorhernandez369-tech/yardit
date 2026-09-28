@@ -79,6 +79,10 @@ Deno.serve(async (req) => {
       if (assisted.assisted_status !== 'assisted_active_unclaimed') {
         return Response.json({ error: 'The homeowner must approve this Halloween Spot before it can be claimed.', status: 'error' }, { status: 400 });
       }
+      const verification = await verifyClaimAddress(base44, claimUserId, spot);
+      if (!verification.ok) {
+        return Response.json({ status: verification.status, error: verification.error, spot, assisted });
+      }
       const now = new Date().toISOString();
       await base44.asServiceRole.entities.Location.update(spot.id, {
         owner_user_id: claimUserId,
@@ -109,18 +113,29 @@ Deno.serve(async (req) => {
 
     if (action === 'approve') {
       const now = new Date().toISOString();
-      const isClaiming = !!claimUserId;
+      let verifiedClaim = false;
+      let verification = null;
+      if (claimUserId) {
+        verification = await verifyClaimAddress(base44, claimUserId, spot);
+        verifiedClaim = verification.ok === true;
+      }
       await base44.asServiceRole.entities.Location.update(spot.id, {
         status: 'active',
-        ...(isClaiming ? { owner_user_id: claimUserId, ownership_claimed_at: now } : {}),
+        ...(verifiedClaim ? { owner_user_id: claimUserId, ownership_claimed_at: now } : {}),
       });
       const updatedAssisted = await base44.asServiceRole.entities.AssistedHalloweenSpot.update(assisted.id, {
-        assisted_status: isClaiming ? 'claimed_active' : 'assisted_active_unclaimed',
+        assisted_status: verifiedClaim ? 'claimed_active' : 'assisted_active_unclaimed',
         owner_approved_at: now,
-        ...(isClaiming ? { claimed_by_user_id: claimUserId, claimed_at: now } : {}),
+        ...(verifiedClaim ? { claimed_by_user_id: claimUserId, claimed_at: now } : {}),
       });
       const updatedSpot = (await base44.asServiceRole.entities.Location.filter({ id: spot.id }))[0] || spot;
-      return Response.json({ status: isClaiming ? 'claimed' : 'approved', spot: updatedSpot, assisted: updatedAssisted });
+      return Response.json({
+        status: verifiedClaim ? 'claimed' : 'approved',
+        spot: updatedSpot,
+        assisted: updatedAssisted,
+        claim_status: verification && !verification.ok ? verification.status : undefined,
+        claim_error: verification && !verification.ok ? verification.error : undefined,
+      });
     }
 
     if (action === 'decline') {
