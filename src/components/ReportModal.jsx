@@ -302,12 +302,8 @@ export default function ReportModal({ listingId, targetType = "listing", onClose
         // Secondary step only — should not fail the whole report
         try {
           if (targetType === "location") {
-            const locations = await base44.entities.Location.filter({ id: listingId });
-            if (locations?.[0]) {
-              await base44.entities.Location.update(listingId, {
-                safety_warning: locations[0].safety_warning || false,
-              });
-            }
+            // The report record is sufficient for seasonal locations; moderation changes
+            // are handled by protected admin/server actions.
           } else {
             const listings = await base44.entities.Listing.filter({ id: listingId });
             if (listings?.[0]) {
