@@ -97,6 +97,7 @@ const AuthenticatedApp = () => {
       <Route path="/auth-debug" element={<AuthDebug />} />
       <Route path="/halloween" element={<HalloweenClaimLanding />} />
       <Route path="/spooky" element={<HalloweenClaimLanding />} />
+      <Route path="/spooky" element={<HalloweenClaimLanding />} />
       <Route path="/Halloween" element={<HalloweenClaimLanding />} />
       <Route path="/assisted-halloween" element={<AssistedHalloweenApproval />} />
       <Route path="/assisted-listing" element={<AssistedListingApproval />} />
@@ -136,6 +137,7 @@ const AuthenticatedApp = () => {
     <Route path="/auth-debug" element={<AuthDebug />} />
     <Route path="/assisted-listing" element={<AssistedListingApproval />} />
     <Route path="/halloween" element={<HalloweenClaimLanding />} />
+      <Route path="/spooky" element={<HalloweenClaimLanding />} />
       <Route path="/spooky" element={<HalloweenClaimLanding />} />
       <Route path="/Halloween" element={<HalloweenClaimLanding />} />
       <Route path="/assisted-halloween" element={<AssistedHalloweenApproval />} />
