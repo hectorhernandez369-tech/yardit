@@ -204,6 +204,21 @@ export default function AssistedHalloweenApproval() {
           </div>
         )}
 
+        {status === "needs_verification" && spot && (
+          <div className="space-y-4">
+            <div className="rounded-2xl bg-orange-500/10 border border-orange-300/30 p-5 text-center">
+              <div className="text-4xl">🏠🎃</div>
+              <h1 className="mt-2 text-xl font-black">One quick step to claim your spooky house</h1>
+              <p className="text-sm text-slate-300 mt-2">Confirm your Yardit home address below. It must match this Halloween Spot before edit access is transferred.</p>
+              {error && <p className="mt-2 text-xs font-semibold text-orange-200">{error}</p>}
+            </div>
+            <div className="rounded-2xl bg-white p-1 text-slate-900">
+              <SetupAddressVerification user={claimUser} isVerified={false} onVerified={verifyAndClaim} />
+            </div>
+            {acting && <div className="flex items-center justify-center gap-2 text-sm text-purple-100"><Loader2 className="h-4 w-4 animate-spin" />Claiming your Halloween Spot…</div>}
+          </div>
+        )}
+
         {status === "claimed" && spot && (
           <div className="rounded-2xl bg-emerald-500/15 border border-emerald-300/30 p-6 text-center">
             <CheckCircle className="w-14 h-14 mx-auto mb-3 text-emerald-300" />
