@@ -712,14 +712,9 @@ export default function HomePage() {
 
           for (const reservation of reservations || []) {
             if (!reservation?.location_id) continue;
-            await base44.entities.Location.update(reservation.location_id, {
-              owner_user_id: currentUser.id,
-              ownership_claimed_at: new Date().toISOString(),
-            });
-            await base44.entities.PendingHalloweenOwnership.update(reservation.id, {
-              status: "claimed",
-              claimed_user_id: currentUser.id,
-              claimed_at: new Date().toISOString(),
+            await base44.functions.invoke("manageSeasonalLocation", {
+              action: "claim_pending_ownership",
+              reservation_id: reservation.id,
             });
           }
         }
