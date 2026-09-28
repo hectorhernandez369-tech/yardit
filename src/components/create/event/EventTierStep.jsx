@@ -27,6 +27,7 @@ export default function EventAddOnsStep({ formData, setFormData, user }) {
 
   useEffect(() => {
     setPromoResult(null);
+    setFormData((prev) => prev.event_promo_result ? { ...prev, event_promo_result: null } : prev);
   }, [breakdown.total]);
 
   const updateAddOns = (changes) => {
@@ -78,6 +79,7 @@ export default function EventAddOnsStep({ formData, setFormData, user }) {
     setFormData((prev) => ({
       ...prev,
       discovery_promo_code: result?.promoCode?.code || "",
+      event_promo_result: result || null,
     }));
   };
 
