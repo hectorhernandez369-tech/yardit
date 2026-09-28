@@ -58,7 +58,7 @@ const DEFAULT_FORM = {
   promo_discovery_config: {},
 };
 
-const TIER_OPTIONS = ["featured", "premium", "marquee"];
+const TIER_OPTIONS = ["featured", "premium", "marquee", "event", "event_add_on"];
 
 const pad = (value) => String(value).padStart(2, "0");
 const formatCalendarDate = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -355,7 +355,7 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
 
           {/* Applies To */}
           <Section title="Applies To (Tiers)">
-            <p className="text-xs text-slate-500 mb-2">Select which paid residential listing tiers this code applies to.</p>
+            <p className="text-xs text-slate-500 mb-2">Select which paid listings, events, or event add-ons this code applies to.</p>
             <div className="flex flex-wrap gap-3">
               {TIER_OPTIONS.map(tier => (
                 <label key={tier} className="flex items-center gap-2 cursor-pointer">
@@ -363,7 +363,7 @@ export default function ResidentialPromoCodeModal({ open, onClose, existingPromo
                     checked={(form.applies_to_tiers || []).includes(tier)}
                     onCheckedChange={() => toggleTier(tier)}
                   />
-                  <span className="text-sm capitalize font-medium text-slate-700">{tier}</span>
+                  <span className="text-sm capitalize font-medium text-slate-700">{tier === "event_add_on" ? "Event Add-ons" : tier}</span>
                 </label>
               ))}
             </div>

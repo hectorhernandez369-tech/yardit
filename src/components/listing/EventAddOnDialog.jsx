@@ -10,6 +10,7 @@ import EventPhotoUpload from "@/components/create/event/EventPhotoUpload";
 import MarqueeSlotsEditor from "@/components/create/event/MarqueeSlotsEditor";
 import EventIconManager from "@/components/events/EventIconManager";
 import ReviewPayContent from "@/components/payment/ReviewPayContent";
+import PromoCodeInput from "@/components/payment/PromoCodeInput";
 import { RESIDENTIAL_EVENT_ADD_ONS } from "@/lib/eventListingConfig";
 
 const CHECKOUT_KEY = "yardit_listing_upgrade_checkout_v1";
@@ -19,11 +20,13 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
   const [formData, setFormData] = useState({});
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
   const [isStartingPayment, setIsStartingPayment] = useState(false);
+  const [promoResult, setPromoResult] = useState(null);
   const existingAddOns = listing?.event_add_ons || {};
   const selectedAddOns = formData.event_add_ons || {};
 
   useEffect(() => {
     if (!open || !listing) return;
+    setPromoResult(null);
     setFormData({
       ...listing,
       event_add_ons: {},
@@ -39,6 +42,12 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
   }, [selectedAddOns, existingAddOns]);
 
   const amountDue = selectedLines.reduce((sum, item) => sum + Number(item.price || 0), 0);
+  const finalAmountDue = promoResult ? Number(promoResult.finalAmount || 0) : amountDue;
+  const promoResultForDisplay = promoResult ? {
+    ...promoResult,
+    discountAmount: Number(promoResult.discountAmount || 0) / 100,
+    finalAmount: Number(promoResult.finalAmount || 0) / 100,
+  } : null;
 
   const updateAddOns = (changes) => {
     setFormData((prev) => ({ ...prev, event_add_ons: { ...(prev.event_add_ons || {}), ...changes } }));
@@ -93,8 +102,7 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
 
     try {
       setIsStartingPayment(true);
-      const checkoutRequest = {
-        action: "create",
+      const baseRequest = {
         listing_id: listing.id,
         target_tier: listing.event_tier || listing.tier || "event",
         listing_kind: "event",
@@ -104,6 +112,27 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
         customer_email: user?.email,
         amount_cents: amountDue,
         return_url: `${window.location.origin}/CreateListingUpgradeReturn`,
+      };
+
+      if (promoResult && finalAmountDue === 0) {
+        const response = await base44.functions.invoke("createListingUpgradeCheckout", {
+          ...baseRequest,
+          action: "complete_free_event_add_on",
+          promo_code_id: promoResult.promoCode?.id,
+          promo_code: promoResult.promoCode?.code,
+          promo_discount_percent: promoResult.discountPercent,
+          promo_discount_amount: promoResult.discountAmount,
+          promo_final_amount: promoResult.finalAmount,
+        });
+        if (!response?.data?.ok) throw new Error(response?.data?.error || "Promo could not be applied.");
+        toast.success("Founder promo applied. Event add-ons activated for free.");
+        onClose();
+        return;
+      }
+
+      const checkoutRequest = {
+        ...baseRequest,
+        action: "create",
       };
       localStorage.setItem(CHECKOUT_KEY, JSON.stringify({ listingId: listing.id, targetTier: listing.event_tier || listing.tier || "event", purchaseType: "event_add_on", checkoutRequest }));
       const response = await base44.functions.invoke("createListingUpgradeCheckout", checkoutRequest);
@@ -148,7 +177,35 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
             <EventAddOnCard id="marquee" title="Marquee" previewData={formData} price={RESIDENTIAL_EVENT_ADD_ONS.marquee.price} selected={!!selectedAddOns.marquee || !!existingAddOns.marquee} onToggle={(checked) => !existingAddOns.marquee && updateAddOns({ marquee: checked })} description={<>{renderAlreadyActive("marquee")}</>}><MarqueeSlotsEditor value={formData.marquee_schedule_slots || []} onChange={(slots) => setFormData((prev) => ({ ...prev, marquee_schedule_slots: slots }))} eventStartDate={listing?.event_start_date || listing?.startDateTime?.slice(0, 10)} eventEndDate={listing?.event_end_date || listing?.endDateTime?.slice(0, 10)} /></EventAddOnCard>
           </div>
 
-          <ReviewPayContent purchaseName="Event Add-ons" badge="Add-ons" purchaseType="event_add_on" tier="event_add_on" price={amountDue / 100} listing={listing} summaryTitle="Selected Add-ons" summaryItems={[{ label: "Event", value: listing?.title || listing?.event_name }, { label: "Selected", value: selectedLines.length ? selectedLines.map((item) => `${item.label} (${money(item.price)})`).join(", ") : "No new add-ons selected" }, { label: "Total", value: money(amountDue) }]} benefits={selectedLines.map((item) => item.label)} isProcessing={isStartingPayment} onBack={onClose} onPay={handleCheckout} continueLabel="Pay for Add-ons" />
+          <ReviewPayContent
+            purchaseName="Event Add-ons"
+            badge="Add-ons"
+            purchaseType="event_add_on"
+            tier="event_add_on"
+            price={amountDue / 100}
+            listing={listing}
+            summaryTitle="Selected Add-ons"
+            summaryItems={[
+              { label: "Event", value: listing?.title || listing?.event_name },
+              { label: "Selected", value: selectedLines.length ? selectedLines.map((item) => `${item.label} (${money(item.price)})`).join(", ") : "No new add-ons selected" },
+              { label: "Total", value: money(amountDue) },
+            ]}
+            benefits={selectedLines.map((item) => item.label)}
+            isProcessing={isStartingPayment}
+            onBack={onClose}
+            onPay={handleCheckout}
+            promoResult={promoResultForDisplay}
+            promoInputSlot={amountDue > 0 ? (
+              <PromoCodeInput
+                user={user}
+                listing={listing}
+                selectedTier="event_add_on"
+                listingPrice={amountDue}
+                onPromoApplied={(result) => setPromoResult(result || null)}
+              />
+            ) : null}
+            continueLabel={finalAmountDue === 0 ? "Activate Add-ons — $0" : "Pay for Add-ons"}
+          />
         </div>
       </DialogContent>
     </Dialog>

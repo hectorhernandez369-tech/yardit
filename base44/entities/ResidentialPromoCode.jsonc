@@ -86,7 +86,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Eligible tiers: featured, premium, marquee"
+      "description": "Eligible scopes: featured, premium, marquee, event, event_add_on"
     },
     "coverage_type": {
       "type": "string",
