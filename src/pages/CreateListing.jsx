@@ -1907,7 +1907,7 @@ export default function CreateListingPage() {
 
   const submitAssistedPost = async () => {
     if (!canUseAssistedPost || !isAssistedPost) return false;
-    if (!assistedPermissionConfirmed) {
+    if (formData.listingType !== "halloween_spot" && !assistedPermissionConfirmed) {
       toast.error("Confirm that the homeowner gave permission for this assisted post.");
       return true;
     }
@@ -1921,9 +1921,12 @@ export default function CreateListingPage() {
     try {
       if (formData.listingType === "halloween_spot") {
         const type = formData.halloween_spot_type || formData.halloween_icon_key || "halloween_decorations";
-        const halloween = `${new Date().getFullYear()}-10-31`;
-        const startDate = type === "trick_or_treat" ? halloween : formData.halloween_start_date;
-        const endDate = type === "trick_or_treat" ? halloween : (formData.halloween_end_date || startDate);
+        const now = new Date();
+        const pad = (value) => String(value).padStart(2, "0");
+        const createdDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        const halloween = `${now.getFullYear()}-10-31`;
+        const startDate = type === "trick_or_treat" ? halloween : (formData.halloween_start_date || createdDate);
+        const endDate = type === "trick_or_treat" ? halloween : (formData.halloween_end_date || halloween);
         if (!startDate || !endDate || !formData.halloween_start_time || !formData.halloween_end_time) {
           toast.error("Add the Halloween dates and viewing times first.");
           return true;
@@ -1943,9 +1946,9 @@ export default function CreateListingPage() {
           halloween_suggested_age: formData.halloween_suggested_age || "", halloween_host_name: formData.halloween_host_name || "",
           halloween_admission: formData.halloween_admission || "", halloween_parking_notes: formData.halloween_parking_notes || "",
           halloween_activities: formData.halloween_activities || "", halloween_start_date: startDate, halloween_end_date: endDate,
-          halloween_start_time: formData.halloween_start_time, halloween_end_time: formData.halloween_end_time,
-          full_icon_activation_time: activation, location_source: formData.location_source || "address_search",
-          ownerPermissionConfirmed: true, appBaseUrl: window.location.origin,
+          halloween_start_time: formData.halloween_start_time || "17:00", halloween_end_time: formData.halloween_end_time || "22:00",
+          full_icon_activation_time: activation || "17:00", location_source: formData.location_source || "address_search",
+          appBaseUrl: window.location.origin,
         });
         setAssistedCreated({ ...response.data, kind: "halloween", saleAddress: response.data.saleFormattedAddress, title: formData.title });
         toast.success("Assisted Halloween Spot created! 🎃");
@@ -2575,7 +2578,7 @@ export default function CreateListingPage() {
                 <p className="text-xs text-amber-800 mt-1">Post on behalf of the homeowner and give them a QR/link to take over the listing.</p>
               </div>
             </label>
-            {isAssistedPost && (
+            {isAssistedPost && formData.listingType !== "halloween_spot" && (
               <label className="mt-3 flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-3 cursor-pointer">
                 <input
                   type="checkbox"
