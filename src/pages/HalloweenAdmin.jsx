@@ -137,7 +137,7 @@ export default function HalloweenAdmin() {
   const patchSpot = async (id, patch, successMessage = "Halloween Spot updated") => {
     setSaving(true);
     try {
-      await base44.entities.Location.update(id, patch);
+      await base44.functions.invoke("manageSeasonalLocation", { action: "admin_patch", location_id: id, patch });
       setSpots((prev) => prev.map((spot) => spot.id === id ? { ...spot, ...patch } : spot));
       toast.success(successMessage);
     } catch (error) {
