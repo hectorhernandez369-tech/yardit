@@ -13,8 +13,9 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
   const previousPriceRef = useRef(listingPrice);
 
   const handleApply = async (displayAppliedMessage = false, overrideCode = "") => {
-    const activeCode = overrideCode || code;
-    if (!activeCode.trim()) return;
+    const activeCode = String(overrideCode || code || "").trim().toUpperCase();
+    if (!activeCode) return;
+    setCode(activeCode);
     setStatus("loading");
     setResult(null);
 
@@ -90,11 +91,28 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
       <div className="flex gap-2">
         <Input
           value={code}
-          onChange={(e) => { setCode(e.target.value.toUpperCase()); if (status) { setStatus(null); setMessage(""); setResult(null); onPromoApplied?.(null); } }}
+          onChange={(e) => {
+            setCode(e.target.value);
+            if (status) {
+              setStatus(null);
+              setMessage("");
+              setResult(null);
+              onPromoApplied?.(null);
+            }
+          }}
           placeholder="Enter promo code"
           className="font-mono uppercase"
+          autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
+          inputMode="text"
           disabled={status === "loading" || status === "valid"}
-          onKeyDown={(e) => e.key === "Enter" && handleApply()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleApply();
+            }
+          }}
         />
         {status === "valid" ? (
           <Button variant="outline" onClick={handleClear} className="shrink-0 border-slate-300 text-slate-500">
