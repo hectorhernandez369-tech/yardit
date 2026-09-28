@@ -2616,6 +2616,7 @@ export default function CreateListingPage() {
                 step={step}
                 formData={formData}
                 setFormData={setFormData}
+                user={user}
                 isAdminCreate={isAdminCreate}
                 selectedUserForAdmin={selectedUserForAdmin}
                 setSelectedUserForAdmin={setSelectedUserForAdmin}
