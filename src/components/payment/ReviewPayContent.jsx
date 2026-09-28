@@ -69,6 +69,16 @@ export default function ReviewPayContent({
   const resolvedName = purchaseName || `${titleCase(tier)} Listing`;
   const resolvedSummary = summaryItems || (listing ? listingSummary(listing, tier) : []);
   const resolvedBenefits = benefits || benefitMap[key] || benefitMap[tier] || [];
+  const isFreeWithPromo = Boolean(promoResult && Number(promoResult.finalAmount || 0) === 0);
+  const promoTitle = promoResult?.promoCode?.title || promoResult?.promoCode?.code || "Promo";
+  const promoCode = promoResult?.promoCode?.code || "";
+  const promoType = promoResult?.promoCode?.discount_type === "percentage"
+    ? "Percentage discount"
+    : titleCase(promoResult?.promoCode?.discount_type || "discount");
+  const discountLabel = promoResult?.discountPercent != null
+    ? `${Number(promoResult.discountPercent)}% off`
+    : `-${money(promoResult?.discountAmount)}`;
+  const effectiveRequireNonRefundAcknowledgement = requireNonRefundAcknowledgement && !isFreeWithPromo;
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
@@ -144,12 +154,14 @@ export default function ReviewPayContent({
         {promoResult && (
           <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm">
             <div className="flex items-center gap-2 font-bold text-green-800">
-              <Tag className="h-4 w-4" /> Promo Applied: {promoResult.promoCode?.code}
+              <Tag className="h-4 w-4" /> {promoTitle}
             </div>
             <div className="mt-4 space-y-2 text-sm">
-              <div className="flex justify-between text-slate-600"><span>Original</span><span>{money(price)}</span></div>
-              <div className="flex justify-between text-green-700"><span>Discount</span><span>-{money(promoResult.discountAmount)}</span></div>
-              <div className="border-t border-green-200 pt-2 flex justify-between font-black text-green-900"><span>Total Due</span><span>{money(promoResult.finalAmount)}</span></div>
+              {promoCode && <div className="flex justify-between text-slate-600"><span>Promo code</span><span className="font-mono font-semibold">{promoCode}</span></div>}
+              <div className="flex justify-between text-slate-600"><span>Type</span><span>{promoType}</span></div>
+              <div className="flex justify-between text-green-700"><span>Discount</span><span>{discountLabel} (-{money(promoResult.discountAmount)})</span></div>
+              <div className="flex justify-between text-slate-600"><span>Original price</span><span>{money(price)}</span></div>
+              <div className="border-t border-green-200 pt-2 flex justify-between font-black text-green-900"><span>Total due</span><span>{money(promoResult.finalAmount)}</span></div>
             </div>
           </div>
         )}
@@ -157,12 +169,16 @@ export default function ReviewPayContent({
         <div className="mt-5 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
           <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-[#2C4F4E]" />
           <div>
-            <p className="font-bold text-[#2C4F4E]">Secure checkout</p>
-            <p className="text-xs text-slate-500">Powered by Stripe. Paid access activates after payment is confirmed.</p>
+            <p className="font-bold text-[#2C4F4E]">{isFreeWithPromo ? "No payment required" : "Secure checkout"}</p>
+            <p className="text-xs text-slate-500">
+              {isFreeWithPromo
+                ? "This promo covers the full price. Stripe will be skipped and no card is required."
+                : "Powered by Stripe. Paid access activates after payment is confirmed."}
+            </p>
           </div>
         </div>
 
-        {requireNonRefundAcknowledgement && (
+        {effectiveRequireNonRefundAcknowledgement && (
           <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
             <Checkbox checked={nonRefundAcknowledged} onCheckedChange={(checked) => setNonRefundAcknowledged(checked === true)} className="mt-0.5" />
             <span><strong>Required:</strong> {nonRefundDisclosure}</span>
@@ -180,7 +196,7 @@ export default function ReviewPayContent({
               acknowledged_at: nonRefundAcknowledged ? new Date().toISOString() : "",
               disclosure_text: nonRefundDisclosure,
             }})}
-            disabled={isProcessing || (requireNonRefundAcknowledgement && !nonRefundAcknowledged)}
+            disabled={isProcessing || (effectiveRequireNonRefundAcknowledgement && !nonRefundAcknowledged)}
             className="bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] font-bold shadow-sm"
           >
             {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</> : continueLabel}

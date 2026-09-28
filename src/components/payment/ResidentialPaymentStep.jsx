@@ -31,7 +31,7 @@ export default function ResidentialPaymentStep({
   const amountDollars = amount / 100;
   const finalAmount = promoResult ? promoResult.finalAmount : amount;
   const continueLabel = finalAmount === 0
-    ? "Complete — Free with Promo"
+    ? "Create Listing — $0"
     : retryPayment
       ? "Retry Payment"
       : "Continue to Stripe";
