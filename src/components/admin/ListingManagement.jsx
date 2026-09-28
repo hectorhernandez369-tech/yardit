@@ -107,7 +107,7 @@ export default function ListingManagement({ mode, adminUser }) {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, ownerUserId, status, reason, title, listingType, startDateTime, endDateTime, event_state, sourceEntity }) => {
       if (sourceEntity === "Location") {
-        await base44.entities.Location.update(id, { status, statusReason: reason });
+        await base44.functions.invoke("manageSeasonalLocation", { action: "admin_patch", location_id: id, patch: { status, statusReason: reason } });
       } else {
         await base44.entities.Listing.update(id, { status, statusReason: reason });
       }
