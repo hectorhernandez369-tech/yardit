@@ -44,19 +44,70 @@ function ymdInPacific(date = new Date()) {
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
 
-function verifiedUserCoordinates(user) {
+function isVerifiedAddressUser(user) {
   const data = user?.data || {};
-  const verified =
+  return (
     user?.primary_address_verified === true ||
     user?.address_verified === true ||
     user?.address_confirmation_status === 'confirmed' ||
     data.primary_address_verified === true ||
     data.address_verified === true ||
-    data.address_confirmation_status === 'confirmed';
+    data.address_confirmation_status === 'confirmed'
+  );
+}
+
+function verifiedUserCoordinates(user) {
+  if (!isVerifiedAddressUser(user)) return null;
+  const data = user?.data || {};
   const lat = user?.primary_latitude ?? user?.address_lat ?? data.primary_latitude ?? data.address_lat;
   const lng = user?.primary_longitude ?? user?.address_lng ?? data.primary_longitude ?? data.address_lng;
-  if (!verified || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return null;
+  if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return null;
   return { lat: Number(lat), lng: Number(lng) };
+}
+
+function normalizeAddressPart(value = '') {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\b(street)\b/g, 'st')
+    .replace(/\b(avenue)\b/g, 'ave')
+    .replace(/\b(road)\b/g, 'rd')
+    .replace(/\b(drive)\b/g, 'dr')
+    .replace(/\b(lane)\b/g, 'ln')
+    .replace(/\b(court)\b/g, 'ct')
+    .replace(/\b(boulevard)\b/g, 'blvd')
+    .replace(/\b(place)\b/g, 'pl')
+    .replace(/\b(highway)\b/g, 'hwy')
+    .replace(/\b(north)\b/g, 'n')
+    .replace(/\b(south)\b/g, 's')
+    .replace(/\b(east)\b/g, 'e')
+    .replace(/\b(west)\b/g, 'w')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function normalizedUserProperty(user) {
+  const data = user?.data || {};
+  return {
+    street: normalizeAddressPart(user?.street_address ?? data.street_address ?? user?.primary_address ?? data.primary_address ?? user?.address ?? data.address),
+    city: normalizeAddressPart(user?.city ?? data.city),
+    state: normalizeAddressPart(user?.state ?? data.state),
+    zip: normalizeAddressPart(user?.zip_code ?? data.zip_code),
+  };
+}
+
+function isSameVerifiedProperty(user, property, lat, lng) {
+  if (!isVerifiedAddressUser(user)) return false;
+
+  const candidate = normalizedUserProperty(user);
+  const streetMatches = !!candidate.street && candidate.street === property.street;
+  const cityMatches = !candidate.city || !property.city || candidate.city === property.city;
+  const stateMatches = !candidate.state || !property.state || candidate.state === property.state;
+  const zipMatches = !candidate.zip || !property.zip || candidate.zip === property.zip;
+
+  if (streetMatches && cityMatches && stateMatches && zipMatches) return true;
+
+  const coords = verifiedUserCoordinates(user);
+  return !!coords && getDistanceFeet(coords.lat, coords.lng, Number(lat), Number(lng)) <= 75;
 }
 
 Deno.serve(async (req) => {
@@ -200,12 +251,16 @@ Deno.serve(async (req) => {
     }
 
     const usersInZip = await base44.asServiceRole.entities.User.filter({ zip_code: zip }).catch(() => []);
+    const property = {
+      street: normalizeAddressPart(addressText),
+      city: normalizeAddressPart(city),
+      state: normalizeAddressPart(state),
+      zip: normalizeAddressPart(zip),
+    };
 
-    const matchingUsers = (usersInZip || []).filter((candidate) => {
-      const coords = verifiedUserCoordinates(candidate);
-      if (!coords) return false;
-      return getDistanceFeet(coords.lat, coords.lng, Number(lat), Number(lng)) <= 150;
-    });
+    const matchingUsers = (usersInZip || []).filter((candidate) =>
+      isSameVerifiedProperty(candidate, property, lat, lng)
+    );
 
     for (const matchingUser of matchingUsers) {
       const dedupeKey = `halloween_assisted_approval_${assisted.id}_${matchingUser.id}`;
