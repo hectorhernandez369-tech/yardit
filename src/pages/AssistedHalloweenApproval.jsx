@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, Clock, XCircle, MapPin, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import SetupAddressVerification from "@/components/profile/SetupAddressVerification";
 
 export default function AssistedHalloweenApproval() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function AssistedHalloweenApproval() {
   const [assisted, setAssisted] = useState(null);
   const [acting, setActing] = useState(false);
   const [error, setError] = useState("");
+  const [claimUser, setClaimUser] = useState(null);
 
   useEffect(() => {
     if (!token) {
@@ -43,6 +45,14 @@ export default function AssistedHalloweenApproval() {
             if (claim.data?.status === "claimed") {
               sessionStorage.removeItem("assisted_halloween_claim_token");
               navigate(createPageUrl("HalloweenSpotDetail") + `?id=${claim.data.spot.id}`);
+              return;
+            }
+            if (["needs_address_verification", "address_mismatch"].includes(claim.data?.status)) {
+              setClaimUser(me);
+              setSpot(claim.data?.spot || data.spot || null);
+              setAssisted(claim.data?.assisted || data.assisted || null);
+              setError(claim.data?.error || "Verify your home address to claim this Halloween Spot.");
+              setStatus("needs_verification");
               return;
             }
           }
@@ -99,6 +109,31 @@ export default function AssistedHalloweenApproval() {
     sessionStorage.setItem("assisted_halloween_claim_token", token);
     const returnUrl = `${window.location.origin}/assisted-halloween?token=${encodeURIComponent(token)}&autoclaim=1`;
     base44.auth.redirectToLogin(returnUrl);
+  };
+
+  const verifyAndClaim = async (addressPayload) => {
+    setActing(true);
+    setError("");
+    try {
+      await base44.auth.updateMe(addressPayload);
+      const me = await base44.auth.me();
+      setClaimUser(me);
+      const claim = await base44.functions.invoke("resolveAssistedHalloweenSpot", {
+        token,
+        action: "claim_complete",
+        claimUserId: me.id,
+      });
+      if (claim.data?.status === "claimed") {
+        sessionStorage.removeItem("assisted_halloween_claim_token");
+        navigate(createPageUrl("HalloweenSpotDetail") + `?id=${claim.data.spot.id}`);
+        return;
+      }
+      setError(claim.data?.error || "We could not verify this property for your account.");
+    } catch (err) {
+      setError(err?.response?.data?.error || err?.message || "Could not complete the Halloween claim.");
+    } finally {
+      setActing(false);
+    }
   };
 
   if (loading) {
