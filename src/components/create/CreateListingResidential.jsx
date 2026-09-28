@@ -22,6 +22,7 @@ export default function CreateListingResidential({
   setPaymentError,
   setStep,
   handlePaymentStepSubmit,
+  onCancelPayment,
   residentialTierPrices,
   onAddressSelected,
   onResidentialConflictInteraction,
@@ -61,10 +62,7 @@ export default function CreateListingResidential({
         errorMessage={paymentError}
         retryPayment={paymentRetryReady}
         user={user}
-        onBack={() => {
-          setPaymentError("");
-          setStep(3);
-        }}
+        onBack={onCancelPayment}
         onPay={handlePaymentStepSubmit}
       />
     );

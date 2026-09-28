@@ -2621,7 +2621,7 @@ export default function CreateListingPage() {
                 isStartingPayment={isStartingPayment}
                 paymentError={paymentError}
                 paymentRetryReady={paymentRetryReady}
-                setPaymentError={setPaymentError}
+                onCancelPayment={() => { localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY); localStorage.removeItem(NEIGHBORHOOD_SETUP_KEY); setPaymentError(""); setPaymentRetryReady(false); setIsStartingPayment(false); setStep(formData.listingType === "event" ? 4 : 3); }}
                 setStep={setStep}
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
               />
@@ -2656,7 +2656,7 @@ export default function CreateListingPage() {
                 isStartingPayment={isStartingPayment}
                 paymentError={paymentError}
                 paymentRetryReady={paymentRetryReady}
-                setPaymentError={setPaymentError}
+                onCancelPayment={() => { localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY); localStorage.removeItem(NEIGHBORHOOD_SETUP_KEY); setPaymentError(""); setPaymentRetryReady(false); setIsStartingPayment(false); setStep(3); }}
                 setStep={setStep}
                 handleNeighborhoodSetupSubmit={handleNeighborhoodSetupSubmit}
               />
@@ -2677,7 +2677,7 @@ export default function CreateListingPage() {
                 paymentError={paymentError}
                 paymentRetryReady={paymentRetryReady}
                 setPaymentError={setPaymentError}
-                setStep={setStep}
+                onCancelPayment={() => { localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY); localStorage.removeItem(NEIGHBORHOOD_SETUP_KEY); setPaymentError(""); setPaymentRetryReady(false); setIsStartingPayment(false); setStep(formData.listingType === "event" ? 4 : 3); }}
                 handlePaymentStepSubmit={handlePaymentStepSubmit}
                 residentialTierPrices={RESIDENTIAL_TIER_PRICES}
                 onAddressSelected={(selectedAddress) => {

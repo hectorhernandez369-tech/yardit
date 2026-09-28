@@ -20,6 +20,7 @@ export default function CreateListingEvent({
   setPaymentError,
   setStep,
   handlePaymentStepSubmit,
+  onCancelPayment,
 }) {
   const eventPriceBreakdown = getResidentialEventPriceBreakdown(formData);
   if (step === 1) {
@@ -59,10 +60,7 @@ export default function CreateListingEvent({
         isDemoMode={isAdminDemoMode}
         isProcessing={isStartingPayment}
         errorMessage={paymentError}
-        onBack={() => {
-          setPaymentError("");
-          setStep(4);
-        }}
+        onBack={onCancelPayment}
         onPay={handlePaymentStepSubmit}
         promoEnabled={false}
         requireNonRefundAcknowledgement={true}

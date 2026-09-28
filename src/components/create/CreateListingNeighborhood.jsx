@@ -21,6 +21,7 @@ export default function CreateListingNeighborhood({
   setPaymentError,
   setStep,
   handleNeighborhoodSetupSubmit,
+  onCancelPayment,
 }) {
   if (step === 1) {
     return <StepOne formData={formData} setFormData={setFormData} />;
@@ -44,10 +45,7 @@ export default function CreateListingNeighborhood({
         isProcessing={isStartingPayment}
         errorMessage={paymentError}
         retryPayment={paymentRetryReady}
-        onBack={() => {
-          setPaymentError("");
-          setStep(3);
-        }}
+        onBack={onCancelPayment}
         onSetup={handleNeighborhoodSetupSubmit}
         formData={formData}
         setFormData={setFormData}
