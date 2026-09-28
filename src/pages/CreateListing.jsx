@@ -1802,7 +1802,9 @@ export default function CreateListingPage() {
           promo_code: promoResult.promoCode.code,
           discount_percent: promoResult.discountPercent,
           discount_amount: promoResult.discountAmount,
-          original_amount: RESIDENTIAL_TIER_PRICES[formData.tier] || 0,
+          original_amount: formData.listingType === "event"
+            ? getResidentialEventPriceBreakdown(formData).total
+            : RESIDENTIAL_TIER_PRICES[formData.tier] || 0,
           discount_bucket: promoResult.discountBucket,
           user_id: user?.id,
           user_email: user?.email,
