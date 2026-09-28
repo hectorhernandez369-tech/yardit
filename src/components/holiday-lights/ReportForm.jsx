@@ -58,11 +58,12 @@ export default function ReportForm({ locationId, onClose }) {
         });
 
         if (reports.length >= 2) {
-          await base44.entities.Location.update(locationId, {
-            status: "under_review",
-            display_active: false,
+          const response = await base44.functions.invoke("manageSeasonalLocation", {
+            action: "apply_holiday_report_threshold",
+            location_id: locationId,
+            reason: data.reason,
           });
-          toast.success("Listing has been hidden pending review");
+          if (response?.data?.hidden) toast.success("Listing has been hidden pending review");
         }
       }
     },
