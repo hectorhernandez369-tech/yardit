@@ -63,7 +63,8 @@ export default function CreateListingEvent({
         errorMessage={paymentError}
         onBack={onCancelPayment}
         onPay={handlePaymentStepSubmit}
-        promoEnabled={true}
+        promoEnabled={false}
+        initialPromoResult={formData.event_promo_result || null}
         requireNonRefundAcknowledgement={true}
       />
     );
