@@ -312,12 +312,27 @@
     "create": {
       "$or": [
         {
-          "data.is_demo_listing": {
-            "$ne": true
+          "data.owner_user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
           }
         },
         {
-          "data.owner_user_id": "{{user.id}}"
+          "user_condition": {
+            "role": "master"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "supervisor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_master"
+          }
         }
       ]
     },
@@ -330,30 +345,69 @@
         },
         {
           "data.owner_user_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
         }
       ]
     },
     "update": {
       "$or": [
         {
-          "data.is_demo_listing": {
-            "$ne": true
+          "data.owner_user_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
           }
         },
         {
-          "data.owner_user_id": "{{user.id}}"
+          "user_condition": {
+            "role": "master"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "supervisor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_master"
+          }
         }
       ]
     },
     "delete": {
       "$or": [
         {
-          "data.is_demo_listing": {
-            "$ne": true
+          "data.owner_user_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
           }
         },
         {
-          "data.owner_user_id": "{{user.id}}"
+          "user_condition": {
+            "role": "master"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "supervisor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_master"
+          }
         }
       ]
     }
