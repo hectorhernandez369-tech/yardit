@@ -531,7 +531,7 @@ export default async function(req) {
       const finalStatus = listingKind === 'event' ? 'active' : 'scheduled';
       await base44.asServiceRole.entities.Listing.update(listing_id, {
         payment_status: 'paid',
-        payment_intent_status: 'promo_comped',
+        payment_intent_status: 'none',
         pricePaid: 0,
         status: finalStatus,
       });
