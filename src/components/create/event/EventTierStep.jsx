@@ -21,14 +21,13 @@ const money = (cents) => `$${(Number(cents || 0) / 100).toFixed(2)}`;
 
 export default function EventAddOnsStep({ formData, setFormData, user }) {
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
-  const [promoResult, setPromoResult] = useState(null);
+  const [promoResult, setPromoResult] = useState(formData.event_promo_result || null);
   const addOns = formData.event_add_ons || {};
   const breakdown = getResidentialEventPriceBreakdown(formData);
 
   useEffect(() => {
-    setPromoResult(null);
-    setFormData((prev) => prev.event_promo_result ? { ...prev, event_promo_result: null } : prev);
-  }, [breakdown.total]);
+    setPromoResult(formData.event_promo_result || null);
+  }, [formData.event_promo_result]);
 
   const updateAddOns = (changes) => {
     setFormData((prev) => ({
@@ -250,13 +249,13 @@ export default function EventAddOnsStep({ formData, setFormData, user }) {
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <PromoCodeInput
-          key={`event-promo-${breakdown.total}`}
           user={user}
           listing={formData}
           selectedTier="event"
           listingPrice={breakdown.total}
           onPromoApplied={handlePromoApplied}
           initialCode={formData.discovery_promo_code || ""}
+          revalidateOnPriceChange={true}
         />
       </div>
 
