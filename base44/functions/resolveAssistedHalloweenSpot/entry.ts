@@ -1,5 +1,53 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+function distanceFeet(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = (value) => Number(value) * Math.PI / 180;
+  const dLat = toRad(Number(lat2) - Number(lat1));
+  const dLng = toRad(Number(lng2) - Number(lng1));
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a)) * 3.28084;
+}
+
+async function verifyClaimAddress(base44, claimUserId, spot) {
+  const currentUser = await base44.auth.me().catch(() => null);
+  if (!currentUser || String(currentUser.id) !== String(claimUserId)) {
+    return { ok: false, status: 'unauthorized', error: 'Sign in to claim this Halloween Spot.' };
+  }
+
+  const data = currentUser.data || {};
+  const verified =
+    currentUser.primary_address_verified === true ||
+    currentUser.address_verified === true ||
+    currentUser.address_confirmation_status === 'confirmed' ||
+    data.primary_address_verified === true ||
+    data.address_verified === true ||
+    data.address_confirmation_status === 'confirmed';
+
+  const lat = currentUser.primary_latitude ?? currentUser.address_lat ?? data.primary_latitude ?? data.address_lat;
+  const lng = currentUser.primary_longitude ?? currentUser.address_lng ?? data.primary_longitude ?? data.address_lng;
+
+  if (!verified || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) {
+    return {
+      ok: false,
+      status: 'needs_address_verification',
+      error: 'Verify your Yardit home address before taking ownership of this Halloween Spot.',
+    };
+  }
+
+  if (!Number.isFinite(Number(spot.latitude)) || !Number.isFinite(Number(spot.longitude)) ||
+      distanceFeet(lat, lng, spot.latitude, spot.longitude) > 150) {
+    return {
+      ok: false,
+      status: 'address_mismatch',
+      error: 'Your verified Yardit home address does not match this Halloween Spot.',
+    };
+  }
+
+  return { ok: true, user: currentUser };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
