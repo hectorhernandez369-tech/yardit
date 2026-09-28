@@ -78,6 +78,7 @@ export default function ReviewPayContent({
   const discountLabel = promoResult?.discountPercent != null
     ? `${Number(promoResult.discountPercent)}% off`
     : `-${money(promoResult?.discountAmount)}`;
+  const effectiveRequireNonRefundAcknowledgement = requireNonRefundAcknowledgement && !isFreeWithPromo;
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
@@ -177,7 +178,7 @@ export default function ReviewPayContent({
           </div>
         </div>
 
-        {requireNonRefundAcknowledgement && (
+        {effectiveRequireNonRefundAcknowledgement && (
           <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
             <Checkbox checked={nonRefundAcknowledged} onCheckedChange={(checked) => setNonRefundAcknowledged(checked === true)} className="mt-0.5" />
             <span><strong>Required:</strong> {nonRefundDisclosure}</span>
@@ -195,7 +196,7 @@ export default function ReviewPayContent({
               acknowledged_at: nonRefundAcknowledged ? new Date().toISOString() : "",
               disclosure_text: nonRefundDisclosure,
             }})}
-            disabled={isProcessing || (requireNonRefundAcknowledgement && !nonRefundAcknowledged)}
+            disabled={isProcessing || (effectiveRequireNonRefundAcknowledgement && !nonRefundAcknowledged)}
             className="bg-[#F4A849] text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635] font-bold shadow-sm"
           >
             {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</> : continueLabel}
