@@ -17,6 +17,7 @@ export default function CreateListingEvent({
   selectedUserForAdmin,
   setSelectedUserForAdmin,
   isGlobalDemoMode,
+  user,
   isStartingPayment,
   paymentError,
   paymentRetryReady,
@@ -61,6 +62,8 @@ export default function CreateListingEvent({
             isProcessing={isStartingPayment}
             errorMessage={paymentError}
             retryPayment={paymentRetryReady}
+            user={user}
+            purchaseName="Community Event"
             onBack={() => {
               setPaymentError("");
               setStep(4);
