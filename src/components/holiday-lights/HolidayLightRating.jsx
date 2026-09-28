@@ -54,19 +54,11 @@ export default function HolidayLightRating({ locationId, displayActive }) {
         });
       }
 
-      // Update location's aggregate ratings
-      const allRatings = await base44.entities.LightRating.filter({
-        listing_id: locationId,
+      // Recalculate aggregate ratings through the protected server action.
+      await base44.functions.invoke("manageSeasonalLocation", {
+        action: "recalculate_holiday_rating",
+        location_id: locationId,
         season_year: seasonYear,
-      });
-      
-      const avgRating = allRatings.reduce((sum, r) => sum + r.rating_value, 0) / allRatings.length;
-      const holidayScore = allRatings.reduce((sum, r) => sum + r.rating_value, 0);
-      
-      await base44.entities.Location.update(locationId, {
-        average_rating: avgRating,
-        ratings_count: allRatings.length,
-        holiday_score: holidayScore,
       });
     },
     onSuccess: () => {
