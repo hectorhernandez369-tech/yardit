@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import EventPhotoUpload from "./EventPhotoUpload";
 import MarqueeSlotsEditor from "./MarqueeSlotsEditor";
 import EventIconManager from "@/components/events/EventIconManager";
 import EventMapAddOnPreview from "@/components/create/event/EventMapAddOnPreview";
+import PromoCodeInput from "@/components/payment/PromoCodeInput";
 import { eventAddOnCopy } from "@/components/create/event/eventAddOnCopy";
 import { shiftDate } from "@/lib/eventSchedule";
 import {
@@ -18,10 +19,16 @@ import {
 
 const money = (cents) => `$${(Number(cents || 0) / 100).toFixed(2)}`;
 
-export default function EventAddOnsStep({ formData, setFormData }) {
+export default function EventAddOnsStep({ formData, setFormData, user }) {
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
+  const [promoResult, setPromoResult] = useState(null);
   const addOns = formData.event_add_ons || {};
   const breakdown = getResidentialEventPriceBreakdown(formData);
+
+  useEffect(() => {
+    setPromoResult(null);
+    setFormData((prev) => prev.event_promo_result ? { ...prev, event_promo_result: null } : prev);
+  }, [breakdown.total]);
 
   const updateAddOns = (changes) => {
     setFormData((prev) => ({
@@ -66,6 +73,17 @@ export default function EventAddOnsStep({ formData, setFormData }) {
       event_add_ons: { ...(prev.event_add_ons || {}), photo_gallery: true },
     }));
   };
+
+  const handlePromoApplied = (result) => {
+    setPromoResult(result || null);
+    setFormData((prev) => ({
+      ...prev,
+      discovery_promo_code: result?.promoCode?.code || "",
+      event_promo_result: result || null,
+    }));
+  };
+
+  const promoFinalCents = promoResult ? Number(promoResult.finalAmount || 0) : breakdown.total;
 
   return (
     <div className="space-y-6">
@@ -230,9 +248,41 @@ export default function EventAddOnsStep({ formData, setFormData }) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-[#2C4F4E]/20 bg-[#F3E6CF] p-4 flex items-center justify-between">
-        <span className="font-semibold text-[#2C4F4E]">Event Total</span>
-        <span className="text-xl font-bold text-[#2C4F4E]">{money(breakdown.total)}</span>
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <PromoCodeInput
+          key={`event-promo-${breakdown.total}`}
+          user={user}
+          listing={formData}
+          selectedTier="event"
+          listingPrice={breakdown.total}
+          onPromoApplied={handlePromoApplied}
+          initialCode={formData.discovery_promo_code || ""}
+        />
+      </div>
+
+      <div className="rounded-xl border border-[#2C4F4E]/20 bg-[#F3E6CF] p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-[#2C4F4E]">Event Subtotal</span>
+          <span className="font-semibold text-[#2C4F4E]">{money(breakdown.total)}</span>
+        </div>
+        {promoResult && (
+          <>
+            <div className="flex items-center justify-between text-green-700">
+              <span className="font-medium">{promoResult.promoCode?.title || promoResult.promoCode?.code || "Promo"} ({promoResult.discountPercent}% off)</span>
+              <span className="font-bold">-{money(promoResult.discountAmount)}</span>
+            </div>
+            <div className="border-t border-[#2C4F4E]/15 pt-3 flex items-center justify-between">
+              <span className="font-bold text-[#2C4F4E]">Final Total</span>
+              <span className="text-2xl font-black text-[#2C4F4E]">{money(promoFinalCents)}</span>
+            </div>
+          </>
+        )}
+        {!promoResult && (
+          <div className="border-t border-[#2C4F4E]/15 pt-3 flex items-center justify-between">
+            <span className="font-bold text-[#2C4F4E]">Event Total</span>
+            <span className="text-xl font-bold text-[#2C4F4E]">{money(breakdown.total)}</span>
+          </div>
+        )}
       </div>
     </div>
   );

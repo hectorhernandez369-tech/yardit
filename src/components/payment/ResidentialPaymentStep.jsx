@@ -20,8 +20,13 @@ export default function ResidentialPaymentStep({
   benefits,
   promoEnabled = true,
   requireNonRefundAcknowledgement,
+  initialPromoResult = null,
 }) {
-  const [promoResult, setPromoResult] = useState(null);
+  const [promoResult, setPromoResult] = useState(initialPromoResult);
+
+  React.useEffect(() => {
+    setPromoResult(initialPromoResult || null);
+  }, [initialPromoResult]);
 
   const handlePromoApplied = (result) => {
     setPromoResult(result || null);
