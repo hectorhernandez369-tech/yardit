@@ -417,8 +417,9 @@ export default async function(req) {
 
     // ── FREE PROMO (no Stripe needed) ───────────────────────────────
     if (action === 'complete_free_promo') {
-      const { listing_id, promo_code_id, promo_code, discount_percent, discount_amount, original_amount, discount_bucket, user_id, user_email } = body;
+      const { listing_id, promo_code_id, original_amount } = body;
 
+      if (!currentUser) return Response.json({ error: 'Unauthorized' }, { status: 401 });
       if (!listing_id || !promo_code_id) {
         return Response.json({ error: 'Missing required fields for free promo' }, { status: 400 });
       }
@@ -426,68 +427,147 @@ export default async function(req) {
       const listings = await base44.asServiceRole.entities.Listing.filter({ id: listing_id });
       const listing = listings?.[0];
       if (!listing) return Response.json({ error: 'Listing not found' }, { status: 404 });
-      const dateValidation = await validateResidentialCheckoutDates(base44, listing, null, listing_id);
-      if (!dateValidation.ok) return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
-      const promoGeoValidation = await validatePromoGeoForCheckout(base44, { promoCodeId: promo_code_id, promoCode: promo_code }, listing);
+
+      const isPrivileged = ['admin', 'master', 'super_master'].includes(currentUser.role);
+      if (listing.ownerUserId !== currentUser.id && !isPrivileged) {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      const promoCodes = await base44.asServiceRole.entities.ResidentialPromoCode.filter({ id: promo_code_id });
+      const pc = promoCodes?.[0];
+      if (!pc) return Response.json({ error: 'Promo code not found' }, { status: 404 });
+      if (pc.status !== 'active') return Response.json({ error: 'Promo code is not active' }, { status: 400 });
+
+      const now = new Date();
+      if (pc.starts_at && new Date(pc.starts_at) > now) {
+        return Response.json({ error: 'Promo code is not yet active' }, { status: 400 });
+      }
+      if (pc.expires_at && new Date(pc.expires_at) < now) {
+        return Response.json({ error: 'Promo code has expired' }, { status: 400 });
+      }
+
+      const listingKind = String(listing.listingType || '').toLowerCase();
+      const selectedTier = listingKind === 'event' ? 'event' : String(listing.tier || '').toLowerCase();
+      if ((pc.applies_to_tiers || []).length > 0 && !pc.applies_to_tiers.includes(selectedTier)) {
+        return Response.json({ error: 'Promo code does not apply to this listing type or tier' }, { status: 400 });
+      }
+
+      if (pc.max_total_uses != null && Number(pc.total_used_count || 0) >= Number(pc.max_total_uses)) {
+        return Response.json({ error: 'Promo code has reached its usage limit' }, { status: 400 });
+      }
+
+      const perUserLimit = Number(pc.per_user_limit || 1);
+      const completedRedemptions = await base44.asServiceRole.entities.ResidentialPromoRedemption.filter({
+        promo_code_id,
+        user_id: currentUser.id,
+        status: 'completed',
+      });
+      if ((completedRedemptions || []).length >= perUserLimit) {
+        return Response.json({ error: 'You have already used this promo code' }, { status: 400 });
+      }
+
+      if (listingKind !== 'event') {
+        const dateValidation = await validateResidentialCheckoutDates(base44, listing, currentUser, listing_id);
+        if (!dateValidation.ok) {
+          return Response.json({ error: dateValidation.error }, { status: dateValidation.error === DATE_UNAVAILABLE_MESSAGE ? 409 : 400 });
+        }
+      }
+
+      const promoGeoValidation = await validatePromoGeoForCheckout(base44, { promoCodeId: promo_code_id }, listing);
       if (!promoGeoValidation.ok) return Response.json({ error: promoGeoValidation.error }, { status: 400 });
 
-      // Create completed redemption record
+      const earlyEnabled = pc.early_discount_enabled === true;
+      const earlyUsed = Number(pc.early_discount_used_count || 0);
+      const earlyLimit = Number(pc.early_discount_limit || 0);
+      const authoritativeBucket = earlyEnabled && earlyUsed < earlyLimit ? 'early' : 'default';
+      const authoritativePercent = authoritativeBucket === 'early'
+        ? Number(pc.early_discount_percent || 0)
+        : Number(pc.default_discount_percent || 0);
+
+      const originalAmount = Number(original_amount || 0);
+      if (!Number.isFinite(originalAmount) || originalAmount <= 0) {
+        return Response.json({ error: 'Invalid original amount' }, { status: 400 });
+      }
+
+      const authoritativeDiscountAmount = Math.min(
+        originalAmount,
+        Math.round(originalAmount * authoritativePercent / 100),
+      );
+      const authoritativeFinalAmount = Math.max(0, originalAmount - authoritativeDiscountAmount);
+      if (authoritativeFinalAmount !== 0) {
+        return Response.json({ error: 'This promo does not cover the full purchase price' }, { status: 400 });
+      }
+
+      const existingCompletedForListing = await base44.asServiceRole.entities.ResidentialPromoRedemption.filter({
+        promo_code_id,
+        listing_id,
+        status: 'completed',
+      });
+      if ((existingCompletedForListing || []).length > 0) {
+        return Response.json({ ok: true, free_promo: true, already_completed: true });
+      }
+
       await base44.asServiceRole.entities.ResidentialPromoRedemption.create({
         promo_code_id,
-        code: promo_code,
-        user_id: user_id || '',
-        user_email: user_email || '',
+        code: pc.code,
+        user_id: currentUser.id,
+        user_email: currentUser.email || '',
         listing_id,
-        original_amount: Number(original_amount) || 0,
-        discount_percent_applied: Number(discount_percent) || 0,
-        discount_amount: Number(discount_amount) || 0,
+        original_amount: originalAmount,
+        discount_percent_applied: authoritativePercent,
+        discount_amount: authoritativeDiscountAmount,
         final_amount: 0,
-        discount_bucket: discount_bucket || 'default',
+        discount_bucket: authoritativeBucket,
         redeemed_at: nowIso(),
         status: 'completed',
       });
 
-      // Increment promo usage counts
-      const promoCodes = await base44.asServiceRole.entities.ResidentialPromoCode.filter({ id: promo_code_id });
-      const pc = promoCodes?.[0];
-      if (pc) {
-        const updates = { total_used_count: (pc.total_used_count || 0) + 1, updated_at: nowIso() };
-        if (discount_bucket === 'early') {
-          updates.early_discount_used_count = (pc.early_discount_used_count || 0) + 1;
-        }
-        await base44.asServiceRole.entities.ResidentialPromoCode.update(pc.id, updates);
+      const promoUpdates = { total_used_count: Number(pc.total_used_count || 0) + 1, updated_at: nowIso() };
+      if (authoritativeBucket === 'early') {
+        promoUpdates.early_discount_used_count = Number(pc.early_discount_used_count || 0) + 1;
       }
+      await base44.asServiceRole.entities.ResidentialPromoCode.update(pc.id, promoUpdates);
 
-      // Update listing to active/scheduled (payment_status = paid)
+      const finalStatus = listingKind === 'event' ? 'active' : 'scheduled';
       await base44.asServiceRole.entities.Listing.update(listing_id, {
         payment_status: 'paid',
-        status: 'scheduled',
+        payment_intent_status: 'promo_comped',
+        pricePaid: 0,
+        status: finalStatus,
       });
 
       await base44.asServiceRole.entities.PaymentTransaction.create({
         stripe_event_id: `free_promo_${listing_id}_${promo_code_id}`,
         event_type: 'free_promo.completed',
         transaction_type: 'listing_payment',
-        user_id: user_id || '',
-        user_email: user_email || '',
+        user_id: currentUser.id,
+        user_email: currentUser.email || '',
         yardit_record_type: 'Listing',
         yardit_record_id: listing_id,
         status: 'succeeded',
         amount_cents: 0,
-        original_amount_cents: Number(original_amount) || 0,
-        discount_amount_cents: Number(discount_amount) || 0,
+        original_amount_cents: originalAmount,
+        discount_amount_cents: authoritativeDiscountAmount,
         final_amount_cents: 0,
         currency: 'usd',
-        promo_code: promo_code || '',
+        promo_code: pc.code || '',
         payment_status: 'paid',
         non_refund_acknowledged: body?.non_refund_acknowledged === true,
         non_refund_acknowledged_at: body?.non_refund_acknowledged_at || '',
-        non_refund_acknowledged_by_user_id: body?.non_refund_acknowledged_by_user_id || user_id || '',
+        non_refund_acknowledged_by_user_id: body?.non_refund_acknowledged_by_user_id || currentUser.id,
         received_at: nowIso(),
         processed_at: nowIso(),
       });
 
-      return Response.json({ ok: true, free_promo: true });
+      return Response.json({
+        ok: true,
+        free_promo: true,
+        promo_code: pc.code,
+        promo_title: pc.title || pc.code,
+        discount_percent: authoritativePercent,
+        discount_amount: authoritativeDiscountAmount,
+        final_amount: 0,
+      });
     }
 
     // ── CREATE STRIPE CHECKOUT ──────────────────────────────────────
