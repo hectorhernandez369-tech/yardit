@@ -1927,14 +1927,12 @@ export default function CreateListingPage() {
         const halloween = `${now.getFullYear()}-10-31`;
         const startDate = type === "trick_or_treat" ? halloween : (formData.halloween_start_date || createdDate);
         const endDate = type === "trick_or_treat" ? halloween : (formData.halloween_end_date || halloween);
-        if (!startDate || !endDate || !formData.halloween_start_time || !formData.halloween_end_time) {
-          toast.error("Add the Halloween dates and viewing times first.");
-          return true;
-        }
+        const assistedStartTime = formData.halloween_start_time || "17:00";
+        const assistedEndTime = formData.halloween_end_time || "22:00";
         const tags = ["trick_or_treat", "trunk_or_treat"].includes(type)
           ? (formData.halloween_tags || []).filter((tag) => tag !== "no_candy_here")
           : (formData.halloween_tags || []);
-        const activation = minutesFromTime(formData.halloween_start_time) < minutesFromTime("15:00") ? "15:00" : formData.halloween_start_time;
+        const activation = minutesFromTime(assistedStartTime) < minutesFromTime("15:00") ? "15:00" : assistedStartTime;
 
         const response = await base44.functions.invoke("createAssistedHalloweenSpot", {
           addressText: formData.addressText, city: formData.city, state: getStateAbbreviation(formData.state || ""), zip: formData.zip,
@@ -1946,7 +1944,7 @@ export default function CreateListingPage() {
           halloween_suggested_age: formData.halloween_suggested_age || "", halloween_host_name: formData.halloween_host_name || "",
           halloween_admission: formData.halloween_admission || "", halloween_parking_notes: formData.halloween_parking_notes || "",
           halloween_activities: formData.halloween_activities || "", halloween_start_date: startDate, halloween_end_date: endDate,
-          halloween_start_time: formData.halloween_start_time || "17:00", halloween_end_time: formData.halloween_end_time || "22:00",
+          halloween_start_time: assistedStartTime, halloween_end_time: assistedEndTime,
           full_icon_activation_time: activation || "17:00", location_source: formData.location_source || "address_search",
           appBaseUrl: window.location.origin,
         });
@@ -2556,19 +2554,32 @@ export default function CreateListingPage() {
                   setAssistedPermissionConfirmed(false);
                   setAssistedCreated(null);
                   if (checked) {
-                    setFormData((prev) => ({
-                      ...prev,
-                      addressText: "",
-                      city: "",
-                      state: "",
-                      zip: "",
-                      lat: null,
-                      lng: null,
-                      geocoded_address: "",
-                      selected_geocode_confirmed: false,
-                      location_source: "address_search",
-                      locationMethod: "assisted_admin",
-                    }));
+                    setFormData((prev) => {
+                      const now = new Date();
+                      const pad = (value) => String(value).padStart(2, "0");
+                      const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                      const halloween = `${now.getFullYear()}-10-31`;
+                      const halloweenDefaults = prev.listingType === "halloween_spot" ? {
+                        halloween_start_date: today,
+                        halloween_end_date: halloween,
+                        halloween_start_time: "17:00",
+                        halloween_end_time: "22:00",
+                      } : {};
+                      return {
+                        ...prev,
+                        ...halloweenDefaults,
+                        addressText: "",
+                        city: "",
+                        state: "",
+                        zip: "",
+                        lat: null,
+                        lng: null,
+                        geocoded_address: "",
+                        selected_geocode_confirmed: false,
+                        location_source: "address_search",
+                        locationMethod: "assisted_admin",
+                      };
+                    });
                   }
                 }}
                 className="mt-1 h-4 w-4"
