@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Tag, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { validateResidentialPromoCode } from "@/lib/residentialPromoValidation";
 
-export default function PromoCodeInput({ user, listing, selectedTier, listingPrice, onPromoApplied, initialCode = "" }) {
+export default function PromoCodeInput({ user, listing, selectedTier, listingPrice, onPromoApplied, initialCode = "", revalidateOnPriceChange = false }) {
   const [code, setCode] = useState(initialCode || "");
   const [status, setStatus] = useState(null); // null | "loading" | "valid" | "invalid"
   const [message, setMessage] = useState("");
   const [result, setResult] = useState(null);
   const autoAppliedRef = useRef(false);
+  const previousPriceRef = useRef(listingPrice);
 
   const handleApply = async (displayAppliedMessage = false, overrideCode = "") => {
     const activeCode = overrideCode || code;
@@ -59,7 +60,17 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
     setCode(normalizedInitialCode);
     autoAppliedRef.current = true;
     window.setTimeout(() => handleApply(true, normalizedInitialCode), 0);
-  }, [initialCode, selectedTier, listingPrice]);
+  }, [initialCode, selectedTier]);
+
+  useEffect(() => {
+    const previousPrice = previousPriceRef.current;
+    previousPriceRef.current = listingPrice;
+
+    if (!revalidateOnPriceChange || previousPrice === listingPrice) return;
+    if (status !== "valid" || !code.trim()) return;
+
+    window.setTimeout(() => handleApply(true, code), 0);
+  }, [listingPrice, revalidateOnPriceChange, status, code]);
 
   const handleClear = () => {
     setCode("");
