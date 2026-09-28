@@ -33,6 +33,32 @@ function getDistanceFeet(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
+function ymdInPacific(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const get = (type) => parts.find((part) => part.type === type)?.value || '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+function verifiedUserCoordinates(user) {
+  const data = user?.data || {};
+  const verified =
+    user?.primary_address_verified === true ||
+    user?.address_verified === true ||
+    user?.address_confirmation_status === 'confirmed' ||
+    data.primary_address_verified === true ||
+    data.address_verified === true ||
+    data.address_confirmation_status === 'confirmed';
+  const lat = user?.primary_latitude ?? user?.address_lat ?? data.primary_latitude ?? data.address_lat;
+  const lng = user?.primary_longitude ?? user?.address_lng ?? data.primary_longitude ?? data.address_lng;
+  if (!verified || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return null;
+  return { lat: Number(lat), lng: Number(lng) };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -60,14 +86,10 @@ Deno.serve(async (req) => {
       halloween_admission = '', halloween_parking_notes = '',
       halloween_activities = '', halloween_start_date = '',
       halloween_end_date = '', halloween_start_time = '',
-      halloween_end_time = '', full_icon_activation_time = '15:00',
-      location_source = 'address_search', ownerPermissionConfirmed = false,
+      halloween_end_time = '', full_icon_activation_time = '17:00',
+      location_source = 'address_search',
       appBaseUrl: clientAppBaseUrl = '',
     } = payload;
-
-    if (!ownerPermissionConfirmed) {
-      return Response.json({ error: 'Confirm the property owner gave permission before creating an assisted Halloween Spot.' }, { status: 400 });
-    }
     if (!addressText || !city || !state || !zip) {
       return Response.json({ error: 'A complete property address is required.' }, { status: 400 });
     }
@@ -75,12 +97,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Valid coordinates are required.' }, { status: 400 });
     }
     if (!title.trim()) return Response.json({ error: 'A title is required.' }, { status: 400 });
-    if (!halloween_start_date || !halloween_end_date || !halloween_start_time || !halloween_end_time) {
-      return Response.json({ error: 'Halloween dates and viewing times are required.' }, { status: 400 });
-    }
+    const createdDate = ymdInPacific(new Date());
+    const createdYear = Number(createdDate.slice(0, 4));
+    const thisHalloween = `${createdYear}-10-31`;
+    const effectiveEndDate = createdDate <= thisHalloween ? thisHalloween : `${createdYear + 1}-10-31`;
+    const effectiveStartDate = halloween_spot_type === 'trick_or_treat' ? effectiveEndDate : (halloween_start_date || createdDate);
+    const finalEndDate = halloween_spot_type === 'trick_or_treat' ? effectiveEndDate : (halloween_end_date || effectiveEndDate);
+    const effectiveStartTime = halloween_start_time || '17:00';
+    const effectiveEndTime = halloween_end_time || '22:00';
+    const effectiveActivationTime = full_icon_activation_time || '17:00';
 
-    const startDateTime = new Date(`${halloween_start_date}T${halloween_start_time}:00`).toISOString();
-    const endDateTime = new Date(`${halloween_end_date}T${halloween_end_time}:00`).toISOString();
+    const startDateTime = new Date(`${effectiveStartDate}T${effectiveStartTime}:00`).toISOString();
+    const endDateTime = new Date(`${finalEndDate}T${effectiveEndTime}:00`).toISOString();
 
     const nearby = await base44.asServiceRole.entities.Location.filter({ type: 'halloween_candy' }, '-created_date', 500);
     const duplicate = (nearby || []).find((spot) => {
@@ -88,7 +116,7 @@ Deno.serve(async (req) => {
       if (getDistanceFeet(lat, lng, spot.latitude, spot.longitude) > 50) return false;
       const existingStart = spot.halloween_start_date || String(spot.start_date_time || '').slice(0, 10);
       const existingEnd = spot.halloween_end_date || String(spot.end_date_time || '').slice(0, 10) || existingStart;
-      return existingStart && existingEnd && existingStart <= halloween_end_date && existingEnd >= halloween_start_date;
+      return existingStart && existingEnd && existingStart <= finalEndDate && existingEnd >= effectiveStartDate;
     });
     if (duplicate) {
       return Response.json({ error: 'There is already a Halloween Spot at or very near this property for those dates.', duplicateLocationId: duplicate.id }, { status: 409 });
@@ -96,7 +124,7 @@ Deno.serve(async (req) => {
 
     const token = generateToken();
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(`${finalEndDate}T23:59:59`);
     const appBaseUrl = getAppBaseUrl(req, clientAppBaseUrl);
     const approvalUrl = `${appBaseUrl}/assisted-halloween?token=${token}`;
     const qrImageUrl = buildQrImageUrl(approvalUrl);
@@ -135,14 +163,14 @@ Deno.serve(async (req) => {
       halloween_admission,
       halloween_parking_notes,
       halloween_activities,
-      halloween_start_date,
-      halloween_end_date,
-      halloween_start_time,
-      halloween_end_time,
-      viewing_start_time: halloween_start_time,
-      viewing_end_time: halloween_end_time,
-      full_icon_activation_time,
-      owner_user_id: user.id,
+      halloween_start_date: effectiveStartDate,
+      halloween_end_date: finalEndDate,
+      halloween_start_time: effectiveStartTime,
+      halloween_end_time: effectiveEndTime,
+      viewing_start_time: effectiveStartTime,
+      viewing_end_time: effectiveEndTime,
+      full_icon_activation_time: effectiveActivationTime,
+      owner_user_id: '',
     });
 
     let assisted;
