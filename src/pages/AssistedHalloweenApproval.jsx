@@ -20,6 +20,7 @@ export default function AssistedHalloweenApproval() {
   const [acting, setActing] = useState(false);
   const [error, setError] = useState("");
   const [claimUser, setClaimUser] = useState(null);
+  const [approvalStatus, setApprovalStatus] = useState("checking");
 
   useEffect(() => {
     if (!token) {
@@ -33,6 +34,21 @@ export default function AssistedHalloweenApproval() {
         const data = res.data;
         setSpot(data.spot || null);
         setAssisted(data.assisted || null);
+
+        if (data.status === "ok") {
+          const isAuth = await base44.auth.isAuthenticated();
+          if (!isAuth) {
+            setApprovalStatus("unauthorized");
+          } else {
+            const me = await base44.auth.me();
+            setClaimUser(me);
+            const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { token, action: "check_address" });
+            setApprovalStatus(check.data?.status || "address_mismatch");
+            if (["needs_address_verification", "address_mismatch"].includes(check.data?.status)) {
+              setError(check.data?.error || "Verify your Yardit home address to approve this Halloween Spot.");
+            }
+          }
+        }
 
         const returning = autoclaim || sessionStorage.getItem("assisted_halloween_claim_token") === token;
         if (returning && ["approved", "assisted_active_unclaimed"].includes(data.status)) {
@@ -73,6 +89,7 @@ export default function AssistedHalloweenApproval() {
   }, [token, autoclaim, navigate, queryClient]);
 
   const approve = async () => {
+    if (approvalStatus !== "verified") return;
     setActing(true);
     setError("");
     try {
