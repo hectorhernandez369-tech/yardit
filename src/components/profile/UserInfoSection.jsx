@@ -12,11 +12,13 @@ import { toast } from "sonner";
 import { computedAddressVerified } from "@/lib/trustActions";
 import { buildVerifiedAddressUpdate, normalizeUser } from "@/lib/normalizeUser";
 import { getNameValidationError, getPhoneValidationError } from "@/lib/profileValidation";
+import { createPageUrl } from "@/utils";
 
 export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }) {
   const normalizedUser = normalizeUser(user);
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingAddress, setIsConfirmingAddress] = useState(false);
+  const [addressChangeLock, setAddressChangeLock] = useState(null);
 
   // Use the computed helper so a stale verified flag without real address data is treated as unverified
   const isAddressConfirmed = computedAddressVerified(normalizedUser);
@@ -50,6 +52,28 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
     }
   }, [addressEditSignal]);
 
+  const requestPreciseLocation = () => new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("GPS location is not available on this device."));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        accuracyFeet: Number(position.coords.accuracy || 0) * 3.28084,
+      }),
+      (error) => {
+        const denied = error?.code === 1;
+        reject(new Error(denied
+          ? "Location permission is required to change your primary address."
+          : "We couldn't get a reliable GPS location. Please try again outside or near a window."));
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  });
+
   const confirmAddress = async () => {
     const { street_address, city, state, zip_code } = formData;
     if (!street_address || !city || !state || !zip_code) {
@@ -57,16 +81,32 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
       return null;
     }
 
-    setIsConfirmingAddress(true);
-    const query = `${street_address}, ${city}, ${state}, ${zip_code}`;
-    try {
-      const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?limit=1&access_token=${MAPBOX_TOKEN}`;
-      const response = await fetch(url);
-      const data = await response.json();
+    const addressChanged =
+      street_address.trim() !== String(normalizedUser.street_address || "").trim() ||
+      city.trim() !== String(normalizedUser.city || "").trim() ||
+      state.trim().toUpperCase() !== String(normalizedUser.state || "").trim().toUpperCase() ||
+      zip_code.trim() !== String(normalizedUser.zip_code || "").trim();
 
-      if (data && data.features && data.features.length > 0) {
-        const feature = data.features[0];
+    if (!addressChanged && isAddressConfirmed) {
+      return { unchanged: true };
+    }
+
+    // First-time verification keeps the existing low-friction Mapbox flow.
+    if (!isAddressConfirmed) {
+      setIsConfirmingAddress(true);
+      const query = `${street_address}, ${city}, ${state}, ${zip_code}`;
+      try {
+        const MAPBOX_TOKEN = "pk.eyJ1IjoieWFyZGl0IiwiYSI6ImNta2JybmRiODA4NGszaHB4eWk1Ym51OGkifQ.EGhIAG9BvEK50uwlPNfmhA";
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?limit=1&types=address&access_token=${MAPBOX_TOKEN}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        const feature = data?.features?.[0];
+
+        if (!response.ok || !feature?.center || feature.place_type?.[0] !== "address") {
+          toast.error("Could not confirm that physical address. Please double-check it.");
+          return null;
+        }
+
         const [lng, lat] = feature.center;
         const formattedAddress = feature.place_name || query;
         const verifiedAt = new Date().toISOString();
@@ -74,7 +114,7 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
           street_address: street_address.trim(),
           street: street_address.trim(),
           city: city.trim(),
-          state: state.trim(),
+          state: state.trim().toUpperCase(),
           zip_code: zip_code.trim(),
           zip: zip_code.trim(),
           address_lat: lat,
@@ -92,23 +132,62 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
           address_verification_required: false,
           address: formattedAddress,
         };
-        
-        setFormData(prev => ({ ...prev, ...confirmedAddressData }));
+
+        setFormData((prev) => ({ ...prev, ...confirmedAddressData }));
         await base44.auth.updateMe(buildVerifiedAddressUpdate(confirmedAddressData, user));
         const refreshedUser = normalizeUser(await base44.auth.me());
         setUser(refreshedUser);
         window.dispatchEvent(new CustomEvent("yardit:user-updated", { detail: refreshedUser }));
         setIsEditing(false);
-        
         toast.success("Address confirmed and saved!");
         return { lat, lng, confirmedAddressData };
-      } else {
-        toast.error("Could not confirm address. Please double-check it.");
+      } catch (err) {
+        console.error(err);
+        toast.error(err?.message || "Failed to confirm address.");
         return null;
+      } finally {
+        setIsConfirmingAddress(false);
       }
+    }
+
+    // Existing verified address: require GPS + server-side annual lock.
+    setIsConfirmingAddress(true);
+    setAddressChangeLock(null);
+    try {
+      const gps = await requestPreciseLocation();
+      const response = await base44.functions.invoke("changePrimaryAddress", {
+        street_address: street_address.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        zip_code: zip_code.trim(),
+        gps_lat: gps.lat,
+        gps_lng: gps.lng,
+        gps_accuracy_feet: gps.accuracyFeet,
+      });
+
+      const updatedAddress = response?.data?.address || {};
+      const refreshedUser = normalizeUser(await base44.auth.me());
+      setFormData((prev) => ({
+        ...prev,
+        street_address: refreshedUser.street_address || updatedAddress.street_address || prev.street_address,
+        city: refreshedUser.city || updatedAddress.city || prev.city,
+        state: refreshedUser.state || updatedAddress.state || prev.state,
+        zip_code: refreshedUser.zip_code || updatedAddress.zip_code || prev.zip_code,
+        address_lat: refreshedUser.address_lat ?? updatedAddress.address_lat ?? null,
+        address_lng: refreshedUser.address_lng ?? updatedAddress.address_lng ?? null,
+        address_confirmation_status: "confirmed",
+      }));
+      setUser(refreshedUser);
+      window.dispatchEvent(new CustomEvent("yardit:user-updated", { detail: refreshedUser }));
+      setIsEditing(false);
+      toast.success("Primary address changed and GPS verified.");
+      return { gpsVerified: true };
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to confirm address due to a network error.");
+      const data = err?.response?.data || {};
+      if (data?.code === "address_change_locked") {
+        setAddressChangeLock({ nextAllowedAt: data.next_allowed_at || null });
+      }
+      toast.error(data?.error || err?.message || "Could not change your primary address.");
       return null;
     } finally {
       setIsConfirmingAddress(false);
@@ -158,9 +237,22 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
     };
 
     if (addressChanged || !formData.address_lat || !formData.address_lng) {
-      const coords = await confirmAddress();
-      if (!coords) return;
-      currentData = { ...currentData, ...coords.confirmedAddressData };
+      const addressResult = await confirmAddress();
+      if (!addressResult) return;
+
+      // Address changes are already saved by the secure server function.
+      // Only save the non-address profile fields afterward.
+      if (addressChanged && isAddressConfirmed) {
+        updateUserMutation.mutate({
+          first_name: formData.first_name.trim(),
+          last_name: formData.last_name.trim(),
+          phone: formData.phone.trim(),
+          phone_number: formData.phone.trim(),
+        });
+        return;
+      }
+
+      currentData = { ...currentData, ...(addressResult.confirmedAddressData || {}) };
     }
 
     updateUserMutation.mutate(currentData);
@@ -321,17 +413,47 @@ export default function UserInfoSection({ user, setUser, addressEditSignal = 0 }
                     return { ...next, address_lat: null, address_lng: null, address_confirmation_status: "unconfirmed" };
                   });
                 }} />
-                <Button 
-                  type="button" 
-                  variant="secondary" 
-                  size="sm" 
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={confirmAddress}
                   disabled={isConfirmingAddress}
                   className="w-full gap-2"
                 >
                   {isConfirmingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-                  {isConfirmingAddress ? "Confirming..." : "Confirm Address"}
+                  {isConfirmingAddress
+                    ? "Confirming..."
+                    : isAddressConfirmed
+                    ? "Verify New Address with GPS"
+                    : "Confirm Address"}
                 </Button>
+                {isAddressConfirmed && (
+                  <p className="text-xs text-slate-500">
+                    Primary address changes require your phone's GPS and are limited to one self-service change every 365 days.
+                  </p>
+                )}
+                {addressChangeLock && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                    <p className="font-semibold">Address change review required</p>
+                    <p className="mt-1">
+                      {addressChangeLock.nextAllowedAt
+                        ? `Your next self-service change is available ${new Date(addressChangeLock.nextAllowedAt).toLocaleDateString()}.`
+                        : "Your annual self-service address change is not available yet."}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 w-full border-amber-300 bg-white text-amber-900"
+                      onClick={() => {
+                        window.location.href = `${createPageUrl("ContactSupport")}?area=residential&from=profile-address-change&address_change_review=1`;
+                      }}
+                    >
+                      Request Address Change Review
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
