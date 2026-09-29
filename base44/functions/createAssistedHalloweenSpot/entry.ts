@@ -152,8 +152,10 @@ Deno.serve(async (req) => {
     const createdYear = Number(createdDate.slice(0, 4));
     const novemberFirst = `${createdYear}-11-01`;
     const effectiveEndDate = createdDate <= novemberFirst ? novemberFirst : `${createdYear + 1}-11-01`;
-    const effectiveStartDate = halloween_start_date || createdDate;
-    const finalEndDate = halloween_end_date || effectiveEndDate;
+    // The older assisted form sends October 31 for Trick-or-Treat even when its fields show the new defaults.
+    const legacyTrickOrTreatDate = halloween_spot_type === 'trick_or_treat' && halloween_start_date === `${createdYear}-10-31` && halloween_end_date === `${createdYear}-10-31`;
+    const effectiveStartDate = legacyTrickOrTreatDate ? createdDate : (halloween_start_date || createdDate);
+    const finalEndDate = legacyTrickOrTreatDate ? effectiveEndDate : (halloween_end_date || effectiveEndDate);
     const effectiveStartTime = halloween_start_time || '17:00';
     const effectiveEndTime = halloween_end_time || '22:00';
     const effectiveActivationTime = full_icon_activation_time || '17:00';
