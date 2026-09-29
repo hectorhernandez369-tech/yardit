@@ -30,6 +30,7 @@ export default function HalloweenClaimLanding() {
   const [result, setResult] = useState(null);
   const [state, setState] = useState("search");
   const [message, setMessage] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
 
   const findHouse = async (event, resumeAddress) => {
     event?.preventDefault?.();
@@ -40,6 +41,7 @@ export default function HalloweenClaimLanding() {
     setHomeStatus("checking");
     setAssistedId("");
     setMessage("");
+    setSuggestions([]);
     setResult(null);
     try {
       const response = await base44.functions.invoke("findAssistedHalloweenSpot", { address: query.trim() });
@@ -68,7 +70,10 @@ export default function HalloweenClaimLanding() {
       } else if (data.status === "expired") {
         setMessage("We found the property, but its approval invitation has expired.");
       } else {
-        setMessage("We couldn’t find an assisted Halloween listing at that address yet.");
+        setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+        setMessage(data.suggestions?.length
+          ? "We didn’t find an exact match. Is your house one of these?"
+          : "We couldn’t find an assisted Halloween listing at that address yet.");
       }
     } catch (error) {
       setMessage(error?.response?.data?.error || error?.message || "Could not search right now. Please try again.");
@@ -253,6 +258,32 @@ export default function HalloweenClaimLanding() {
         )}
 
         {message && state !== "claimed" && <div className="mt-4 rounded-2xl border border-orange-300/20 bg-orange-500/10 p-3 text-center text-sm text-orange-100">{message}</div>}
+
+        {state === "search" && suggestions.length > 0 && (
+          <div className="mt-4 rounded-3xl border border-white/10 bg-white/5 p-4">
+            <p className="text-center text-sm font-black text-orange-200">Did you mean one of these?</p>
+            <div className="mt-3 space-y-2">
+              {suggestions.map((suggestion) => (
+                <button
+                  key={suggestion.assistedId || suggestion.address}
+                  type="button"
+                  onClick={() => findHouse(null, suggestion.address)}
+                  className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-left transition hover:bg-white/15"
+                >
+                  <div className="flex items-start gap-2">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-300" />
+                    <div>
+                      <p className="text-sm font-black text-white">{suggestion.street || suggestion.address}</p>
+                      {(suggestion.city || suggestion.state || suggestion.zip) && (
+                        <p className="mt-0.5 text-xs text-purple-200">{[suggestion.city, suggestion.state, suggestion.zip].filter(Boolean).join(", ")}</p>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {state === "search" && (
           <div className="mt-6 text-center">
