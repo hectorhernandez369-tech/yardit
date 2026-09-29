@@ -227,7 +227,15 @@ export default function HalloweenClaimLanding() {
               {acting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
               Keep My Spot — Approve 🎃
             </Button>}
-            <Button variant="outline" onClick={() => { setState("search"); setResult(null); setAssistedId(""); setHomeStatus("checking"); }} className="w-full border-white/20 bg-transparent text-white hover:bg-white/10">That isn’t my house</Button>
+            <div className="pt-6 text-center">
+              <button
+                type="button"
+                onClick={() => { setState("search"); setResult(null); setAssistedId(""); setHomeStatus("checking"); }}
+                className="text-sm font-semibold text-slate-400 underline decoration-slate-600 underline-offset-4 transition hover:text-slate-200"
+              >
+                That isn’t my house
+              </button>
+            </div>
           </div>
         )}
 
