@@ -54,7 +54,20 @@ function fuzzySameProperty(input, street, full) {
   const needle = normalizeAddress(input);
   const normalizedStreet = normalizeAddress(street);
   const normalizedFull = normalizeAddress(full);
-  const streetDistance = editDistance(needle, normalizedStreet);
+
+  // Compare only the street-sized beginning of a longer full-address search.
+  // Example: "868 Asheville St Lindsay CA" should still match a stored
+  // "868 Ashville Street" even though city/state were also typed.
+  const streetLength = normalizedStreet.length;
+  const prefixCandidates = [
+    needle.slice(0, Math.max(0, streetLength - 2)),
+    needle.slice(0, streetLength),
+    needle.slice(0, streetLength + 2),
+  ].filter(Boolean);
+  const streetDistance = Math.min(
+    editDistance(needle, normalizedStreet),
+    ...prefixCandidates.map((prefix) => editDistance(prefix, normalizedStreet))
+  );
   const fullDistance = editDistance(needle, normalizedFull);
 
   return streetDistance <= 2 || fullDistance <= 2;
