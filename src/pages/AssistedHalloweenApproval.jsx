@@ -128,6 +128,41 @@ export default function AssistedHalloweenApproval() {
     }
   };
 
+  const loginToApprove = async () => {
+    sessionStorage.setItem("assisted_halloween_claim_token", token);
+    if (await base44.auth.isAuthenticated()) {
+      const me = await base44.auth.me();
+      setClaimUser(me);
+      const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { token, action: "check_address" });
+      setApprovalStatus(check.data?.status || "address_mismatch");
+      if (check.data?.status !== "verified") {
+        setError(check.data?.error || "Verify your Yardit home address to approve this Halloween Spot.");
+      }
+      return;
+    }
+    const returnUrl = window.location.origin + "/assisted-halloween?token=" + encodeURIComponent(token);
+    base44.auth.redirectToLogin(returnUrl);
+  };
+
+  const verifyAndApproveAddress = async (addressPayload) => {
+    setActing(true);
+    setError("");
+    try {
+      await base44.auth.updateMe(addressPayload);
+      const me = await base44.auth.me();
+      setClaimUser(me);
+      const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { token, action: "check_address" });
+      setApprovalStatus(check.data?.status || "address_mismatch");
+      if (check.data?.status !== "verified") {
+        setError(check.data?.error || "Your verified Yardit home address must match this property.");
+      }
+    } catch (err) {
+      setError(err?.response?.data?.error || err?.message || "Could not verify your address.");
+    } finally {
+      setActing(false);
+    }
+  };
+
   const loginToClaim = async () => {
     sessionStorage.setItem("assisted_halloween_claim_token", token);
     if (await base44.auth.isAuthenticated()) {
