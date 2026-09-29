@@ -183,7 +183,8 @@ export default function HalloweenClaimLanding() {
             <div className="rounded-3xl border border-orange-400/40 bg-gradient-to-b from-purple-900/70 to-black/55 p-5 shadow-2xl">
               <div className="text-center">
                 <Sparkles className="mx-auto h-7 w-7 text-yellow-300" />
-                <p className="mt-2 text-sm font-black tracking-widest text-orange-300">WE FOUND YOUR SPOOKY HOUSE!</p>
+                <p className="mt-2 text-sm font-black tracking-widest text-orange-300">🎉 WE FOUND YOUR SPOOKY HOUSE!</p>
+                <h2 className="mt-2 text-2xl font-black text-white">Your FREE Halloween icon is already waiting on Yardit.</h2>
               </div>
               <div className="mt-4 rounded-2xl border border-white/10 bg-white/95 p-4 text-slate-900">
                 {result.photos?.[0] && <img src={result.photos[0]} alt="" className="mb-4 h-52 w-full rounded-2xl object-cover" />}
@@ -203,14 +204,15 @@ export default function HalloweenClaimLanding() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
-              <p className="font-black">Your home is now part of the Yardit Halloween map.</p>
-              <p className="mt-1 text-xs text-purple-200">Approve this exact listing to make it official.</p>
+            <div className="rounded-2xl border border-orange-300/25 bg-gradient-to-r from-orange-500/10 to-purple-500/10 p-4 text-center">
+              <p className="text-sm font-black text-orange-200">YOUR HALLOWEEN SPOT IS RESERVED 🎃</p>
+              <p className="mt-2 font-black">Families nearby will be able to discover your display on the Yardit Halloween map.</p>
+              <p className="mt-1 text-xs text-purple-200">Approve it to make your spot official. It only takes a moment.</p>
             </div>
 
             {homeStatus === "checking" && <p className="text-center text-sm text-purple-100">Checking your account…</p>}
             {homeStatus === "unauthorized" && <div className="space-y-2">
-              <p className="text-center text-xs text-purple-100">For homeowner protection, address-search approvals require a verified Yardit home address.</p>
+              <p className="text-center text-sm font-semibold text-purple-100">Your spot is ready. One quick homeowner check keeps someone else from approving it.</p>
               <Button onClick={loginToApprove} className="w-full bg-orange-500 text-purple-950">Already have a Yardit account? Log In to Approve</Button>
               <Button onClick={loginToApprove} variant="outline" className="w-full border-white/20 bg-transparent text-white">Don't have an account? Sign Up to Approve</Button>
             </div>}
@@ -218,7 +220,7 @@ export default function HalloweenClaimLanding() {
             {homeStatus === "address_mismatch" && <p className="text-center text-sm text-orange-200">This Halloween Spot can only be approved by a Yardit account verified at this property.</p>}
             {homeStatus === "verified" && <Button onClick={approve} disabled={acting} className="h-14 w-full bg-orange-500 text-base font-black text-purple-950 hover:bg-orange-400">
               {acting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
-              Approve This Halloween Spot
+              Keep My Spot — Approve 🎃
             </Button>}
             <Button variant="outline" onClick={() => { setState("search"); setResult(null); setAssistedId(""); setHomeStatus("checking"); }} className="w-full border-white/20 bg-transparent text-white hover:bg-white/10">That isn’t my house</Button>
           </div>
