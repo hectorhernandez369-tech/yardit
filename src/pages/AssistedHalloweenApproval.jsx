@@ -269,11 +269,28 @@ export default function AssistedHalloweenApproval() {
               {spot.halloween_start_date && <p className="flex items-center gap-2 text-sm text-slate-600"><Calendar className="w-4 h-4 shrink-0" />{spot.halloween_start_date} through {spot.halloween_end_date}</p>}
             </div>
             {error && <p className="text-sm text-red-300">{error}</p>}
-            <Button onClick={approve} disabled={acting} className="w-full bg-orange-500 hover:bg-orange-400 text-purple-950 font-black h-12">
-              {acting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle className="w-5 h-5 mr-2" />}Approve This Halloween Spot
-            </Button>
-            <Button onClick={loginToClaim} disabled={acting} variant="outline" className="w-full border-white/30 bg-transparent text-white hover:bg-white/10">Sign Up / Log In to Claim & Edit</Button>
-            <Button onClick={decline} disabled={acting} variant="outline" className="w-full border-white/30 bg-transparent text-white hover:bg-white/10">Decline</Button>
+            {approvalStatus === "checking" && <div className="flex items-center justify-center gap-2 text-sm text-purple-100"><Loader2 className="h-4 w-4 animate-spin" />Checking homeowner verification…</div>}
+            {approvalStatus === "unauthorized" && (
+              <div className="space-y-2">
+                <p className="text-center text-xs text-purple-100">One quick step protects your home from someone else approving it.</p>
+                <Button onClick={loginToApprove} className="w-full bg-orange-500 hover:bg-orange-400 text-purple-950 font-black h-12">Log In to Approve</Button>
+                <Button onClick={loginToApprove} variant="outline" className="w-full border-white/30 bg-transparent text-white hover:bg-white/10">Sign Up to Approve</Button>
+              </div>
+            )}
+            {approvalStatus === "needs_address_verification" && claimUser && (
+              <div className="rounded-2xl bg-white p-1 text-slate-900">
+                <SetupAddressVerification user={claimUser} isVerified={false} onVerified={verifyAndApproveAddress} />
+              </div>
+            )}
+            {approvalStatus === "address_mismatch" && (
+              <div className="rounded-xl border border-orange-300/30 bg-orange-500/10 p-3 text-center text-sm text-orange-200">This Halloween Spot can only be approved by a Yardit account verified at this property.</div>
+            )}
+            {approvalStatus === "verified" && (
+              <Button onClick={approve} disabled={acting} className="w-full bg-orange-500 hover:bg-orange-400 text-purple-950 font-black h-12">
+                {acting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle className="w-5 h-5 mr-2" />}Approve My Halloween Spot 🎃
+              </Button>
+            )}
+            <Button onClick={decline} disabled={acting} variant="outline" className="w-full border-white/30 bg-transparent text-white hover:bg-white/10">This Isn&apos;t My House</Button>
           </div>
         )}
 
