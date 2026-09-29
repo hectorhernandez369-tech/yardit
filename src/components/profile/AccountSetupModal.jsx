@@ -36,6 +36,11 @@ export default function AccountSetupModal({ user, setUser }) {
       return;
     }
 
+    if (sessionStorage.getItem("yardit_halloween_fast_onboarding") === "true") {
+      setOpen(false);
+      return;
+    }
+
     if (!isAccountSetupComplete(user)) {
       setFormData({
         first_name: user.first_name || "",
