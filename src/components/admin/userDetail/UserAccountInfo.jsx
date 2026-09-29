@@ -218,9 +218,10 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
         <div>
           <span className="text-gray-500">Address</span>
           <p className="font-medium">{user.primary_address || user.address || "—"}</p>
-          {user.address_change_override_until && new Date(user.address_change_override_until) > new Date() ? (
+          {(user.address_change_override_until || user.data?.address_change_override_until) &&
+          new Date(user.address_change_override_until || user.data?.address_change_override_until) > new Date() ? (
             <p className="mt-1 text-xs font-semibold text-amber-700">
-              Exception active until {new Date(user.address_change_override_until).toLocaleString()}
+              Exception active until {new Date(user.address_change_override_until || user.data?.address_change_override_until).toLocaleString()}
             </p>
           ) : null}
         </div>
