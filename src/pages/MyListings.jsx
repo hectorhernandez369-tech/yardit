@@ -771,7 +771,10 @@ export default function MyListingsPage() {
 
     try {
       if (listing.listingType === "halloween_spot" && listing._sourceEntity === "Location") {
-        await base44.entities.Location.update(listing.id, { status: "inactive" });
+        await base44.functions.invoke("manageSeasonalLocation", {
+          action: "cancel_halloween_location",
+          location_id: listing.id,
+        });
       } else if (listing.listingType === "neighborhood_sale") {
         await base44.functions.invoke("cancelNeighborhoodSale", { saleListingId: listing.id, reason: isActive ? "owner_cancelled_active" : "owner_cancelled_before_activation", finalState: "canceled", deleteSale: false });
       } else {
