@@ -51,7 +51,7 @@ export default function HalloweenClaimLanding() {
       if (data.status === "found" || data.status === "approved") {
         setResult(data.spot);
         setAssistedId(data.assistedId || "");
-        setState(data.status === "approved" ? "approved" : "found");
+        setState("found");
         const authenticated = await base44.auth.isAuthenticated();
         if (authenticated) {
           const me = await base44.auth.me();
