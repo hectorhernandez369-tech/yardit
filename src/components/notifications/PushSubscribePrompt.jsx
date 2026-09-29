@@ -26,6 +26,10 @@ export default function PushSubscribePrompt({ user }) {
 
   useEffect(() => {
     if (!user?.id) return undefined;
+    if (sessionStorage.getItem("yardit_halloween_fast_onboarding") === "true") {
+      setOpen(false);
+      return undefined;
+    }
     let active = true;
     let timers = [];
 
