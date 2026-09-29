@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, ArrowLeft, Baby, CalendarDays, Candy, Clock3, Footprints, Ghost, Lightbulb, List, Loader2, MapPin, Navigation, Share2, Star, Volume2, Plus } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Baby, CalendarDays, Candy, Clock3, Footprints, Ghost, Lightbulb, Loader2, MapPin, Navigation, Share2, Star, Volume2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import SaveListingButton from "@/components/listing/SaveListingButton";
 import ReportModal from "@/components/ReportModal";
@@ -59,7 +59,6 @@ export default function HalloweenSpotDetail() {
   const [spot, setSpot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reportOpen, setReportOpen] = useState(false);
-  const [isOwner, setIsOwner] = useState(false);
   const huntContext = useHunt() || { huntStops: [], addToHunt: () => {} };
   const { huntStops, addToHunt } = huntContext;
   const { guardAction, showModal, setShowModal, isGuest, modalProps } = useGuestGuard();
@@ -70,19 +69,14 @@ export default function HalloweenSpotDetail() {
       try {
         const response = await base44.functions.invoke("getPublicMapData", { halloweenLocationId: spotId });
         let loadedSpot = response?.data?.halloweenLocation || null;
-        try {
-          const me = await base44.auth.me();
-          const owned = await base44.entities.Location.filter({ id: spotId, type: "halloween_candy" });
-          const candidate = owned?.[0] || null;
-          const ownerMatch = Boolean(candidate && (
-            candidate.owner_user_id === me.id ||
-            candidate.created_by_id === me.id ||
-            String(candidate.created_by || "").toLowerCase() === String(me.email || "").toLowerCase()
-          ));
-          setIsOwner(ownerMatch);
-          if (!loadedSpot && ownerMatch) loadedSpot = candidate;
-        } catch {
-          setIsOwner(false);
+        if (!loadedSpot) {
+          try {
+            const me = await base44.auth.me();
+            const owned = await base44.entities.Location.filter({ id: spotId, type: "halloween_candy" });
+            const candidate = owned?.[0] || null;
+            const isOwner = candidate && (candidate.owner_user_id === me.id || candidate.created_by_id === me.id || String(candidate.created_by || "").toLowerCase() === String(me.email || "").toLowerCase());
+            if (isOwner) loadedSpot = candidate;
+          } catch {}
         }
         setSpot(loadedSpot);
       } catch (error) {
@@ -144,32 +138,7 @@ export default function HalloweenSpotDetail() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-purple-950 to-slate-950 text-white">
       <div className="mx-auto max-w-5xl px-3 py-4 sm:px-5 sm:py-6">
-        {!isOwner && (
-          <div className="mb-4">
-            <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="border-white/20 bg-white/10 text-white hover:bg-white/20"><ArrowLeft className="mr-1 h-4 w-4" /> Back</Button>
-          </div>
-        )}
-
-        {isOwner && (
-          <div className="mb-5 rounded-3xl border border-orange-400/30 bg-gradient-to-r from-orange-500/10 via-purple-500/10 to-orange-500/10 p-4 text-center shadow-[0_12px_40px_rgba(249,115,22,0.14)] sm:p-5">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-200">Your spot is live 🎃</p>
-            <h2 className="mt-1 text-xl font-black sm:text-2xl">See your Halloween Spot on the Yardit map</h2>
-            <p className="mx-auto mt-1 max-w-xl text-sm text-purple-100/80">This is what nearby families will see when they discover your neighborhood.</p>
-            <Button
-              onClick={() => navigate(createPageUrl("Home") + `?listingId=${spot.id}`)}
-              className="mx-auto mt-4 h-14 w-full max-w-md rounded-2xl bg-orange-500 text-base font-black text-purple-950 shadow-lg shadow-orange-950/30 hover:bg-orange-400 sm:text-lg"
-            >
-              <MapPin className="mr-2 h-5 w-5" /> See My Spot on the Map 🎃
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => navigate(createPageUrl("MyListings") + "?tab=active")}
-              className="mx-auto mt-2 text-purple-200 hover:bg-white/10 hover:text-white"
-            >
-              <List className="mr-2 h-4 w-4" /> View My Listings
-            </Button>
-          </div>
-        )}
+        <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="mb-4 border-white/20 bg-white/10 text-white hover:bg-white/20"><ArrowLeft className="mr-1 h-4 w-4" /> Back</Button>
 
         <section className="overflow-hidden rounded-3xl border border-orange-400/50 bg-gradient-to-b from-purple-950 via-slate-950 to-black shadow-[0_20px_70px_rgba(88,28,135,0.45)]">
           <div className="relative p-5 sm:p-7">
