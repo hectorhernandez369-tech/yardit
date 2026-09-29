@@ -76,14 +76,15 @@ export default async function(req) {
       const updated = await base44.asServiceRole.entities.AssistedHalloweenSpot.update(assisted.id, { assisted_status: 'assisted_expired' });
       return Response.json({ status: 'expired', assisted: publicAssisted(updated) });
     }
-    if (!action) return Response.json({ status: 'ok', spot, assisted: publicAssisted(assisted), approval_source: token ? 'qr_token' : 'address_search' });
+    if (!action) return Response.json({ status: 'ok', spot, assisted: publicAssisted(assisted), approval_source: token ? 'legacy_token_link' : 'address_search' });
 
     if (action === 'approve') {
-      // A valid unexpired flyer token authorizes approval, but never ownership.
-      // Without it, require the signed-in homeowner's existing verified address match.
-      if (!token) {
-        const verification = await verifyClaimAddress(base44, spot);
-        if (!verification.ok) return Response.json({ status: verification.status, error: verification.error }, { status: 403 });
+      // Approval always requires the signed-in homeowner's verified address to
+      // match this exact property. A token may locate a record, but never
+      // authorizes approval by itself.
+      const verification = await verifyClaimAddress(base44, spot);
+      if (!verification.ok) {
+        return Response.json({ status: verification.status, error: verification.error }, { status: 403 });
       }
       const now = new Date().toISOString();
       await base44.asServiceRole.entities.Location.update(spot.id, { status: 'active' });
