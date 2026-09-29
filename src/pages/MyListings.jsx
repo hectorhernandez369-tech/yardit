@@ -7,7 +7,8 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Map } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Map, Ghost, Store, Trash2, XCircle, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 
 import EditListingDialog from "@/components/listing/EditListingDialog";
@@ -99,7 +100,7 @@ export default function MyListingsPage() {
 
   useEffect(() => {
     const requestedTab = new URLSearchParams(location.search).get("tab");
-    if (["active", "pending", "drafts", "past", "billing"].includes(requestedTab)) {
+    if (["active", "pending", "drafts", "assisted", "past", "billing"].includes(requestedTab)) {
       setTab(requestedTab);
     }
   }, [location.search]);
@@ -160,6 +161,16 @@ export default function MyListingsPage() {
   const { data: drafts = [], isLoading: isLoadingDrafts } = useQuery({
     queryKey: ["myListingDrafts", user?.id],
     queryFn: () => base44.entities.ListingDraft.filter({ owner_user_id: user.id, status: "active" }, "-updated_date"),
+    enabled: !!user?.id,
+    initialData: [],
+  });
+
+  const { data: assistedListings = [], isLoading: isLoadingAssisted } = useQuery({
+    queryKey: ["myAssistedListings", user?.id],
+    queryFn: async () => {
+      const response = await base44.functions.invoke("manageAssistedHistory", { action: "list" });
+      return response?.data?.rows || [];
+    },
     enabled: !!user?.id,
     initialData: [],
   });
@@ -428,6 +439,7 @@ export default function MyListingsPage() {
     await Promise.all([
       queryClient.refetchQueries({ queryKey: ["myListings", user?.id] }),
       queryClient.refetchQueries({ queryKey: ["myListingDrafts", user?.id] }),
+      queryClient.refetchQueries({ queryKey: ["myAssistedListings", user?.id] }),
       queryClient.refetchQueries({ queryKey: ["myListingsResidentialTransactions", user?.id] }),
     ]);
   }, [queryClient, user?.id]);
