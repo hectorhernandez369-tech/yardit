@@ -11,8 +11,53 @@ function normalizeAddress(value = '') {
     .replace(/\b(court)\b/g, 'ct')
     .replace(/\b(boulevard)\b/g, 'blvd')
     .replace(/\b(place)\b/g, 'pl')
+    .replace(/\b(highway)\b/g, 'hwy')
+    .replace(/\b(north)\b/g, 'n')
+    .replace(/\b(south)\b/g, 's')
+    .replace(/\b(east)\b/g, 'e')
+    .replace(/\b(west)\b/g, 'w')
     .replace(/\b(california)\b/g, 'ca')
     .replace(/[^a-z0-9]/g, '');
+}
+
+function getHouseNumber(value = '') {
+  const match = String(value).match(/\b(\d+[a-z]?)\b/i);
+  return match ? match[1].toLowerCase() : '';
+}
+
+function editDistance(a = '', b = '') {
+  if (a === b) return 0;
+  if (!a) return b.length;
+  if (!b) return a.length;
+  const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let left = i;
+    let diag = i - 1;
+    for (let j = 1; j <= b.length; j++) {
+      const up = prev[j];
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const next = Math.min(up + 1, left + 1, diag + cost);
+      prev[j] = next;
+      diag = up;
+      left = next;
+    }
+    prev[0] = i;
+  }
+  return prev[b.length];
+}
+
+function fuzzySameProperty(input, street, full) {
+  const inputHouse = getHouseNumber(input);
+  const recordHouse = getHouseNumber(street);
+  if (!inputHouse || !recordHouse || inputHouse !== recordHouse) return false;
+
+  const needle = normalizeAddress(input);
+  const normalizedStreet = normalizeAddress(street);
+  const normalizedFull = normalizeAddress(full);
+  const streetDistance = editDistance(needle, normalizedStreet);
+  const fullDistance = editDistance(needle, normalizedFull);
+
+  return streetDistance <= 2 || fullDistance <= 2;
 }
 
 Deno.serve(async (req) => {
@@ -42,7 +87,16 @@ Deno.serve(async (req) => {
       ].filter(Boolean).join(' '));
 
       if (!street) return false;
-      return needle === street || needle === full || needle.includes(street) || full.includes(needle);
+      return needle === street ||
+        needle === full ||
+        needle.includes(street) ||
+        full.includes(needle) ||
+        fuzzySameProperty(rawAddress, record.property_address || '', [
+          record.property_address,
+          record.property_city,
+          record.property_state,
+          record.property_zip,
+        ].filter(Boolean).join(' '));
     });
 
     if (candidates.length === 0) {
