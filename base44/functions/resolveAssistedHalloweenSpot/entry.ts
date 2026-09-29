@@ -52,6 +52,33 @@ export default async function(req) {
       return Response.json({ status: verification.ok ? 'verified' : verification.status, error: verification.error });
     }
 
+    if (action === 'approve_and_claim') {
+      if (!['pending_owner_approval', 'assisted_active_unclaimed'].includes(assisted.assisted_status)) {
+        return Response.json({ status: 'error', error: 'This Halloween Spot is no longer available to approve.' }, { status: 400 });
+      }
+      const verification = await verifyClaimAddress(base44, spot);
+      if (!verification.ok) {
+        return Response.json({ status: verification.status, error: verification.error, spot, assisted: publicAssisted(assisted) }, { status: 403 });
+      }
+      const now = new Date().toISOString();
+      await base44.asServiceRole.entities.Location.update(spot.id, {
+        status: 'active',
+        owner_user_id: verification.user.id,
+        ownership_claimed_at: now,
+      });
+      const updated = await base44.asServiceRole.entities.AssistedHalloweenSpot.update(assisted.id, {
+        assisted_status: 'claimed_active',
+        owner_approved_at: assisted.owner_approved_at || now,
+        claimed_by_user_id: verification.user.id,
+        claimed_at: now,
+      });
+      return Response.json({
+        status: 'claimed',
+        spot: { ...spot, status: 'active', owner_user_id: verification.user.id },
+        assisted: publicAssisted(updated),
+      });
+    }
+
     if (action === 'claim_complete') {
       if (assisted.assisted_status !== 'assisted_active_unclaimed') {
         return Response.json({ status: 'error', error: 'The homeowner must approve this Halloween Spot before it can be claimed.' }, { status: 400 });
