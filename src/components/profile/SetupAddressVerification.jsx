@@ -20,7 +20,7 @@ function extractAddressParts(feature, fallback) {
   return { city, state: String(state || "").toUpperCase().slice(0, 2), zip_code: zip };
 }
 
-export default function SetupAddressVerification({ user, isVerified, onVerified }) {
+export default function SetupAddressVerification({ user, isVerified, onVerified, title = "Confirm your posting address", description = "Yardit requires a confirmed primary address before posting listings. This keeps map pins accurate and helps prevent fake listings.", buttonLabel = "Confirm Address" }) {
   const [formData, setFormData] = useState({
     street_address: user?.street_address || "",
     city: user?.city || "",
@@ -84,10 +84,8 @@ export default function SetupAddressVerification({ user, isVerified, onVerified 
           <ShieldCheck className="h-4 w-4" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">Confirm your posting address</h3>
-          <p className="mt-1 text-xs leading-relaxed text-slate-600">
-            Yardit requires a confirmed primary address before posting listings. This keeps map pins accurate and helps prevent fake listings.
-          </p>
+          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">{description}</p>
         </div>
       </div>
 
@@ -112,7 +110,7 @@ export default function SetupAddressVerification({ user, isVerified, onVerified 
         className="h-10 w-full rounded-xl bg-[#F4A849] font-semibold text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635]"
       >
         {isVerifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        {isVerifying ? "Confirming Address..." : isVerified ? "Address Confirmed" : "Confirm Address"}
+        {isVerifying ? "Confirming Address..." : isVerified ? "Address Confirmed" : buttonLabel}
       </Button>
     </div>
   );
