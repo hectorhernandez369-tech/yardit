@@ -155,7 +155,7 @@ export default function HalloweenClaimLanding() {
       await queryClient.invalidateQueries({ queryKey: ["myListings"] });
       await queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
       sessionStorage.setItem("yardit_halloween_fast_onboarding", "true");
-      navigate(createPageUrl("HalloweenSpotDetail") + `?id=${claimed.data.spot.id}`);
+      navigate(createPageUrl("SpookyListingLanding") + `?id=${claimed.data.spot.id}`);
     } catch (error) {
       setMessage(error?.response?.data?.error || error?.message || "Could not complete your Halloween Spot setup.");
     } finally {
@@ -172,7 +172,7 @@ export default function HalloweenClaimLanding() {
       if (response.data?.status === "claimed") {
         await queryClient.invalidateQueries({ queryKey: ["myAssistedListings"] });
         await queryClient.invalidateQueries({ queryKey: ["myListings"] });
-        navigate(createPageUrl("HalloweenSpotDetail") + `?id=${response.data.spot.id}`);
+        navigate(createPageUrl("SpookyListingLanding") + `?id=${response.data.spot.id}`);
       } else {
         setMessage(response.data?.error || "Verify your home address to claim this spot.");
       }
@@ -293,7 +293,7 @@ export default function HalloweenClaimLanding() {
                   await queryClient.invalidateQueries({ queryKey: ["myListings"] });
                   await queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
                   sessionStorage.setItem("yardit_halloween_fast_onboarding", "true");
-                  navigate(createPageUrl("HalloweenSpotDetail") + `?id=${claimed.data.spot.id}`);
+                  navigate(createPageUrl("SpookyListingLanding") + `?id=${claimed.data.spot.id}`);
                 } else {
                   setMessage(claimed.data?.error || "Could not finish your Halloween Spot setup.");
                 }
@@ -331,7 +331,7 @@ export default function HalloweenClaimLanding() {
             <Button onClick={homeStatus === "verified" ? claimSpot : loginToApprove} disabled={acting || homeStatus === "address_mismatch"} className="mt-5 h-14 w-full bg-orange-500 text-base font-black text-purple-950 hover:bg-orange-400">Claim & Edit This Spot</Button>
             {homeStatus === "needs_address_verification" && homeUser && <div className="mt-3 rounded-2xl bg-white p-1 text-slate-900"><SetupAddressVerification user={homeUser} isVerified={false} onVerified={verifyAndApprove} /></div>}
             {homeStatus === "address_mismatch" && <p className="mt-3 text-sm text-orange-200">Your verified Yardit home address must match this property to claim it.</p>}
-            <Button onClick={() => navigate(createPageUrl("HalloweenSpotDetail") + `?id=${result.id}`)} variant="outline" className="mt-2 w-full border-white/20 bg-transparent text-white hover:bg-white/10">View My Halloween Spot</Button>
+            <Button onClick={() => navigate(createPageUrl("SpookyListingLanding") + `?id=${result.id}`)} variant="outline" className="mt-2 w-full border-white/20 bg-transparent text-white hover:bg-white/10">Continue to My Halloween Spot</Button>
             <p className="mt-4 text-xs font-semibold text-purple-200">Help make your neighborhood the place to be this Halloween.</p>
           </div>
         )}
