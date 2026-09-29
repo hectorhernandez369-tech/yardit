@@ -527,7 +527,7 @@ export default function CreateListingPage() {
   };
   const getHomeAddressLabel = (a = formData) => a?.selected_geocode_place_name || a?.geocoded_address || [a?.addressText, a?.city, getStateAbbreviation(a?.state || ""), a?.zip].filter(Boolean).join(", ");
   const saveBackedOutDraft = async (sourceFormData, draftStep) => {
-    if (!user?.id || isAdminCreate || !sourceFormData?.listingType) return null;
+    if (!user?.id || isAdminCreate || isAssistedPost || !sourceFormData?.listingType) return null;
     const listingType = sourceFormData.listingType;
     const title = sourceFormData.event_name || sourceFormData.title || (listingType === "event" ? "Event draft" : listingType === "neighborhood_sale" ? "Neighborhood Sale draft" : listingType === "halloween_spot" ? "Halloween Spot draft" : "Yard Sale draft");
     const safeSourceFormData = normalizeResidentialEventSingleDay(sourceFormData);
@@ -550,12 +550,12 @@ export default function CreateListingPage() {
     return createdDraft.id;
   };
   useEffect(() => {
-    if (!user?.id || isAdminCreate || assistedCreated || !hasListingDraftContent(formData)) return;
+    if (!user?.id || isAdminCreate || isAssistedPost || assistedCreated || !hasListingDraftContent(formData)) return;
     const timeoutId = window.setTimeout(() => {
       saveBackedOutDraft(formData, step).catch(() => {});
     }, 900);
     return () => window.clearTimeout(timeoutId);
-  }, [formData, step, user?.id, isAdminCreate, assistedCreated]);
+  }, [formData, step, user?.id, isAdminCreate, isAssistedPost, assistedCreated]);
   const confirmSelectedHomeAddress = async () => {
     const selected = pendingHomeAddress || formData;
     if (!selected?.selected_geocode_confirmed || typeof selected?.lat !== "number" || typeof selected?.lng !== "number") {
