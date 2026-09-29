@@ -66,6 +66,7 @@ import { isHalloweenSpot, isHalloweenSpotVisible, hasHalloweenCandy } from "@/li
 import { getHalloweenSpotIconUrl, getHalloweenSpotMapSize, getHalloweenCollisionSizes, getHalloweenSpotMapOpacity } from "@/lib/halloweenMapIcons";
 import { getHolidayYardSaleOpacity, isYardSaleHolidayFaded } from "@/lib/holidayMapPriority";
 import HalloweenSpotPopupCard from "@/components/map/HalloweenSpotPopupCard";
+import HalloweenPopupViewport from "@/components/map/HalloweenPopupViewport";
 import HalloweenLikeButton from "@/components/halloween/HalloweenLikeButton";
 import HalloweenClusterGroup from "@/components/map/HalloweenClusterGroup";
 
@@ -1711,6 +1712,7 @@ export default function HomePage() {
               />
               <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
               <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
+              <HalloweenPopupViewport />
               <HuntMapLayers />
               {!emergencyCostLock && mapboxCostEnabled && (
                 <TileLayer
@@ -1795,7 +1797,7 @@ export default function HomePage() {
                   }
                     {!isMarquee &&
                   <Popup maxWidth={isHalloweenSpot(listing) ? 280 : 318} minWidth={isHalloweenSpot(listing) ? 190 : 202} autoPan={false} className={isHalloweenSpot(listing) ? "leaflet-popup-transparent yardit-halloween-popup" : "leaflet-popup-transparent"}>
-                         <div className={`flex w-[66vw] flex-col rounded-xl backdrop-blur-md shadow-lg opacity-100 sm:w-auto ${isHalloweenSpot(listing) ? "max-w-[218px] overflow-visible border border-orange-400/60 bg-slate-950 sm:max-w-[260px]" : "max-w-[235px] overflow-hidden border border-white/40 bg-white sm:max-w-[299px]"}`} style={{ maxHeight: isHalloweenSpot(listing) ? "42vh" : "60vh" }}>
+                         <div className={`flex w-[66vw] flex-col rounded-xl backdrop-blur-md shadow-lg opacity-100 sm:w-auto ${isHalloweenSpot(listing) ? "max-w-[218px] overflow-hidden border border-orange-400/60 bg-slate-950 sm:max-w-[260px] sm:overflow-visible" : "max-w-[235px] overflow-hidden border border-white/40 bg-white sm:max-w-[299px]"}`} style={{ maxHeight: isHalloweenSpot(listing) ? "42vh" : "60vh" }}>
                           {isHalloweenSpot(listing) && <div className="min-h-0 flex-1 overflow-y-auto"><HalloweenSpotPopupCard listing={listing} /></div>}
                           {!isHalloweenSpot(listing) && <div className="px-1 py-1.5 sm:p-1.5 overflow-y-auto flex-1 min-h-0 space-y-1.5">
                             <div className="flex items-center gap-1 flex-wrap">
