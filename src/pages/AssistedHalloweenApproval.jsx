@@ -42,7 +42,7 @@ export default function AssistedHalloweenApproval() {
           } else {
             const me = await base44.auth.me();
             setClaimUser(me);
-            const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { token, action: "check_address" });
+            const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { assistedId: data.assisted.id, action: "check_address" });
             setApprovalStatus(check.data?.status || "address_mismatch");
             if (["needs_address_verification", "address_mismatch"].includes(check.data?.status)) {
               setError(check.data?.error || "Verify your Yardit home address to approve this Halloween Spot.");
@@ -133,7 +133,7 @@ export default function AssistedHalloweenApproval() {
     if (await base44.auth.isAuthenticated()) {
       const me = await base44.auth.me();
       setClaimUser(me);
-      const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { token, action: "check_address" });
+      const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { assistedId: assisted?.id, action: "check_address" });
       setApprovalStatus(check.data?.status || "address_mismatch");
       if (check.data?.status !== "verified") {
         setError(check.data?.error || "Verify your Yardit home address to approve this Halloween Spot.");
@@ -151,7 +151,7 @@ export default function AssistedHalloweenApproval() {
       await base44.auth.updateMe(addressPayload);
       const me = await base44.auth.me();
       setClaimUser(me);
-      const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { token, action: "check_address" });
+      const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { assistedId: assisted?.id, action: "check_address" });
       setApprovalStatus(check.data?.status || "address_mismatch");
       if (check.data?.status !== "verified") {
         setError(check.data?.error || "Your verified Yardit home address must match this property.");
@@ -258,9 +258,12 @@ export default function AssistedHalloweenApproval() {
 
         {status === "ok" && spot && (
           <div className="space-y-4">
-            <div className="rounded-2xl bg-white/10 border border-orange-400/30 p-5">
-              <h1 className="text-xl font-black">Yardit added your Halloween Spot 🎃</h1>
-              <p className="text-sm text-slate-300 mt-2">Approve this exact property for the Halloween map. Claiming and editing require a Yardit account verified at this address.</p>
+            <div className="rounded-2xl border border-orange-400/40 bg-gradient-to-b from-orange-500/15 to-purple-500/10 p-5 text-center shadow-xl">
+              <div className="text-5xl">🎃✨</div>
+              <p className="mt-2 text-xs font-black tracking-[0.22em] text-orange-300">WE FOUND YOUR SPOOKY HOUSE!</p>
+              <h1 className="mt-2 text-2xl font-black">Your FREE Halloween Spot is ready.</h1>
+              <p className="mt-2 text-sm text-slate-200">Families nearby will be able to discover your display once you approve it.</p>
+              <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-purple-100">Currently waiting for your approval</div>
             </div>
             <div className="rounded-2xl bg-white text-slate-900 p-4 space-y-2">
               {spot.photos?.[0] && <img src={spot.photos[0]} alt="" className="w-full h-44 object-cover rounded-xl" />}
