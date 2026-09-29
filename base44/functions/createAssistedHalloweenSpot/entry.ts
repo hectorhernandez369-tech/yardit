@@ -150,10 +150,10 @@ Deno.serve(async (req) => {
     if (!title.trim()) return Response.json({ error: 'A title is required.' }, { status: 400 });
     const createdDate = ymdInPacific(new Date());
     const createdYear = Number(createdDate.slice(0, 4));
-    const thisHalloween = `${createdYear}-10-31`;
-    const effectiveEndDate = createdDate <= thisHalloween ? thisHalloween : `${createdYear + 1}-10-31`;
-    const effectiveStartDate = halloween_spot_type === 'trick_or_treat' ? effectiveEndDate : (halloween_start_date || createdDate);
-    const finalEndDate = halloween_spot_type === 'trick_or_treat' ? effectiveEndDate : (halloween_end_date || effectiveEndDate);
+    const novemberFirst = `${createdYear}-11-01`;
+    const effectiveEndDate = createdDate <= novemberFirst ? novemberFirst : `${createdYear + 1}-11-01`;
+    const effectiveStartDate = halloween_start_date || createdDate;
+    const finalEndDate = halloween_end_date || effectiveEndDate;
     const effectiveStartTime = halloween_start_time || '17:00';
     const effectiveEndTime = halloween_end_time || '22:00';
     const effectiveActivationTime = full_icon_activation_time || '17:00';

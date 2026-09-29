@@ -12,6 +12,18 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
   const candyPrimary = ["trick_or_treat", "trunk_or_treat"].includes(spotType);
   const trickOrTreatDate = `${new Date().getFullYear()}-10-31`;
 
+  React.useEffect(() => {
+    if (!isAssistedPost) return;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const novemberFirst = `${now.getFullYear()}-11-01`;
+    const endDate = today <= novemberFirst ? novemberFirst : `${now.getFullYear() + 1}-11-01`;
+    setFormData((prev) => {
+      if (prev.halloween_end_date !== trickOrTreatDate && prev.halloween_end_date) return prev;
+      return { ...prev, halloween_start_date: today, halloween_end_date: endDate, halloween_start_time: prev.halloween_start_time || "17:00", halloween_end_time: prev.halloween_end_time || "22:00" };
+    });
+  }, [isAssistedPost, setFormData, trickOrTreatDate]);
+
   if (step === 1) {
     return <StepOne formData={formData} setFormData={setFormData} />;
   }
@@ -33,22 +45,22 @@ export default function CreateListingHalloween({ step, formData, setFormData, se
             <Label className="flex items-center gap-1.5 text-sm font-semibold text-slate-800"><CalendarDays className="h-4 w-4 text-purple-700" /> Start date</Label>
             <Input
               type="date"
-              value={isTrickOrTreat ? trickOrTreatDate : (formData.halloween_start_date || "")}
-              onChange={(e) => !isTrickOrTreat && setFormData((prev) => ({ ...prev, halloween_start_date: e.target.value }))}
-              disabled={isTrickOrTreat}
-              className={isTrickOrTreat ? "bg-purple-50 text-purple-950 disabled:opacity-100" : "bg-white"}
+              value={isTrickOrTreat && !isAssistedPost ? trickOrTreatDate : (formData.halloween_start_date || "")}
+              onChange={(e) => (!isTrickOrTreat || isAssistedPost) && setFormData((prev) => ({ ...prev, halloween_start_date: e.target.value }))}
+              disabled={isTrickOrTreat && !isAssistedPost}
+              className={isTrickOrTreat && !isAssistedPost ? "bg-purple-50 text-purple-950 disabled:opacity-100" : "bg-white"}
             />
-            {isTrickOrTreat && <p className="text-[11px] font-medium text-purple-700">Trick-or-Treat is locked to Halloween — October 31.</p>}
+            {isTrickOrTreat && !isAssistedPost && <p className="text-[11px] font-medium text-purple-700">Trick-or-Treat is locked to Halloween — October 31.</p>}
           </div>
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5 text-sm font-semibold text-slate-800"><CalendarDays className="h-4 w-4 text-purple-700" /> End date</Label>
             <Input
               type="date"
-              value={isTrickOrTreat ? trickOrTreatDate : (formData.halloween_end_date || "")}
-              onChange={(e) => !isTrickOrTreat && setFormData((prev) => ({ ...prev, halloween_end_date: e.target.value }))}
+              value={isTrickOrTreat && !isAssistedPost ? trickOrTreatDate : (formData.halloween_end_date || "")}
+              onChange={(e) => (!isTrickOrTreat || isAssistedPost) && setFormData((prev) => ({ ...prev, halloween_end_date: e.target.value }))}
               min={formData.halloween_start_date || undefined}
-              disabled={isTrickOrTreat}
-              className={isTrickOrTreat ? "bg-purple-50 text-purple-950 disabled:opacity-100" : "bg-white"}
+              disabled={isTrickOrTreat && !isAssistedPost}
+              className={isTrickOrTreat && !isAssistedPost ? "bg-purple-50 text-purple-950 disabled:opacity-100" : "bg-white"}
             />
           </div>
           <div className="space-y-1.5">
