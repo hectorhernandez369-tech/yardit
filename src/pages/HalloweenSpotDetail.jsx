@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, ArrowLeft, Baby, CalendarDays, Candy, Clock3, Footprints, Ghost, Lightbulb, Loader2, MapPin, Navigation, Share2, Star, Volume2, Plus } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Baby, CalendarDays, Candy, Clock3, Footprints, Ghost, Lightbulb, List, Loader2, MapPin, Navigation, Share2, Star, Volume2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import SaveListingButton from "@/components/listing/SaveListingButton";
 import ReportModal from "@/components/ReportModal";
@@ -59,6 +59,7 @@ export default function HalloweenSpotDetail() {
   const [spot, setSpot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reportOpen, setReportOpen] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const huntContext = useHunt() || { huntStops: [], addToHunt: () => {} };
   const { huntStops, addToHunt } = huntContext;
   const { guardAction, showModal, setShowModal, isGuest, modalProps } = useGuestGuard();
@@ -69,14 +70,19 @@ export default function HalloweenSpotDetail() {
       try {
         const response = await base44.functions.invoke("getPublicMapData", { halloweenLocationId: spotId });
         let loadedSpot = response?.data?.halloweenLocation || null;
-        if (!loadedSpot) {
-          try {
-            const me = await base44.auth.me();
-            const owned = await base44.entities.Location.filter({ id: spotId, type: "halloween_candy" });
-            const candidate = owned?.[0] || null;
-            const isOwner = candidate && (candidate.owner_user_id === me.id || candidate.created_by_id === me.id || String(candidate.created_by || "").toLowerCase() === String(me.email || "").toLowerCase());
-            if (isOwner) loadedSpot = candidate;
-          } catch {}
+        try {
+          const me = await base44.auth.me();
+          const owned = await base44.entities.Location.filter({ id: spotId, type: "halloween_candy" });
+          const candidate = owned?.[0] || null;
+          const ownerMatch = Boolean(candidate && (
+            candidate.owner_user_id === me.id ||
+            candidate.created_by_id === me.id ||
+            String(candidate.created_by || "").toLowerCase() === String(me.email || "").toLowerCase()
+          ));
+          setIsOwner(ownerMatch);
+          if (!loadedSpot && ownerMatch) loadedSpot = candidate;
+        } catch {
+          setIsOwner(false);
         }
         setSpot(loadedSpot);
       } catch (error) {
@@ -138,7 +144,15 @@ export default function HalloweenSpotDetail() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-purple-950 to-slate-950 text-white">
       <div className="mx-auto max-w-5xl px-3 py-4 sm:px-5 sm:py-6">
-        <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="mb-4 border-white/20 bg-white/10 text-white hover:bg-white/20"><ArrowLeft className="mr-1 h-4 w-4" /> Back</Button>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="border-white/20 bg-white/10 text-white hover:bg-white/20"><ArrowLeft className="mr-1 h-4 w-4" /> Back</Button>
+          {isOwner && (
+            <>
+              <Button size="sm" onClick={() => navigate(createPageUrl("Home") + `?listingId=${spot.id}`)} className="bg-orange-600 text-white hover:bg-orange-500"><MapPin className="mr-1 h-4 w-4" /> View on Map</Button>
+              <Button variant="outline" size="sm" onClick={() => navigate(createPageUrl("MyListings") + "?tab=active")} className="border-purple-300/30 bg-purple-500/10 text-purple-100 hover:bg-purple-500/20"><List className="mr-1 h-4 w-4" /> View My Listings</Button>
+            </>
+          )}
+        </div>
 
         <section className="overflow-hidden rounded-3xl border border-orange-400/50 bg-gradient-to-b from-purple-950 via-slate-950 to-black shadow-[0_20px_70px_rgba(88,28,135,0.45)]">
           <div className="relative p-5 sm:p-7">
