@@ -31,6 +31,8 @@ export default function HalloweenClaimLanding() {
   const [state, setState] = useState("search");
   const [message, setMessage] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
 
   const findHouse = async (event, resumeAddress) => {
     event?.preventDefault?.();
@@ -54,6 +56,9 @@ export default function HalloweenClaimLanding() {
         if (authenticated) {
           const me = await base44.auth.me();
           setHomeUser(me);
+          const fullName = String(me.full_name || "").trim().split(/\s+/).filter(Boolean);
+          setFirstName(me.first_name || fullName[0] || "");
+          setLastName(me.last_name || fullName.slice(1).join(" ") || "");
           const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { assistedId: data.assistedId, action: "check_address" });
           setHomeStatus(check.data?.status || "address_mismatch");
           if (check.data?.status === "address_mismatch") setMessage(check.data?.error || "Your Yardit home address must match this property.");
@@ -108,6 +113,7 @@ export default function HalloweenClaimLanding() {
 
   const loginToApprove = () => {
     sessionStorage.setItem("assisted_halloween_search_address", address);
+    sessionStorage.setItem("yardit_halloween_fast_onboarding", "true");
     base44.auth.redirectToLogin(`${window.location.origin}/spooky?resume=1`);
   };
 
@@ -119,17 +125,39 @@ export default function HalloweenClaimLanding() {
   }, []);
 
   const verifyAndApprove = async (addressPayload) => {
+    const cleanFirst = firstName.trim();
+    const cleanLast = lastName.trim();
+    if (!cleanFirst || !cleanLast) {
+      setMessage("Enter your first and last name to continue.");
+      return;
+    }
     setActing(true);
     setMessage("");
     try {
-      await base44.auth.updateMe(addressPayload);
-      const me = await base44.auth.me();
-      setHomeUser(me);
-      const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { assistedId, action: "check_address" });
-      setHomeStatus(check.data?.status || "address_mismatch");
-      if (check.data?.status !== "verified") setMessage(check.data?.error || "Your Yardit home address must match this property.");
+      const updated = await base44.auth.updateMe({
+        first_name: cleanFirst,
+        last_name: cleanLast,
+        ...addressPayload,
+      });
+      setHomeUser(updated);
+
+      const claimed = await base44.functions.invoke("resolveAssistedHalloweenSpot", {
+        assistedId,
+        action: "approve_and_claim",
+      });
+      if (claimed.data?.status !== "claimed") {
+        setHomeStatus(claimed.data?.status || "address_mismatch");
+        setMessage(claimed.data?.error || "We could not verify this property for your account.");
+        return;
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["myAssistedListings"] });
+      await queryClient.invalidateQueries({ queryKey: ["myListings"] });
+      await queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
+      sessionStorage.setItem("yardit_halloween_fast_onboarding", "true");
+      navigate(createPageUrl("HalloweenSpotDetail") + `?id=${claimed.data.spot.id}`);
     } catch (error) {
-      setMessage(error?.response?.data?.error || error?.message || "Could not verify your address.");
+      setMessage(error?.response?.data?.error || error?.message || "Could not complete your Halloween Spot setup.");
     } finally {
       setActing(false);
     }
@@ -221,11 +249,62 @@ export default function HalloweenClaimLanding() {
               <Button onClick={loginToApprove} className="w-full bg-orange-500 text-purple-950">Already have a Yardit account? Log In to Approve</Button>
               <Button onClick={loginToApprove} variant="outline" className="w-full border-white/20 bg-transparent text-white">Don't have an account? Sign Up to Approve</Button>
             </div>}
-            {homeStatus === "needs_address_verification" && homeUser && <div className="rounded-2xl bg-white p-1 text-slate-900"><SetupAddressVerification user={homeUser} isVerified={false} onVerified={verifyAndApprove} /></div>}
+            {homeStatus === "needs_address_verification" && homeUser && (
+              <div className="space-y-3 rounded-2xl bg-white p-4 text-slate-900">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">One quick step and your spot is yours 🎃</h3>
+                  <p className="mt-1 text-xs text-slate-600">Add your name and confirm your home address. We’ll approve and claim the spot automatically.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-slate-700">First name</label>
+                    <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" className="bg-white text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-slate-700">Last name</label>
+                    <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" className="bg-white text-slate-900" />
+                  </div>
+                </div>
+                <SetupAddressVerification
+                  user={homeUser}
+                  isVerified={false}
+                  onVerified={verifyAndApprove}
+                  title="Confirm your home address"
+                  description="This confirms you belong to this property and protects your Halloween Spot."
+                  buttonLabel="Confirm My Home & Keep My Spot 🎃"
+                />
+              </div>
+            )}
             {homeStatus === "address_mismatch" && <p className="text-center text-sm text-orange-200">This Halloween Spot can only be approved by a Yardit account verified at this property.</p>}
-            {homeStatus === "verified" && <Button onClick={approve} disabled={acting} className="h-14 w-full bg-orange-500 text-base font-black text-purple-950 hover:bg-orange-400">
+            {homeStatus === "verified" && <Button onClick={async () => {
+              setActing(true);
+              setMessage("");
+              try {
+                const cleanFirst = firstName.trim() || homeUser?.first_name || "";
+                const cleanLast = lastName.trim() || homeUser?.last_name || "";
+                if (!cleanFirst || !cleanLast) {
+                  setMessage("Enter your first and last name to continue.");
+                  return;
+                }
+                await base44.auth.updateMe({ first_name: cleanFirst, last_name: cleanLast });
+                const claimed = await base44.functions.invoke("resolveAssistedHalloweenSpot", { assistedId, action: "approve_and_claim" });
+                if (claimed.data?.status === "claimed") {
+                  await queryClient.invalidateQueries({ queryKey: ["myAssistedListings"] });
+                  await queryClient.invalidateQueries({ queryKey: ["myListings"] });
+                  await queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
+                  sessionStorage.setItem("yardit_halloween_fast_onboarding", "true");
+                  navigate(createPageUrl("HalloweenSpotDetail") + `?id=${claimed.data.spot.id}`);
+                } else {
+                  setMessage(claimed.data?.error || "Could not finish your Halloween Spot setup.");
+                }
+              } catch (error) {
+                setMessage(error?.response?.data?.error || error?.message || "Could not finish your Halloween Spot setup.");
+              } finally {
+                setActing(false);
+              }
+            }} disabled={acting} className="h-14 w-full bg-orange-500 text-base font-black text-purple-950 hover:bg-orange-400">
               {acting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
-              Keep My Spot — Approve 🎃
+              Keep My Spot & View It 🎃
             </Button>}
             <div className="pt-6 text-center">
               <button
