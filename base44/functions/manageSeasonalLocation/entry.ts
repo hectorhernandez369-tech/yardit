@@ -52,6 +52,40 @@ function pickAllowedPatch(patch = {}) {
   return clean;
 }
 
+function normalizeAddress(value = '') {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\b(street)\b/g, 'st')
+    .replace(/\b(avenue)\b/g, 'ave')
+    .replace(/\b(road)\b/g, 'rd')
+    .replace(/\b(drive)\b/g, 'dr')
+    .replace(/\b(lane)\b/g, 'ln')
+    .replace(/\b(court)\b/g, 'ct')
+    .replace(/\b(boulevard)\b/g, 'blvd')
+    .replace(/\b(place)\b/g, 'pl')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function distanceFeet(lat1, lng1, lat2, lng2) {
+  if (![lat1, lng1, lat2, lng2].every((v) => Number.isFinite(Number(v)))) return Infinity;
+  const R = 20902231;
+  const dLat = ((Number(lat2) - Number(lat1)) * Math.PI) / 180;
+  const dLng = ((Number(lng2) - Number(lng1)) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((Number(lat1) * Math.PI) / 180) *
+      Math.cos((Number(lat2) * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+async function canManageLocation(base44, user, location) {
+  if (!user || !location) return false;
+  if (String(location.owner_user_id || '') === String(user.id)) return true;
+  if (String(location.created_by_id || '') === String(user.id)) return true;
+  return hasActiveAdminAccess(base44, user);
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -78,6 +112,57 @@ Deno.serve(async (req) => {
 
       await base44.asServiceRole.entities.Location.update(locationId, patch);
       return Response.json({ ok: true, location: { ...location, ...patch } });
+    }
+
+    if (action === 'cancel_halloween_location') {
+      const locationId = String(body.location_id || '');
+      if (!locationId) return Response.json({ error: 'Missing location_id' }, { status: 400 });
+
+      const rows = await base44.asServiceRole.entities.Location.filter({ id: locationId }).catch(() => []);
+      const location = rows?.[0];
+      if (!location || location.type !== 'halloween_candy') {
+        return Response.json({ error: 'Halloween Spot not found.' }, { status: 404 });
+      }
+      if (!(await canManageLocation(base44, user, location))) {
+        return Response.json({ error: 'You do not have permission to cancel this Halloween Spot.' }, { status: 403 });
+      }
+
+      const now = new Date().toISOString();
+      await base44.asServiceRole.entities.Location.update(location.id, { status: 'inactive' });
+
+      const assistedRows = await base44.asServiceRole.entities.AssistedHalloweenSpot.list('-created_date', 500).catch(() => []);
+      const targetAddress = normalizeAddress(location.address || [location.street_address, location.city, location.state, location.zip_code].filter(Boolean).join(' '));
+      const related = (assistedRows || []).filter((record) => {
+        if (!['pending_owner_approval', 'assisted_active_unclaimed'].includes(record.assisted_status)) return false;
+        if (String(record.location_id || '') === String(location.id)) return true;
+        const assistedAddress = normalizeAddress([
+          record.property_address,
+          record.property_city,
+          record.property_state,
+          record.property_zip,
+        ].filter(Boolean).join(' '));
+        const sameAddress = !!targetAddress && assistedAddress === targetAddress;
+        const sameCoordinates = distanceFeet(
+          location.latitude,
+          location.longitude,
+          record.latitude,
+          record.longitude
+        ) <= 75;
+        return sameAddress || sameCoordinates;
+      });
+
+      for (const record of related) {
+        await base44.asServiceRole.entities.AssistedHalloweenSpot.update(record.id, {
+          assisted_status: 'assisted_declined',
+          owner_declined_at: now,
+          assisted_qr_token: `__cancelled__${record.id}`,
+        }).catch(() => {});
+        if (record.location_id && String(record.location_id) !== String(location.id)) {
+          await base44.asServiceRole.entities.Location.update(record.location_id, { status: 'inactive' }).catch(() => {});
+        }
+      }
+
+      return Response.json({ ok: true, cancelled: true, assisted_records_closed: related.length });
     }
 
     if (action === 'claim_pending_ownership') {
