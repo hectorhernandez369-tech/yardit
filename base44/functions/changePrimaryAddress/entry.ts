@@ -76,8 +76,13 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
+    const userData = user?.data && typeof user.data === 'object' ? user.data : {};
+    const overrideUntilRaw = user?.address_change_override_until || userData.address_change_override_until || '';
+    const overrideUntil = overrideUntilRaw ? new Date(overrideUntilRaw) : null;
+    const hasActiveOverride = !!overrideUntil && !Number.isNaN(overrideUntil.getTime()) && overrideUntil.getTime() > Date.now();
+
     const nextAllowedAt = getNextAllowedAt(user);
-    if (nextAllowedAt && nextAllowedAt.getTime() > Date.now()) {
+    if (!hasActiveOverride && nextAllowedAt && nextAllowedAt.getTime() > Date.now()) {
       return Response.json({
         error: 'Your primary address can only be changed once every 365 days. You can request a Yardit review if you moved sooner.',
         code: 'address_change_locked',
@@ -107,7 +112,7 @@ Deno.serve(async (req) => {
 
     const parts = extractAddressParts(feature, { street_address: streetAddress, city, state, zip_code: zipCode });
     const now = new Date().toISOString();
-    const existingData = user?.data && typeof user.data === 'object' ? user.data : {};
+    const existingData = userData;
     const nextChangeCount = Number(user?.address_change_count || existingData.address_change_count || 0) + 1;
 
     const update = {
@@ -121,6 +126,7 @@ Deno.serve(async (req) => {
       primary_address_last_changed_at: now,
       address_change_count: nextChangeCount,
       address_verification_required: false,
+      address_change_override_until: "",
       street_address: parts.street_address,
       city: parts.city,
       state: parts.state,
@@ -141,6 +147,7 @@ Deno.serve(async (req) => {
         primary_address_last_changed_at: now,
         address_change_count: nextChangeCount,
         address_verification_required: false,
+        address_change_override_until: "",
         street_address: parts.street_address,
         city: parts.city,
         state: parts.state,
@@ -167,6 +174,7 @@ Deno.serve(async (req) => {
         gps_distance_feet: Math.round(distanceFeet),
         gps_accuracy_feet: Math.round(gpsAccuracyFeet || 0),
         change_count: nextChangeCount,
+        exception_used: hasActiveOverride,
       },
     }).catch(() => null);
 
