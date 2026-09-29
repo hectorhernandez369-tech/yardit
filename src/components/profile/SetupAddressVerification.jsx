@@ -30,6 +30,11 @@ export default function SetupAddressVerification({ user, isVerified, onVerified 
   const [isVerifying, setIsVerifying] = useState(false);
 
   const handleVerify = async () => {
+    if (isVerified) {
+      toast.error("Your primary address is already verified. Address changes are managed from Profile with GPS verification.");
+      return;
+    }
+
     if (!formData.street_address?.trim() || !formData.city?.trim() || !formData.state?.trim() || !formData.zip_code?.trim()) {
       toast.error("Please enter a complete physical address.");
       return;
@@ -86,22 +91,28 @@ export default function SetupAddressVerification({ user, isVerified, onVerified 
         </div>
       </div>
 
-      <AddressFields formData={formData} setFormData={setFormData} />
-
-      {isVerified && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
-          Address confirmed for listing posts.
+      {isVerified ? (
+        <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+          <p className="text-xs font-semibold text-emerald-900">Primary address confirmed</p>
+          <p className="text-sm text-emerald-800">
+            {[user?.street_address, user?.city, user?.state, user?.zip_code].filter(Boolean).join(", ")}
+          </p>
+          <p className="text-xs text-emerald-700">
+            To change this address later, use Profile. Yardit will require GPS verification.
+          </p>
         </div>
+      ) : (
+        <AddressFields formData={formData} setFormData={setFormData} />
       )}
 
       <Button
         type="button"
         onClick={handleVerify}
-        disabled={isVerifying}
+        disabled={isVerifying || isVerified}
         className="h-10 w-full rounded-xl bg-[#F4A849] font-semibold text-[#2C4F4E] border-2 border-[#2C4F4E] hover:bg-[#E39635]"
       >
         {isVerifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        {isVerifying ? "Confirming Address..." : isVerified ? "Confirm Different Address" : "Confirm Address"}
+        {isVerifying ? "Confirming Address..." : isVerified ? "Address Confirmed" : "Confirm Address"}
       </Button>
     </div>
   );

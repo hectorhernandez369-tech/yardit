@@ -753,7 +753,7 @@ export default function CreateListingPage() {
       await base44.auth.updateMe({
         has_primary_address: true, primary_address_verified: true, address_verified: true, primary_address: fullAddress,
         primary_latitude: selected.lat, primary_longitude: selected.lng, primary_address_verified_at: now,
-        primary_address_last_changed_at: user?.primary_address_last_changed_at || now, address_verification_required: false,
+        primary_address_last_changed_at: user?.primary_address_last_changed_at || "", address_verification_required: false,
         street_address: selected.addressText, city: selected.city, state: stateCode, zip_code: selected.zip,
         address_lat: selected.lat, address_lng: selected.lng, address_confirmation_status: "confirmed", address: fullAddress,
         ...(selected.timeZoneId ? { timeZoneId: selected.timeZoneId } : {}),

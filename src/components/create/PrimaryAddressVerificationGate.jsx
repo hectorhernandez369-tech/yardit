@@ -91,6 +91,12 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
 
       const currentUser = normalizeUser(user);
       const isAddressChange = !!currentUser?.primary_address_verified && currentUser?.primary_address !== formattedAddress;
+
+      if (isAddressChange) {
+        toast.error("Primary address changes must be completed from Profile using GPS verification.");
+        return;
+      }
+
       const profileUpdate = {
         has_primary_address: true,
         primary_address_verified: true,
@@ -98,8 +104,8 @@ export default function PrimaryAddressVerificationGate({ user, onVerified }) {
         primary_latitude: latitude,
         primary_longitude: longitude,
         primary_address_verified_at: verifiedAt,
-        primary_address_last_changed_at: isAddressChange ? verifiedAt : (currentUser?.primary_address_last_changed_at || verifiedAt),
-        address_change_count: Number(currentUser?.address_change_count || 0) + (isAddressChange ? 1 : 0),
+        primary_address_last_changed_at: currentUser?.primary_address_last_changed_at || "",
+        address_change_count: Number(currentUser?.address_change_count || 0),
         listing_rules_accepted: true,
         listing_rules_agreed_at: currentUser?.listing_rules_agreed_at || verifiedAt,
         address_verification_required: false,

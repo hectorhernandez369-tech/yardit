@@ -22,6 +22,9 @@ const VERIFIED_ADDRESS_FIELDS = [
   "address_confirmation_status",
   "has_primary_address",
   "address_verification_required",
+  "primary_address_last_changed_at",
+  "address_change_count",
+  "address_change_override_until",
 ];
 
 export function normalizeUser(user) {
@@ -50,6 +53,9 @@ export function normalizeUser(user) {
   normalized.primary_address_verified = normalized.primary_address_verified === true || data.primary_address_verified === true;
   normalized.address_verified = normalized.address_verified === true || data.address_verified === true;
   normalized.address_confirmation_status = normalized.address_confirmation_status || data.address_confirmation_status || "unconfirmed";
+  normalized.primary_address_last_changed_at = normalized.primary_address_last_changed_at || data.primary_address_last_changed_at || "";
+  normalized.address_change_count = Number(normalized.address_change_count ?? data.address_change_count ?? 0);
+  normalized.address_change_override_until = normalized.address_change_override_until || data.address_change_override_until || "";
 
   return normalized;
 }

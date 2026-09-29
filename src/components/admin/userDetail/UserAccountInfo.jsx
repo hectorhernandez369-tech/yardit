@@ -30,6 +30,7 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPromoModal, setShowPromoModal] = useState(false);
+  const [grantingAddressException, setGrantingAddressException] = useState(false);
   const { first_name: first, last_name: last } = getUserIdentityFields(user);
 
   const [form, setForm] = useState({
@@ -63,6 +64,26 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
   };
 
   const cancelEdit = () => setEditing(false);
+
+  const grantAddressChangeException = async () => {
+    setGrantingAddressException(true);
+    try {
+      const response = await base44.functions.invoke("grantAddressChangeException", { user_id: user.id });
+      const expiresAt = response?.data?.expires_at;
+      toast.success(expiresAt
+        ? `Address change approved until ${new Date(expiresAt).toLocaleString()}.`
+        : "Address change exception approved.");
+      if (onUserUpdated) {
+        const allUsers = await base44.entities.User.list();
+        const freshUser = allUsers.find((item) => item.id === user.id);
+        if (freshUser) onUserUpdated(freshUser);
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.error || error?.message || "Could not grant address change exception.");
+    } finally {
+      setGrantingAddressException(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -158,7 +179,17 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wide">Account Holder Info</h3>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={grantAddressChangeException}
+            disabled={grantingAddressException}
+            className="gap-1 text-xs h-7 border-amber-300 text-amber-800"
+          >
+            {grantingAddressException ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+            Allow Address Change
+          </Button>
           <Button size="sm" onClick={() => setShowPromoModal(true)} className="gap-1 text-xs h-7 bg-purple-600 hover:bg-purple-700 text-white">
             PROMOTIONAL
           </Button>
@@ -186,7 +217,13 @@ export default function UserAccountInfo({ user, onUserUpdated }) {
         </div>
         <div>
           <span className="text-gray-500">Address</span>
-          <p className="font-medium">{user.address || "—"}</p>
+          <p className="font-medium">{user.primary_address || user.address || "—"}</p>
+          {(user.address_change_override_until || user.data?.address_change_override_until) &&
+          new Date(user.address_change_override_until || user.data?.address_change_override_until) > new Date() ? (
+            <p className="mt-1 text-xs font-semibold text-amber-700">
+              Exception active until {new Date(user.address_change_override_until || user.data?.address_change_override_until).toLocaleString()}
+            </p>
+          ) : null}
         </div>
         <div>
           <span className="text-gray-500">User ID</span>
