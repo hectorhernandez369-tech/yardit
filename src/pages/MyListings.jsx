@@ -461,6 +461,49 @@ export default function MyListingsPage() {
     await queryClient.invalidateQueries({ queryKey: ["myListingDrafts", user?.id] });
   };
 
+  const cancelAssistedListing = async (row) => {
+    const ok = window.confirm(`Cancel this assisted ${row.kind === "halloween" ? "Halloween Spot" : "listing"}? This will close the pending assisted listing.`);
+    if (!ok) return;
+    try {
+      await base44.functions.invoke("manageAssistedHistory", {
+        action: "cancel",
+        assisted_id: row.id,
+        kind: row.kind,
+      });
+      toast.success("Assisted listing canceled");
+      await queryClient.invalidateQueries({ queryKey: ["myAssistedListings", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["myListings", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
+    } catch (error) {
+      toast.error(error?.response?.data?.error || error?.message || "Could not cancel assisted listing");
+    }
+  };
+
+  const removeAssistedHistory = async (row) => {
+    const ok = window.confirm("Remove this assisted listing from your history? This does not remove a claimed homeowner listing.");
+    if (!ok) return;
+    try {
+      await base44.functions.invoke("manageAssistedHistory", {
+        action: "delete_history",
+        assisted_id: row.id,
+        kind: row.kind,
+      });
+      toast.success("Removed from Assisted Listings");
+      await queryClient.invalidateQueries({ queryKey: ["myAssistedListings", user?.id] });
+    } catch (error) {
+      toast.error(error?.response?.data?.error || error?.message || "Could not remove assisted listing");
+    }
+  };
+
+  const assistedStatusClass = (status) => {
+    if (status === "Pending") return "bg-amber-100 text-amber-800 border-amber-300";
+    if (status === "Accepted") return "bg-blue-100 text-blue-800 border-blue-300";
+    if (status === "Claimed") return "bg-emerald-100 text-emerald-800 border-emerald-300";
+    if (status === "Canceled") return "bg-slate-100 text-slate-700 border-slate-300";
+    if (status === "Expired") return "bg-red-100 text-red-800 border-red-300";
+    return "bg-slate-100 text-slate-700 border-slate-300";
+  };
+
   const openEditDescription = async (listing) => {
     if (listing?.listingType === "halloween_spot" && listing?._sourceEntity === "Location") {
       setEditingHalloweenSpot(listing);
@@ -866,6 +909,7 @@ export default function MyListingsPage() {
             <Button variant={tab === "active" ? "default" : "outline"} onClick={() => setTab("active")}>Active ({activeListings.length})</Button>
             <Button variant={tab === "pending" ? "default" : "outline"} onClick={() => setTab("pending")} className={tab !== "pending" ? "border-yellow-400 text-yellow-700 hover:bg-yellow-50" : ""}>Pending ({pendingListings.length})</Button>
             <Button variant={tab === "drafts" ? "default" : "outline"} onClick={() => setTab("drafts")} className={tab !== "drafts" ? "border-amber-400 text-amber-700 hover:bg-amber-50" : ""}>Drafts ({drafts.length})</Button>
+            <Button variant={tab === "assisted" ? "default" : "outline"} onClick={() => setTab("assisted")} className={tab !== "assisted" ? "border-purple-400 text-purple-700 hover:bg-purple-50" : ""}>Assisted Listings ({assistedListings.length})</Button>
             <Button variant={tab === "past" ? "default" : "outline"} onClick={() => setTab("past")}>Past Listings ({pastListings.length})</Button>
             <Button variant={tab === "billing" ? "default" : "outline"} onClick={() => setTab("billing")}>Billing / Payments</Button>
           </div>
@@ -902,6 +946,68 @@ export default function MyListingsPage() {
               {drafts.map((draft) => (
                 <ListingDraftCard key={draft.id} draft={draft} onResume={resumeDraft} onDelete={deleteDraft} />
               ))}
+            </div>
+          )
+        ) : tab === "assisted" ? (
+          isLoadingAssisted ? (
+            <Card className="rounded-xl border bg-white/80 shadow"><CardContent className="p-12 text-center"><p className="text-slate-500">Loading assisted listings...</p></CardContent></Card>
+          ) : assistedListings.length === 0 ? (
+            <Card className="rounded-xl border bg-white/80 shadow">
+              <CardContent className="p-12 text-center">
+                <p className="font-semibold text-slate-700">No assisted listings yet</p>
+                <p className="mt-1 text-sm text-slate-500">Assisted listings you create from Post or Admin will stay here until you remove them.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {assistedListings.map((row) => {
+                const cancellable = ["Pending", "Accepted"].includes(row.status_label);
+                const removable = ["Claimed", "Canceled", "Expired"].includes(row.status_label);
+                return (
+                  <Card key={`${row.kind}-${row.id}`} className="rounded-xl border bg-white/90 shadow-sm">
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className={assistedStatusClass(row.status_label)}>{row.status_label}</Badge>
+                            <Badge variant="outline" className="border-purple-200 bg-purple-50 text-purple-800">
+                              Assisted
+                            </Badge>
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500">
+                              {row.kind === "halloween" ? <Ghost className="h-3.5 w-3.5" /> : <Store className="h-3.5 w-3.5" />}
+                              {row.kind === "halloween" ? "Halloween Spot" : "Yard Sale"}
+                            </span>
+                          </div>
+                          <h3 className="mt-2 text-lg font-bold text-slate-900">{row.title}</h3>
+                          <p className="mt-1 text-sm text-slate-600">{row.address || "Address unavailable"}</p>
+                          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                            <span>Created {row.created_date ? format(new Date(row.created_date), "MMM d, yyyy") : "—"}</span>
+                            <span>QR scans: {row.qr_scan_count || 0}</span>
+                            {row.status_label === "Claimed" && <span>Homeowner claimed this listing</span>}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 sm:max-w-[280px] sm:justify-end">
+                          {row.approval_url && row.status_label !== "Canceled" && row.status_label !== "Expired" && (
+                            <Button size="sm" variant="outline" onClick={() => window.open(row.approval_url, "_blank")}>
+                              <ExternalLink className="mr-1 h-4 w-4" /> Approval
+                            </Button>
+                          )}
+                          {cancellable && (
+                            <Button size="sm" variant="outline" onClick={() => cancelAssistedListing(row)} className="border-red-300 text-red-700 hover:bg-red-50">
+                              <XCircle className="mr-1 h-4 w-4" /> Cancel
+                            </Button>
+                          )}
+                          {removable && (
+                            <Button size="sm" variant="outline" onClick={() => removeAssistedHistory(row)} className="border-slate-300 text-slate-700 hover:bg-slate-50">
+                              <Trash2 className="mr-1 h-4 w-4" /> Remove
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )
         ) : isLoading ? (
