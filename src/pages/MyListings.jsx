@@ -354,13 +354,14 @@ export default function MyListingsPage() {
   }; 
 
   const normalizedListings = useMemo(() => {
-    return listings.map((listing) => ({
+    const assistedHalloweenIds = new Set(assistedListings.filter((row) => row.kind === "halloween" && row.status_label !== "Claimed").map((row) => row.underlying_id));
+    return listings.filter((listing) => !(listing._sourceEntity === "Location" && (listing.status === "draft" || assistedHalloweenIds.has(listing.id)))).map((listing) => ({
       ...listing,
       displayStatus: listing.listingType === "halloween_spot"
         ? (isPastListing(listing) ? "expired" : isActiveListing(listing) ? "active" : "upcoming")
         : getListingDisplayStatus(listing),
     }));
-  }, [listings, participantParentSaleById, user]);
+  }, [listings, assistedListings, participantParentSaleById, user]);
 
   const isEffectivelyPastListing = (listing) => isPastListing(listing) || listing?.displayStatus === "expired";
 
