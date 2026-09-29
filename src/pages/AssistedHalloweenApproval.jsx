@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, Clock, XCircle, MapPin, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useQueryClient } from "@tanstack/react-query";
 import SetupAddressVerification from "@/components/profile/SetupAddressVerification";
 
 export default function AssistedHalloweenApproval() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token");
   const autoclaim = params.get("autoclaim") === "1";
@@ -44,6 +46,8 @@ export default function AssistedHalloweenApproval() {
             });
             if (claim.data?.status === "claimed") {
               sessionStorage.removeItem("assisted_halloween_claim_token");
+              await queryClient.invalidateQueries({ queryKey: ["myAssistedListings"] });
+              await queryClient.invalidateQueries({ queryKey: ["myListings"] });
               navigate(createPageUrl("HalloweenSpotDetail") + `?id=${claim.data.spot.id}`);
               return;
             }
@@ -52,7 +56,7 @@ export default function AssistedHalloweenApproval() {
               setSpot(claim.data?.spot || data.spot || null);
               setAssisted(claim.data?.assisted || data.assisted || null);
               setError(claim.data?.error || "Verify your home address to claim this Halloween Spot.");
-              setStatus("needs_verification");
+              setStatus(claim.data?.status === "address_mismatch" ? "address_mismatch" : "needs_verification");
               return;
             }
           }
@@ -66,22 +70,24 @@ export default function AssistedHalloweenApproval() {
         setLoading(false);
       }
     })();
-  }, [token, autoclaim, navigate]);
+  }, [token, autoclaim, navigate, queryClient]);
 
   const approve = async () => {
     setActing(true);
     setError("");
     try {
-      const isAuth = await base44.auth.isAuthenticated();
-      let claimUserId = null;
-      if (isAuth) claimUserId = (await base44.auth.me())?.id || null;
       const res = await base44.functions.invoke("resolveAssistedHalloweenSpot", {
         token,
         action: "approve",
-        claimUserId,
       });
+      if (res.data?.status !== "approved" && res.data?.status !== "claimed") {
+        setStatus(res.data?.status || "not_found");
+        return;
+      }
       setSpot(res.data?.spot || spot);
       setAssisted(res.data?.assisted || assisted);
+      await queryClient.invalidateQueries({ queryKey: ["myAssistedListings"] });
+      await queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
       if (res.data?.status === "claimed") {
         navigate(createPageUrl("HalloweenSpotDetail") + `?id=${res.data.spot.id}`);
       } else {
@@ -105,8 +111,32 @@ export default function AssistedHalloweenApproval() {
     }
   };
 
-  const loginToClaim = () => {
+  const loginToClaim = async () => {
     sessionStorage.setItem("assisted_halloween_claim_token", token);
+    if (await base44.auth.isAuthenticated()) {
+      setActing(true);
+      try {
+        const claim = await base44.functions.invoke("resolveAssistedHalloweenSpot", { token, action: "claim_complete" });
+        if (claim.data?.status === "claimed") {
+          sessionStorage.removeItem("assisted_halloween_claim_token");
+          await queryClient.invalidateQueries({ queryKey: ["myAssistedListings"] });
+          await queryClient.invalidateQueries({ queryKey: ["myListings"] });
+          navigate(createPageUrl("HalloweenSpotDetail") + `?id=${claim.data.spot.id}`);
+        } else if (claim.data?.status === "needs_address_verification") {
+          setClaimUser(await base44.auth.me());
+          setError(claim.data.error);
+          setStatus("needs_verification");
+        } else {
+          setError(claim.data?.error || "Approve this spot before claiming it.");
+          if (claim.data?.status === "address_mismatch") setStatus("address_mismatch");
+        }
+      } catch (err) {
+        setError(err?.response?.data?.error || err?.message || "Could not claim this spot.");
+      } finally {
+        setActing(false);
+      }
+      return;
+    }
     const returnUrl = `${window.location.origin}/assisted-halloween?token=${encodeURIComponent(token)}&autoclaim=1`;
     base44.auth.redirectToLogin(returnUrl);
   };
@@ -125,6 +155,8 @@ export default function AssistedHalloweenApproval() {
       });
       if (claim.data?.status === "claimed") {
         sessionStorage.removeItem("assisted_halloween_claim_token");
+        await queryClient.invalidateQueries({ queryKey: ["myAssistedListings"] });
+        await queryClient.invalidateQueries({ queryKey: ["myListings"] });
         navigate(createPageUrl("HalloweenSpotDetail") + `?id=${claim.data.spot.id}`);
         return;
       }
@@ -176,7 +208,7 @@ export default function AssistedHalloweenApproval() {
           <div className="space-y-4">
             <div className="rounded-2xl bg-white/10 border border-orange-400/30 p-5">
               <h1 className="text-xl font-black">Yardit added your Halloween Spot 🎃</h1>
-              <p className="text-sm text-slate-300 mt-2">Approve it to put this exact property on the Halloween map. If you are signed in, ownership transfers to your account immediately.</p>
+              <p className="text-sm text-slate-300 mt-2">Approve this exact property for the Halloween map. Claiming and editing require a Yardit account verified at this address.</p>
             </div>
             <div className="rounded-2xl bg-white text-slate-900 p-4 space-y-2">
               {spot.photos?.[0] && <img src={spot.photos[0]} alt="" className="w-full h-44 object-cover rounded-xl" />}
@@ -186,8 +218,9 @@ export default function AssistedHalloweenApproval() {
             </div>
             {error && <p className="text-sm text-red-300">{error}</p>}
             <Button onClick={approve} disabled={acting} className="w-full bg-orange-500 hover:bg-orange-400 text-purple-950 font-black h-12">
-              {acting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle className="w-5 h-5 mr-2" />}Approve Halloween Spot
+              {acting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle className="w-5 h-5 mr-2" />}Approve This Halloween Spot
             </Button>
+            <Button onClick={loginToClaim} disabled={acting} variant="outline" className="w-full border-white/30 bg-transparent text-white hover:bg-white/10">Sign Up / Log In to Claim & Edit</Button>
             <Button onClick={decline} disabled={acting} variant="outline" className="w-full border-white/30 bg-transparent text-white hover:bg-white/10">Decline</Button>
           </div>
         )}
@@ -196,11 +229,18 @@ export default function AssistedHalloweenApproval() {
           <div className="space-y-4">
             <div className="rounded-2xl bg-emerald-500/15 border border-emerald-300/30 p-5 text-center">
               <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-300" />
-              <h1 className="text-xl font-black">Your Halloween Spot is live!</h1>
+              <h1 className="text-xl font-black">You're Officially on the Map! 🎃</h1>
               <p className="text-sm text-slate-300 mt-2">Sign in or create your Yardit account to take over this same spot and edit it yourself.</p>
             </div>
-            <Button onClick={loginToClaim} className="w-full bg-orange-500 hover:bg-orange-400 text-purple-950 font-black h-12">Sign In & Take Over Spot</Button>
+            <Button onClick={loginToClaim} className="w-full bg-orange-500 hover:bg-orange-400 text-purple-950 font-black h-12">Claim & Edit This Spot</Button>
             <Button onClick={() => navigate(createPageUrl("HalloweenSpotDetail") + `?id=${spot.id}`)} variant="outline" className="w-full border-white/30 bg-transparent text-white hover:bg-white/10">View Spot</Button>
+          </div>
+        )}
+
+        {status === "address_mismatch" && spot && (
+          <div className="rounded-2xl bg-orange-500/10 border border-orange-300/30 p-5 text-center">
+            <h1 className="text-xl font-bold">Address does not match</h1>
+            <p className="mt-2 text-sm text-orange-200">Your verified Yardit home address must match this property to claim and edit it.</p>
           </div>
         )}
 

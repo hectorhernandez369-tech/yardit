@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import SetupAddressVerification from "@/components/profile/SetupAddressVerification";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,27 +19,46 @@ function formatTime(value) {
 
 export default function HalloweenClaimLanding() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [address, setAddress] = useState("");
+  const [assistedId, setAssistedId] = useState("");
+  const [approvalSource] = useState("address_search");
+  const [homeStatus, setHomeStatus] = useState("checking");
+  const [homeUser, setHomeUser] = useState(null);
   const [searching, setSearching] = useState(false);
   const [acting, setActing] = useState(false);
   const [result, setResult] = useState(null);
-  const [token, setToken] = useState("");
   const [state, setState] = useState("search");
   const [message, setMessage] = useState("");
 
-  const findHouse = async (event) => {
+  const findHouse = async (event, resumeAddress) => {
     event?.preventDefault?.();
-    if (!address.trim()) return;
+    const query = typeof resumeAddress === "string" ? resumeAddress : address;
+    if (!query.trim()) return;
+    setAddress(query);
     setSearching(true);
+    setHomeStatus("checking");
+    setAssistedId("");
     setMessage("");
     setResult(null);
     try {
-      const response = await base44.functions.invoke("findAssistedHalloweenSpot", { address: address.trim() });
+      const response = await base44.functions.invoke("findAssistedHalloweenSpot", { address: query.trim() });
       const data = response?.data || {};
       if (data.status === "found" || data.status === "approved") {
         setResult(data.spot);
-        setToken(data.token || "");
+        setAssistedId(data.assistedId || "");
         setState(data.status === "approved" ? "approved" : "found");
+        const authenticated = await base44.auth.isAuthenticated();
+        if (authenticated) {
+          const me = await base44.auth.me();
+          setHomeUser(me);
+          const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { assistedId: data.assistedId, action: "check_address" });
+          setHomeStatus(check.data?.status || "address_mismatch");
+          if (check.data?.status === "address_mismatch") setMessage(check.data?.error || "Your Yardit home address must match this property.");
+        } else {
+          setHomeUser(null);
+          setHomeStatus("unauthorized");
+        }
       } else if (data.status === "claimed") {
         setResult(data.spot);
         setState("claimed");
@@ -57,17 +78,19 @@ export default function HalloweenClaimLanding() {
   };
 
   const approve = async () => {
-    if (!token) return;
+    if (!assistedId || approvalSource !== "address_search" || homeStatus !== "verified") return;
     setActing(true);
     setMessage("");
     try {
       const response = await base44.functions.invoke("resolveAssistedHalloweenSpot", {
-        token,
+        assistedId,
         action: "approve",
       });
       if (["approved", "claimed"].includes(response?.data?.status)) {
         setResult(response.data.spot || result);
         setState(response.data.status === "claimed" ? "claimed" : "approved");
+        await queryClient.invalidateQueries({ queryKey: ["myAssistedListings"] });
+        await queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
       } else {
         setMessage(response?.data?.error || "Could not approve this Halloween Spot.");
       }
@@ -78,11 +101,53 @@ export default function HalloweenClaimLanding() {
     }
   };
 
-  const signUpToClaim = () => {
-    if (!token) return;
-    sessionStorage.setItem("assisted_halloween_claim_token", token);
-    const returnUrl = `${window.location.origin}/assisted-halloween?token=${encodeURIComponent(token)}&autoclaim=1`;
-    base44.auth.redirectToLogin(returnUrl);
+  const loginToApprove = () => {
+    sessionStorage.setItem("assisted_halloween_search_address", address);
+    base44.auth.redirectToLogin(`${window.location.origin}/spooky?resume=1`);
+  };
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("resume") !== "1") return;
+    const saved = sessionStorage.getItem("assisted_halloween_search_address");
+    sessionStorage.removeItem("assisted_halloween_search_address");
+    if (saved) findHouse(null, saved);
+  }, []);
+
+  const verifyAndApprove = async (addressPayload) => {
+    setActing(true);
+    setMessage("");
+    try {
+      await base44.auth.updateMe(addressPayload);
+      const me = await base44.auth.me();
+      setHomeUser(me);
+      const check = await base44.functions.invoke("resolveAssistedHalloweenSpot", { assistedId, action: "check_address" });
+      setHomeStatus(check.data?.status || "address_mismatch");
+      if (check.data?.status !== "verified") setMessage(check.data?.error || "Your Yardit home address must match this property.");
+    } catch (error) {
+      setMessage(error?.response?.data?.error || error?.message || "Could not verify your address.");
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const claimSpot = async () => {
+    if (!assistedId) return;
+    setActing(true);
+    setMessage("");
+    try {
+      const response = await base44.functions.invoke("resolveAssistedHalloweenSpot", { assistedId, action: "claim_complete" });
+      if (response.data?.status === "claimed") {
+        await queryClient.invalidateQueries({ queryKey: ["myAssistedListings"] });
+        await queryClient.invalidateQueries({ queryKey: ["myListings"] });
+        navigate(createPageUrl("HalloweenSpotDetail") + `?id=${response.data.spot.id}`);
+      } else {
+        setMessage(response.data?.error || "Verify your home address to claim this spot.");
+      }
+    } catch (error) {
+      setMessage(error?.response?.data?.error || error?.message || "Could not claim this spot.");
+    } finally {
+      setActing(false);
+    }
   };
 
   const iconKey = result?.halloween_spot_type || "halloween_decorations";
@@ -97,7 +162,7 @@ export default function HalloweenClaimLanding() {
           <div className="text-6xl drop-shadow-lg">🎃</div>
           <p className="mt-2 text-xs font-black tracking-[.32em] text-orange-300">YARDIT HALLOWEEN</p>
           <h1 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">Was your spooky house added to Yardit?</h1>
-          <p className="mx-auto mt-3 max-w-md text-sm text-purple-100/80">Enter your address to reveal your free Halloween Spot, approve it, and claim it.</p>
+          <p className="mx-auto mt-3 max-w-md text-sm text-purple-100/80">Enter your address to reveal your free Halloween Spot. Approval and claiming require a verified Yardit home address.</p>
         </div>
 
         {state === "search" && (
@@ -143,11 +208,19 @@ export default function HalloweenClaimLanding() {
               <p className="mt-1 text-xs text-purple-200">Approve this exact listing to make it official.</p>
             </div>
 
-            <Button onClick={approve} disabled={acting} className="h-14 w-full bg-orange-500 text-base font-black text-purple-950 hover:bg-orange-400">
+            {homeStatus === "checking" && <p className="text-center text-sm text-purple-100">Checking your account…</p>}
+            {homeStatus === "unauthorized" && <div className="space-y-2">
+              <p className="text-center text-xs text-purple-100">For homeowner protection, address-search approvals require a verified Yardit home address.</p>
+              <Button onClick={loginToApprove} className="w-full bg-orange-500 text-purple-950">Already have a Yardit account? Log In to Approve</Button>
+              <Button onClick={loginToApprove} variant="outline" className="w-full border-white/20 bg-transparent text-white">Don't have an account? Sign Up to Approve</Button>
+            </div>}
+            {homeStatus === "needs_address_verification" && homeUser && <div className="rounded-2xl bg-white p-1 text-slate-900"><SetupAddressVerification user={homeUser} isVerified={false} onVerified={verifyAndApprove} /></div>}
+            {homeStatus === "address_mismatch" && <p className="text-center text-sm text-orange-200">This Halloween Spot can only be approved by a Yardit account verified at this property.</p>}
+            {homeStatus === "verified" && <Button onClick={approve} disabled={acting} className="h-14 w-full bg-orange-500 text-base font-black text-purple-950 hover:bg-orange-400">
               {acting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
-              YES — APPROVE MY SPOOKY HOUSE
-            </Button>
-            <Button variant="outline" onClick={() => { setState("search"); setResult(null); setToken(""); }} className="w-full border-white/20 bg-transparent text-white hover:bg-white/10">That isn’t my house</Button>
+              Approve This Halloween Spot
+            </Button>}
+            <Button variant="outline" onClick={() => { setState("search"); setResult(null); setAssistedId(""); setHomeStatus("checking"); }} className="w-full border-white/20 bg-transparent text-white hover:bg-white/10">That isn’t my house</Button>
           </div>
         )}
 
@@ -155,13 +228,15 @@ export default function HalloweenClaimLanding() {
           <div className="mt-8 rounded-3xl border border-emerald-300/30 bg-emerald-500/10 p-6 text-center shadow-2xl">
             <div className="text-6xl">🎃</div>
             <CheckCircle2 className="mx-auto mt-3 h-12 w-12 text-emerald-300" />
-            <h2 className="mt-3 text-3xl font-black">YOU’RE OFFICIALLY ON THE MAP!</h2>
+            <h2 className="mt-3 text-3xl font-black">You're Officially on the Map! 🎃</h2>
             <p className="mt-3 text-sm text-slate-200">Your Halloween Spot is approved and ready to help families discover spooky homes nearby.</p>
             <div className="mt-5 rounded-2xl bg-white/10 p-4">
               <p className="font-black text-orange-200">Want to make it yours?</p>
               <p className="mt-1 text-xs text-purple-100">Create your free Yardit account to edit photos, hours, candy availability, description, and more.</p>
             </div>
-            <Button onClick={signUpToClaim} className="mt-5 h-14 w-full bg-orange-500 text-base font-black text-purple-950 hover:bg-orange-400">SIGN UP & CLAIM MY LISTING</Button>
+            <Button onClick={homeStatus === "verified" ? claimSpot : loginToApprove} disabled={acting || homeStatus === "address_mismatch"} className="mt-5 h-14 w-full bg-orange-500 text-base font-black text-purple-950 hover:bg-orange-400">Claim & Edit This Spot</Button>
+            {homeStatus === "needs_address_verification" && homeUser && <div className="mt-3 rounded-2xl bg-white p-1 text-slate-900"><SetupAddressVerification user={homeUser} isVerified={false} onVerified={verifyAndApprove} /></div>}
+            {homeStatus === "address_mismatch" && <p className="mt-3 text-sm text-orange-200">Your verified Yardit home address must match this property to claim it.</p>}
             <Button onClick={() => navigate(createPageUrl("HalloweenSpotDetail") + `?id=${result.id}`)} variant="outline" className="mt-2 w-full border-white/20 bg-transparent text-white hover:bg-white/10">View My Halloween Spot</Button>
             <p className="mt-4 text-xs font-semibold text-purple-200">Help make your neighborhood the place to be this Halloween.</p>
           </div>

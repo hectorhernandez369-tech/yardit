@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 
 function normalizeAddress(value = '') {
   return String(value)
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
     return Response.json({
       status: assisted.assisted_status === 'claimed_active' ? 'claimed' :
         assisted.assisted_status === 'assisted_active_unclaimed' ? 'approved' : 'found',
-      token: assisted.assisted_qr_token,
+      assistedId: assisted.id,
       spot: {
         id: spot.id,
         title: spot.display_title || spot.title || 'Halloween Spot',
