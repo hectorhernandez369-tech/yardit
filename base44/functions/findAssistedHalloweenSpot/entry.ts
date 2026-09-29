@@ -113,7 +113,58 @@ Deno.serve(async (req) => {
     });
 
     if (candidates.length === 0) {
-      return Response.json({ status: 'not_found' });
+      const inputHouse = getHouseNumber(rawAddress);
+      const inputNormalized = normalizeAddress(rawAddress);
+
+      const suggestions = eligible
+        .map((record) => {
+          const recordStreetRaw = record.property_address || '';
+          const recordStreet = normalizeAddress(recordStreetRaw);
+          const recordFullRaw = [
+            record.property_address,
+            record.property_city,
+            record.property_state,
+            record.property_zip,
+          ].filter(Boolean).join(' ');
+          const recordFull = normalizeAddress(recordFullRaw);
+          const recordHouse = getHouseNumber(recordStreetRaw);
+
+          let score = 999;
+          if (inputHouse && recordHouse === inputHouse) {
+            const streetLength = recordStreet.length;
+            const prefixCandidates = [
+              inputNormalized.slice(0, Math.max(0, streetLength - 2)),
+              inputNormalized.slice(0, streetLength),
+              inputNormalized.slice(0, streetLength + 2),
+            ].filter(Boolean);
+            score = Math.min(
+              editDistance(inputNormalized, recordStreet),
+              editDistance(inputNormalized, recordFull),
+              ...prefixCandidates.map((prefix) => editDistance(prefix, recordStreet))
+            );
+          } else if (!inputHouse && inputNormalized.length >= 6) {
+            if (recordStreet.includes(inputNormalized) || recordFull.includes(inputNormalized)) score = 0;
+            else score = Math.min(editDistance(inputNormalized, recordStreet), editDistance(inputNormalized, recordFull));
+          }
+
+          return { record, score, recordHouse, recordStreetRaw, recordFullRaw };
+        })
+        .filter((item) => {
+          if (inputHouse) return item.recordHouse === inputHouse && item.score <= 6;
+          return item.score <= 4;
+        })
+        .sort((a, b) => a.score - b.score)
+        .slice(0, 3)
+        .map((item) => ({
+          assistedId: item.record.id,
+          address: item.recordFullRaw,
+          street: item.recordStreetRaw,
+          city: item.record.property_city || '',
+          state: item.record.property_state || '',
+          zip: item.record.property_zip || '',
+        }));
+
+      return Response.json({ status: 'not_found', suggestions });
     }
 
     if (candidates.length > 1) {
