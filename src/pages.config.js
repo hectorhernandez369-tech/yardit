@@ -55,6 +55,7 @@ import FAQ from './pages/FAQ';
 import Home from './pages/Home';
 import HalloweenAdmin from './pages/HalloweenAdmin';
 import HalloweenSpotDetail from './pages/HalloweenSpotDetail';
+import SpookyListingLanding from './pages/SpookyListingLanding';
 import JoinNeighborhoodSale from './pages/JoinNeighborhoodSale';
 import Leaderboard from './pages/Leaderboard';
 import ListingDetail from './pages/ListingDetail';
@@ -80,6 +81,7 @@ export const PAGES = {
     "Home": Home,
     "HalloweenAdmin": HalloweenAdmin,
     "HalloweenSpotDetail": HalloweenSpotDetail,
+    "SpookyListingLanding": SpookyListingLanding,
     "JoinNeighborhoodSale": JoinNeighborhoodSale,
     "Leaderboard": Leaderboard,
     "ListingDetail": ListingDetail,
