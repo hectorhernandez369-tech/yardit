@@ -39,6 +39,7 @@ export default function ContactSupportPage() {
     const params = new URLSearchParams(window.location.search);
     const areaParam = params.get("area");
     const areaMatch = SUPPORT_AREAS.find((a) => a.value === areaParam);
+    const isAddressChangeReview = params.get("address_change_review") === "1";
 
     base44.auth.me().then((user) => {
       setCurrentUser(user);
@@ -47,10 +48,13 @@ export default function ContactSupportPage() {
         name: user.full_name || "",
         phone: user.phone || "",
         email: user.email || "",
+        address: user.primary_address || user.address || [user.street_address, user.city, user.state, user.zip_code].filter(Boolean).join(", "),
         support_area: areaMatch ? areaParam : "residential",
         source_id: params.get("from") ? `page:${params.get("from")}` : (params.get("source_id") || ""),
         source_type: areaMatch ? areaMatch.source_type : "general",
-        source_id: params.get("from") ? `page:${params.get("from")}` : (params.get("source_id") || ""),
+        description: isAddressChangeReview
+          ? "I need to request an exception to the 365-day primary address change limit. I have moved and need Yardit to allow me to GPS-verify my new primary address."
+          : prev.description,
       }));
     }).catch(() => {
       if (areaMatch) setFormData((prev) => ({ ...prev, support_area: areaParam }));
