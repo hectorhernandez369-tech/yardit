@@ -20,6 +20,10 @@ function getLastChangedAt(user) {
 }
 
 function getNextAllowedAt(user) {
+  const data = user?.data && typeof user.data === 'object' ? user.data : {};
+  const changeCount = Number(user?.address_change_count || data.address_change_count || 0);
+  if (changeCount <= 0) return null;
+
   const raw = getLastChangedAt(user);
   if (!raw) return null;
   const changed = new Date(raw);
