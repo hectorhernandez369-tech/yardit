@@ -48,7 +48,6 @@ export default async function(req) {
     if (!spot) return Response.json({ status: 'spot_missing' });
 
     if (action === 'check_address') {
-      if (!assistedId) return Response.json({ status: 'not_found' });
       const verification = await verifyClaimAddress(base44, spot);
       return Response.json({ status: verification.ok ? 'verified' : verification.status, error: verification.error });
     }
