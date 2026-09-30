@@ -11,14 +11,16 @@ const clusterIcon = (count) => L.divIcon({
   iconAnchor: [21, 21],
 });
 
-export default function HalloweenClusterGroup({ points, clusterRadius = 40, markerRefsMap }) {
+export default function HalloweenClusterGroup({ points, clusterRadius = 40, markerRefsMap, forceVisibleId = null }) {
   const map = useMap();
   const layerRef = useRef(L.layerGroup());
   const pointsRef = useRef(points);
   const radiusRef = useRef(clusterRadius);
+  const forceVisibleIdRef = useRef(forceVisibleId);
   const updateRef = useRef(() => {});
   pointsRef.current = points;
   radiusRef.current = clusterRadius;
+  forceVisibleIdRef.current = forceVisibleId;
 
   useEffect(() => {
     let active = true;
@@ -32,7 +34,7 @@ export default function HalloweenClusterGroup({ points, clusterRadius = 40, mark
     const update = () => {
       if (!active) return;
       layer.clearLayers();
-      const clusterablePoints = pointsRef.current.filter(({ listing }) => !isSpecialHalloweenIcon(listing));
+      const clusterablePoints = pointsRef.current.filter(({ id, listing }) => id !== forceVisibleIdRef.current && !isSpecialHalloweenIcon(listing));
       const clusters = clusterHalloweenPoints(clusterablePoints, map, radiusRef.current);
       setMarkerVisibility(new Set(clusters.flatMap(({ members }) => members.map(({ id }) => id))));
       clusters.forEach((cluster) => {
@@ -57,6 +59,6 @@ export default function HalloweenClusterGroup({ points, clusterRadius = 40, mark
     };
   }, [map, markerRefsMap]);
 
-  useEffect(() => updateRef.current(), [points, clusterRadius]);
+  useEffect(() => updateRef.current(), [points, clusterRadius, forceVisibleId]);
   return null;
 }
