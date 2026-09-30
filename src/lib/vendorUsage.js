@@ -17,10 +17,10 @@ export function getVendorTierAllowance(account) {
   // Always derive limits from the account's own tier — never from a user-level tier.
   const caps = getVendorAccountCapabilities(account);
   return {
-    singleEvents: caps.includedSingleEvents,
-    multiSpotEvents: caps.includedMultiSpotEvents,
-    multiLocationEvents: caps.includedMultiLocationEvents,
-    multiFieldEvents: caps.includedMultiFieldEvents,
+    singleEvents: 0,
+    multiSpotEvents: 0,
+    multiLocationEvents: 0,
+    multiFieldEvents: 0,
     pins: caps.maxPins,
     users: caps.maxUsers,
   };

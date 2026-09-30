@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { TIER_CONFIG } from "@/lib/tierConfig";
 import { getVendorUsageLimitStatus } from "@/lib/vendorUsage";
+import { getVendorAccountCapabilities } from "@/lib/getVendorAccountCapabilities";
 import TruckLogoEditor from "./TruckLogoEditor";
 import VendorPinScheduleDrawer from "./VendorPinScheduleDrawer";
 
@@ -49,6 +50,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
   const hasVendorAccount = !!vendorAccount?.id;
   const vendorTier = vendorAccount?.vendor_tier || "free";
   const tierConfig = TIER_CONFIG[vendorTier] || TIER_CONFIG.free;
+  const vendorCapabilities = getVendorAccountCapabilities(vendorAccount);
   const pinUsageStatus = getVendorUsageLimitStatus({ account: vendorAccount, pins: [] });
   const max_pins = pinUsageStatus.allowed.pins;
 
@@ -182,14 +184,24 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
     if (!formData.pin_name.trim()) return toast.error("Truck/pin name is required");
     setSaving(true);
     if (editingPin) {
-      await base44.entities.VendorPin.update(editingPin.id, {
-        pin_name: formData.pin_name.trim(),
-        description: formData.description.trim(),
-        is_active: formData.is_active,
-        pin_logo_url: formData.pin_logo_url,
-        pin_icon_style: formData.pin_icon_style,
-        assigned_users: accessibleAuthorizedUsers.filter((u) => formData.assigned_users.includes(u.id)).map((u) => u.authorized_email),
+      const response = await base44.functions.invoke("saveVendorPin", {
+        action: "update",
+        vendor_account_id: vendorAccount.id,
+        pin_id: editingPin.id,
+        pin: {
+          pin_name: formData.pin_name.trim(),
+          description: formData.description.trim(),
+          is_active: formData.is_active,
+          pin_logo_url: formData.pin_logo_url,
+          pin_icon_style: formData.pin_icon_style,
+          assigned_users: accessibleAuthorizedUsers.filter((u) => formData.assigned_users.includes(u.id)).map((u) => u.authorized_email),
+        },
       });
+      if (response?.data?.error) {
+        setSaving(false);
+        toast.error(response.data.error);
+        return;
+      }
       await syncPinAssignments(editingPin.id, formData.assigned_users);
       toast.success("Truck profile updated!");
     } else {
@@ -197,15 +209,24 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
         setSaving(false);
         return toast.error(`You've reached your limit of ${max_pins} truck pin(s).`);
       }
-      const newPin = await base44.entities.VendorPin.create({
+      const response = await base44.functions.invoke("saveVendorPin", {
+        action: "create",
         vendor_account_id: vendorAccount.id,
-        pin_name: formData.pin_name.trim(),
-        description: formData.description.trim(),
-        is_active: true,
-        pin_logo_url: formData.pin_logo_url,
-        pin_icon_style: formData.pin_icon_style,
-        assigned_users: accessibleAuthorizedUsers.filter((u) => formData.assigned_users.includes(u.id)).map((u) => u.authorized_email),
+        pin: {
+          pin_name: formData.pin_name.trim(),
+          description: formData.description.trim(),
+          is_active: true,
+          pin_logo_url: formData.pin_logo_url,
+          pin_icon_style: formData.pin_icon_style,
+          assigned_users: accessibleAuthorizedUsers.filter((u) => formData.assigned_users.includes(u.id)).map((u) => u.authorized_email),
+        },
       });
+      if (response?.data?.error) {
+        setSaving(false);
+        toast.error(response.data.error);
+        return;
+      }
+      const newPin = response?.data?.pin;
       await syncPinAssignments(newPin.id, formData.assigned_users);
       toast.success("Truck profile created!");
     }
@@ -218,7 +239,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
 
   const handleDeletePin = async (pinId) => {
     if (!confirm("Delete this truck profile?")) return;
-    await base44.entities.VendorPin.update(pinId, { is_active: false });
+    await base44.functions.invoke("saveVendorPin", { action: "deactivate", vendor_account_id: vendorAccount.id, pin_id: pinId });
     queryClient.invalidateQueries({ queryKey: ["vendorPins"] });
     toast.success("Truck profile deleted");
   };
@@ -262,7 +283,7 @@ export default function MyTrucksSection({ vendorAccount: providedVendorAccount, 
                 {canManagePins && (
                   <div className="flex gap-0.5 shrink-0">
                     <Button size="icon" variant="ghost" onClick={() => setSelectedPinHistory(pin)} className="h-8 w-8"><History className="w-3.5 h-3.5" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => setSchedulingPin(pin)} title="Schedule" className="h-8 w-8"><CalendarClock className="w-3.5 h-3.5" /></Button>
+                    {vendorCapabilities.scheduledLocations && <Button size="icon" variant="ghost" onClick={() => setSchedulingPin(pin)} title="Schedule" className="h-8 w-8"><CalendarClock className="w-3.5 h-3.5" /></Button>}
                     <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(pin)} className="h-8 w-8"><Edit2 className="w-3.5 h-3.5" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => handleDeletePin(pin.id)} className="h-8 w-8"><Trash2 className="w-3.5 h-3.5" /></Button>
                   </div>

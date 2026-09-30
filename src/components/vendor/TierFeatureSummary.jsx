@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarDays, Eye, MapPin, Sparkles, Users } from "lucide-react";
+import { BarChart3, CalendarDays, Eye, MapPin, Megaphone, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 function FeatureRow({ icon, label, value }) {
@@ -15,46 +15,38 @@ function FeatureRow({ icon, label, value }) {
   );
 }
 
-export default function TierFeatureSummary({ tier, compact = false }) {
+export default function TierFeatureSummary({ tier }) {
   if (!tier) return null;
+  const postLabel = tier.postUpdateLimitPerMonth === null
+    ? "Unlimited public updates"
+    : tier.postUpdateLimitPerMonth > 0
+      ? `${tier.postUpdateLimitPerMonth} public updates/month`
+      : "No public updates";
 
   return (
     <div className="space-y-3">
       <div className="grid gap-2">
         <FeatureRow icon={Users} label="Included users" value={`${tier.includedUsers} user login${tier.includedUsers === 1 ? "" : "s"}`} />
         <FeatureRow icon={MapPin} label="Included pins" value={`${tier.includedPins} active pin${tier.includedPins === 1 ? "" : "s"}`} />
-        <FeatureRow icon={CalendarDays} label="Included events" value={tier.eventAllowanceLabel} />
-        <FeatureRow icon={Eye} label="Visibility" value={tier.visibilityRange} />
+        <FeatureRow icon={Eye} label="Map visibility" value={`${tier.visibilityRange} · zoom ${tier.mapZoom}+`} />
+        <FeatureRow icon={Megaphone} label="Customer updates" value={postLabel} />
+        <FeatureRow icon={CalendarDays} label="Events" value="Available separately as Event Add-ons" />
+        {tier.analyticsLevel !== "none" && <FeatureRow icon={BarChart3} label="Analytics" value={tier.analyticsLevel === "advanced" ? "Advanced vendor analytics" : "Basic vendor analytics"} />}
       </div>
-
-      {!compact && (
-        <div className="rounded-xl border border-[#2C4F4E]/10 bg-white/70 p-3">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#2C4F4E]">Event type access</p>
-          <div className="space-y-2 text-xs text-slate-700">
-            <p><strong>Single Event:</strong> One location event such as a pop-up, sale, or vendor setup.</p>
-            <p><strong>Multi-Field Event:</strong> Large organized event with multiple internal locations or fields.</p>
-          </div>
-        </div>
-      )}
 
       <div className="flex flex-wrap gap-2">
         <Badge variant="outline" className="rounded-full bg-white text-[#2C4F4E]">{tier.dailyCheckInLimit ? `${tier.dailyCheckInLimit} check-in/day` : "Unlimited check-ins"}</Badge>
+        <Badge variant="outline" className="rounded-full bg-white text-[#2C4F4E]">{tier.fridayToSundayOnly ? "Fri–Sun check-ins" : "Any-day check-ins"}</Badge>
         <Badge variant="outline" className="rounded-full bg-white text-[#2C4F4E]">{tier.logoPin ? "Logo pins" : "Basic pins"}</Badge>
-        <Badge variant="outline" className="rounded-full bg-white text-[#2C4F4E]">{tier.animation ? "Animated pins" : "No animation"}</Badge>
+        {tier.scheduledLocations && <Badge variant="outline" className="rounded-full bg-white text-[#2C4F4E]">Scheduled locations</Badge>}
+        {tier.notifyFollowersWhenLive && <Badge variant="outline" className="rounded-full bg-white text-[#2C4F4E]">Live follower alerts</Badge>}
+        {tier.dealsAndSpecials && <Badge variant="outline" className="rounded-full bg-white text-[#2C4F4E]">Deals & specials</Badge>}
+        {tier.animation && <Badge variant="outline" className="rounded-full bg-white text-[#2C4F4E]">Animated pins</Badge>}
       </div>
 
       {tier.restrictions?.length > 0 && (
         <div className="space-y-1 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-          {tier.restrictions.map((restriction) => (
-            <p key={restriction} className="flex gap-2 items-start"><span className="mt-0.5 shrink-0">•</span>{restriction}</p>
-          ))}
-        </div>
-      )}
-
-      {tier.organizerMessage && (
-        <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-semibold text-blue-900">
-          <Sparkles className="h-4 w-4" />
-          {tier.organizerMessage}
+          {tier.restrictions.map((restriction) => <p key={restriction}>• {restriction}</p>)}
         </div>
       )}
     </div>

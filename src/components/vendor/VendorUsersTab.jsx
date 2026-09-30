@@ -24,34 +24,19 @@ export default function VendorUsersTab({ account, users, user, pins = [], isOwne
       toast.error("You reached your user limit. Upgrade or add extra users.");
       return;
     }
-    const now = new Date().toISOString();
-    const authUser = await base44.entities.VendorAuthorizedUser.create({
-      ...form,
-      authorized_email: form.authorized_email.trim().toLowerCase(),
-      vendor_account_id: account.id,
-      assigned_pin_ids: [],
-      status: "pending",
-      added_by_owner_user_id: user?.id,
-      invited_at: now,
-    });
-    // Send invite notification to the invited user
-    const notif = await base44.entities.Notification.create({
-      user_email: form.authorized_email.trim().toLowerCase(),
-      title: "Vendor Dashboard Invitation",
-      message: `You've been invited to access ${account.business_name} on Yardit.`,
-      type: "vendor_access_invite",
-      related_entity_type: "VendorAuthorizedUser",
-      related_entity_id: authUser.id,
-      read: false,
-      is_read: false,
-      metadata: {
-        authorized_user_id: authUser.id,
+    try {
+      const response = await base44.functions.invoke("inviteVendorUser", {
         vendor_account_id: account.id,
-        business_name: account.business_name,
-      },
-    });
-    // Store notification ID on the record for reference
-    await base44.entities.VendorAuthorizedUser.update(authUser.id, { invite_notification_id: notif.id });
+        authorized_email: form.authorized_email.trim().toLowerCase(),
+        first_name: form.first_name,
+        last_name: form.last_name,
+        phone: form.phone,
+      });
+      if (response?.data?.error) throw new Error(response.data.error);
+    } catch (error) {
+      toast.error(error?.response?.data?.error || error?.message || "Could not invite user");
+      return;
+    }
     setForm({ authorized_email: "", first_name: "", last_name: "", phone: "" });
     toast.success("Invite sent — user must accept before gaining access.");
     onRefresh();

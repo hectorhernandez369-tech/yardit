@@ -228,6 +228,8 @@ async function updateVendorSubscription(base44, metadata, object, statusOverride
 
   if (activeStatuses.has(stripeStatus) && metadata.target_tier) {
     patch.vendor_tier = metadata.target_tier;
+    patch.extra_users_count = Math.max(0, Number(metadata.extra_users_count || 0));
+    patch.extra_pins_count = Math.max(0, Number(metadata.extra_pins_count || 0));
     patch.setup_tier_confirmed = true;
     patch.vendor_setup_status = 'in_progress';
   }

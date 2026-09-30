@@ -15,6 +15,8 @@ import VendorPinHistoryTab from "@/components/vendor/VendorPinHistoryTab";
 import VendorSetupProgress from "@/components/vendor/VendorSetupProgress";
 import BusinessSelectorBar from "@/components/vendor/BusinessSelectorBar";
 import VendorEventsTab from "@/components/vendor/events/VendorEventsTab";
+import VendorAnalyticsPanel from "@/components/vendor/VendorAnalyticsPanel";
+import { getVendorTierConfig } from "@/lib/vendorTiers";
 import VendorAccessDenied from "@/components/vendor/VendorAccessDenied";
 import { getVendorSetupProgress, getVendorSetupStepUrl } from "@/lib/vendorSetup";
 import { getUserVendorAccounts, isLeagueTeamAccount, isVendorDashboardAccount } from "@/lib/getUserVendorAccounts";
@@ -190,12 +192,26 @@ export default function VendorDashboard() {
     enabled: !!account?.id,
   });
 
+  const { data: deals = [] } = useQuery({
+    queryKey: ["vendorDashboardDeals", account?.id],
+    queryFn: () => base44.entities.VendorDeal.filter({ vendor_account_id: account.id }, "-created_date"),
+    enabled: !!account?.id,
+  });
+
+  const { data: followers = [] } = useQuery({
+    queryKey: ["vendorDashboardFollowers", account?.id],
+    queryFn: () => base44.entities.VendorNotificationSubscription.filter({ vendor_account_id: account.id }),
+    enabled: !!account?.id,
+  });
+
   const refreshDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardAccounts"] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardPins"] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardCheckIns"] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardUsers"] });
     queryClient.invalidateQueries({ queryKey: ["vendorDashboardUpdates"] });
+    queryClient.invalidateQueries({ queryKey: ["vendorDashboardDeals"] });
+    queryClient.invalidateQueries({ queryKey: ["vendorDashboardFollowers"] });
   };
 
   const handleExitAdminMode = async () => {
@@ -340,6 +356,7 @@ export default function VendorDashboard() {
   const activeCheckIn = checkIns.find((item) => item.status === "live" && new Date(item.checkin_end_time) > new Date());
   const activePin = activeCheckIn ? pins.find((pin) => pin.id === activeCheckIn.vendor_pin_id) : null;
   const canManageDefaultPage = !canAdminPreview && isOwner;
+  const vendorTierConfig = getVendorTierConfig(account?.vendor_tier);
   const isDefaultPage = account?.id === defaultAccountId;
 
   return (
@@ -361,6 +378,7 @@ export default function VendorDashboard() {
                   { value: "profile", label: "My Page" },
                   { value: "pins", label: "Trucks & Pins" },
                   { value: "events", label: "Events" },
+                  ...(vendorTierConfig.analyticsLevel !== "none" ? [{ value: "analytics", label: "Analytics" }] : []),
                   { value: "history", label: "History" },
                   { value: "tier", label: "Plan & Billing" },
                   { value: "users", label: "Team" },
@@ -397,11 +415,12 @@ export default function VendorDashboard() {
             <VendorPinStatusBar pins={pins} checkIns={checkIns} />
           </div>
 
-          <TabsContent value="profile" className="mt-0 min-w-0"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} onRefresh={refreshDashboard} /></TabsContent>
+          <TabsContent value="profile" className="mt-0 min-w-0"><VendorBusinessPage account={account} pins={pins} checkIns={checkIns} updates={updates} deals={deals} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="pins" className="mt-0 min-w-0"><MyTrucksSection vendorAccount={account} currentUser={user} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="users" className="mt-0 min-w-0"><VendorUsersTab account={account} users={users} user={user} pins={pins} isOwner={isOwner} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="tier" className="mt-0 min-w-0"><VendorBillingTab account={account} onRefresh={refreshDashboard} /></TabsContent>
           <TabsContent value="events" className="mt-0 min-w-0"><VendorEventsTab account={account} user={user} /></TabsContent>
+          <TabsContent value="analytics" className="mt-0 min-w-0"><VendorAnalyticsPanel account={account} checkIns={checkIns} updates={updates} followers={followers} /></TabsContent>
           <TabsContent value="history" className="mt-0 min-w-0"><VendorPinHistoryTab pins={pins} checkIns={checkIns} /></TabsContent>
         </div>
       </Tabs>

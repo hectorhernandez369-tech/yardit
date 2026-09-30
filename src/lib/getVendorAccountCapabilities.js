@@ -48,6 +48,14 @@ export function getVendorAccountCapabilities(vendorAccount) {
     fridayToSundayOnly: !!tier.fridayToSundayOnly,
     dailyCheckInLimit: tier.dailyCheckInLimit || null,
     maxCheckInDurationHours: tier.maxCheckInDurationHours || null,
+    postUpdateLimitPerMonth: tier.postUpdateLimitPerMonth ?? null,
+    scheduledLocations: !!tier.scheduledLocations,
+    notifyFollowersWhenLive: !!tier.notifyFollowersWhenLive,
+    dealsAndSpecials: !!tier.dealsAndSpecials,
+    analyticsLevel: tier.analyticsLevel || "none",
+    featuredVendorPlacement: !!tier.featuredVendorPlacement,
+    organizerSearchBoost: Number(tier.organizerSearchBoost || 0),
+    eventAddOnAccess: !!tier.eventAddOnAccess,
 
     // ─── Visibility ──────────────────────────────────────────────
     mapZoom: tier.mapZoom,
