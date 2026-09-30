@@ -1750,7 +1750,7 @@ export default function HomePage() {
             }
               
               {!showUpcomingWeekend && <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />}
-              {!showUpcomingWeekend && <HalloweenClusterGroup points={halloweenClusterPts} clusterRadius={40} markerRefsMap={markerRefsMap} />}
+              {!showUpcomingWeekend && <HalloweenClusterGroup points={halloweenClusterPts} clusterRadius={40} markerRefsMap={markerRefsMap} forceVisibleId={focusListingId} />}
               {showUpcomingWeekend && (
                 <ComingSoonWeekendMapLayer
                   enabled={showUpcomingWeekend}
