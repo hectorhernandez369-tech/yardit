@@ -143,7 +143,7 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       const restoredReturnTo = restoreAuthReturnTo();
-      if (!restoredReturnTo && localStorage.getItem(EXPERIENCE_STORAGE_KEY) === EVENTS_EXPERIENCE && window.location.pathname === "/") {
+      if (!restoredReturnTo && localStorage.getItem(EXPERIENCE_STORAGE_KEY) === EVENTS_EXPERIENCE && window.location.pathname === "/" && !new URLSearchParams(window.location.search).has("vendorPin")) {
         window.location.replace("/VendorAccountIntro?experience=events");
         return;
       }

@@ -399,7 +399,7 @@ export default function Layout({ children }) {
         if (!startupAlreadyChecked) {
           sessionStorage.setItem(STARTUP_CHECK_KEY, "true");
 
-          if (startupPage === "vendor" && isRoot) {
+          if (startupPage === "vendor" && isRoot && !new URLSearchParams(window.location.search).has("vendorPin")) {
             const organizerAccounts = await getUserVendorAccounts(currentUser).catch(() => []);
 
             if (organizerAccounts.length > 0) {

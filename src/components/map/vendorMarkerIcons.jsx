@@ -27,10 +27,14 @@ export function getVendorMarkerIcon({ pin, account, checkIn, selected = false })
   return cache[key];
 }
 
-export function shouldShowVendorPinAtZoom(account, zoom) {
+export function getVendorPinMinZoom(account) {
   const tier = account?.vendor_tier || "free";
-  if (tier === "growth") return zoom >= 11;
-  if (tier === "pro") return zoom >= 13;
-  if (tier === "starter") return zoom >= 15;
-  return zoom >= 16;
+  if (tier === "growth") return 11;
+  if (tier === "pro") return 13;
+  if (tier === "starter") return 15;
+  return 16;
+}
+
+export function shouldShowVendorPinAtZoom(account, zoom) {
+  return zoom >= getVendorPinMinZoom(account);
 }

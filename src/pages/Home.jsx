@@ -69,6 +69,9 @@ import HalloweenSpotPopupCard from "@/components/map/HalloweenSpotPopupCard";
 import HalloweenPopupViewport from "@/components/map/HalloweenPopupViewport";
 import HalloweenLikeButton from "@/components/halloween/HalloweenLikeButton";
 import HalloweenClusterGroup from "@/components/map/HalloweenClusterGroup";
+import VendorPinShareButton from "@/components/map/VendorPinShareButton";
+import VendorPinLinkFocus from "@/components/map/VendorPinLinkFocus";
+import useVendorPinLink from "@/components/map/useVendorPinLink";
 
 const MARQUEE_RESTORED_KEY = "yardit_marquee_restored_id";
 const LINDSAY_PORTERVILLE_CENTER = [36.135, -119.055];
@@ -432,6 +435,9 @@ export default function HomePage() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const requestedVendorPinId = new URLSearchParams(location.search).get("vendorPin") || "";
+  const { target: sharedVendorPin, loading: loadingVendorLink } = useVendorPinLink(requestedVendorPinId);
+  const vendorMarkerRefs = useRef({});
   const [view, setView] = useState("map");
   const [reportTarget, setReportTarget] = useState(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -518,8 +524,16 @@ export default function HomePage() {
   const [currentZoom, setCurrentZoom] = useState(13);
   const [scheduleNow, setScheduleNow] = useState(() => new Date());
   const markerRefsMap = useRef({});
-  const hasCenteredOnUser = useRef(false);
+  const hasCenteredOnUser = useRef(!!requestedVendorPinId);
   const userHasMovedMap = useRef(false);
+
+  useEffect(() => {
+    if (!requestedVendorPinId) return;
+    hasCenteredOnUser.current = true;
+    setView("map");
+    setShowUpcomingWeekend(false);
+    setQuickMapFilters((filters) => ({ ...filters, vendors: true }));
+  }, [requestedVendorPinId]);
   const mapRef = useRef(null);
 
   // Debug overlay
@@ -1442,8 +1456,14 @@ export default function HomePage() {
     }).
     filter(Boolean);
 
-    return [...checkedInPins, ...scheduledPins];
-  }, [vendorCheckIns, vendorPins, vendorAccounts, currentZoom, quickMapFilters.vendors, scheduleNow]);
+    const visible = [...checkedInPins, ...scheduledPins];
+    if (!requestedVendorPinId) return visible;
+    // The shared pin must come from a fresh public lookup, never owner/private data
+    // or an old scheduled location. All other map pins retain their normal flow.
+    const otherPins = visible.filter(({ pin }) => pin.id !== requestedVendorPinId);
+    return sharedVendorPin && shouldShowVendorPinAtZoom(sharedVendorPin.account, currentZoom)
+      ? [...otherPins, sharedVendorPin] : otherPins;
+  }, [vendorCheckIns, vendorPins, vendorAccounts, currentZoom, quickMapFilters.vendors, scheduleNow, requestedVendorPinId, sharedVendorPin]);
 
   const marqueeOverlays = useMemo(() => {
     if (currentZoom < MARQUEE_COLLAPSED_MIN_ZOOM) return [];
@@ -1713,6 +1733,7 @@ export default function HomePage() {
               <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
               <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
               <HalloweenPopupViewport />
+              {requestedVendorPinId && <VendorPinLinkFocus key={requestedVendorPinId} target={sharedVendorPin} markerRefs={vendorMarkerRefs} currentZoom={currentZoom} markerAvailable={liveVendorPins.some(({ checkIn }) => checkIn.id === sharedVendorPin?.checkIn.id)} />}
               <HuntMapLayers />
               {!emergencyCostLock && mapboxCostEnabled && (
                 <TileLayer
@@ -2060,6 +2081,7 @@ export default function HomePage() {
               return (
                 <Marker
                   key={`vendor-${checkIn.id}`}
+                  ref={(marker) => { if (marker) vendorMarkerRefs.current[checkIn.id] = marker; else delete vendorMarkerRefs.current[checkIn.id]; }}
                   position={[checkIn.checkin_latitude, checkIn.checkin_longitude]}
                   icon={getVendorMarkerIcon({ pin, account, checkIn })}>
                   
@@ -2106,6 +2128,7 @@ export default function HomePage() {
                           {isVendorStop ? "Added" : "Add to Map"}
                         </Button>
                       </div>
+                      <VendorPinShareButton pin={pin} account={account} checkIn={checkIn} />
                     </div>
                   </Popup>
                 </Marker>);
@@ -2308,7 +2331,8 @@ export default function HomePage() {
         onCategoriesChange={setSelectedCategories}
         stats={stats} />
 
-      <YarditWelcomeOverlay />
+      {!requestedVendorPinId && <YarditWelcomeOverlay />}
+      {loadingVendorLink && <div role="status" className="fixed left-1/2 top-4 z-[4000] flex -translate-x-1/2 items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm text-foreground shadow-lg"><Loader2 className="h-4 w-4 animate-spin" />Finding vendor…</div>}
       
     </div>);
 

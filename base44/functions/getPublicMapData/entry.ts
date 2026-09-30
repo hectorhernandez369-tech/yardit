@@ -142,6 +142,31 @@ export default async function(req) {
     const listingId = typeof body?.listingId === 'string' ? body.listingId : '';
     const halloweenLocationId = typeof body?.halloweenLocationId === 'string' ? body.halloweenLocationId : '';
 
+    // Resolve a stable public pin, never a historical check-in's coordinates.
+    if (Object.prototype.hasOwnProperty.call(body, 'vendorPinId')) {
+      const vendorPinId = body.vendorPinId;
+      if (typeof vendorPinId !== 'string' || !/^[a-f0-9]{24}$/i.test(vendorPinId)) {
+        return Response.json({ vendorPin: null });
+      }
+      const [pin] = await base44.asServiceRole.entities.VendorPin.filter({ id: vendorPinId }, '-created_date', 1);
+      if (!pin || pin.is_active === false) return Response.json({ vendorPin: null });
+      const [account] = await base44.asServiceRole.entities.VendorAccount.filter({ id: pin.vendor_account_id }, '-created_date', 1);
+      if (!account || account.is_active === false) return Response.json({ vendorPin: null });
+      const [checkIn] = await base44.asServiceRole.entities.VendorPinCheckIn.filter({
+        vendor_pin_id: pin.id,
+        vendor_account_id: account.id,
+        status: 'live',
+        checkin_start_time: { $lte: now.toISOString() },
+        checkin_end_time: { $gt: now.toISOString() },
+      }, '-created_date', 1);
+      if (!isLiveVendorCheckIn(checkIn, now)) return Response.json({ vendorPin: null });
+      return Response.json({ vendorPin: {
+        pin: pick(pin, ['id', 'vendor_account_id', 'pin_name', 'pin_logo_url', 'pin_icon_url', 'pin_icon_style', 'description', 'is_active']),
+        account: pick(account, vendorAccountFields),
+        checkIn: pick(checkIn, vendorCheckInFields),
+      } });
+    }
+
     if (halloweenLocationId) {
       if (!/^[a-f0-9]{24}$/i.test(halloweenLocationId)) {
         return Response.json({ halloweenLocation: null });

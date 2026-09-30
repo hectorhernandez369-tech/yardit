@@ -48,5 +48,5 @@ export function shouldBypassComingSoonForCurrentUrl() {
   const url = new URL(window.location.href);
   const inviteParams = ["invite", "invite_id", "invitation", "invitation_id", "token", "signup", "sign_up", "auth"];
 
-  return inviteParams.some((key) => url.searchParams.has(key));
+  return (url.pathname === "/" && url.searchParams.has("vendorPin")) || inviteParams.some((key) => url.searchParams.has(key));
 }
