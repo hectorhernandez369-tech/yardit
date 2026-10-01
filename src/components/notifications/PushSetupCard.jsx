@@ -7,12 +7,12 @@ const LOGO_URL = "https://media.base44.com/images/public/690f554506edf795e5d8412
 export default function PushSetupCard({ status, busy, onEnable }) {
   const invalid = status === "invalid";
   const blocked = status === "blocked";
-  return <section className="w-full max-w-sm rounded-3xl border-2 border-[#2C4F4E] bg-white/85 p-7 text-center shadow-xl">
-    <img src={LOGO_URL} alt="Yardit" className="mx-auto mb-5 h-24 w-24 object-contain" />
+  return <section className={`w-full rounded-3xl border-2 border-[#2C4F4E] bg-white/85 text-center shadow-xl ${status === "enabled" ? "max-w-xs p-5" : "max-w-sm p-7"}`}>
+    <img src={LOGO_URL} alt="Yardit" className={`mx-auto object-contain ${status === "enabled" ? "mb-3 h-16 w-16" : "mb-5 h-24 w-24"}`} />
     {status === "enabled" ? <>
-      <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-emerald-600" />
-      <h1 className="text-2xl font-black text-[#2C4F4E]">Notifications enabled</h1>
-      <p className="mt-3 font-semibold text-[#2C4F4E]">You can return to Yardit.</p>
+      <CheckCircle2 className="mx-auto mb-2 h-9 w-9 text-emerald-600" />
+      <h1 className="text-xl font-black text-[#2C4F4E]">Notifications enabled</h1>
+      <p className="mt-2 text-sm font-semibold text-[#2C4F4E]">Returning to Yardit…</p>
     </> : invalid ? <>
       <h1 className="text-2xl font-black text-[#2C4F4E]">Setup link expired</h1>
       <p className="mt-3 text-sm leading-6 text-slate-600">Return to Yardit and tap Enable Notifications again.</p>
