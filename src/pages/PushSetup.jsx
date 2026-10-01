@@ -19,6 +19,24 @@ export default function PushSetup() {
       .catch(() => setStatus("invalid"));
   }, [token]);
 
+  useEffect(() => {
+    if (status !== "enabled") return undefined;
+
+    const timer = window.setTimeout(() => {
+      const isAndroid = /Android/i.test(navigator.userAgent || "");
+      if (isAndroid) {
+        const packageName = "com.base690f554506edf795e5d84121.app";
+        const fallback = encodeURIComponent("https://yardit.app/");
+        window.location.href = `intent://yardit.app/#Intent;scheme=https;package=${packageName};S.browser_fallback_url=${fallback};end`;
+        return;
+      }
+
+      window.location.replace("https://yardit.app/");
+    }, 900);
+
+    return () => window.clearTimeout(timer);
+  }, [status]);
+
   const enableNotifications = async () => {
     if (typeof Notification !== "undefined" && Notification.permission === "denied") { setStatus("blocked"); return; }
     setBusy(true);
