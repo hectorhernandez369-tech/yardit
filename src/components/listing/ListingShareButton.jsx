@@ -13,13 +13,19 @@ export default function ListingShareButton({ listing, listingUrl, mainImage, cla
   const [fallbackOpen, setFallbackOpen] = useState(false);
 
   const shareTitle = listing.event_name || listing.title;
-  const shareText = [shareTitle, listing.event_description || listing.description, listingUrl]
+  const shareLead = listing.listingType === "neighborhood_sale"
+    ? "Hey, check out my neighborhood sale on Yardit!"
+    : listing.listingType === "event"
+      ? "Hey, check out my event on Yardit!"
+      : "Hey, check out my listing on Yardit!";
+
+  const shareText = [shareLead, shareTitle, listing.event_description || listing.description, listingUrl]
     .filter(Boolean)
     .join("\n\n");
 
   const handleCopyLink = async () => {
-    await navigator.clipboard.writeText(listingUrl);
-    toast.success("Link copied");
+    await navigator.clipboard.writeText(shareText);
+    toast.success("Share text copied");
   };
 
   const handleCopyForApp = async (appName) => {
@@ -48,7 +54,7 @@ export default function ListingShareButton({ listing, listingUrl, mainImage, cla
       }
       const shareData = {
         title: shareTitle,
-        text: (listing.event_description || listing.description || "") + "\n\n" + listingUrl,
+        text: shareText,
       };
       if (fileToShare) {
         shareData.files = [fileToShare];
