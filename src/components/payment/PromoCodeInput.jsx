@@ -11,6 +11,7 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
   const [result, setResult] = useState(null);
   const autoAppliedRef = useRef(false);
   const previousPriceRef = useRef(listingPrice);
+  const isComposingRef = useRef(false);
 
   const handleApply = async (displayAppliedMessage = false, overrideCode = "") => {
     const activeCode = String(overrideCode || code || "").trim().toUpperCase();
@@ -93,17 +94,25 @@ export default function PromoCodeInput({ user, listing, selectedTier, listingPri
           value={code}
           onChange={(e) => {
             setCode(e.target.value);
-            if (status) {
+            if (!isComposingRef.current && status) {
               setStatus(null);
               setMessage("");
               setResult(null);
               onPromoApplied?.(null);
             }
           }}
+          onCompositionStart={() => {
+            isComposingRef.current = true;
+          }}
+          onCompositionEnd={(e) => {
+            isComposingRef.current = false;
+            setCode(e.currentTarget.value);
+          }}
           placeholder="Enter promo code"
-          className="font-mono uppercase"
-          autoCapitalize="characters"
+          className="font-mono"
+          autoCapitalize="none"
           autoCorrect="off"
+          autoComplete="off"
           spellCheck={false}
           inputMode="text"
           disabled={status === "loading" || status === "valid"}
