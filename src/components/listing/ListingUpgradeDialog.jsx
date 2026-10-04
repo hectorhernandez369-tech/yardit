@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import useFounderMembership from '@/components/founder/useFounderMembership';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -18,6 +20,9 @@ function formatMoney(cents) {
 
 export default function ListingUpgradeDialog({ open, onClose, listing, user, onSuccess }) {
   const [selectedTier, setSelectedTier] = useState("");
+  const queryClient = useQueryClient();
+  const { isVip, isLoading: loadingVip, isError: vipError } = useFounderMembership(user?.id);
+  const founderVip = isVip && listing?.ownerUserId === user?.id && !listing?.assisted_listing && !listing?.created_by_admin && ['yard_sale', 'event'].includes(listing?.listingType);
   const [isStartingPayment, setIsStartingPayment] = useState(false);
   const [isRefreshingPaymentMethod, setIsRefreshingPaymentMethod] = useState(false);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState(null);
@@ -71,12 +76,12 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
   const handleConfirmUpgrade = async ({ nonRefundAcknowledgement } = {}, skipDemoPrompt = false) => {
     if (!listing || !selectedTier || amountDue <= 0) return;
 
-    if (isDemoMode && !skipDemoPrompt) {
+    if (isDemoMode && !founderVip && !skipDemoPrompt) {
       setDemoUpgradeRequest({ nonRefundAcknowledgement });
       return;
     }
 
-    if (window.self !== window.top) {
+    if (!founderVip && window.self !== window.top) {
       toast.error("Checkout works only from the published app.");
       return;
     }
@@ -106,6 +111,14 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
       }));
 
       const response = await base44.functions.invoke("createListingUpgradeCheckout", checkoutRequest);
+      if (response?.data?.founder_vip) {
+        localStorage.removeItem(UPGRADE_CHECKOUT_KEY);
+        await queryClient.invalidateQueries();
+        setIsStartingPayment(false);
+        toast.success('Founder VIP upgrade activated. No charge.');
+        onSuccess?.(); onClose?.();
+        return;
+      }
       const checkoutUrl = response?.data?.checkoutUrl;
       const sessionId = response?.data?.sessionId || "";
       localStorage.setItem(UPGRADE_CHECKOUT_KEY, JSON.stringify({
@@ -184,18 +197,20 @@ export default function ListingUpgradeDialog({ open, onClose, listing, user, onS
             badge={selectedTier ? `${selectedTier.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())}` : "Upgrade"}
             purchaseType="listing_upgrade"
             tier={selectedTier}
-            price={amountDue / 100}
+            price={founderVip ? 0 : amountDue / 100}
+            continueLabel={founderVip ? 'Activate Upgrade — $0' : undefined}
             listing={listing}
             summaryTitle="Upgrade Summary"
             summaryItems={[
               { label: "Current Tier", value: currentTier?.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) },
               { label: "Upgraded Tier", value: selectedTier?.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) },
-              { label: "Amount Due Today", value: formatMoney(amountDue) },
+              { label: "Amount Due Today", value: founderVip ? '$0.00 · Founder VIP' : formatMoney(amountDue) },
             ]}
-            isProcessing={isStartingPayment}
+            isProcessing={isStartingPayment || loadingVip || vipError}
+            errorMessage={vipError ? 'Could not check your account benefits. Please reload.' : ''}
             onBack={onClose}
             onPay={handleConfirmUpgrade}
-            requireNonRefundAcknowledgement={listing?.listingType !== "event"}
+            requireNonRefundAcknowledgement={!founderVip && listing?.listingType !== "event"}
           />
 
           {savedPaymentMethod && (

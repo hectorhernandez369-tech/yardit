@@ -9,6 +9,7 @@ import MarqueeSlotsEditor from "./MarqueeSlotsEditor";
 import EventIconManager from "@/components/events/EventIconManager";
 import EventMapAddOnPreview from "@/components/create/event/EventMapAddOnPreview";
 import PromoCodeInput from "@/components/payment/PromoCodeInput";
+import useFounderMembership from '@/components/founder/useFounderMembership';
 import { eventAddOnCopy } from "@/components/create/event/eventAddOnCopy";
 import { shiftDate } from "@/lib/eventSchedule";
 import {
@@ -21,6 +22,7 @@ const money = (cents) => `$${(Number(cents || 0) / 100).toFixed(2)}`;
 
 export default function EventAddOnsStep({ formData, setFormData, user }) {
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
+  const { isVip } = useFounderMembership(user?.id);
   const [promoResult, setPromoResult] = useState(formData.event_promo_result || null);
   const addOns = formData.event_add_ons || {};
   const breakdown = getResidentialEventPriceBreakdown(formData);
@@ -86,6 +88,7 @@ export default function EventAddOnsStep({ formData, setFormData, user }) {
 
   return (
     <div className="space-y-6">
+      {isVip && <p className="rounded-xl border bg-card p-4 text-sm text-card-foreground">Founder VIP: your event and every selected add-on are free. Standard prices below are waived for your account.</p>}
       <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-3">
         <h3 className="text-sm font-semibold text-green-900">Your Community Event Package Includes ($9.99)</h3>
         <ul className="space-y-1.5 text-xs text-green-800">
@@ -247,7 +250,7 @@ export default function EventAddOnsStep({ formData, setFormData, user }) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      {!isVip && <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <PromoCodeInput
           user={user}
           listing={formData}
@@ -257,14 +260,14 @@ export default function EventAddOnsStep({ formData, setFormData, user }) {
           initialCode={formData.discovery_promo_code || ""}
           revalidateOnPriceChange={true}
         />
-      </div>
+      </div>}
 
       <div className="rounded-xl border border-[#2C4F4E]/20 bg-[#F3E6CF] p-4 space-y-3">
         <div className="flex items-center justify-between">
           <span className="font-semibold text-[#2C4F4E]">Event Subtotal</span>
           <span className="font-semibold text-[#2C4F4E]">{money(breakdown.total)}</span>
         </div>
-        {promoResult && (
+        {promoResult && !isVip && (
           <>
             <div className="flex items-center justify-between text-green-700">
               <span className="font-medium">{promoResult.promoCode?.title || promoResult.promoCode?.code || "Promo"} ({promoResult.discountPercent}% off)</span>
@@ -276,10 +279,10 @@ export default function EventAddOnsStep({ formData, setFormData, user }) {
             </div>
           </>
         )}
-        {!promoResult && (
+        {(!promoResult || isVip) && (
           <div className="border-t border-[#2C4F4E]/15 pt-3 flex items-center justify-between">
             <span className="font-bold text-[#2C4F4E]">Event Total</span>
-            <span className="text-xl font-bold text-[#2C4F4E]">{money(breakdown.total)}</span>
+            <span className="text-xl font-bold text-[#2C4F4E]">{isVip ? '$0.00 · Founder VIP' : money(breakdown.total)}</span>
           </div>
         )}
       </div>

@@ -10,6 +10,7 @@ import { createPageUrl } from "@/utils";
 import { useHunt } from "@/components/hunt/HuntContext";
 import { getListingAddressLine, formatListingDateRange, formatListingStatusLabel, getListingDisplayStatus, statusColors } from "@/components/listing/listingDisplay";
 import PullToRefresh from "@/components/mobile/PullToRefresh";
+import FounderBadge from '@/components/founder/FounderBadge';
 
 export default function SavedListingsTab({ user }) {
   const navigate = useNavigate();
@@ -91,6 +92,7 @@ export default function SavedListingsTab({ user }) {
               {isHistory && <span className="text-xs font-semibold text-slate-500 uppercase">History</span>}
             </div>
             <h3 className="font-bold text-slate-900 truncate mb-1">{listing.title || listing.event_name || "Untitled Listing"}</h3>
+            <FounderBadge userId={listing.ownerUserId} />
             <div className="flex items-center gap-2 text-xs text-slate-600 mb-1">
               <MapPin className="w-3 h-3 flex-shrink-0" />
               <span className="truncate">{getListingAddressLine(listing)}</span>

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useMap, Marker, Polyline, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import { useHunt, HUNT_ENABLED } from './HuntContext';
+import FounderBadge from '@/components/founder/FounderBadge';
 
 const createNumberedIcon = (number, status) => {
   const color = status === 'completed' ? '#10b981' : status === 'arrived' ? '#3b82f6' : '#f59e0b';
@@ -65,6 +66,7 @@ export default function HuntMapOverlay() {
         >
           <Tooltip direction="top" offset={[0, -12]} opacity={1}>
             <span className="font-bold">{stop.title}</span>
+            <FounderBadge userId={stop.ownerUserId || stop.owner_user_id} />
           </Tooltip>
         </Marker>
       ))}

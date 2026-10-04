@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import FounderBadge from '@/components/founder/FounderBadge';
 import { MapPin, SlidersHorizontal, Navigation, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -138,6 +139,7 @@ export default function ListView({ listings, vendorEvents, userLocation, mapCent
                         <h3 className="text-base font-semibold text-slate-800 leading-snug">
                           {getListingPrimaryText(listing)}
                         </h3>
+                        <FounderBadge userId={listing.ownerUserId || listing.owner_user_id} />
 
                         <div className="flex items-center gap-3 mt-1 flex-wrap">
                           {(listing.city || listing.state) && (

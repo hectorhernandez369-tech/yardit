@@ -21,6 +21,8 @@ function formatTime(value) {
   return new Date(2000, 0, 1, h, m).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+import FounderBadge from '@/components/founder/FounderBadge';
+
 export default function HalloweenSpotPopupCard({ listing }) {
   const defaultIcon = HALLOWEEN_ICON_ASSETS[listing.halloween_spot_type || listing.halloween_icon_key || listing.icon_key || "halloween_decorations"] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
   const fullIcon = isAshevilleDecorationSpot(listing) && listing.custom_icon_url ? listing.custom_icon_url : defaultIcon;
@@ -41,6 +43,7 @@ export default function HalloweenSpotPopupCard({ listing }) {
           <div className="min-w-0">
             <div className="inline-flex rounded-full border border-orange-300/40 bg-orange-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-orange-200">Halloween Spot</div>
             <h3 className="mt-0.5 truncate text-sm font-black text-white">{listing.title || "Halloween Spot"}</h3>
+            <FounderBadge userId={listing.owner_user_id || listing.ownerUserId} />
             <p className="text-[10px] font-semibold text-purple-200">{getHalloweenSpotTypeLabel(listing)}</p>
             <div className="mt-1 flex flex-wrap gap-1">
               {listing.halloween_featured_badge === "must_see" && <div className="inline-flex items-center gap-1 rounded-full border border-yellow-300/50 bg-yellow-400/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-yellow-200"><Star className="h-3 w-3" /> Yardit Must See</div>}

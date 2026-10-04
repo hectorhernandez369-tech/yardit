@@ -1,0 +1,2 @@
+export const FOUNDER_BADGE_URL = 'https://media.base44.com/images/public/690f554506edf795e5d84121/e410e6233_file_000000000cb881f8b0924931d8994bb3.png';
+export const founderBoardBadge = (visible) => visible ? `<img src="${FOUNDER_BADGE_URL}" alt="Yardit Founding Member" title="Founding Member" class="absolute -left-3 -top-3 h-8 w-8 object-contain" />` : '';

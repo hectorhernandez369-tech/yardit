@@ -9,6 +9,7 @@ import UserSendMessage from "./UserSendMessage";
 import UserPromotionHistory from "./UserPromotionHistory";
 import UserActivityLogTab from "./UserActivityLogTab";
 import { getUserDisplayName } from "@/lib/userIdentity";
+import FounderBadge from '@/components/founder/FounderBadge';
 
 export default function UserDetailDrawer({ user, adminUser, open, onClose, onUserUpdated }) {
   const [tab, setTab] = useState("info");
@@ -20,6 +21,7 @@ export default function UserDetailDrawer({ user, adminUser, open, onClose, onUse
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{getUserDisplayName(user)}</SheetTitle>
+          <FounderBadge userId={user.id} />
         </SheetHeader>
 
         <Tabs value={tab} onValueChange={setTab} className="mt-4">

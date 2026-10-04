@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { getDemoAuthorization, hasDemoBypassRequest, sanitizeDemoFields } from '../../shared/demoMode.ts';
+import { hasResidentialVip, eligibleFounderListing, founderWaiver } from '../../shared/founderVip.ts';
 
 const DESCRIPTION_LIMITS = {
   yard_sale: 500,
@@ -178,7 +179,11 @@ export default async function(req) {
     }
     if (!demoAuthorization.canUseDemoMode) data = sanitizeDemoFields(data);
 
-    if (action === 'create') {
+    if (action === 'create' || action === 'founder_create') {
+      const founderVip = await hasResidentialVip(base44, user.id);
+      if (action === 'founder_create' && (!founderVip || !eligibleFounderListing(data) || data.is_demo_listing || (data.ownerUserId && data.ownerUserId !== user.id))) {
+        return Response.json({ error: 'Founder VIP is required for this complimentary listing.' }, { status: 403 });
+      }
       const validation = validateDescription(data);
       if (!validation.ok) return Response.json({ error: validation.error }, { status: 400 });
 
@@ -199,6 +204,10 @@ export default async function(req) {
       const conflict = await findResidentialConflict(base44, data, user);
       if (conflict) return Response.json({ error: CONFLICT_MESSAGE, conflict }, { status: 409 });
 
+      if (ownerUserId === user.id && eligibleFounderListing(data) && !data.is_demo_listing && founderVip) {
+        data = { ...data, ...founderWaiver };
+        if (['payment_pending', 'pending_payment'].includes(data.status)) data.status = 'active';
+      }
       const created = await base44.asServiceRole.entities.Listing.create({ ...data, ownerUserId });
       return Response.json({ ok: true, listing: created });
     }

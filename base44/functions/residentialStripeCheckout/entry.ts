@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Stripe from 'npm:stripe@18.5.0';
 import { secrets } from 'base44:runtime';
 import { getDemoAuthorization, hasDemoBypassRequest } from '../../shared/demoMode.ts';
+import { hasResidentialVip } from '../../shared/founderVip.ts';
 
 const nowIso = () => new Date().toISOString();
 const asId = (value) => (typeof value === 'string' ? value : value?.id || '');
@@ -568,6 +569,11 @@ export default async function(req) {
         discount_amount: authoritativeDiscountAmount,
         final_amount: 0,
       });
+    }
+
+    if (!currentUser) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (action === 'create' && !body.assisted_listing && !body.created_by_admin && ['residential', 'event'].includes(body.listing_kind || 'residential') && await hasResidentialVip(base44, currentUser.id)) {
+      return Response.json({ ok: true, founder_vip: true, final_amount: 0 });
     }
 
     // ── CREATE STRIPE CHECKOUT ──────────────────────────────────────

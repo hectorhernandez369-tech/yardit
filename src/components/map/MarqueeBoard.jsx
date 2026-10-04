@@ -1,4 +1,5 @@
 import { formatListingScheduleText } from "@/components/listing/listingDisplay.jsx";
+import { founderBoardBadge } from '@/components/founder/founderBadgeAsset';
 
 // Board dimensions — single source of truth
 export const MARQUEE_BOARD_WIDTH = 190;
@@ -154,6 +155,7 @@ export function getMarqueeBoardCollapsedHtml(listing, options = {}) {
   const card = `
     <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;height:${h}px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:7px 9px;color:#fff;box-shadow:0 5px 14px rgba(0,0,0,0.3);box-sizing:border-box;pointer-events:auto;overflow:visible;">
       ${overlapBubble}
+      ${founderBoardBadge(options.founderBadgeVisible)}
       ${bulbFrame(w, h, { sideCount: 2, sideTopInset: 13, sideBottomInset: 13, horizontalDensity: 15 })}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:5px;">
         <div style="flex:1;min-width:0;">
@@ -215,6 +217,7 @@ export function getMarqueeBoardExpandedHtml(listing, options = {}) {
   const card = `
     <div style="position:absolute;bottom:${tailH}px;left:0;width:${w}px;border-radius:6px;border:1px solid #f4a849;${bgStyle}padding:7px 10px 9px;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,0.32);box-sizing:border-box;pointer-events:auto;overflow:visible;">
       ${overlapBubble}
+      ${founderBoardBadge(options.founderBadgeVisible)}
       ${bulbFrame(w, h, { sideCount: 4, sideTopInset: 14, sideBottomInset: 14, horizontalDensity: 15 })}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;">
         <div style="flex:1;min-width:0;">

@@ -47,6 +47,7 @@ export default function CreateListingEvent({
 
     return (
       <ResidentialPaymentStep
+        user={user}
         tier="event"
         amount={eventPriceBreakdown.total}
         listing={formData}

@@ -4,6 +4,7 @@ import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin } from "lucide-react";
 import MyListingActions from "@/components/listing/MyListingActions";
+import FounderBadge from '@/components/founder/FounderBadge';
 import {
   formatListingScheduleText,
   formatListingStatusLabel,
@@ -97,6 +98,7 @@ export default function MyListingCard({
             <h3 className="text-base sm:text-lg font-semibold text-slate-800 mb-1 leading-snug break-words">
               {listing.title}
             </h3>
+            <FounderBadge userId={listing.ownerUserId || listing.owner_user_id || user?.id} />
 
             {/* Meta — listing number */}
             <p className="text-[11px] text-slate-400 mb-2.5 font-mono break-all">

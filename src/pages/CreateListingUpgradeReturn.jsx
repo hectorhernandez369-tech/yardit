@@ -96,6 +96,12 @@ export default function CreateListingUpgradeReturn() {
       }
 
       const response = await base44.functions.invoke("createListingUpgradeCheckout", storedCheckout.checkoutRequest);
+      if (response?.data?.founder_vip) {
+        localStorage.removeItem(UPGRADE_CHECKOUT_KEY);
+        toast.success('Founder VIP benefits activated. No charge.');
+        navigate(createPageUrl('MyListings'));
+        return;
+      }
       const checkoutUrl = response?.data?.checkoutUrl;
       const sessionId = response?.data?.sessionId || "";
       if (!checkoutUrl) throw new Error("Checkout could not restart.");

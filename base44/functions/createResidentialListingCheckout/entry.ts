@@ -1,10 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Stripe from 'npm:stripe@18.5.0';
 import { getDemoAuthorization, hasDemoBypassRequest } from '../../shared/demoMode.ts';
+import { hasResidentialVip } from '../../shared/founderVip.ts';
+import { secrets } from 'base44:runtime';
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-  apiVersion: '2025-02-24.acacia',
-});
+
 
 const RESIDENTIAL_PRICES = { featured: 499, premium: 799 };
 const DATE_UNAVAILABLE_MESSAGE = 'These dates are no longer available for this address. Please select different dates.';
@@ -153,8 +153,9 @@ async function hasWebhookConfirmation(base44, sessionId) {
   return (records || []).some((record) => ['succeeded', 'subscription_active'].includes(record.status) && record.event_type !== 'checkout.session.created');
 }
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
+    const stripe = new Stripe(secrets.get('STRIPE_SECRET_KEY'), { apiVersion: '2025-02-24.acacia' });
     const base44 = createClientFromRequest(req);
     const payload = normalizeResidentialEventSingleDay(await req.json().catch(() => ({})));
 
@@ -183,6 +184,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Demo payment skipping is only available to authorized admins while Demo Mode is enabled.' }, { status: 403 });
     }
 
+    if (!currentUser) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!payload.assisted_listing && !payload.created_by_admin && ['residential', 'event'].includes(payload.listing_kind || 'residential') && await hasResidentialVip(base44, currentUser.id)) {
+      return Response.json({ ok: true, founder_vip: true, final_amount: 0 });
+    }
     const descriptionValidation = validateDescriptionLimit(payload);
     if (!descriptionValidation.ok) {
       return Response.json({ error: descriptionValidation.error }, { status: 400 });
@@ -219,7 +224,7 @@ Deno.serve(async (req) => {
     const cancelUrl = `${payload.return_url}${separator}payment=cancel`;
     const transactionType = 'listing_payment';
     const metadata = {
-      base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
+      base44_app_id: secrets.get('BASE44_APP_ID') || '',
       user_id: payload.user_id || payload.owner_user_id || '',
       user_email: payload.user_email || payload.customer_email || '',
       purpose: listingKind === 'event' ? 'event_paid_listing' : 'residential_listing_payment',
@@ -269,4 +274,4 @@ Deno.serve(async (req) => {
     console.error('Residential checkout error:', error?.message || error);
     return Response.json({ error: error?.message || 'Stripe checkout failed' }, { status: 500 });
   }
-});
+}

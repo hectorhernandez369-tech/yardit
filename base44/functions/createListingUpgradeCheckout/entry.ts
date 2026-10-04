@@ -1,10 +1,10 @@
 import Stripe from 'npm:stripe@18.5.0';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { getDemoAuthorization, hasDemoBypassRequest } from '../../shared/demoMode.ts';
+import { hasResidentialVip, eligibleFounderListing, founderUpgradePatch } from '../../shared/founderVip.ts';
+import { secrets } from 'base44:runtime';
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-  apiVersion: '2025-02-24.acacia',
-});
+
 
 const RESIDENTIAL_PRICES = { free: 0, featured: 499, premium: 799 };
 const DATE_UNAVAILABLE_MESSAGE = 'These dates are no longer available for this address. Please select different dates.';
@@ -78,8 +78,9 @@ async function webhookConfirmed(base44, sessionId) {
   return (records || []).some((record) => record.event_type !== 'checkout.session.created' && record.status === 'succeeded');
 }
 
-Deno.serve(async (req) => {
+export default async function(req) {
   try {
+    const stripe = new Stripe(secrets.get('STRIPE_SECRET_KEY'), { apiVersion: '2025-02-24.acacia' });
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
     const action = body?.action || 'create';
@@ -201,6 +202,18 @@ Deno.serve(async (req) => {
     const listing = listings?.[0];
     if (!listing) return Response.json({ error: 'Listing not found' }, { status: 404 });
     if (listing.ownerUserId !== user.id) return Response.json({ error: 'Forbidden' }, { status: 403 });
+
+    if (eligibleFounderListing(listing) && !listing.is_demo_listing && await hasResidentialVip(base44, user.id)) {
+      if (listing.listingType === 'yard_sale') {
+        const validation = await validateResidentialUpgradeDates(base44, listing);
+        if (!validation.ok) return Response.json({ error: validation.error }, { status: 409 });
+      }
+      const patch = founderUpgradePatch(listing, body);
+      const updated = await base44.asServiceRole.entities.Listing.update(listing.id, {
+        ...patch, payment_status: 'waived', pending_upgrade_tier: '', pending_upgrade_checkout_session_id: '', pending_event_add_on_patch: '', pending_event_add_on_keys: [],
+      });
+      return Response.json({ ok: true, founder_vip: true, listing: updated, final_amount: 0 });
+    }
 
     if (action === 'complete_free_event_add_on') {
       if (!isEventAddOnPurchase || listingKind !== 'event') {
@@ -345,7 +358,7 @@ Deno.serve(async (req) => {
     const successUrl = `${returnUrl}${separator}payment=success&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${returnUrl}${separator}payment=cancel`;
     const metadata = {
-      base44_app_id: Deno.env.get('BASE44_APP_ID') || '',
+      base44_app_id: secrets.get('BASE44_APP_ID') || '',
       purpose: 'listing_upgrade',
       transaction_type: 'listing_upgrade',
       event_add_on_purchase: isEventAddOnPurchase ? 'true' : 'false',
@@ -425,4 +438,4 @@ Deno.serve(async (req) => {
     console.error('createListingUpgradeCheckout error', error?.message || error);
     return Response.json({ error: error?.message || 'Upgrade checkout failed' }, { status: 500 });
   }
-});
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import FounderBadge from '@/components/founder/FounderBadge';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPageUrl, safeBack } from "@/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -471,6 +472,7 @@ export default function ListingDetailPage() {
                   <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-950 break-words leading-[1.1]">
                     {listing.event_name || listing.title}
                   </h1>
+                  <FounderBadge userId={listing.ownerUserId} />
                   
                   <div className="space-y-3 py-2">
                     <p className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">

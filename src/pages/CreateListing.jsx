@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
+import useFounderMembership from '@/components/founder/useFounderMembership';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -63,6 +64,7 @@ export default function CreateListingPage() {
   const formContainerRef = useRef(null);
   const [step, setStep] = useState(1);
   const [user, setUser] = useState(null);
+  const { isVip: founderVip } = useFounderMembership(user?.id);
   const [activeDraftId, setActiveDraftId] = useState(null);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showNeighborhoodIntro, setShowNeighborhoodIntro] = useState(false);
@@ -618,6 +620,10 @@ export default function CreateListingPage() {
     };
   };
   const startPaidListingCheckout = async (promoResult = null, nonRefundAcknowledgement = {}, skipDemoPrompt = false) => {
+    if (founderVip && !isAssistedPost && !isAdminCreate && ['yard_sale', 'event'].includes(formData.listingType)) {
+      executeSubmit('founder_vip');
+      return;
+    }
     const descriptionLimitError = getResidentialDescriptionLimitError(formData);
     if (descriptionLimitError) {
       setPaymentError(descriptionLimitError);
@@ -708,6 +714,12 @@ export default function CreateListingPage() {
         non_refund_disclosure_text: nonRefundFields.non_refund_disclosure_text,
         ...promoPayload,
       });
+      if (response?.data?.founder_vip) {
+        localStorage.removeItem(PAID_LISTING_CHECKOUT_KEY);
+        setIsStartingPayment(false);
+        executeSubmit('founder_vip', checkoutFormData);
+        return;
+      }
       console.log("Stripe session created", response?.data);
       const checkoutUrl = response?.data?.checkoutUrl;
       const sessionId = response?.data?.sessionId;
@@ -811,6 +823,8 @@ export default function CreateListingPage() {
   }, [userListings, user, queryClient]);
   const createListingMutation = useMutation({
     mutationFn: async (data) => {
+      const founderCreate = data.founder_vip_requested === true;
+      delete data.founder_vip_requested;
       if (!isAdminCreate && data.listingType === "yard_sale" && data.selectedRangeStartDate && data.selectedRangeEndDate) {
         const conflict = await checkDateConflictLive(data.selectedRangeStartDate, data.selectedRangeEndDate, data.listingType, data);
         if (conflict) {
@@ -825,7 +839,7 @@ export default function CreateListingPage() {
       for (let i = 0; i < 5; i++) rand5 += chars[Math.floor(Math.random() * chars.length)];
       const listingNumber = `${stateCode}${zipLast4}-${rand5}`;
       const response = await base44.functions.invoke("saveResidentialListing", {
-        action: "create",
+        action: founderCreate ? "founder_create" : "create",
         data: {
           ...data,
           title: data.title,
@@ -1430,6 +1444,13 @@ export default function CreateListingPage() {
       payload.pricePaid = 0;
       payload.pending_checkout_session_id = sourceFormData.pending_checkout_session_id || "";
       payload.payment_intent_status = sourceFormData.payment_intent_status || "hold_requested";
+    }
+    if (actionStr === "founder_vip") {
+      payload.founder_vip_requested = true;
+      payload.pricePaid = 0;
+      payload.payment_status = "waived";
+      payload.payment_intent_status = "none";
+      payload.status = payload.listingType === "event" ? "active" : "scheduled";
     }
     if (actionStr === "demo_skip_payment") {
       payload.is_demo_listing = true;

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import ReviewPayContent from "@/components/payment/ReviewPayContent";
 import PromoCodeInput from "@/components/payment/PromoCodeInput";
+import useFounderMembership from "@/components/founder/useFounderMembership";
 
 export default function ResidentialPaymentStep({
   tier,
@@ -23,6 +24,8 @@ export default function ResidentialPaymentStep({
   initialPromoResult = null,
 }) {
   const [promoResult, setPromoResult] = useState(initialPromoResult);
+  const { isVip, isLoading: loadingVip, isError: vipError } = useFounderMembership(user?.id);
+  const founderVip = isVip && !listing?.assisted_listing && ['yard_sale', 'event'].includes(listing?.listingType);
 
   React.useEffect(() => {
     setPromoResult(initialPromoResult || null);
@@ -33,8 +36,8 @@ export default function ResidentialPaymentStep({
   };
 
   // amount is in cents from CreateListing; convert to dollars for display
-  const amountDollars = amount / 100;
-  const finalAmount = promoResult ? promoResult.finalAmount : amount;
+  const amountDollars = founderVip ? 0 : amount / 100;
+  const finalAmount = founderVip ? 0 : promoResult ? promoResult.finalAmount : amount;
   const continueLabel = finalAmount === 0
     ? "Create Listing — $0"
     : retryPayment
@@ -56,17 +59,17 @@ export default function ResidentialPaymentStep({
           tier={tier}
           purchaseName={purchaseName}
           price={amountDollars}
-          summaryItems={summaryItems}
+          summaryItems={founderVip ? summaryItems?.map(item => ['Base Price', 'Total'].includes(item.label) ? { ...item, value: '$0.00 · Founder VIP' } : item) : summaryItems}
           benefits={benefits}
           isDemoMode={isDemoMode}
-          isProcessing={isProcessing}
-          errorMessage={errorMessage}
+          isProcessing={isProcessing || loadingVip || vipError}
+          errorMessage={vipError ? 'Could not check your account benefits. Please reload before continuing.' : errorMessage}
           onBack={onBack}
-          onPay={({ nonRefundAcknowledgement } = {}) => onPay({ promoResult, finalAmount, nonRefundAcknowledgement })}
-          promoResult={promoResultForDisplay}
+          onPay={({ nonRefundAcknowledgement } = {}) => onPay({ promoResult: founderVip ? null : promoResult, finalAmount, nonRefundAcknowledgement })}
+          promoResult={founderVip ? null : promoResultForDisplay}
           continueLabel={continueLabel}
-          requireNonRefundAcknowledgement={requireNonRefundAcknowledgement ?? listing?.listingType !== "event"}
-          promoInputSlot={promoEnabled ? (
+          requireNonRefundAcknowledgement={founderVip ? false : (requireNonRefundAcknowledgement ?? listing?.listingType !== "event")}
+          promoInputSlot={founderVip ? <p className="text-sm text-muted-foreground">Founder VIP: every tier and add-on is included. No payment required.</p> : promoEnabled ? (
             <PromoCodeInput
               user={user}
               listing={listing}

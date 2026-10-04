@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { User, CreditCard, Loader2, AlertTriangle, Store, CheckCircle2, Circle } from "lucide-react";
 
 import UserInfoSection from "../components/profile/UserInfoSection";
+import FounderBadge from '@/components/founder/FounderBadge';
+import FounderProfileControl from '@/components/founder/FounderProfileControl';
 import ResidentialBillingList from "../components/billing/ResidentialBillingList";
 import { getTransactionListingId, isResidentialTransaction } from "@/components/billing/residentialBillingUtils";
 import ProfileCoinsSummary from "../components/profile/ProfileCoinsSummary";
@@ -262,6 +264,8 @@ export default function ProfilePage() {
           </TabsList>
 
           <TabsContent value="info">
+            <FounderBadge userId={user?.id} />
+            <FounderProfileControl userId={user?.id} />
             <UserInfoSection user={user} setUser={setUser} addressEditSignal={addressEditSignal} />
           </TabsContent>
 

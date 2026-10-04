@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import useFounderMembership from '@/components/founder/useFounderMembership';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -18,6 +20,9 @@ const money = (cents) => `$${(Number(cents || 0) / 100).toFixed(2)}`;
 
 export default function EventAddOnDialog({ open, onClose, listing, user }) {
   const [formData, setFormData] = useState({});
+  const queryClient = useQueryClient();
+  const { isVip, isLoading: loadingVip, isError: vipError } = useFounderMembership(user?.id);
+  const founderVip = isVip && listing?.ownerUserId === user?.id && !listing?.assisted_listing && !listing?.created_by_admin && listing?.listingType === 'event';
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
   const [isStartingPayment, setIsStartingPayment] = useState(false);
   const [promoResult, setPromoResult] = useState(null);
@@ -42,7 +47,7 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
   }, [selectedAddOns, existingAddOns]);
 
   const amountDue = selectedLines.reduce((sum, item) => sum + Number(item.price || 0), 0);
-  const finalAmountDue = promoResult ? Number(promoResult.finalAmount || 0) : amountDue;
+  const finalAmountDue = founderVip ? 0 : promoResult ? Number(promoResult.finalAmount || 0) : amountDue;
   const promoResultForDisplay = promoResult ? {
     ...promoResult,
     discountAmount: Number(promoResult.discountAmount || 0) / 100,
@@ -95,7 +100,7 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
 
   const handleCheckout = async () => {
     if (!listing || amountDue <= 0) return;
-    if (window.self !== window.top) {
+    if (!founderVip && window.self !== window.top) {
       toast.error("Checkout works only from the published app.");
       return;
     }
@@ -114,7 +119,7 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
         return_url: `${window.location.origin}/CreateListingUpgradeReturn`,
       };
 
-      if (promoResult && finalAmountDue === 0) {
+      if (!founderVip && promoResult && finalAmountDue === 0) {
         const response = await base44.functions.invoke("createListingUpgradeCheckout", {
           ...baseRequest,
           action: "complete_free_event_add_on",
@@ -136,6 +141,14 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
       };
       localStorage.setItem(CHECKOUT_KEY, JSON.stringify({ listingId: listing.id, targetTier: listing.event_tier || listing.tier || "event", purchaseType: "event_add_on", checkoutRequest }));
       const response = await base44.functions.invoke("createListingUpgradeCheckout", checkoutRequest);
+      if (response?.data?.founder_vip) {
+        localStorage.removeItem(CHECKOUT_KEY);
+        await queryClient.invalidateQueries();
+        setIsStartingPayment(false);
+        toast.success('Founder VIP add-ons activated. No charge.');
+        onClose();
+        return;
+      }
       const checkoutUrl = response?.data?.checkoutUrl;
       const sessionId = response?.data?.sessionId || "";
       localStorage.setItem(CHECKOUT_KEY, JSON.stringify({ listingId: listing.id, targetTier: listing.event_tier || listing.tier || "event", purchaseType: "event_add_on", checkoutRequest, sessionId }));
@@ -182,20 +195,21 @@ export default function EventAddOnDialog({ open, onClose, listing, user }) {
             badge="Add-ons"
             purchaseType="event_add_on"
             tier="event_add_on"
-            price={amountDue / 100}
+            price={founderVip ? 0 : amountDue / 100}
             listing={listing}
             summaryTitle="Selected Add-ons"
             summaryItems={[
               { label: "Event", value: listing?.title || listing?.event_name },
               { label: "Selected", value: selectedLines.length ? selectedLines.map((item) => `${item.label} (${money(item.price)})`).join(", ") : "No new add-ons selected" },
-              { label: "Total", value: money(amountDue) },
+              { label: "Total", value: founderVip ? '$0.00 · Founder VIP' : money(amountDue) },
             ]}
             benefits={selectedLines.map((item) => item.label)}
-            isProcessing={isStartingPayment}
+            isProcessing={isStartingPayment || loadingVip || vipError}
+            errorMessage={vipError ? 'Could not check your account benefits. Please reload.' : ''}
             onBack={onClose}
             onPay={handleCheckout}
-            promoResult={promoResultForDisplay}
-            promoInputSlot={amountDue > 0 ? (
+            promoResult={founderVip ? null : promoResultForDisplay}
+            promoInputSlot={founderVip ? <p className="text-sm text-muted-foreground">All add-ons included with Founder VIP.</p> : amountDue > 0 ? (
               <PromoCodeInput
                 user={user}
                 listing={listing}

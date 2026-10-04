@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useHunt, HUNT_ENABLED } from '../components/hunt/HuntContext';
 import { Button } from "@/components/ui/button";
+import FounderBadge from '@/components/founder/FounderBadge';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Map, Navigation, Trash2, AlertTriangle } from "lucide-react";
@@ -95,6 +96,7 @@ export default function MyHuntPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-lg text-gray-500">#{index + 1}</span>
                     <h3 className="font-bold text-[#2C4F4E]">{stop.title}</h3>
+                    <FounderBadge userId={stop.ownerUserId || stop.owner_user_id} />
                   </div>
                   <p className="text-sm text-gray-600">{stop.addressText}</p>
                 </div>

@@ -3,6 +3,8 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ListView from "../components/home/ListView";
+import FounderBadge from '@/components/founder/FounderBadge';
+import useFounderMembership from '@/components/founder/useFounderMembership';
 import YarditWelcomeOverlay from "@/components/home/YarditWelcomeOverlay";
 import { useAppMode } from "../components/shared/DemoMode";
 
@@ -504,6 +506,7 @@ export default function HomePage() {
   const huntButtonPositionRef = useRef({ x: 0, y: 112 });
   const [huntButtonPosition, setHuntButtonPosition] = useState({ x: 0, y: 112 });
   const [user, setUser] = useState(null);
+  const { data: founderMemberships = [] } = useFounderMembership(user?.id);
   const [canUseMapboxTest, setCanUseMapboxTest] = useState(false);
   const [previewListingsOnMap] = useState(getPreviewListingsOnMapPreference);
   const [userLocation, setUserLocation] = useState(null);
@@ -1846,6 +1849,7 @@ export default function HomePage() {
                             </div>
 
                             <h3 className="font-bold text-sm leading-tight text-slate-950">{getListingPrimaryText(listing)}</h3>
+                            <FounderBadge userId={listing.ownerUserId || listing.owner_user_id} />
 
                             {isPreviewState ?
                         <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2">
@@ -2176,12 +2180,14 @@ export default function HomePage() {
               const overlappedCount = listing.overlappedListings?.length || 0;
               const boardHtml = isExpanded ?
               getMarqueeBoardExpandedHtml(listing, {
+                founderBadgeVisible: founderMemberships.some(member => member.user_id === listing.ownerUserId && member.badge_visible),
                 isComingSoon: listing.mapState === "coming_soon",
                 isActive: listing.mapState === "active",
                 goLiveLabel: formatListingGoLive(listing),
                 overlappedCount
               }) :
               getMarqueeBoardCollapsedHtml(listing, {
+                founderBadgeVisible: founderMemberships.some(member => member.user_id === listing.ownerUserId && member.badge_visible),
                 isComingSoon: listing.mapState === "coming_soon",
                 isActive: listing.mapState === "active",
                 goLiveLabel: formatListingGoLive(listing),
