@@ -1,7 +1,8 @@
 import { base44 } from "@/api/base44Client";
 import { enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId } from "@/lib/pushNotifications";
 import { savePushSubscription } from "@/lib/savePushSubscription";
-import { isPlayStoreWebWrapper, openWebPushSetup } from "@/lib/webPushHandoff";
+import { openWebPushSetup } from "@/lib/webPushHandoff";
+import { isNativeAppRuntime } from "@/lib/runtimeEnvironment";
 
 export const declinedPromptKey = (userId) => `yardit_push_prompt_declined_${userId}`;
 export const afterSetupPromptKey = (userId) => `yardit_push_prompt_after_setup_${userId}`;
@@ -22,7 +23,7 @@ export async function evaluatePushPromptEligibility(user) {
   const subscription = subscriptions.find((item) => item.permission_status === "enabled" && item.is_active === true && item.onesignal_subscription_id);
   if (preference?.push_enabled === true && subscription) return { show: false, reason: "already_subscribed", subscriptionId: subscription.onesignal_subscription_id };
 
-  if (isPlayStoreWebWrapper()) return { show: true, reason: "play_wrapper_web_handoff", browserStatus: "web_handoff" };
+  if (isNativeAppRuntime()) return { show: false, reason: "native_app_runtime", browserStatus: "native_app" };
 
   const browserStatus = getBrowserPushStatus();
   if (["unsupported", "needs_install"].includes(browserStatus)) return { show: false, reason: browserStatus, browserStatus };
@@ -31,9 +32,8 @@ export async function evaluatePushPromptEligibility(user) {
 }
 
 export async function enablePushPromptSubscription(user) {
-  if (isPlayStoreWebWrapper()) {
-    const opened = await openWebPushSetup();
-    return { status: opened ? "web_handoff" : "unsupported", subscriptionId: "" };
+  if (isNativeAppRuntime()) {
+    return { status: "native_app", subscriptionId: "" };
   }
 
   const result = await enableOneSignalPush({ userId: user.id });
