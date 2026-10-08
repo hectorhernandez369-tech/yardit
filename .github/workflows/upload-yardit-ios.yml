@@ -30,7 +30,7 @@ jobs:
           root = Path(os.environ["RUNNER_TEMP"])
           releases = [r for page in json.loads((root / "releases.json").read_text()) for r in page]
           assets = [a for r in releases if r["draft"] and r["name"] == "Yardit iOS Upload"
-                    for a in r["assets"] if a["name"] == "ios-2.133512.2.ipa" and a["state"] == "uploaded"]
+                    for a in r["assets"] if a["name"] == "ios-2.133512.5.ipa" and a["state"] == "uploaded"]
           if len(assets) != 1:
               raise SystemExit("Expected exactly one uploaded IPA in the draft named Yardit iOS Upload.")
           endpoint = f'repos/{os.environ["GITHUB_REPOSITORY"]}/releases/assets/{assets[0]["id"]}'
@@ -46,7 +46,7 @@ jobs:
           import hashlib, os, plistlib, zipfile
           from pathlib import Path
           ipa = Path(os.environ["RUNNER_TEMP"]) / "yardit.ipa"
-          expected = "c0d8949841d770ac9c074ed80333c189d95d4300bf8d7330e67a7a2ca98d3dbf"
+          expected = "8245b35dc67424915f38ad07d607b1694f83224b5479261ba2922646a5839cad"
           if hashlib.sha256(ipa.read_bytes()).hexdigest() != expected:
               raise SystemExit("IPA differs from the build checked for this upload.")
           with zipfile.ZipFile(ipa) as z:
@@ -56,12 +56,12 @@ jobs:
               info = plistlib.loads(z.read(paths[0]))
           for key, value in {
               "CFBundleIdentifier": "com.base690f554506edf795e5d84121.app",
-              "CFBundleShortVersionString": "2.133512.2",
-              "CFBundleVersion": "2",
+              "CFBundleShortVersionString": "2.133512.5",
+              "CFBundleVersion": "5",
           }.items():
               if info.get(key) != value:
                   raise SystemExit(f"Unexpected {key}")
-          print("Verified Yardit version 2.133512.2, build 2.")
+          print("Verified Yardit version 2.133512.5, build 5.")
           PY
 
       - name: Upload to App Store Connect
