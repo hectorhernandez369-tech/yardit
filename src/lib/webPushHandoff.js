@@ -30,23 +30,25 @@ export function getWebPushSetupUrl(token) {
   return `${WEB_PUSH_SETUP_URL}?token=${encodeURIComponent(token)}`;
 }
 
+export async function createWebPushSetupUrl() {
+  const response = await base44.functions.invoke("pushSetupHandoff", { action: "create" });
+  const token = response?.data?.token;
+  if (!token) throw new Error("Push setup link could not be created");
+  return getWebPushSetupUrl(token);
+}
+
+export function openPreparedWebPushSetup(url) {
+  if (typeof window === "undefined" || !url) return false;
+  const browserWindow = window.open(url, "_blank", "noopener,noreferrer");
+  return !!browserWindow;
+}
+
 export async function openWebPushSetup() {
   if (typeof window === "undefined") return false;
-  const browserWindow = window.open("about:blank", "_blank");
   try {
-    const response = await base44.functions.invoke("pushSetupHandoff", { action: "create" });
-    const token = response?.data?.token;
-    if (!token) throw new Error("Push setup link could not be created");
-    const url = getWebPushSetupUrl(token);
-    if (browserWindow) {
-      browserWindow.opener = null;
-      browserWindow.location.replace(url);
-    } else {
-      window.location.assign(url);
-    }
-    return true;
+    const url = await createWebPushSetupUrl();
+    return openPreparedWebPushSetup(url);
   } catch {
-    browserWindow?.close();
     return false;
   }
 }
