@@ -1,7 +1,6 @@
 import { base44 } from "@/api/base44Client";
 import { enableOneSignalPush, getBrowserPushStatus, getOneSignalSubscriptionId } from "@/lib/pushNotifications";
 import { savePushSubscription } from "@/lib/savePushSubscription";
-import { openWebPushSetup } from "@/lib/webPushHandoff";
 import { isNativeAppRuntime } from "@/lib/runtimeEnvironment";
 
 export const declinedPromptKey = (userId) => `yardit_push_prompt_declined_${userId}`;
