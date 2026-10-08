@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Bell, ExternalLink, Loader2 } from "lucide-react";
+import { Bell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { afterSetupPromptKey, declinedPromptKey, enablePushPromptSubscription, evaluatePushPromptEligibility, lastPushErrorKey, logPushPromptDecision } from "@/lib/pushPromptActions";
-import { createWebPushSetupUrl, isPlayStoreWebWrapper, openPreparedWebPushSetup } from "@/lib/webPushHandoff";
+import { isNativeAppRuntime } from "@/lib/runtimeEnvironment";
 
 const sessionPromptKey = (userId) => `yardit_push_prompt_session_${userId}`;
 const openingCountKey = (userId) => `yardit_push_prompt_opening_count_${userId}`;
@@ -22,12 +22,14 @@ export default function PushSubscribePrompt({ user }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [preparedSetupUrl, setPreparedSetupUrl] = useState("");
-  const [preparingHandoff, setPreparingHandoff] = useState(false);
-  const playWrapper = isPlayStoreWebWrapper();
+  const nativeApp = isNativeAppRuntime();
 
   useEffect(() => {
     if (!user?.id) return undefined;
+    if (nativeApp) {
+      setOpen(false);
+      return undefined;
+    }
     if (sessionStorage.getItem("yardit_halloween_fast_onboarding") === "true") {
       setOpen(false);
       return undefined;
@@ -72,31 +74,7 @@ export default function PushSubscribePrompt({ user }) {
       timers.forEach(clearTimeout);
       window.removeEventListener("yardit:account-setup-complete", handleAccountSetupComplete);
     };
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (!open || !playWrapper || !user?.id) {
-      setPreparedSetupUrl("");
-      setPreparingHandoff(false);
-      return undefined;
-    }
-
-    let cancelled = false;
-    setPreparingHandoff(true);
-    setError("");
-    createWebPushSetupUrl()
-      .then((url) => {
-        if (!cancelled) setPreparedSetupUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Notification setup could not be prepared. Please try again.");
-      })
-      .finally(() => {
-        if (!cancelled) setPreparingHandoff(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [open, playWrapper, user?.id]);
+  }, [user?.id, nativeApp]);
 
   const handleDecline = () => {
     localStorage.setItem(declinedPromptKey(user.id), "true");
@@ -105,20 +83,6 @@ export default function PushSubscribePrompt({ user }) {
 
   const handleSubscribe = async () => {
     setError("");
-
-    if (playWrapper) {
-      if (!preparedSetupUrl) {
-        setError("Notification setup is still preparing. Please try again in a moment.");
-        return;
-      }
-      const opened = openPreparedWebPushSetup(preparedSetupUrl);
-      if (opened) {
-        setOpen(false);
-      } else {
-        setError("Yardit could not open the browser notification setup. Please try again.");
-      }
-      return;
-    }
 
     setBusy(true);
     try {
@@ -133,7 +97,7 @@ export default function PushSubscribePrompt({ user }) {
     setBusy(false);
   };
 
-  if (!user?.id) return null;
+  if (!user?.id || nativeApp) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -142,17 +106,14 @@ export default function PushSubscribePrompt({ user }) {
           <DialogTitle className="flex items-center gap-2 text-xl font-black text-[#2C4F4E]"><Bell className="h-5 w-5 text-[#F4A849]" /> Enable Yardit alerts?</DialogTitle>
         </DialogHeader>
         <p className="text-sm leading-6 text-slate-700">
-          {playWrapper
-            ? "Yardit will open the web notification setup in your browser so you can allow alerts there. After you finish, return to Yardit."
-            : "Get timely listing updates, account alerts, and important Yardit notices on this device."}
+          Get timely listing updates, account alerts, and important Yardit notices on this device.
         </p>
         {error && <p className="rounded-2xl bg-white/70 p-3 text-sm font-semibold text-[#2C4F4E]">{error}</p>}
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button variant="outline" onClick={handleDecline} disabled={busy} className="border-[#2C4F4E]/30">No thanks</Button>
-          <Button onClick={handleSubscribe} disabled={busy || (playWrapper && preparingHandoff)} className="bg-[#F4A849] font-black text-[#2C4F4E] hover:bg-[#E39635]">
-            {(busy || (playWrapper && preparingHandoff)) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {playWrapper && !busy && !preparingHandoff && <ExternalLink className="mr-2 h-4 w-4" />}
-            {playWrapper && preparingHandoff ? "Preparing…" : "Enable Notifications"}
+          <Button onClick={handleSubscribe} disabled={busy} className="bg-[#F4A849] font-black text-[#2C4F4E] hover:bg-[#E39635]">
+            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Enable Notifications
           </Button>
         </div>
       </DialogContent>
