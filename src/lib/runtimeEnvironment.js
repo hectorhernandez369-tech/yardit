@@ -1,4 +1,5 @@
 const RUNTIME_STORAGE_KEY = "yardit_runtime_environment_v1";
+const LEGACY_ANDROID_WRAPPER_KEY = "yardit_play_wrapper_detected_v1";
 
 function safeGetStorage(key) {
   try {
@@ -69,6 +70,10 @@ export function getRuntimeEnvironment() {
 
   const remembered = safeGetStorage(RUNTIME_STORAGE_KEY);
   if (remembered === "android_app" || remembered === "ios_app") return remembered;
+  if (safeGetStorage(LEGACY_ANDROID_WRAPPER_KEY) === "true") {
+    safeRememberRuntime("android_app");
+    return "android_app";
+  }
 
   if (isStandalonePwa()) return "pwa";
   return "browser";
