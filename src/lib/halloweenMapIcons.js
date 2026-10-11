@@ -1,5 +1,5 @@
 import { isHalloweenFullIconActive, isHalloweenTeaser } from "@/lib/halloweenSpots";
-import { COMING_OCT_ONE_ICON } from "@/lib/comingOctOneIcon";
+import { COMING_OCT_ONE_ICON, getComingDateIcon } from "@/lib/comingOctOneIcon";
 import { HALLOWEEN_AD_DEMO_ICONS, HALLOWEEN_SELECTED_ICON_ASSETS } from "@/lib/halloweenAdDemoIcons";
 
 export const HALLOWEEN_DAYTIME_ICON = HALLOWEEN_AD_DEMO_ICONS.halloween_decorations;
@@ -45,7 +45,7 @@ function isAdDemoHalloween(listing) {
 }
 
 export function getHalloweenSpotIconUrl(listing, now = new Date(), isSelected = false) {
-  if (isDinubaComingOctOne(listing)) return HALLOWEEN_ICON_ASSETS.coming_oct_1;
+  if (isDinubaComingOctOne(listing)) return getComingDateIcon(listing.halloween_start_date);
   if (isAshevilleDecorationSpot(listing) && listing?.custom_icon_url) return listing.custom_icon_url;
   const iconAssets = isSelected ? HALLOWEEN_SELECTED_ICON_ASSETS : HALLOWEEN_ICON_ASSETS;
   if (isAdDemoHalloween(listing)) {

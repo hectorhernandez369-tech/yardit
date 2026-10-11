@@ -9,3 +9,13 @@ const COMING_OCT_ONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 </svg>`;
 
 export const COMING_OCT_ONE_ICON = `data:image/svg+xml,${encodeURIComponent(COMING_OCT_ONE_SVG)}`;
+
+export function getComingDateIcon(startDate) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(startDate || ""))) return COMING_OCT_ONE_ICON;
+  const date = new Date(`${startDate}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return COMING_OCT_ONE_ICON;
+  const label = date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).toUpperCase();
+  const accessibleLabel = date.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+  const svg = COMING_OCT_ONE_SVG.replace("Coming October 1", `Coming ${accessibleLabel}`).replace(">OCT 1</text>", `>${label}</text>`);
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
