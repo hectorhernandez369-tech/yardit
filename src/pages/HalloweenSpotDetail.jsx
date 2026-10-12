@@ -6,7 +6,6 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, ArrowLeft, Baby, CalendarDays, Candy, Clock3, Footprints, Ghost, Lightbulb, Loader2, MapPin, Navigation, Star, Volume2, Plus } from "lucide-react";
-import { toast } from "sonner";
 import SaveListingButton from "@/components/listing/SaveListingButton";
 import ListingShareButton from "@/components/listing/ListingShareButton";
 import ReportModal from "@/components/ReportModal";
