@@ -5,9 +5,9 @@ import FounderBadge from '@/components/founder/FounderBadge';
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, ArrowLeft, Baby, CalendarDays, Candy, Clock3, Footprints, Ghost, Lightbulb, Loader2, MapPin, Navigation, Share2, Star, Volume2, Plus } from "lucide-react";
-import { toast } from "sonner";
+import { AlertTriangle, ArrowLeft, Baby, CalendarDays, Candy, Clock3, Footprints, Ghost, Lightbulb, Loader2, MapPin, Navigation, Star, Volume2, Plus } from "lucide-react";
 import SaveListingButton from "@/components/listing/SaveListingButton";
+import ListingShareButton from "@/components/listing/ListingShareButton";
 import ReportModal from "@/components/ReportModal";
 import { useHunt, HUNT_ENABLED } from "@/components/hunt/HuntContext";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
@@ -103,6 +103,8 @@ export default function HalloweenSpotDetail() {
   const candyBadgeLabel = getHalloweenCandyBadgeLabel(spot);
   const hasCandy = hasHalloweenCandy(spot);
   const address = listing?.addressText || "";
+  const shareUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(spotId || "")}`;
+  const shareImage = photos[0] || iconUrl || "";
 
   const handleDirections = () => {
     if (!listing || !Number.isFinite(listing.lat) || !Number.isFinite(listing.lng)) return;
@@ -110,20 +112,7 @@ export default function HalloweenSpotDetail() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank", "noopener,noreferrer");
   };
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    const title = listing?.title || "Halloween Spot on Yardit";
-    const text = spot?.description || `Check out this ${getHalloweenSpotTypeLabel(spot)} on Yardit.`;
-    try {
-      if (navigator.share) await navigator.share({ title, text, url });
-      else {
-        await navigator.clipboard.writeText(url);
-        toast.success("Link copied");
-      }
-    } catch (error) {
-      if (error?.name !== "AbortError") toast.error("Could not share this spot");
-    }
-  };
+
 
   if (loading) return <div className="min-h-[70vh] bg-slate-950 flex items-center justify-center"><Loader2 className="h-7 w-7 animate-spin text-orange-300" /></div>;
 
@@ -205,7 +194,13 @@ export default function HalloweenSpotDetail() {
               <Button onClick={handleDirections} disabled={!Number.isFinite(listing.lat) || !Number.isFinite(listing.lng)} className="w-full bg-orange-600 hover:bg-orange-500"><Navigation className="mr-2 h-4 w-4" /> Directions</Button>
               <SaveListingButton listing={listing} className="w-full justify-center border-purple-300/30 bg-purple-500/10 text-purple-100 hover:bg-purple-500/20" />
               {HUNT_ENABLED && <Button variant="outline" disabled={isHuntStop} onClick={() => guardAction(() => addToHunt(listing), { allowGuest: isGuest && huntStops.length < 2, modal: { title: "Create a Free Account to Save More Stops", description: "Guests can preview up to 2 Hunt stops.", detail: "Create a free account to save more stops and continue your hunt." } })} className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10"><Plus className="mr-2 h-4 w-4" />{isHuntStop ? "Already in Hunt" : "Add to Hunt"}</Button>}
-              <Button variant="outline" onClick={handleShare} className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10"><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+              <ListingShareButton
+                listing={{ ...listing, description: spot?.description || `Check out this ${getHalloweenSpotTypeLabel(spot)} on Yardit.` }}
+                listingUrl={shareUrl}
+                mainImage={shareImage}
+                buttonLabel="Share"
+                className="w-full border border-white/20 bg-white/5 text-white hover:bg-white/10"
+              />
               <Button variant="ghost" onClick={() => guardAction(() => setReportOpen(true))} className="w-full text-red-300 hover:bg-red-500/10 hover:text-red-200"><AlertTriangle className="mr-2 h-4 w-4" /> Report Spot</Button>
             </div>
           </div>
