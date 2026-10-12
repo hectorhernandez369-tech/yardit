@@ -9,7 +9,7 @@ import {
 import { Share2, Link, Facebook, Instagram } from "lucide-react";
 import { toast } from "sonner";
 
-export default function ListingShareButton({ listing, listingUrl, mainImage, className }) {
+export default function ListingShareButton({ listing, listingUrl, mainImage, className, buttonLabel = "Share Listing" }) {
   const [fallbackOpen, setFallbackOpen] = useState(false);
 
   const shareTitle = listing.event_name || listing.title;
@@ -73,7 +73,7 @@ export default function ListingShareButton({ listing, listingUrl, mainImage, cla
           className={className || "flex-1 gap-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 h-12 text-base font-semibold shadow-sm"}
         >
           <Share2 className="w-4 h-4" />
-          Share Listing
+          {buttonLabel}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="w-56 rounded-xl p-2">
