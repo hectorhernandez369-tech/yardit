@@ -573,14 +573,36 @@ export default function MapboxTest() {
           });
         });
 
+        let halloweenClusterClickTimer = null;
+
         map.on("click", "yardit-halloween-clusters", (event) => {
           const feature = map.queryRenderedFeatures(event.point, { layers: ["yardit-halloween-clusters"] })[0];
           const clusterId = feature?.properties?.cluster_id;
           if (clusterId == null) return;
-          map.getSource("yardit-halloween").getClusterExpansionZoom(clusterId, (err, nextZoom) => {
-            if (err) return;
-            map.easeTo({ center: feature.geometry.coordinates, zoom: Math.min(nextZoom, 18) });
-          });
+
+          if (halloweenClusterClickTimer) window.clearTimeout(halloweenClusterClickTimer);
+          halloweenClusterClickTimer = window.setTimeout(() => {
+            map.getSource("yardit-halloween").getClusterExpansionZoom(clusterId, (err, nextZoom) => {
+              if (err) return;
+              map.easeTo({ center: feature.geometry.coordinates, zoom: Math.min(nextZoom, 18) });
+            });
+            halloweenClusterClickTimer = null;
+          }, 220);
+        });
+
+        map.on("dblclick", "yardit-halloween-clusters", (event) => {
+          if (halloweenClusterClickTimer) {
+            window.clearTimeout(halloweenClusterClickTimer);
+            halloweenClusterClickTimer = null;
+          }
+          event.preventDefault();
+          const feature = map.queryRenderedFeatures(event.point, { layers: ["yardit-halloween-clusters"] })[0];
+          if (!feature) return;
+
+          // Halloween clustering ends after zoom 10, and the individual icon markers
+          // become visible at zoom 11. Jump straight there (or stay closer if already beyond it).
+          const targetZoom = Math.max(11, Math.min(18, Math.ceil(map.getZoom()) + 1));
+          map.easeTo({ center: feature.geometry.coordinates, zoom: targetZoom, duration: 750 });
         });
 
         map.on("click", "yardit-pins", (event) => {
