@@ -11,6 +11,29 @@ const clusterIcon = (count) => L.divIcon({
   iconAnchor: [21, 21],
 });
 
+function getClusterBreakZoom(map, members, radius) {
+  const startZoom = Math.ceil(map.getZoom()) + 1;
+  const maxZoom = map.getMaxZoom();
+
+  for (let zoom = startZoom; zoom <= maxZoom; zoom += 1) {
+    const projected = members.map(({ lat, lng }) => map.project([lat, lng], zoom));
+    let separated = true;
+
+    for (let i = 0; i < projected.length && separated; i += 1) {
+      for (let j = i + 1; j < projected.length; j += 1) {
+        if (projected[i].distanceTo(projected[j]) <= radius) {
+          separated = false;
+          break;
+        }
+      }
+    }
+
+    if (separated) return zoom;
+  }
+
+  return maxZoom;
+}
+
 export default function HalloweenClusterGroup({ points, clusterRadius = 40, markerRefsMap, forceVisibleId = null }) {
   const map = useMap();
   const layerRef = useRef(L.layerGroup());
@@ -39,7 +62,30 @@ export default function HalloweenClusterGroup({ points, clusterRadius = 40, mark
       setMarkerVisibility(new Set(clusters.flatMap(({ members }) => members.map(({ id }) => id))));
       clusters.forEach((cluster) => {
         const marker = L.marker([cluster.lat, cluster.lng], { icon: clusterIcon(cluster.count), interactive: true });
-        marker.on("click", () => map.flyTo([cluster.lat, cluster.lng], Math.min(map.getZoom() + 2, map.getMaxZoom()), { duration: 0.5 }));
+        let singleClickTimer = null;
+
+        marker.on("click", () => {
+          if (singleClickTimer) window.clearTimeout(singleClickTimer);
+          singleClickTimer = window.setTimeout(() => {
+            map.flyTo(
+              [cluster.lat, cluster.lng],
+              Math.min(map.getZoom() + 2, map.getMaxZoom()),
+              { duration: 0.5 }
+            );
+            singleClickTimer = null;
+          }, 220);
+        });
+
+        marker.on("dblclick", (event) => {
+          if (singleClickTimer) {
+            window.clearTimeout(singleClickTimer);
+            singleClickTimer = null;
+          }
+          L.DomEvent.stopPropagation(event);
+          const targetZoom = getClusterBreakZoom(map, cluster.members, radiusRef.current);
+          map.flyTo([cluster.lat, cluster.lng], targetZoom, { duration: 0.75 });
+        });
+
         layer.addLayer(marker);
       });
     };
