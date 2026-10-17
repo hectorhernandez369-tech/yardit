@@ -105,7 +105,8 @@ export function getHalloweenCollisionSizes(listings, zoom, selectedId) {
       const otherSize = other?.listingType === "halloween_candy" || other?.type === "halloween_candy"
         ? getHalloweenSpotMapSize(other, other.id === selectedId, new Date(), zoom)
         : 34;
-      fittedSize = Math.min(fittedSize, Math.max(12, 2 * (distance - otherSize / 2 - 2)));
+      const collisionFloor = Math.min(desiredSize, Math.max(18, desiredSize * 0.6));
+      fittedSize = Math.min(fittedSize, Math.max(collisionFloor, 2 * (distance - otherSize / 2 - 2)));
     });
 
     sizes[listing.id] = Math.round(fittedSize);
