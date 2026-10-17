@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
-import { clusterHalloweenPoints } from "@/lib/halloweenPixelClustering";
+import { clusterHalloweenPoints, getHalloweenClusterRadius } from "@/lib/halloweenPixelClustering";
 import { isSpecialHalloweenIcon } from "@/lib/halloweenMapIcons";
 
 const clusterIcon = (count) => L.divIcon({
@@ -17,11 +17,12 @@ function getClusterBreakZoom(map, members, radius) {
 
   for (let zoom = startZoom; zoom <= maxZoom; zoom += 1) {
     const projected = members.map(({ lat, lng }) => map.project([lat, lng], zoom));
+    const separationRadius = getHalloweenClusterRadius(zoom, radius);
     let separated = true;
 
     for (let i = 0; i < projected.length && separated; i += 1) {
       for (let j = i + 1; j < projected.length; j += 1) {
-        if (projected[i].distanceTo(projected[j]) <= radius) {
+        if (projected[i].distanceTo(projected[j]) <= separationRadius) {
           separated = false;
           break;
         }
