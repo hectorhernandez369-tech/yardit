@@ -11,6 +11,7 @@ import PushCategoryRow from "./PushCategoryRow";
 import AlertsPushGroup from "./AlertsPushGroup";
 import VendorSubscriptionManager from "./VendorSubscriptionManager";
 import PushDebugPanel from "./PushDebugPanel";
+import { isNativeAppRuntime } from "@/lib/runtimeEnvironment";
 
 const defaults = {
   push_enabled: false,
@@ -31,6 +32,7 @@ const defaults = {
 export default function NotificationPushSettings({ user, onVerifyAddress }) {
   const queryClient = useQueryClient();
   const verifiedAddress = hasVerifiedPrimaryAddress(user);
+  const nativeApp = isNativeAppRuntime();
   const { data: preference } = useQuery({
     queryKey: ["notificationPreference", user?.id],
     queryFn: async () => (await base44.entities.NotificationPreference.filter({ user_id: user.id }))[0] || null,
@@ -66,6 +68,7 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
         return { status: "disabled" };
       }
 
+      if (nativeApp) return { status: "native_app" };
       return enablePushPromptSubscription(user);
     },
     onSuccess: async (result, enabled) => {
@@ -77,7 +80,9 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
         toast.success("Push notifications disabled.");
         return;
       }
-      if (result?.status === "web_handoff") {
+      if (result?.status === "native_app") {
+        toast.message("App notification permission is handled by the installed Yardit app.");
+      } else if (result?.status === "web_handoff") {
         toast.message("Finish enabling notifications in the browser window that opened.");
       } else if (result?.status === "enabled") {
         toast.success("Push notifications enabled.");
@@ -117,12 +122,16 @@ export default function NotificationPushSettings({ user, onVerifyAddress }) {
           </div>
           <Switch
             checked={pushEnabled}
-            disabled={pushBusy}
+            disabled={pushBusy || nativeApp}
             onCheckedChange={(enabled) => masterPushMutation.mutate(enabled)}
             aria-label="Enable or disable push notifications"
           />
         </div>
-        {!pushEnabled && <p className="mt-2 text-xs text-slate-600">Turning this on restarts Yardit’s notification setup. Play Store users will be handed off to the browser again.</p>}
+        {nativeApp ? (
+          <p className="mt-2 text-xs text-slate-600">Installed-app notification permission is handled by the app itself. Yardit will not open the web notification setup here.</p>
+        ) : !pushEnabled ? (
+          <p className="mt-2 text-xs text-slate-600">Turning this on restarts Yardit’s web notification setup.</p>
+        ) : null}
       </div>
       <PushDebugPanel user={user} storedSubscriptionId={pushSubscription?.onesignal_subscription_id} />
       <AlertsPushGroup pref={pref} onGroupChange={(value) => guardedToggle("alerts_push_enabled", value)} onItemChange={guardedToggle} disabled={pushBusy} />
