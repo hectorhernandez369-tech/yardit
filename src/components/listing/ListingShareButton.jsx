@@ -8,18 +8,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Share2, Link, Facebook, Instagram } from "lucide-react";
 import { toast } from "sonner";
+import { getYarditShareCopy } from "@/lib/shareText";
 
 export default function ListingShareButton({ listing, listingUrl, mainImage, className, buttonLabel = "Share Listing" }) {
   const [fallbackOpen, setFallbackOpen] = useState(false);
 
-  const shareTitle = listing.event_name || listing.title;
-  const shareText = [shareTitle, listing.event_description || listing.description, listingUrl]
-    .filter(Boolean)
-    .join("\n\n");
+  const shareCopy = getYarditShareCopy(listing, listingUrl);
+  const shareTitle = shareCopy.title;
+  const shareText = shareCopy.fullText;
 
   const handleCopyLink = async () => {
-    await navigator.clipboard.writeText(listingUrl);
-    toast.success("Link copied");
+    await navigator.clipboard.writeText(shareCopy.fullText);
+    toast.success("Share text and link copied");
   };
 
   const handleCopyForApp = async (appName) => {
@@ -48,10 +48,11 @@ export default function ListingShareButton({ listing, listingUrl, mainImage, cla
       }
       const shareData = {
         title: shareTitle,
-        text: (listing.event_description || listing.description || "") + "\n\n" + listingUrl,
+        text: shareCopy.message,
       };
       if (fileToShare) {
         shareData.files = [fileToShare];
+        shareData.text = shareCopy.fullText;
       } else {
         shareData.url = listingUrl;
       }
@@ -79,7 +80,7 @@ export default function ListingShareButton({ listing, listingUrl, mainImage, cla
       <DropdownMenuContent align="center" className="w-56 rounded-xl p-2">
         <DropdownMenuItem onClick={handleCopyLink} className="flex items-center cursor-pointer py-2.5">
           <Link className="w-4 h-4 mr-3 text-slate-600" />
-          <span className="font-medium text-slate-700">Copy Link</span>
+          <span className="font-medium text-slate-700">Copy Share Text + Link</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(listingUrl)}`, "_blank")}
