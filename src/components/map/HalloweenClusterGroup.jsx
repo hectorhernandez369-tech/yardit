@@ -59,10 +59,10 @@ export default function HalloweenClusterGroup({ points, clusterRadius = 40, mark
       if (!active) return;
       layer.clearLayers();
 
-      // Below neighborhood zoom, compact nearby Halloween spots into clusters.
-      // At zoom 13+, show the individual Halloween icons and let the existing
-      // collision-size logic shrink overlapping icons instead of hiding them.
-      if (map.getZoom() >= 13) {
+      // Keep Halloween maps visually full at neighborhood and city levels.
+      // Only cluster at zoom 10 or farther out. At zoom 11+, always show the
+      // individual icons and allow the collision-size system to shrink/stack them.
+      if (map.getZoom() > 10) {
         setMarkerVisibility(new Set());
         return;
       }
@@ -92,7 +92,7 @@ export default function HalloweenClusterGroup({ points, clusterRadius = 40, mark
             singleClickTimer = null;
           }
           L.DomEvent.stopPropagation(event);
-          const targetZoom = Math.min(13, getClusterBreakZoom(map, cluster.members, radiusRef.current));
+          const targetZoom = Math.max(11, Math.min(13, getClusterBreakZoom(map, cluster.members, radiusRef.current)));
           map.flyTo([cluster.lat, cluster.lng], targetZoom, { duration: 0.75 });
         });
 
