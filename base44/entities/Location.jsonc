@@ -301,6 +301,10 @@
       "type": "boolean",
       "default": false,
       "description": "Private demo visible only to its assigned owner"
+    },
+    "halloween_contributor_name": {
+      "type": "string",
+      "description": "Optional public credit for the person or organization that added or contributed this Halloween Spot"
     }
   },
   "required": [
