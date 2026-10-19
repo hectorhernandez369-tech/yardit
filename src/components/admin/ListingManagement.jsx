@@ -65,6 +65,7 @@ export default function ListingManagement({ mode, adminUser }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [qrModalRecord, setQrModalRecord] = useState(null);
   const [starInfoListing, setStarInfoListing] = useState(null);
+  const [listingTypeFilter, setListingTypeFilter] = useState("all");
 
   const { data: listings } = useQuery({
     queryKey: ["allListings"],
@@ -72,9 +73,17 @@ export default function ListingManagement({ mode, adminUser }) {
     initialData: [],
   });
 
-  const { data: halloweenLocations } = useQuery({
-    queryKey: ["adminHalloweenLocations"],
-    queryFn: () => base44.entities.Location.filter({ type: "halloween_candy" }, "-created_date"),
+  const { data: seasonalLocations } = useQuery({
+    queryKey: ["adminSeasonalLocations"],
+    queryFn: async () => {
+      const [halloween, holidayLights] = await Promise.all([
+        base44.entities.Location.filter({ type: "halloween_candy" }, "-created_date"),
+        base44.entities.Location.filter({ type: "holiday_lights" }, "-created_date"),
+      ]);
+      return [...halloween, ...holidayLights].sort((a, b) =>
+        String(b.created_date || "").localeCompare(String(a.created_date || ""))
+      );
+    },
     initialData: [],
   });
 
@@ -163,7 +172,7 @@ export default function ListingManagement({ mode, adminUser }) {
     onSuccess: () => {
       toast.success("Listing status updated");
       queryClient.invalidateQueries({ queryKey: ["allListings"] });
-      queryClient.invalidateQueries({ queryKey: ["adminHalloweenLocations"] });
+      queryClient.invalidateQueries({ queryKey: ["adminSeasonalLocations"] });
       queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
       queryClient.invalidateQueries({ queryKey: ["publicMapData"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -176,25 +185,35 @@ export default function ListingManagement({ mode, adminUser }) {
       displayStatus: getListingDisplayStatus(listing),
       _sourceEntity: "Listing",
     })),
-    ...halloweenLocations.map((spot) => ({
-      ...spot,
-      _sourceEntity: "Location",
-      listingType: "halloween_spot",
-      ownerUserId: spot.owner_user_id || spot.created_by_id || null,
-      title: spot.title || spot.display_title || "Halloween Spot",
-      display_address: spot.address || [spot.street_address, spot.city, spot.state, spot.zip_code].filter(Boolean).join(", "),
-      addressText: spot.address || [spot.street_address, spot.city, spot.state, spot.zip_code].filter(Boolean).join(", "),
-      startDateTime: spot.start_date_time || spot.halloween_start_date,
-      endDateTime: spot.end_date_time || spot.halloween_end_date,
-      tier: "halloween",
-      displayStatus: spot.status || "active",
-      _isHalloween: true,
-    })),
+    ...seasonalLocations.map((spot) => {
+      const isHalloween = spot.type === "halloween_candy";
+      const isHolidayLights = spot.type === "holiday_lights";
+      return {
+        ...spot,
+        _sourceEntity: "Location",
+        listingType: isHalloween ? "halloween_spot" : isHolidayLights ? "holiday_lights" : spot.type,
+        ownerUserId: spot.owner_user_id || spot.created_by_id || null,
+        title: spot.title || spot.display_title || (isHalloween ? "Halloween Spot" : "Holiday Lights"),
+        display_address: spot.address || [spot.street_address, spot.city, spot.state, spot.zip_code].filter(Boolean).join(", "),
+        addressText: spot.address || [spot.street_address, spot.city, spot.state, spot.zip_code].filter(Boolean).join(", "),
+        startDateTime: spot.start_date_time || spot.halloween_start_date,
+        endDateTime: spot.end_date_time || spot.halloween_end_date || spot.expires_at,
+        tier: isHalloween ? "halloween" : "holiday",
+        displayStatus: spot.status || "active",
+        _isHalloween: isHalloween,
+        _isHolidayLights: isHolidayLights,
+      };
+    }),
   ]; 
 
   const filteredListings = normalizedListings.filter((listing) => {
     // Mode filtering: residential excludes vendor listing types
     if (mode === "residential" && VENDOR_LISTING_TYPES.includes(listing.listingType)) return false;
+
+    if (listingTypeFilter === "residential" && ["neighborhood_sale", "halloween_spot", "holiday_lights"].includes(listing.listingType)) return false;
+    if (listingTypeFilter === "neighborhood" && listing.listingType !== "neighborhood_sale") return false;
+    if (listingTypeFilter === "halloween" && !listing._isHalloween) return false;
+    if (listingTypeFilter === "holiday_lights" && !listing._isHolidayLights) return false;
 
     const query = searchQuery.toLowerCase();
     return [listing.title, listing.city, listing.zip, listing.id]
@@ -203,7 +222,7 @@ export default function ListingManagement({ mode, adminUser }) {
 
   return (
     <div className="mt-6">
-      <div className="mb-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
+      <div className="mb-4 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
@@ -213,6 +232,18 @@ export default function ListingManagement({ mode, adminUser }) {
             className="pl-10"
           />
         </div>
+        <Select value={listingTypeFilter} onValueChange={setListingTypeFilter}>
+          <SelectTrigger className="w-full lg:w-[210px]">
+            <SelectValue placeholder="Filter listings" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Listings</SelectItem>
+            <SelectItem value="residential">Residential Sales</SelectItem>
+            <SelectItem value="neighborhood">Neighborhood Sales</SelectItem>
+            <SelectItem value="halloween">Halloween</SelectItem>
+            <SelectItem value="holiday_lights">Holiday Lights</SelectItem>
+          </SelectContent>
+        </Select>
         <Button 
           className="bg-amber-600 hover:bg-amber-700 whitespace-nowrap gap-2"
           onClick={() => setShowCreateModal(true)}
@@ -257,6 +288,10 @@ export default function ListingManagement({ mode, adminUser }) {
                         <Badge className="gap-1 border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-50">
                           <Ghost className="h-3 w-3" /> Halloween
                         </Badge>
+                      ) : listing._isHolidayLights ? (
+                        <Badge className="gap-1 border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-50">
+                          ✨ Holiday Lights
+                        </Badge>
                       ) : (
                         <Badge variant="outline">{formatListingTierLabel(listing.tier)}</Badge>
                       )}
@@ -288,7 +323,15 @@ export default function ListingManagement({ mode, adminUser }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => navigate(listing._isHalloween ? createPageUrl("HalloweenSpotDetail") + `?id=${listing.id}` : createPageUrl("ListingDetail") + `?id=${listing.id}&from=admin-lite-listings`)}
+                      onClick={() => {
+                        if (listing._isHalloween) {
+                          navigate(createPageUrl("HalloweenSpotDetail") + `?id=${listing.id}`);
+                        } else if (listing._isHolidayLights) {
+                          navigate(createPageUrl("Home") + `?listingId=${listing.id}`);
+                        } else {
+                          navigate(createPageUrl("ListingDetail") + `?id=${listing.id}&from=admin-lite-listings`);
+                        }
+                      }}
                     >
                       View More Details
                     </Button>
