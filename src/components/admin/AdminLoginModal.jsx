@@ -67,7 +67,13 @@ export default function AdminLoginModal({ open, onClose, onSuccess }) {
           expires_at: new Date(Date.now() + SESSION_DURATION_MS).toISOString(),
         };
         sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
-        toast.success("Admin Mode activated.");
+        const activationToastId = toast.success("Admin Mode activated.", {
+          id: "admin-mode-activated",
+          duration: 3000,
+          closeButton: true,
+        });
+        // Keep this confirmation temporary even if touch leaves the toast hovered.
+        window.setTimeout(() => toast.dismiss(activationToastId), 3000);
         setEmployeeId("");
         setPin("");
         onSuccess(session);
