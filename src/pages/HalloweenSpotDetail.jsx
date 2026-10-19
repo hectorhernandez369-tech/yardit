@@ -145,7 +145,7 @@ export default function HalloweenSpotDetail() {
                 <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">{listing.title}</h1>
                 <FounderBadge userId={spot.owner_user_id} />
                 <p className="mt-1 text-sm font-bold text-purple-200">{getHalloweenSpotTypeLabel(spot)}</p>
-                {spot.halloween_contributor_name && <p className="mt-1 text-sm font-bold text-orange-200">Added by {spot.halloween_contributor_name}</p>}
+                {spot.halloween_contributor_name && <p className="mt-1 text-sm font-bold text-orange-200">Community Source: {spot.halloween_contributor_name}</p>}
                 {spot.description && <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-300 sm:text-base">{spot.description}</p>}
               </div>
             </div>
@@ -173,6 +173,16 @@ export default function HalloweenSpotDetail() {
                   {spot.halloween_activities && <Info label="Activities" value={spot.halloween_activities} wide />}
                 </div>
               </div>}
+
+              {spot.halloween_contributor_name && (
+                <div className="rounded-2xl border border-orange-300/20 bg-orange-500/5 p-4">
+                  <h2 className="text-sm font-black uppercase tracking-widest text-orange-200">Community Source</h2>
+                  <p className="mt-2 text-sm font-bold text-white">{spot.halloween_contributor_name}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                    This Halloween Spot was added to Yardit using publicly shared community information from this source. The source is not necessarily the homeowner or attraction operator.
+                  </p>
+                </div>
+              )}
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <h2 className="text-sm font-black uppercase tracking-widest text-purple-200">What to Expect</h2>
