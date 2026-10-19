@@ -144,7 +144,7 @@ export default function HalloweenSpotDetail() {
                 </div>
                 <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">{listing.title}</h1>
                 <FounderBadge userId={spot.owner_user_id} />
-                <p className="mt-1 text-sm font-bold text-purple-200">{getHalloweenSpotTypeLabel(spot)}</p>
+                <p className="mt-1 text-sm font-bold text-purple-200">{getHalloweenSpotTypeLabel(spot)}</p>\n                {spot.halloween_contributor_name && <p className="mt-1 text-sm font-bold text-orange-200">Added by {spot.halloween_contributor_name}</p>}
                 {spot.description && <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-300 sm:text-base">{spot.description}</p>}
               </div>
             </div>
