@@ -390,45 +390,77 @@ function levenshteinDistance(a, b) {
   return matrix[b.length][a.length];
 }
 
+function normalizeSearchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\bstreet\b/g, "st")
+    .replace(/\bavenue\b/g, "ave")
+    .replace(/\bboulevard\b/g, "blvd")
+    .replace(/\broad\b/g, "rd")
+    .replace(/\bdrive\b/g, "dr")
+    .replace(/\blane\b/g, "ln")
+    .replace(/\bcourt\b/g, "ct")
+    .replace(/\bnorth\b/g, "n")
+    .replace(/\bsouth\b/g, "s")
+    .replace(/\beast\b/g, "e")
+    .replace(/\bwest\b/g, "w")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function getListingSearchValues(listing) {
+  return [
+    listing.title,
+    listing.display_title,
+    listing.description,
+    listing.display_address,
+    listing.addressText,
+    listing.address_text,
+    listing.street_address,
+    listing.city,
+    listing.state,
+    listing.zip,
+    listing.zip_code,
+    listing.listingNumber,
+    listing.halloween_listing_number,
+    listing.category,
+    ...(listing.categories || []),
+    listing.halloween_contributor_name,
+  ].filter(Boolean);
+}
+
 function fuzzyMatchString(query, text) {
   if (!query || !text) return false;
-  const q = String(query).toLowerCase();
-  const t = String(text).toLowerCase();
+  const q = normalizeSearchText(query);
+  const t = normalizeSearchText(text);
+  if (!q || !t) return false;
   if (t.includes(q)) return true;
 
-  const queryWords = q.split(/\s+/).filter(Boolean);
-  const textWords = t.split(/[\s,.\-#]+/).filter(Boolean);
+  const queryWords = q.split(" ").filter(Boolean);
+  const textWords = t.split(" ").filter(Boolean);
 
   return queryWords.every((qw) => {
     return textWords.some((tw) => {
-      if (Math.abs(tw.length - qw.length) > 2) return false;
-      return levenshteinDistance(qw, tw) <= 2;
+      if (tw.startsWith(qw) || qw.startsWith(tw)) return true;
+      const allowedDistance = qw.length <= 4 ? 1 : 2;
+      if (Math.abs(tw.length - qw.length) > allowedDistance) return false;
+      return levenshteinDistance(qw, tw) <= allowedDistance;
     });
   });
 }
 
 function listingMatchesQuery(listing, query, isFuzzy) {
   if (!query) return true;
-  const q = String(query).toLowerCase();
+  const q = normalizeSearchText(query);
+  const values = getListingSearchValues(listing);
+  if (!q) return true;
 
   if (!isFuzzy) {
-    return (
-      listing.title?.toLowerCase().includes(q) ||
-      listing.description?.toLowerCase().includes(q) ||
-      (listing.categories || []).some((c) => c?.toLowerCase().includes(q)) ||
-      listing.category?.toLowerCase().includes(q) ||
-      listing.display_address?.toLowerCase().includes(q) ||
-      listing.addressText?.toLowerCase().includes(q) ||
-      listing.city?.toLowerCase().includes(q));
-
+    return values.some((value) => normalizeSearchText(value).includes(q));
   }
 
-  if (fuzzyMatchString(q, listing.title)) return true;
-  if (fuzzyMatchString(q, listing.description)) return true;
-  if ((listing.categories || []).some((c) => fuzzyMatchString(q, c))) return true;
-  if (fuzzyMatchString(q, listing.category)) return true;
-
-  return false;
+  return values.some((value) => fuzzyMatchString(q, value));
 }
 
 export default function HomePage() {
@@ -1023,42 +1055,95 @@ export default function HomePage() {
   }, [requestedEventId, requestedVendorEvent, canPreviewRequestedVendorEvent]);
 
   const searchSuggestions = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+    const query = normalizeSearchText(searchQuery);
     if (query.length < 2) return [];
 
-    const values = new Set(FALLBACK_CITY_SUGGESTIONS);
-    listings.forEach((listing) => {
-      [listing.title, listing.city, listing.category].forEach((value) => {
-        if (value && String(value).trim()) values.add(String(value).trim());
-      });
-      (listing.categories || []).forEach((category) => {
-        if (category && String(category).trim()) values.add(String(category).trim());
-      });
+    const suggestions = [];
+    const seen = new Set();
+
+    const addSuggestion = (label, type = "text", listingId = null) => {
+      const clean = String(label || "").trim();
+      const key = normalizeSearchText(clean);
+      if (!clean || !key || seen.has(key)) return;
+      seen.add(key);
+      suggestions.push({ label: clean, type, listingId });
+    };
+
+    FALLBACK_CITY_SUGGESTIONS.forEach((city) => {
+      if (fuzzyMatchString(query, city)) addSuggestion(city, "city");
     });
 
-    return Array.from(values)
-      .filter((value) => value.toLowerCase().includes(query))
-      .slice(0, 8);
+    listings
+      .filter((listing) => listingMatchesQuery(listing, query, true))
+      .forEach((listing) => {
+        const address = listing.addressText || listing.display_address || listing.address_text || listing.street_address || "";
+        const title = listing.title || listing.display_title || "Listing";
+        addSuggestion(address ? `${title} — ${address}` : title, "listing", listing.id);
+      });
+
+    return suggestions.slice(0, 8);
   }, [listings, searchQuery]);
 
-  const handleSearchSuggestionSelect = useCallback((suggestion) => {
-    setSearchQuery(suggestion);
-    setShowSearchSuggestions(false);
+  const focusSearchListing = useCallback((listing) => {
+    if (!listing || !Number.isFinite(Number(listing.lat)) || !Number.isFinite(Number(listing.lng))) return false;
+    setView("map");
+    setMapCenter([Number(listing.lat), Number(listing.lng)]);
+    setMapZoom(16);
+    setSelectedListingId(listing.id);
+    setActiveFocusListing({ listing, fromUrl: false });
+    return true;
+  }, []);
 
-    const cityName = suggestion.split(",")[0].trim().toLowerCase();
-    const fallbackCityNames = FALLBACK_CITY_SUGGESTIONS.map((city) => city.split(",")[0].trim().toLowerCase());
-    const isKnownCity = fallbackCityNames.includes(cityName) || listings.some((listing) => listing.city?.toLowerCase().trim() === cityName);
-    if (!isKnownCity) return;
-
+  const centerSearchCity = useCallback((cityNameRaw) => {
+    const cityName = String(cityNameRaw || "").split(",")[0].trim().toLowerCase();
     const cityListings = listings.filter((listing) => listing.city?.toLowerCase().trim() === cityName);
-    const validListings = cityListings.filter((listing) => typeof listing.lat === "number" && typeof listing.lng === "number" && isFinite(listing.lat) && isFinite(listing.lng));
-    if (validListings.length === 0) return;
+    const validListings = cityListings.filter((listing) => Number.isFinite(Number(listing.lat)) && Number.isFinite(Number(listing.lng)));
+    if (validListings.length === 0) return false;
 
-    const avgLat = validListings.reduce((sum, listing) => sum + listing.lat, 0) / validListings.length;
-    const avgLng = validListings.reduce((sum, listing) => sum + listing.lng, 0) / validListings.length;
+    const avgLat = validListings.reduce((sum, listing) => sum + Number(listing.lat), 0) / validListings.length;
+    const avgLng = validListings.reduce((sum, listing) => sum + Number(listing.lng), 0) / validListings.length;
+    setView("map");
     setMapCenter([avgLat, avgLng]);
     setMapZoom(12);
+    return true;
   }, [listings]);
+
+  const handleSearchSuggestionSelect = useCallback((suggestion) => {
+    const label = typeof suggestion === "string" ? suggestion : suggestion.label;
+    setSearchQuery(label);
+    setShowSearchSuggestions(false);
+
+    if (suggestion?.type === "listing" && suggestion.listingId) {
+      const listing = listings.find((item) => item.id === suggestion.listingId);
+      if (focusSearchListing(listing)) return;
+    }
+
+    if (suggestion?.type === "city" && centerSearchCity(label)) return;
+
+    const match = listings.find((listing) => listingMatchesQuery(listing, label, false)) ||
+      listings.find((listing) => listingMatchesQuery(listing, label, true));
+    if (focusSearchListing(match)) return;
+
+    centerSearchCity(label);
+  }, [listings, focusSearchListing, centerSearchCity]);
+
+  const handleSearchSubmit = useCallback(() => {
+    const query = searchQuery.trim();
+    if (!query) return;
+
+    const exactCity = listings.some((listing) => normalizeSearchText(listing.city) === normalizeSearchText(query));
+    if (exactCity && centerSearchCity(query)) {
+      setShowSearchSuggestions(false);
+      return;
+    }
+
+    const matches = listings.filter((listing) => listingMatchesQuery(listing, query, false));
+    const fuzzyMatches = matches.length > 0 ? matches : listings.filter((listing) => listingMatchesQuery(listing, query, true));
+    if (fuzzyMatches.length > 0) {
+      focusSearchListing(fuzzyMatches[0]);
+      setShowSearchSuggestions(false);
+    }
+  }, [searchQuery, listings, centerSearchCity, focusSearchListing]);
 
   const handleListViewRefresh = useCallback(async () => {
     await Promise.all(isPublicHomeMode ? [
@@ -1554,17 +1639,18 @@ export default function HomePage() {
               value={searchQuery}
               onChange={(e) => {setSearchQuery(e.target.value);setShowSearchSuggestions(true);}}
               onFocus={() => setShowSearchSuggestions(true)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearchSubmit(); } }}
               onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 120)}
               className="pl-9 h-9 text-sm" />
             {showSearchSuggestions && searchSuggestions.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 z-[1400] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
                 {searchSuggestions.map((suggestion) => (
                   <button
-                    key={suggestion}
+                    key={`${suggestion.type}-${suggestion.listingId || suggestion.label}`}
                     type="button"
                     onMouseDown={(event) => {event.preventDefault();handleSearchSuggestionSelect(suggestion);}}
                     className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
-                    {suggestion}
+                    {suggestion.label}
                   </button>
                 ))}
               </div>
@@ -1591,17 +1677,18 @@ export default function HomePage() {
               value={searchQuery}
               onChange={(e) => {setSearchQuery(e.target.value);setShowSearchSuggestions(true);}}
               onFocus={() => setShowSearchSuggestions(true)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearchSubmit(); } }}
               onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 120)}
               className="pl-9 h-9 text-sm" />
             {showSearchSuggestions && searchSuggestions.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 z-[1400] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
                 {searchSuggestions.map((suggestion) => (
                   <button
-                    key={suggestion}
+                    key={`${suggestion.type}-${suggestion.listingId || suggestion.label}`}
                     type="button"
                     onMouseDown={(event) => {event.preventDefault();handleSearchSuggestionSelect(suggestion);}}
                     className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
-                    {suggestion}
+                    {suggestion.label}
                   </button>
                 ))}
               </div>
