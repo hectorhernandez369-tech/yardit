@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -6,10 +6,12 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Calendar, MapPin, Plus, QrCode, AlertTriangle, Star, Ghost } from "lucide-react";
+import { Search, Calendar, MapPin, Plus, QrCode, AlertTriangle, Star, Ghost, Camera, X, Loader2, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import PromotionModal from "./promotions/PromotionModal";
@@ -66,6 +68,11 @@ export default function ListingManagement({ mode, adminUser }) {
   const [qrModalRecord, setQrModalRecord] = useState(null);
   const [starInfoListing, setStarInfoListing] = useState(null);
   const [listingTypeFilter, setListingTypeFilter] = useState("all");
+  const [editListing, setEditListing] = useState(null);
+  const [editDraft, setEditDraft] = useState(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isUploadingEditPhoto, setIsUploadingEditPhoto] = useState(false);
+  const editPhotoInputRef = useRef(null);
 
   const { data: listings } = useQuery({
     queryKey: ["allListings"],
@@ -178,6 +185,128 @@ export default function ListingManagement({ mode, adminUser }) {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
+
+  const openEditListing = (listing) => {
+    const toLocalInput = (value) => {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value).slice(0, 16);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    };
+
+    setEditListing(listing);
+    setEditDraft({
+      title: listing.title || listing.display_title || "",
+      description: listing.description || "",
+      addressText: listing.street_address || listing.addressText || listing.display_address || listing.address || "",
+      city: listing.city || "",
+      state: listing.state || "",
+      zip: listing.zip || listing.zip_code || "",
+      startDateTime: toLocalInput(listing.startDateTime || listing.start_date_time),
+      endDateTime: toLocalInput(listing.endDateTime || listing.end_date_time || listing.expires_at),
+      photoUrls: listing._sourceEntity === "Location" ? [...(listing.photos || [])] : [...(listing.photoUrls || [])],
+      halloweenContributor: listing.halloween_contributor_name || "",
+    });
+  };
+
+  const handleEditPhotoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !editDraft) return;
+    setIsUploadingEditPhoto(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setEditDraft((prev) => ({ ...prev, photoUrls: [...(prev.photoUrls || []), file_url] }));
+    } catch (error) {
+      console.error(error);
+      toast.error("Photo upload failed");
+    } finally {
+      setIsUploadingEditPhoto(false);
+      if (editPhotoInputRef.current) editPhotoInputRef.current.value = "";
+    }
+  };
+
+  const saveListingEdits = async () => {
+    if (!editListing || !editDraft) return;
+    if (!editDraft.title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      if (editListing._sourceEntity === "Location") {
+        const address = [editDraft.addressText, editDraft.city, editDraft.state, editDraft.zip].filter(Boolean).join(", ");
+        const start = editDraft.startDateTime ? new Date(editDraft.startDateTime) : null;
+        const end = editDraft.endDateTime ? new Date(editDraft.endDateTime) : null;
+        const patch = {
+          title: editDraft.title.trim(),
+          display_title: editDraft.title.trim(),
+          description: editDraft.description || "",
+          street_address: editDraft.addressText || "",
+          city: editDraft.city || "",
+          state: editDraft.state || "",
+          zip_code: editDraft.zip || "",
+          address,
+          photos: editDraft.photoUrls || [],
+          start_date_time: start && !Number.isNaN(start.getTime()) ? start.toISOString() : null,
+          end_date_time: end && !Number.isNaN(end.getTime()) ? end.toISOString() : null,
+        };
+
+        if (editListing._isHalloween) {
+          if (start && !Number.isNaN(start.getTime())) {
+            patch.halloween_start_date = editDraft.startDateTime.slice(0, 10);
+            patch.halloween_start_time = editDraft.startDateTime.slice(11, 16);
+            patch.viewing_start_time = editDraft.startDateTime.slice(11, 16);
+          }
+          if (end && !Number.isNaN(end.getTime())) {
+            patch.halloween_end_date = editDraft.endDateTime.slice(0, 10);
+            patch.halloween_end_time = editDraft.endDateTime.slice(11, 16);
+            patch.viewing_end_time = editDraft.endDateTime.slice(11, 16);
+            patch.expires_at = end.toISOString();
+          }
+          patch.halloween_contributor_name = editDraft.halloweenContributor || "";
+        }
+
+        await base44.functions.invoke("manageSeasonalLocation", {
+          action: "admin_patch",
+          location_id: editListing.id,
+          patch,
+        });
+      } else {
+        const start = editDraft.startDateTime ? new Date(editDraft.startDateTime) : null;
+        const end = editDraft.endDateTime ? new Date(editDraft.endDateTime) : null;
+        await base44.entities.Listing.update(editListing.id, {
+          title: editDraft.title.trim(),
+          description: editDraft.description || "",
+          addressText: editDraft.addressText || "",
+          address_text: editDraft.addressText || "",
+          display_address: [editDraft.addressText, editDraft.city, editDraft.state, editDraft.zip].filter(Boolean).join(", "),
+          city: editDraft.city || "",
+          state: editDraft.state || "",
+          zip: editDraft.zip || "",
+          photoUrls: editDraft.photoUrls || [],
+          ...(start && !Number.isNaN(start.getTime()) ? { startDateTime: start.toISOString(), selectedRangeStartDate: editDraft.startDateTime.slice(0, 10) } : {}),
+          ...(end && !Number.isNaN(end.getTime()) ? { endDateTime: end.toISOString(), selectedRangeEndDate: editDraft.endDateTime.slice(0, 10) } : {}),
+        });
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["allListings"] }),
+        queryClient.invalidateQueries({ queryKey: ["adminSeasonalLocations"] }),
+        queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] }),
+        queryClient.invalidateQueries({ queryKey: ["publicMapData"] }),
+      ]);
+      toast.success("Listing updated");
+      setEditListing(null);
+      setEditDraft(null);
+    } catch (error) {
+      console.error(error);
+      toast.error(error?.message || "Could not update listing");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   const normalizedListings = [
     ...listings.map((listing) => ({
@@ -322,6 +451,13 @@ export default function ListingManagement({ mode, adminUser }) {
                   <div className="flex flex-col sm:flex-row lg:flex-col gap-2 lg:min-w-[220px]">
                     <Button
                       size="sm"
+                      className="gap-1.5 bg-[#2C4F4E] text-white hover:bg-[#203b3a]"
+                      onClick={() => openEditListing(listing)}
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Edit Listing
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => {
                         if (listing._isHalloween) {
@@ -350,7 +486,7 @@ export default function ListingManagement({ mode, adminUser }) {
                         <AlertTriangle className="w-3.5 h-3.5" /> QR Missing
                       </Button>
                     )}
-                    {!listing._isHalloween && (
+                    {listing._sourceEntity !== "Location" && (
                       <Button
                         size="sm"
                         className="bg-purple-600 hover:bg-purple-700 text-white"
@@ -381,11 +517,22 @@ export default function ListingManagement({ mode, adminUser }) {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="hidden">Hidden</SelectItem>
-                        <SelectItem value="under_review">Under Review</SelectItem>
-                        <SelectItem value="suspended">Suspended</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="expired">Expired</SelectItem>
+                        {listing._sourceEntity === "Location" ? (
+                          <>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value="under_review">Under Review</SelectItem>
+                            <SelectItem value="suspended">Suspended</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="hidden">Hidden</SelectItem>
+                            <SelectItem value="under_review">Under Review</SelectItem>
+                            <SelectItem value="suspended">Suspended</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="expired">Expired</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -395,6 +542,110 @@ export default function ListingManagement({ mode, adminUser }) {
           );
         })}
       </div>
+
+      <Dialog open={!!editListing} onOpenChange={(open) => { if (!open && !isSavingEdit) { setEditListing(null); setEditDraft(null); } }}>
+        <DialogContent className="w-[calc(100vw-24px)] max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Listing</DialogTitle>
+          </DialogHeader>
+          {editDraft && (
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input value={editDraft.title} onChange={(e) => setEditDraft((p) => ({ ...p, title: e.target.value }))} />
+                <Label>Description</Label>
+                <Textarea rows={4} value={editDraft.description} onChange={(e) => setEditDraft((p) => ({ ...p, description: e.target.value }))} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Address</Label>
+                <Input value={editDraft.addressText} onChange={(e) => setEditDraft((p) => ({ ...p, addressText: e.target.value }))} />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <Input placeholder="City" value={editDraft.city} onChange={(e) => setEditDraft((p) => ({ ...p, city: e.target.value }))} />
+                  <Input placeholder="State" value={editDraft.state} onChange={(e) => setEditDraft((p) => ({ ...p, state: e.target.value }))} />
+                  <Input placeholder="ZIP" value={editDraft.zip} onChange={(e) => setEditDraft((p) => ({ ...p, zip: e.target.value }))} />
+                </div>
+                <p className="text-xs text-amber-700">Changing address text does not move the map pin. Use the listing/location tools if coordinates also need to change.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Starts</Label>
+                  <Input type="datetime-local" value={editDraft.startDateTime} onChange={(e) => setEditDraft((p) => ({ ...p, startDateTime: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Ends</Label>
+                  <Input type="datetime-local" value={editDraft.endDateTime} onChange={(e) => setEditDraft((p) => ({ ...p, endDateTime: e.target.value }))} />
+                </div>
+              </div>
+
+              {editListing?._isHalloween && (
+                <div>
+                  <Label>Community Source / Contributor</Label>
+                  <Input
+                    value={editDraft.halloweenContributor}
+                    onChange={(e) => setEditDraft((p) => ({ ...p, halloweenContributor: e.target.value }))}
+                    placeholder="e.g. Visalia Stringer"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label>Photos</Label>
+                    <p className="text-xs text-slate-500">Add or remove listing photos.</p>
+                  </div>
+                  <input
+                    ref={editPhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleEditPhotoUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploadingEditPhoto}
+                    onClick={() => editPhotoInputRef.current?.click()}
+                  >
+                    {isUploadingEditPhoto ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Camera className="w-4 h-4 mr-1" />}
+                    {isUploadingEditPhoto ? "Uploading..." : "Add Photo"}
+                  </Button>
+                </div>
+                {(editDraft.photoUrls || []).length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {editDraft.photoUrls.map((url, index) => (
+                      <div key={`${url}-${index}`} className="relative aspect-square">
+                        <img src={url} alt="" className="h-full w-full rounded-lg border object-cover" />
+                        <button
+                          type="button"
+                          aria-label="Remove photo"
+                          onClick={() => setEditDraft((p) => ({ ...p, photoUrls: p.photoUrls.filter((_, i) => i !== index) }))}
+                          className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white shadow"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed p-5 text-center text-sm text-slate-500">No photos yet.</div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" className="flex-1" disabled={isSavingEdit} onClick={() => { setEditListing(null); setEditDraft(null); }}>Cancel</Button>
+                <Button className="flex-1 bg-[#2C4F4E] hover:bg-[#203b3a]" disabled={isSavingEdit || isUploadingEditPhoto} onClick={saveListingEdits}>
+                  {isSavingEdit ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {qrModalRecord && (
         <AdminQRViewModal
