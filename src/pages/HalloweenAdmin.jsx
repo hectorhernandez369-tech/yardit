@@ -275,7 +275,7 @@ function SpotEditor({ spot, reservation, reportCount, saving, onPatch, onToggleM
       halloween_end_time: draft.halloween_end_time || draft.viewing_end_time || "",
       viewing_start_time: draft.halloween_start_time || draft.viewing_start_time || "",
       viewing_end_time: draft.halloween_end_time || draft.viewing_end_time || "",
-      custom_icon_url: draft.custom_icon_url || "",
+      custom_icon_url: draft.custom_icon_url || "",\n      halloween_contributor_name: draft.halloween_contributor_name || "",
     }, "Halloween Spot details saved");
   };
 
