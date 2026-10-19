@@ -39,6 +39,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import MapDebugOverlay from "../components/map/MapDebugOverlay";
 import MapZoomControl from "../components/map/MapZoomControl";
+import MapHoldZoom from "@/components/map/MapHoldZoom";
 import MapFocusController from "../components/map/MapFocusController";
 import MapTierDebugBox from "../components/map/MapTierDebugBox";
 import HiddenListingsOverlay from "../components/map/HiddenListingsOverlay";
@@ -1733,6 +1734,7 @@ export default function HomePage() {
                 enabled={quickMapFilters.halloween}
                 onToggle={(halloween) => setQuickMapFilters((current) => ({ ...current, halloween }))}
               />
+              <MapHoldZoom />
               <MapZoomControl onMyLocation={handleMyLocation} isLocating={isLocating} locationError={locationError} />
               <MapFocusController focusData={activeFocusListing} markerRefsMap={markerRefsMap} onFocusComplete={() => setActiveFocusListing(null)} />
               <HalloweenPopupViewport />
