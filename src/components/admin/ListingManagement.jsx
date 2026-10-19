@@ -253,7 +253,7 @@ export default function ListingManagement({ mode, adminUser }) {
       </div>
 
       <div className="space-y-4">
-        {filteredListings.slice(0, 20).map((listing) => {
+        {filteredListings.map((listing) => {
           const owner = ownerMap[listing.ownerUserId];
           const assistedRecord = assistedMap[listing.id];
           const assistedQrRecord = hasAssistedQr(assistedRecord) ? assistedRecord : null;
