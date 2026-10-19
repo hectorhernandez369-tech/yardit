@@ -1277,16 +1277,10 @@ export default function HomePage() {
     }).
     filter(Boolean);
 
-    // Vendor events shown separately on map via VendorEventMapMarkers; include in list view only
-    const combinedListings = [...baseListings];
-
-    const strictMatches = combinedListings.filter((l) => listingMatchesQuery(l, searchQuery, false));
-    if (strictMatches.length > 0 || !searchQuery) {
-      return strictMatches;
-    }
-
-    return combinedListings.filter((l) => listingMatchesQuery(l, searchQuery, true));
-  }, [listings, vendorEvents, filter, searchQuery, selectedCategories, demoOn, user, viewingOwnerPreviewMode, debugForceOn, previewListingsOnMap, scheduleNow]);
+    // Search should never hide map icons. Keep every eligible listing on the map;
+    // the search bar only finds/focuses matching listings.
+    return [...baseListings];
+  }, [listings, vendorEvents, filter, selectedCategories, demoOn, user, viewingOwnerPreviewMode, debugForceOn, previewListingsOnMap, scheduleNow]);
 
   // List View uses its own pipeline in ListView.jsx + lib/listViewPipeline.js
   // No pre-filtering here — raw listings + vendorEvents are passed directly.
