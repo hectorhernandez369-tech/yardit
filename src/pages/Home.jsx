@@ -1633,7 +1633,14 @@ export default function HomePage() {
         )}
         <div className="px-3 pt-2 pb-1 sm:hidden">
           <div className="relative w-full max-w-md mx-auto">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <button
+              type="button"
+              aria-label="Search"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={handleSearchSubmit}
+              className="absolute left-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-gray-400 hover:bg-slate-100 hover:text-slate-700">
+              <Search className="w-4 h-4" />
+            </button>
             <Input
               placeholder="Search by address or title..."
               value={searchQuery}
@@ -1641,7 +1648,17 @@ export default function HomePage() {
               onFocus={() => setShowSearchSuggestions(true)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearchSubmit(); } }}
               onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 120)}
-              className="pl-9 h-9 text-sm" />
+              className="pl-10 pr-10 h-9 text-sm" />
+            {searchQuery && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { setSearchQuery(""); setShowSearchSuggestions(false); setSelectedListingId(null); setActiveFocusListing(null); }}
+                className="absolute right-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-gray-400 hover:bg-slate-100 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            )}
             {showSearchSuggestions && searchSuggestions.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 z-[1400] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
                 {searchSuggestions.map((suggestion) => (
@@ -1671,7 +1688,14 @@ export default function HomePage() {
           </Tabs>
 
           <div className="hidden sm:block relative w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <button
+              type="button"
+              aria-label="Search"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={handleSearchSubmit}
+              className="absolute left-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-gray-400 hover:bg-slate-100 hover:text-slate-700">
+              <Search className="w-4 h-4" />
+            </button>
             <Input
               placeholder="Search by address or title..."
               value={searchQuery}
@@ -1679,7 +1703,17 @@ export default function HomePage() {
               onFocus={() => setShowSearchSuggestions(true)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearchSubmit(); } }}
               onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 120)}
-              className="pl-9 h-9 text-sm" />
+              className="pl-10 pr-10 h-9 text-sm" />
+            {searchQuery && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { setSearchQuery(""); setShowSearchSuggestions(false); setSelectedListingId(null); setActiveFocusListing(null); }}
+                className="absolute right-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-gray-400 hover:bg-slate-100 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            )}
             {showSearchSuggestions && searchSuggestions.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 z-[1400] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
                 {searchSuggestions.map((suggestion) => (
