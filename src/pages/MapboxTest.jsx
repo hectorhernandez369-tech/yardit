@@ -216,6 +216,31 @@ function installHalloweenClusterLayers(map, data) {
   }
 }
 
+function makeUserLocationElement() {
+  const wrapper = document.createElement("div");
+  wrapper.setAttribute("aria-label", "Your current location");
+  wrapper.style.width = "30px";
+  wrapper.style.height = "30px";
+  wrapper.style.borderRadius = "50%";
+  wrapper.style.display = "flex";
+  wrapper.style.alignItems = "center";
+  wrapper.style.justifyContent = "center";
+  wrapper.style.background = "rgba(42,147,238,0.14)";
+  wrapper.style.pointerEvents = "none";
+
+  const dot = document.createElement("div");
+  dot.style.width = "16px";
+  dot.style.height = "16px";
+  dot.style.borderRadius = "50%";
+  dot.style.background = "#2A93EE";
+  dot.style.border = "3px solid #ffffff";
+  dot.style.boxSizing = "border-box";
+  dot.style.boxShadow = "0 1px 5px rgba(0,0,0,.35)";
+  wrapper.appendChild(dot);
+
+  return wrapper;
+}
+
 function makeVendorElement(pin, account) {
   const tier = account?.vendor_tier || "free";
   const image = tier !== "free" && pin?.pin_icon_style === "truck_logo"
@@ -248,6 +273,8 @@ export default function MapboxTest() {
   const halloweenMarkersRef = useRef([]);
   const vendorMarkersRef = useRef([]);
   const userMarkerRef = useRef(null);
+  const userLocationRef = useRef(null);
+  const userLocationWatchRef = useRef(null);
   const allListingsRef = useRef([]);
   const filteredListingsRef = useRef([]);
   const halloweenRef = useRef([]);
@@ -547,6 +574,38 @@ export default function MapboxTest() {
             return { marker, account: item.account };
           });
 
+            if (navigator.geolocation && userLocationWatchRef.current == null) {
+              userLocationWatchRef.current = navigator.geolocation.watchPosition(
+                (position) => {
+                  const lngLat = [position.coords.longitude, position.coords.latitude];
+                  userLocationRef.current = {
+                    lng: position.coords.longitude,
+                    lat: position.coords.latitude,
+                    accuracy: position.coords.accuracy,
+                  };
+
+                  if (!userMarkerRef.current) {
+                    userMarkerRef.current = new mapboxgl.Marker({
+                      element: makeUserLocationElement(),
+                      anchor: "center",
+                    }).setLngLat(lngLat).addTo(map);
+                  } else {
+                    userMarkerRef.current.setLngLat(lngLat);
+                  }
+                },
+                (locationError) => {
+                  if (locationError?.code !== locationError?.PERMISSION_DENIED) {
+                    console.warn("Mapbox location watch unavailable:", locationError);
+                  }
+                },
+                {
+                  enableHighAccuracy: true,
+                  maximumAge: 10000,
+                  timeout: 5000,
+                }
+              );
+            }
+
             refreshSpecialMarkerVisibility();
           } catch (markerError) {
             console.error("Mapbox optional marker setup failed:", markerError);
@@ -648,7 +707,13 @@ export default function MapboxTest() {
       resizeObserver?.disconnect();
       halloweenMarkersRef.current.forEach(({ marker }) => marker?.remove?.());
       vendorMarkersRef.current.forEach(({ marker }) => marker?.remove?.());
+      if (userLocationWatchRef.current != null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(userLocationWatchRef.current);
+        userLocationWatchRef.current = null;
+      }
+      userLocationRef.current = null;
       userMarkerRef.current?.remove?.();
+      userMarkerRef.current = null;
       mapRef.current?.remove?.();
       mapRef.current = null;
       halloweenMarkersRef.current = [];
@@ -678,19 +743,40 @@ export default function MapboxTest() {
 
   const handleMyLocation = () => {
     if (!navigator.geolocation || !mapRef.current || !mapboxRef.current) return;
-    navigator.geolocation.getCurrentPosition((position) => {
-      const lngLat = [position.coords.longitude, position.coords.latitude];
-      mapRef.current.flyTo({ center: lngLat, zoom: 15 });
-      userMarkerRef.current?.remove?.();
-      const el = document.createElement("div");
-      el.style.width = "18px";
-      el.style.height = "18px";
-      el.style.borderRadius = "50%";
-      el.style.background = "#2563eb";
-      el.style.border = "3px solid white";
-      el.style.boxShadow = "0 2px 8px rgba(0,0,0,.35)";
-      userMarkerRef.current = new mapboxRef.current.Marker({ element: el, anchor: "center" }).setLngLat(lngLat).addTo(mapRef.current);
-    });
+
+    const centerOnLocation = (lng, lat) => {
+      const lngLat = [lng, lat];
+      mapRef.current.flyTo({ center: lngLat, zoom: Math.max(mapRef.current.getZoom(), 15), speed: 1.2 });
+
+      if (!userMarkerRef.current) {
+        userMarkerRef.current = new mapboxRef.current.Marker({
+          element: makeUserLocationElement(),
+          anchor: "center",
+        }).setLngLat(lngLat).addTo(mapRef.current);
+      } else {
+        userMarkerRef.current.setLngLat(lngLat);
+      }
+    };
+
+    if (userLocationRef.current) {
+      centerOnLocation(userLocationRef.current.lng, userLocationRef.current.lat);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        userLocationRef.current = {
+          lng: position.coords.longitude,
+          lat: position.coords.latitude,
+          accuracy: position.coords.accuracy,
+        };
+        centerOnLocation(position.coords.longitude, position.coords.latitude);
+      },
+      (locationError) => {
+        console.warn("Unable to get current location:", locationError);
+      },
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+    );
   };
 
   const stats = {
