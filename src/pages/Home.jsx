@@ -1874,21 +1874,29 @@ export default function HomePage() {
               )}
             
               
-              {/* User Location Dot */}
+              {/* Live user location: device GPS supplies the coordinates; Leaflet only renders the visual dot. */}
               {userLocation &&
-            <>
+                <>
                   <Circle
-                center={[userLocation.lat, userLocation.lng]}
-                radius={userLocation.accuracy || 50}
-                pathOptions={{ fillColor: '#2A93EE', fillOpacity: 0.15, color: '#2A93EE', weight: 1 }} />
-              
+                    center={[userLocation.lat, userLocation.lng]}
+                    radius={Math.max(Number(userLocation.accuracy) || 0, 20)}
+                    pathOptions={{ fillColor: "#2A93EE", fillOpacity: 0.10, color: "#2A93EE", opacity: 0.32, weight: 1 }}
+                    interactive={false}
+                  />
                   <CircleMarker
-                center={[userLocation.lat, userLocation.lng]}
-                radius={6}
-                pathOptions={{ fillColor: '#2A93EE', fillOpacity: 1, color: '#ffffff', weight: 2 }} />
-              
+                    center={[userLocation.lat, userLocation.lng]}
+                    radius={12}
+                    pathOptions={{ fillColor: "#2A93EE", fillOpacity: 0.14, color: "#2A93EE", opacity: 0, weight: 0 }}
+                    interactive={false}
+                  />
+                  <CircleMarker
+                    center={[userLocation.lat, userLocation.lng]}
+                    radius={7}
+                    pathOptions={{ fillColor: "#2A93EE", fillOpacity: 1, color: "#ffffff", weight: 3 }}
+                    interactive={false}
+                  />
                 </>
-            }
+              }
               
               {!showUpcomingWeekend && <ClusterGroup points={clusterPts} clusterRadius={50} minPoints={2} />}
               {!showUpcomingWeekend && <HalloweenClusterGroup points={halloweenClusterPts} clusterRadius={40} markerRefsMap={markerRefsMap} forceVisibleId={focusListingId} />}
