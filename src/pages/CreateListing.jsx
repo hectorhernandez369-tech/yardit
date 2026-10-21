@@ -1677,6 +1677,7 @@ export default function CreateListingPage() {
           halloween_activities: formData.halloween_activities || "", halloween_start_date: startDate, halloween_end_date: endDate,
           halloween_start_time: assistedStartTime, halloween_end_time: assistedEndTime,
           full_icon_activation_time: activation || "17:00", location_source: formData.location_source || "address_search",
+          bypass_owner_approval: formData.bypass_owner_approval === true,
           appBaseUrl: window.location.origin,
         });
         await finishAssistedPost({ ...response.data, kind: "halloween", saleAddress: response.data.saleFormattedAddress, title: formData.title }, "Assisted Halloween Spot created! 🎃");
@@ -2256,6 +2257,7 @@ export default function CreateListingPage() {
                         selected_geocode_confirmed: false,
                         location_source: "address_search",
                         locationMethod: "assisted_admin",
+                        bypass_owner_approval: false,
                       };
                     });
                   }
@@ -2267,6 +2269,19 @@ export default function CreateListingPage() {
                 <p className="text-xs text-amber-800 mt-1">Post on behalf of the homeowner and give them a QR/link to take over the listing.</p>
               </div>
             </label>
+            {isAssistedPost && formData.listingType === "halloween_spot" && (
+              <label className="mt-3 flex items-start gap-3 rounded-xl border border-purple-200 bg-white p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.bypass_owner_approval === true}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, bypass_owner_approval: e.target.checked }))}
+                  className="mt-1 h-4 w-4"
+                />
+                <span className="text-xs text-slate-700">
+                  <strong>Bypass owner approval.</strong> Use only when the homeowner has already given Yardit permission to post the address but does not want to sign up or complete the approval flow. The Halloween Spot will publish immediately and remain unclaimed.
+                </span>
+              </label>
+            )}
             {isAssistedPost && formData.listingType !== "halloween_spot" && (
               <label className="mt-3 flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-3 cursor-pointer">
                 <input
