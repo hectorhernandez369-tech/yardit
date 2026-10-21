@@ -866,6 +866,17 @@ export default function CreateListingPage() {
             created_at: new Date().toISOString()
           })
         });
+
+        await base44.functions.invoke("notifyAdminListingCreated", {
+          listing_id: listing.id,
+          related_entity_type: "Listing",
+          title: listing.title || listing.event_name || "Listing",
+          listing_type: listing.listingType || "listing",
+          city: listing.city || "",
+          state: listing.state || "",
+          deep_link: `/ListingDetail?id=${listing.id}`,
+          owner_approval_bypassed: false,
+        }).catch(() => {});
       }
       return listing;
     },
@@ -1680,6 +1691,31 @@ export default function CreateListingPage() {
           bypass_owner_approval: formData.bypass_owner_approval === true,
           appBaseUrl: window.location.origin,
         });
+        await base44.functions.invoke("notifyAdminListingCreated", {
+          listing_id: response.data.locationId,
+          related_entity_type: "Location",
+          title: formData.title || "Halloween Spot",
+          listing_type: "halloween_spot",
+          city: formData.city || "",
+          state: getStateAbbreviation(formData.state || ""),
+          deep_link: `/HalloweenSpotDetail?id=${response.data.locationId}`,
+          owner_approval_bypassed: response.data.ownerApprovalBypassed === true,
+        }).catch(() => {});
+
+        if (response.data.ownerApprovalBypassed === true) {
+          if (activeDraftId) {
+            await base44.entities.ListingDraft.delete(activeDraftId).catch(console.error);
+            setActiveDraftId(null);
+          }
+          queryClient.invalidateQueries({ queryKey: ["myListingDrafts", user?.id] });
+          queryClient.invalidateQueries({ queryKey: ["myAssistedListings", user?.id] });
+          queryClient.invalidateQueries({ queryKey: ["halloweenLocations"] });
+          queryClient.invalidateQueries({ queryKey: ["publicMapData"] });
+          toast.success("Assisted Halloween Spot published immediately 🎃");
+          navigate(createPageUrl("Home"));
+          return true;
+        }
+
         await finishAssistedPost({ ...response.data, kind: "halloween", saleAddress: response.data.saleFormattedAddress, title: formData.title }, "Assisted Halloween Spot created! 🎃");
         return true;
       }
