@@ -79,6 +79,24 @@
     "qr_scan_count": {
       "type": "number",
       "default": 0
+    },
+    "owner_approval_bypassed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether an authorized Yardit admin intentionally skipped homeowner approval after receiving permission to post."
+    },
+    "owner_approval_bypassed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when owner approval was bypassed."
+    },
+    "owner_approval_bypassed_by_user_id": {
+      "type": "string",
+      "description": "Yardit admin user ID that bypassed owner approval."
+    },
+    "owner_approval_bypassed_by_email": {
+      "type": "string",
+      "description": "Yardit admin email that bypassed owner approval."
     }
   },
   "required": [
