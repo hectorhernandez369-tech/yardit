@@ -139,6 +139,7 @@ Deno.serve(async (req) => {
       halloween_end_date = '', halloween_start_time = '',
       halloween_end_time = '', full_icon_activation_time = '17:00',
       location_source = 'address_search',
+      bypass_owner_approval = false,
       appBaseUrl: clientAppBaseUrl = '',
     } = payload;
     if (!addressText || !city || !state || !zip) {
@@ -200,7 +201,7 @@ Deno.serve(async (req) => {
       start_date_time: startDateTime,
       end_date_time: endDateTime,
       expires_at: endDateTime,
-      status: 'draft',
+      status: bypass_owner_approval === true ? 'active' : 'draft',
       payment_status: 'free',
       halloween_icon_key: halloween_spot_type,
       halloween_spot_type,
@@ -230,7 +231,7 @@ Deno.serve(async (req) => {
     try {
       assisted = await base44.asServiceRole.entities.AssistedHalloweenSpot.create({
         location_id: location.id,
-        assisted_status: 'pending_owner_approval',
+        assisted_status: bypass_owner_approval === true ? 'assisted_active_unclaimed' : 'pending_owner_approval',
         assisted_qr_token: token,
         approval_url: approvalUrl,
         qr_image_url: qrImageUrl,
@@ -246,6 +247,10 @@ Deno.serve(async (req) => {
         longitude: Number(lng),
         location_source,
         qr_scan_count: 0,
+        owner_approval_bypassed: bypass_owner_approval === true,
+        owner_approval_bypassed_at: bypass_owner_approval === true ? now.toISOString() : undefined,
+        owner_approval_bypassed_by_user_id: bypass_owner_approval === true ? user.id : undefined,
+        owner_approval_bypassed_by_email: bypass_owner_approval === true ? (user.email || '') : undefined,
       });
     } catch (error) {
       await base44.asServiceRole.entities.Location.delete(location.id);
@@ -264,7 +269,7 @@ Deno.serve(async (req) => {
       isSameVerifiedProperty(candidate, property, lat, lng)
     );
 
-    for (const matchingUser of matchingUsers) {
+    if (bypass_owner_approval !== true) for (const matchingUser of matchingUsers) {
       const dedupeKey = `halloween_assisted_approval_${assisted.id}_${matchingUser.id}`;
       const notification = {
         user_id: matchingUser.id,
@@ -308,8 +313,49 @@ Deno.serve(async (req) => {
       target_type: 'AssistedHalloweenSpot',
       target_id: assisted.id,
       success: true,
-      metadata: JSON.stringify({ location_id: location.id, address: fullAddress, created_at: now.toISOString() }),
+      metadata: JSON.stringify({
+        location_id: location.id,
+        address: fullAddress,
+        created_at: now.toISOString(),
+        bypass_owner_approval: bypass_owner_approval === true,
+      }),
     }).catch(() => {});
+
+    const superMasters = await base44.asServiceRole.entities.User.filter({ role: 'super_master' }).catch(() => []);
+    for (const superMaster of superMasters || []) {
+      const dedupeKey = `admin_created_halloween_${assisted.id}_${superMaster.id}`;
+      const adminNotification = {
+        user_id: superMaster.id,
+        userId: superMaster.id,
+        title: 'Admin created a Halloween Spot 🎃',
+        message: `${user.email || 'An admin'} created "${location.title}" in ${city}, ${state}.${bypass_owner_approval === true ? ' Owner approval was bypassed.' : ''}`,
+        type: 'admin_listing_created',
+        related_entity_type: 'AssistedHalloweenSpot',
+        related_entity_id: assisted.id,
+        delivery_methods: ['push', 'bell'],
+        deep_link: `/HalloweenSpotDetail?id=${location.id}`,
+        dedupe_key: dedupeKey,
+        registry_status: 'active',
+        registry_version: '2026-10-21',
+        metadata: {
+          dedupe_key: dedupeKey,
+          location_id: location.id,
+          assisted_halloween_spot_id: assisted.id,
+          admin_creator_id: user.id,
+          admin_creator_email: user.email || '',
+          bypass_owner_approval: bypass_owner_approval === true,
+        },
+      };
+      const existing = await base44.asServiceRole.entities.Notification.filter({ dedupe_key: dedupeKey }).catch(() => []);
+      if (!existing?.length) {
+        await base44.asServiceRole.entities.Notification.create({
+          ...adminNotification,
+          read: false,
+          is_read: false,
+        }).catch(() => {});
+      }
+      await base44.asServiceRole.functions.invoke('deliverNotificationPush', { data: adminNotification }).catch(() => {});
+    }
 
     return Response.json({
       ok: true,
@@ -322,6 +368,7 @@ Deno.serve(async (req) => {
       saleFormattedAddress: fullAddress,
       title: location.title,
       matchedExistingUsers: matchingUsers.length,
+      ownerApprovalBypassed: bypass_owner_approval === true,
     });
   } catch (error) {
     console.error('createAssistedHalloweenSpot error:', error?.message || error);
