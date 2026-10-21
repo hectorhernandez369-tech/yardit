@@ -133,12 +133,12 @@ function getCachedIcon(key, url, size, square = false, className = "") {
 }
 
 function getHalloweenIconWithCandyBadge(key, url, size, opacity = 1, candyActive = false) {
-  if (!candyActive) return getCachedIcon(key, url, size, true, opacity < 1 ? "!opacity-[0.35]" : "");
+  if (!candyActive) return getCachedIcon(key, url, size, true, "!opacity-100");
   const badgeKey = `${key}_candy`;
   if (!iconCache[badgeKey]) {
     const badgeSize = Math.max(14, Math.round(size * 0.36));
     iconCache[badgeKey] = L.divIcon({
-      className: "yardit-halloween-candy-marker",
+      className: "yardit-halloween-candy-marker !opacity-100",
       html: `<div style="position:relative;width:${size}px;height:${size}px;opacity:${opacity};"><img src="${url}" alt="" style="width:${size}px;height:${size}px;display:block;object-fit:contain;" /><div style="position:absolute;right:-5px;bottom:-3px;min-width:${badgeSize}px;height:${badgeSize}px;padding:0 3px;border-radius:9999px;background:#f97316;border:2px solid #fff;color:#fff;font-size:${Math.max(9, Math.round(badgeSize * .62))}px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,.35);">🍬</div></div>`,
       iconSize: [size + 8, size + 8],
       iconAnchor: [(size + 8) / 2, (size + 8) / 2],

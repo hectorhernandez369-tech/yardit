@@ -75,42 +75,12 @@ export function getHalloweenSpotMapSize(listing, isSelected = false, now = new D
   return size * 1.5;
 }
 
-function projectToMapPixels(lat, lng, zoom) {
-  const scale = 256 * Math.pow(2, zoom);
-  const sinLat = Math.max(-0.9999, Math.min(0.9999, Math.sin(Number(lat) * Math.PI / 180)));
-  return {
-    x: (Number(lng) + 180) / 360 * scale,
-    y: (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale,
-  };
-}
-
 export function getHalloweenCollisionSizes(listings, zoom, selectedId) {
   const sizes = {};
-  const candidates = listings.filter((listing) => Number.isFinite(Number(listing?.lat)) && Number.isFinite(Number(listing?.lng)));
-
-  candidates.forEach((listing) => {
+  listings.forEach((listing) => {
     if (listing?.listingType !== "halloween_candy" && listing?.type !== "halloween_candy") return;
-    const desiredSize = getHalloweenSpotMapSize(listing, listing.id === selectedId, new Date(), zoom);
-    if (isDinubaComingOctOne(listing) || isSpecialHalloweenIcon(listing)) {
-      sizes[listing.id] = desiredSize;
-      return;
-    }
-    const point = projectToMapPixels(listing.lat, listing.lng, zoom);
-    let fittedSize = desiredSize;
-
-    candidates.forEach((other) => {
-      if (other.id === listing.id) return;
-      const otherPoint = projectToMapPixels(other.lat, other.lng, zoom);
-      const distance = Math.hypot(point.x - otherPoint.x, point.y - otherPoint.y);
-      const otherSize = other?.listingType === "halloween_candy" || other?.type === "halloween_candy"
-        ? getHalloweenSpotMapSize(other, other.id === selectedId, new Date(), zoom)
-        : 34;
-      const collisionFloor = Math.min(desiredSize, Math.max(18, desiredSize * 0.6));
-      fittedSize = Math.min(fittedSize, Math.max(collisionFloor, 2 * (distance - otherSize / 2 - 2)));
-    });
-
-    sizes[listing.id] = Math.round(fittedSize);
+    // Nearby markers must not shrink Halloween icons below their active size.
+    sizes[listing.id] = getHalloweenSpotMapSize(listing, listing.id === selectedId, new Date(), zoom);
   });
-
   return sizes;
 }
