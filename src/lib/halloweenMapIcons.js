@@ -1,4 +1,3 @@
-import { isHalloweenFullIconActive, isHalloweenTeaser } from "@/lib/halloweenSpots";
 import { COMING_OCT_ONE_ICON, getComingDateIcon } from "@/lib/comingOctOneIcon";
 import { HALLOWEEN_AD_DEMO_ICONS, HALLOWEEN_SELECTED_ICON_ASSETS } from "@/lib/halloweenAdDemoIcons";
 
@@ -17,8 +16,9 @@ export function isAshevilleDecorationSpot(listing) {
   return address.includes(ASHEVILLE_DECORATION_ADDRESS);
 }
 
-export function getHalloweenSpotMapOpacity(listing, now = new Date()) {
-  return isHalloweenFullIconActive(listing, now) ? 1 : 0.35;
+export function getHalloweenSpotMapOpacity() {
+  // Map appearance stays active; listing and candy schedules remain unchanged.
+  return 1;
 }
 
 const DINUBA_COMING_OCT_ONE_ID = "6a9f4b77bf56f8c88ee389d1";
@@ -52,7 +52,7 @@ export function getHalloweenSpotIconUrl(listing, now = new Date(), isSelected = 
     const demoKey = listing?.halloween_icon_key || listing?.halloween_spot_type || "halloween_decorations";
     return iconAssets[demoKey] || iconAssets.halloween_decorations;
   }
-  // Keep each spot recognizable while the size helper handles inactive hours.
+  // Keep each spot's existing artwork while displaying it at full map strength.
   if (isComingOctOne(listing)) return HALLOWEEN_ICON_ASSETS.coming_oct_1;
 
   const teaserUntil = listing?.teaser_until ? new Date(listing.teaser_until) : null;
@@ -64,10 +64,10 @@ export function getHalloweenSpotIconUrl(listing, now = new Date(), isSelected = 
 }
 
 export function getHalloweenSpotMapSize(listing, isSelected = false, now = new Date(), zoom = 13) {
-  const isFullIcon = isDinubaComingOctOne(listing) || isAdDemoHalloween(listing) || isAshevilleDecorationSpot(listing) || (isHalloweenFullIconActive(listing, now) && !(isComingOctOne(listing) && isHalloweenTeaser(listing, now)));
-  const baseSize = isFullIcon ? (isSelected ? 38 : 34) : (isSelected ? 22 : 18);
+  // All visible Halloween spots use active sizing, independent of activation hours.
+  const baseSize = isSelected ? 38 : 34;
   const zoomGrowth = Math.max(0, Math.min(4, Number(zoom) - 13));
-  const size = (baseSize + zoomGrowth * (isFullIcon ? 5 : 3)) * (isFullIcon ? 1 : 0.75);
+  const size = baseSize + zoomGrowth * 5;
   if (isSpecialHalloweenIcon(listing)) return Math.round(size * 1.5);
   if (isAshevilleDecorationSpot(listing)) return Math.round(size * 1.5);
   if (!SPONSORED_HALLOWEEN_LOCATION_IDS.has(String(listing?.id))) return size;
