@@ -11,6 +11,7 @@ const PUSH_TYPES = new Set([
   'join_request_denied',
   'co_host_invite',
   'halloween_assisted_approval',
+  'admin_listing_created',
   'residential_access_request',
   'residential_access_approved',
   'residential_access_denied',
