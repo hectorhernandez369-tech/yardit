@@ -32,7 +32,6 @@ import UserAccountMenuContent from "@/components/navigation/UserAccountMenuConte
 import AccountSetupModal from "./components/profile/AccountSetupModal";
 import VerifiedAddressRequiredModal from "./components/profile/VerifiedAddressRequiredModal";
 import FloatingLaunchChecklist from "./components/checklist/FloatingLaunchChecklist";
-import PushSubscribePrompt from "./components/notifications/PushSubscribePrompt";
 import YarditSplashScreen from "@/components/install/YarditSplashScreen";
 import { isIosDevice, isStandaloneInstalled, canUseBrowserInstallPrompt, shouldShowInstallButton, syncInstallRecord } from "@/lib/installPrompt";
 
@@ -333,7 +332,6 @@ function LayoutContent({ children, user, setUser }) {
       />
 
       <InstallPromptDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} mode={installDialogMode} />
-      <PushSubscribePrompt user={user} />
       {canViewLaunchChecklist && (
         <FloatingLaunchChecklist open={showLaunchChecklist} onClose={() => setShowLaunchChecklist(false)} />
       )}
