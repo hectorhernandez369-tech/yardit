@@ -321,42 +321,6 @@ Deno.serve(async (req) => {
       }),
     }).catch(() => {});
 
-    const superMasters = await base44.asServiceRole.entities.User.filter({ role: 'super_master' }).catch(() => []);
-    for (const superMaster of superMasters || []) {
-      const dedupeKey = `admin_created_halloween_${assisted.id}_${superMaster.id}`;
-      const adminNotification = {
-        user_id: superMaster.id,
-        userId: superMaster.id,
-        title: 'Admin created a Halloween Spot 🎃',
-        message: `${user.email || 'An admin'} created "${location.title}" in ${city}, ${state}.${bypass_owner_approval === true ? ' Owner approval was bypassed.' : ''}`,
-        type: 'admin_listing_created',
-        related_entity_type: 'AssistedHalloweenSpot',
-        related_entity_id: assisted.id,
-        delivery_methods: ['push', 'bell'],
-        deep_link: `/HalloweenSpotDetail?id=${location.id}`,
-        dedupe_key: dedupeKey,
-        registry_status: 'active',
-        registry_version: '2026-10-21',
-        metadata: {
-          dedupe_key: dedupeKey,
-          location_id: location.id,
-          assisted_halloween_spot_id: assisted.id,
-          admin_creator_id: user.id,
-          admin_creator_email: user.email || '',
-          bypass_owner_approval: bypass_owner_approval === true,
-        },
-      };
-      const existing = await base44.asServiceRole.entities.Notification.filter({ dedupe_key: dedupeKey }).catch(() => []);
-      if (!existing?.length) {
-        await base44.asServiceRole.entities.Notification.create({
-          ...adminNotification,
-          read: false,
-          is_read: false,
-        }).catch(() => {});
-      }
-      await base44.asServiceRole.functions.invoke('deliverNotificationPush', { data: adminNotification }).catch(() => {});
-    }
-
     return Response.json({
       ok: true,
       locationId: location.id,
