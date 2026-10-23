@@ -232,8 +232,8 @@ export default function StepThree({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Join our Neighborhood Sale",
-          text: "Tap to request to join the Neighborhood Sale on Yardit.",
+          title: formData.title || "Join our Neighborhood Sale",
+          text: `Check out “${formData.title || "our Neighborhood Sale"}” on Yardit! Tap to request to join our Neighborhood Sale.`, 
           url: inviteUrl,
         });
         return;

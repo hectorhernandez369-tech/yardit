@@ -3,6 +3,7 @@ import { Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { isLiveVendorCheckIn } from "@/lib/vendorTiers";
+import { getShareMessage } from "@/lib/socialShareMessage";
 
 export default function VendorPinShareButton({ pin, account, checkIn }) {
   const [busy, setBusy] = useState(false);
@@ -17,13 +18,14 @@ export default function VendorPinShareButton({ pin, account, checkIn }) {
     const url = new URL("/", window.location.origin);
     url.searchParams.set("vendorPin", pin.id);
     const businessName = account.business_name || account.vendor_display_name || "This vendor";
+    const message = `${getShareMessage({ title: businessName })} Find their current location below.`;
     setBusy(true);
     try {
       if (navigator.share) {
-        await navigator.share({ title: businessName, text: `Hey! ${businessName} is currently here 📍\nFind them on Yardit: ${url.href}` });
+        await navigator.share({ title: businessName, text: message, url: url.href });
       } else {
-        await navigator.clipboard.writeText(url.href);
-        toast.success("Vendor location link copied.");
+        await navigator.clipboard.writeText(`${message}\n\n${url.href}`);
+        toast.success("Vendor message and location link copied.");
       }
     } catch (failure) {
       if (failure?.name !== "AbortError") setError("Unable to share the vendor link. Please try again.");

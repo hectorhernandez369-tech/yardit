@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CalendarDays, Loader2, MapPin, Share2, Store, UserCircle } from "lucide-react";
+import { ArrowLeft, CalendarDays, Loader2, MapPin, Store, UserCircle } from "lucide-react";
+import ListingShareButton from "@/components/listing/ListingShareButton";
 import { format } from "date-fns";
 import { formatVendorEventType, getVendorEventStatus, isPublishedVendorEvent } from "@/lib/vendorEvents";
 import { toast } from "sonner";
@@ -266,14 +267,6 @@ export default function VendorEventDetail() {
     queryClient.invalidateQueries({ queryKey: ["publicEventUpdateLikes", eventId] });
   };
 
-  const shareEvent = async () => {
-    const url = window.location.href;
-    if (navigator.share) await navigator.share({ title: event.title, text: event.description, url });
-    else {
-      await navigator.clipboard.writeText(url);
-      toast.success("Event link copied");
-    }
-  };
 
   if (isLoading || (event && !eventIsPublic && organizerPreview && (!authChecked || isLoadingPreviewMemberships))) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (!event || !canViewEvent) return <div className="p-6 text-center">Event not found.</div>;
@@ -286,7 +279,7 @@ export default function VendorEventDetail() {
           <div className="relative h-64 sm:h-96 bg-[#E7D7B8]">
             {heroImage ? <img src={heroImage} alt={event.title} className="h-full w-full object-cover" /> : <div className="h-full w-full flex items-center justify-center text-[#2C4F4E] font-black text-2xl">Yardit Vendor Event</div>}
             <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-            <Button onClick={shareEvent} className="absolute right-4 top-4 bg-white/90 text-[#2C4F4E] hover:bg-white"><Share2 className="h-4 w-4" /> Share</Button>
+            <ListingShareButton listing={event} listingUrl={window.location.href} buttonLabel="Share" className="absolute right-4 top-4 bg-white/90 text-[#2C4F4E] hover:bg-white" />
             <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8 text-white space-y-3"><div className="flex flex-wrap gap-2"><Badge className="bg-[#5DADA5] text-white">{getVendorEventStatus(event)}</Badge><Badge className="bg-white text-[#2C4F4E]">{event.category || "Vendor Event"}</Badge><Badge className="bg-[#F4A849] text-[#2C4F4E]">{formatVendorEventType(event.event_type)}</Badge></div><h1 className="text-3xl sm:text-5xl font-black leading-tight">{event.title}</h1>{isFlyerPdf && <a href={event.flyer_url} target="_blank" rel="noreferrer" className="inline-flex rounded-full bg-white px-4 py-2 text-sm font-bold text-[#2C4F4E] shadow">View Event Flyer</a>}</div>
           </div>
         </section>

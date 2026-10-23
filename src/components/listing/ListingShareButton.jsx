@@ -8,30 +8,33 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Share2, Link, Facebook, Instagram } from "lucide-react";
 import { toast } from "sonner";
+import { getShareMessage, getShareTitle } from "@/lib/socialShareMessage";
+import SocialShareMessageDialog from "@/components/listing/SocialShareMessageDialog";
 
 export default function ListingShareButton({ listing, listingUrl, mainImage, className, buttonLabel = "Share Listing" }) {
   const [fallbackOpen, setFallbackOpen] = useState(false);
 
-  const shareTitle = listing.event_name || listing.title;
-  const shareText = [shareTitle, listing.event_description || listing.description, listingUrl]
-    .filter(Boolean)
-    .join("\n\n");
+  const [shareApp, setShareApp] = useState(null);
+  const [sharing, setSharing] = useState(false);
+  const shareTitle = getShareTitle(listing);
+  const shareText = getShareMessage(listing);
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(listingUrl);
     toast.success("Link copied");
   };
 
-  const handleCopyForApp = async (appName) => {
-    await navigator.clipboard.writeText(shareText);
-    toast.success(`${appName} text copied`);
+  const handleCopyForApp = (appName) => {
+    setFallbackOpen(false);
+    setShareApp(appName);
   };
 
-  const handleShare = async () => {
+  const handleShare = async (message = shareText) => {
     if (!navigator.share) {
       setFallbackOpen(true);
       return;
     }
+    setSharing(true);
     try {
       let fileToShare = null;
       if (mainImage) {
@@ -48,7 +51,7 @@ export default function ListingShareButton({ listing, listingUrl, mainImage, cla
       }
       const shareData = {
         title: shareTitle,
-        text: (listing.event_description || listing.description || "") + "\n\n" + listingUrl,
+        text: fileToShare ? `${message}\n\n${listingUrl}` : message,
       };
       if (fileToShare) {
         shareData.files = [fileToShare];
@@ -57,32 +60,35 @@ export default function ListingShareButton({ listing, listingUrl, mainImage, cla
       }
       await navigator.share(shareData);
     } catch (error) {
-      if (error?.name === "NotAllowedError" || error?.name === "AbortError") {
-        setFallbackOpen(true);
-        return;
-      }
-      throw error;
+      if (error?.name === "AbortError") return;
+      toast.error("Sharing isn't available. Copy the message and paste it into your post.");
+      setShareApp("your social app");
+    } finally {
+      setSharing(false);
     }
   };
 
   return (
+    <>
     <DropdownMenu open={fallbackOpen} onOpenChange={setFallbackOpen}>
       <DropdownMenuTrigger asChild>
         <Button
-          onClick={handleShare}
+          disabled={sharing}
           className={className || "flex-1 gap-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 h-12 text-base font-semibold shadow-sm"}
         >
           <Share2 className="w-4 h-4" />
-          {buttonLabel}
+          {sharing ? "Preparing share…" : buttonLabel}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="w-56 rounded-xl p-2">
+        {typeof navigator.share === "function" && <DropdownMenuItem onClick={() => handleShare()} className="cursor-pointer py-2.5"><Share2 className="w-4 h-4 mr-3" />Share via apps</DropdownMenuItem>}
+        <DropdownMenuItem onClick={() => handleCopyForApp("your social app")} className="cursor-pointer py-2.5"><Link className="w-4 h-4 mr-3" />Copy share message</DropdownMenuItem>
         <DropdownMenuItem onClick={handleCopyLink} className="flex items-center cursor-pointer py-2.5">
           <Link className="w-4 h-4 mr-3 text-slate-600" />
           <span className="font-medium text-slate-700">Copy Link</span>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(listingUrl)}`, "_blank")}
+          onClick={() => handleCopyForApp("Facebook")}
           className="flex items-center cursor-pointer py-2.5"
         >
           <Facebook className="w-4 h-4 mr-3 text-[#1877F2]" />
@@ -106,5 +112,7 @@ export default function ListingShareButton({ listing, listingUrl, mainImage, cla
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    {shareApp && <SocialShareMessageDialog key={shareApp} appName={shareApp} message={shareText} url={listingUrl} onClose={() => setShareApp(null)} onShare={handleShare} />}
+    </>
   );
 }
