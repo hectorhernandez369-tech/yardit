@@ -3,6 +3,7 @@ import { Bug, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOneSignalSubscriptionId } from "@/lib/pushNotifications";
+import { getRuntimeEnvironment } from "@/lib/runtimeEnvironment";
 
 const adminRoles = new Set(["admin", "master", "super_master", "developer"]);
 
@@ -36,6 +37,7 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
     const oneSignalId = await getOneSignalSubscriptionId();
 
     setDebugInfo({
+      runtimeEnvironment: getRuntimeEnvironment(),
       browserDevice: typeof navigator !== "undefined" ? navigator.userAgent : "Unavailable",
       secureContext: typeof window !== "undefined" && window.isSecureContext,
       serviceWorkerSupported,
@@ -54,6 +56,7 @@ export default function PushDebugPanel({ user, storedSubscriptionId }) {
   if (!isAllowed) return null;
 
   const rows = [
+    ["Runtime environment", debugInfo?.runtimeEnvironment],
     ["Browser/device", debugInfo?.browserDevice],
     ["Secure context", yesNo(debugInfo?.secureContext)],
     ["Service worker support", yesNo(debugInfo?.serviceWorkerSupported)],
