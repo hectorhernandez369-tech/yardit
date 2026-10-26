@@ -25,6 +25,7 @@ const ADMIN_PATCH_FIELDS = new Set([
   'viewing_start_time',
   'viewing_end_time',
   'custom_icon_url',
+  'halloween_added_by_name',
 ]);
 
 function normalizeEmail(value = '') {
