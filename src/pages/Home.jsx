@@ -61,6 +61,7 @@ import HalloweenMapFilterPill from "@/components/map/HalloweenMapFilterPill";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
+import YarditsOnSpotlightLayer from "@/components/map/YarditsOnSpotlightLayer";
 import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
 import { isHalloweenSpot, isHalloweenSpotVisible, hasHalloweenCandy } from "@/lib/halloweenSpots";
@@ -2168,6 +2169,9 @@ export default function HomePage() {
                   clusterMinPoints={2}
                 />
               )}
+
+              {/* Isolated Yardit's On spotlight layer; disabled by default. */}
+              <YarditsOnSpotlightLayer events={vendorEvents} />
 
               {/* Vendor Event Stacked Markers (Coming Soon + Active, with stacking) */}
               {!showUpcomingWeekend && (
