@@ -33,7 +33,7 @@ const styles = `
 const spotlightIcon = L.divIcon({
   className: "yardits-on-marker",
   html: '<div class="yardits-on-scene"><div class="yardits-on-beam left"></div><div class="yardits-on-beam right"></div><div class="yardits-on-sign"><div class="yardits-on-kicker">YARDIT\'S OWN!</div><div class="yardits-on-headline">BIG LOUIE</div><div class="yardits-on-sub">COMING SOON</div></div></div>',
-  iconSize:[164,152],iconAnchor:[82,139],popupAnchor:[0,-120],
+  iconSize:[164,152],iconAnchor:[82,139],popupAnchor:[0,-70],
 });
 
 function validCoordinate(value, limit) {
