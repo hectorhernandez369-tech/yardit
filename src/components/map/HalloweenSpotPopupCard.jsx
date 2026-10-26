@@ -43,6 +43,7 @@ export default function HalloweenSpotPopupCard({ listing }) {
           <div className="min-w-0">
             <div className="inline-flex rounded-full border border-orange-300/40 bg-orange-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-orange-200">Halloween Spot</div>
             <h3 className="mt-0.5 truncate text-sm font-black text-white">{listing.title || "Halloween Spot"}</h3>
+            {listing.halloween_added_by_name && <p className="text-[8px] font-medium text-slate-400">Added by {listing.halloween_added_by_name}</p>}
             <FounderBadge userId={listing.owner_user_id || listing.ownerUserId} />
             <p className="text-[10px] font-semibold text-purple-200">{getHalloweenSpotTypeLabel(listing)}</p>
             {listing.halloween_contributor_name && <p className="mt-0.5 text-[9px] font-bold text-orange-200">Community Source: {listing.halloween_contributor_name}</p>}
