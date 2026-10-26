@@ -226,8 +226,8 @@ Deno.serve(async (req) => {
       full_icon_activation_time: effectiveActivationTime,
       owner_user_id: '',
       halloween_added_by_name: (() => {
-        const full = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
-        return full || user.full_name || 'Yardit Admin';
+        const profileName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || String(user.full_name || '').trim();
+        return profileName ? `Admin — ${profileName}` : 'Admin';
       })(),
     });
 
