@@ -1,0 +1,53 @@
+.yardit-event-marquee {
+  position: relative;
+  box-sizing: border-box;
+  width: 156px;
+  height: 82px;
+  padding: 13px 14px 11px;
+  border: 2px solid hsl(var(--accent));
+  border-radius: 10px;
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+  box-shadow: 0 3px 12px hsl(var(--foreground) / 0.45), inset 0 0 12px hsl(var(--accent) / 0.25);
+  text-align: center;
+  cursor: pointer;
+}
+.yardit-event-marquee-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+.yardit-event-marquee-status {
+  margin-top: 4px;
+  color: hsl(var(--accent));
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.yardit-event-marquee-bulb {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: hsl(var(--accent));
+  box-shadow: 0 0 5px hsl(var(--accent)), 0 0 9px hsl(var(--accent) / 0.6);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.yardit-event-marquee-stack {
+  position: absolute;
+  top: -10px;
+  right: -9px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  font-size: 10px;
+  font-weight: 800;
+}
