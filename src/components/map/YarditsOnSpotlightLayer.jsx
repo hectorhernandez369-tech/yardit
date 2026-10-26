@@ -3,6 +3,7 @@ import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { isPublishedVendorEvent } from "@/lib/vendorEvents";
 import { getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
+import ExclusiveEventPopupCard from "@/components/map/ExclusiveEventPopupCard";
 
 // Emergency kill switch: false immediately hides this entire layer.
 // No changes to residential, Halloween, vendor, or standard event markers.
@@ -62,13 +63,8 @@ export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS
       const lat = validCoordinate(event.latitude ?? event.lat ?? event.location?.lat, 90);
       const lng = validCoordinate(event.longitude ?? event.lng ?? event.location?.lng, 180);
       return <Marker key={event.id} position={[lat, lng]} icon={spotlightIcon} zIndexOffset={1200}>
-        <Popup>
-          <div style={{ maxWidth: 260 }}>
-            <strong>YARDIT'S OWN! — {event.title || event.name || "Featured event"}</strong>
-            {(event.flyer_url || event.flyerUrl) && <img src={event.flyer_url || event.flyerUrl} alt="Event flyer" style={{ width:"100%", marginTop:8 }} />}
-            {(event.startDateTime || event.start_date_time || event.start_date) && <p>{new Date(event.startDateTime || event.start_date_time || event.start_date).toLocaleString()}</p>}
-            {event.address && <p>{event.address}</p>}
-          </div>
+        <Popup maxWidth={300} minWidth={240} autoPan className="yardit-exclusive-event-popup">
+          <ExclusiveEventPopupCard event={event} />
         </Popup>
       </Marker>;
     })}
