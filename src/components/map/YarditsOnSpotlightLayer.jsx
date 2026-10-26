@@ -1,5 +1,5 @@
 import React from "react";
-import { Marker, Popup } from "react-leaflet";
+import { Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { isPublishedVendorEvent } from "@/lib/vendorEvents";
 import { getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
@@ -43,6 +43,7 @@ function validCoordinate(value, limit) {
 
 export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS_ON_SPOTLIGHTS_ENABLED, exclusiveEventIds = YARDIT_EXCLUSIVE_EVENT_IDS }) {
   if (!enabled) return null;
+  const map = useMap();
   const now = Date.now();
   const approvedIds = new Set(exclusiveEventIds.map(String));
   if (!approvedIds.size) return null;
@@ -62,8 +63,9 @@ export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS
     {eligible.map((event) => {
       const lat = validCoordinate(event.latitude ?? event.lat ?? event.location?.lat, 90);
       const lng = validCoordinate(event.longitude ?? event.lng ?? event.location?.lng, 180);
-      return <Marker key={event.id} position={[lat, lng]} icon={spotlightIcon} zIndexOffset={1200}>
-        <Popup maxWidth={300} minWidth={240} autoPan className="yardit-exclusive-event-popup">
+      return <Marker key={event.id} position={[lat, lng]} icon={spotlightIcon} zIndexOffset={1200}
+        eventHandlers={{ click: () => map.panTo([lat, lng], { animate: true, duration: 0.35 }) }}>
+        <Popup maxWidth={232} minWidth={190} autoPan={false} className="yardit-exclusive-event-popup">
           <ExclusiveEventPopupCard event={event} />
         </Popup>
       </Marker>;
