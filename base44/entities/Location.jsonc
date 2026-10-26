@@ -305,6 +305,10 @@
     "halloween_contributor_name": {
       "type": "string",
       "description": "Optional public credit for the person or organization that added or contributed this Halloween Spot"
+    },
+    "halloween_added_by_name": {
+      "type": "string",
+      "description": "Public display name of the user or Yardit admin who originally added this Halloween Spot"
     }
   },
   "required": [
