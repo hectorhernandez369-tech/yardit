@@ -1,8 +1,53 @@
 .yardit-exclusive-event-card {
-  box-shadow: 0 0 0 3px hsl(var(--accent) / 0.12), 0 8px 26px hsl(var(--foreground) / 0.35), inset 0 0 24px hsl(var(--accent) / 0.08);
+  position: relative;
+  overflow: hidden;
+  border: 2px solid hsl(var(--exclusive-gold));
+  padding: 20px 16px 16px;
+  color: hsl(var(--exclusive-champagne));
+  background: radial-gradient(ellipse at top left, hsl(var(--exclusive-gold) / 0.24), transparent 55%), linear-gradient(135deg, hsl(var(--exclusive-wine)), hsl(var(--exclusive-plum)));
+  box-shadow: 0 0 0 3px hsl(var(--exclusive-gold) / 0.2), 0 8px 28px hsl(var(--exclusive-plum) / 0.55), inset 0 0 28px hsl(var(--exclusive-gold) / 0.12);
 }
+.yardit-exclusive-event-card::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 10px;
+  right: 10px;
+  height: 4px;
+  background: radial-gradient(circle, hsl(var(--exclusive-champagne)) 1px, transparent 2px) center / 14px 4px repeat-x;
+  filter: drop-shadow(0 0 3px hsl(var(--exclusive-gold)));
+  pointer-events: none;
+}
+.yardit-exclusive-eyebrow {
+  color: hsl(var(--exclusive-gold));
+  border-bottom: 1px solid hsl(var(--exclusive-gold) / 0.35);
+}
+.yardit-exclusive-status {
+  color: hsl(var(--exclusive-champagne));
+  background: hsl(var(--exclusive-gold) / 0.16);
+  border: 1px solid hsl(var(--exclusive-gold) / 0.6);
+}
+.yardit-exclusive-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23px;
+  line-height: 1.15;
+  color: hsl(var(--exclusive-champagne));
+  text-shadow: 0 2px 10px hsl(var(--exclusive-gold) / 0.3);
+}
+.yardit-exclusive-meta { color: hsl(var(--exclusive-champagne) / 0.9); }
+.yardit-exclusive-meta svg { color: hsl(var(--exclusive-gold)); }
+.yardit-exclusive-footer { border-top: 1px solid hsl(var(--exclusive-gold) / 0.35); }
+.yardit-exclusive-event-card .yardit-exclusive-button {
+  min-height: 40px;
+  color: hsl(var(--exclusive-plum));
+  background: linear-gradient(110deg, hsl(var(--exclusive-gold)), hsl(var(--exclusive-champagne)), hsl(var(--exclusive-gold)));
+  border: 1px solid hsl(var(--exclusive-champagne));
+  font-weight: 800;
+  box-shadow: 0 3px 14px hsl(var(--exclusive-gold) / 0.25);
+}
+.yardit-exclusive-event-card .yardit-exclusive-button:hover { filter: brightness(1.08); }
 .leaflet-popup.yardit-exclusive-event-popup .leaflet-popup-close-button {
-  color: hsl(var(--accent)) !important;
-  background: hsl(var(--foreground)) !important;
-  border: 1px solid hsl(var(--accent) / 0.5);
+  color: hsl(var(--exclusive-gold)) !important;
+  background: hsl(var(--exclusive-plum)) !important;
+  border: 1px solid hsl(var(--exclusive-gold) / 0.6);
 }

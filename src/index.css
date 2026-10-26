@@ -550,3 +550,11 @@ button:focus-visible {
 .yardit-halloween-promo-off {
   animation: yardit-halloween-promo-blink 1.2s ease-in-out infinite;
 }
+
+:root,
+.dark {
+  --exclusive-wine: 328 65% 25%;
+  --exclusive-plum: 279 56% 17%;
+  --exclusive-gold: 40 90% 68%;
+  --exclusive-champagne: 45 100% 90%;
+}
