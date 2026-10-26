@@ -7,6 +7,9 @@ import { getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
 // Emergency kill switch: false immediately hides this entire layer.
 // No changes to residential, Halloween, vendor, or standard event markers.
 export const YARDITS_ON_SPOTLIGHTS_ENABLED = true;
+// Admin-curated event IDs only. Never trust a flag supplied by an event creator.
+// Add an approved published event ID here to activate its spotlight.
+export const YARDIT_EXCLUSIVE_EVENT_IDS = [];
 
 const styles = `
 .yardits-on-marker { background: transparent; border: 0; }
@@ -42,11 +45,13 @@ function validCoordinate(value, limit) {
   return value !== null && value !== undefined && value !== "" && Number.isFinite(number) && Math.abs(number) <= limit ? number : null;
 }
 
-export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS_ON_SPOTLIGHTS_ENABLED }) {
+export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS_ON_SPOTLIGHTS_ENABLED, exclusiveEventIds = YARDIT_EXCLUSIVE_EVENT_IDS }) {
   if (!enabled) return null;
   const now = Date.now();
+  const approvedIds = new Set(exclusiveEventIds.map(String));
+  if (!approvedIds.size) return null;
   const eligible = events.filter((event) => {
-    if ((event.yardits_on_spotlight !== true && event.yardit_exclusive !== true) || !isPublishedVendorEvent(event, new Date(now))) return false;
+    if (!approvedIds.has(String(event.id)) || !isPublishedVendorEvent(event, new Date(now))) return false;
     const visibility = getVendorEventVisibilityStatus(event, new Date(now));
     if (visibility !== "coming_soon" && visibility !== "active") return false;
     const lat = validCoordinate(event.latitude ?? event.lat ?? event.location?.lat, 90);
