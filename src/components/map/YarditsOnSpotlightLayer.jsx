@@ -31,7 +31,7 @@ const styles = `
 `;
 const spotlightIcon = L.divIcon({
   className: "yardits-on-marker",
-  html: '<div class="yardits-on-scene"><div class="yardits-on-beam left"></div><div class="yardits-on-beam right"></div><div class="yardits-on-sign"><div class="yardits-on-kicker">YARDIT\'S ON!</div><div class="yardits-on-headline">BIG LOUIE</div><div class="yardits-on-sub">COMING SOON</div></div></div>',
+  html: '<div class="yardits-on-scene"><div class="yardits-on-beam left"></div><div class="yardits-on-beam right"></div><div class="yardits-on-sign"><div class="yardits-on-kicker">YARDIT\'S OWN!</div><div class="yardits-on-headline">BIG LOUIE</div><div class="yardits-on-sub">COMING SOON</div></div></div>',
   iconSize:[164,152],iconAnchor:[82,139],popupAnchor:[0,-120],
 });
 
@@ -64,7 +64,7 @@ export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS
       return <Marker key={event.id} position={[lat, lng]} icon={spotlightIcon} zIndexOffset={1200}>
         <Popup>
           <div style={{ maxWidth: 260 }}>
-            <strong>YARDIT'S ON! — {event.title || event.name || "Featured event"}</strong>
+            <strong>YARDIT'S OWN! — {event.title || event.name || "Featured event"}</strong>
             {(event.flyer_url || event.flyerUrl) && <img src={event.flyer_url || event.flyerUrl} alt="Event flyer" style={{ width:"100%", marginTop:8 }} />}
             {(event.startDateTime || event.start_date_time || event.start_date) && <p>{new Date(event.startDateTime || event.start_date_time || event.start_date).toLocaleString()}</p>}
             {event.address && <p>{event.address}</p>}
