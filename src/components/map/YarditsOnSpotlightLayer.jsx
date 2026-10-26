@@ -6,7 +6,7 @@ import { getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
 
 // Emergency kill switch: false immediately hides this entire layer.
 // No changes to residential, Halloween, vendor, or standard event markers.
-export const YARDITS_ON_SPOTLIGHTS_ENABLED = false;
+export const YARDITS_ON_SPOTLIGHTS_ENABLED = true;
 
 const styles = `
 .yardits-on-marker { background: transparent; border: 0; }
@@ -46,13 +46,13 @@ export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS
   if (!enabled) return null;
   const now = Date.now();
   const eligible = events.filter((event) => {
-    if (event.yardits_on_spotlight !== true || !isPublishedVendorEvent(event, new Date(now))) return false;
+    if (event.yardits_on_spotlight !== true && event.yardit_exclusive !== true || !isPublishedVendorEvent(event, new Date(now))) return false;
     const visibility = getVendorEventVisibilityStatus(event, new Date(now));
     if (visibility !== "coming_soon" && visibility !== "active") return false;
     const lat = validCoordinate(event.latitude ?? event.lat ?? event.location?.lat, 90);
     const lng = validCoordinate(event.longitude ?? event.lng ?? event.location?.lng, 180);
     if (lat === null || lng === null) return false;
-    const expiry = event.end_date_time || event.end_date || event.ends_at;
+    const expiry = event.endDateTime || event.end_date_time || event.end_date || event.ends_at;
     return !expiry || (Number.isFinite(Date.parse(expiry)) && Date.parse(expiry) >= now);
   }).slice(0, 3);
   if (!eligible.length) return null;
@@ -65,8 +65,8 @@ export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS
         <Popup>
           <div style={{ maxWidth: 260 }}>
             <strong>YARDIT'S ON! — {event.title || event.name || "Featured event"}</strong>
-            {event.flyer_url && <img src={event.flyer_url} alt="Event flyer" style={{ width:"100%", marginTop:8 }} />}
-            {(event.start_date_time || event.start_date) && <p>{new Date(event.start_date_time || event.start_date).toLocaleString()}</p>}
+            {(event.flyer_url || event.flyerUrl) && <img src={event.flyer_url || event.flyerUrl} alt="Event flyer" style={{ width:"100%", marginTop:8 }} />}
+            {(event.startDateTime || event.start_date_time || event.start_date) && <p>{new Date(event.start_date_time || event.start_date).toLocaleString()}</p>}
             {event.address && <p>{event.address}</p>}
           </div>
         </Popup>
