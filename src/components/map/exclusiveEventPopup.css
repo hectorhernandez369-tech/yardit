@@ -51,3 +51,20 @@
   background: hsl(var(--exclusive-plum)) !important;
   border: 1px solid hsl(var(--exclusive-gold) / 0.6);
 }
+
+@media (max-width: 639px) {
+  .leaflet-popup.yardit-exclusive-event-popup .leaflet-popup-content {
+    width: 224px !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 64px);
+  }
+  .yardit-exclusive-event-card { padding: 14px 12px 10px; }
+  .yardit-exclusive-event-card > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
+  .yardit-exclusive-title { font-size: 18px; }
+  .yardit-exclusive-eyebrow { padding-bottom: 6px; }
+  .yardit-exclusive-eyebrow span { font-size: 9px; letter-spacing: 0.06em; }
+  .yardit-exclusive-status { padding: 2px 7px; font-size: 9px; }
+  .yardit-exclusive-meta { font-size: 11px; gap: 6px; }
+  .yardit-exclusive-footer { padding-top: 8px; }
+  .yardit-exclusive-event-card .yardit-exclusive-button { min-height: 32px; height: 32px; font-size: 12px; }
+}
