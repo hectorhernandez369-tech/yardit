@@ -82,7 +82,7 @@ export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS
             map.panBy([offsetX, offsetY], { animate: true, duration: 0.35 });
           });
         } }}>
-        <Popup maxWidth={232} minWidth={190} autoPan={false} className="yardit-exclusive-event-popup">
+        <Popup maxWidth={195} minWidth={165} autoPan={false} className="yardit-exclusive-event-popup">
           <ExclusiveEventPopupCard event={event} />
         </Popup>
       </Marker>;
