@@ -64,7 +64,24 @@ export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS
       const lat = validCoordinate(event.latitude ?? event.lat ?? event.location?.lat, 90);
       const lng = validCoordinate(event.longitude ?? event.lng ?? event.location?.lng, 180);
       return <Marker key={event.id} position={[lat, lng]} icon={spotlightIcon} zIndexOffset={1200}
-        eventHandlers={{ click: () => map.panTo([lat, lng], { animate: true, duration: 0.35 }) }}>
+        eventHandlers={{ popupopen: (e) => {
+          requestAnimationFrame(() => {
+            const markerElement = e.target.getElement();
+            const popupElement = e.popup.getElement();
+            const mapElement = map.getContainer();
+            if (!markerElement || !popupElement || !mapElement) return;
+            const markerBounds = markerElement.getBoundingClientRect();
+            const popupBounds = popupElement.getBoundingClientRect();
+            const mapBounds = mapElement.getBoundingClientRect();
+            const left = Math.min(markerBounds.left, popupBounds.left);
+            const right = Math.max(markerBounds.right, popupBounds.right);
+            const top = Math.min(markerBounds.top, popupBounds.top);
+            const bottom = Math.max(markerBounds.bottom, popupBounds.bottom);
+            const offsetX = (left + right) / 2 - (mapBounds.left + mapBounds.right) / 2;
+            const offsetY = (top + bottom) / 2 - (mapBounds.top + mapBounds.bottom) / 2;
+            map.panBy([offsetX, offsetY], { animate: true, duration: 0.35 });
+          });
+        } }}>
         <Popup maxWidth={232} minWidth={190} autoPan={false} className="yardit-exclusive-event-popup">
           <ExclusiveEventPopupCard event={event} />
         </Popup>
