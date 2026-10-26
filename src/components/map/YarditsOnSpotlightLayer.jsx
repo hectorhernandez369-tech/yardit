@@ -46,7 +46,7 @@ export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS
   if (!enabled) return null;
   const now = Date.now();
   const eligible = events.filter((event) => {
-    if (event.yardits_on_spotlight !== true && event.yardit_exclusive !== true || !isPublishedVendorEvent(event, new Date(now))) return false;
+    if ((event.yardits_on_spotlight !== true && event.yardit_exclusive !== true) || !isPublishedVendorEvent(event, new Date(now))) return false;
     const visibility = getVendorEventVisibilityStatus(event, new Date(now));
     if (visibility !== "coming_soon" && visibility !== "active") return false;
     const lat = validCoordinate(event.latitude ?? event.lat ?? event.location?.lat, 90);
@@ -59,14 +59,14 @@ export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS
   return <>
     <style>{styles}</style>
     {eligible.map((event) => {
-      const lat = validCoordinate(event.latitude ?? event.lat, 90);
-      const lng = validCoordinate(event.longitude ?? event.lng, 180);
+      const lat = validCoordinate(event.latitude ?? event.lat ?? event.location?.lat, 90);
+      const lng = validCoordinate(event.longitude ?? event.lng ?? event.location?.lng, 180);
       return <Marker key={event.id} position={[lat, lng]} icon={spotlightIcon} zIndexOffset={1200}>
         <Popup>
           <div style={{ maxWidth: 260 }}>
             <strong>YARDIT'S ON! — {event.title || event.name || "Featured event"}</strong>
             {(event.flyer_url || event.flyerUrl) && <img src={event.flyer_url || event.flyerUrl} alt="Event flyer" style={{ width:"100%", marginTop:8 }} />}
-            {(event.startDateTime || event.start_date_time || event.start_date) && <p>{new Date(event.start_date_time || event.start_date).toLocaleString()}</p>}
+            {(event.startDateTime || event.start_date_time || event.start_date) && <p>{new Date(event.startDateTime || event.start_date_time || event.start_date).toLocaleString()}</p>}
             {event.address && <p>{event.address}</p>}
           </div>
         </Popup>
