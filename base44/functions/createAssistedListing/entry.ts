@@ -112,6 +112,7 @@ Deno.serve(async (req) => {
       sellerEmail = '',
       adminNotes = '',
       sellerPermissionConfirmed = false,
+      specialtyMarquee = null,
       appBaseUrl: clientAppBaseUrl = '',
     } = payload;
 
@@ -139,6 +140,13 @@ Deno.serve(async (req) => {
     const normalizedEndDateTime = new Date(endDateTime).toISOString();
 
     const listingType = normalizeListingType(rawListingType);
+    const specialtyEnabled = listingType === 'event' && specialtyMarquee?.enabled === true;
+    const allowedColors = ['burgundy', 'navy', 'teal', 'purple'];
+    const allowedFonts = ['hollywood', 'bold', 'classic'];
+    const marqueeColor = allowedColors.includes(specialtyMarquee?.color) ? specialtyMarquee.color : 'burgundy';
+    const marqueeFont = allowedFonts.includes(specialtyMarquee?.font) ? specialtyMarquee.font : 'hollywood';
+    const marqueeHeadline = String(specialtyMarquee?.headline || title || '').trim().slice(0, 32);
+    if (specialtyEnabled && !marqueeHeadline) return Response.json({ error: 'Marquee headline is required' }, { status: 400 });
     const token = generateToken();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
@@ -171,6 +179,12 @@ Deno.serve(async (req) => {
       listingType,
       tier: listingTier,
       ...(isEvent ? { event_tier: eventTier } : {}),
+      ...(specialtyEnabled ? {
+        specialty_marquee_enabled: true,
+        specialty_marquee_color: marqueeColor,
+        specialty_marquee_font: marqueeFont,
+        specialty_marquee_headline: marqueeHeadline,
+      } : {}),
       title,
       description,
       photoUrls,
