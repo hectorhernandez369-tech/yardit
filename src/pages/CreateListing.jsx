@@ -2345,36 +2345,6 @@ export default function CreateListingPage() {
                 <p className="text-xs text-amber-800 mt-1">Post on behalf of the homeowner and give them a QR/link to take over the listing.</p>
               </div>
             </label>
-            {isAssistedPost && formData.listingType === "event" && (
-              <div className="mt-3 rounded-xl border border-amber-200 bg-white p-3 space-y-3">
-                <label className="flex items-center gap-2 text-sm font-semibold text-amber-950">
-                  <input type="checkbox" checked={specialtyEnabled} onChange={(e) => setSpecialtyEnabled(e.target.checked)} />
-                  Specialty Event — Hollywood Marquee
-                </label>
-                {specialtyEnabled && <>
-                  <label className="block text-xs font-medium">Marquee headline
-                    <input className="mt-1 w-full rounded border p-2" maxLength={32} value={specialtyHeadline} placeholder={formData.event_name || formData.title || "Event name"} onChange={(e) => setSpecialtyHeadline(e.target.value)} />
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <label className="text-xs">Color
-                      <select className="mt-1 w-full rounded border p-2" value={specialtyColor} onChange={(e) => setSpecialtyColor(e.target.value)}>
-                        {["burgundy","navy","teal","purple"].map(x=><option key={x} value={x}>{x}</option>)}
-                      </select>
-                    </label>
-                    <label className="text-xs">Font
-                      <select className="mt-1 w-full rounded border p-2" value={specialtyFont} onChange={(e) => setSpecialtyFont(e.target.value)}>
-                        {["hollywood","bold","classic"].map(x=><option key={x} value={x}>{x}</option>)}
-                      </select>
-                    </label>
-                  </div>
-                  <div className="rounded-lg border-4 border-dotted border-amber-300 p-3 text-center text-amber-100" style={{background:{burgundy:"#42172d",navy:"#172747",teal:"#164b4a",purple:"#382052"}[specialtyColor],fontFamily:{hollywood:"Georgia,serif",bold:"Arial,sans-serif",classic:"Trebuchet MS,sans-serif"}[specialtyFont]}}>
-                    <div className="text-xs font-bold">YARDIT'S ON!</div>
-                    <div className="text-lg font-black break-words">{specialtyHeadline || formData.event_name || formData.title || "YOUR EVENT"}</div>
-                    <div className="text-xs">COMING SOON</div>
-                  </div>
-                </>}
-              </div>
-            )}
             {isAssistedPost && formData.listingType === "halloween_spot" && (
               <label className="mt-3 flex items-start gap-3 rounded-xl border border-purple-200 bg-white p-3 cursor-pointer">
                 <input
@@ -2432,6 +2402,14 @@ export default function CreateListingPage() {
                 setSelectedUserForAdmin={setSelectedUserForAdmin}
                 isAdminDemoMode={isAdminDemoMode}
                 isAssistedPost={isAssistedPost}
+                specialtyEnabled={specialtyEnabled}
+                setSpecialtyEnabled={setSpecialtyEnabled}
+                specialtyColor={specialtyColor}
+                setSpecialtyColor={setSpecialtyColor}
+                specialtyFont={specialtyFont}
+                setSpecialtyFont={setSpecialtyFont}
+                specialtyHeadline={specialtyHeadline}
+                setSpecialtyHeadline={setSpecialtyHeadline}
                 isStartingPayment={isStartingPayment}
                 paymentError={paymentError}
                 paymentRetryReady={paymentRetryReady}
