@@ -16,6 +16,15 @@ export default function CreateListingEvent({
   selectedUserForAdmin,
   setSelectedUserForAdmin,
   isAdminDemoMode,
+  isAssistedPost = false,
+  specialtyEnabled = false,
+  setSpecialtyEnabled,
+  specialtyColor,
+  setSpecialtyColor,
+  specialtyFont,
+  setSpecialtyFont,
+  specialtyHeadline,
+  setSpecialtyHeadline,
   isStartingPayment,
   paymentError,
   setPaymentError,
@@ -25,7 +34,19 @@ export default function CreateListingEvent({
 }) {
   const eventPriceBreakdown = getResidentialEventPriceBreakdown(formData);
   if (step === 1) {
-    return <EventDetailsStep formData={formData} setFormData={setFormData} />;
+    return <EventDetailsStep
+      formData={formData}
+      setFormData={setFormData}
+      isAssistedPost={isAssistedPost}
+      specialtyEnabled={specialtyEnabled}
+      setSpecialtyEnabled={setSpecialtyEnabled}
+      specialtyColor={specialtyColor}
+      setSpecialtyColor={setSpecialtyColor}
+      specialtyFont={specialtyFont}
+      setSpecialtyFont={setSpecialtyFont}
+      specialtyHeadline={specialtyHeadline}
+      setSpecialtyHeadline={setSpecialtyHeadline}
+    />;
   }
 
   if (step === 2) {

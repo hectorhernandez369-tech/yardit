@@ -8,7 +8,12 @@ import { EVENT_CATEGORIES, getDefaultEventIconForCategory, getEventIconEmoji } f
 import CharacterCounter from "@/components/shared/CharacterCounter";
 import { getResidentialDescriptionLimit, limitText } from "@/lib/residentialDescriptionLimits";
 
-export default function EventDetailsStep({ formData, setFormData }) {
+export default function EventDetailsStep({
+  formData, setFormData, isAssistedPost = false,
+  specialtyEnabled = false, setSpecialtyEnabled,
+  specialtyColor, setSpecialtyColor, specialtyFont, setSpecialtyFont,
+  specialtyHeadline, setSpecialtyHeadline,
+}) {
   const descriptionLimit = getResidentialDescriptionLimit("event");
 
   const setListingType = (value) => {
@@ -30,16 +35,61 @@ export default function EventDetailsStep({ formData, setFormData }) {
             { value: "yard_sale", title: "Yard Sale", description: "Individual residential sale" },
             { value: "neighborhood_sale", title: "Neighborhood Sale", description: "Up to 25 homes within a 500 ft radius" },
             { value: "event", title: "Event", description: "Church, school, fundraiser, charity, community, holiday, family, and sports events" },
-          ].map((option) => {
+          ].filter((option) => !(isAssistedPost && specialtyEnabled) || option.value === "event").map((option) => {
             const selected = formData.listingType === option.value;
             return (
-              <label key={option.value} htmlFor={option.value} className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${selected ? "border-[#006168] bg-[#e6f3f4] ring-2 ring-[#006168]/15" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                <RadioGroupItem value={option.value} id={option.value} className="mt-0.5 shrink-0" />
-                <div>
-                  <div className="font-semibold text-slate-800 text-sm">{option.title}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">{option.description}</div>
-                </div>
-              </label>
+              <React.Fragment key={option.value}>
+                <label htmlFor={option.value} className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${selected ? "border-[#006168] bg-[#e6f3f4] ring-2 ring-[#006168]/15" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                  <RadioGroupItem value={option.value} id={option.value} className="mt-0.5 shrink-0" />
+                  <div>
+                    <div className={`font-semibold text-slate-800 ${selected && isAssistedPost ? "text-base" : "text-sm"}`}>{option.title}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{option.description}</div>
+                  </div>
+                </label>
+                {option.value === "event" && selected && isAssistedPost && (
+                  <div className="ml-4 border-l-2 border-[#006168]/30 pl-4 py-2 space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-amber-200 bg-amber-50 p-3">
+                      <input
+                        type="checkbox"
+                        checked={specialtyEnabled}
+                        onChange={(e) => setSpecialtyEnabled(e.target.checked)}
+                        className="h-4 w-4 shrink-0 accent-[#006168]"
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold text-slate-800">Specialty Event</span>
+                        <span className="block text-xs text-slate-600">Optional Hollywood-style marquee customization</span>
+                      </span>
+                    </label>
+                    {specialtyEnabled && (
+                      <div className="rounded-xl border border-amber-200 bg-white p-4 space-y-3">
+                        <label className="block text-xs font-medium text-slate-700">
+                          Marquee headline
+                          <input className="mt-1 w-full rounded border p-2" maxLength={32} value={specialtyHeadline} placeholder={formData.event_name || formData.title || "Event name"} onChange={(e) => setSpecialtyHeadline(e.target.value)} />
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="text-xs text-slate-700">
+                            Color
+                            <select className="mt-1 w-full rounded border p-2" value={specialtyColor} onChange={(e) => setSpecialtyColor(e.target.value)}>
+                              {["burgundy", "navy", "teal", "purple"].map(x => <option key={x} value={x}>{x}</option>)}
+                            </select>
+                          </label>
+                          <label className="text-xs text-slate-700">
+                            Font
+                            <select className="mt-1 w-full rounded border p-2" value={specialtyFont} onChange={(e) => setSpecialtyFont(e.target.value)}>
+                              {["hollywood", "bold", "classic"].map(x => <option key={x} value={x}>{x}</option>)}
+                            </select>
+                          </label>
+                        </div>
+                        <div className="rounded-lg border-4 border-dotted border-amber-300 p-3 text-center text-amber-100" style={{background:{burgundy:"#42172d",navy:"#172747",teal:"#164b4a",purple:"#382052"}[specialtyColor],fontFamily:{hollywood:"Georgia,serif",bold:"Arial,sans-serif",classic:"Trebuchet MS,sans-serif"}[specialtyFont]}}>
+                          <div className="text-xs font-bold">YARDIT'S ON!</div>
+                          <div className="text-lg font-black break-words">{specialtyHeadline || formData.event_name || formData.title || "YOUR EVENT"}</div>
+                          <div className="text-xs">COMING SOON</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </React.Fragment>
             );
           })}
         </RadioGroup>
