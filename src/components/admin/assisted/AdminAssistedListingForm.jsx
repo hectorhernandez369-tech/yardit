@@ -63,6 +63,10 @@ const EMPTY_FORM = {
   sellerEmail: "",
   adminNotes: "",
   sellerPermissionConfirmed: false,
+  specialtyEnabled: false,
+  specialtyColor: "burgundy",
+  specialtyFont: "hollywood",
+  specialtyHeadline: "",
 };
 
 export default function AdminAssistedListingForm({ adminUser }) {
@@ -82,6 +86,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
       ...p,
       listingType: value,
       tier: DEFAULT_TIERS[value] || "free",
+      specialtyEnabled: value === "event" ? p.specialtyEnabled : false,
       title: p.title === DEFAULT_TITLES[p.listingType] ? DEFAULT_TITLES[value] : p.title,
     }));
   };
@@ -216,6 +221,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
     try {
       const response = await base44.functions.invoke("createAssistedListing", {
         listingType: form.listingType,
+        specialtyMarquee: form.listingType === "event" ? { enabled: form.specialtyEnabled, color: form.specialtyColor, font: form.specialtyFont, headline: form.specialtyHeadline || form.title } : null,
         tier: form.tier,
         ...addrPayload,
         timeZoneId: FALLBACK_TZ,
@@ -324,6 +330,28 @@ export default function AdminAssistedListingForm({ adminUser }) {
           </div>
         </div>
       </div>
+
+      {form.listingType === "event" && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-3">
+          <label className="flex items-center gap-2 text-sm font-bold">
+            <Checkbox checked={form.specialtyEnabled} onCheckedChange={(checked) => update("specialtyEnabled", checked === true)} />
+            Specialty Event — Hollywood Marquee (admin only)
+          </label>
+          {form.specialtyEnabled && <>
+            <Label>Marquee headline (up to 32 characters)</Label>
+            <Input maxLength={32} value={form.specialtyHeadline} placeholder={form.title} onChange={(e) => update("specialtyHeadline", e.target.value)} />
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Color</Label><Select value={form.specialtyColor} onValueChange={(v) => update("specialtyColor", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["burgundy","navy","teal","purple"].map(v=><SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label>Font</Label><Select value={form.specialtyFont} onValueChange={(v) => update("specialtyFont", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["hollywood","bold","classic"].map(v=><SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent></Select></div>
+            </div>
+            <div className="rounded-lg border-4 border-dotted border-amber-300 p-3 text-center text-amber-100" style={{ background: {burgundy:"#42172d",navy:"#172747",teal:"#164b4a",purple:"#382052"}[form.specialtyColor], fontFamily: {hollywood:"Georgia,serif",bold:"Arial,sans-serif",classic:"Trebuchet MS,sans-serif"}[form.specialtyFont] }}>
+              <div className="text-xs font-bold">YARDIT'S ON!</div>
+              <div className="text-xl font-black">{form.specialtyHeadline || form.title}</div>
+              <div className="text-xs">COMING SOON</div>
+            </div>
+          </>}
+        </div>
+      )}
 
       {/* Address */}
       <div className="space-y-3">
