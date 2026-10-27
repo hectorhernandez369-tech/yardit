@@ -2339,6 +2339,9 @@ export default function CreateListingPage() {
             </button>
           </div>
         )}
+        {isAssistedPost && formData.listingType === "event" ? (
+          <AdminAssistedListingForm adminUser={user} initialListingType="event" />
+        ) : (
         <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden" ref={formContainerRef}>
           <FormScrollHelper containerRef={formContainerRef} />
           <div className="p-6 md:p-8">
@@ -2351,9 +2354,6 @@ export default function CreateListingPage() {
                   setStep(1);
                 }}
               />
-            )}
-            {!assistedCreated && isAssistedPost && formData.listingType === "event" && (
-              <AdminAssistedListingForm adminUser={user} initialListingType="event" />
             )}
             {!assistedCreated && formData.listingType === "event" && !isAssistedPost && (
               <CreateListingEvent
@@ -2495,6 +2495,7 @@ export default function CreateListingPage() {
             )}
           </div>
         </div>
+        )}
       </div>
       <NeighborhoodIntroModal open={showNeighborhoodIntro} onClose={() => setShowNeighborhoodIntro(false)} onContinue={() => { setShowNeighborhoodIntro(false); setStep(2); }} />
       <ConfirmHomeAddressModal
