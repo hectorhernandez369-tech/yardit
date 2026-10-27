@@ -69,8 +69,9 @@ const EMPTY_FORM = {
   specialtyHeadline: "",
 };
 
-export default function AdminAssistedListingForm({ adminUser }) {
-  const [form, setForm] = useState({ ...EMPTY_FORM });
+export default function AdminAssistedListingForm({ adminUser, initialListingType = "yard_sale" }) {
+  const initialForm = () => ({ ...EMPTY_FORM, listingType: initialListingType, tier: DEFAULT_TIERS[initialListingType] || "free", title: DEFAULT_TITLES[initialListingType] || "Yard Sale" });
+  const [form, setForm] = useState(initialForm);
   const [addressMethod, setAddressMethod] = useState("search"); // "search" | "pin"
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [pinLocation, setPinLocation] = useState(null); // { lat, lng, street, city, state, zip, formatted, hasFullAddress }
@@ -280,7 +281,7 @@ export default function AdminAssistedListingForm({ adminUser }) {
 
   const handleReset = () => {
     setCreated(null);
-    setForm({ ...EMPTY_FORM });
+    setForm(initialForm());
     setSelectedAddress(null);
     setPinLocation(null);
     setAddressMethod("search");

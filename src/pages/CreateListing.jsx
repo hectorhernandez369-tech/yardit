@@ -22,6 +22,7 @@ import { useAppMode } from "../components/shared/DemoMode";
 import DemoPaymentSkipDialog from "@/components/shared/DemoPaymentSkipDialog";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import AssistedListingQRPanel from "@/components/admin/assisted/AssistedListingQRPanel";
+import AdminAssistedListingForm from "@/components/admin/assisted/AdminAssistedListingForm";
 import {
   getNeighborhoodCreationLeadTimeError,
   normalizeNeighborhoodJoinStatus,
@@ -449,9 +450,9 @@ export default function CreateListingPage() {
     enabled: !!user?.id,
     initialData: null,
   });
-  const canUseAssistedPost = !!quickAssistAdminProfile && ["yard_sale", "halloween_spot"].includes(formData.listingType) && !isAdminCreate;
+  const canUseAssistedPost = !!quickAssistAdminProfile && ["yard_sale", "halloween_spot", "event"].includes(formData.listingType) && !isAdminCreate;
   useEffect(() => {
-    if (!isAdminCreate && ["yard_sale", "halloween_spot"].includes(formData.listingType)) return;
+    if (!isAdminCreate && ["yard_sale", "halloween_spot", "event"].includes(formData.listingType)) return;
     setIsAssistedPost(false);
     setAssistedPermissionConfirmed(false);
   }, [isAdminCreate, formData.listingType]);
@@ -2318,7 +2319,7 @@ export default function CreateListingPage() {
                 </span>
               </label>
             )}
-            {isAssistedPost && formData.listingType !== "halloween_spot" && (
+            {isAssistedPost && formData.listingType !== "halloween_spot" && formData.listingType !== "event" && (
               <label className="mt-3 flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -2338,6 +2339,9 @@ export default function CreateListingPage() {
             </button>
           </div>
         )}
+        {isAssistedPost && formData.listingType === "event" ? (
+          <AdminAssistedListingForm adminUser={user} initialListingType="event" />
+        ) : (
         <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden" ref={formContainerRef}>
           <FormScrollHelper containerRef={formContainerRef} />
           <div className="p-6 md:p-8">
@@ -2351,7 +2355,7 @@ export default function CreateListingPage() {
                 }}
               />
             )}
-            {!assistedCreated && formData.listingType === "event" && (
+            {!assistedCreated && formData.listingType === "event" && !isAssistedPost && (
               <CreateListingEvent
                 step={step}
                 formData={formData}
@@ -2491,6 +2495,7 @@ export default function CreateListingPage() {
             )}
           </div>
         </div>
+        )}
       </div>
       <NeighborhoodIntroModal open={showNeighborhoodIntro} onClose={() => setShowNeighborhoodIntro(false)} onContinue={() => { setShowNeighborhoodIntro(false); setStep(2); }} />
       <ConfirmHomeAddressModal
