@@ -1724,6 +1724,32 @@ export default function CreateListingPage() {
         await finishAssistedPost({ ...response.data, kind: "halloween", saleAddress: response.data.saleFormattedAddress, title: formData.title }, "Assisted Halloween Spot created! 🎃");
         return true;
       }
+      if (formData.listingType === "event") {
+        const startDay = formData.event_start_date;
+        const endDay = formData.event_end_date || startDay;
+        const startTime = formData.event_start_time || "09:00";
+        const endTime = formData.event_end_time || "21:00";
+        if (!startDay || !endDay) {
+          toast.error("Select the event date and time before posting.");
+          return true;
+        }
+        const startDateTime = zonedDateTimeToUtcDate(startDay, startTime + ":00", formData.timeZoneId || "America/Los_Angeles").toISOString();
+        const endDateTime = zonedDateTimeToUtcDate(endDay, endTime + ":00", formData.timeZoneId || "America/Los_Angeles").toISOString();
+        const response = await base44.functions.invoke("createAssistedListing", {
+          listingType: "event",
+          tier: "basic",
+          specialtyMarquee: { enabled: specialtyEnabled, color: specialtyColor, font: specialtyFont, headline: specialtyHeadline || formData.event_name || formData.title },
+          addressText: formData.addressText, city: formData.city, state: getStateAbbreviation(formData.state || ""), zip: formData.zip,
+          lat: formData.lat, lng: formData.lng, location_source: formData.location_source || "address_search",
+          saleFormattedAddress: [formData.addressText, formData.city, getStateAbbreviation(formData.state || ""), formData.zip].filter(Boolean).join(", "),
+          timeZoneId: formData.timeZoneId || "America/Los_Angeles",
+          title: formData.event_name || formData.title, description: formData.event_description || formData.description || "",
+          photoUrls: formData.event_photos || formData.photoUrls || [],
+          startDateTime, endDateTime, sellerPermissionConfirmed: true, appBaseUrl: window.location.origin,
+        });
+        await finishAssistedPost({ ...response.data, kind: "event", saleAddress: response.data.saleFormattedAddress, title: formData.event_name || formData.title }, "Assisted Event created!");
+        return true;
+      }
       if (formData.listingType === "yard_sale") {
         const tz = formData.timeZoneId || "America/Los_Angeles";
         let startDate = formData.selectedRangeStartDate || "";
