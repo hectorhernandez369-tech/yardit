@@ -42,8 +42,8 @@ function validCoordinate(value, limit) {
 }
 
 export default function YarditsOnSpotlightLayer({ events = [], enabled = YARDITS_ON_SPOTLIGHTS_ENABLED, exclusiveEventIds = YARDIT_EXCLUSIVE_EVENT_IDS }) {
-  if (!enabled) return null;
   const map = useMap();
+  if (!enabled) return null;
   const now = Date.now();
   const approvedIds = new Set(exclusiveEventIds.map(String));
   if (!approvedIds.size) return null;

@@ -58,9 +58,9 @@
     min-width: 0 !important;
     max-width: calc(100vw - 64px);
   }
-  .yardit-exclusive-event-card { padding: 9px 8px 7px; }
-  .yardit-exclusive-event-card > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
-  .yardit-exclusive-title { font-size: 14px; }
+  .yardit-exclusive-event-card { padding: 9px 7px 6px; }
+  .yardit-exclusive-event-card > :not([hidden]) ~ :not([hidden]) { margin-top: 5px; }
+  .yardit-exclusive-title { font-size: 13px; }
   .yardit-exclusive-eyebrow { padding-bottom: 6px; }
   .yardit-exclusive-eyebrow span { font-size: 9px; letter-spacing: 0.06em; }
   .yardit-exclusive-status { padding: 2px 7px; font-size: 9px; }
