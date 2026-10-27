@@ -22,7 +22,6 @@ import { useAppMode } from "../components/shared/DemoMode";
 import DemoPaymentSkipDialog from "@/components/shared/DemoPaymentSkipDialog";
 import YardSaleGuideModal from "../components/guide/YardSaleGuideModal";
 import AssistedListingQRPanel from "@/components/admin/assisted/AssistedListingQRPanel";
-import AdminAssistedListingForm from "@/components/admin/assisted/AdminAssistedListingForm";
 import {
   getNeighborhoodCreationLeadTimeError,
   normalizeNeighborhoodJoinStatus,
@@ -81,6 +80,10 @@ export default function CreateListingPage() {
   const [hasAttemptedContinue, setHasAttemptedContinue] = useState(false);
   const [residentialConflict, setResidentialConflict] = useState(null);
   const [isAssistedPost, setIsAssistedPost] = useState(false);
+  const [specialtyEnabled, setSpecialtyEnabled] = useState(false);
+  const [specialtyColor, setSpecialtyColor] = useState("burgundy");
+  const [specialtyFont, setSpecialtyFont] = useState("hollywood");
+  const [specialtyHeadline, setSpecialtyHeadline] = useState("");
   const [assistedPermissionConfirmed, setAssistedPermissionConfirmed] = useState(false);
   const [assistedCreated, setAssistedCreated] = useState(null);
   useEffect(() => {
@@ -454,6 +457,7 @@ export default function CreateListingPage() {
   useEffect(() => {
     if (!isAdminCreate && ["yard_sale", "halloween_spot", "event"].includes(formData.listingType)) return;
     setIsAssistedPost(false);
+    setSpecialtyEnabled(false);
     setAssistedPermissionConfirmed(false);
   }, [isAdminCreate, formData.listingType]);
   // Pull all user listings (used for “1 active listing” rule)
@@ -1720,6 +1724,32 @@ export default function CreateListingPage() {
         await finishAssistedPost({ ...response.data, kind: "halloween", saleAddress: response.data.saleFormattedAddress, title: formData.title }, "Assisted Halloween Spot created! 🎃");
         return true;
       }
+      if (formData.listingType === "event") {
+        const startDay = formData.event_start_date;
+        const endDay = formData.event_end_date || startDay;
+        const startTime = formData.event_start_time || "09:00";
+        const endTime = formData.event_end_time || "21:00";
+        if (!startDay || !endDay) {
+          toast.error("Select the event date and time before posting.");
+          return true;
+        }
+        const startDateTime = zonedDateTimeToUtcDate(startDay, startTime + ":00", formData.timeZoneId || "America/Los_Angeles").toISOString();
+        const endDateTime = zonedDateTimeToUtcDate(endDay, endTime + ":00", formData.timeZoneId || "America/Los_Angeles").toISOString();
+        const response = await base44.functions.invoke("createAssistedListing", {
+          listingType: "event",
+          tier: "basic",
+          specialtyMarquee: { enabled: specialtyEnabled, color: specialtyColor, font: specialtyFont, headline: specialtyHeadline || formData.event_name || formData.title },
+          addressText: formData.addressText, city: formData.city, state: getStateAbbreviation(formData.state || ""), zip: formData.zip,
+          lat: formData.lat, lng: formData.lng, location_source: formData.location_source || "address_search",
+          saleFormattedAddress: [formData.addressText, formData.city, getStateAbbreviation(formData.state || ""), formData.zip].filter(Boolean).join(", "),
+          timeZoneId: formData.timeZoneId || "America/Los_Angeles",
+          title: formData.event_name || formData.title, description: formData.event_description || formData.description || "",
+          photoUrls: formData.event_photos || formData.photoUrls || [],
+          startDateTime, endDateTime, sellerPermissionConfirmed: true, appBaseUrl: window.location.origin,
+        });
+        await finishAssistedPost({ ...response.data, kind: "event", saleAddress: response.data.saleFormattedAddress, title: formData.event_name || formData.title }, "Assisted Event created!");
+        return true;
+      }
       if (formData.listingType === "yard_sale") {
         const tz = formData.timeZoneId || "America/Los_Angeles";
         let startDate = formData.selectedRangeStartDate || "";
@@ -2306,6 +2336,36 @@ export default function CreateListingPage() {
                 <p className="text-xs text-amber-800 mt-1">Post on behalf of the homeowner and give them a QR/link to take over the listing.</p>
               </div>
             </label>
+            {isAssistedPost && formData.listingType === "event" && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-white p-3 space-y-3">
+                <label className="flex items-center gap-2 text-sm font-semibold text-amber-950">
+                  <input type="checkbox" checked={specialtyEnabled} onChange={(e) => setSpecialtyEnabled(e.target.checked)} />
+                  Specialty Event — Hollywood Marquee
+                </label>
+                {specialtyEnabled && <>
+                  <label className="block text-xs font-medium">Marquee headline
+                    <input className="mt-1 w-full rounded border p-2" maxLength={32} value={specialtyHeadline} placeholder={formData.event_name || formData.title || "Event name"} onChange={(e) => setSpecialtyHeadline(e.target.value)} />
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-xs">Color
+                      <select className="mt-1 w-full rounded border p-2" value={specialtyColor} onChange={(e) => setSpecialtyColor(e.target.value)}>
+                        {["burgundy","navy","teal","purple"].map(x=><option key={x} value={x}>{x}</option>)}
+                      </select>
+                    </label>
+                    <label className="text-xs">Font
+                      <select className="mt-1 w-full rounded border p-2" value={specialtyFont} onChange={(e) => setSpecialtyFont(e.target.value)}>
+                        {["hollywood","bold","classic"].map(x=><option key={x} value={x}>{x}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="rounded-lg border-4 border-dotted border-amber-300 p-3 text-center text-amber-100" style={{background:{burgundy:"#42172d",navy:"#172747",teal:"#164b4a",purple:"#382052"}[specialtyColor],fontFamily:{hollywood:"Georgia,serif",bold:"Arial,sans-serif",classic:"Trebuchet MS,sans-serif"}[specialtyFont]}}>
+                    <div className="text-xs font-bold">YARDIT'S ON!</div>
+                    <div className="text-lg font-black break-words">{specialtyHeadline || formData.event_name || formData.title || "YOUR EVENT"}</div>
+                    <div className="text-xs">COMING SOON</div>
+                  </div>
+                </>}
+              </div>
+            )}
             {isAssistedPost && formData.listingType === "halloween_spot" && (
               <label className="mt-3 flex items-start gap-3 rounded-xl border border-purple-200 bg-white p-3 cursor-pointer">
                 <input
@@ -2319,7 +2379,7 @@ export default function CreateListingPage() {
                 </span>
               </label>
             )}
-            {isAssistedPost && formData.listingType !== "halloween_spot" && formData.listingType !== "event" && (
+            {isAssistedPost && formData.listingType !== "halloween_spot" && (
               <label className="mt-3 flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -2339,9 +2399,6 @@ export default function CreateListingPage() {
             </button>
           </div>
         )}
-        {isAssistedPost && formData.listingType === "event" ? (
-          <AdminAssistedListingForm adminUser={user} initialListingType="event" />
-        ) : (
         <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden" ref={formContainerRef}>
           <FormScrollHelper containerRef={formContainerRef} />
           <div className="p-6 md:p-8">
@@ -2495,7 +2552,6 @@ export default function CreateListingPage() {
             )}
           </div>
         </div>
-        )}
       </div>
       <NeighborhoodIntroModal open={showNeighborhoodIntro} onClose={() => setShowNeighborhoodIntro(false)} onContinue={() => { setShowNeighborhoodIntro(false); setStep(2); }} />
       <ConfirmHomeAddressModal
