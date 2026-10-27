@@ -466,12 +466,13 @@ export default function ListingDetailPage() {
                     <Badge className={`${tierColors[listing.event_tier || listing.tier] || "bg-slate-500"} rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white shadow-sm`}>
                       {listing.listingType === "event" ? formatEventTierLabel(listing.event_tier || listing.tier) : listing.tier === "neighborhood_tier" ? "Neighborhood Sale" : listing.tier.toUpperCase()}
                     </Badge>
-                    <span className="text-xs text-slate-500 font-medium">Listing #{getListingNumber(listing)}</span>
+
                   </div>
                   
                   <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-950 break-words leading-[1.1]">
                     {listing.event_name || listing.title}
                   </h1>
+                  <p className="text-xs text-slate-500 font-medium">Listing #{getListingNumber(listing)}</p>
                   <FounderBadge userId={listing.ownerUserId} />
                   
                   <div className="space-y-3 py-2">

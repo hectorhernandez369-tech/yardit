@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import FounderBadge from '@/components/founder/FounderBadge';
+import { getListingNumber } from '@/components/listing/listingDisplay';
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -143,6 +144,7 @@ export default function HalloweenSpotDetail() {
                   <HalloweenLikeButton listingId={spot.id} className="h-7 border-white/20 bg-white/5 px-2 text-xs hover:bg-white/10" />
                 </div>
                 <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">{listing.title}</h1>
+                <p className="mt-1 text-xs font-medium text-slate-400">Listing #{spot.halloween_listing_number || getListingNumber({ ...spot, zip: spot.zip_code })}</p>
                 {spot.halloween_added_by_name && <p className="mt-1 text-xs font-medium text-slate-400">Added by {spot.halloween_added_by_name}</p>}
                 <FounderBadge userId={spot.owner_user_id} />
                 <p className="mt-1 text-sm font-bold text-purple-200">{getHalloweenSpotTypeLabel(spot)}</p>
