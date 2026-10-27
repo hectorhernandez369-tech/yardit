@@ -1,0 +1,62 @@
+{
+  "name": "SpecialtyMarqueeApproval",
+  "type": "object",
+  "properties": {
+    "listing_id": {
+      "type": "string",
+      "description": "Listing approved by Yardit admin"
+    },
+    "approved_by": {
+      "type": "string"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "listing_id",
+    "approved_by",
+    "enabled"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "master",
+            "super_master"
+          ]
+        }
+      }
+    }
+  }
+}

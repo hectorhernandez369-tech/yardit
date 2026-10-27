@@ -610,6 +610,32 @@
       ],
       "default": "none",
       "description": "Payment status for this listing"
+    },
+    "specialty_marquee_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Admin-created specialty event marquee"
+    },
+    "specialty_marquee_color": {
+      "type": "string",
+      "enum": [
+        "burgundy",
+        "navy",
+        "teal",
+        "purple"
+      ]
+    },
+    "specialty_marquee_font": {
+      "type": "string",
+      "enum": [
+        "hollywood",
+        "bold",
+        "classic"
+      ]
+    },
+    "specialty_marquee_headline": {
+      "type": "string",
+      "description": "Short marquee headline"
     }
   },
   "required": [
