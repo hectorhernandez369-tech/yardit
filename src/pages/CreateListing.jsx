@@ -1725,14 +1725,22 @@ export default function CreateListingPage() {
         return true;
       }
       if (formData.listingType === "event") {
-        const startDay = formData.event_start_date;
-        const endDay = formData.event_end_date || startDay;
-        const startTime = formData.event_start_time || "09:00";
-        const endTime = formData.event_end_time || "21:00";
-        if (!startDay || !endDay) {
-          toast.error("Select the event date and time before posting.");
+        const validatedEvent = normalizeResidentialEventSingleDay(formData);
+        const scheduleValidation = getEventScheduleValidation(validatedEvent);
+        if (!formData.event_name?.trim() || !formData.event_category) {
+          toast.error("Complete the required event details before posting.");
+          setStep(1);
           return true;
         }
+        if (!scheduleValidation.hasRequiredFields || scheduleValidation.errors.length) {
+          toast.error(scheduleValidation.errors[0] || "Complete the event date and times before posting.");
+          setStep(3);
+          return true;
+        }
+        const startDay = validatedEvent.event_start_date;
+        const endDay = validatedEvent.event_end_date || startDay;
+        const startTime = validatedEvent.event_start_time;
+        const endTime = validatedEvent.event_end_time;
         const startDateTime = zonedDateTimeToUtcDate(startDay, startTime + ":00", formData.timeZoneId || "America/Los_Angeles").toISOString();
         const endDateTime = zonedDateTimeToUtcDate(endDay, endTime + ":00", formData.timeZoneId || "America/Los_Angeles").toISOString();
         const response = await base44.functions.invoke("createAssistedListing", {
@@ -2244,8 +2252,8 @@ export default function CreateListingPage() {
   const residentialStepLabels = ["Sale Details", "Your Location", "Tier & Schedule", isAdminCreate ? "Assign User" : "Payment"];
   const eventStepLabels = ["Event Info", "Location", "Date & Time", "Add-Ons", isAdminCreate ? "Assign User" : "Payment"];
   const halloweenStepLabels = ["Halloween Spot", "Location", "Publish"];
-  const stepLabels = isEventFlow ? eventStepLabels : isHalloweenFlow ? halloweenStepLabels : residentialStepLabels;
-  const totalSteps = isEventFlow ? 5 : isHalloweenFlow ? 3 : 4;
+  const stepLabels = isEventFlow ? (isAssistedPost ? [...eventStepLabels.slice(0, 3), "Create Assisted Event"] : eventStepLabels) : isHalloweenFlow ? halloweenStepLabels : residentialStepLabels;
+  const totalSteps = isEventFlow ? (isAssistedPost ? 4 : 5) : isHalloweenFlow ? 3 : 4;
   const stepMeta = {
     yard_sale:      { 1: "Tell buyers what you're selling", 2: "Confirm your sale address",      3: "Pick your visibility & schedule", 4: "Complete your listing" },
     neighborhood_sale: { 1: "Set up your event",            2: "Choose the sale area",            3: "Dates & details",                 4: "Payment setup" },
@@ -2296,6 +2304,7 @@ export default function CreateListingPage() {
                 onChange={(e) => {
                   const checked = e.target.checked;
                   setIsAssistedPost(checked);
+                  if (!checked) setSpecialtyEnabled(false);
                   setAssistedPermissionConfirmed(false);
                   setAssistedCreated(null);
                   setFormData((prev) => ({ ...prev, assisted_post: checked }));
@@ -2412,7 +2421,7 @@ export default function CreateListingPage() {
                 }}
               />
             )}
-            {!assistedCreated && formData.listingType === "event" && !isAssistedPost && (
+            {!assistedCreated && formData.listingType === "event" && (
               <CreateListingEvent
                 step={step}
                 formData={formData}
@@ -2422,6 +2431,7 @@ export default function CreateListingPage() {
                 selectedUserForAdmin={selectedUserForAdmin}
                 setSelectedUserForAdmin={setSelectedUserForAdmin}
                 isAdminDemoMode={isAdminDemoMode}
+                isAssistedPost={isAssistedPost}
                 isStartingPayment={isStartingPayment}
                 paymentError={paymentError}
                 paymentRetryReady={paymentRetryReady}
@@ -2536,7 +2546,7 @@ export default function CreateListingPage() {
                       : isAdminCreate && step === entryStepNumber
                       ? "Continue to Assign User"
                       : isAssistedPost
-                      ? formData.listingType === "halloween_spot" ? "Create Assisted Halloween Spot 🎃" : "Create Assisted Yard Sale"
+                      ? formData.listingType === "halloween_spot" ? "Create Assisted Halloween Spot 🎃" : formData.listingType === "event" ? "Create Assisted Event" : "Create Assisted Yard Sale"
                       : formData.listingType === "event"
                       ? "Continue to Payment →"
                       : formData.listingType === "halloween_spot"
