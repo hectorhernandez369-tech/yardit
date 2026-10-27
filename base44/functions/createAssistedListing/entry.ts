@@ -261,6 +261,16 @@ Deno.serve(async (req) => {
       assisted_qr_expires_at: expiresAt.toISOString(),
     });
 
+    // Only this already-authorized assisted-listing backend issues a trusted marquee approval.
+    if (specialtyEnabled) {
+      await base44.asServiceRole.entities.SpecialtyMarqueeApproval.create({
+        listing_id: listing.id,
+        approved_by: user.id,
+        approved_at: now.toISOString(),
+        enabled: true,
+      });
+    }
+
     console.log('Created assisted record:', assisted.id, 'token:', token);
 
     await base44.asServiceRole.entities.AdminAuditLog.create({
