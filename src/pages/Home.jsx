@@ -1015,6 +1015,11 @@ export default function HomePage() {
   const vendorCheckIns = isPublicHomeMode ? publicMapData.vendorCheckIns || [] : privateVendorCheckIns;
   const vendorEvents = isPublicHomeMode ? publicMapData.vendorEvents || [] : privateVendorEvents;
   const promoDiscoveryCodes = isPublicHomeMode ? publicMapData.promoDiscoveryCodes || [] : privatePromoDiscoveryCodes;
+  const { data: specialtyMarqueeApprovals = [] } = useQuery({
+    queryKey: ["publicSpecialtyMarqueeApprovals"],
+    queryFn: () => base44.entities.SpecialtyMarqueeApproval.list(),
+    initialData: [],
+  });
   const requestedVendorEvent = useMemo(() => vendorEvents.find((event) => String(event.id) === String(requestedEventId)) || null, [vendorEvents, requestedEventId]);
   const { data: previewMemberships = [] } = useQuery({
     queryKey: ["homeLeagueEventPreviewMemberships", requestedVendorEvent?.organizer_business_id, user?.id, user?.email],
@@ -2173,7 +2178,7 @@ export default function HomePage() {
 
               {/* Isolated Yardit's On spotlight layer; disabled by default. */}
               <YarditsOnSpotlightLayer events={vendorEvents} />
-              <SpecialtyMarqueeMarkers listings={baseListings} />
+              <SpecialtyMarqueeMarkers listings={baseListings} approvals={specialtyMarqueeApprovals} nearbyPins={baseListings} />
 
               {/* Vendor Event Stacked Markers (Coming Soon + Active, with stacking) */}
               {!showUpcomingWeekend && (
