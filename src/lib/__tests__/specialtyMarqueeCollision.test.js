@@ -16,14 +16,14 @@ test("full display leaves the event point clear", () => {
 });
 
 test("nearby cluster forces compact sign without covering cluster", () => {
-  const cluster = { left: 325, top: 210, right: 360, bottom: 250 };
+  const cluster = { left: 325, top: 170, right: 360, bottom: 220 };
   const result = chooseSpecialtyMarqueeMode(center, [cluster], viewport);
   assert.equal(result.mode, "compact");
   assert.equal(specialtyRectsOverlap(result.rect, cluster, 12), false);
 });
 
 test("crowded map falls back to readable small event marker", () => {
-  const obstacle = { left: 340, top: 185, right: 460, bottom: 285 };
+  const obstacle = { left: 340, top: 185, right: 460, bottom: 250 };
   const result = chooseSpecialtyMarqueeMode(center, [obstacle], viewport);
   assert.equal(result.mode, "marker");
 });
