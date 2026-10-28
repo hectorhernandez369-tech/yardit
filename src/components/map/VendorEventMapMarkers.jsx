@@ -132,7 +132,7 @@ export default function VendorEventMapMarkers({
             key={`ve-${primary.id}`}
             ref={(ref) => { if (ref) markerRefs.current[String(primary.id)] = ref; }}
             position={[primary.latitude, primary.longitude]}
-            icon={primary.icon === "lightbulb_marquee" ? vendorEventMarqueeIcon(primary, isComingSoon || isScheduled, stackCount) : getVendorEventIcon(isComingSoon || isScheduled, stackCount, primary.logo || primary.organizer_logo)}
+            icon={primary.icon === "lightbulb_marquee" && primary.id !== "6adf911b4e77d965a479e3e1" ? vendorEventMarqueeIcon(primary, isComingSoon || isScheduled, stackCount) : getVendorEventIcon(isComingSoon || isScheduled, stackCount, primary.logo || primary.organizer_logo)}
           >
             <Popup maxWidth={300} minWidth={220} autoPan>
               <div className="space-y-2 rounded-xl bg-white p-3 text-slate-900 shadow-sm">
