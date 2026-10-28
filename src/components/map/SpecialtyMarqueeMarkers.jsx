@@ -3,6 +3,7 @@ import { Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { SPECIALTY_COLORS, SPECIALTY_FONTS, specialtyStyle, escapeSpecialtyText } from "@/lib/specialtyMarquee";
 import { SPECIALTY_MARQUEE_SIZES, chooseSpecialtyMarqueeMode } from "@/lib/specialtyMarqueeCollision";
+import { getRenderedLeafletMarkerBounds } from "@/lib/leafletMarkerCollisionBounds";
 
 // Independent emergency switch. The normal event pins and clusters remain untouched.
 export const SPECIALTY_MARQUEES_ENABLED = true;
@@ -69,33 +70,6 @@ function iconFor(listing, mode) {
   });
 }
 
-// Inspect the icons Leaflet is actually displaying, including generated clusters
-// and vendor markers. Hidden markers do not reserve space.
-function getRenderedMarkerBounds(map) {
-  const mapBounds = map.getContainer().getBoundingClientRect();
-  const bounds = [];
-
-  map.eachLayer((layer) => {
-    if (!(layer instanceof L.Marker)) return;
-    const element = layer.getElement?.();
-    if (!element || element.classList.contains("yardit-specialty-marker")) return;
-
-    // Some artwork extends outside a Leaflet icon's outer box.
-    const artwork = [element, ...Array.from(element.children).slice(0, 6)];
-    artwork.forEach((node) => {
-      const rect = node.getBoundingClientRect();
-      if (rect.width < 1 || rect.height < 1) return;
-      bounds.push({
-        left: rect.left - mapBounds.left,
-        top: rect.top - mapBounds.top,
-        right: rect.right - mapBounds.left,
-        bottom: rect.bottom - mapBounds.top,
-      });
-    });
-  });
-  return bounds;
-}
-
 export default function SpecialtyMarqueeMarkers({
   listings = [], approvals = [], enabled = SPECIALTY_MARQUEES_ENABLED,
 }) {
@@ -128,7 +102,7 @@ export default function SpecialtyMarqueeMarkers({
     const refresh = () => {
       if (stopped) return;
       const size = map.getSize();
-      const obstacles = getRenderedMarkerBounds(map);
+      const obstacles = getRenderedLeafletMarkerBounds(map, { excludeClasses: ["yardit-specialty-marker"] });
       const next = {};
 
       visible.forEach((listing) => {
