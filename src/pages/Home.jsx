@@ -2177,7 +2177,9 @@ export default function HomePage() {
               )}
 
               {/* Isolated Yardit's On spotlight layer; disabled by default. */}
-              <YarditsOnSpotlightLayer events={vendorEvents} />
+              {!showUpcomingWeekend && quickMapFilters.events && (filter === "all" || filter === "event") && (
+                <YarditsOnSpotlightLayer events={vendorEvents} />
+              )}
               {!showUpcomingWeekend && quickMapFilters.events && (
                 <SpecialtyMarqueeMarkers
                   listings={eligibleListings.filter((listing) => listing.listingType === "event" && (filter === "all" || filter === "event"))}
