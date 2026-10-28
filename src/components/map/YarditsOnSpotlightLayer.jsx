@@ -30,7 +30,7 @@ const styles = [
 ].join("\n");
 
 function iconForMode(mode, event) {
-  const label = String(event.organizer_business_name || "YARDIT'S ON!").replace(/[&<>"]/g, "").slice(0, 24);
+  const label = String(event.organizer_business_name || "YARDIT'S ON!").split(/\s+aka\b/i)[0].replace(/[&<>"]/g, "").slice(0, 24);
   let html;
   if (mode === "full") {
     html = '<div class="yardits-on-scene"><div class="yardits-on-beam left"></div><div class="yardits-on-beam right"></div>' +
