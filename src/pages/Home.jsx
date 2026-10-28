@@ -2178,7 +2178,12 @@ export default function HomePage() {
 
               {/* Isolated Yardit's On spotlight layer; disabled by default. */}
               <YarditsOnSpotlightLayer events={vendorEvents} />
-              <SpecialtyMarqueeMarkers listings={baseListings} approvals={specialtyMarqueeApprovals} nearbyPins={baseListings} />
+              {!showUpcomingWeekend && quickMapFilters.events && (
+                <SpecialtyMarqueeMarkers
+                  listings={eligibleListings.filter((listing) => listing.listingType === "event" && (filter === "all" || filter === "event"))}
+                  approvals={specialtyMarqueeApprovals}
+                />
+              )}
 
               {/* Vendor Event Stacked Markers (Coming Soon + Active, with stacking) */}
               {!showUpcomingWeekend && (
