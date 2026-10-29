@@ -114,6 +114,24 @@ export default function YarditsOnUnifiedMarker({ event, registerMarker }) {
         icon={markerIcon}
         ref={registerMarker}
         title={"Yardit's Own: " + (event.organizer_business_name || event.title)}
+        eventHandlers={{
+          popupopen: (popupEvent) => {
+            window.requestAnimationFrame(() => {
+              const markerBounds = popupEvent.target.getElement()?.getBoundingClientRect();
+              const popupBounds = popupEvent.popup.getElement()?.getBoundingClientRect();
+              const containerBounds = map.getContainer().getBoundingClientRect();
+              if (!markerBounds || !popupBounds) return;
+              const left = Math.min(markerBounds.left, popupBounds.left);
+              const right = Math.max(markerBounds.right, popupBounds.right);
+              const top = Math.min(markerBounds.top, popupBounds.top);
+              const bottom = Math.max(markerBounds.bottom, popupBounds.bottom);
+              map.panBy([
+                (left + right - containerBounds.left - containerBounds.right) / 2,
+                (top + bottom - containerBounds.top - containerBounds.bottom) / 2,
+              ], { animate: true, duration: 0.35 });
+            });
+          },
+        }}
       >
         <Popup pane="popupPane" maxWidth={270} minWidth={205} autoPan={false} className="yardit-exclusive-event-popup">
           <ExclusiveEventPopupCard event={event} />
