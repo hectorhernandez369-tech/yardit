@@ -63,6 +63,7 @@ function getVendorEventIcon(isComingSoon, stackCount, logoUrl) {
 export default function VendorEventMapMarkers({
   vendorEvents,
   showVendorEvents = true,
+  showPrivateYarditsOnMarker = false,
   eventScheduleEntries = [],
   leagueEventLinks = [],
   leagueGames = [],
@@ -142,7 +143,11 @@ export default function VendorEventMapMarkers({
             key={`ve-${primary.id}`}
             ref={(ref) => { if (ref) markerRefs.current[String(primary.id)] = ref; }}
             position={[primary.latitude, primary.longitude]}
-            icon={String(primary.id) === YARDITS_ON_EVENT_ID ? yarditsOnPin : primary.icon === "lightbulb_marquee" ? vendorEventMarqueeIcon(primary, isComingSoon || isScheduled, stackCount) : getVendorEventIcon(isComingSoon || isScheduled, stackCount, primary.logo || primary.organizer_logo)}
+            icon={String(primary.id) === YARDITS_ON_EVENT_ID
+              ? (showPrivateYarditsOnMarker ? yarditsOnPin : getVendorEventIcon(isComingSoon || isScheduled, stackCount, primary.logo || primary.organizer_logo))
+              : primary.icon === "lightbulb_marquee"
+                ? vendorEventMarqueeIcon(primary, isComingSoon || isScheduled, stackCount)
+                : getVendorEventIcon(isComingSoon || isScheduled, stackCount, primary.logo || primary.organizer_logo)}
           >
             <Popup maxWidth={300} minWidth={220} autoPan>
               <div className="space-y-2 rounded-xl bg-white p-3 text-slate-900 shadow-sm">
