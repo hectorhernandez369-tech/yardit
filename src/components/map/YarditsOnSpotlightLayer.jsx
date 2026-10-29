@@ -17,6 +17,7 @@ const PRIVATE_MARQUEE_VIEWER_ID = "690f554506edf795e5d84122";
 const styles = [
   ".leaflet-marker-icon.yardits-on-marker{background:transparent;border:0;pointer-events:none}",
   ".yardits-on-sign,.yardits-on-mini-sign,.yardits-on-dot,.yardits-on-dot-tail{pointer-events:auto}",
+  ".yardits-on-connector{position:absolute;bottom:0;left:50%;height:16px;width:3px;transform:translateX(-50%);background:linear-gradient(#ffe19a,#a66a28);box-shadow:0 0 4px #f5cf79;pointer-events:none}",
   ".yardits-on-scene{position:relative;width:164px;height:152px}",
   ".yardits-on-beam{position:absolute;bottom:57px;left:75px;width:16px;height:83px;transform-origin:50% 100%;opacity:.78;background:linear-gradient(to top,rgba(255,213,105,.9),rgba(255,239,183,.18) 80%,transparent);clip-path:polygon(38% 100%,62% 100%,100% 0,0 0);filter:drop-shadow(0 0 8px #ffd58a);pointer-events:none}",
   ".yardits-on-beam.left{animation:yardits-on-left 3.6s ease-in-out infinite alternate}",
@@ -41,11 +42,11 @@ function iconForMode(layout, event) {
     html = '<div class="yardits-on-scene"><div class="yardits-on-beam left"></div><div class="yardits-on-beam right"></div>' +
       '<div class="yardits-on-sign"><div style="font-size:10px;font-weight:900">YARDIT&#39;S ON!</div>' +
       '<div style="font-size:16px;font-weight:900;overflow-wrap:anywhere;line-height:1.15">' + label + '</div>' +
-      '<div style="font-size:9px;font-weight:800;color:white">' + (getVendorEventVisibilityStatus(event, new Date()) === "active" ? "LIVE NOW" : "COMING SOON") + '</div></div></div>';
+      '<div style="font-size:9px;font-weight:800;color:white">' + (getVendorEventVisibilityStatus(event, new Date()) === "active" ? "LIVE NOW" : "COMING SOON") + '</div></div><div class="yardits-on-connector"></div></div>';
   } else if (mode === "compact") {
     html = '<div class="yardits-on-mini-scene"><div class="yardits-on-mini-sign">' +
       '<div style="font-size:9px;font-weight:900">YARDIT&#39;S ON!</div><div class="yardits-on-mini-headline">' +
-      label + '</div></div></div>';
+      label + '</div></div><div class="yardits-on-connector"></div></div>';
   } else {
     html = '<div class="yardits-on-dot-scene" aria-label="Featured event"><div class="yardits-on-dot-tail"></div>' +
       '<div class="yardits-on-dot">★</div></div>';
@@ -97,7 +98,8 @@ export default function YarditsOnSpotlightLayer({
       if (stopped) return;
       const size = map.getSize();
       const obstacles = getRenderedLeafletMarkerBounds(map, {
-        excludeClasses: ["yardits-on-marker", "yardit-specialty-marker"],
+        // Ignore this event\'s own location pin; the sign intentionally connects to it.
+        excludeClasses: ["yardits-on-marker", "yardit-specialty-marker", "yardits-on-event-pin"],
       });
       const next = {};
       eligible.forEach((event) => {
