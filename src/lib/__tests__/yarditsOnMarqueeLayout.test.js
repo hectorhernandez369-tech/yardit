@@ -16,20 +16,20 @@ test("marquee gets compact instead of becoming a generic event pin", () => {
   assert.equal(chooseYarditsOnLayout(point, obstacles, viewport).key, "compact-above");
 });
 
-test("marquee can move to the right without moving its event anchor", () => {
+test("marquee never moves to the sides or below the event pin", () => {
   const obstacles = [{ left: 320, right: 480, top: 120, bottom: 278 }];
   const result = chooseYarditsOnLayout(point, obstacles, viewport);
-  assert.equal(result.key, "compact-right");
-  assert.ok(result.rect.left > point.x);
+  assert.equal(result.mode, "hidden");
 });
 
-test("marquee can move to left or bottom if right side is crowded", () => {
-  const obstacles = [
-    { left: 320, right: 480, top: 120, bottom: 278 },
-    { left: 420, right: 800, top: 250, bottom: 450 },
-  ];
-  const result = chooseYarditsOnLayout(point, obstacles, viewport);
-  assert.ok(["compact-left", "compact-below"].includes(result.key));
+test("wide zoom shows only the branded event pin", () => {
+  assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 12).mode, "hidden");
+  assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 14).mode, "hidden");
+});
+
+test("neighborhood zoom shows compact, close zoom shows full", () => {
+  assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 15).key, "compact-above");
+  assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 16).key, "full-above");
 });
 
 test("fully occupied viewport hides only the decoration", () => {
