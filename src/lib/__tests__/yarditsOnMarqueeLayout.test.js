@@ -23,7 +23,7 @@ test("marquee never moves to the sides or below the event pin", () => {
 });
 
 test("wide zoom shows only the branded event pin", () => {
-  assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 12).mode, "hidden");
+  assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 11).mode, "hidden");
   assert.equal(chooseYarditsOnLayout(point, [], viewport, "", 12).mode, "hidden");
 });
 
