@@ -33,9 +33,24 @@ test("compact sign shrinks to small marquee to protect real icons", () => {
   assert.equal(chooseYarditsUnifiedMode(point, [cluster], viewport, 15), "mini");
 });
 
-test("hide decoration rather than cover a cluster if even mini cannot fit", () => {
+test("miniature marquee persists under a crowded Halloween cluster", () => {
   const cluster = { left: 355, top: 307, right: 449, bottom: 358 };
-  assert.equal(chooseYarditsUnifiedMode(point, [cluster], viewport, 17), "hidden");
+  assert.equal(chooseYarditsUnifiedMode(point, [cluster], viewport, 17), "mini");
+  assert.equal(chooseYarditsUnifiedMode(point, [cluster], viewport, 12), "mini");
+  assert.equal(chooseYarditsUnifiedMode(point, [cluster], viewport, 9), "mini");
+});
+
+test("actual cluster around the same coordinate must not hide the event too early", () => {
+  const tightCluster = { left: point.x - 26, top: point.y - 26,
+    right: point.x + 26, bottom: point.y + 26 };
+  for (const zoom of [8, 9, 10, 11, 12, 13]) {
+    assert.equal(chooseYarditsUnifiedMode(point, [tightCluster], viewport, zoom), "mini");
+  }
+});
+
+test("marquee still yields to screen edges, not relocating its event coordinates", () => {
+  assert.equal(chooseYarditsUnifiedMode({ x: 20, y: 50 },
+    [{ left: 0, top: 0, right: 800, bottom: 650 }], viewport, 9), "hidden");
 });
 
 test("do not clip a marquee against the edge of a small mobile viewport", () => {
