@@ -1,0 +1,73 @@
+/* One Hollywood-style marker at El Nuevo 2's coordinates. Decorative lights are never clickable. */
+.leaflet-marker-icon.yardits-unified-exclusive-marker {
+  background: transparent !important;
+  border: 0 !important;
+  pointer-events: none;
+}
+.yardits-unified-scene { position: relative; width: 100%; height: 100%; pointer-events: none; }
+.yardits-unified-sign {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  overflow: hidden;
+  color: #ffe8aa;
+  background: linear-gradient(145deg, #511a33, #230d2c);
+  border: 4px dotted #ffe6aa;
+  border-radius: 11px;
+  box-shadow: 0 0 0 3px #a66a28, 0 0 13px #efb65e, inset 0 0 14px rgba(255, 210, 120, .12);
+  text-shadow: 0 1px 5px rgba(255, 220, 130, .38);
+  font-family: Georgia, "Times New Roman", serif;
+  pointer-events: auto;
+}
+.yardits-unified-pointer {
+  position: absolute;
+  width: 3px;
+  height: 12px;
+  bottom: 0;
+  left: calc(50% - 1.5px);
+  background: linear-gradient(#ffe6aa, #a66a28);
+  box-shadow: 0 0 5px rgba(255, 210, 120, .75);
+  pointer-events: none;
+}
+.yardits-unified-kicker { font-weight: 900; white-space: nowrap; letter-spacing: .35px; }
+.yardits-unified-headline { font-weight: 900; line-height: 1.12; overflow-wrap: anywhere; }
+.yardits-unified-status { font-family: system-ui, sans-serif; font-weight: 800; color: #fff7dc; white-space: nowrap; }
+.yardits-unified-beam {
+  position: absolute;
+  width: 14px;
+  height: 57px;
+  left: calc(50% - 7px);
+  bottom: 73px;
+  transform-origin: center bottom;
+  background: linear-gradient(to top, rgba(255, 215, 129, .9), rgba(255, 227, 164, .15) 75%, transparent);
+  clip-path: polygon(36% 100%, 64% 100%, 100% 0, 0 0);
+  filter: drop-shadow(0 0 7px rgba(255, 210, 120, .8));
+  pointer-events: none;
+}
+.yardits-unified-beam--left { animation: yardits-unified-left 3.8s ease-in-out infinite alternate; }
+.yardits-unified-beam--right { animation: yardits-unified-right 3.8s ease-in-out infinite alternate; }
+@keyframes yardits-unified-left { from { transform: rotate(-30deg); } to { transform: rotate(9deg); } }
+@keyframes yardits-unified-right { from { transform: rotate(30deg); } to { transform: rotate(-9deg); } }
+.yardits-unified-scene--full .yardits-unified-sign { left: 8px; right: 8px; bottom: 12px; min-height: 76px; padding: 7px 5px; }
+.yardits-unified-scene--full .yardits-unified-kicker { font-size: 10px; }
+.yardits-unified-scene--full .yardits-unified-headline { font-size: 17px; }
+.yardits-unified-scene--full .yardits-unified-status { font-size: 9px; }
+.yardits-unified-scene--compact .yardits-unified-sign { left: 5px; right: 5px; bottom: 10px; min-height: 62px; padding: 3px; border-width: 3px; border-radius: 9px; box-shadow: 0 0 0 2px #a66a28, 0 0 9px #efb65e; }
+.yardits-unified-scene--compact .yardits-unified-kicker { font-size: 9px; }
+.yardits-unified-scene--compact .yardits-unified-headline { font-size: 13px; }
+.yardits-unified-scene--compact .yardits-unified-status { font-size: 8px; }
+.yardits-unified-scene--mini .yardits-unified-sign { left: 3px; right: 3px; bottom: 8px; min-height: 38px; padding: 2px; border-width: 2px; border-radius: 7px; gap: 0; box-shadow: 0 0 0 1px #a66a28, 0 0 6px rgba(255, 210, 120, .7); }
+.yardits-unified-scene--mini .yardits-unified-kicker { font-size: 7px; letter-spacing: 0; }
+.yardits-unified-scene--mini .yardits-unified-headline { font-size: 10px; }
+.yardits-unified-scene--mini .yardits-unified-status { font-size: 7px; }
+.yardits-unified-scene--mini .yardits-unified-pointer { height: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .yardits-unified-beam { animation: none !important; }
+  .yardits-unified-beam--left { transform: rotate(-22deg); }
+  .yardits-unified-beam--right { transform: rotate(22deg); }
+}
