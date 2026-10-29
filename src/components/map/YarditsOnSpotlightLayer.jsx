@@ -104,7 +104,7 @@ export default function YarditsOnSpotlightLayer({
         const chosen = chooseYarditsOnLayout(
           point, obstacles, { width: size.x, height: size.y }, modesRef.current[String(event.id)]?.key
         );
-        next[String(event.id)] = chosen.mode;
+        next[String(event.id)] = chosen;
         if (chosen.rect) obstacles.push(chosen.rect);
       });
       const old = modesRef.current;
