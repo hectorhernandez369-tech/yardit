@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Marker, Popup, useMap } from "react-leaflet";
+import { Marker, Pane, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
 import { chooseYarditsUnifiedMode, YARDITS_UNIFIED_SIZES } from "@/lib/yarditsUnifiedMarqueeLayout.js";
@@ -106,16 +106,19 @@ export default function YarditsOnUnifiedMarker({ event, registerMarker }) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || mode === "hidden") return null;
 
   return (
-    <Marker
-      position={[lat, lng]}
-      icon={markerIcon}
-      ref={registerMarker}
-      title={"Yardit's On: " + (event.organizer_business_name || event.title)}
-      zIndexOffset={-150}
-    >
-      <Popup maxWidth={270} minWidth={205} autoPan className="yardit-exclusive-event-popup">
-        <ExclusiveEventPopupCard event={event} />
-      </Popup>
-    </Marker>
+    // Lower than Leaflet's normal marker pane (600). Halloween pins and
+    // cluster circles always draw above the marquee without being hidden.
+    <Pane name="yardits-unified-marquee-preview" style={{ zIndex: 575, pointerEvents: "none" }}>
+      <Marker
+        position={[lat, lng]}
+        icon={markerIcon}
+        ref={registerMarker}
+        title={"Yardit's On: " + (event.organizer_business_name || event.title)}
+      >
+        <Popup pane="popupPane" maxWidth={270} minWidth={205} autoPan className="yardit-exclusive-event-popup">
+          <ExclusiveEventPopupCard event={event} />
+        </Popup>
+      </Marker>
+    </Pane>
   );
 }
