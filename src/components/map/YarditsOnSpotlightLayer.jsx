@@ -3,7 +3,8 @@ import { Marker, Pane, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { isPublishedVendorEvent } from "@/lib/vendorEvents";
 import { getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
-import { SPECIALTY_MARQUEE_SIZES, chooseSpecialtyMarqueeMode } from "@/lib/specialtyMarqueeCollision";
+import { SPECIALTY_MARQUEE_SIZES } from "@/lib/specialtyMarqueeCollision";
+import { chooseYarditsOnLayout } from "@/lib/yarditsOnMarqueeLayout";
 import { getRenderedLeafletMarkerBounds } from "@/lib/leafletMarkerCollisionBounds";
 import ExclusiveEventPopupCard from "@/components/map/ExclusiveEventPopupCard";
 
@@ -30,14 +31,15 @@ const styles = [
   "@media(prefers-reduced-motion:reduce){.yardits-on-beam{animation:none!important}.yardits-on-beam.left{transform:rotate(-22deg)}.yardits-on-beam.right{transform:rotate(22deg)}}",
 ].join("\n");
 
-function iconForMode(mode, event) {
+function iconForMode(layout, event) {
+  const mode = layout.mode;
   const label = String(event.organizer_business_name || "YARDIT'S ON!").split(/\s+aka\b/i)[0].replace(/[&<>"]/g, "").slice(0, 24);
   let html;
   if (mode === "full") {
     html = '<div class="yardits-on-scene"><div class="yardits-on-beam left"></div><div class="yardits-on-beam right"></div>' +
       '<div class="yardits-on-sign"><div style="font-size:10px;font-weight:900">YARDIT&#39;S ON!</div>' +
       '<div style="font-size:16px;font-weight:900;overflow-wrap:anywhere;line-height:1.15">' + label + '</div>' +
-      '<div style="font-size:9px;font-weight:800;color:white">COMING SOON</div></div></div>';
+      '<div style="font-size:9px;font-weight:800;color:white">' + (getVendorEventVisibilityStatus(event, new Date()) === "active" ? "LIVE NOW" : "COMING SOON") + '</div></div></div>';
   } else if (mode === "compact") {
     html = '<div class="yardits-on-mini-scene"><div class="yardits-on-mini-sign">' +
       '<div style="font-size:9px;font-weight:900">YARDIT&#39;S ON!</div><div class="yardits-on-mini-headline">' +
@@ -48,11 +50,11 @@ function iconForMode(mode, event) {
   }
   const size = SPECIALTY_MARQUEE_SIZES[mode];
   return L.divIcon({
-    className: "yardits-on-marker yardits-on-" + mode,
+    className: "yardits-on-marker yardits-on-" + mode + " yardits-on-" + layout.placement,
     html,
     iconSize: [size.width, size.height],
-    iconAnchor: [size.anchorX, size.anchorY],
-    popupAnchor: [0, size.popupY],
+    iconAnchor: [layout.anchorX, layout.anchorY],
+    popupAnchor: [size.width / 2 - layout.anchorX, -layout.anchorY - 6],
   });
 }
 
@@ -99,15 +101,15 @@ export default function YarditsOnSpotlightLayer({
         const lat = validCoordinate(event.latitude ?? event.lat ?? event.location?.lat, 90);
         const lng = validCoordinate(event.longitude ?? event.lng ?? event.location?.lng, 180);
         const point = map.latLngToContainerPoint([lat, lng]);
-        const chosen = chooseSpecialtyMarqueeMode(
-          point, obstacles, { width: size.x, height: size.y }, modesRef.current[String(event.id)]
+        const chosen = chooseYarditsOnLayout(
+          point, obstacles, { width: size.x, height: size.y }, modesRef.current[String(event.id)]?.key
         );
         next[String(event.id)] = chosen.mode;
         if (chosen.rect) obstacles.push(chosen.rect);
       });
       const old = modesRef.current;
       if (Object.keys(next).length === Object.keys(old).length &&
-          Object.keys(next).every((id) => old[id] === next[id])) return;
+          Object.keys(next).every((id) => old[id]?.key === next[id]?.key)) return;
       modesRef.current = next;
       setModes(next);
     };
@@ -137,10 +139,10 @@ export default function YarditsOnSpotlightLayer({
       {eligible.map((event) => {
         const lat = validCoordinate(event.latitude ?? event.lat ?? event.location?.lat, 90);
         const lng = validCoordinate(event.longitude ?? event.lng ?? event.location?.lng, 180);
-        const mode = modes[String(event.id)] || "hidden";
-        if (mode === "hidden") return null;
+        const layout = modes[String(event.id)];
+        if (!layout || layout.mode === "hidden") return null;
         return (
-          <Marker key={event.id} position={[lat, lng]} icon={iconForMode(mode, event)}
+          <Marker key={event.id} position={[lat, lng]} icon={iconForMode(layout, event)}
             eventHandlers={{ popupopen: (e) => {
               window.requestAnimationFrame(() => {
                 const marker = e.target.getElement()?.getBoundingClientRect();
