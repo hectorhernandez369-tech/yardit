@@ -61,7 +61,6 @@ import HalloweenMapFilterPill from "@/components/map/HalloweenMapFilterPill";
 import MapFilterModal from "@/components/map/MapFilterModal";
 import VendorEventMapMarkers from "@/components/map/VendorEventMapMarkers";
 import PromoDiscoveryMarkers from "@/components/map/PromoDiscoveryMarkers";
-import YarditsOnSpotlightLayer from "@/components/map/YarditsOnSpotlightLayer";
 import SpecialtyMarqueeMarkers from "@/components/map/SpecialtyMarqueeMarkers";
 import ComingSoonWeekendMapLayer, { ComingSoonWeekendToggle } from "@/components/map/ComingSoonWeekendMapLayer";
 import { getPreviewListingsOnMapPreference } from "@/lib/listingPreviewPreference";
@@ -2178,10 +2177,7 @@ export default function HomePage() {
                 />
               )}
 
-              {/* Isolated Yardit's On spotlight layer; disabled by default. */}
-              {!showUpcomingWeekend && quickMapFilters.events && canPreviewYarditsOnMarquee && (filter === "all" || filter === "event") && (
-                <YarditsOnSpotlightLayer events={vendorEvents} viewerUserId={user?.id} />
-              )}
+              {/* The private Yardit's On marquee renders as one clickable vendor event marker. */}
               {!showUpcomingWeekend && quickMapFilters.events && (
                 <SpecialtyMarqueeMarkers
                   listings={eligibleListings.filter((listing) => listing.listingType === "event" && (filter === "all" || filter === "event"))}
