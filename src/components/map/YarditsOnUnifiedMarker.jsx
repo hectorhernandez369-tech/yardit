@@ -115,7 +115,7 @@ export default function YarditsOnUnifiedMarker({ event, registerMarker }) {
         ref={registerMarker}
         title={"Yardit's On: " + (event.organizer_business_name || event.title)}
       >
-        <Popup pane="popupPane" maxWidth={270} minWidth={205} autoPan className="yardit-exclusive-event-popup">
+        <Popup pane="popupPane" maxWidth={270} minWidth={205} autoPan={false} className="yardit-exclusive-event-popup">
           <ExclusiveEventPopupCard event={event} />
         </Popup>
       </Marker>
