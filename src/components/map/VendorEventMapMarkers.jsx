@@ -8,6 +8,7 @@ import { isPublishedVendorEvent } from "@/lib/vendorEvents";
 import { groupVendorEventsByLocation, getVendorEventVisibilityStatus } from "@/lib/vendorEventPromotion";
 import { buildUnifiedSchedulePreview } from "@/lib/unifiedEventSchedule";
 import vendorEventMarqueeIcon from "@/lib/vendorEventMarqueeIcon";
+import ExclusiveEventPopupCard from "@/components/map/ExclusiveEventPopupCard";
 
 const markerCache = {};
 // Preserve the recognizable Yardit's On identity even when there is no
@@ -15,10 +16,10 @@ const markerCache = {};
 const YARDITS_ON_EVENT_ID = "6adf911b4e77d965a479e3e1";
 const yarditsOnPin = L.divIcon({
   className: "yardits-on-event-pin",
-  html: '<div style="width:34px;height:34px;box-sizing:border-box;border:3px solid #f5cf79;border-radius:50%;background:#42172d;display:flex;align-items:center;justify-content:center;color:#ffe8aa;font-size:19px;font-weight:900;box-shadow:0 2px 7px rgba(0,0,0,.35)" aria-label="Yardit\'s On event">★</div>',
-  iconSize: [34, 34],
-  iconAnchor: [17, 17],
-  popupAnchor: [0, -20],
+  html: '<div style="width:44px;height:34px;box-sizing:border-box;border:3px dotted #f5cf79;border-radius:9px;background:linear-gradient(135deg,#5a1830,#230d2c);display:flex;align-items:center;justify-content:center;color:#ffe8aa;font-size:13px;font-weight:900;box-shadow:0 0 0 2px #a66a28,0 2px 7px rgba(0,0,0,.35)" aria-label="Yardit\'s On event">Y!</div>',
+  iconSize: [44, 34],
+  iconAnchor: [22, 17],
+  popupAnchor: [0, -21],
 });
 
 const timeLabel = (value) => {
@@ -149,7 +150,10 @@ export default function VendorEventMapMarkers({
                 ? vendorEventMarqueeIcon(primary, isComingSoon || isScheduled, stackCount)
                 : getVendorEventIcon(isComingSoon || isScheduled, stackCount, primary.logo || primary.organizer_logo)}
           >
-            <Popup maxWidth={300} minWidth={220} autoPan>
+            <Popup maxWidth={300} minWidth={220} autoPan className={showPrivateYarditsOnMarker && String(primary.id) === YARDITS_ON_EVENT_ID ? "yardit-exclusive-event-popup" : ""}>
+              {showPrivateYarditsOnMarker && String(primary.id) === YARDITS_ON_EVENT_ID ? (
+                <ExclusiveEventPopupCard event={primary} />
+              ) : (
               <div className="space-y-2 rounded-xl bg-white p-3 text-slate-900 shadow-sm">
                 <div className="flex items-center gap-1 flex-wrap">
                   <Badge className={isComingSoon || isScheduled ? "bg-amber-500 text-white text-[9px] px-1 py-0" : "bg-emerald-600 text-white text-[9px] px-1 py-0"}>
@@ -209,6 +213,7 @@ export default function VendorEventMapMarkers({
                   </Button>
                 </div>
               </div>
+              )}
             </Popup>
           </Marker>
         );
