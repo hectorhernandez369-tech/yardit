@@ -94,7 +94,7 @@ export default function HalloweenSpotDetail() {
   const listing = useMemo(() => toListingShape(spot), [spot]);
   const isHuntStop = listing ? huntStops.some((stop) => stop.id === listing.id) : false;
   const iconKey = spot?.halloween_spot_type || spot?.halloween_icon_key || "halloween_decorations";
-  const iconUrl = isAshevilleDecorationSpot(spot) && spot?.custom_icon_url ? spot.custom_icon_url : HALLOWEEN_ICON_ASSETS[iconKey] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
+  const iconUrl = (isAshevilleDecorationSpot(spot) || spot?.halloween_icon_key === "must_see") && spot?.custom_icon_url ? spot.custom_icon_url : HALLOWEEN_ICON_ASSETS[iconKey] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
   const startDate = spot?.halloween_start_date || spot?.start_date_time;
   const endDate = spot?.halloween_end_date || spot?.end_date_time;
   const startTime = spot?.halloween_start_time || spot?.viewing_start_time;

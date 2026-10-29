@@ -25,7 +25,7 @@ import FounderBadge from '@/components/founder/FounderBadge';
 
 export default function HalloweenSpotPopupCard({ listing }) {
   const defaultIcon = HALLOWEEN_ICON_ASSETS[listing.halloween_spot_type || listing.halloween_icon_key || listing.icon_key || "halloween_decorations"] || HALLOWEEN_ICON_ASSETS.halloween_decorations;
-  const fullIcon = isAshevilleDecorationSpot(listing) && listing.custom_icon_url ? listing.custom_icon_url : defaultIcon;
+  const fullIcon = (isAshevilleDecorationSpot(listing) || listing.halloween_icon_key === "must_see") && listing.custom_icon_url ? listing.custom_icon_url : defaultIcon;
   const startTime = listing.halloween_start_time || listing.viewing_start_time || "";
   const endTime = listing.halloween_end_time || listing.viewing_end_time || "";
   const address = listing.display_address || listing.address_text || listing.addressText || listing.address || [listing.city, listing.state, listing.zip].filter(Boolean).join(", ");
