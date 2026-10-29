@@ -4,11 +4,12 @@ import { SPECIALTY_MARQUEE_SIZES, specialtyRectsOverlap } from "./specialtyMarqu
 // artwork around that location, rather than moving the underlying event pin.
 // Large artwork must stay centered above its actual pin. Moving it to the
 // left/right/below can make it look miles away at wider map zoom levels.
-export const YARDITS_ON_MIN_COMPACT_ZOOM = 15;
+export const YARDITS_ON_MIN_COMPACT_ZOOM = 13;
 export const YARDITS_ON_MIN_FULL_ZOOM = 16;
 export const YARDITS_ON_LAYOUTS = Object.freeze([
-  { key: "full-above", mode: "full", placement: "above", anchorX: 82, anchorY: 200 },
-  { key: "compact-above", mode: "compact", placement: "above", anchorX: 58, anchorY: 120 },
+  // The base of each sign ends just above the branded event marker.
+  { key: "full-above", mode: "full", placement: "above", anchorX: 82, anchorY: 168 },
+  { key: "compact-above", mode: "compact", placement: "above", anchorX: 58, anchorY: 88 },
 ]);
 
 const MIN_GAP = 12;
